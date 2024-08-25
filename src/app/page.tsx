@@ -165,14 +165,18 @@ const FileMatch = ({
     return (
         <div>
             <div className="bg-cyan-200 primary-foreground px-2">
-                <span className="font-medium">{match.Repo}</span> · {match.FileName}
+                <span>{match.Repo} · {match.FileName}</span>
             </div>
-            {/* Code block */}
-            <div className="font-mono px-4">
-                <p>{"1: if (my_ptr->asdf) {"}</p>
-                <p>{"2:    doSomething()"}</p>
-                <p>{"3: }"}</p>
-            </div>
+            {match.Matches.map((match, index) => {
+                const fragment = match.Fragments[0];
+                
+                return (
+                    <div key={index} className="font-mono px-4 py-0.5 text-sm">
+                        <p>{match.LineNum}: {fragment.Pre}<span className="font-bold">{fragment.Match}</span>{fragment.Post}</p>
+                        <Separator />
+                    </div>
+                );
+            })}
         </div>
     );
 }
