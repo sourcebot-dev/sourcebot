@@ -58,36 +58,38 @@ export default function Home() {
     // Currently we do not re-query.
 
     return (
-        <main className="flex h-screen flex-col">
-            <div className="flex flex-row p-1 gap-4 items-center">
-                <Image
-                    src={logo}
-                    className="h-12 w-auto"
-                    alt={"Sourcebot logo"}
-                />
-                <SearchBar
-                    query={query}
-                    numResults={numResults}
-                    onQueryChange={(query) => setQuery(query)}
-                    onLoadingChange={(isLoading) => setIsLoading(isLoading)}
-                    onSearchResult={(result) => {
-                        if (result) {
-                            setFileMatches(result.FileMatches ?? []);
-                            setSearchDurationMs(Math.round(result.Stats.Duration / 1000000));
-                        }
+        <main className="flex flex-col">
+            <div className="sticky top-0 left-0 right-0 bg-white z-10">
+                <div className="flex flex-row p-1 gap-4 items-center">
+                    <Image
+                        src={logo}
+                        className="h-12 w-auto"
+                        alt={"Sourcebot logo"}
+                    />
+                    <SearchBar
+                        query={query}
+                        numResults={numResults}
+                        onQueryChange={(query) => setQuery(query)}
+                        onLoadingChange={(isLoading) => setIsLoading(isLoading)}
+                        onSearchResult={(result) => {
+                            if (result) {
+                                setFileMatches(result.FileMatches ?? []);
+                                setSearchDurationMs(Math.round(result.Stats.Duration / 1000000));
+                            }
 
-                        router.push(`?query=${query}&numResults=${numResults}`);
-                    }}
-                />
-                {isLoading && (
-                    <SymbolIcon className="h-4 w-4 animate-spin" />
-                )}
+                            router.push(`?query=${query}&numResults=${numResults}`);
+                        }}
+                    />
+                    {isLoading && (
+                        <SymbolIcon className="h-4 w-4 animate-spin" />
+                    )}
+                </div>
+                <Separator />
+                <div className="bg-accent p-2">
+                    <p className="text-sm font-medium">Results for: {fileMatches.length} files in {searchDurationMs} ms</p>
+                </div>
+                <Separator />
             </div>
-            <Separator />
-            <div className="bg-accent p-2">
-                <p className="text-sm font-medium">Results for: {fileMatches.length} files in {searchDurationMs} ms</p>
-            </div>
-            <Separator />
             <div className="flex flex-col gap-2">
                 {fileMatches.map((match, index) => (
                     <FileMatch key={index} match={match} />
