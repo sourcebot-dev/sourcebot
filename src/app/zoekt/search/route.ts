@@ -1,3 +1,4 @@
+import { createPathWithQueryParams } from '@/lib/utils';
 import { type NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -5,7 +6,14 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('query');
     const numResults = searchParams.get('numResults');
 
-    const res = await fetch(`http://localhost:6070/search?q=${query}&num=${numResults}&format=json`);
+    const url = createPathWithQueryParams(
+        "http://localhost:6070/search",
+        ["q", query],
+        ["num", numResults],
+        ["format", "json"],
+    );
+    console.log(url);
+    const res = await fetch(url);
     const data = await res.json();
      
     return Response.json({ data })
