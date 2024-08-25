@@ -28,13 +28,14 @@ interface ZoekFileMatch {
     URL: string,
 }
 
-interface ZoekSearchResult {
-    result: {
-        QueryStr: string,
-        FileMatches: ZoekFileMatch[] | null,
-    }
+interface ZoekResult {
+    QueryStr: string,
+    FileMatches: ZoekFileMatch[] | null,
 }
 
+interface ZoekSearchResponse {
+    result: ZoekResult;
+}
 
 export default function Home() {
     const router = useRouter();
@@ -67,9 +68,8 @@ export default function Home() {
                     query={query}
                     numResults={numResults}
                     onQueryChange={(query) => setQuery(query)}
-                    onClear={() => setFileMatches([])}
-                    onSearchResult={({ result }) => {
-                        setFileMatches(result.FileMatches ?? []);
+                    onSearchResult={(result) => {
+                        setFileMatches(result?.FileMatches ?? []);
                         router.push(`?query=${query}&numResults=${numResults}`);
                     }}
                 />
@@ -91,8 +91,7 @@ interface SearchBarProps {
     query: string;
     numResults: number;
     onQueryChange: (query: string) => void;
-    onSearchResult: (result: ZoekSearchResult) => void,
-    onClear: () => void,
+    onSearchResult: (result?: ZoekResult) => void,
 }
 
 const SearchBar = ({
@@ -100,20 +99,19 @@ const SearchBar = ({
     numResults,
     onQueryChange,
     onSearchResult,
-    onClear,
 }: SearchBarProps) => {
     const SEARCH_DEBOUNCE_MS = 200;
 
     const search = useDebouncedCallback((query: string) => {
         if (query === "") {
-            onClear();
+            onSearchResult(undefined);
             return;
         }
         console.log('making query...');
         fetch(`http://localhost:3000/zoekt/search?query=${query}&numResults=${numResults}`)
             .then(response => response.json())
-            .then(({ data }: { data: ZoekSearchResult }) => {
-                onSearchResult(data);
+            .then(({ data }: { data: ZoekSearchResponse }) => {
+                onSearchResult(data.result);
             })
             // @todo : error handling
             .catch(error => {
