@@ -9,6 +9,12 @@ import { Separator } from "@/components/ui/separator"
 import { useRouter } from "next/navigation";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { SymbolIcon } from "@radix-ui/react-icons";
+import { ScrollArea, Scrollbar } from "@radix-ui/react-scroll-area";
+import {
+    ResizableHandle,
+    ResizablePanel,
+    ResizablePanelGroup,
+  } from "@/components/ui/resizable"
 
 interface ZoekMatch {
     URL: string,
@@ -58,7 +64,7 @@ export default function Home() {
     // Currently we do not re-query.
 
     return (
-        <main className="flex flex-col">
+        <main className="max-h-screen">
             <div className="sticky top-0 left-0 right-0 bg-white z-10">
                 <div className="flex flex-row p-1 gap-4 items-center">
                     <Image
@@ -90,11 +96,22 @@ export default function Home() {
                 </div>
                 <Separator />
             </div>
-            <div className="flex flex-col gap-2">
-                {fileMatches.map((match, index) => (
-                    <FileMatch key={index} match={match} />
-                ))}
-            </div>
+            <ResizablePanelGroup direction="horizontal">
+                <ResizablePanel>
+                    <ScrollArea type="scroll">
+                        <div className="flex flex-col gap-2">
+                            {fileMatches.map((match, index) => (
+                                <FileMatch key={index} match={match} />
+                            ))}
+                        </div>
+                        <Scrollbar orientation="vertical" />
+                    </ScrollArea>
+                </ResizablePanel>
+                <ResizableHandle />
+                <ResizablePanel>
+                    <p>CODE EDITOR</p>
+                </ResizablePanel>
+            </ResizablePanelGroup>
         </main>
     );
 }
