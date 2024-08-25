@@ -59,7 +59,7 @@ export default function Home() {
 
     return (
         <main className="flex h-screen flex-col">
-            <div className="flex flex-row p-2 gap-4 items-center">
+            <div className="flex flex-row p-1 gap-4 items-center">
                 <Image
                     src={logo}
                     className="h-12 w-auto"
@@ -87,6 +87,7 @@ export default function Home() {
             <div className="bg-accent p-2">
                 <p className="text-sm font-medium">Results for: {fileMatches.length} files in {searchDurationMs} ms</p>
             </div>
+            <Separator />
             <div className="flex flex-col gap-2">
                 {fileMatches.map((match, index) => (
                     <FileMatch key={index} match={match} />
@@ -163,7 +164,15 @@ const FileMatch = ({
 
     return (
         <div>
-            <p><span className="font-bold">{match.Repo}</span> | {match.FileName}</p>
+            <div className="bg-cyan-200 primary-foreground px-2">
+                <span className="font-medium">{match.Repo}</span> · {match.FileName}
+            </div>
+            {/* Code block */}
+            <div className="font-mono px-4">
+                <p>{"1: if (my_ptr->asdf) {"}</p>
+                <p>{"2:    doSomething()"}</p>
+                <p>{"3: }"}</p>
+            </div>
         </div>
     );
 }
