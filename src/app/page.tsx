@@ -1,20 +1,25 @@
 'use client';
 
-import Image from "next/image";
-import logo from "../../public/sb_logo_large_3.png"
-import { Input } from "@/components/ui/input"
-import { useEffect, useState } from "react";
-import { useDebouncedCallback } from 'use-debounce';
-import { Separator } from "@/components/ui/separator"
-import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
+import { defaultKeymap } from "@codemirror/commands";
+import { javascript } from "@codemirror/lang-javascript";
+import { EditorView, keymap, ViewUpdate } from "@codemirror/view";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { ScrollArea, Scrollbar } from "@radix-ui/react-scroll-area";
+import CodeMirror, { StateField } from '@uiw/react-codemirror';
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useDebouncedCallback } from 'use-debounce';
+import logo from "../../public/sb_logo_large_3.png";
+
 import {
     ResizableHandle,
     ResizablePanel,
     ResizablePanelGroup,
-  } from "@/components/ui/resizable"
+} from "@/components/ui/resizable";
 
 interface ZoekMatch {
     URL: string,
@@ -52,9 +57,11 @@ export default function Home() {
     const router = useRouter();
     const defaultQuery = useNonEmptyQueryParam("query") ?? "";
     const defaultNumResults = useNonEmptyQueryParam("numResults");
- 
+
     const [query, setQuery] = useState(defaultQuery);
     const [numResults, _setNumResults] = useState(defaultNumResults && !isNaN(Number(defaultNumResults)) ? Number(defaultNumResults) : 100);
+
+    const [isCodePanelOpen, _setIsCodePanelOpen] = useState(true);
 
     const [fileMatches, setFileMatches] = useState<ZoekFileMatch[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +71,7 @@ export default function Home() {
     // Currently we do not re-query.
 
     return (
-        <main className="max-h-screen">
+        <main className="h-screen overflow-hidden">
             <div className="sticky top-0 left-0 right-0 bg-white z-10">
                 <div className="flex flex-row p-1 gap-4 items-center">
                     <Image
@@ -97,23 +104,54 @@ export default function Home() {
                 <Separator />
             </div>
             <ResizablePanelGroup direction="horizontal">
-                <ResizablePanel>
-                    <ScrollArea type="scroll">
+                <ResizablePanel minSize={20}>
+                    <ScrollArea className="h-full overflow-y-auto">
                         <div className="flex flex-col gap-2">
                             {fileMatches.map((match, index) => (
-                                <FileMatch key={index} match={match} />
+                                <FileMatch
+                                    key={index}
+                                    match={match}
+                                    onOpenFile={(filename) => {
+                                        console.log(filename);
+                                    }}
+                                />
                             ))}
                         </div>
                         <Scrollbar orientation="vertical" />
                     </ScrollArea>
                 </ResizablePanel>
-                <ResizableHandle />
-                <ResizablePanel>
-                    <p>CODE EDITOR</p>
-                </ResizablePanel>
+                <ResizableHandle withHandle={true} />
+                {isCodePanelOpen && (
+                    <ResizablePanel
+                        minSize={20}
+                    >
+                        <CodeEditor
+                            code="hello"
+                        />
+                    </ResizablePanel>
+                )}
             </ResizablePanelGroup>
         </main>
     );
+}
+
+interface CodeEditorProps {
+    code: string;
+}
+
+const CodeEditor = ({
+    code,
+}: CodeEditorProps) => {
+    return (
+        <CodeMirror
+            editable={false}
+            value={code}
+            extensions={[
+                keymap.of(defaultKeymap),
+                javascript(),
+            ]}
+        />
+    )
 }
 
 interface SearchBarProps {
@@ -175,10 +213,12 @@ const SearchBar = ({
 
 interface FileMatchProps {
     match: ZoekFileMatch;
+    onOpenFile: (filename: string) => void;
 }
 
 const FileMatch = ({
     match,
+    onOpenFile,
 }: FileMatchProps) => {
 
     return (
@@ -188,9 +228,15 @@ const FileMatch = ({
             </div>
             {match.Matches.map((match, index) => {
                 const fragment = match.Fragments[0];
-                
+
                 return (
-                    <div key={index} className="font-mono px-4 py-0.5 text-sm">
+                    <div
+                        key={index}
+                        className="font-mono px-4 py-0.5 text-sm cursor-pointer"
+                        onClick={() =>{
+                            onOpenFile(match.FileName);
+                        }}
+                    >
                         <p>{match.LineNum}: {fragment.Pre}<span className="font-bold">{fragment.Match}</span>{fragment.Post}</p>
                         <Separator />
                     </div>
