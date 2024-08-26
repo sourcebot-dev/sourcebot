@@ -5,13 +5,13 @@ import { Separator } from "@/components/ui/separator";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { defaultKeymap } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
-import { EditorView, keymap, ViewUpdate } from "@codemirror/view";
+import { keymap } from "@codemirror/view";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { ScrollArea, Scrollbar } from "@radix-ui/react-scroll-area";
-import CodeMirror, { StateField } from '@uiw/react-codemirror';
+import CodeMirror from '@uiw/react-codemirror';
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDebouncedCallback } from 'use-debounce';
 import logo from "../../public/sb_logo_large_3.png";
 
@@ -20,6 +20,8 @@ import {
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { GetSourceResponse, pathQueryParamName, repoQueryParamName } from "@/lib/api";
+import { createPathWithQueryParams } from "@/lib/utils";
 
 interface ZoekMatch {
     URL: string,
@@ -61,7 +63,8 @@ export default function Home() {
     const [query, setQuery] = useState(defaultQuery);
     const [numResults, _setNumResults] = useState(defaultNumResults && !isNaN(Number(defaultNumResults)) ? Number(defaultNumResults) : 100);
 
-    const [isCodePanelOpen, _setIsCodePanelOpen] = useState(true);
+    const [isCodePanelOpen, setIsCodePanelOpen] = useState(false);
+    const [code, setCode] = useState("");
 
     const [fileMatches, setFileMatches] = useState<ZoekFileMatch[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -111,8 +114,21 @@ export default function Home() {
                                 <FileMatch
                                     key={index}
                                     match={match}
-                                    onOpenFile={(filename) => {
-                                        console.log(filename);
+                                    onOpenFile={() => {
+                                        const url = createPathWithQueryParams(
+                                            `http://localhost:3000/api/source`,
+                                            [pathQueryParamName, match.FileName],
+                                            [repoQueryParamName, match.Repo]
+                                        );
+
+                                        // @todo : this query should definitely be cached s.t., when the user is switching between files,
+                                        // we aren't re-fetching the same file.
+                                        fetch(url)
+                                            .then(response => response.json())
+                                            .then((body: GetSourceResponse) => {
+                                                setIsCodePanelOpen(true);
+                                                setCode(body.content);
+                                            });
                                     }}
                                 />
                             ))}
@@ -126,7 +142,7 @@ export default function Home() {
                         minSize={20}
                     >
                         <CodeEditor
-                            code="hello"
+                            code={code}
                         />
                     </ResizablePanel>
                 )}
@@ -143,14 +159,17 @@ const CodeEditor = ({
     code,
 }: CodeEditorProps) => {
     return (
-        <CodeMirror
-            editable={false}
-            value={code}
-            extensions={[
-                keymap.of(defaultKeymap),
-                javascript(),
-            ]}
-        />
+        <ScrollArea className="h-full overflow-y-auto">
+            <CodeMirror
+                editable={false}
+                value={code}
+                extensions={[
+                    keymap.of(defaultKeymap),
+                    javascript(),
+                ]}
+            />
+            <Scrollbar orientation="vertical" />
+        </ScrollArea>
     )
 }
 
@@ -180,7 +199,7 @@ const SearchBar = ({
         console.log('making query...');
 
         onLoadingChange(true);
-        fetch(`http://localhost:3000/zoekt/search?query=${query}&numResults=${numResults}`)
+        fetch(`http://localhost:3000/api/search?query=${query}&numResults=${numResults}`)
             .then(response => response.json())
             .then(({ data }: { data: ZoekSearchResponse }) => {
                 onSearchResult(data.result);
@@ -213,7 +232,7 @@ const SearchBar = ({
 
 interface FileMatchProps {
     match: ZoekFileMatch;
-    onOpenFile: (filename: string) => void;
+    onOpenFile: () => void;
 }
 
 const FileMatch = ({
@@ -234,7 +253,7 @@ const FileMatch = ({
                         key={index}
                         className="font-mono px-4 py-0.5 text-sm cursor-pointer"
                         onClick={() =>{
-                            onOpenFile(match.FileName);
+                            onOpenFile();
                         }}
                     >
                         <p>{match.LineNum}: {fragment.Pre}<span className="font-bold">{fragment.Match}</span>{fragment.Post}</p>
