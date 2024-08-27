@@ -11,10 +11,10 @@ import { ScrollArea, Scrollbar } from "@radix-ui/react-scroll-area";
 import CodeMirror from '@uiw/react-codemirror';
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from 'use-debounce';
-import logo from "../../public/sb_logo_large_3.png";
-
+import logoLight from "../../public/sb_logo_light.png";
+import logoDark from "../../public/sb_logo_dark.png";
 import {
     ResizableHandle,
     ResizablePanel,
@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/resizable";
 import { GetSourceResponse, pathQueryParamName, repoQueryParamName } from "@/lib/api";
 import { createPathWithQueryParams } from "@/lib/utils";
+import { ThemeSelectorButton } from "./themeSelectorButton";
+import { useTheme } from "next-themes";
 
 interface ZoekMatch {
     URL: string,
@@ -75,30 +77,38 @@ export default function Home() {
 
     return (
         <main className="h-screen overflow-hidden">
-            <div className="sticky top-0 left-0 right-0 bg-white z-10">
-                <div className="flex flex-row p-1 gap-4 items-center">
-                    <Image
-                        src={logo}
-                        className="h-12 w-auto"
-                        alt={"Sourcebot logo"}
-                    />
-                    <SearchBar
-                        query={query}
-                        numResults={numResults}
-                        onQueryChange={(query) => setQuery(query)}
-                        onLoadingChange={(isLoading) => setIsLoading(isLoading)}
-                        onSearchResult={(result) => {
-                            if (result) {
-                                setFileMatches(result.FileMatches ?? []);
-                                setSearchDurationMs(Math.round(result.Stats.Duration / 1000000));
-                            }
+            <div className="sticky top-0 left-0 right-0 z-10">
+                <div className="flex flex-row justify-between items-center py-1 px-2 gap-4">
+                    <div className="grow flex flex-row gap-4 items-center">
+                        <Image
+                            src={logoDark}
+                            className="h-12 w-auto hidden dark:block"
+                            alt={"Sourcebot logo"}
+                        />
+                        <Image
+                            src={logoLight}
+                            className="h-12 w-auto block dark:hidden"
+                            alt={"Sourcebot logo"}
+                        />
+                        <SearchBar
+                            query={query}
+                            numResults={numResults}
+                            onQueryChange={(query) => setQuery(query)}
+                            onLoadingChange={(isLoading) => setIsLoading(isLoading)}
+                            onSearchResult={(result) => {
+                                if (result) {
+                                    setFileMatches(result.FileMatches ?? []);
+                                    setSearchDurationMs(Math.round(result.Stats.Duration / 1000000));
+                                }
 
-                            router.push(`?query=${query}&numResults=${numResults}`);
-                        }}
-                    />
-                    {isLoading && (
-                        <SymbolIcon className="h-4 w-4 animate-spin" />
-                    )}
+                                router.push(`?query=${query}&numResults=${numResults}`);
+                            }}
+                        />
+                        {isLoading && (
+                            <SymbolIcon className="h-4 w-4 animate-spin" />
+                        )}
+                    </div>
+                    <ThemeSelectorButton />
                 </div>
                 <Separator />
                 <div className="bg-accent p-2">
@@ -158,11 +168,21 @@ interface CodeEditorProps {
 const CodeEditor = ({
     code,
 }: CodeEditorProps) => {
+    const { theme: _theme, systemTheme } = useTheme();
+    const theme = useMemo(() => {
+        if (_theme === "system") {
+            return systemTheme ?? "light";
+        }
+
+        return _theme ?? "light";
+    }, [_theme]);
+
     return (
         <ScrollArea className="h-full overflow-y-auto">
             <CodeMirror
                 editable={false}
                 value={code}
+                theme={theme === "dark" ? "dark" : "light"}
                 extensions={[
                     keymap.of(defaultKeymap),
                     javascript(),
@@ -242,7 +262,7 @@ const FileMatch = ({
 
     return (
         <div>
-            <div className="bg-cyan-200 primary-foreground px-2">
+            <div className="bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2">
                 <span>{match.Repo} · {match.FileName}</span>
             </div>
             {match.Matches.map((match, index) => {
