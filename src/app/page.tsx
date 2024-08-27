@@ -5,8 +5,8 @@ import { Separator } from "@/components/ui/separator";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { defaultKeymap } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
-import { keymap } from "@codemirror/view";
-import { SymbolIcon } from "@radix-ui/react-icons";
+import { EditorView, keymap, ViewPlugin, ViewUpdate } from "@codemirror/view";
+import { SymbolIcon, FileIcon, Cross1Icon } from "@radix-ui/react-icons";
 import { ScrollArea, Scrollbar } from "@radix-ui/react-scroll-area";
 import CodeMirror from '@uiw/react-codemirror';
 import Image from "next/image";
@@ -24,6 +24,7 @@ import { GetSourceResponse, pathQueryParamName, repoQueryParamName } from "@/lib
 import { createPathWithQueryParams } from "@/lib/utils";
 import { ThemeSelectorButton } from "./themeSelectorButton";
 import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
 
 interface ZoekMatch {
     URL: string,
@@ -67,6 +68,7 @@ export default function Home() {
 
     const [isCodePanelOpen, setIsCodePanelOpen] = useState(false);
     const [code, setCode] = useState("");
+    const [filepath, setFilepath] = useState("");
 
     const [fileMatches, setFileMatches] = useState<ZoekFileMatch[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -138,6 +140,7 @@ export default function Home() {
                                             .then((body: GetSourceResponse) => {
                                                 setIsCodePanelOpen(true);
                                                 setCode(body.content);
+                                                setFilepath(match.FileName);
                                             });
                                     }}
                                 />
@@ -153,6 +156,8 @@ export default function Home() {
                     >
                         <CodeEditor
                             code={code}
+                            filepath={filepath}
+                            onClose={() => setIsCodePanelOpen(false)}
                         />
                     </ResizablePanel>
                 )}
@@ -163,10 +168,14 @@ export default function Home() {
 
 interface CodeEditorProps {
     code: string;
+    filepath: string;
+    onClose: () => void;
 }
 
 const CodeEditor = ({
     code,
+    filepath,
+    onClose,
 }: CodeEditorProps) => {
     const { theme: _theme, systemTheme } = useTheme();
     const theme = useMemo(() => {
@@ -177,19 +186,62 @@ const CodeEditor = ({
         return _theme ?? "light";
     }, [_theme]);
 
+    const [gutterWidth, setGutterWidth] = useState(0);
+    const gutterWidthPlugin = useMemo(() => {
+        return ViewPlugin.fromClass(class {
+            width: number = 0;
+            constructor(view: EditorView) {
+                this.measureWidth(view)
+            }
+            update(update: ViewUpdate) {
+                if (update.geometryChanged) this.measureWidth(update.view)
+            }
+            measureWidth(view: EditorView) {
+                let gutter = view.scrollDOM.querySelector('.cm-gutters') as HTMLElement
+                if (gutter) this.width = gutter.offsetWidth
+            }
+        });
+    }, []);
+
     return (
-        <ScrollArea className="h-full overflow-y-auto">
-            <CodeMirror
-                editable={false}
-                value={code}
-                theme={theme === "dark" ? "dark" : "light"}
-                extensions={[
-                    keymap.of(defaultKeymap),
-                    javascript(),
-                ]}
-            />
-            <Scrollbar orientation="vertical" />
-        </ScrollArea>
+        <div className="h-full">
+            <div className="flex flex-row bg-cyan-200 dark:bg-cyan-900 items-center justify-between pr-3">
+                <div className="flex flex-row">
+                    <div
+                        style={{width: `${gutterWidth}px`}}
+                        className="flex justify-center items-center"
+                    >
+                        <FileIcon className="h-4 w-4" />
+                    </div>
+                    <span>{filepath}</span>
+                </div>
+                <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <Cross1Icon
+                        className="h-4 w-4"
+                        onClick={onClose}
+                    />
+                </Button>
+            </div>
+            <ScrollArea className="h-full overflow-y-auto">
+                <CodeMirror
+                    editable={false}
+                    value={code}
+                    theme={theme === "dark" ? "dark" : "light"}
+                    extensions={[
+                        keymap.of(defaultKeymap),
+                        javascript(),
+                        gutterWidthPlugin.extension,
+                        EditorView.updateListener.of(update => {
+                            const width = update.view.plugin(gutterWidthPlugin)?.width;
+                            if (width) {
+                                setGutterWidth(width);
+                            }
+                        })
+                    ]}
+                />
+                <Scrollbar orientation="vertical" />
+            </ScrollArea>
+        </div>
     )
 }
 
@@ -272,7 +324,7 @@ const FileMatch = ({
                     <div
                         key={index}
                         className="font-mono px-4 py-0.5 text-sm cursor-pointer"
-                        onClick={() =>{
+                        onClick={() => {
                             onOpenFile();
                         }}
                     >
