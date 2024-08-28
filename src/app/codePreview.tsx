@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { EditorView, keymap, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { Cross1Icon, FileIcon } from "@radix-ui/react-icons";
 import { useTheme } from "next-themes";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CodeMirror from '@uiw/react-codemirror';
 import { vim } from "@replit/codemirror-vim";
 import { defaultKeymap } from "@codemirror/commands";
@@ -32,7 +32,7 @@ export const CodePreview = ({
         }
 
         return _theme ?? "light";
-    }, [_theme]);
+    }, [_theme, systemTheme]);
 
     const [gutterWidth, setGutterWidth] = useState(0);
     const gutterWidthPlugin = useMemo(() => {
