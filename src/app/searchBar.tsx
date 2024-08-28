@@ -52,7 +52,7 @@ export const SearchBar = ({
     return (
         <Input
             value={query}
-            className="max-w-lg"
+            className="w-full h-8"
             placeholder="Search..."
             onChange={(e) => {
                 const query = e.target.value;

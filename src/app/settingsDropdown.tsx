@@ -55,7 +55,7 @@ export const SettingsDropdown = ({
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" className="w-8 h-8">
                     <Settings className="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>

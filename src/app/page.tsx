@@ -46,16 +46,16 @@ export default function Home() {
         <main className="h-screen overflow-clip">
             {/* TopBar */}
             <div className="sticky top-0 left-0 right-0 z-10">
-                <div className="flex flex-row justify-between items-center py-1 px-2 gap-4">
+                <div className="flex flex-row justify-between items-center py-1.5 px-3 gap-4">
                     <div className="grow flex flex-row gap-4 items-center">
                         <Image
                             src={logoDark}
-                            className="h-12 w-auto hidden dark:block"
+                            className="h-4 w-auto hidden dark:block"
                             alt={"Sourcebot logo"}
                         />
                         <Image
                             src={logoLight}
-                            className="h-12 w-auto block dark:hidden"
+                            className="h-4 w-auto block dark:hidden"
                             alt={"Sourcebot logo"}
                         />
                         <SearchBar
@@ -82,7 +82,7 @@ export default function Home() {
                     />
                 </div>
                 <Separator />
-                <div className="bg-accent p-2">
+                <div className="bg-accent p-1">
                     <p className="text-sm font-medium">Results for: {fileMatches.length} files in {searchDurationMs} ms</p>
                 </div>
                 <Separator />
