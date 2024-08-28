@@ -6,7 +6,7 @@ import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 import path from "path";
 import fs from "fs";
-import { GetSourceResponse, pathQueryParamName, repoQueryParamName } from "@/lib/api";
+import { GetSourceResponse, pathQueryParamName, repoQueryParamName } from "@/lib/types";
 
 
 /**
