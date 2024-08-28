@@ -1,30 +1,31 @@
 'use client';
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
-import { defaultKeymap } from "@codemirror/commands";
-import { javascript } from "@codemirror/lang-javascript";
-import { EditorView, keymap, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { SymbolIcon, FileIcon, Cross1Icon } from "@radix-ui/react-icons";
-import { ScrollArea, Scrollbar } from "@radix-ui/react-scroll-area";
-import CodeMirror from '@uiw/react-codemirror';
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { useDebouncedCallback } from 'use-debounce';
-import logoLight from "../../public/sb_logo_light.png";
-import logoDark from "../../public/sb_logo_dark.png";
 import {
     ResizableHandle,
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { Separator } from "@/components/ui/separator";
+import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { GetSourceResponse, pathQueryParamName, repoQueryParamName } from "@/lib/api";
 import { createPathWithQueryParams } from "@/lib/utils";
-import { ThemeSelectorButton } from "./themeSelectorButton";
+import { defaultKeymap } from "@codemirror/commands";
+import { javascript } from "@codemirror/lang-javascript";
+import { EditorView, keymap, ViewPlugin, ViewUpdate } from "@codemirror/view";
+import { Cross1Icon, FileIcon, SymbolIcon } from "@radix-ui/react-icons";
+import { ScrollArea, Scrollbar } from "@radix-ui/react-scroll-area";
+import { vim } from "@replit/codemirror-vim";
+import CodeMirror from '@uiw/react-codemirror';
 import { useTheme } from "next-themes";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useDebouncedCallback } from 'use-debounce';
+import logoDark from "../../public/sb_logo_dark.png";
+import logoLight from "../../public/sb_logo_light.png";
+import { ThemeSelectorButton } from "./themeSelectorButton";
 
 interface ZoekMatch {
     URL: string,
@@ -158,6 +159,7 @@ export default function Home() {
                             code={code}
                             filepath={filepath}
                             onClose={() => setIsCodePanelOpen(false)}
+                            keymapType="default"
                         />
                     </ResizablePanel>
                 )}
@@ -169,12 +171,14 @@ export default function Home() {
 interface CodeEditorProps {
     code: string;
     filepath: string;
+    keymapType: "default" | "vim";
     onClose: () => void;
 }
 
 const CodeEditor = ({
     code,
     filepath,
+    keymapType,
     onClose,
 }: CodeEditorProps) => {
     const { theme: _theme, systemTheme } = useTheme();
@@ -208,7 +212,7 @@ const CodeEditor = ({
             <div className="flex flex-row bg-cyan-200 dark:bg-cyan-900 items-center justify-between pr-3">
                 <div className="flex flex-row">
                     <div
-                        style={{width: `${gutterWidth}px`}}
+                        style={{ width: `${gutterWidth}px` }}
                         className="flex justify-center items-center"
                     >
                         <FileIcon className="h-4 w-4" />
@@ -224,11 +228,15 @@ const CodeEditor = ({
             </div>
             <ScrollArea className="h-full overflow-y-auto">
                 <CodeMirror
-                    editable={false}
+                    readOnly={true}
                     value={code}
                     theme={theme === "dark" ? "dark" : "light"}
                     extensions={[
-                        keymap.of(defaultKeymap),
+                        ...(keymapType === "vim" ? [
+                            vim(),
+                        ] : [
+                            keymap.of(defaultKeymap),
+                        ]),
                         javascript(),
                         gutterWidthPlugin.extension,
                         EditorView.updateListener.of(update => {
