@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
-import { GetSourceResponse, pathQueryParamName, repoQueryParamName, ZoektFileMatch } from "@/lib/types";
+import { GetSourceResponse, KeymapType, pathQueryParamName, repoQueryParamName, ZoektFileMatch } from "@/lib/types";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
@@ -18,7 +18,8 @@ import logoLight from "../../public/sb_logo_light.png";
 import { CodePreview } from "./codePreview";
 import { SearchBar } from "./searchBar";
 import { SearchResults } from "./searchResults";
-import { ThemeSelectorButton } from "./themeSelectorButton";
+import { SettingsDropdown } from "./settingsDropdown";
+import { useLocalStorage } from "@uidotdev/usehooks";
 
 export default function Home() {
     const router = useRouter();
@@ -35,6 +36,8 @@ export default function Home() {
     const [fileMatches, setFileMatches] = useState<ZoektFileMatch[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [searchDurationMs, setSearchDurationMs] = useState(0);
+
+    const [keymapType, saveKeymapType] = useLocalStorage<KeymapType>("keymapType", "default");
 
     // @todo: We need to be able to handle the case when the user navigates backwards / forwards.
     // Currently we do not re-query.
@@ -73,7 +76,10 @@ export default function Home() {
                             <SymbolIcon className="h-4 w-4 animate-spin" />
                         )}
                     </div>
-                    <ThemeSelectorButton />
+                    <SettingsDropdown
+                        keymapType={keymapType}
+                        onKeymapTypeChange={saveKeymapType}
+                    />
                 </div>
                 <Separator />
                 <div className="bg-accent p-2">
@@ -115,7 +121,7 @@ export default function Home() {
                         code={code}
                         filepath={filepath}
                         onClose={() => setIsCodePanelOpen(false)}
-                        keymapType="default"
+                        keymapType={keymapType}
                     />
                 </ResizablePanel>
             </ResizablePanelGroup>

@@ -19,6 +19,7 @@
     "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@replit/codemirror-vim": "^6.2.1",
+    "@uidotdev/usehooks": "^2.4.1",
     "@uiw/react-codemirror": "^4.23.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

@@ -38,3 +38,5 @@ export interface ZoektResult {
 export interface ZoektSearchResponse {
     result: ZoektResult,
 }
+
+export type KeymapType = "default" | "vim";
