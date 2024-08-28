@@ -43,7 +43,7 @@ export default function Home() {
     // Currently we do not re-query.
 
     return (
-        <main className="h-screen overflow-clip">
+        <main className="flex flex-col h-screen overflow-clip">
             {/* TopBar */}
             <div className="sticky top-0 left-0 right-0 z-10">
                 <div className="flex flex-row justify-between items-center py-1.5 px-3 gap-4">

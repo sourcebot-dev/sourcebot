@@ -15,7 +15,7 @@ export const SearchResults = ({
     onOpenFileMatch,
 }: SearchResultsProps) => {
     return (
-        <ScrollArea className="h-full overflow-y-auto">
+        <ScrollArea className="h-full">
             <div className="flex flex-col gap-2">
                 {fileMatches.map((match, index) => (
                     <FileMatch
