@@ -10,10 +10,10 @@ import { useEffect, useMemo } from "react";
 export function useExtensionWithDependency(
     view: EditorView | null,
     extensionFactory: () => Extension,
-    deps: any[],
+    deps: unknown[],
 ) {
     const compartment = useMemo(() => new Compartment(), []);
-    const extension = useMemo(() => compartment.of(extensionFactory()), []);
+    const extension = useMemo(() => compartment.of(extensionFactory()), [compartment, extensionFactory]);
 
     useEffect(() => {
         if (view) {
@@ -21,6 +21,7 @@ export function useExtensionWithDependency(
                 effects: compartment.reconfigure(extensionFactory()),
             });
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, deps);
 
     return extension;

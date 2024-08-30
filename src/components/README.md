@@ -1,0 +1,1 @@
+Note: This directory is reserved for shadcn components: https://ui.shadcn.com/

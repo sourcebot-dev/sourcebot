@@ -17,7 +17,7 @@ export const gutterWidthExtension = ViewPlugin.fromClass(class {
     }
     
     measureWidth = (view: EditorView) => {
-        let gutter = view.scrollDOM.querySelector('.cm-gutters') as HTMLElement;
+        const gutter = view.scrollDOM.querySelector('.cm-gutters') as HTMLElement;
         if (gutter) { 
             this.width = gutter.offsetWidth;
         }

@@ -90,15 +90,15 @@ export const CodePreview = ({
         }
 
         markMatches(selectedMatchIndex, file.matches, editorRef.current.view);
-    }, [file?.matches, selectedMatchIndex]);
+    }, [file, selectedMatchIndex]);
 
     const onUpClicked = useCallback(() => {
         onSelectedMatchIndexChange(selectedMatchIndex - 1);
-    }, [selectedMatchIndex]);
+    }, [onSelectedMatchIndexChange, selectedMatchIndex]);
 
     const onDownClicked = useCallback(() => {
         onSelectedMatchIndexChange(selectedMatchIndex + 1);
-    }, [selectedMatchIndex]);
+    }, [onSelectedMatchIndexChange, selectedMatchIndex]);
 
     return (
         <div className="flex flex-col h-full">

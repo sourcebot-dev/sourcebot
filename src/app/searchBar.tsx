@@ -47,7 +47,7 @@ export const SearchBar = ({
 
     useEffect(() => {
         search(query);
-    }, [query]);
+    }, [query, search]);
 
     return (
         <Input
