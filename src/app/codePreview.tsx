@@ -14,8 +14,9 @@ import { Cross1Icon, FileIcon } from "@radix-ui/react-icons";
 import { Scrollbar } from "@radix-ui/react-scroll-area";
 import { vim } from "@replit/codemirror-vim";
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface CodePreviewFile {
     content: string;
@@ -26,16 +27,22 @@ export interface CodePreviewFile {
 interface CodePreviewProps {
     file?: CodePreviewFile;
     keymapType: "default" | "vim";
+    selectedMatchIndex: number;
+    onSelectedMatchIndexChange: (index: number) => void;
     onClose: () => void;
 }
 
 export const CodePreview = ({
     file,
     keymapType,
+    selectedMatchIndex,
+    onSelectedMatchIndexChange,
     onClose,
 }: CodePreviewProps) => {
     const editorRef = useRef<ReactCodeMirrorRef>(null);
+
     const { theme: _theme, systemTheme } = useTheme();
+
     const theme = useMemo(() => {
         if (_theme === "system") {
             return systemTheme ?? "light";
@@ -59,16 +66,42 @@ export const CodePreview = ({
         [keymapType]
     );
 
+    const extensions = useMemo(() => {
+        return [
+            keymapExtension,
+            gutterWidthExtension,
+            javascript(),
+            searchResultHighlightExtension(),
+            search({
+                top: true,
+            }),
+            EditorView.updateListener.of(update => {
+                const width = update.view.plugin(gutterWidthExtension)?.width;
+                if (width) {
+                    setGutterWidth(width);
+                }
+            }),
+        ];
+    }, [keymapExtension]);
+
     useEffect(() => {
         if (!file || !editorRef.current?.view) {
             return;
         }
 
-        markMatches(file.matches, editorRef.current.view);
-    }, [file?.matches]);
+        markMatches(selectedMatchIndex, file.matches, editorRef.current.view);
+    }, [file?.matches, selectedMatchIndex]);
+
+    const onUpClicked = useCallback(() => {
+        onSelectedMatchIndexChange(selectedMatchIndex - 1);
+    }, [selectedMatchIndex]);
+
+    const onDownClicked = useCallback(() => {
+        onSelectedMatchIndexChange(selectedMatchIndex + 1);
+    }, [selectedMatchIndex]);
 
     return (
-        <div className="h-full">
+        <div className="flex flex-col h-full">
             <div className="flex flex-row bg-cyan-200 dark:bg-cyan-900 items-center justify-between pr-3">
                 <div className="flex flex-row">
                     <div
@@ -79,34 +112,43 @@ export const CodePreview = ({
                     </div>
                     <span>{file?.filepath}</span>
                 </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <Cross1Icon
-                        className="h-4 w-4"
+                <div className="flex flex-row gap-1 items-center">
+                    <p className="text-sm">{`${selectedMatchIndex + 1} of ${file?.matches.length}`}</p>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={selectedMatchIndex === 0}
+                        onClick={onUpClicked}
+                    >
+                        <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={onDownClicked}
+                        disabled={file ? selectedMatchIndex === file?.matches.length - 1 : true}
+                    >
+                        <ArrowDown className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
                         onClick={onClose}
-                    />
-                </Button>
+                    >
+                        <Cross1Icon className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
-            <ScrollArea className="h-full overflow-y-auto">
+            <ScrollArea className="h-full overflow-auto flex-1">
                 <CodeMirror
                     ref={editorRef}
                     readOnly={true}
                     value={file?.content}
                     theme={theme === "dark" ? "dark" : "light"}
-                    extensions={[
-                        keymapExtension,
-                        gutterWidthExtension,
-                        javascript(),
-                        searchResultHighlightExtension(),
-                        search({
-                            top: true,
-                        }),
-                        EditorView.updateListener.of(update => {
-                            const width = update.view.plugin(gutterWidthExtension)?.width;
-                            if (width) {
-                                setGutterWidth(width);
-                            }
-                        })
-                    ]}
+                    extensions={extensions}
                 />
                 <Scrollbar orientation="vertical" />
             </ScrollArea>

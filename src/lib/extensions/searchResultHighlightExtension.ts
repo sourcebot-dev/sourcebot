@@ -1,12 +1,27 @@
-import { Extension, StateEffect, StateField, Transaction } from "@codemirror/state";
+import { EditorSelection, Extension, StateEffect, StateField, Text, Transaction } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
 import { ZoektMatch } from "../types";
 
 const matchMark = Decoration.mark({
     class: "cm-searchMatch"
 });
+const selectedMatchMark = Decoration.mark({
+    class: "cm-searchMatch cm-searchMatch-selected"
+});
 
-const setMatches = StateEffect.define<ZoektMatch[]>();
+const setMatchState = StateEffect.define<{
+    selectedMatchIndex: number,
+    matches: ZoektMatch[],
+}>();
+
+const getMatchRange = (match: ZoektMatch, document: Text) => {
+    const line = document.line(match.LineNum);
+    const fragment = match.Fragments[0];
+    const from = line.from + fragment.Pre.length;
+    const to = from + fragment.Match.length;
+    return { from, to };
+}
+
 
 const matchHighlighter = StateField.define<DecorationSet>({
     create () {
@@ -16,13 +31,13 @@ const matchHighlighter = StateField.define<DecorationSet>({
         highlights = highlights.map(transaction.changes);
 
         for (const effect of transaction.effects) {
-            if (effect.is(setMatches)) {
-                const decorations = effect.value.map(match => {
-                    const line = transaction.newDoc.line(match.LineNum);
-                    const fragment = match.Fragments[0];
-                    const from = line.from + fragment.Pre.length;
-                    const to = from + fragment.Match.length;
-                    return matchMark.range(from, to);
+            if (effect.is(setMatchState)) {
+                const { matches, selectedMatchIndex } = effect.value;
+
+                const decorations = matches.map((match, index) => {
+                    const { from, to } = getMatchRange(match, transaction.newDoc);
+                    const mark = index === selectedMatchIndex ? selectedMatchMark : matchMark;
+                    return mark.range(from, to);
                 });
 
                 highlights = Decoration.set(decorations)
@@ -37,11 +52,29 @@ const matchHighlighter = StateField.define<DecorationSet>({
 const highlightTheme = EditorView.baseTheme({
     "&light .cm-searchMatch": { backgroundColor: "#ffff0054" },
     "&dark .cm-searchMatch": { backgroundColor: "#00ffff8a" },
+    "&light .cm-searchMatch-selected": { backgroundColor: "#ff6a0054" },
+    "&dark .cm-searchMatch-selected": { backgroundColor: "#ff00ff8a" }
 });
 
-export const markMatches = (matches: ZoektMatch[], view: EditorView) => {
-    const effect: StateEffect<ZoektMatch[]> = setMatches.of(matches);
-    view.dispatch({ effects: [effect] });
+export const markMatches = (selectedMatchIndex: number, matches: ZoektMatch[], view: EditorView) => {
+    const setState = setMatchState.of({
+        selectedMatchIndex,
+        matches,
+    });
+    
+    const effects = []
+    effects.push(setState);
+
+    if (selectedMatchIndex >= 0 && selectedMatchIndex < matches.length) {
+        const match = matches[selectedMatchIndex];
+        const { from, to } = getMatchRange(match, view.state.doc);
+        const selection = EditorSelection.range(from, to);
+        effects.push(EditorView.scrollIntoView(selection, {
+            y: "start",
+        }));
+    };
+
+    view.dispatch({ effects });
     return true;
 }
 

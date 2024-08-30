@@ -31,6 +31,7 @@ export default function Home() {
 
     const [isCodePanelOpen, setIsCodePanelOpen] = useState(false);
     const [previewFile, setPreviewFile] = useState<CodePreviewFile | undefined>(undefined);
+    const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
 
     const [fileMatches, setFileMatches] = useState<ZoektFileMatch[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -104,11 +105,12 @@ export default function Home() {
                             fetch(url)
                                 .then(response => response.json())
                                 .then((body: GetSourceResponse) => {
+                                    setSelectedMatchIndex(0);
                                     setPreviewFile({
                                         content: body.content,
                                         filepath: match.FileName,
                                         matches: match.Matches,
-                                    })
+                                    });
                                     setIsCodePanelOpen(true);
                                 });
                         }}
@@ -122,6 +124,8 @@ export default function Home() {
                     <CodePreview
                         file={previewFile}
                         onClose={() => setIsCodePanelOpen(false)}
+                        selectedMatchIndex={selectedMatchIndex}
+                        onSelectedMatchIndexChange={setSelectedMatchIndex}
                         keymapType={keymapType}
                     />
                 </ResizablePanel>
