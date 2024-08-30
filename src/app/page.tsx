@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import logoDark from "../../public/sb_logo_dark.png";
 import logoLight from "../../public/sb_logo_light.png";
-import { CodePreview } from "./codePreview";
+import { CodePreview, CodePreviewFile } from "./codePreview";
 import { SearchBar } from "./searchBar";
 import { SearchResults } from "./searchResults";
 import { SettingsDropdown } from "./settingsDropdown";
@@ -30,8 +30,7 @@ export default function Home() {
     const [numResults, _setNumResults] = useState(defaultNumResults && !isNaN(Number(defaultNumResults)) ? Number(defaultNumResults) : 100);
 
     const [isCodePanelOpen, setIsCodePanelOpen] = useState(false);
-    const [code, setCode] = useState("");
-    const [filepath, setFilepath] = useState("");
+    const [previewFile, setPreviewFile] = useState<CodePreviewFile | undefined>(undefined);
 
     const [fileMatches, setFileMatches] = useState<ZoektFileMatch[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -105,9 +104,12 @@ export default function Home() {
                             fetch(url)
                                 .then(response => response.json())
                                 .then((body: GetSourceResponse) => {
+                                    setPreviewFile({
+                                        content: body.content,
+                                        filepath: match.FileName,
+                                        matches: match.Matches,
+                                    })
                                     setIsCodePanelOpen(true);
-                                    setCode(body.content);
-                                    setFilepath(match.FileName);
                                 });
                         }}
                     />
@@ -118,8 +120,7 @@ export default function Home() {
                     hidden={!isCodePanelOpen}
                 >
                     <CodePreview
-                        code={code}
-                        filepath={filepath}
+                        file={previewFile}
                         onClose={() => setIsCodePanelOpen(false)}
                         keymapType={keymapType}
                     />

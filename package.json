@@ -11,6 +11,7 @@
   "dependencies": {
     "@codemirror/commands": "^6.6.0",
     "@codemirror/lang-javascript": "^6.2.2",
+    "@codemirror/search": "^6.5.6",
     "@codemirror/state": "^6.4.1",
     "@codemirror/view": "^6.33.0",
     "@radix-ui/react-dropdown-menu": "^2.1.1",
