@@ -1,0 +1,10 @@
+version: '3'
+services:
+  zoekt-indexserver:
+    build:
+      dockerfile: Dockerfile.zoekt-indexserver
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - CONFIG_PATH=/app/configs/config.json
+    volumes:
+      - ./configs/config.json:/app/configs/config.json:r
