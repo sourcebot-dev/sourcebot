@@ -1,5 +1,13 @@
 version: '3'
 services:
+  sourcebot:
+    build:
+      dockerfile: Dockerfile.sourcebot
+    environment:
+      - ZOEKT_WEBSERVER_URL=http://zoekt-webserver:6070
+    ports:
+      - 3000:3000
+
   zoekt-indexserver:
     build:
       dockerfile: Dockerfile.zoekt-indexserver
@@ -10,13 +18,12 @@ services:
     volumes:
       - ./configs/config.json:/app/configs/config.json:r
       - zoekt_index_cache:/zoekt-data/
+
   zoekt-webserver:
     build:
       dockerfile: Dockerfile.zoekt-webserver
     environment:
       - DATA_DIR=/zoekt-data/
-    ports:
-      - 6070:6070
     volumes:
       - zoekt_index_cache:/zoekt-data/
   

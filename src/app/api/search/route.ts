@@ -1,3 +1,4 @@
+import { ZOEKT_WEBSERVER_URL } from '@/lib/environment';
 import { createPathWithQueryParams } from '@/lib/utils';
 import { type NextRequest } from 'next/server'
 
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
     const numResults = searchParams.get('numResults');
 
     const url = createPathWithQueryParams(
-        "http://localhost:6070/search",
+        `${ZOEKT_WEBSERVER_URL}/search`,
         ["q", query],
         ["num", numResults],
         ["format", "json"],
