@@ -6,5 +6,19 @@ services:
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - CONFIG_PATH=/app/configs/config.json
+      - DATA_DIR=/zoekt-data/
     volumes:
       - ./configs/config.json:/app/configs/config.json:r
+      - zoekt_index_cache:/zoekt-data/
+  zoekt-webserver:
+    build:
+      dockerfile: Dockerfile.zoekt-webserver
+    environment:
+      - DATA_DIR=/zoekt-data/
+    ports:
+      - 6070:6070
+    volumes:
+      - zoekt_index_cache:/zoekt-data/
+  
+volumes:
+  zoekt_index_cache:

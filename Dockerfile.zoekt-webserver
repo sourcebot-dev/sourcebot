@@ -1,0 +1,30 @@
+FROM golang:1.22.2-alpine3.19 AS builder
+
+RUN apk add --no-cache ca-certificates
+
+WORKDIR /zoekt
+
+COPY vendor/zoekt/go.mod vendor/zoekt/go.sum ./
+RUN go mod download
+
+COPY vendor/zoekt ./
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o /cmd/ ./cmd/...
+
+FROM alpine:3.19 AS zoekt
+WORKDIR /app
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget
+
+ENV DATA_DIR /zoekt-data/
+RUN mkdir -p ${DATA_DIR}
+
+COPY entrypoint.zoekt-webserver.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+
+COPY --from=builder \
+    /cmd/zoekt-webserver \
+    /usr/local/bin/
+
+EXPOSE 6070
+
+ENTRYPOINT ["/sbin/tini", "--", "./entrypoint.sh"]
