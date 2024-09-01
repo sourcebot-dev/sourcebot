@@ -105,9 +105,14 @@ export default function Home() {
                             fetch(url)
                                 .then(response => response.json())
                                 .then((body: GetSourceResponse) => {
+                                    if (body.encoding !== "base64") {
+                                        throw new Error("Expected base64 encoding");
+                                    }
+
+                                    const content = atob(body.content);
                                     setSelectedMatchIndex(0);
                                     setPreviewFile({
-                                        content: body.content,
+                                        content: content,
                                         filepath: match.FileName,
                                         matches: match.Matches,
                                     });

@@ -5,6 +5,7 @@ export const repoQueryParamName = "repo";
 
 export type GetSourceResponse = {
     content: string;
+    encoding: string;
 }
 
 export interface ZoektMatch {
@@ -37,6 +38,11 @@ export interface ZoektResult {
 
 export interface ZoektSearchResponse {
     result: ZoektResult,
+}
+
+export interface ZoektPrintResponse {
+    Content: string,
+    Encoding: string,
 }
 
 export type KeymapType = "default" | "vim";

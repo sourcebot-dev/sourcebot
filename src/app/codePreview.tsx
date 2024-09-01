@@ -151,6 +151,7 @@ export const CodePreview = ({
                     extensions={extensions}
                 />
                 <Scrollbar orientation="vertical" />
+                <Scrollbar orientation="horizontal" />
             </ScrollArea>
         </div>
     )

@@ -1,13 +1,11 @@
 "use server";
 
-import { ErrorCode } from "@/lib/errorCodes";
-import { serviceError, missingQueryParam } from "@/lib/serviceError";
+import { missingQueryParam } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
-import path from "path";
-import fs from "fs";
-import { GetSourceResponse, pathQueryParamName, repoQueryParamName } from "@/lib/types";
-
+import { GetSourceResponse, pathQueryParamName, repoQueryParamName, ZoektPrintResponse } from "@/lib/types";
+import { ZOEKT_WEBSERVER_URL } from "@/lib/environment";
+import { createPathWithQueryParams } from "@/lib/utils";
 
 /**
  * Returns the content of a source file at the given path.
@@ -28,44 +26,23 @@ export async function GET(request: NextRequest) {
         return missingQueryParam(repoQueryParamName);
     }
 
-    // Get the contents of the path
-    const repoPath = getRepoPath(repo);
-    if (!repoPath) {
-        return serviceError({
-            statusCode: StatusCodes.NOT_FOUND,
-            errorCode: ErrorCode.REPOSITORY_NOT_FOUND,
-            message: `Could not find repository '${repo}'.`
-        });
-    }
+    const url = createPathWithQueryParams(
+        `${ZOEKT_WEBSERVER_URL}/print`,
+        ["f", filepath],
+        ["r", repo],
+        ["format", "json"],
+    );
 
-    const fullPath = path.join(repoPath, filepath);
-    if (!fs.existsSync(fullPath)) {
-        return serviceError({
-            statusCode: StatusCodes.NOT_FOUND,
-            errorCode: ErrorCode.FILE_NOT_FOUND,
-            message: `Could not find file '${filepath}' in repository '${repo}'.`
-        });
-    }
-
-    // @todo : some error handling here would be nice
-    const content = fs.readFileSync(fullPath, "utf8");
+    const res = await fetch(url);
+    const data = await res.json() as ZoektPrintResponse;
 
     return Response.json(
         {
-            content,
+            content: data.Content,
+            encoding: data.Encoding,
         } satisfies GetSourceResponse,
         {
             status: StatusCodes.OK
         }
     );
-}
-
-// @todo : we will need to figure out a more sophisticated system for this..
-const getRepoPath = (repo: string): string | undefined => {
-    switch (repo) {
-        case "monorepo":
-            return "/Users/brendan/monorepo"
-    }
-    
-    return undefined;
 }
