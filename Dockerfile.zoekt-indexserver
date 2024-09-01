@@ -19,8 +19,8 @@ RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget
 COPY vendor/zoekt/install-ctags-alpine.sh .
 RUN ./install-ctags-alpine.sh && rm install-ctags-alpine.sh
 
-ENV DATA_DIR /zoekt-data/
-RUN mkdir -p ${DATA_DIR}
+ENV ZOEKT_DATA_CACHE_DIR /zoekt-data/
+RUN mkdir -p ${ZOEKT_DATA_CACHE_DIR}
 
 ENV CONFIG_PATH /app/configs/config.json
 

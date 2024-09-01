@@ -2,5 +2,8 @@
     {
         "GithubOrg": "TaqlaAI",
         "NoArchived": true
+    },
+    {
+        "GithubOrg": "basetenlabs"
     }
 ]

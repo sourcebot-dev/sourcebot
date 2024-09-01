@@ -15,8 +15,8 @@ FROM alpine:3.19 AS zoekt
 WORKDIR /app
 RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget
 
-ENV DATA_DIR /zoekt-data/
-RUN mkdir -p ${DATA_DIR}
+ENV ZOEKT_DATA_CACHE_DIR /zoekt-data/
+RUN mkdir -p ${ZOEKT_DATA_CACHE_DIR}
 
 COPY entrypoint.zoekt-webserver.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
