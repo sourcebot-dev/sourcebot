@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
+import { QueryClientProvider } from "./queryClientProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,13 +30,15 @@ export default function RootLayout({
                     enableSystem
                     disableTransitionOnChange
                 >
-                    {/*
-                        @todo : ideally we don't wrap everything in a suspense boundary.
-                        @see : https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
-                    */}
-                    <Suspense>
-                        {children}
-                    </Suspense>
+                    <QueryClientProvider>
+                        {/*
+                            @todo : ideally we don't wrap everything in a suspense boundary.
+                            @see : https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+                        */}
+                        <Suspense>
+                            {children}
+                        </Suspense>
+                    </QueryClientProvider>
                 </ThemeProvider>
             </body>
         </html>

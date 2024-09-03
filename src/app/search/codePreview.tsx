@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useExtensionWithDependency } from "@/hooks/useExtensionWithDependency";
+import { useKeymapType } from "@/hooks/useKeymapType";
 import { gutterWidthExtension } from "@/lib/extensions/gutterWidthExtension";
 import { markMatches, searchResultHighlightExtension } from "@/lib/extensions/searchResultHighlightExtension";
 import { ZoektMatch } from "@/lib/types";
@@ -26,7 +27,6 @@ export interface CodePreviewFile {
 
 interface CodePreviewProps {
     file?: CodePreviewFile;
-    keymapType: "default" | "vim";
     selectedMatchIndex: number;
     onSelectedMatchIndexChange: (index: number) => void;
     onClose: () => void;
@@ -34,7 +34,6 @@ interface CodePreviewProps {
 
 export const CodePreview = ({
     file,
-    keymapType,
     selectedMatchIndex,
     onSelectedMatchIndexChange,
     onClose,
@@ -42,6 +41,7 @@ export const CodePreview = ({
     const editorRef = useRef<ReactCodeMirrorRef>(null);
 
     const { theme: _theme, systemTheme } = useTheme();
+    const [ keymapType ] = useKeymapType();
 
     const theme = useMemo(() => {
         if (_theme === "system") {
@@ -90,7 +90,7 @@ export const CodePreview = ({
         }
 
         markMatches(selectedMatchIndex, file.matches, editorRef.current.view);
-    }, [file, selectedMatchIndex]);
+    }, [file, file?.matches, selectedMatchIndex]);
 
     const onUpClicked = useCallback(() => {
         onSelectedMatchIndexChange(selectedMatchIndex - 1);

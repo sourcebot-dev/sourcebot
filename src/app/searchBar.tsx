@@ -1,63 +1,85 @@
 'use client';
 
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { ZoektResult, ZoektSearchResponse } from "@/lib/types";
-import { useEffect } from "react";
-import { useDebouncedCallback } from "use-debounce";
+import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { cva } from "class-variance-authority";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 interface SearchBarProps {
-    query: string;
-    numResults: number;
-    onLoadingChange: (isLoading: boolean) => void;
-    onQueryChange: (query: string) => void;
-    onSearchResult: (result?: ZoektResult) => void,
+    className?: string;
+    size?: "default" | "sm";
+    defaultQuery?: string;
 }
 
-export const SearchBar = ({
-    query,
-    numResults,
-    onLoadingChange,
-    onQueryChange,
-    onSearchResult,
-}: SearchBarProps) => {
-    const SEARCH_DEBOUNCE_MS = 200;
+const formSchema = z.object({
+    query: z.string(),
+});
 
-    // @todo : we should probably be cancelling any running requests
-    const search = useDebouncedCallback((query: string) => {
-        if (query === "") {
-            onSearchResult(undefined);
-            return;
+const searchBarVariants = cva(
+    "w-full",
+    {
+        variants: {
+            size: {
+                default: "h-10",
+                sm: "h-8"
+            }
+        },
+        defaultVariants: {
+            size: "default",
         }
-        console.log('making query...');
+    }
+)
 
-        onLoadingChange(true);
-        fetch(`http://localhost:3000/api/search?query=${query}&numResults=${numResults}`)
-            .then(response => response.json())
-            .then(({ data }: { data: ZoektSearchResponse }) => {
-                onSearchResult(data.result);
-            })
-            // @todo : error handling
-            .catch(error => {
-                console.error('Error:', error);
-            }).finally(() => {
-                console.log('done making query');
-                onLoadingChange(false);
-            });
-    }, SEARCH_DEBOUNCE_MS);
+export const SearchBar = ({
+    className,
+    size,
+    defaultQuery,
+}: SearchBarProps) => {
+    const router = useRouter();
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            query: defaultQuery ?? "",
+        }
+    });
 
-    useEffect(() => {
-        search(query);
-    }, [query, search]);
+    const onSubmit = (values: z.infer<typeof formSchema>) => {
+        router.push(`/search?query=${values.query}&numResults=100`);
+    }
 
     return (
-        <Input
-            value={query}
-            className="w-full h-8"
-            placeholder="Search..."
-            onChange={(e) => {
-                const query = e.target.value;
-                onQueryChange(query);
-            }}
-        />
+        <Form {...form}>
+            <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="w-full"
+            >
+                <FormField
+                    control={form.control}
+                    name="query"
+                    render={( { field }) => (
+                        <FormItem>
+                            <FormControl>
+                                <Input
+                                    placeholder="Search..."
+                                    className={cn(searchBarVariants({ size, className }))}
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </form>
+        </Form>
     )
 }

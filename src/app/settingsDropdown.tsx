@@ -23,18 +23,20 @@ import {
 import { useTheme } from "next-themes"
 import { useMemo } from "react"
 import { KeymapType } from "@/lib/types"
+import { cn } from "@/lib/utils"
+import { useKeymapType } from "@/hooks/useKeymapType"
 
 interface SettingsDropdownProps {
-    keymapType: KeymapType;
-    onKeymapTypeChange: (keymapType: KeymapType) => void;
+    menuButtonClassName?: string;
 }
 
 export const SettingsDropdown = ({
-    keymapType,
-    onKeymapTypeChange,
+    menuButtonClassName,
 }: SettingsDropdownProps) => {
 
     const { theme: _theme, setTheme } = useTheme();
+    const [ keymapType, setKeymapType ] = useKeymapType();
+
     const theme = useMemo(() => {
         return _theme ?? "light";
     }, [_theme]);
@@ -55,7 +57,7 @@ export const SettingsDropdown = ({
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="w-8 h-8">
+                <Button variant="outline" size="icon" className={cn(menuButtonClassName)}>
                     <Settings className="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
@@ -91,7 +93,7 @@ export const SettingsDropdown = ({
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
                             <DropdownMenuSubContent>
-                                <DropdownMenuRadioGroup value={keymapType} onValueChange={(value) => onKeymapTypeChange(value as KeymapType)}>
+                                <DropdownMenuRadioGroup value={keymapType} onValueChange={(value) => setKeymapType(value as KeymapType)}>
                                     <DropdownMenuRadioItem value="default">
                                         Default
                                     </DropdownMenuRadioItem>
