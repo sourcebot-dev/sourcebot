@@ -62,7 +62,6 @@ const highlightTheme = EditorView.baseTheme({
     },
     "&dark .tq-searchMatch-selected": {
         backgroundColor: "#00ff007a",
-
     }
 });
 

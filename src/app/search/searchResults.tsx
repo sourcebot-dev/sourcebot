@@ -1,9 +1,12 @@
 'use client';
 
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { ZoektFileMatch } from "@/lib/types";
 import { Scrollbar } from "@radix-ui/react-scroll-area";
+import { useEffect } from "react";
+import { VariableSizeList } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
 
 interface SearchResultsProps {
     fileMatches: ZoektFileMatch[];
@@ -14,21 +17,47 @@ export const SearchResults = ({
     fileMatches,
     onOpenFileMatch,
 }: SearchResultsProps) => {
-    return (
-        <ScrollArea className="h-full">
-            <div className="flex flex-col gap-2">
-                {fileMatches.map((match, index) => (
-                    <FileMatch
-                        key={index}
-                        match={match}
-                        onOpenFile={() => {
-                            onOpenFileMatch(match);
-                        }}
-                    />
-                ))}
+
+    const FileMatchShim = ({ index, style }: { index: number, style: React.CSSProperties }) => {
+        const match = fileMatches[index];
+
+        return (
+            <div
+                style={style}
+                onClick={() => onOpenFileMatch(match)}
+            >
+                <FileMatch
+                    match={match}
+                    onOpenFile={() => onOpenFileMatch(match)}
+                />
             </div>
-            <Scrollbar orientation="vertical" />
-        </ScrollArea>
+        )
+    };
+
+    const calculateItemSize = (index: number) => {
+        const match = fileMatches[index];
+        // Base height for the file name row
+        let height = 30;
+        // Add height for each match line
+        height += match.Matches.length * 50;
+        // Add some padding
+        height += 10;
+        return height;
+    };
+
+    return (
+        <AutoSizer className="h-full w-full">
+            {({ height, width }) => (
+                <VariableSizeList
+                    height={height}
+                    width={width}
+                    itemCount={fileMatches.length}
+                    itemSize={(index) => calculateItemSize(index)}
+                >
+                    {FileMatchShim}
+                </VariableSizeList>
+            )}
+        </AutoSizer>
     )
 }
 
@@ -53,7 +82,7 @@ const FileMatch = ({
                 return (
                     <div
                         key={index}
-                        className="font-mono px-4 py-0.5 text-sm cursor-pointer"
+                        className="font-mono px-4 py-0.5 text-sm cursor-pointer text-ellipsis"
                         onClick={() => {
                             onOpenFile();
                         }}
