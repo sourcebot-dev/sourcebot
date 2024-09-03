@@ -3,10 +3,10 @@ import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
 import { ZoektMatch } from "../types";
 
 const matchMark = Decoration.mark({
-    class: "cm-searchMatch"
+    class: "tq-searchMatch"
 });
 const selectedMatchMark = Decoration.mark({
-    class: "cm-searchMatch cm-searchMatch-selected"
+    class: "tq-searchMatch-selected"
 });
 
 const setMatchState = StateEffect.define<{
@@ -50,10 +50,20 @@ const matchHighlighter = StateField.define<DecorationSet>({
 });
 
 const highlightTheme = EditorView.baseTheme({
-    "&light .cm-searchMatch": { backgroundColor: "#ffff0054" },
-    "&dark .cm-searchMatch": { backgroundColor: "#00ffff8a" },
-    "&light .cm-searchMatch-selected": { backgroundColor: "#ff6a0054" },
-    "&dark .cm-searchMatch-selected": { backgroundColor: "#ff00ff8a" }
+    "&light .tq-searchMatch": {
+        border: "1px dotted #6b7280ff",
+    },
+    "&light .tq-searchMatch-selected": {
+        backgroundColor: "#00ff00aa"
+    },
+
+    "&dark .tq-searchMatch": {
+        border: "1px dotted #d1d5dbff",
+    },
+    "&dark .tq-searchMatch-selected": {
+        backgroundColor: "#00ff007a",
+
+    }
 });
 
 export const markMatches = (selectedMatchIndex: number, matches: ZoektMatch[], view: EditorView) => {
