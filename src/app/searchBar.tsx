@@ -14,11 +14,14 @@ import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useHotkeys } from 'react-hotkeys-hook'
+import { useRef } from "react";
 
 interface SearchBarProps {
     className?: string;
     size?: "default" | "sm";
     defaultQuery?: string;
+    autoFocus?: boolean;
 }
 
 const formSchema = z.object({
@@ -44,7 +47,15 @@ export const SearchBar = ({
     className,
     size,
     defaultQuery,
+    autoFocus,
 }: SearchBarProps) => {
+
+    const inputRef = useRef<HTMLInputElement>(null);
+    useHotkeys('/', (event) => {
+        event.preventDefault();
+        inputRef.current?.focus();
+    });
+
     const router = useRouter();
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -73,6 +84,8 @@ export const SearchBar = ({
                                     placeholder="Search..."
                                     className={cn(searchBarVariants({ size, className }))}
                                     {...field}
+                                    ref={inputRef}
+                                    autoFocus={autoFocus ?? false}
                                 />
                             </FormControl>
                             <FormMessage />

@@ -33,6 +33,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-hook-form": "^7.53.0",
+    "react-hotkeys-hook": "^4.5.1",
     "react-resizable-panels": "^2.1.1",
     "sharp": "^0.33.5",
     "tailwind-merge": "^2.5.2",

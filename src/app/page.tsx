@@ -43,7 +43,9 @@ export default function Home() {
                     />
                 </div>
                 <div className="w-full flex flex-row mt-4">
-                    <SearchBar />
+                    <SearchBar
+                        autoFocus={true}
+                    />
                 </div>
             </div>
         </div>
