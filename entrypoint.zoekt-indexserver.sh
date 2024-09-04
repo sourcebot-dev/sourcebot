@@ -17,6 +17,12 @@ fi
 if [ -n "$GITLAB_TOKEN" ]; then
     echo "$GITLAB_TOKEN" > "$HOME/.gitlab-token"
     chmod 600 "$HOME/.gitlab-token"
+   
+       # Configure Git with the provided GITLAB_TOKEN
+       echo "machine gitlab.com
+       login oauth
+       password ${GITLAB_TOKEN}" > "$HOME/.netrc"
+       chmod 600 "$HOME/.netrc"
 else
     echo -e "\e[33mWarning: GitLab repositories will not be indexed since GITLAB_TOKEN was not set. If you are not using GitLab, disregard.\e[0m"
 fi

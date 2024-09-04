@@ -3,7 +3,7 @@
     "Configs": [
         {
             "Type": "github",
-            "GitHubUser": "TaqlaAI"
+            "GitHubOrg": "TaqlaAI"
         },
         {
             "Type": "gitlab",
