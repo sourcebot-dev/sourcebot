@@ -1,9 +1,9 @@
-[
-    {
-        "GithubOrg": "TaqlaAI",
-        "NoArchived": true
-    },
-    {
-        "GithubOrg": "basetenlabs"
-    }
-]
+{
+    "$schema": "../schemas/zoekt-mirror.json",
+    "Configs": [
+        {
+            "Type": "github",
+            "GitHubUser": "TaqlaAI"
+        }
+    ]
+}
