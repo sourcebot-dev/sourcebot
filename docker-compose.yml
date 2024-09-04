@@ -13,6 +13,7 @@ services:
       dockerfile: Dockerfile.zoekt-indexserver
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
       - CONFIG_PATH=/app/configs/config.json
       - ZOEKT_DATA_CACHE_DIR=/zoekt-data/
     volumes:

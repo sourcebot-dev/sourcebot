@@ -4,6 +4,10 @@
         {
             "Type": "github",
             "GitHubUser": "TaqlaAI"
+        },
+        {
+            "Type": "gitlab",
+            "GitLabURL": "https://gitlab.com/api/v4/"
         }
     ]
 }

@@ -2,10 +2,23 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "definitions": {
+        "RepoNameRegexIncludeFilter": {
+            "type": "string",
+            "description": "Only clone repos whose name matches the given regexp.",
+            "format": "regexp"
+        },
+        "RepoNameRegexExcludeFilter": {
+            "type": "string",
+            "description": "Don't mirror repos whose names match this regexp.",
+            "format": "regexp"
+        },
         "ZoektConfig": {
             "anyOf": [
                 {
                     "$ref": "#/definitions/GitHubConfig"
+                },
+                {
+                    "$ref": "#/definitions/GitLabConfig"
                 }
             ]
         },
@@ -28,18 +41,15 @@
                     "description": "The GitHub organization to mirror"
                 },
                 "Name": {
-                    "type": "string",
-                    "description": "Only clone repos whose name matches the given regexp.",
-                    "format": "regexp"
+                    "$ref": "#/definitions/RepoNameRegexIncludeFilter"
                 },
                 "Exclude": {
-                    "type": "string",
-                    "description": "Don't mirror repos whose names match this regexp.",
-                    "format": "regexp"
+                    "$ref": "#/definitions/RepoNameRegexExcludeFilter"
                 },
                 "CredentialPath": {
                     "type": "string",
-                    "description": "Path to a file containing a GitHub access token."
+                    "description": "Path to a file containing a GitHub access token.",
+                    "default": "~/.github-token"
                 },
                 "Topics": {
                     "type": "array",
@@ -68,6 +78,40 @@
             },
             "required": [
                 "Type"
+            ],
+            "additionalProperties": false
+        },
+        "GitLabConfig": {
+            "type": "object",
+            "properties": {
+                "Type": {
+                    "const": "gitlab"
+                },
+                "GitLabURL": {
+                    "type": "string",
+                    "description": "The GitLab API url.",
+                    "default": "https://gitlab.com/api/v4/"
+                },
+                "Name": {
+                    "$ref": "#/definitions/RepoNameRegexIncludeFilter"
+                },
+                "Exclude": {
+                    "$ref": "#/definitions/RepoNameRegexExcludeFilter"
+                },
+                "OnlyPublic": {
+                    "type": "boolean",
+                    "description": "Only mirror public repos",
+                    "default": false
+                },
+                "CredentialPath": {
+                    "type": "string",
+                    "description": "Path to a file containing a GitLab access token.",
+                    "default": "~/.gitlab-token"
+                }
+            },
+            "required": [
+                "Type",
+                "GitLabURL"
             ],
             "additionalProperties": false
         }
