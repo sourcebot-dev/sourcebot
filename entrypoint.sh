@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Check if the configuration file exists
+if [ ! -f "$CONFIG_PATH" ]; then
+    echo "Error: Configuration file not found at $CONFIG_PATH. Please check that you mounted a volume to $DATA_DIR, and the volume contains a config.json file at the root."
+    exit 1
+fi
+
 # Check if GITHUB_TOKEN is set
 if [ -n "$GITHUB_TOKEN" ]; then
     echo "$GITHUB_TOKEN" > "$HOME/.github-token"
@@ -29,4 +35,4 @@ else
     echo -e "\e[33mWarning: GitLab repositories will not be indexed since GITLAB_TOKEN was not set. If you are not using GitLab, disregard.\e[0m"
 fi
 
-exec "zoekt-indexserver" "-data_dir" "${ZOEKT_DATA_CACHE_DIR}" "-mirror_config" "${CONFIG_PATH}"
+exec supervisord -c /etc/supervisor/conf.d/supervisord.conf
