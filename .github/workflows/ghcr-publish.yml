@@ -35,6 +35,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: 'true'
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
