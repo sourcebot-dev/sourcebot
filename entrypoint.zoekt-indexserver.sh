@@ -5,10 +5,12 @@ set -e
 if [ -n "$GITHUB_TOKEN" ]; then
     echo "$GITHUB_TOKEN" > "$HOME/.github-token"
     chmod 600 "$HOME/.github-token"
-    
+
     # Configure Git with the provided GITHUB_TOKEN
-    # @see : https://github.com/sourcegraph/zoekt/issues/578#issuecomment-1519369619
-    git config --global url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/".insteadof "https://github.com"
+    echo "machine github.com
+       login oauth
+       password ${GITHUB_TOKEN}" >> "$HOME/.netrc"
+       chmod 600 "$HOME/.netrc"
 else
     echo -e "\e[33mWarning: Private GitHub repositories will not be indexed since GITHUB_TOKEN was not set. If you are not using GitHub, disregard.\e[0m"
 fi
@@ -21,7 +23,7 @@ if [ -n "$GITLAB_TOKEN" ]; then
        # Configure Git with the provided GITLAB_TOKEN
        echo "machine gitlab.com
        login oauth
-       password ${GITLAB_TOKEN}" > "$HOME/.netrc"
+       password ${GITLAB_TOKEN}" >> "$HOME/.netrc"
        chmod 600 "$HOME/.netrc"
 else
     echo -e "\e[33mWarning: GitLab repositories will not be indexed since GITLAB_TOKEN was not set. If you are not using GitLab, disregard.\e[0m"
