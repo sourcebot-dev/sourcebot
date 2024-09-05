@@ -8,7 +8,7 @@ import { SettingsDropdown } from "./settingsDropdown";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Button } from "@/components/ui/button";
 
-const SOURCEBOT_GITHUB_URL = "https://github.com/TaqlaAI/sourcebot-search";
+const SOURCEBOT_GITHUB_URL = "https://github.com/TaqlaAI/sourcebot";
 
 export default function Home() {
 
