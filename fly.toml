@@ -24,3 +24,4 @@ primary_region = 'sjc'
 [mounts]
   source = "sourcebot_data"
   destination = "/data"
+  initial_size = "30GB"
