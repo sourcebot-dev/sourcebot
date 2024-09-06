@@ -4,10 +4,6 @@
         {
             "Type": "github",
             "GitHubOrg": "TaqlaAI"
-        },
-        {
-            "Type": "gitlab",
-            "GitLabURL": "https://gitlab.com/api/v4/"
         }
     ]
 }
