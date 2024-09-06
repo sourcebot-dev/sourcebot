@@ -4,10 +4,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { ZoektFileMatch } from "@/lib/types";
 import { Scrollbar } from "@radix-ui/react-scroll-area";
+import { useMemo, useState } from "react";
+import { DoubleArrowDownIcon, DoubleArrowUpIcon } from "@radix-ui/react-icons";
+
+const MAX_MATCHES_TO_PREVIEW = 5;
 
 interface SearchResultsProps {
     fileMatches: ZoektFileMatch[];
-    onOpenFileMatch: (match: ZoektFileMatch) => void;
+    onOpenFileMatch: (fileMatch: ZoektFileMatch, matchIndex: number) => void;
 }
 
 export const SearchResults = ({
@@ -17,12 +21,12 @@ export const SearchResults = ({
     return (
         <ScrollArea className="h-full">
             <div className="flex flex-col gap-2">
-                {fileMatches.map((match, index) => (
+                {fileMatches.map((fileMatch, index) => (
                     <FileMatch
                         key={index}
-                        match={match}
-                        onOpenFile={() => {
-                            onOpenFileMatch(match);
+                        match={fileMatch}
+                        onOpenFile={(matchIndex) => {
+                            onOpenFileMatch(fileMatch, matchIndex);
                         }}
                     />
                 ))}
@@ -34,7 +38,7 @@ export const SearchResults = ({
 
 interface FileMatchProps {
     match: ZoektFileMatch;
-    onOpenFile: () => void;
+    onOpenFile: (matchIndex: number) => void;
 }
 
 const FileMatch = ({
@@ -42,12 +46,29 @@ const FileMatch = ({
     onOpenFile,
 }: FileMatchProps) => {
 
+    const [showAll, setShowAll] = useState(false);
+    const matchCount = useMemo(() => {
+        return match.Matches.length;
+    }, [match]);
+
+    const matches = useMemo(() => {
+        const sortedMatches = match.Matches.sort((a, b) => {
+            return a.LineNum - b.LineNum;
+        });
+
+        if (!showAll) {
+            return sortedMatches.slice(0, MAX_MATCHES_TO_PREVIEW);
+        }
+
+        return sortedMatches;
+    }, [match, showAll]);
+
     return (
         <div>
             <div className="bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2">
                 <span>{match.Repo} · {match.FileName}</span>
             </div>
-            {match.Matches.map((match, index) => {
+            {matches.map((match, index) => {
                 const fragment = match.Fragments[0];
 
                 return (
@@ -55,14 +76,25 @@ const FileMatch = ({
                         key={index}
                         className="font-mono px-4 py-0.5 text-sm cursor-pointer"
                         onClick={() => {
-                            onOpenFile();
+                            onOpenFile(index);
                         }}
                     >
-                        <p>{match.LineNum}: {fragment.Pre}<span className="font-bold">{fragment.Match}</span>{fragment.Post}</p>
+                        <p>{match.LineNum > 0 ? match.LineNum : "file match"}: {fragment.Pre}<span className="font-bold">{fragment.Match}</span>{fragment.Post}</p>
                         <Separator />
                     </div>
                 );
             })}
+            {matchCount > MAX_MATCHES_TO_PREVIEW && (
+                <div className="px-4">
+                    <p
+                        onClick={() => setShowAll(!showAll)}
+                        className="text-blue-500 cursor-pointer text-sm flex flex-row items-center gap-2"
+                    >
+                        {showAll ? <DoubleArrowUpIcon className="w-3 h-3" /> : <DoubleArrowDownIcon className="w-3 h-3" />}
+                        {showAll ? `Show fewer matching lines` : `Show ${matchCount - MAX_MATCHES_TO_PREVIEW} more matching lines`}
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

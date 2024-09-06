@@ -102,9 +102,9 @@ export default function SearchPage() {
                 <ResizablePanel minSize={20}>
                     <SearchResults
                         fileMatches={fileMatches}
-                        onOpenFileMatch={(match) => {
-                            setSelectedFile(match);
-                            setSelectedMatchIndex(0);
+                        onOpenFileMatch={(fileMatch, matchIndex) => {
+                            setSelectedFile(fileMatch);
+                            setSelectedMatchIndex(matchIndex);
                         }}
                     />
                 </ResizablePanel>

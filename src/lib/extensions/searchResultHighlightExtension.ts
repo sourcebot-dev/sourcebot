@@ -34,11 +34,13 @@ const matchHighlighter = StateField.define<DecorationSet>({
             if (effect.is(setMatchState)) {
                 const { matches, selectedMatchIndex } = effect.value;
 
-                const decorations = matches.map((match, index) => {
-                    const { from, to } = getMatchRange(match, transaction.newDoc);
-                    const mark = index === selectedMatchIndex ? selectedMatchMark : matchMark;
-                    return mark.range(from, to);
-                });
+                const decorations = matches
+                    .filter((match) => match.LineNum > 0)
+                    .map((match, index) => {
+                        const { from, to } = getMatchRange(match, transaction.newDoc);
+                        const mark = index === selectedMatchIndex ? selectedMatchMark : matchMark;
+                        return mark.range(from, to);
+                    });
 
                 highlights = Decoration.set(decorations)
             }
@@ -77,11 +79,15 @@ export const markMatches = (selectedMatchIndex: number, matches: ZoektMatch[], v
 
     if (selectedMatchIndex >= 0 && selectedMatchIndex < matches.length) {
         const match = matches[selectedMatchIndex];
-        const { from, to } = getMatchRange(match, view.state.doc);
-        const selection = EditorSelection.range(from, to);
-        effects.push(EditorView.scrollIntoView(selection, {
-            y: "start",
-        }));
+
+        // Don't scroll if the match is on the filename.
+        if (match.LineNum > 0) {
+            const { from, to } = getMatchRange(match, view.state.doc);
+            const selection = EditorSelection.range(from, to);
+            effects.push(EditorView.scrollIntoView(selection, {
+                y: "start",
+            }));
+        }
     };
 
     view.dispatch({ effects });
