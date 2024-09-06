@@ -3,7 +3,7 @@
     "Configs": [
         {
             "Type": "github",
-            "GitHubOrg": "TaqlaAI"
+            "GitHubUser": "torvalds"
         }
     ]
 }
