@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-# Check if the configuration file exists
-if [ ! -f "$CONFIG_PATH" ]; then
-    echo "Error: Configuration file not found at $CONFIG_PATH. Please check that you mounted a volume to $DATA_DIR, and the volume contains a config.json file at the root."
-    exit 1
+
+# Check if CONFIG_PATH is set
+if [ -z "$CONFIG_PATH" ]; then
+    echo "\e[33mWarning: CONFIG_PATH environment variable is not set.\e[0m"
 fi
 
 # Check if GITHUB_TOKEN is set

@@ -1,0 +1,9 @@
+{
+    "$schema": "./schemas/zoekt-mirror.json",
+    "Configs": [
+        {
+            "Type": "github",
+            "GitHubOrg": "TaqlaAI"
+        }
+    ]
+}
