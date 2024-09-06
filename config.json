@@ -1,5 +1,5 @@
 {
-    "$schema": "../schemas/zoekt-mirror.json",
+    "$schema": "./schemas/zoekt-mirror.json",
     "Configs": [
         {
             "Type": "github",
