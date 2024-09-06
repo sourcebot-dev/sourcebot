@@ -15,6 +15,8 @@ FROM node-alpine AS web-builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json yarn.lock* ./
+
+# Fixes arm64 timeouts
 RUN yarn config set registry https://registry.npmjs.org/
 RUN yarn config set network-timeout 1200000
 RUN yarn --frozen-lockfile
