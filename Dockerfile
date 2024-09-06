@@ -15,7 +15,7 @@ FROM node-alpine AS web-builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json yarn.lock* ./
-RUN yarn --frozen-lockfile
+RUN yarn --frozen-lockfile --network-timeout=30000
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN yarn run build
