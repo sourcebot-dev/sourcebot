@@ -8,7 +8,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { GetSourceResponse, pathQueryParamName, repoQueryParamName, ZoektFileMatch, ZoektSearchResponse } from "@/lib/types";
-import { createPathWithQueryParams } from "@/lib/utils";
+import { createPathWithQueryParams, getCodeHostFilePreviewLink } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
@@ -152,7 +152,7 @@ const CodePreviewWrapper = ({
                 [repoQueryParamName, fileMatch.Repo]
             );
 
-            const result = await fetch(url)
+            return fetch(url)
                 .then(response => response.json())
                 .then((body: GetSourceResponse) => {
                     if (body.encoding !== "base64") {
@@ -160,13 +160,15 @@ const CodePreviewWrapper = ({
                     }
 
                     const content = atob(body.content);
+                    const link = getCodeHostFilePreviewLink(fileMatch.Repo, fileMatch.FileName)
+
                     return {
                         content,
                         filepath: fileMatch.FileName,
-                        matches: fileMatch.Matches,  
+                        matches: fileMatch.Matches,
+                        link: link,
                     };
                 });
-            return result;
         },
         enabled: fileMatch !== undefined,
     });

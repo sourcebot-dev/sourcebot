@@ -7,9 +7,8 @@ import { Scrollbar } from "@radix-ui/react-scroll-area";
 import { useMemo, useState } from "react";
 import { DoubleArrowDownIcon, DoubleArrowUpIcon, FileIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
-import githubLogo from "../../../public/github.svg";
-import gitlabLogo from "../../../public/gitlab.svg";
 import clsx from "clsx";
+import { getRepoCodeHostInfo } from "@/lib/utils";
 
 const MAX_MATCHES_TO_PREVIEW = 5;
 
@@ -68,25 +67,14 @@ const FileMatch = ({
     }, [match, showAll]);
 
     const { repoIcon, repoName, repoLink } = useMemo(() => {
-        if (match.Repo.startsWith("github.com")) {
+        const info = getRepoCodeHostInfo(match.Repo);
+        if (info) {
             return {
-                repoName: match.Repo.substring("github.com/".length),
-                repoLink: `https://${match.Repo}`,
+                repoName: info.repoName,
+                repoLink: info.repoLink,
                 repoIcon: <Image
-                    src={githubLogo}
-                    alt="GitHub"
-                    className="w-4 h-4 dark:invert"
-                />
-            }
-        }
-
-        if (match.Repo.startsWith("gitlab.com")) {
-            return {
-                repoName: match.Repo.substring("gitlab.com/".length),
-                repoLink: `https://${match.Repo}`,
-                repoIcon: <Image
-                    src={gitlabLogo}
-                    alt="GitLab"
+                    src={info.icon}
+                    alt={info.costHostName}
                     className="w-4 h-4 dark:invert"
                 />
             }

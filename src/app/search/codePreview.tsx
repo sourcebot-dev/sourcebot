@@ -15,6 +15,7 @@ import { Cross1Icon, FileIcon } from "@radix-ui/react-icons";
 import { Scrollbar } from "@radix-ui/react-scroll-area";
 import { vim } from "@replit/codemirror-vim";
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import clsx from "clsx";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -22,6 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 export interface CodePreviewFile {
     content: string;
     filepath: string;
+    link?: string;
     matches: ZoektMatch[];
 }
 
@@ -110,7 +112,18 @@ export const CodePreview = ({
                     >
                         <FileIcon className="h-4 w-4" />
                     </div>
-                    <span>{file?.filepath}</span>
+                    <span
+                        className={clsx("", {
+                            "cursor-pointer text-blue-500 hover:underline" : file?.link
+                        })}
+                        onClick={() => {
+                            if (file?.link) {
+                                window.open(file.link, "_blank");
+                            }
+                        }}
+                    >
+                        {file?.filepath}
+                    </span>
                 </div>
                 <div className="flex flex-row gap-1 items-center">
                     <p className="text-sm">{`${selectedMatchIndex + 1} of ${file?.matches.length}`}</p>
