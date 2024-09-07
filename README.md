@@ -1,11 +1,7 @@
-
-<div align="center">
-    <img 
-        src=".github/images/logo.png"
-        width="80%"
-        height="80%"
-    />
-</div>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/images/logo_dark.png">
+  <img src=".github/images/logo_light.png">
+</picture>
 
 
 ## About
