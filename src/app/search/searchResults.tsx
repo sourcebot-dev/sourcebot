@@ -5,7 +5,11 @@ import { Separator } from "@/components/ui/separator";
 import { ZoektFileMatch } from "@/lib/types";
 import { Scrollbar } from "@radix-ui/react-scroll-area";
 import { useMemo, useState } from "react";
-import { DoubleArrowDownIcon, DoubleArrowUpIcon } from "@radix-ui/react-icons";
+import { DoubleArrowDownIcon, DoubleArrowUpIcon, FileIcon } from "@radix-ui/react-icons";
+import Image from "next/image";
+import githubLogo from "../../../public/github.svg";
+import gitlabLogo from "../../../public/gitlab.svg";
+import clsx from "clsx";
 
 const MAX_MATCHES_TO_PREVIEW = 5;
 
@@ -63,10 +67,55 @@ const FileMatch = ({
         return sortedMatches;
     }, [match, showAll]);
 
+    const { repoIcon, repoName, repoLink } = useMemo(() => {
+        if (match.Repo.startsWith("github.com")) {
+            return {
+                repoName: match.Repo.substring("github.com/".length),
+                repoLink: `https://${match.Repo}`,
+                repoIcon: <Image
+                    src={githubLogo}
+                    alt="GitHub"
+                    className="w-4 h-4 dark:invert"
+                />
+            }
+        }
+
+        if (match.Repo.startsWith("gitlab.com")) {
+            return {
+                repoName: match.Repo.substring("gitlab.com/".length),
+                repoLink: `https://${match.Repo}`,
+                repoIcon: <Image
+                    src={gitlabLogo}
+                    alt="GitLab"
+                    className="w-4 h-4 dark:invert"
+                />
+            }
+        }
+
+        return {
+            repoName: match.Repo,
+            repoLink: undefined,
+            repoIcon: <FileIcon className="w-4 h-4" />
+        }
+    }, [match]);
+
     return (
         <div>
-            <div className="bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2">
-                <span>{match.Repo} · {match.FileName}</span>
+            <div className="bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2 flex flex-row gap-2 items-center">
+                {repoIcon}
+                <span
+                    className={clsx("font-medium", {
+                        "cursor-pointer hover:underline": repoLink,
+                    })}
+                    onClick={() => {
+                        if (repoLink) {
+                            window.open(repoLink, "_blank");
+                        }
+                    }}
+                >
+                    {repoName}
+                </span>
+                <span>· {match.FileName}</span>
             </div>
             {matches.map((match, index) => {
                 const fragment = match.Fragments[0];
