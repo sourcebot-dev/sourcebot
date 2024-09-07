@@ -63,11 +63,11 @@ export const getCodeHostFilePreviewLink = (repoName: string, filePath: string): 
     const info = getRepoCodeHostInfo(repoName);
 
     if (info?.type === "github") {
-        return `${info.repoLink}/tree/main/${filePath}`;
+        return `${info.repoLink}/blob/HEAD/${filePath}`;
     }
 
     if (info?.type === "gitlab") {
-        return `${info.repoLink}/-/blob/main/${filePath}`;
+        return `${info.repoLink}/-/blob/HEAD/${filePath}`;
     }
 
     return undefined;
