@@ -7,7 +7,7 @@
 
 
 # About
-![build](https://github.com/TaqlaAI/sourcebot/blob/main/.github/workflows/ghcr-publish.yml/badge.svg)
+![build](https://github.com/TaqlaAI/sourcebot/actions/workflows/ghcr-publish.yml/badge.svg)
 
 Sourcebot is a fast code indexing and search tool for your codebases. It is built ontop of the [zoekt](https://github.com/sourcegraph/zoekt) indexer, originally authored by Han-Wen Nienhuys and now [maintained by Sourcegraph](https://sourcegraph.com/blog/sourcegraph-accepting-zoekt-maintainership).
 
