@@ -34,6 +34,7 @@ export const searchResponseSchema = z.object({
     Result: z.object({
         Duration: z.number(),
         FileCount: z.number(),
+        MatchCount: z.number(),
         Files: z.array(z.object({
             FileName: z.string(),
             Repository: z.string(),

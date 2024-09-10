@@ -7,25 +7,28 @@ import {
 } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
-import { getCodeHostFilePreviewLink } from "@/lib/utils";
+import { SearchResultFile } from "@/lib/schemas";
+import { createPathWithQueryParams, getCodeHostFilePreviewLink } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import logoDark from "../../../public/sb_logo_dark.png";
 import logoLight from "../../../public/sb_logo_light.png";
+import { fetchFileSource, search } from "../api/(client)/client";
 import { SearchBar } from "../searchBar";
 import { SettingsDropdown } from "../settingsDropdown";
-import { CodePreviewPanel, CodePreviewFile } from "./codePreviewPanel";
+import { CodePreviewFile, CodePreviewPanel } from "./codePreviewPanel";
 import { SearchResultsPanel } from "./searchResultsPanel";
-import { useRouter } from "next/navigation";
-import { fetchFileSource, search } from "../api/(client)/client";
-import { SearchResultFile } from "@/lib/schemas";
+
+const DEFAULT_NUM_RESULTS = 100;
 
 export default function SearchPage() {
     const router = useRouter();
     const searchQuery = useNonEmptyQueryParam("query") ?? "";
-    const numResults = useNonEmptyQueryParam("numResults") ?? "100";
+    const _numResults = parseInt(useNonEmptyQueryParam("numResults") ?? `${DEFAULT_NUM_RESULTS}`);
+    const numResults = isNaN(_numResults) ? DEFAULT_NUM_RESULTS : _numResults;
 
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
     const [selectedFile, setSelectedFile] = useState<SearchResultFile | undefined>(undefined);
@@ -34,7 +37,7 @@ export default function SearchPage() {
         queryKey: ["search", searchQuery, numResults],
         queryFn: () => search({
             query: searchQuery,
-            numResults: parseInt(numResults),
+            numResults,
         }),
         enabled: searchQuery.length > 0,
     });
@@ -53,6 +56,9 @@ export default function SearchPage() {
         }
     }, [searchResponse]);
 
+    const isMoreResultsButtonVisible = useMemo(() => {
+        return searchResponse && searchResponse.Result.MatchCount > numResults;
+    }, [searchResponse, numResults]);
 
     return (
         <div className="flex flex-col h-screen overflow-clip">
@@ -90,8 +96,22 @@ export default function SearchPage() {
                     />
                 </div>
                 <Separator />
-                <div className="bg-accent p-1">
+                <div className="bg-accent py-1 px-2 flex flex-row items-center justify-between">
                     <p className="text-sm font-medium">Results for: {fileMatches.length} files in {searchDurationMs} ms</p>
+                    {isMoreResultsButtonVisible && (
+                        <div
+                            className="cursor-pointer text-blue-500 text-sm hover:underline"
+                            onClick={() => {
+                                const url = createPathWithQueryParams('/search',
+                                    ["query", searchQuery],
+                                    ["numResults", `${numResults*2}`],
+                                )
+                                router.push(url);
+                            }}
+                        >
+                            More results
+                        </div>
+                    )}
                 </div>
                 <Separator />
             </div>
