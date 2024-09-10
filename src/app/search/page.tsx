@@ -101,8 +101,10 @@ export default function SearchPage() {
                 <ResizablePanel minSize={20}>
                     <SearchResultsPanel
                         fileMatches={fileMatches}
-                        onOpenFileMatch={(fileMatch, matchIndex) => {
+                        onOpenFileMatch={(fileMatch) => {
                             setSelectedFile(fileMatch);
+                        }}
+                        onMatchIndexChanged={(matchIndex) => {
                             setSelectedMatchIndex(matchIndex);
                         }}
                     />
@@ -152,10 +154,15 @@ const CodePreviewWrapper = ({
 
                     const decodedSource = atob(source);
 
+                    // Filter out filename matches
+                    const filteredMatches = fileMatch.ChunkMatches.filter((match) => {
+                        return !match.FileName;
+                    });
+
                     return {
                         content: decodedSource,
                         filepath: fileMatch.FileName,
-                        matches: fileMatch.ChunkMatches,
+                        matches: filteredMatches,
                         link: link,
                         language: fileMatch.Language,
                     };

@@ -110,7 +110,7 @@ export const CodePreviewPanel = ({
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex flex-row bg-cyan-200 dark:bg-cyan-900 items-center justify-between pr-3">
+            <div className="flex flex-row bg-cyan-200 dark:bg-cyan-900 items-center justify-between pr-3 py-0.5">
                 <div className="flex flex-row">
                     <div
                         style={{ width: `${gutterWidth}px` }}
@@ -132,25 +132,29 @@ export const CodePreviewPanel = ({
                     </span>
                 </div>
                 <div className="flex flex-row gap-1 items-center">
-                    <p className="text-sm">{`${selectedMatchIndex + 1} of ${ranges.length}`}</p>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        disabled={selectedMatchIndex === 0}
-                        onClick={onUpClicked}
-                    >
-                        <ArrowUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={onDownClicked}
-                        disabled={file ? selectedMatchIndex === ranges.length - 1 : true}
-                    >
-                        <ArrowDown className="h-4 w-4" />
-                    </Button>
+                    {file && file.matches.length > 0 && (
+                        <>
+                            <p className="text-sm">{`${selectedMatchIndex + 1} of ${ranges.length}`}</p>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                disabled={selectedMatchIndex === 0}
+                                onClick={onUpClicked}
+                            >
+                                <ArrowUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={onDownClicked}
+                                disabled={file ? selectedMatchIndex === ranges.length - 1 : true}
+                            >
+                                <ArrowDown className="h-4 w-4" />
+                            </Button>
+                        </>
+                    )}
                     <Button
                         variant="ghost"
                         size="icon"

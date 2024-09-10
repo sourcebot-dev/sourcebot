@@ -19,12 +19,14 @@ const MAX_MATCHES_TO_PREVIEW = 3;
 
 interface SearchResultsPanelProps {
     fileMatches: SearchResultFile[];
-    onOpenFileMatch: (fileMatch: SearchResultFile, matchIndex: number) => void;
+    onOpenFileMatch: (fileMatch: SearchResultFile) => void;
+    onMatchIndexChanged: (matchIndex: number) => void;
 }
 
 export const SearchResultsPanel = ({
     fileMatches,
     onOpenFileMatch,
+    onMatchIndexChanged,
 }: SearchResultsPanelProps) => {
     return (
         <ScrollArea className="h-full">
@@ -32,8 +34,11 @@ export const SearchResultsPanel = ({
                 <FilePreview
                     key={index}
                     file={fileMatch}
-                    onOpenFile={(matchIndex) => {
-                        onOpenFileMatch(fileMatch, matchIndex);
+                    onOpenFile={() => {
+                        onOpenFileMatch(fileMatch);
+                    }}
+                    onMatchIndexChanged={(matchIndex) => {
+                        onMatchIndexChanged(matchIndex);
                     }}
                 />
             ))}
@@ -44,12 +49,14 @@ export const SearchResultsPanel = ({
 
 interface FilePreviewProps {
     file: SearchResultFile;
-    onOpenFile: (matchIndex: number) => void;
+    onOpenFile: () => void;
+    onMatchIndexChanged: (matchIndex: number) => void;
 }
 
 const FilePreview = ({
     file,
     onOpenFile,
+    onMatchIndexChanged,
 }: FilePreviewProps) => {
 
     const [showAll, setShowAll] = useState(false);
@@ -68,6 +75,20 @@ const FilePreview = ({
 
         return sortedMatches;
     }, [file, showAll]);
+
+    const fileNameRange = useMemo(() => {
+        for (const match of matches) {
+            if (match.FileName && match.Ranges.length > 0) {
+                const range = match.Ranges[0];
+                return {
+                    from: range.Start.Column - 1,
+                    to: range.End.Column - 1,
+                }
+            }
+        }
+
+        return null;
+    }, [matches]);
 
     const { repoIcon, repoName, repoLink } = useMemo(() => {
         const info = getRepoCodeHostInfo(file.Repository);
@@ -96,7 +117,12 @@ const FilePreview = ({
 
     return (
         <div className="flex flex-col">
-            <div className="bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2 py-0.5 flex flex-row items-center justify-between border">
+            <div
+                className="bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2 py-0.5 flex flex-row items-center justify-between border cursor-pointer"
+                onClick={() => {
+                    onOpenFile();
+                }}
+            >
                 <div className="flex flex-row gap-2 items-center">
                     {repoIcon}
                     <span
@@ -111,7 +137,18 @@ const FilePreview = ({
                     >
                         {repoName}
                     </span>
-                    <span>· {file.FileName}</span>
+                    <span>·</span>
+                    {!fileNameRange ? (
+                        <span>{file.FileName}</span> 
+                    ) : (
+                        <span>
+                            {file.FileName.slice(0, fileNameRange.from)}
+                            <span className="bg-yellow-200 dark:bg-blue-700">
+                                {file.FileName.slice(fileNameRange.from, fileNameRange.to)}
+                            </span>
+                            {file.FileName.slice(fileNameRange.to)}
+                        </span>
+                    )}
                 </div>
             </div>
             {matches.map((match, index) => {
@@ -132,7 +169,8 @@ const FilePreview = ({
                             const matchIndex = matches.slice(0, index).reduce((acc, match) => {
                                 return acc + match.Ranges.length;
                             }, 0);
-                            onOpenFile(matchIndex);
+                            onOpenFile();
+                            onMatchIndexChanged(matchIndex);
                         }}
                     >
                         <CodePreview
