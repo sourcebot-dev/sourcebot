@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useExtensionWithDependency } from "@/hooks/useExtensionWithDependency";
 import { useKeymapType } from "@/hooks/useKeymapType";
+import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
+import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 import { gutterWidthExtension } from "@/lib/extensions/gutterWidthExtension";
-import { markMatches, searchResultHighlightExtension } from "@/lib/extensions/searchResultHighlightExtension";
-import { ZoektMatch } from "@/lib/types";
+import { highlightRanges, searchResultHighlightExtension } from "@/lib/extensions/searchResultHighlightExtension";
+import { SearchResultFileMatch } from "@/lib/schemas";
 import { defaultKeymap } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
 import { search } from "@codemirror/search";
@@ -17,42 +19,33 @@ import { vim } from "@replit/codemirror-vim";
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import clsx from "clsx";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { useTheme } from "next-themes";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface CodePreviewFile {
     content: string;
     filepath: string;
     link?: string;
-    matches: ZoektMatch[];
+    matches: SearchResultFileMatch[];
+    language: string;
 }
 
-interface CodePreviewProps {
+interface CodePreviewPanelProps {
     file?: CodePreviewFile;
     selectedMatchIndex: number;
     onSelectedMatchIndexChange: (index: number) => void;
     onClose: () => void;
 }
 
-export const CodePreview = ({
+export const CodePreviewPanel = ({
     file,
     selectedMatchIndex,
     onSelectedMatchIndexChange,
     onClose,
-}: CodePreviewProps) => {
+}: CodePreviewPanelProps) => {
     const editorRef = useRef<ReactCodeMirrorRef>(null);
 
-    const { theme: _theme, systemTheme } = useTheme();
     const [ keymapType ] = useKeymapType();
-
-    const theme = useMemo(() => {
-        if (_theme === "system") {
-            return systemTheme ?? "light";
-        }
-
-        return _theme ?? "light";
-    }, [_theme, systemTheme]);
-
+    const { theme  } = useThemeNormalized();
     const [gutterWidth, setGutterWidth] = useState(0);
 
     const keymapExtension = useExtensionWithDependency(
@@ -68,11 +61,14 @@ export const CodePreview = ({
         [keymapType]
     );
 
+    const syntaxHighlighting = useSyntaxHighlightingExtension(file?.language ?? '', editorRef.current?.view);
+
     const extensions = useMemo(() => {
         return [
             keymapExtension,
             gutterWidthExtension,
             javascript(),
+            syntaxHighlighting,
             searchResultHighlightExtension(),
             search({
                 top: true,
@@ -84,15 +80,25 @@ export const CodePreview = ({
                 }
             }),
         ];
-    }, [keymapExtension]);
+    }, [keymapExtension, syntaxHighlighting]);
+
+    const ranges = useMemo(() => {
+        if (!file || !file.matches.length) {
+            return [];
+        }
+
+        return file.matches.flatMap((match) => {
+            return match.Ranges;
+        })
+    }, [file]);
 
     useEffect(() => {
         if (!file || !editorRef.current?.view) {
             return;
         }
 
-        markMatches(selectedMatchIndex, file.matches, editorRef.current.view);
-    }, [file, file?.matches, selectedMatchIndex]);
+        highlightRanges(selectedMatchIndex, ranges, editorRef.current.view);
+    }, [ranges, selectedMatchIndex]);
 
     const onUpClicked = useCallback(() => {
         onSelectedMatchIndexChange(selectedMatchIndex - 1);
@@ -126,7 +132,7 @@ export const CodePreview = ({
                     </span>
                 </div>
                 <div className="flex flex-row gap-1 items-center">
-                    <p className="text-sm">{`${selectedMatchIndex + 1} of ${file?.matches.length}`}</p>
+                    <p className="text-sm">{`${selectedMatchIndex + 1} of ${ranges.length}`}</p>
                     <Button
                         variant="ghost"
                         size="icon"
@@ -141,7 +147,7 @@ export const CodePreview = ({
                         size="icon"
                         className="h-6 w-6"
                         onClick={onDownClicked}
-                        disabled={file ? selectedMatchIndex === file?.matches.length - 1 : true}
+                        disabled={file ? selectedMatchIndex === ranges.length - 1 : true}
                     >
                         <ArrowDown className="h-4 w-4" />
                     </Button>

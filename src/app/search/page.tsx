@@ -7,8 +7,7 @@ import {
 } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
-import { GetSourceResponse, pathQueryParamName, repoQueryParamName, ZoektFileMatch, ZoektSearchResponse } from "@/lib/types";
-import { createPathWithQueryParams, getCodeHostFilePreviewLink } from "@/lib/utils";
+import { getCodeHostFilePreviewLink } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
@@ -17,9 +16,11 @@ import logoDark from "../../../public/sb_logo_dark.png";
 import logoLight from "../../../public/sb_logo_light.png";
 import { SearchBar } from "../searchBar";
 import { SettingsDropdown } from "../settingsDropdown";
-import { CodePreview, CodePreviewFile } from "./codePreview";
-import { SearchResults } from "./searchResults";
+import { CodePreviewPanel, CodePreviewFile } from "./codePreviewPanel";
+import { SearchResultsPanel } from "./searchResultsPanel";
 import { useRouter } from "next/navigation";
+import { fetchFileSource, search } from "../api/(client)/client";
+import { SearchResultFile } from "@/lib/schemas";
 
 export default function SearchPage() {
     const router = useRouter();
@@ -27,30 +28,28 @@ export default function SearchPage() {
     const numResults = useNonEmptyQueryParam("numResults") ?? "100";
 
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
-    const [selectedFile, setSelectedFile] = useState<ZoektFileMatch | undefined>(undefined);
+    const [selectedFile, setSelectedFile] = useState<SearchResultFile | undefined>(undefined);
 
     const { data: searchResponse, isLoading } = useQuery({
         queryKey: ["search", searchQuery, numResults],
-        queryFn: async (): Promise<ZoektSearchResponse> => {
-            console.log("Fetching search results");
-            const result = await fetch(`/api/search?query=${searchQuery}&numResults=${numResults}`)
-                .then(response => response.json());
-            console.log("Done");
-            return result;
-        },
+        queryFn: () => search({
+            query: searchQuery,
+            numResults: parseInt(numResults),
+        }),
         enabled: searchQuery.length > 0,
     });
 
-    const { fileMatches, searchDurationMs } = useMemo((): { fileMatches: ZoektFileMatch[], searchDurationMs: number } => {
+    const { fileMatches, searchDurationMs } = useMemo((): { fileMatches: SearchResultFile[], searchDurationMs: number } => {
         if (!searchResponse) {
             return {
                 fileMatches: [],
                 searchDurationMs: 0,
             };
         }
+
         return {
-            fileMatches: searchResponse.result.FileMatches ?? [],
-            searchDurationMs: Math.round(searchResponse.result.Stats.Duration / 1000000),
+            fileMatches: searchResponse.Result.Files ?? [],
+            searchDurationMs: Math.round(searchResponse.Result.Duration / 1000000),
         }
     }, [searchResponse]);
 
@@ -100,7 +99,7 @@ export default function SearchPage() {
             {/* Search Results & Code Preview */}
             <ResizablePanelGroup direction="horizontal">
                 <ResizablePanel minSize={20}>
-                    <SearchResults
+                    <SearchResultsPanel
                         fileMatches={fileMatches}
                         onOpenFileMatch={(fileMatch, matchIndex) => {
                             setSelectedFile(fileMatch);
@@ -126,7 +125,7 @@ export default function SearchPage() {
 }
 
 interface CodePreviewWrapperProps {
-    fileMatch?: ZoektFileMatch;
+    fileMatch?: SearchResultFile;
     onClose: () => void;
     selectedMatchIndex: number;
     onSelectedMatchIndexChange: (index: number) => void;
@@ -140,33 +139,25 @@ const CodePreviewWrapper = ({
 }: CodePreviewWrapperProps) => {
 
     const { data: file } = useQuery({
-        queryKey: ["source", fileMatch?.FileName, fileMatch?.Repo],
+        queryKey: ["source", fileMatch?.FileName, fileMatch?.Repository],
         queryFn: async (): Promise<CodePreviewFile | undefined> => {
             if (!fileMatch) {
                 return undefined;
             }
 
-            const url = createPathWithQueryParams(
-                `/api/source`,
-                [pathQueryParamName, fileMatch.FileName],
-                [repoQueryParamName, fileMatch.Repo]
-            );
+            return fetchFileSource(fileMatch.FileName, fileMatch.Repository)
+                .then(({ source }) => {
+                    // @todo : refector this to use the templates provided by zoekt.
+                    const link = getCodeHostFilePreviewLink(fileMatch.Repository, fileMatch.FileName)
 
-            return fetch(url)
-                .then(response => response.json())
-                .then((body: GetSourceResponse) => {
-                    if (body.encoding !== "base64") {
-                        throw new Error("Expected base64 encoding");
-                    }
-
-                    const content = atob(body.content);
-                    const link = getCodeHostFilePreviewLink(fileMatch.Repo, fileMatch.FileName)
+                    const decodedSource = atob(source);
 
                     return {
-                        content,
+                        content: decodedSource,
                         filepath: fileMatch.FileName,
-                        matches: fileMatch.Matches,
+                        matches: fileMatch.ChunkMatches,
                         link: link,
+                        language: fileMatch.Language,
                     };
                 });
         },
@@ -174,7 +165,7 @@ const CodePreviewWrapper = ({
     });
 
     return (
-        <CodePreview
+        <CodePreviewPanel
             file={file}
             onClose={onClose}
             selectedMatchIndex={selectedMatchIndex}

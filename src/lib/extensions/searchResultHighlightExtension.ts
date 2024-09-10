@@ -1,24 +1,16 @@
 import { EditorSelection, Extension, StateEffect, StateField, Text, Transaction } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
-import { ZoektMatch } from "../types";
-
-const matchMark = Decoration.mark({
-    class: "tq-searchMatch"
-});
-const selectedMatchMark = Decoration.mark({
-    class: "tq-searchMatch-selected"
-});
+import { SearchResultRange } from "../schemas";
 
 const setMatchState = StateEffect.define<{
     selectedMatchIndex: number,
-    matches: ZoektMatch[],
+    ranges: SearchResultRange[],
 }>();
 
-const getMatchRange = (match: ZoektMatch, document: Text) => {
-    const line = document.line(match.LineNum);
-    const fragment = match.Fragments[0];
-    const from = line.from + fragment.Pre.length;
-    const to = from + fragment.Match.length;
+const convertToCodeMirrorRange = (range: SearchResultRange, document: Text) => {
+    const { Start, End } = range;
+    const from = document.line(Start.LineNumber).from + Start.Column - 1;
+    const to = document.line(End.LineNumber).from + End.Column - 1;
     return { from, to };
 }
 
@@ -32,12 +24,14 @@ const matchHighlighter = StateField.define<DecorationSet>({
 
         for (const effect of transaction.effects) {
             if (effect.is(setMatchState)) {
-                const { matches, selectedMatchIndex } = effect.value;
+                const { ranges, selectedMatchIndex } = effect.value;
 
-                const decorations = matches
-                    .filter((match) => match.LineNum > 0)
-                    .map((match, index) => {
-                        const { from, to } = getMatchRange(match, transaction.newDoc);
+                const decorations = ranges
+                    .sort((a, b) => {
+                        return a.Start.ByteOffset - b.Start.ByteOffset;
+                    })
+                    .map((range, index) => {
+                        const { from, to } = convertToCodeMirrorRange(range, transaction.newDoc);
                         const mark = index === selectedMatchIndex ? selectedMatchMark : matchMark;
                         return mark.range(from, to);
                     });
@@ -49,6 +43,13 @@ const matchHighlighter = StateField.define<DecorationSet>({
         return highlights;
     },
     provide: (field) => EditorView.decorations.from(field),
+});
+
+const matchMark = Decoration.mark({
+    class: "tq-searchMatch"
+});
+const selectedMatchMark = Decoration.mark({
+    class: "tq-searchMatch-selected"
 });
 
 const highlightTheme = EditorView.baseTheme({
@@ -64,34 +65,27 @@ const highlightTheme = EditorView.baseTheme({
     },
     "&dark .tq-searchMatch-selected": {
         backgroundColor: "#00ff007a",
-
     }
 });
 
-export const markMatches = (selectedMatchIndex: number, matches: ZoektMatch[], view: EditorView) => {
+export const highlightRanges = (selectedMatchIndex: number, ranges: SearchResultRange[], view: EditorView) => {
     const setState = setMatchState.of({
         selectedMatchIndex,
-        matches,
+        ranges,
     });
     
     const effects = []
     effects.push(setState);
 
-    if (selectedMatchIndex >= 0 && selectedMatchIndex < matches.length) {
-        const match = matches[selectedMatchIndex];
-
-        // Don't scroll if the match is on the filename.
-        if (match.LineNum > 0) {
-            const { from, to } = getMatchRange(match, view.state.doc);
-            const selection = EditorSelection.range(from, to);
-            effects.push(EditorView.scrollIntoView(selection, {
-                y: "start",
-            }));
-        }
+    if (selectedMatchIndex >= 0 && selectedMatchIndex < ranges.length) {
+        const { from, to } = convertToCodeMirrorRange(ranges[selectedMatchIndex], view.state.doc);
+        const selection = EditorSelection.range(from, to);
+        effects.push(EditorView.scrollIntoView(selection, {
+            y: "start",
+        }));
     };
 
     view.dispatch({ effects });
-    return true;
 }
 
 export const searchResultHighlightExtension = (): Extension => {

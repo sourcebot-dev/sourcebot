@@ -2,6 +2,7 @@ import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import githubLogo from "../../public/github.svg";
 import gitlabLogo from "../../public/gitlab.svg";
+import { ServiceError } from "./serviceError";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -71,4 +72,12 @@ export const getCodeHostFilePreviewLink = (repoName: string, filePath: string): 
     }
 
     return undefined;
+}
+
+export const isServiceError = (data: unknown): data is ServiceError => {
+    return typeof data === 'object' &&
+        data !== null &&
+        'statusCode' in data &&
+        'errorCode' in data &&
+        'message' in data;
 }
