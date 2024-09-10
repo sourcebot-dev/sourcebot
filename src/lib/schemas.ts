@@ -4,13 +4,13 @@ export type SearchRequest = z.infer<typeof searchRequestSchema>;
 export const searchRequestSchema = z.object({
     query: z.string(),
     numResults: z.number(),
-    whole: z.optional(z.boolean()),
+    whole: z.boolean().optional(),
 });
 
 
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
 export type SearchResult = SearchResponse["Result"];
-export type SearchResultFile = SearchResult["Files"][number];
+export type SearchResultFile = NonNullable<SearchResult["Files"]>[number];
 export type SearchResultFileMatch = SearchResultFile["ChunkMatches"][number];
 export type SearchResultRange = z.infer<typeof rangeSchema>;
 export type SearchResultLocation = z.infer<typeof locationSchema>;
@@ -50,8 +50,8 @@ export const searchResponseSchema = z.object({
             Checksum: z.string(),
             Score: z.number(),
             // Set if `whole` is true.
-            Content: z.optional(z.string()),
-        })),
+            Content: z.string().optional(),
+        })).nullable(),
     }),
 });
 

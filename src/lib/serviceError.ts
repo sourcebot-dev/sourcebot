@@ -60,3 +60,11 @@ export const fileNotFound = async (fileName: string, repository: string): Promis
         message: `File "${fileName}" not found in repository "${repository}"`,
     };
 }
+
+export const unexpectedError = (message: string): ServiceError => {
+    return {
+        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+        errorCode: ErrorCode.UNEXPECTED_ERROR,
+        message: `Unexpected error: ${message}`,
+    };
+}
