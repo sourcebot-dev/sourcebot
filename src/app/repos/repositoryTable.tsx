@@ -1,18 +1,24 @@
-'use server';
+'use client';
 
 import { DataTable } from "@/components/ui/data-table";
 import { columns, RepositoryColumnInfo } from "./columns";
-import { listRepositories } from "@/lib/server/searchService";
 import { isServiceError } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { getRepos } from "../api/(client)/client";
 
-export const RepositoryTable = async () => {
-    const _repos = await listRepositories();
+export const RepositoryTable = () => {
+    const { data: _repos } = useQuery({
+        queryKey: ["repos"],
+        queryFn: () => getRepos(),
+    });
 
-    if (isServiceError(_repos)) {
-        return <div>Error fetching repositories</div>;
-    }
-    const repos = _repos.List.Repos.map((repo): RepositoryColumnInfo => {
-        return {
+    const repos = useMemo(() => {
+        if (isServiceError(_repos)) {
+            return [];
+        }
+
+        return _repos?.List.Repos.map((repo): RepositoryColumnInfo => ({
             name: repo.Repository.Name,
             branches: repo.Repository.Branches.map((branch) => {
                 return {
@@ -27,10 +33,10 @@ export const RepositoryTable = async () => {
             latestCommit: repo.Repository.LatestCommitDate,
             indexedFiles: repo.Stats.Documents,
             commitUrlTemplate: repo.Repository.CommitURLTemplate,
-        }
-    }).sort((a, b) => {
-        return new Date(b.lastIndexed).getTime() -  new Date(a.lastIndexed).getTime();
-    });
+        })).sort((a, b) => {
+            return new Date(b.lastIndexed).getTime() - new Date(a.lastIndexed).getTime();
+        }) ?? [];
+    }, [_repos]);
 
     return (
         <DataTable

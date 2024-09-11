@@ -1,6 +1,4 @@
-'use client';
-
-import { FileSourceResponse, fileSourceResponseSchema, SearchRequest, SearchResponse, searchResponseSchema } from "@/lib/schemas";
+import { FileSourceResponse, fileSourceResponseSchema, ListRepositoriesResponse, listRepositoriesResponseSchema, SearchRequest, SearchResponse, searchResponseSchema } from "@/lib/schemas";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse> => {
     const result = await fetch(`/api/search`, {
@@ -27,4 +25,15 @@ export const fetchFileSource = async (fileName: string, repository: string): Pro
     }).then(response => response.json());
 
     return fileSourceResponseSchema.parse(result);
+}
+
+export const getRepos = async (): Promise<ListRepositoriesResponse> => {
+    const result = await fetch('/api/repos', {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    }).then(response => response.json());
+
+    return listRepositoriesResponseSchema.parse(result);
 }
