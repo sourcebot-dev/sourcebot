@@ -1,9 +1,9 @@
+import escapeStringRegexp from "escape-string-regexp";
 import { SHARD_MAX_MATCH_COUNT, TOTAL_MAX_MATCH_COUNT } from "../environment";
-import { FileSourceRequest, FileSourceResponse, SearchRequest, SearchResponse, searchResponseSchema } from "../schemas";
-import { fileNotFound, invalidZoektResponse, schemaValidationError, ServiceError, unexpectedError } from "../serviceError";
+import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, listRepositoriesResponseSchema, SearchRequest, SearchResponse, searchResponseSchema } from "../schemas";
+import { fileNotFound, invalidZoektResponse, ServiceError, unexpectedError } from "../serviceError";
 import { isServiceError } from "../utils";
 import { zoektFetch } from "./zoektClient";
-import escapeStringRegexp from "escape-string-regexp";
 
 export const search = async ({ query, numResults, whole }: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const body = JSON.stringify({
@@ -63,4 +63,30 @@ export const getFileSource = async ({ fileName, repository }: FileSourceRequest)
     return {
         source
     }
+}
+
+export const listRepositories = async (): Promise<ListRepositoriesResponse | ServiceError> => {
+    const body = JSON.stringify({
+        opts: {
+            Field: 0,
+        }
+    });
+    const listResponse = await zoektFetch({
+        path: "/api/list",
+        body,
+        method: "POST"
+    });
+
+    if (!listResponse.ok) {
+        return invalidZoektResponse(listResponse);
+    }
+
+    const listBody = await listResponse.json();
+    const parsedListResponse = listRepositoriesResponseSchema.safeParse(listBody);
+    if (!parsedListResponse.success) {
+        console.error(`Failed to parse zoekt response. Error: ${parsedListResponse.error}`);
+        return unexpectedError(`Something went wrong while parsing the response from zoekt`);
+    }
+
+    return parsedListResponse.data;
 }
