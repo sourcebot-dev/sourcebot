@@ -11,6 +11,7 @@ export const RepositoryTable = () => {
     const { data: _repos } = useQuery({
         queryKey: ["repos"],
         queryFn: () => getRepos(),
+        enabled: typeof window !== "undefined",
     });
 
     const repos = useMemo(() => {
