@@ -1,5 +1,3 @@
-'use client';
-
 import Image from "next/image";
 import logoDark from "../../public/sb_logo_dark_large.png";
 import logoLight from "../../public/sb_logo_light_large.png";

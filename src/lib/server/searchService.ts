@@ -74,7 +74,8 @@ export const listRepositories = async (): Promise<ListRepositoriesResponse | Ser
     const listResponse = await zoektFetch({
         path: "/api/list",
         body,
-        method: "POST"
+        method: "POST",
+        cache: "no-store",
     });
 
     if (!listResponse.ok) {

@@ -5,12 +5,14 @@ interface ZoektRequest {
     path: string,
     body: string,
     method: string,
+    cache?: RequestCache,
 }
 
 export const zoektFetch = async ({
     path,
     body,
     method,
+    cache,
 }: ZoektRequest) => {
     const start = Date.now();
 
@@ -22,6 +24,7 @@ export const zoektFetch = async ({
                 "Content-Type": "application/json",
             },
             body,
+            cache,
         }
     );
 
