@@ -12,7 +12,7 @@ export const useThemeNormalized = (defaultTheme: "light" | "dark" = "light") => 
         }
 
         return _theme ?? defaultTheme;
-    }, [_theme, systemTheme]);
+    }, [_theme, systemTheme, defaultTheme]);
 
     return {
         theme,

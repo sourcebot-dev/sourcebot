@@ -98,7 +98,7 @@ export const CodePreviewPanel = ({
         }
 
         highlightRanges(selectedMatchIndex, ranges, editorRef.current.view);
-    }, [ranges, selectedMatchIndex]);
+    }, [ranges, selectedMatchIndex, file]);
 
     const onUpClicked = useCallback(() => {
         onSelectedMatchIndexChange(selectedMatchIndex - 1);
