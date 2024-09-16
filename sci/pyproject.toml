@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "sci"
+version = "0.1.0"
+description = ""
+authors = ["bkellam <bshizzle1234@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+sentence-transformers = "^3.1.0"
+gitpython = "^3.1.43"
+tree-sitter = "^0.23.0"
+tree-sitter-typescript = "^0.23.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
