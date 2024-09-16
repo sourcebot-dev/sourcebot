@@ -5,7 +5,6 @@ export const searchRequestSchema = z.object({
     query: z.string(),
     numResults: z.number(),
     whole: z.boolean().optional(),
-    semantic: z.boolean().optional(),
 });
 
 

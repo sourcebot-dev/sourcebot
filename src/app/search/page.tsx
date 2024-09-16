@@ -28,7 +28,6 @@ export default function SearchPage() {
     const router = useRouter();
     const searchQuery = useNonEmptyQueryParam("query") ?? "";
     const _numResults = parseInt(useNonEmptyQueryParam("numResults") ?? `${DEFAULT_NUM_RESULTS}`);
-    const isSemanticSearchEnabled = useNonEmptyQueryParam("semantic") === "true";
     const numResults = isNaN(_numResults) ? DEFAULT_NUM_RESULTS : _numResults;
 
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
@@ -39,7 +38,6 @@ export default function SearchPage() {
         queryFn: () => search({
             query: searchQuery,
             numResults,
-            semantic: isSemanticSearchEnabled,
         }),
         enabled: searchQuery.length > 0,
     });
