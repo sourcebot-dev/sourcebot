@@ -116,9 +116,9 @@ const FilePreview = ({
     }, [matchCount]);
 
     return (
-        <div className="flex flex-col">
+        <div>
             <div
-                className="bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2 py-0.5 flex flex-row items-center justify-between border cursor-pointer"
+                className="sticky top-0 bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2 py-0.5 flex flex-row items-center justify-between border cursor-pointer z-10"
                 onClick={() => {
                     onOpenFile();
                 }}

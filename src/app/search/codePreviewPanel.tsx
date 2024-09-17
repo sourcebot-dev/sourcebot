@@ -110,7 +110,7 @@ export const CodePreviewPanel = ({
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex flex-row bg-cyan-200 dark:bg-cyan-900 items-center justify-between pr-3 py-0.5">
+            <div className="flex flex-row bg-cyan-200 dark:bg-cyan-900 items-center justify-between pr-3 py-0.5 border">
                 <div className="flex flex-row">
                     <div
                         style={{ width: `${gutterWidth}px` }}

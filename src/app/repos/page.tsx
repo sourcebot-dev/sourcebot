@@ -7,7 +7,9 @@ export default function ReposPage() {
         <div className="h-screen flex flex-col items-center">
             <NavigationMenu />
             <Suspense fallback={<div>Loading...</div>}>
-                <RepositoryTable />
+                <div className="max-w-[90%]">
+                    <RepositoryTable />
+                </div>
             </Suspense>
         </div>
     )
