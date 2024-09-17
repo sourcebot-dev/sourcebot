@@ -30,11 +30,34 @@ const rangeSchema = z.object({
     End: locationSchema,
 });
 
+// @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L350
+export const searchResponseStats = {
+    ContentBytesLoaded: z.number(),
+    IndexBytesLoaded: z.number(),
+    Crashes: z.number(),
+    Duration: z.number(),
+    FileCount: z.number(),
+    ShardFilesConsidered: z.number(),
+    FilesConsidered: z.number(),
+    FilesLoaded: z.number(),
+    FilesSkipped: z.number(),
+    ShardsScanned: z.number(),
+    ShardsSkipped: z.number(),
+    ShardsSkippedFilter: z.number(),
+    MatchCount: z.number(),
+    NgramMatches: z.number(),
+    NgramLookups: z.number(),
+    Wait: z.number(),
+    MatchTreeConstruction: z.number(),
+    MatchTreeSearch: z.number(),
+    RegexpsConsidered: z.number(),
+    FlushReason: z.number(),
+}
+
+// @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L497
 export const searchResponseSchema = z.object({
     Result: z.object({
-        Duration: z.number(),
-        FileCount: z.number(),
-        MatchCount: z.number(),
+        ...searchResponseStats,
         Files: z.array(z.object({
             FileName: z.string(),
             Repository: z.string(),
@@ -72,7 +95,7 @@ export const fileSourceResponseSchema = z.object({
 export type ListRepositoriesResponse = z.infer<typeof listRepositoriesResponseSchema>;
 
 // @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L728
-export const statsSchema = z.object({
+const repoStatsSchema = z.object({
     Repos: z.number(),
     Shards: z.number(),
     Documents: z.number(),
@@ -84,7 +107,7 @@ export const statsSchema = z.object({
 });
 
 // @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L716
-export const indexMetadataSchema = z.object({
+const indexMetadataSchema = z.object({
     IndexFormatVersion: z.number(),
     IndexFeatureVersion: z.number(),
     IndexMinReaderVersion: z.number(),
@@ -96,7 +119,7 @@ export const indexMetadataSchema = z.object({
 });
 
 // @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L555
-export const repositorySchema = z.object({
+const repositorySchema = z.object({
     Name: z.string(),
     URL: z.string(),
     Source: z.string(),
@@ -121,8 +144,8 @@ export const listRepositoriesResponseSchema = z.object({
         Repos: z.array(z.object({
             Repository: repositorySchema,
             IndexMetadata: indexMetadataSchema,
-            Stats: statsSchema,
+            Stats: repoStatsSchema,
         })),
-        Stats: statsSchema,
+        Stats: repoStatsSchema,
     })
 });

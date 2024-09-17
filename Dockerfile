@@ -22,6 +22,8 @@ RUN yarn config set network-timeout 1200000
 RUN yarn --frozen-lockfile
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# @see: https://phase.dev/blog/nextjs-public-runtime-variables/
+ARG NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED
 RUN yarn run build
 
 # ------ Runner ------
@@ -32,6 +34,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATA_DIR=/data
 ENV CONFIG_PATH=$DATA_DIR/config.json
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
+
+# Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
+# ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
 RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor

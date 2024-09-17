@@ -81,3 +81,18 @@ export const isServiceError = (data: unknown): data is ServiceError => {
         'errorCode' in data &&
         'message' in data;
 }
+
+export const getEnv = (env: string | undefined, defaultValue = '') => {
+	return env ?? defaultValue;
+}
+
+export const getEnvNumber = (env: string | undefined, defaultValue: number = 0) => {
+	return Number(env) ?? defaultValue;
+}
+
+export const getEnvBoolean = (env: string | undefined, defaultValue: boolean) => {
+	if (!env) {
+		return defaultValue;
+	}
+	return env === 'true' || env === '1';
+}

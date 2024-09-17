@@ -65,20 +65,26 @@ zoekt will now index your repositories (at `HEAD`). By default, it will re-index
 
 4. Go to `http://localhost:3000` - once a index has been created, you should get results.
 
-
-
 ## Building Sourcebot
 
 TODO
 
-## GitLab
+## Disabling Telemetry
+
+By default, Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). You can disable this by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `1` in the docker run command. Example:
+```sh
+docker run -e SOURCEBOT_TELEMETRY_DISABLED=1 ...stuff... ghcr.io/taqlaai/sourcebot:main
+```
+
+
+# GitLab
 
 TODO
 
-## BitBucket
+# BitBucket
 
 TODO
 
-### Todos
+# Todos
 - Add instructions on using GitLab and BitBucket
 - Add instructions on building Sourcebot locally

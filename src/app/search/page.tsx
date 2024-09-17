@@ -13,7 +13,7 @@ import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import logoDark from "../../../public/sb_logo_dark.png";
 import logoLight from "../../../public/sb_logo_light.png";
 import { fetchFileSource, search } from "../api/(client)/client";
@@ -21,6 +21,7 @@ import { SearchBar } from "../searchBar";
 import { SettingsDropdown } from "../settingsDropdown";
 import { CodePreviewFile, CodePreviewPanel } from "./codePreviewPanel";
 import { SearchResultsPanel } from "./searchResultsPanel";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 const DEFAULT_NUM_RESULTS = 100;
 
@@ -33,6 +34,8 @@ export default function SearchPage() {
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
     const [selectedFile, setSelectedFile] = useState<SearchResultFile | undefined>(undefined);
 
+    const captureEvent = useCaptureEvent();
+
     const { data: searchResponse, isLoading } = useQuery({
         queryKey: ["search", searchQuery, numResults],
         queryFn: () => search({
@@ -40,7 +43,40 @@ export default function SearchPage() {
             numResults,
         }),
         enabled: searchQuery.length > 0,
+        refetchOnWindowFocus: false,
     });
+
+    useEffect(() => {
+        if (!searchResponse) {
+            return;
+        }
+
+        const fileLanguages = searchResponse.Result.Files?.map(file => file.Language) || [];
+
+        captureEvent("search_finished", {
+            contentBytesLoaded: searchResponse.Result.ContentBytesLoaded,
+            indexBytesLoaded: searchResponse.Result.IndexBytesLoaded,
+            crashes: searchResponse.Result.Crashes,
+            durationMs: searchResponse.Result.Duration / 1000000,
+            fileCount: searchResponse.Result.FileCount,
+            shardFilesConsidered: searchResponse.Result.ShardFilesConsidered,
+            filesConsidered: searchResponse.Result.FilesConsidered,
+            filesLoaded: searchResponse.Result.FilesLoaded,
+            filesSkipped: searchResponse.Result.FilesSkipped,
+            shardsScanned: searchResponse.Result.ShardsScanned,
+            shardsSkipped: searchResponse.Result.ShardsSkipped,
+            shardsSkippedFilter: searchResponse.Result.ShardsSkippedFilter,
+            matchCount: searchResponse.Result.MatchCount,
+            ngramMatches: searchResponse.Result.NgramMatches,
+            ngramLookups: searchResponse.Result.NgramLookups,
+            wait: searchResponse.Result.Wait,
+            matchTreeConstruction: searchResponse.Result.MatchTreeConstruction,
+            matchTreeSearch: searchResponse.Result.MatchTreeSearch,
+            regexpsConsidered: searchResponse.Result.RegexpsConsidered,
+            flushReason: searchResponse.Result.FlushReason,
+            fileLanguages,
+        });
+    }, [captureEvent, searchResponse]);
 
     const { fileMatches, searchDurationMs } = useMemo((): { fileMatches: SearchResultFile[], searchDurationMs: number } => {
         if (!searchResponse) {
@@ -104,7 +140,7 @@ export default function SearchPage() {
                             onClick={() => {
                                 const url = createPathWithQueryParams('/search',
                                     ["query", searchQuery],
-                                    ["numResults", `${numResults*2}`],
+                                    ["numResults", `${numResults * 2}`],
                                 )
                                 router.push(url);
                             }}

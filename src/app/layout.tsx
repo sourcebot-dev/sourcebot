@@ -4,8 +4,14 @@ import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import { QueryClientProvider } from "./queryClientProvider";
+import { PHProvider } from "./posthogProvider";
+import dynamic from "next/dynamic";
 
 const inter = Inter({ subsets: ["latin"] });
+
+const PostHogPageView = dynamic(() => import('./posthogPageView'), {
+    ssr: false,
+  })
 
 export const metadata: Metadata = {
     title: "Sourcebot",
@@ -24,22 +30,25 @@ export default function RootLayout({
             suppressHydrationWarning
         >
             <body className={inter.className}>
-                <ThemeProvider
-                    attribute="class"
-                    defaultTheme="system"
-                    enableSystem
-                    disableTransitionOnChange
-                >
-                    <QueryClientProvider>
-                        {/*
-                            @todo : ideally we don't wrap everything in a suspense boundary.
-                            @see : https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
-                        */}
-                        <Suspense>
-                            {children}
-                        </Suspense>
-                    </QueryClientProvider>
-                </ThemeProvider>
+                <PHProvider>
+                    <PostHogPageView />
+                    <ThemeProvider
+                        attribute="class"
+                        defaultTheme="system"
+                        enableSystem
+                        disableTransitionOnChange
+                    >
+                        <QueryClientProvider>
+                            {/*
+                                @todo : ideally we don't wrap everything in a suspense boundary.
+                                @see : https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+                            */}
+                            <Suspense>
+                                {children}
+                            </Suspense>
+                        </QueryClientProvider>
+                    </ThemeProvider>
+                </PHProvider>
             </body>
         </html>
     );
