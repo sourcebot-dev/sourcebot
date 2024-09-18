@@ -239,9 +239,26 @@ const CodePreview = ({
                         .sort((a, b) => {
                             return a.Start.ByteOffset - b.Start.ByteOffset;
                         })
+                        .filter(({ Start, End }) => {
+                            const startLine = Start.LineNumber - lineOffset;
+                            const endLine = End.LineNumber - lineOffset;
+                            
+                            if (
+                                startLine < 1 ||
+                                endLine < 1 ||
+                                startLine > document.lines ||
+                                endLine > document.lines
+                            ) {
+                                return false;
+                            }
+                            return true;
+                        })
                         .map(({ Start, End }) => {
-                            const from = document.line(Start.LineNumber - lineOffset).from + Start.Column - 1;
-                            const to = document.line(End.LineNumber - lineOffset).from + End.Column - 1;
+                            const startLine = Start.LineNumber - lineOffset;
+                            const endLine = End.LineNumber - lineOffset;
+
+                            const from = document.line(startLine).from + Start.Column - 1;
+                            const to = document.line(endLine).from + End.Column - 1;
                             return markDecoration.range(from, to);
                         });
 
@@ -254,7 +271,7 @@ const CodePreview = ({
             }),
             cmTheme
         ];
-    }, [ranges]);
+    }, [ranges, lineOffset]);
 
     const extensions = useMemo(() => {
         return [
