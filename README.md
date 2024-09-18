@@ -53,7 +53,15 @@ Sourcebot also supports indexing GitLab & BitBucket. Checkout the [index.json](.
     <details open>
     <summary><img src="https://github.com/favicon.ico" width="16" height="16" /> GitHub</summary>
 
-    Generate a GitHub Personal Access Token (PAT) [here](https://github.com/settings/tokens/new). If you are indexing public repositories only, you can select the `public_repo` scope, otherwise you will need the `repo` scope.
+    Generate a GitHub Personal Access Token (PAT) [here](https://github.com/settings/tokens/new). If you're only indexing public repositories select the `public_repo` scope; otherwise, select the `repo` scope.
+
+    You'll need to pass this PAT each time you run Sourcebot, so we recommend adding it as an environment variable. In this guide, we'll add the Github PAT as an environment variable called `GITHUB_TOKEN`:
+    ```sh
+    export GITHUB_TOKEN=<your-token-here>
+    ```
+
+    If you'd like to persist this environment variable across shell sessions, please add this line to your shell config file (ex. `~/.bashrc`, `~/.bash_profile`, etc)
+    
 
     </details>
 
@@ -78,8 +86,9 @@ Sourcebot also supports indexing GitLab & BitBucket. Checkout the [index.json](.
     <details open>
     <summary><img src="https://github.com/favicon.ico" width="16" height="16" /> GitHub</summary>
 
+    Run the `sourcebot` docker image, passing in the Github PAT you generated in the previous step as an environment variable called `GITHUB_TOKEN`:
     ```sh
-    docker run -p 3000:3000 --rm --name sourcebot -v $(pwd):/data -e GITHUB_TOKEN=<token> ghcr.io/taqlaai/sourcebot:main
+    docker run -p 3000:3000 --rm --name sourcebot -v $(pwd):/data -e GITHUB_TOKEN=$GITHUB_TOKEN ghcr.io/taqlaai/sourcebot:main
     ```
     </details>
 
