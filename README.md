@@ -93,7 +93,6 @@ Sourcebot also supports indexing GitLab & BitBucket. Checkout the [index.json](.
     TODO
 
     </details>
-    <br/>
     </div>
 
     Two things should happen: (1) a `.sourcebot` directory will be created containing the mirror repositories and indexes, and (2) you will see output similar to:
@@ -169,7 +168,6 @@ The zoekt binaries and web dependencies are placed into `bin` and `node_modules`
     <summary><img src="https://bitbucket.org/favicon.ico" width="16" height="16" /> BitBucket</summary>
     TODO
     </details>
-    <br/>
     </div>
 
 5. Start Sourcebot with the command:
