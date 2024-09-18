@@ -10,7 +10,6 @@ import { gutterWidthExtension } from "@/lib/extensions/gutterWidthExtension";
 import { highlightRanges, searchResultHighlightExtension } from "@/lib/extensions/searchResultHighlightExtension";
 import { SearchResultFileMatch } from "@/lib/schemas";
 import { defaultKeymap } from "@codemirror/commands";
-import { javascript } from "@codemirror/lang-javascript";
 import { search } from "@codemirror/search";
 import { EditorView, keymap } from "@codemirror/view";
 import { Cross1Icon, FileIcon } from "@radix-ui/react-icons";
@@ -67,7 +66,6 @@ export const CodePreviewPanel = ({
         return [
             keymapExtension,
             gutterWidthExtension,
-            javascript(),
             syntaxHighlighting,
             searchResultHighlightExtension(),
             search({
