@@ -1,22 +1,27 @@
+
+<div align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/images/logo_dark.png">
-  <img src=".github/images/logo_light.png">
+  <img height="150" src=".github/images/logo_light.png">
 </picture>
-
-[Try the demo!](https://demo.sourcebot.dev)
+</div>
+<p align="center">
+Blazingly fast code search 🏎️
+</p>
+<p align="center">
+  <a href="https://demo.sourcebot.dev"><img src="https://img.shields.io/badge/Try the Demo!-blue?logo=googlechrome&logoColor=orange"/></a>
+  <a href="mailto:brendan@sourcebot.dev"><img src="https://img.shields.io/badge/Email%20Us-brightgreen" /></a>
+  <a href="https://github.com/TaqlaAI/sourcebot/blob/main/LICENSE"><img src="https://img.shields.io/github/license/TaqlaAI/sourcebot"/></a>
+  <a href="https://github.com/TaqlaAI/sourcebot/actions/workflows/ghcr-publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/TaqlaAI/sourcebot/ghcr-publish.yml"/><a>
+  <a href="https://github.com/TaqlaAI/sourcebot/stargazers"><img src="https://img.shields.io/github/stars/TaqlaAI/sourcebot" /></a>
+</p>
 
 
 # About
-![build](https://github.com/TaqlaAI/sourcebot/actions/workflows/ghcr-publish.yml/badge.svg)
 
 Sourcebot is a fast code indexing and search tool for your codebases. It is built ontop of the [zoekt](https://github.com/sourcegraph/zoekt) indexer, originally authored by Han-Wen Nienhuys and now [maintained by Sourcegraph](https://sourcegraph.com/blog/sourcegraph-accepting-zoekt-maintainership).
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/images/usage_dark.png">
-  <img src=".github/images/usage_light.png">
-</picture>
-<br/>
-<br/>
+![Demo video](https://github.com/user-attachments/assets/227176d8-fc61-42a9-8746-3cbc831f09e4)
 
 # Getting Started
 
