@@ -1,9 +1,10 @@
 {
-    "$schema": "./schemas/zoekt-mirror.json",
+    "$schema": "https://raw.githubusercontent.com/TaqlaAI/sourcebot/main/schemas/index.json",
     "Configs": [
         {
             "Type": "github",
-            "GitHubUser": "torvalds"
+            "GitHubOrg": "TaqlaAI",
+            "Name": "^sourcebot$"
         }
     ]
 }

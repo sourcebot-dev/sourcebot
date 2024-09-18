@@ -11,6 +11,6 @@ zoekt:
 	go build -C vendor/zoekt -o $(PWD)/bin ./cmd/...
 
 clean:
-	rm -rf bin node_modules
+	rm -rf bin node_modules .next .sourcebot
 
 .PHONY: bin
