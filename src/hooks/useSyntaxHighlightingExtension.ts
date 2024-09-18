@@ -11,6 +11,7 @@ export const useSyntaxHighlightingExtension = (language: string, view: EditorVie
         view ?? null,
         () => {
             switch (language.toLowerCase()) {
+                case "tsx":
                 case "typescript":
                 case "javascript":
                     return javascript({
