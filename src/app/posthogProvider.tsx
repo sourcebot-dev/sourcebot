@@ -9,7 +9,19 @@ if (typeof window !== 'undefined') {
             api_host: "/ingest",
             ui_host: NEXT_PUBLIC_POSTHOG_UI_HOST,
             person_profiles: 'identified_only',
-            capture_pageview: false, // Disable automatic pageview capture, as we capture manually
+            capture_pageview: false, // Disable automatic pageview capture
+            autocapture: false, // Disable automatic event capture
+            sanitize_properties: (properties: Record<string, any>, _event: string) => {
+                if (properties['$current_url']) {
+                    properties['$current_url'] = null;
+                }
+                if (properties['$ip']) {
+                    properties['$ip'] = "null";
+                }
+            
+            
+                return properties;
+                }
         });
     } else {
         console.log("PostHog telemetry disabled");
