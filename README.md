@@ -130,12 +130,16 @@ Sourcebot also supports indexing GitLab & BitBucket. Checkout the [index.json](.
 
 1. Install <a href="https://go.dev/doc/install"><img src="https://go.dev/favicon.ico" width="16" height="16"> go</a> and <a href="https://nodejs.org/"><img src="https://nodejs.org/favicon.ico" width="16" height="16"> NodeJS</a>. Note that a NodeJS version of at least `21.1.0` is required.
 
-2. Clone the repository with submodules:
+2. Install ctags (required by zoekt-indexserver):
+   Mac: `brew install universal-ctags`
+   Ubuntu: `apt-get install universal-ctags`
+
+3. Clone the repository with submodules:
     ```sh
     git clone --recurse-submodules https://github.com/TaqlaAI/sourcebot.git
     ```
 
-3. Run make to build zoekt and install dependencies:
+4. Run make to build zoekt and install dependencies:
     ```sh
     cd sourcebot
     make
