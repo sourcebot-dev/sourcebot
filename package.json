@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "npm-run-all --print-label --parallel next:dev zoekt:webserver zoekt:indexserver",
-    "zoekt:webserver": "export PATH=\"$(PWD)/bin:$PATH\" && zoekt-webserver -index .sourcebot/index -rpc",
-    "zoekt:indexserver": "export PATH=\"$(PWD)/bin:$PATH\" && zoekt-indexserver -data_dir .sourcebot -mirror_config config.json",
+    "zoekt:webserver": "export PATH=\"$PWD/bin:$PATH\" && zoekt-webserver -index .sourcebot/index -rpc",
+    "zoekt:indexserver": "export PATH=\"$PWD/bin:$PATH\" && zoekt-indexserver -data_dir .sourcebot -mirror_config config.json",
     "next:dev": "next dev",
     "build": "next build",
     "start": "next start",
