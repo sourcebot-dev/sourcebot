@@ -5,7 +5,6 @@ import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import { QueryClientProvider } from "./queryClientProvider";
 import { PHProvider } from "./posthogProvider";
-import dynamic from "next/dynamic";
 
 const inter = Inter({ subsets: ["latin"] });
 

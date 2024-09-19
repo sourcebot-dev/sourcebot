@@ -11,6 +11,7 @@ if (typeof window !== 'undefined') {
             person_profiles: 'identified_only',
             capture_pageview: false, // Disable automatic pageview capture
             autocapture: false, // Disable automatic event capture
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             sanitize_properties: (properties: Record<string, any>, _event: string) => {
                 // https://posthog.com/docs/libraries/js#config
                 if (properties['$current_url']) {
