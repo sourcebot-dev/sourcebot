@@ -15,13 +15,9 @@ if (typeof window !== 'undefined') {
                 if (properties['$current_url']) {
                     properties['$current_url'] = null;
                 }
-                if (properties['$ip']) {
-                    properties['$ip'] = "null";
-                }
-            
             
                 return properties;
-                }
+            }
         });
     } else {
         console.log("PostHog telemetry disabled");
