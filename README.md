@@ -166,7 +166,7 @@ The zoekt binaries and web dependencies are placed into `bin` and `node_modules`
     
     Generate a GitHub Personal Access Token (PAT) [here](https://github.com/settings/tokens/new). If you are indexing public repositories only, you can select the `public_repo` scope, otherwise you will need the `repo` scope.
 
-    Create a text file named `.github-token` in your home directory and paste the token in it. The file should look like:
+    Create a text file named `.github-token` **in your home directory** and paste the token in it. The file should look like:
     ```sh
     ghp_...
     ```
