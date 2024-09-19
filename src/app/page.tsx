@@ -49,48 +49,48 @@ export default async function Home() {
                             title="Search in files or paths"
                         >
                             <QueryExample>
-                                test todo <QueryExplanation>(both test and todo)</QueryExplanation>
+                                <Query query="test todo">test todo</Query> <QueryExplanation>(both test and todo)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                test <Highlight>or</Highlight> todo <QueryExplanation>(either test or todo)</QueryExplanation>
+                                <Query query="test or todo">test <Highlight>or</Highlight> todo</Query> <QueryExplanation>(either test or todo)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                "exit boot" <QueryExplanation>(exact match)</QueryExplanation>
+                                <Query query={"\"exit boot\""}>"exit boot"</Query> <QueryExplanation>(exact match)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                TODO <Highlight>case:</Highlight>yes <QueryExplanation>(case sensitive)</QueryExplanation>
+                                <Query query="TODO case:yes">TODO <Highlight>case:</Highlight>yes</Query> <QueryExplanation>(case sensitive)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
                         <HowToSection
                             title="Filter results"
                         >
                             <QueryExample>
-                                <Highlight>file:</Highlight>README setup <QueryExplanation>(by filename)</QueryExplanation>
+                                <Query query="file:README setup"><Highlight>file:</Highlight>README setup</Query> <QueryExplanation>(by filename)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Highlight>repo:</Highlight>torvalds/linux test <QueryExplanation>(by repo)</QueryExplanation>
+                                <Query query="repo:torvalds/linux test"><Highlight>repo:</Highlight>torvalds/linux test</Query> <QueryExplanation>(by repo)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Highlight>lang:</Highlight>typescript <QueryExplanation>(by language)</QueryExplanation>
+                                <Query query="lang:typescript"><Highlight>lang:</Highlight>typescript</Query> <QueryExplanation>(by language)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Highlight>branch:</Highlight>HEAD <QueryExplanation>(by branch)</QueryExplanation>
+                                <Query query="branch:HEAD"><Highlight>branch:</Highlight>HEAD</Query> <QueryExplanation>(by branch)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
                         <HowToSection
                             title="Advanced"
                         >
                             <QueryExample>
-                                <Highlight>file:</Highlight>\.py$ <QueryExplanation>(files that end in ".py")</QueryExplanation>
+                                <Query query="file:\.py$"><Highlight>file:</Highlight>\.py$</Query> <QueryExplanation>(files that end in ".py")</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
                                 <Highlight>sym:</Highlight>main <QueryExplanation>(symbols named "main")</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                todo <Highlight>-lang:c</Highlight> <QueryExplanation>(negate filter)</QueryExplanation>
+                                <Query query="todo -lang:c">todo <Highlight>-lang:c</Highlight></Query> <QueryExplanation>(negate filter)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Highlight>content:</Highlight>README<QueryExplanation>(search content only)</QueryExplanation>
+                                <Query query="content:README"><Highlight>content:</Highlight>README</Query> <QueryExplanation>(search content only)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
                     </div>
@@ -168,5 +168,16 @@ const QueryExplanation = ({ children }: { children: React.ReactNode }) => {
         <span className="text-gray-500 dark:text-gray-400 ml-3">
             {children}
         </span>
+    )
+}
+
+const Query = ({ query, children }: { query: string, children: React.ReactNode }) => {
+    return (
+        <a
+            href={`/search?query=${query}`}
+            className="cursor-pointer hover:underline"
+        >
+            {children}
+        </a>
     )
 }
