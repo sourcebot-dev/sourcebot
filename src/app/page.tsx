@@ -55,7 +55,7 @@ export default async function Home() {
                                 <Query query="test or todo">test <Highlight>or</Highlight> todo</Query> <QueryExplanation>(either test or todo)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query={"\"exit boot\""}>"exit boot"</Query> <QueryExplanation>(exact match)</QueryExplanation>
+                                <Query query={`"exit boot"`}>{`"exit boot"`}</Query> <QueryExplanation>(exact match)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
                                 <Query query="TODO case:yes">TODO <Highlight>case:</Highlight>yes</Query> <QueryExplanation>(case sensitive)</QueryExplanation>
@@ -81,10 +81,10 @@ export default async function Home() {
                             title="Advanced"
                         >
                             <QueryExample>
-                                <Query query="file:\.py$"><Highlight>file:</Highlight>\.py$</Query> <QueryExplanation>(files that end in ".py")</QueryExplanation>
+                                <Query query="file:\.py$"><Highlight>file:</Highlight>{`\\.py$`}</Query> <QueryExplanation>{`(files that end in ".py")`}</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Highlight>sym:</Highlight>main <QueryExplanation>(symbols named "main")</QueryExplanation>
+                                <Highlight>sym:</Highlight>main <QueryExplanation>{`(symbols named "main")`}</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
                                 <Query query="todo -lang:c">todo <Highlight>-lang:c</Highlight></Query> <QueryExplanation>(negate filter)</QueryExplanation>
