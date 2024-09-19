@@ -187,7 +187,9 @@ The zoekt binaries and web dependencies are placed into `bin` and `node_modules`
 
 ## Disabling Telemetry
 
-By default, Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). You can disable this by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `1` in the docker run command:
+By default, Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). We [sanatize all events](https://github.com/TaqlaAI/sourcebot/blob/main/src/app/posthogProvider.tsx) to ensure that no information about your code base leaves your machine. We don't include any information about your codebase in [any of the events we send](https://github.com/search?q=repo%3ATaqlaAI%2Fsourcebot++captureEvent&type=code). We send these events purely to track how many people our using Sourcebot and to ensure its health through query metadata (ex. search time, crashes, etc).
+
+You can disable this by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `1` in the docker run command:
 ```sh
 docker run -e SOURCEBOT_TELEMETRY_DISABLED=1 ...stuff... ghcr.io/taqlaai/sourcebot:main
 ```
