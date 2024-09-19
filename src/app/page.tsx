@@ -84,7 +84,7 @@ export default async function Home() {
                                 <Query query="file:\.py$"><Highlight>file:</Highlight>{`\\.py$`}</Query> <QueryExplanation>{`(files that end in ".py")`}</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Highlight>sym:</Highlight>main <QueryExplanation>{`(symbols named "main")`}</QueryExplanation>
+                                <Query query="sym:main"><Highlight>sym:</Highlight>main</Query> <QueryExplanation>{`(symbols named "main")`}</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
                                 <Query query="todo -lang:c">todo <Highlight>-lang:c</Highlight></Query> <QueryExplanation>(negate filter)</QueryExplanation>
