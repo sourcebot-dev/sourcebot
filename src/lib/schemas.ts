@@ -93,6 +93,7 @@ export const fileSourceResponseSchema = z.object({
 
 
 export type ListRepositoriesResponse = z.infer<typeof listRepositoriesResponseSchema>;
+export type Repository = z.infer<typeof repositorySchema>;
 
 // @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L728
 const repoStatsSchema = z.object({
