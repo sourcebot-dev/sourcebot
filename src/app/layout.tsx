@@ -9,10 +9,6 @@ import dynamic from "next/dynamic";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const PostHogPageView = dynamic(() => import('./posthogPageView'), {
-    ssr: false,
-  })
-
 export const metadata: Metadata = {
     title: "Sourcebot",
     description: "Sourcebot",
@@ -31,7 +27,6 @@ export default function RootLayout({
         >
             <body className={inter.className}>
                 <PHProvider>
-                    <PostHogPageView />
                     <ThemeProvider
                         attribute="class"
                         defaultTheme="system"

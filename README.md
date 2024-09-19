@@ -115,7 +115,7 @@ Sourcebot also supports indexing GitLab & BitBucket. Checkout the [index.json](.
 
     zoekt will now index your repositories (at `HEAD`). By default, it will re-index existing repositories every hour, and discover new repositories every 24 hours.
 
-4. Go to `http://localhost:3000` - once a index has been created, you can start searching.
+4. Go to `http://localhost:3000` - once an index has been created, you can start searching.
 
 ## Building Sourcebot
 
@@ -182,14 +182,16 @@ The zoekt binaries and web dependencies are placed into `bin` and `node_modules`
 
     A `.sourcebot` directory will be created and zoekt will begin to index the repositories found given `config.json`.
 
-6. Go to `http://localhost:3000` - once a index has been created, you can start searching.
+6. Go to `http://localhost:3000` - once an index has been created, you can start searching.
 
 
-## Disabling Telemetry
+## Telemetry
 
-By default, Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). You can disable this by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `1` in the docker run command:
+By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We do not collect or transmit [any information related to your codebase](https://github.com/search?q=repo:TaqlaAI/sourcebot++captureEvent&type=code). All events are [sanitized](https://github.com/TaqlaAI/sourcebot/blob/main/src/app/posthogProvider.tsx) to ensure that no sensitive or identifying details leave your machine. The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made :)
+
+If you'd like to disable all telemetry, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `1` in the docker run command:
 ```sh
-docker run -e SOURCEBOT_TELEMETRY_DISABLED=1 ...stuff... ghcr.io/taqlaai/sourcebot:main
+docker run -e SOURCEBOT_TELEMETRY_DISABLED=1 /* additional args */ ghcr.io/taqlaai/sourcebot:main
 ```
 
 Or if you are building locally, add the following to your [.env](./.env) file:
