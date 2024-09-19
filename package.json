@@ -34,6 +34,8 @@
     "class-variance-authority": "^0.7.0",
     "client-only": "^0.0.1",
     "clsx": "^2.1.1",
+    "embla-carousel-auto-scroll": "^8.3.0",
+    "embla-carousel-react": "^8.3.0",
     "escape-string-regexp": "^5.0.0",
     "http-status-codes": "^2.3.0",
     "lucide-react": "^0.435.0",

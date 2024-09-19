@@ -1,10 +1,9 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
+import { getRepoCodeHostInfo } from "@/lib/utils";
 import { Column, ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown } from "lucide-react"
-
-
 
 export type RepositoryColumnInfo = {
     name: string;
@@ -25,6 +24,24 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
     {
         accessorKey: "name",
         header: "Name",
+        cell: ({ row }) => {
+            const repo = row.original;
+            const info = getRepoCodeHostInfo(repo.name);
+            return (
+                <div className="flex flex-row items-center gap-2">
+                    <span
+                        className={info?.repoLink ? "cursor-pointer text-blue-500 hover:underline": ""}
+                        onClick={() => {
+                            if (info?.repoLink) {
+                                window.open(info.repoLink, "_blank");
+                            }
+                        }}
+                    >
+                        {repo.name}
+                    </span>
+                </div>
+            );
+        }
     },
     {
         accessorKey: "branches",

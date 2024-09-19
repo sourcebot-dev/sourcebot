@@ -30,11 +30,13 @@ export const NavigationMenu = () => {
                                 src={logoDark}
                                 className="h-11 w-auto hidden dark:block"
                                 alt={"Sourcebot logo"}
+                                priority={true}
                             />
                             <Image
                                 src={logoLight}
                                 className="h-11 w-auto block dark:hidden"
                                 alt={"Sourcebot logo"}
+                                priority={true}
                             />
                         </div>
 
