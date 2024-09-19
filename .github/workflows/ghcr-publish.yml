@@ -17,7 +17,7 @@ on:
 
 env:
   # Use docker.io for Docker Hub if empty
-  REGISTRY_IMAGE: ghcr.io/TaqlaAI/sourcebot
+  REGISTRY_IMAGE: ghcr.io/taqlaai/sourcebot
 
 jobs:
   build:
@@ -77,7 +77,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
