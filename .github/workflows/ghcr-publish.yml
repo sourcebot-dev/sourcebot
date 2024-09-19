@@ -17,7 +17,7 @@ on:
 
 env:
   # Use docker.io for Docker Hub if empty
-  REGISTRY_IMAGE: ghcr.io/taqlaai/sourcebot
+  REGISTRY_IMAGE: taqlaai/sourcebot
 
 jobs:
   build:
@@ -135,13 +135,16 @@ jobs:
         with:
           images: ${{ env.REGISTRY_IMAGE }}
 
+      - name: Login to GitHub Packages Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
       - name: Create manifest list and push
         working-directory: /tmp/digests
-        env:
-          DOCKER_USERNAME: ${{ github.actor }}
-          DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "$DOCKER_PASSWORD" | docker login ghcr.io -u "$DOCKER_USERNAME" --password-stdin
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
       
