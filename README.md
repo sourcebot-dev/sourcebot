@@ -53,7 +53,15 @@ Sourcebot also supports indexing GitLab & BitBucket. Checkout the [index.json](.
     <details open>
     <summary><img src="https://github.com/favicon.ico" width="16" height="16" /> GitHub</summary>
 
-    Generate a GitHub Personal Access Token (PAT) [here](https://github.com/settings/tokens/new). If you are indexing public repositories only, you can select the `public_repo` scope, otherwise you will need the `repo` scope.
+    Generate a GitHub Personal Access Token (PAT) [here](https://github.com/settings/tokens/new). If you're only indexing public repositories select the `public_repo` scope; otherwise, select the `repo` scope.
+
+    You'll need to pass this PAT each time you run Sourcebot, so we recommend adding it as an environment variable. In this guide, we'll add the Github PAT as an environment variable called `GITHUB_TOKEN`:
+    ```sh
+    export GITHUB_TOKEN=<your-token-here>
+    ```
+
+    If you'd like to persist this environment variable across shell sessions, please add this line to your shell config file (ex. `~/.bashrc`, `~/.bash_profile`, etc)
+    
 
     </details>
 
@@ -78,8 +86,9 @@ Sourcebot also supports indexing GitLab & BitBucket. Checkout the [index.json](.
     <details open>
     <summary><img src="https://github.com/favicon.ico" width="16" height="16" /> GitHub</summary>
 
+    Run the `sourcebot` docker image, passing in the Github PAT you generated in the previous step as an environment variable called `GITHUB_TOKEN`:
     ```sh
-    docker run -p 3000:3000 --rm --name sourcebot -v $(pwd):/data -e GITHUB_TOKEN=<token> ghcr.io/taqlaai/sourcebot:main
+    docker run -p 3000:3000 --rm --name sourcebot -v $(pwd):/data -e GITHUB_TOKEN=$GITHUB_TOKEN ghcr.io/taqlaai/sourcebot:main
     ```
     </details>
 
@@ -119,14 +128,18 @@ Sourcebot also supports indexing GitLab & BitBucket. Checkout the [index.json](.
 
 ## Building Sourcebot
 
-0. Install <a href="https://go.dev/"><img src="https://go.dev/favicon.ico" width="16" height="16"> go</a> and <a href="https://nodejs.org/"><img src="https://nodejs.org/favicon.ico" width="16" height="16"> NodeJS</a>
+1. Install <a href="https://go.dev/doc/install"><img src="https://go.dev/favicon.ico" width="16" height="16"> go</a> and <a href="https://nodejs.org/"><img src="https://nodejs.org/favicon.ico" width="16" height="16"> NodeJS</a>. Note that a NodeJS version of at least `21.1.0` is required.
 
-1. Clone the repository with submodules:
+2. Install [ctags](https://github.com/universal-ctags/ctags) (required by zoekt-indexserver):
+   Mac: `brew install universal-ctags`
+   Ubuntu: `apt-get install universal-ctags`
+
+3. Clone the repository with submodules:
     ```sh
     git clone --recurse-submodules https://github.com/TaqlaAI/sourcebot.git
     ```
 
-2. Run make to build zoekt and install dependencies:
+4. Run make to build zoekt and install dependencies:
     ```sh
     cd sourcebot
     make
@@ -157,7 +170,7 @@ The zoekt binaries and web dependencies are placed into `bin` and `node_modules`
     
     Generate a GitHub Personal Access Token (PAT) [here](https://github.com/settings/tokens/new). If you are indexing public repositories only, you can select the `public_repo` scope, otherwise you will need the `repo` scope.
 
-    Create a text file named `.github-token` in your home directory and paste the token in it. The file should look like:
+    Create a text file named `.github-token` **in your home directory** and paste the token in it. The file should look like:
     ```sh
     ghp_...
     ```
