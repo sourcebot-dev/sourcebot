@@ -169,7 +169,7 @@ The zoekt binaries and web dependencies are placed into `bin` and `node_modules`
     TODO
     </details>
 
-    <details>****
+    <details>
     <summary><img src="https://bitbucket.org/favicon.ico" width="16" height="16" /> BitBucket</summary>
     TODO
     </details>
