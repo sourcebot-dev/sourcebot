@@ -115,7 +115,7 @@ Sourcebot also supports indexing GitLab & BitBucket. Checkout the [index.json](.
 
     zoekt will now index your repositories (at `HEAD`). By default, it will re-index existing repositories every hour, and discover new repositories every 24 hours.
 
-4. Go to `http://localhost:3000` - once a index has been created, you can start searching.
+4. Go to `http://localhost:3000` - once an index has been created, you can start searching.
 
 ## Building Sourcebot
 
@@ -182,7 +182,7 @@ The zoekt binaries and web dependencies are placed into `bin` and `node_modules`
 
     A `.sourcebot` directory will be created and zoekt will begin to index the repositories found given `config.json`.
 
-6. Go to `http://localhost:3000` - once a index has been created, you can start searching.
+6. Go to `http://localhost:3000` - once an index has been created, you can start searching.
 
 
 ## Telemetry
