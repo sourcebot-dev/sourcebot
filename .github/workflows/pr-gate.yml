@@ -1,0 +1,24 @@
+name: PR Gate
+
+# This gate simply validates that we can build the docker container.
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: "true"
+
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
