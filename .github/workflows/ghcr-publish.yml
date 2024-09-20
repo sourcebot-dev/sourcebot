@@ -4,14 +4,9 @@ name: Publish to ghcr
 # @ see: https://docs.docker.com/build/ci/github-actions/multi-platform/#distribute-build-across-multiple-runners
 
 on:
-  # schedule:
-  #   - cron: '18 10 * * *'
   push:
     branches: ["main"]
-    # Publish semver tags as releases.
     tags: ["v*.*.*"]
-  pull_request:
-    branches: ["main"]
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -30,6 +25,8 @@ jobs:
       matrix:
         platform:
           - linux/amd64
+          - linux/arm/v6
+          - linux/arm/v7
           - linux/arm64
 
     steps:
@@ -54,7 +51,6 @@ jobs:
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
-        if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@v3.5.0
         with:
           cosign-release: "v2.2.4"
@@ -64,17 +60,17 @@ jobs:
 
       - name: Login to GitHub Packages Docker Registry
         uses: docker/login-action@v3
-        if: github.event_name != 'pull_request'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build Docker image
         id: build
         uses: docker/build-push-action@v6
         with:
           context: .
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -101,7 +97,6 @@ jobs:
       # transparency data even for private images, pass --force to cosign below.
       # https://github.com/sigstore/cosign
       - name: Sign the published Docker image
-        if: ${{ github.event_name != 'pull_request' }}
         env:
           # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
           TAGS: ${{ steps.meta.outputs.tags }}
@@ -114,7 +109,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       packages: write
-    if: github.event_name != 'pull_request'
     needs:
       - build
     steps:
