@@ -1,0 +1,15 @@
+{
+    "$schema": "https://raw.githubusercontent.com/TaqlaAI/sourcebot/main/schemas/index.json",
+    "Configs": [
+        {
+            "Type": "github",
+            "GitHubUser": "torvalds",
+            "Name": "linux"
+        },
+        {
+            "Type": "github",
+            "GitHubOrg": "pytorch",
+            "Name": "pytorch"
+        }
+    ]
+}
