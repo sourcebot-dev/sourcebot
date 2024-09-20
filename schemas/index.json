@@ -151,7 +151,7 @@
                 "CredentialPath": {
                     "type": "string",
                     "description": "Path to a file containing a Bitbucket access token.",
-                    "default": "~/.bitbucket-credentials"
+                    "default": ".bitbucket-credentials"
                 }
             },
             "required": [
