@@ -19,6 +19,9 @@
                 },
                 {
                     "$ref": "#/definitions/GitLabConfig"
+                },
+                {
+                    "$ref": "#/definitions/BitbucketConfig"
                 }
             ]
         },
@@ -112,6 +115,48 @@
             "required": [
                 "Type",
                 "GitLabURL"
+            ],
+            "additionalProperties": false
+        },
+        "BitbucketConfig": {
+            "type": "object",
+            "properties": {
+                "Type": {
+                    "const": "bitbucket"
+                },
+                "BitBucketServerURL": {
+                    "type": "string",
+                    "description": "BitBucket Server url"
+                },
+                "BitBucketServerProject": {
+                    "type": "string",
+                    "description": "project to mirror"
+                },
+                "DisableTLS": {
+                    "type":  "boolean",
+                    "description": "Disable TLS verification",
+                    "default": false
+                },
+                "ProjectType": {
+                    "type": "string",
+                    "description": "Only clone repos whose type matches the given string. Type can be either NORMAl or PERSONAL. Clones projects of both types if not set.",
+                    "enum": ["NORMAL", "PERSONAL"]
+                },
+                "Name": {
+                    "$ref": "#/definitions/RepoNameRegexIncludeFilter"
+                },
+                "Exclude": {
+                    "$ref": "#/definitions/RepoNameRegexExcludeFilter"
+                },
+                "CredentialPath": {
+                    "type": "string",
+                    "description": "Path to a file containing a Bitbucket access token.",
+                    "default": "~/.bitbucket-credentials"
+                }
+            },
+            "required": [
+                "Type",
+                "BitBucketServerURL"
             ],
             "additionalProperties": false
         }
