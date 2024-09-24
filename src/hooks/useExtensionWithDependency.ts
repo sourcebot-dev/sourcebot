@@ -17,9 +17,17 @@ export function useExtensionWithDependency(
 
     useEffect(() => {
         if (view) {
-            view.dispatch({
-                effects: compartment.reconfigure(extensionFactory()),
-            });
+            try {
+                view.dispatch({
+                    effects: compartment.reconfigure(extensionFactory()),
+                });
+            
+            // @note: we were getting "RangeError: Position X is out of range for changeset of length Y" errors
+            // spuriously for some reason. This is a dirty hack to prevent codemirror from crashing the app
+            // in those cases.
+            } catch (error) {
+                console.error(error);
+            }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, deps);

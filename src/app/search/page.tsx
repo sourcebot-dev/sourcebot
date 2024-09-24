@@ -123,9 +123,6 @@ export default function SearchPage() {
                             size="sm"
                             defaultQuery={searchQuery}
                         />
-                        {isLoading && (
-                            <SymbolIcon className="h-4 w-4 animate-spin" />
-                        )}
                     </div>
                     <SettingsDropdown
                         menuButtonClassName="w-8 h-8"
@@ -155,15 +152,22 @@ export default function SearchPage() {
             {/* Search Results & Code Preview */}
             <ResizablePanelGroup direction="horizontal">
                 <ResizablePanel minSize={20}>
-                    <SearchResultsPanel
-                        fileMatches={fileMatches}
-                        onOpenFileMatch={(fileMatch) => {
-                            setSelectedFile(fileMatch);
-                        }}
-                        onMatchIndexChanged={(matchIndex) => {
-                            setSelectedMatchIndex(matchIndex);
-                        }}
-                    />
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center h-full gap-2">
+                            <SymbolIcon className="h-6 w-6 animate-spin" />
+                            <p className="font-semibold text-center">Searching...</p>
+                        </div>
+                    ) : (
+                        <SearchResultsPanel
+                            fileMatches={fileMatches}
+                            onOpenFileMatch={(fileMatch) => {
+                                setSelectedFile(fileMatch);
+                            }}
+                            onMatchIndexChanged={(matchIndex) => {
+                                setSelectedMatchIndex(matchIndex);
+                            }}
+                        />
+                    )}
                 </ResizablePanel>
                 <ResizableHandle withHandle={selectedFile !== undefined} />
                 <ResizablePanel

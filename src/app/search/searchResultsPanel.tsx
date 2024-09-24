@@ -28,6 +28,15 @@ export const SearchResultsPanel = ({
     onOpenFileMatch,
     onMatchIndexChanged,
 }: SearchResultsPanelProps) => {
+
+    if (fileMatches.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full">
+                <p className="text-sm text-muted-foreground">No results found</p>
+            </div>
+        );
+    }
+
     return (
         <ScrollArea className="h-full">
             {fileMatches.map((fileMatch, index) => (
