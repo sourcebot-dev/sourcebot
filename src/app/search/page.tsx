@@ -103,7 +103,7 @@ export default function SearchPage() {
                 <div className="flex flex-row justify-between items-center py-1.5 px-3 gap-4">
                     <div className="grow flex flex-row gap-4 items-center">
                         <div
-                            className="cursor-pointer"
+                            className="shrink-0 cursor-pointer"
                             onClick={() => {
                                 router.push("/");
                             }}

@@ -12,21 +12,21 @@ import { Separator } from "@/components/ui/separator";
 
 export default async function Home() {
     return (
-        <div className="h-screen flex flex-col items-center">
+        <div className="flex flex-col items-center overflow-hidden">
             {/* TopBar */}
             <NavigationMenu />
 
-            <div className="flex flex-col justify-center items-center mt-8 md:mt-32 max-w-[90%]">
+            <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 max-w-[90%]">
                 <div className="max-h-44 w-auto">
                     <Image
                         src={logoDark}
-                        className="w-full h-full hidden dark:block"
+                        className="h-18 md:h-40 w-auto hidden dark:block"
                         alt={"Sourcebot logo"}
                         priority={true}
                     />
                     <Image
                         src={logoLight}
-                        className="w-full h-full block dark:hidden"
+                        className="h-18 md:h-40 w-auto block dark:hidden"
                         alt={"Sourcebot logo"}
                         priority={true}
                     />

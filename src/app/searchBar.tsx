@@ -86,6 +86,8 @@ export const SearchBar = ({
                                     {...field}
                                     ref={inputRef}
                                     autoFocus={autoFocus ?? false}
+                                    // This is needed to prevent mobile browsers from zooming in when the input is focused
+                                    style={{ fontSize: '1rem' }}
                                 />
                             </FormControl>
                             <FormMessage />
