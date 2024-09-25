@@ -51,9 +51,9 @@ Sourcebot supports indexing and searching through public and private repositorie
 The Sourcebot workspace is a directory on your machine that stores your Sourcebot config and cache data. To create a Sourcebot workspace, simply create a new directory on your machine (ex. `sourcebot_workspace`):
 
 ### Create a Sourcebot config
-Sourcebot needs a config file to tell it which repositories to index. By default, Sourcebot will look for a file called `config.json` from within the workspace you mount.
+Sourcebot needs a config file to tell it which repositories to index. By default, Sourcebot will look for a file called `config.json` within the workspace you mount.
 
-From within your Sourcebot workspace, create a new file called `config.json` and paste in the following sample config which loads the `sourcebot` github repo:
+Create a new file called `config.json` inside your workspace and paste in the following sample config which loads the `sourcebot` github repo:
 ```
 {
     "$schema": "https://raw.githubusercontent.com/TaqlaAI/sourcebot/main/schemas/index.json",
