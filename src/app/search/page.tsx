@@ -8,7 +8,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { SearchResultFile } from "@/lib/schemas";
-import { createPathWithQueryParams, getCodeHostFilePreviewLink } from "@/lib/utils";
+import { createPathWithQueryParams } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
@@ -16,12 +16,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import logoDark from "../../../public/sb_logo_dark.png";
 import logoLight from "../../../public/sb_logo_light.png";
-import { fetchFileSource, search } from "../api/(client)/client";
+import { search } from "../api/(client)/client";
 import { SearchBar } from "../searchBar";
 import { SettingsDropdown } from "../settingsDropdown";
-import { CodePreviewFile, CodePreviewPanel } from "./codePreviewPanel";
-import { SearchResultsPanel } from "./searchResultsPanel";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { CodePreviewPanel } from "./components/codePreviewPanel";
+import { SearchResultsPanel } from "./components/searchResultsPanel";
 
 const DEFAULT_NUM_RESULTS = 100;
 
@@ -174,7 +174,7 @@ export default function SearchPage() {
                     minSize={20}
                     hidden={!selectedFile}
                 >
-                    <CodePreviewWrapper
+                    <CodePreviewPanel
                         fileMatch={selectedFile}
                         onClose={() => setSelectedFile(undefined)}
                         selectedMatchIndex={selectedMatchIndex}
@@ -184,60 +184,4 @@ export default function SearchPage() {
             </ResizablePanelGroup>
         </div>
     );
-}
-
-interface CodePreviewWrapperProps {
-    fileMatch?: SearchResultFile;
-    onClose: () => void;
-    selectedMatchIndex: number;
-    onSelectedMatchIndexChange: (index: number) => void;
-}
-
-const CodePreviewWrapper = ({
-    fileMatch,
-    onClose,
-    selectedMatchIndex,
-    onSelectedMatchIndexChange,
-}: CodePreviewWrapperProps) => {
-
-    const { data: file } = useQuery({
-        queryKey: ["source", fileMatch?.FileName, fileMatch?.Repository],
-        queryFn: async (): Promise<CodePreviewFile | undefined> => {
-            if (!fileMatch) {
-                return undefined;
-            }
-
-            return fetchFileSource(fileMatch.FileName, fileMatch.Repository)
-                .then(({ source }) => {
-                    // @todo : refector this to use the templates provided by zoekt.
-                    const link = getCodeHostFilePreviewLink(fileMatch.Repository, fileMatch.FileName)
-
-                    const decodedSource = atob(source);
-
-                    // Filter out filename matches
-                    const filteredMatches = fileMatch.ChunkMatches.filter((match) => {
-                        return !match.FileName;
-                    });
-
-                    return {
-                        content: decodedSource,
-                        filepath: fileMatch.FileName,
-                        matches: filteredMatches,
-                        link: link,
-                        language: fileMatch.Language,
-                    };
-                });
-        },
-        enabled: fileMatch !== undefined,
-    });
-
-    return (
-        <CodePreviewPanel
-            file={file}
-            onClose={onClose}
-            selectedMatchIndex={selectedMatchIndex}
-            onSelectedMatchIndexChange={onSelectedMatchIndexChange}
-        />
-    )
-
 }

@@ -28,19 +28,19 @@ export interface CodePreviewFile {
     language: string;
 }
 
-interface CodePreviewPanelProps {
+interface CodePreviewProps {
     file?: CodePreviewFile;
     selectedMatchIndex: number;
     onSelectedMatchIndexChange: (index: number) => void;
     onClose: () => void;
 }
 
-export const CodePreviewPanel = ({
+export const CodePreview = ({
     file,
     selectedMatchIndex,
     onSelectedMatchIndexChange,
     onClose,
-}: CodePreviewPanelProps) => {
+}: CodePreviewProps) => {
     const editorRef = useRef<ReactCodeMirrorRef>(null);
 
     const [ keymapType ] = useKeymapType();

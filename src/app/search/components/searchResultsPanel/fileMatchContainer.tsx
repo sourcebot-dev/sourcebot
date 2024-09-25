@@ -1,62 +1,15 @@
 'use client';
 
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { useExtensionWithDependency } from "@/hooks/useExtensionWithDependency";
-import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
-import { useThemeNormalized } from "@/hooks/useThemeNormalized";
-import { lineOffsetExtension } from "@/lib/extensions/lineOffsetExtension";
-import { SearchResultFile, SearchResultRange } from "@/lib/schemas";
+import { SearchResultFile } from "@/lib/schemas";
 import { getRepoCodeHostInfo } from "@/lib/utils";
-import { DoubleArrowDownIcon, DoubleArrowUpIcon, FileIcon } from "@radix-ui/react-icons";
-import { Scrollbar } from "@radix-ui/react-scroll-area";
-import CodeMirror, { Decoration, DecorationSet, EditorState, EditorView, ReactCodeMirrorRef, StateField, Transaction } from '@uiw/react-codemirror';
-import clsx from "clsx";
+import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { DoubleArrowDownIcon, DoubleArrowUpIcon, FileIcon } from "@radix-ui/react-icons";
+import clsx from "clsx";
+import { Separator } from "@/components/ui/separator";
+import { CodePreview } from "./codePreview";
 
 const MAX_MATCHES_TO_PREVIEW = 3;
-
-interface SearchResultsPanelProps {
-    fileMatches: SearchResultFile[];
-    onOpenFileMatch: (fileMatch: SearchResultFile) => void;
-    onMatchIndexChanged: (matchIndex: number) => void;
-}
-
-export const SearchResultsPanel = ({
-    fileMatches,
-    onOpenFileMatch,
-    onMatchIndexChanged,
-}: SearchResultsPanelProps) => {
-
-    if (fileMatches.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full">
-                <p className="text-sm text-muted-foreground">No results found</p>
-            </div>
-        );
-    }
-
-    return (
-        <ScrollArea
-            className="h-full"
-        >
-            {fileMatches.map((fileMatch, index) => (
-                <FileMatchContainer
-                    key={index}
-                    file={fileMatch}
-                    onOpenFile={() => {
-                        onOpenFileMatch(fileMatch);
-                    }}
-                    onMatchIndexChanged={(matchIndex) => {
-                        onMatchIndexChanged(matchIndex);
-                    }}
-                />
-            ))}
-            <Scrollbar orientation="vertical" />
-        </ScrollArea>
-    )
-}
 
 interface FileMatchContainerProps {
     file: SearchResultFile;
@@ -64,7 +17,7 @@ interface FileMatchContainerProps {
     onMatchIndexChanged: (matchIndex: number) => void;
 }
 
-const FileMatchContainer = ({
+export const FileMatchContainer = ({
     file,
     onOpenFile,
     onMatchIndexChanged,
@@ -236,129 +189,4 @@ const FileMatchContainer = ({
             )}
         </div>
     );
-}
-
-const markDecoration = Decoration.mark({
-    class: "cm-searchMatch"
-});
-
-const cmTheme = EditorView.baseTheme({
-    "&light .cm-searchMatch": {
-        border: "1px #6b7280ff",
-    },
-    "&dark .cm-searchMatch": {
-        border: "1px #d1d5dbff",
-    },
-});
-
-interface CodePreviewProps {
-    content: string,
-    language: string,
-    ranges: SearchResultRange[],
-    lineOffset: number,
-}
-
-const CodePreview = ({
-    content,
-    language,
-    ranges,
-    lineOffset,
-}: CodePreviewProps) => {
-    const editorRef = useRef<ReactCodeMirrorRef>(null);
-    const { theme } = useThemeNormalized();
-
-    const syntaxHighlighting = useSyntaxHighlightingExtension(language, editorRef.current?.view);
-
-    const rangeHighlighting = useExtensionWithDependency(editorRef.current?.view ?? null, () => {
-        return [
-            StateField.define<DecorationSet>({
-                create(editorState: EditorState) {
-                    const document = editorState.doc;
-
-                    const decorations = ranges
-                        .sort((a, b) => {
-                            return a.Start.ByteOffset - b.Start.ByteOffset;
-                        })
-                        .filter(({ Start, End }) => {
-                            const startLine = Start.LineNumber - lineOffset;
-                            const endLine = End.LineNumber - lineOffset;
-
-                            if (
-                                startLine < 1 ||
-                                endLine < 1 ||
-                                startLine > document.lines ||
-                                endLine > document.lines
-                            ) {
-                                return false;
-                            }
-                            return true;
-                        })
-                        .map(({ Start, End }) => {
-                            const startLine = Start.LineNumber - lineOffset;
-                            const endLine = End.LineNumber - lineOffset;
-
-                            const from = document.line(startLine).from + Start.Column - 1;
-                            const to = document.line(endLine).from + End.Column - 1;
-                            return markDecoration.range(from, to);
-                        });
-
-                    return Decoration.set(decorations);
-                },
-                update(highlights: DecorationSet, _transaction: Transaction) {
-                    return highlights;
-                },
-                provide: (field) => EditorView.decorations.from(field),
-            }),
-            cmTheme
-        ];
-    }, [ranges, lineOffset]);
-
-    const extensions = useMemo(() => {
-        return [
-            syntaxHighlighting,
-            lineOffsetExtension(lineOffset),
-            rangeHighlighting,
-        ];
-    }, [syntaxHighlighting, lineOffset, rangeHighlighting]);
-
-    return (
-        <CodeMirror
-            ref={editorRef}
-            readOnly={true}
-            editable={false}
-            value={content}
-            theme={theme === "dark" ? "dark" : "light"}
-            basicSetup={{
-                lineNumbers: true,
-                syntaxHighlighting: true,
-
-                // Disable all this other stuff...
-                ... {
-                    foldGutter: false,
-                    highlightActiveLineGutter: false,
-                    highlightSpecialChars: false,
-                    history: false,
-                    drawSelection: false,
-                    dropCursor: false,
-                    allowMultipleSelections: false,
-                    indentOnInput: false,
-                    bracketMatching: false,
-                    closeBrackets: false,
-                    autocompletion: false,
-                    rectangularSelection: false,
-                    crosshairCursor: false,
-                    highlightActiveLine: false,
-                    highlightSelectionMatches: false,
-                    closeBracketsKeymap: false,
-                    defaultKeymap: false,
-                    searchKeymap: false,
-                    historyKeymap: false,
-                    foldKeymap: false,
-                    completionKeymap: false,
-                    lintKeymap: false,
-                }
-            }}
-            extensions={extensions}
-        />
-    )
 }
