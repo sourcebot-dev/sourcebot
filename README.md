@@ -72,11 +72,13 @@ TODO: add instructions here on how to change config
 Finally, we run Sourcebot but this time we mount the workspace folder so that it can pickup our custom config. 
 
 > [!NOTE]
-> This command assumes that you are running it from within your Sourcebot workspace. If you're not, replace `$(pwd)` below with the absolute path of your Sourcebot workspace
+> This command assumes that you're running it from within your Sourcebot workspace. If you're not, replace `$(pwd)` below with the absolute path of your Sourcebot workspace
 
 ```
 docker run -p 3000:3000 --rm --name sourcebot -v $(pwd):/data ghcr.io/taqlaai/sourcebot:main
 ```
+
+Navigate to `localhost:3000` to use Sourcebot with the custom repository you defined in your config!
 
 ### (Optional) Provide access token to index private repositories
 TODO
