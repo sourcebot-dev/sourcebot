@@ -13,7 +13,7 @@ import { Scrollbar } from "@radix-ui/react-scroll-area";
 import CodeMirror, { Decoration, DecorationSet, EditorState, EditorView, ReactCodeMirrorRef, StateField, Transaction } from '@uiw/react-codemirror';
 import clsx from "clsx";
 import Image from "next/image";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 const MAX_MATCHES_TO_PREVIEW = 3;
 
@@ -38,9 +38,11 @@ export const SearchResultsPanel = ({
     }
 
     return (
-        <ScrollArea className="h-full">
+        <ScrollArea
+            className="h-full"
+        >
             {fileMatches.map((fileMatch, index) => (
-                <FilePreview
+                <FileMatchContainer
                     key={index}
                     file={fileMatch}
                     onOpenFile={() => {
@@ -56,17 +58,17 @@ export const SearchResultsPanel = ({
     )
 }
 
-interface FilePreviewProps {
+interface FileMatchContainerProps {
     file: SearchResultFile;
     onOpenFile: () => void;
     onMatchIndexChanged: (matchIndex: number) => void;
 }
 
-const FilePreview = ({
+const FileMatchContainer = ({
     file,
     onOpenFile,
     onMatchIndexChanged,
-}: FilePreviewProps) => {
+}: FileMatchContainerProps) => {
 
     const [showAll, setShowAll] = useState(false);
     const matchCount = useMemo(() => {
@@ -124,6 +126,19 @@ const FilePreview = ({
         return matchCount > MAX_MATCHES_TO_PREVIEW;
     }, [matchCount]);
 
+    const onShowMoreMatches = useCallback(() => {
+        setShowAll(!showAll);
+    }, [showAll]);
+
+    const onOpenMatch = useCallback((index: number) => {
+        const matchIndex = matches.slice(0, index).reduce((acc, match) => {
+            return acc + match.Ranges.length;
+        }, 0);
+        onOpenFile();
+        onMatchIndexChanged(matchIndex);
+    }, [matches, onMatchIndexChanged, onOpenFile]);
+
+
     return (
         <div>
             <div
@@ -148,7 +163,7 @@ const FilePreview = ({
                     </span>
                     <span>·</span>
                     {!fileNameRange ? (
-                        <span>{file.FileName}</span> 
+                        <span>{file.FileName}</span>
                     ) : (
                         <span>
                             {file.FileName.slice(0, fileNameRange.from)}
@@ -173,21 +188,26 @@ const FilePreview = ({
                 return (
                     <div
                         key={index}
-                        className="cursor-pointer"
-                        onClick={() => {
-                            const matchIndex = matches.slice(0, index).reduce((acc, match) => {
-                                return acc + match.Ranges.length;
-                            }, 0);
-                            onOpenFile();
-                            onMatchIndexChanged(matchIndex);
-                        }}
                     >
-                        <CodePreview
-                            content={content}
-                            language={file.Language}
-                            ranges={match.Ranges}
-                            lineOffset={lineOffset}
-                        />
+                        <div
+                            tabIndex={0}
+                            className="cursor-pointer p-1 focus:ring-inset focus:ring-4 bg-white dark:bg-[#282c34]"
+                            onKeyDown={(e) => {
+                                if (e.key !== "Enter") {
+                                    return;
+                                }
+                                onOpenMatch(index);
+                            }}
+                            onClick={() => onOpenMatch(index)}
+                        >
+                            <CodePreview
+                                content={content}
+                                language={file.Language}
+                                ranges={match.Ranges}
+                                lineOffset={lineOffset}
+                            />
+                        </div>
+
                         {(index !== matches.length - 1 || isMoreContentButtonVisible) && (
                             <Separator className="dark:bg-gray-400" />
                         )}
@@ -195,9 +215,18 @@ const FilePreview = ({
                 );
             })}
             {isMoreContentButtonVisible && (
-                <div className="px-4 bg-accent">
+                <div
+                    tabIndex={0}
+                    className="px-4 bg-accent p-0.5"
+                    onKeyDown={(e) => {
+                        if (e.key !== "Enter") {
+                            return;
+                        }
+                        onShowMoreMatches();
+                    }}
+                    onClick={onShowMoreMatches}
+                >
                     <p
-                        onClick={() => setShowAll(!showAll)}
                         className="text-blue-500 cursor-pointer text-sm flex flex-row items-center gap-2"
                     >
                         {showAll ? <DoubleArrowUpIcon className="w-3 h-3" /> : <DoubleArrowDownIcon className="w-3 h-3" />}
@@ -222,17 +251,19 @@ const cmTheme = EditorView.baseTheme({
     },
 });
 
+interface CodePreviewProps {
+    content: string,
+    language: string,
+    ranges: SearchResultRange[],
+    lineOffset: number,
+}
+
 const CodePreview = ({
     content,
     language,
     ranges,
     lineOffset,
-}: {
-    content: string,
-    language: string,
-    ranges: SearchResultRange[],
-    lineOffset: number,
-}) => {
+}: CodePreviewProps) => {
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     const { theme } = useThemeNormalized();
 
@@ -251,7 +282,7 @@ const CodePreview = ({
                         .filter(({ Start, End }) => {
                             const startLine = Start.LineNumber - lineOffset;
                             const endLine = End.LineNumber - lineOffset;
-                            
+
                             if (
                                 startLine < 1 ||
                                 endLine < 1 ||

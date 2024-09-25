@@ -67,3 +67,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+.cm-editor .cm-gutters {
+  background-color: transparent;
+  border-right: none;
+}
+
+.cm-editor .cm-lineNumbers .cm-gutterElement {
+  padding-left: 0.5;
+  text-align: left;
+}
