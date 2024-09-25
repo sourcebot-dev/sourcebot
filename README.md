@@ -25,6 +25,66 @@ Sourcebot is a fast code indexing and search tool for your codebases. It is buil
 
 # Getting Started
 
+Before getting started, please make sure you install <a href="https://docs.docker.com/get-started/get-docker/"><img src="https://www.docker.com/favicon.ico" width="16" height="16"> Docker </a>. This is the only dependency required to get started using Sourcebot.
+
+You can try out Sourcebot on your local machine without cloning the repo by running this simple command:
+
+```
+docker run -p 3000:3000 --rm --name sourcebot -e CONFIG_PATH=sample-config.json ghcr.io/taqlaai/sourcebot:main
+```
+
+Navigate to `localhost:3000` in your favorite web browser to see Sourcebot in action running on your own machine! This sample command will index the Sourcebot repository and allow you to search through it. If you'd like to run Sourcebot on a different repository, please checkout !
+
+<details>
+<summary>What does this command do?</summary>
+
+- Pull and run the Sourcebot docker image from [ghcr.io/taqlaai/sourcebot:main](ghcr.io/taqlaai/sourcebot:main)
+- Set the `CONFIG_PATH` environment variable in the container to `sample-config.json`. Sourcebot loads the config file located at `CONFIG_PATH` to determine which repositories to index. To make things easier to try Sourcebot, we've baked in an [example](https://github.com/TaqlaAI/sourcebot/blob/main/sample-config.json) config file named `sample-config.json` into the published Docker image. 
+- Map port 3000 between your machine and the docker image (`-p 3000:3000`). This is what allows you to run Sourcebot by navigating to `localhost:3000`
+</details>
+
+## Using Sourcebot on a custom repository
+
+Sourcebot supports indexing and searching through public and private repositories hosted on <img src="https://github.com/favicon.ico" width="16" height="16" /> GitHub, <img src="https://gitlab.com/favicon.ico" width="16" height="16" />GitLab, and <img src="https://bitbucket.org/favicon.ico" width="16" height="16" /> BitBucket. This section will guide you through configure the repositories that Sourcebot indexes. 
+
+### Create a Sourcebot workspace
+The Sourcebot workspace is a directory on your machine that stores your Sourcebot config and cache data. To create a Sourcebot workspace, simply create a new directory on your machine (ex. `sourcebot_workspace`):
+
+### Create a Sourcebot config
+Sourcebot needs a config file to tell it which repositories to index. By default, Sourcebot will look for a file called `config.json` from within the workspace you mount.
+
+From within your Sourcebot workspace, create a new file called `config.json` and paste in the following sample config which loads the `sourcebot` github repo:
+```
+{
+    "$schema": "https://raw.githubusercontent.com/TaqlaAI/sourcebot/main/schemas/index.json",
+    "Configs": [
+        {
+            "Type": "github",
+            "GitHubOrg": "TaqlaAI",
+            "Name": "^sourcebot$"
+        }
+    ]
+}
+```
+
+TODO: add instructions here on how to change config
+### Mount your workspace and run Sourcebot
+Finally, we run Sourcebot but this time we mount the workspace folder so that it can pickup our custom config. 
+
+> [!NOTE]
+> This command assumes that you are running it from within your Sourcebot workspace. If you're not, replace `$(pwd)` below with the absolute path of your Sourcebot workspace
+
+```
+docker run -p 3000:3000 --rm --name sourcebot -v $(pwd):/data ghcr.io/taqlaai/sourcebot:main
+```
+
+### (Optional) Provide access token to index private repositories
+TODO
+### (Optional) Specifying a specific config file
+TODO
+
+
+--- 
 ## Using Docker
 
 
