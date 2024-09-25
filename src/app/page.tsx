@@ -8,6 +8,7 @@ import { NavigationMenu } from "./navigationMenu";
 import { RepositoryCarousel } from "./repositoryCarousel";
 import { SearchBar } from "./searchBar";
 import { Separator } from "@/components/ui/separator";
+import { SymbolIcon } from "@radix-ui/react-icons";
 
 
 export default async function Home() {
@@ -110,15 +111,12 @@ const RepositoryList = async () => {
     const repos = _repos.List.Repos.map((repo) => repo.Repository);
 
     if (repos.length === 0) {
-        return <span>
-            Get started
-            <a
-                href="https://github.com/TaqlaAI/sourcebot/blob/main/README.md"
-                className="text-blue-500"
-            >
-                {` configuring Sourcebot.`}
-            </a>
-        </span>;
+        return (
+            <div className="flex flex-row items-center gap-3">
+                <SymbolIcon className="h-4 w-4 animate-spin" />
+                <span className="text-sm">indexing in progress...</span>
+            </div>
+        )
     }
 
     return (
