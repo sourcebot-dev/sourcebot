@@ -51,8 +51,13 @@ Sourcebot also supports indexing GitLab & BitBucket. Checkout the [index.json](.
 
     <div>
     <details open>
-    <summary><img src="https://github.com/favicon.ico" width="16" height="16" /> GitHub</summary>
-
+    <summary>
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset=".github/images/github-favicon-inverted.png">
+        <img src="https://github.com/favicon.ico" width="16" height="16" alt="GitHub icon">
+    </picture>
+    GitHub
+    </summary>
     Generate a GitHub Personal Access Token (PAT) [here](https://github.com/settings/tokens/new). If you're only indexing public repositories select the `public_repo` scope; otherwise, select the `repo` scope.
 
     You'll need to pass this PAT each time you run Sourcebot, so we recommend adding it as an environment variable. In this guide, we'll add the Github PAT as an environment variable called `GITHUB_TOKEN`:
@@ -84,7 +89,13 @@ Sourcebot also supports indexing GitLab & BitBucket. Checkout the [index.json](.
 
     <div>
     <details open>
-    <summary><img src="https://github.com/favicon.ico" width="16" height="16" /> GitHub</summary>
+    <summary>
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset=".github/images/github-favicon-inverted.png">
+        <img src="https://github.com/favicon.ico" width="16" height="16" alt="GitHub icon">
+    </picture>
+    GitHub
+    </summary>
 
     Run the `sourcebot` docker image, passing in the Github PAT you generated in the previous step as an environment variable called `GITHUB_TOKEN`:
     ```sh
@@ -166,8 +177,13 @@ The zoekt binaries and web dependencies are placed into `bin` and `node_modules`
 
     <div>
     <details open>
-    <summary><img src="https://github.com/favicon.ico" width="16" height="16" /> GitHub</summary>
-    
+    <summary>
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset=".github/images/github-favicon-inverted.png">
+        <img src="https://github.com/favicon.ico" width="16" height="16" alt="GitHub icon">
+    </picture>
+    GitHub
+    </summary>    
     Generate a GitHub Personal Access Token (PAT) [here](https://github.com/settings/tokens/new). If you are indexing public repositories only, you can select the `public_repo` scope, otherwise you will need the `repo` scope.
 
     Create a text file named `.github-token` **in your home directory** and paste the token in it. The file should look like:
