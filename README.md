@@ -33,7 +33,7 @@ You can try out Sourcebot on your local machine without cloning the repo by runn
 docker run -p 3000:3000 --rm --name sourcebot -e CONFIG_PATH=sample-config.json ghcr.io/taqlaai/sourcebot:main
 ```
 
-Navigate to `localhost:3000` in your favorite web browser to see Sourcebot in action running on your own machine! This sample command will index the Sourcebot repository and allow you to search through it. If you'd like to run Sourcebot on a different repository, please checkout !
+Navigate to `localhost:3000` in your favorite web browser to see Sourcebot in action running on your own machine! This sample command will index the Sourcebot repository and allow you to search through it. If you'd like to run Sourcebot on a different repository, please read [Using Sourcebot on a custom repository](#using-sourcebot-on-a-custom-repository) !
 
 <details>
 <summary>What does this command do?</summary>
