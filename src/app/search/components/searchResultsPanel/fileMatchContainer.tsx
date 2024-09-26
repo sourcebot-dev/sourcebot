@@ -1,6 +1,5 @@
 'use client';
 
-import { SearchResultFile } from "@/lib/schemas";
 import { getRepoCodeHostInfo } from "@/lib/utils";
 import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
@@ -8,6 +7,7 @@ import { DoubleArrowDownIcon, DoubleArrowUpIcon, FileIcon } from "@radix-ui/reac
 import clsx from "clsx";
 import { Separator } from "@/components/ui/separator";
 import { CodePreview } from "./codePreview";
+import { SearchResultFile } from "@/lib/types";
 
 const MAX_MATCHES_TO_PREVIEW = 3;
 

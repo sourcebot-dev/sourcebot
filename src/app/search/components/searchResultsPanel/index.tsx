@@ -1,9 +1,9 @@
 'use client';
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SearchResultFile } from "@/lib/schemas";
 import { Scrollbar } from "@radix-ui/react-scroll-area";
 import { FileMatchContainer } from "./fileMatchContainer";
+import { SearchResultFile } from "@/lib/types";
 
 interface SearchResultsPanelProps {
     fileMatches: SearchResultFile[];

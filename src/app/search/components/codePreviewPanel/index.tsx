@@ -1,10 +1,10 @@
 'use client';
 
 import { fetchFileSource } from "@/app/api/(client)/client";
-import { SearchResultFile } from "@/lib/schemas";
 import { getCodeHostFilePreviewLink } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { CodePreview, CodePreviewFile } from "./codePreview";
+import { SearchResultFile } from "@/lib/types";
 
 interface CodePreviewPanelProps {
     fileMatch?: SearchResultFile;

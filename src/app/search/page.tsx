@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
-import { SearchResultFile } from "@/lib/schemas";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +21,7 @@ import { SettingsDropdown } from "../settingsDropdown";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
+import { SearchResultFile } from "@/lib/types";
 
 const DEFAULT_NUM_RESULTS = 100;
 

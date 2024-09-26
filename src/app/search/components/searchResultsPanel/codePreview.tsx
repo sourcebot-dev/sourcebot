@@ -4,7 +4,7 @@ import { useExtensionWithDependency } from "@/hooks/useExtensionWithDependency";
 import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
 import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 import { lineOffsetExtension } from "@/lib/extensions/lineOffsetExtension";
-import { SearchResultRange } from "@/lib/schemas";
+import { SearchResultRange } from "@/lib/types";
 import CodeMirror, { Decoration, DecorationSet, EditorState, EditorView, ReactCodeMirrorRef, StateField, Transaction } from "@uiw/react-codemirror";
 import { useMemo, useRef } from "react";
 

@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-export type SearchRequest = z.infer<typeof searchRequestSchema>;
 export const searchRequestSchema = z.object({
     query: z.string(),
     numResults: z.number(),
@@ -8,15 +7,8 @@ export const searchRequestSchema = z.object({
 });
 
 
-export type SearchResponse = z.infer<typeof searchResponseSchema>;
-export type SearchResult = SearchResponse["Result"];
-export type SearchResultFile = NonNullable<SearchResult["Files"]>[number];
-export type SearchResultFileMatch = SearchResultFile["ChunkMatches"][number];
-export type SearchResultRange = z.infer<typeof rangeSchema>;
-export type SearchResultLocation = z.infer<typeof locationSchema>;
-
 // @see : https://github.com/TaqlaAI/zoekt/blob/main/api.go#L212
-const locationSchema = z.object({
+export const locationSchema = z.object({
     // 0-based byte offset from the beginning of the file
     ByteOffset: z.number(),
     // 1-based line number from the beginning of the file
@@ -25,7 +17,7 @@ const locationSchema = z.object({
     Column: z.number(),
 });
 
-const rangeSchema = z.object({
+export const rangeSchema = z.object({
     Start: locationSchema,
     End: locationSchema,
 });
@@ -79,21 +71,15 @@ export const searchResponseSchema = z.object({
     }),
 });
 
-export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
 export const fileSourceRequestSchema = z.object({
     fileName: z.string(),
     repository: z.string()
 });
 
-export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
-
 export const fileSourceResponseSchema = z.object({
     source: z.string(),
 });
 
-
-export type ListRepositoriesResponse = z.infer<typeof listRepositoriesResponseSchema>;
-export type Repository = z.infer<typeof repositorySchema>;
 
 // @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L728
 const repoStatsSchema = z.object({
@@ -120,7 +106,7 @@ const indexMetadataSchema = z.object({
 });
 
 // @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L555
-const repositorySchema = z.object({
+export const repositorySchema = z.object({
     Name: z.string(),
     URL: z.string(),
     Source: z.string(),
