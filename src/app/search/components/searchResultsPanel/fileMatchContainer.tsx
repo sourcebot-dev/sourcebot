@@ -6,8 +6,8 @@ import Image from "next/image";
 import { DoubleArrowDownIcon, DoubleArrowUpIcon, FileIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import { Separator } from "@/components/ui/separator";
-import { CodePreview } from "./codePreview";
 import { SearchResultFile } from "@/lib/types";
+import { FileMatch } from "./fileMatch";
 
 const MAX_MATCHES_TO_PREVIEW = 3;
 
@@ -128,45 +128,22 @@ export const FileMatchContainer = ({
                     )}
                 </div>
             </div>
-            {matches.map((match, index) => {
-                const content = atob(match.Content);
-
-                // If it's just the title, don't show a code preview
-                if (match.FileName) {
-                    return null;
-                }
-
-                const lineOffset = match.ContentStart.LineNumber - 1;
-
-                return (
-                    <div
-                        key={index}
-                    >
-                        <div
-                            tabIndex={0}
-                            className="cursor-pointer p-1 focus:ring-inset focus:ring-4 bg-white dark:bg-[#282c34]"
-                            onKeyDown={(e) => {
-                                if (e.key !== "Enter") {
-                                    return;
-                                }
-                                onOpenMatch(index);
-                            }}
-                            onClick={() => onOpenMatch(index)}
-                        >
-                            <CodePreview
-                                content={content}
-                                language={file.Language}
-                                ranges={match.Ranges}
-                                lineOffset={lineOffset}
-                            />
-                        </div>
-
-                        {(index !== matches.length - 1 || isMoreContentButtonVisible) && (
-                            <Separator className="dark:bg-gray-400" />
-                        )}
-                    </div>
-                );
-            })}
+            {matches.map((match, index) => (
+                <div
+                    key={index}
+                >
+                    <FileMatch
+                        match={match}
+                        file={file}
+                        onOpen={() => {
+                            onOpenMatch(index);
+                        }}
+                    />
+                    {(index !== matches.length - 1 || isMoreContentButtonVisible) && (
+                        <Separator className="dark:bg-gray-400" />
+                    )}
+                </div>
+            ))}
             {isMoreContentButtonVisible && (
                 <div
                     tabIndex={0}
