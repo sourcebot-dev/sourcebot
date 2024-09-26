@@ -1,6 +1,6 @@
 import { EditorSelection, Extension, StateEffect, StateField, Text, Transaction } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
-import { SearchResultRange } from "../schemas";
+import { SearchResultRange } from "../types";
 
 const setMatchState = StateEffect.define<{
     selectedMatchIndex: number,
@@ -46,26 +46,10 @@ const matchHighlighter = StateField.define<DecorationSet>({
 });
 
 const matchMark = Decoration.mark({
-    class: "tq-searchMatch"
+    class: "cm-searchMatch"
 });
 const selectedMatchMark = Decoration.mark({
-    class: "tq-searchMatch-selected"
-});
-
-const highlightTheme = EditorView.baseTheme({
-    "&light .tq-searchMatch": {
-        border: "1px dotted #6b7280ff",
-    },
-    "&light .tq-searchMatch-selected": {
-        backgroundColor: "#00ff00aa"
-    },
-
-    "&dark .tq-searchMatch": {
-        border: "1px dotted #d1d5dbff",
-    },
-    "&dark .tq-searchMatch-selected": {
-        backgroundColor: "#00ff007a",
-    }
+    class: "cm-searchMatch-selected"
 });
 
 export const highlightRanges = (selectedMatchIndex: number, ranges: SearchResultRange[], view: EditorView) => {
@@ -90,7 +74,6 @@ export const highlightRanges = (selectedMatchIndex: number, ranges: SearchResult
 
 export const searchResultHighlightExtension = (): Extension => {
     return [
-        highlightTheme,
         matchHighlighter,
     ]
 }

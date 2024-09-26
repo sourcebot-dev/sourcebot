@@ -1,4 +1,5 @@
-import { FileSourceResponse, fileSourceResponseSchema, ListRepositoriesResponse, listRepositoriesResponseSchema, SearchRequest, SearchResponse, searchResponseSchema } from "@/lib/schemas";
+import { fileSourceResponseSchema, listRepositoriesResponseSchema, searchResponseSchema } from "@/lib/schemas";
+import { FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse> => {
     const result = await fetch(`/api/search`, {
