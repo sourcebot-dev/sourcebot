@@ -32,7 +32,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATA_DIR=/data
-ENV CONFIG_PATH=$DATA_DIR/config.json
+ENV CONFIG_PATH=$DATA_DIR/sample-config.json
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
 
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
