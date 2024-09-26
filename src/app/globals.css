@@ -77,3 +77,12 @@
   padding-left: 0.5;
   text-align: left;
 }
+
+.cm-editor .cm-searchMatch {
+  border: dotted;
+  background: transparent;
+}
+
+.cm-editor .cm-searchMatch-selected {
+  border: solid;
+}

@@ -9,16 +9,7 @@ import CodeMirror, { Decoration, DecorationSet, EditorState, EditorView, ReactCo
 import { useMemo, useRef } from "react";
 
 const markDecoration = Decoration.mark({
-    class: "cm-searchMatch"
-});
-
-const cmTheme = EditorView.baseTheme({
-    "&light .cm-searchMatch": {
-        border: "1px #6b7280ff",
-    },
-    "&dark .cm-searchMatch": {
-        border: "1px #d1d5dbff",
-    },
+    class: "cm-searchMatch-selected"
 });
 
 interface CodePreviewProps {
@@ -79,7 +70,6 @@ export const CodePreview = ({
                 },
                 provide: (field) => EditorView.decorations.from(field),
             }),
-            cmTheme
         ];
     }, [ranges, lineOffset]);
 
