@@ -37,7 +37,7 @@ You can try out our public hosted demo [here](https://demo.sourcebot.dev/)!
 Get started with a single docker command:
 
 ```
-docker run -p 3000:3000 --rm --name sourcebot -e CONFIG_PATH=sample-config.json ghcr.io/taqlaai/sourcebot:main
+docker run -p 3000:3000 --rm --name sourcebot ghcr.io/taqlaai/sourcebot:main
 ```
 
 Navigate to `localhost:3000` to start searching the Sourcebot repo. Want to search your own repos? Checkout how to [configure Sourcebot](#configuring-sourcebot).
@@ -45,8 +45,8 @@ Navigate to `localhost:3000` to start searching the Sourcebot repo. Want to sear
 <details>
 <summary>What does this command do?</summary>
 
-- Pull and run the Sourcebot docker image from [ghcr.io/taqlaai/sourcebot:main](ghcr.io/taqlaai/sourcebot:main). You'll need to make sure you have [docker installed](https://docs.docker.com/get-started/get-docker/) to do this.
-- Set the `CONFIG_PATH` environment variable in the container to `sample-config.json`. Sourcebot loads the config file located at `CONFIG_PATH` to determine which repositories to index. To make things easier to try Sourcebot, we've baked in an [example](https://github.com/TaqlaAI/sourcebot/blob/main/sample-config.json) config file named `sample-config.json` into the published Docker image. 
+- Pull and run the Sourcebot docker image from [ghcr.io/taqlaai/sourcebot:main](https://github.com/taqlaai/sourcebot/pkgs/container/sourcebot). You'll need to make sure you have [docker installed](https://docs.docker.com/get-started/get-docker/) to do this.
+- Sourcebot will index itself to prepare for your search request.
 - Map port 3000 between your machine and the docker image (`-p 3000:3000`).
 </details>
 
