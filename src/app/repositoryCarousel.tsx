@@ -1,6 +1,5 @@
 'use client';
 
-import { Repository } from "@/lib/schemas";
 import {
     Carousel,
     CarouselContent,
@@ -11,6 +10,7 @@ import { getRepoCodeHostInfo } from "@/lib/utils";
 import Image from "next/image";
 import { FileIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
+import { Repository } from "@/lib/types";
 
 interface RepositoryCarouselProps {
     repos: Repository[];

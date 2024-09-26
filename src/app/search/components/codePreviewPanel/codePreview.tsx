@@ -8,7 +8,7 @@ import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExt
 import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 import { gutterWidthExtension } from "@/lib/extensions/gutterWidthExtension";
 import { highlightRanges, searchResultHighlightExtension } from "@/lib/extensions/searchResultHighlightExtension";
-import { SearchResultFileMatch } from "@/lib/schemas";
+import { SearchResultFileMatch } from "@/lib/types";
 import { defaultKeymap } from "@codemirror/commands";
 import { search } from "@codemirror/search";
 import { EditorView, keymap } from "@codemirror/view";
@@ -28,19 +28,19 @@ export interface CodePreviewFile {
     language: string;
 }
 
-interface CodePreviewPanelProps {
+interface CodePreviewProps {
     file?: CodePreviewFile;
     selectedMatchIndex: number;
     onSelectedMatchIndexChange: (index: number) => void;
     onClose: () => void;
 }
 
-export const CodePreviewPanel = ({
+export const CodePreview = ({
     file,
     selectedMatchIndex,
     onSelectedMatchIndexChange,
     onClose,
-}: CodePreviewPanelProps) => {
+}: CodePreviewProps) => {
     const editorRef = useRef<ReactCodeMirrorRef>(null);
 
     const [ keymapType ] = useKeymapType();
@@ -67,6 +67,7 @@ export const CodePreviewPanel = ({
             keymapExtension,
             gutterWidthExtension,
             syntaxHighlighting,
+            EditorView.lineWrapping,
             searchResultHighlightExtension(),
             search({
                 top: true,
