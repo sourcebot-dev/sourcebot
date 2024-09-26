@@ -23,6 +23,13 @@ Sourcebot is a fast code indexing and search tool for your codebases. It is buil
 
 ![Demo video](https://github.com/user-attachments/assets/227176d8-fc61-42a9-8746-3cbc831f09e4)
 
+## Features
+- 💻 **One-command deployment**: Get started instantly using Docker on your own machine.
+- 🔍 **Multi-repo search**: Effortlessly index and search through multiple public and private repositories (GitHub, GitLab, BitBucket).
+- ⚡**Lightning fast performance**: Built on top of the powerful [Zoekt](https://github.com/sourcegraph/zoekt) search engine.
+- 📂 **Full file visualization**: Instantly view the entire file when selecting any search result.
+- 🎨 **Modern web application**: Enjoy a sleek interface with features like syntax highlighting, light/dark mode, and vim-style navigation 
+
 # Getting Started
 
 You can try out our public hosted demo [here](https://demo.sourcebot.dev/)!
