@@ -67,6 +67,7 @@ export const CodePreview = ({
             keymapExtension,
             gutterWidthExtension,
             syntaxHighlighting,
+            EditorView.lineWrapping,
             searchResultHighlightExtension(),
             search({
                 top: true,

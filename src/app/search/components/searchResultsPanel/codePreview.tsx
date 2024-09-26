@@ -86,6 +86,7 @@ export const CodePreview = ({
     const extensions = useMemo(() => {
         return [
             syntaxHighlighting,
+            EditorView.lineWrapping,
             lineOffsetExtension(lineOffset),
             rangeHighlighting,
         ];
