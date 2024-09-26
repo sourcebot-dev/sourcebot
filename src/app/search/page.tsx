@@ -21,17 +21,11 @@ import { SettingsDropdown } from "../settingsDropdown";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
-import { SearchResultFile } from "@/lib/types";
+import { SearchQueryParams, SearchResultFile } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Scrollbar } from "@radix-ui/react-scroll-area";
 
 const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 200;
-
-export enum SearchQueryParams {
-    query = "query",
-    maxMatchDisplayCount = "maxMatchDisplayCount",
-}
-
 
 export default function SearchPage() {
     const router = useRouter();

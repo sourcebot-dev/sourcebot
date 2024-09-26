@@ -17,3 +17,7 @@ export type ListRepositoriesResponse = z.infer<typeof listRepositoriesResponseSc
 export type Repository = z.infer<typeof repositorySchema>;
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
 
+export enum SearchQueryParams {
+    query = "query",
+    maxMatchDisplayCount = "maxMatchDisplayCount",
+}

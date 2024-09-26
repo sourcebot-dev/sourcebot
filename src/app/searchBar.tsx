@@ -16,7 +16,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useRef } from "react";
-import { SearchQueryParams } from "./search/page";
+import { SearchQueryParams } from "@/lib/types";
 
 interface SearchBarProps {
     className?: string;
