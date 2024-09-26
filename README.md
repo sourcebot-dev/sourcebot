@@ -128,9 +128,9 @@ TODO
 </div>
 
 
-## Building Sourcebot
+## Build from source
 >[!NOTE]
->You don't need to build Sourcebot in order to use it! If you'd just like to use Sourcebot, please read [how to use Sourcebot with custom repositories](#using-sourcebot-on-a-custom-repository).
+>You don't need to build Sourcebot in order to use it! If you'd just like to use Sourcebot, please read [how to configure Sourcebot](#configuring-sourcebot).
 
 If you'd like to make changes to Sourcebot you'll need to build from source:
 
