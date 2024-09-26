@@ -6,14 +6,14 @@ import { fileNotFound, invalidZoektResponse, ServiceError, unexpectedError } fro
 import { isServiceError } from "../utils";
 import { zoektFetch } from "./zoektClient";
 
-export const search = async ({ query, numResults, whole }: SearchRequest): Promise<SearchResponse | ServiceError> => {
+export const search = async ({ query, maxMatchDisplayCount, whole }: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const body = JSON.stringify({
         q: query,
         // @see: https://github.com/TaqlaAI/zoekt/blob/main/api.go#L892
         opts: {
             NumContextLines: 2,
             ChunkMatches: true,
-            MaxMatchDisplayCount: numResults,
+            MaxMatchDisplayCount: maxMatchDisplayCount,
             Whole: !!whole,
             ShardMaxMatchCount: SHARD_MAX_MATCH_COUNT,
             TotalMaxMatchCount: TOTAL_MAX_MATCH_COUNT,
@@ -46,7 +46,7 @@ export const getFileSource = async ({ fileName, repository }: FileSourceRequest)
 
     const searchResponse = await search({
         query: `${escapedFileName} repo:^${escapedRepository}$`,
-        numResults: 1,
+        maxMatchDisplayCount: 1,
         whole: true,
     });
 

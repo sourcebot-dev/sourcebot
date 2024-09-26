@@ -8,7 +8,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn, createPathWithQueryParams } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useRef } from "react";
+import { SearchQueryParams } from "./search/page";
 
 interface SearchBarProps {
     className?: string;
@@ -65,7 +66,10 @@ export const SearchBar = ({
     });
 
     const onSubmit = (values: z.infer<typeof formSchema>) => {
-        router.push(`/search?query=${values.query}&numResults=100`);
+        const url = createPathWithQueryParams('/search',
+            [SearchQueryParams.query, values.query],
+        )
+        router.push(url);
     }
 
     return (

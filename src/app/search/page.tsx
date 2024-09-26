@@ -12,7 +12,7 @@ import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import logoDark from "../../../public/sb_logo_dark.png";
 import logoLight from "../../../public/sb_logo_light.png";
 import { search } from "../api/(client)/client";
@@ -22,14 +22,22 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { SearchResultFile } from "@/lib/types";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Scrollbar } from "@radix-ui/react-scroll-area";
 
-const DEFAULT_NUM_RESULTS = 100;
+const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 200;
+
+export enum SearchQueryParams {
+    query = "query",
+    maxMatchDisplayCount = "maxMatchDisplayCount",
+}
+
 
 export default function SearchPage() {
     const router = useRouter();
-    const searchQuery = useNonEmptyQueryParam("query") ?? "";
-    const _numResults = parseInt(useNonEmptyQueryParam("numResults") ?? `${DEFAULT_NUM_RESULTS}`);
-    const numResults = isNaN(_numResults) ? DEFAULT_NUM_RESULTS : _numResults;
+    const searchQuery = useNonEmptyQueryParam(SearchQueryParams.query) ?? "";
+    const _maxMatchDisplayCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.maxMatchDisplayCount) ?? `${DEFAULT_MAX_MATCH_DISPLAY_COUNT}`);
+    const maxMatchDisplayCount = isNaN(_maxMatchDisplayCount) ? DEFAULT_MAX_MATCH_DISPLAY_COUNT : _maxMatchDisplayCount;
 
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
     const [selectedFile, setSelectedFile] = useState<SearchResultFile | undefined>(undefined);
@@ -37,10 +45,10 @@ export default function SearchPage() {
     const captureEvent = useCaptureEvent();
 
     const { data: searchResponse, isLoading } = useQuery({
-        queryKey: ["search", searchQuery, numResults],
+        queryKey: ["search", searchQuery, maxMatchDisplayCount],
         queryFn: () => search({
             query: searchQuery,
-            numResults,
+            maxMatchDisplayCount,
         }),
         enabled: searchQuery.length > 0,
         refetchOnWindowFocus: false,
@@ -93,8 +101,28 @@ export default function SearchPage() {
     }, [searchResponse]);
 
     const isMoreResultsButtonVisible = useMemo(() => {
-        return searchResponse && searchResponse.Result.MatchCount > numResults;
-    }, [searchResponse, numResults]);
+        return searchResponse && searchResponse.Result.MatchCount > maxMatchDisplayCount;
+    }, [searchResponse, maxMatchDisplayCount]);
+
+    const numMatches = useMemo(() => {
+        // Accumualtes the number of matches across all files
+        return searchResponse?.Result.Files?.reduce(
+            (acc, file) =>
+                acc + file.ChunkMatches.reduce(
+                    (acc, chunk) => acc + chunk.Ranges.length,
+                    0,
+                ),
+            0,
+        ) ?? 0;
+    }, [searchResponse]);
+
+    const onLoadMoreResults = useCallback(() => {
+        const url = createPathWithQueryParams('/search',
+            [SearchQueryParams.query, searchQuery],
+            [SearchQueryParams.maxMatchDisplayCount, `${maxMatchDisplayCount * 2}`],
+        )
+        router.push(url);
+    }, [maxMatchDisplayCount, router, searchQuery]);
 
     return (
         <div className="flex flex-col h-screen overflow-clip">
@@ -129,20 +157,22 @@ export default function SearchPage() {
                     />
                 </div>
                 <Separator />
-                <div className="bg-accent py-1 px-2 flex flex-row items-center justify-between">
-                    <p className="text-sm font-medium">Results for: {fileMatches.length} files in {searchDurationMs} ms</p>
-                    {isMoreResultsButtonVisible && (
+                <div className="bg-accent py-1 px-2 flex flex-row items-center gap-4">
+                    {
+                        isLoading ? (
+                            <p className="text-sm font-medium">Loading...</p>
+                        ) : fileMatches.length > 0 ? (
+                            <p className="text-sm font-medium">{`[${searchDurationMs} ms] Displaying ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
+                        ) : (
+                            <p className="text-sm font-medium">No results</p>
+                        )
+                    }
+                    {isMoreResultsButtonVisible && !isLoading && (
                         <div
                             className="cursor-pointer text-blue-500 text-sm hover:underline"
-                            onClick={() => {
-                                const url = createPathWithQueryParams('/search',
-                                    ["query", searchQuery],
-                                    ["numResults", `${numResults * 2}`],
-                                )
-                                router.push(url);
-                            }}
+                            onClick={onLoadMoreResults}
                         >
-                            More results
+                            (load more)
                         </div>
                     )}
                 </div>
@@ -157,16 +187,35 @@ export default function SearchPage() {
                             <SymbolIcon className="h-6 w-6 animate-spin" />
                             <p className="font-semibold text-center">Searching...</p>
                         </div>
+                    ) : fileMatches.length > 0 ? (
+                        <ScrollArea
+                            className="h-full"
+                        >
+                            <SearchResultsPanel
+                                fileMatches={fileMatches}
+                                onOpenFileMatch={(fileMatch) => {
+                                    setSelectedFile(fileMatch);
+                                }}
+                                onMatchIndexChanged={(matchIndex) => {
+                                    setSelectedMatchIndex(matchIndex);
+                                }}
+                            />
+                            {isMoreResultsButtonVisible && (
+                                <div className="p-3">
+                                    <span
+                                        className="cursor-pointer text-blue-500 hover:underline"
+                                        onClick={onLoadMoreResults}
+                                    >
+                                        Load more results
+                                    </span>
+                                </div>
+                            )}
+                            <Scrollbar orientation="vertical" />
+                        </ScrollArea>
                     ) : (
-                        <SearchResultsPanel
-                            fileMatches={fileMatches}
-                            onOpenFileMatch={(fileMatch) => {
-                                setSelectedFile(fileMatch);
-                            }}
-                            onMatchIndexChanged={(matchIndex) => {
-                                setSelectedMatchIndex(matchIndex);
-                            }}
-                        />
+                        <div className="flex flex-col items-center justify-center h-full">
+                            <p className="text-sm text-muted-foreground">No results found</p>
+                        </div>
                     )}
                 </ResizablePanel>
                 <ResizableHandle withHandle={selectedFile !== undefined} />

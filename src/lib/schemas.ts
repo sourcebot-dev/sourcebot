@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const searchRequestSchema = z.object({
     query: z.string(),
-    numResults: z.number(),
+    maxMatchDisplayCount: z.number(),
     whole: z.boolean().optional(),
 });
 
