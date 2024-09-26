@@ -89,7 +89,12 @@ In order to allow Sourcebot to index your private repositories, you must provide
 
 <div>
 <details>
-<summary><img src="https://github.com/favicon.ico" width="16" height="16" /> GitHub</summary>
+<summary>
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/images/github-favicon-inverted.png">
+    <img src="https://github.com/favicon.ico" width="16" height="16" alt="GitHub icon">
+</picture> GitHub
+</summary>
 
 Generate a GitHub Personal Access Token (PAT) [here](https://github.com/settings/tokens/new) and make sure you select the `repo` scope.
 
