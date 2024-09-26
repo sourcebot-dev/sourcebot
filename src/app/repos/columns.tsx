@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getRepoCodeHostInfo } from "@/lib/utils";
 import { Column, ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown } from "lucide-react"
+import prettyBytes from "pretty-bytes";
 
 export type RepositoryColumnInfo = {
     name: string;
@@ -90,7 +91,7 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
         accessorKey: "indexSizeBytes",
         header: ({ column }) => createSortHeader("Index Size", column),
         cell: ({ row }) => {
-            const size = getFormattedSizeString(row.original.indexSizeBytes);
+            const size = prettyBytes(row.original.indexSizeBytes);
             return <div className="text-right">{size}</div>;
         }
     },
@@ -98,7 +99,7 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
         accessorKey: "repoSizeBytes",
         header: ({ column }) => createSortHeader("Repository Size", column),
         cell: ({ row }) => {
-            const size = getFormattedSizeString(row.original.repoSizeBytes);
+            const size = prettyBytes(row.original.repoSizeBytes);
             return <div className="text-right">{size}</div>;
         }
     },
@@ -119,19 +120,6 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
         }
     }
 ]
-
-const getFormattedSizeString = (bytes: number): string => {
-    let size = bytes;
-    const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];
-    let unitIndex = 0;
-
-    while (size >= 1024 && unitIndex < units.length - 1) {
-        size /= 1024;
-        unitIndex++;
-    }
-
-    return `${size.toFixed(2)} ${units[unitIndex]}`;
-}
 
 const createSortHeader = (name: string, column: Column<RepositoryColumnInfo, unknown>) => {
     return (
