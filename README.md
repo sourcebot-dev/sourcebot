@@ -52,7 +52,13 @@ Navigate to `localhost:3000` to start searching the Sourcebot repo. Want to sear
 
 ## Configuring Sourcebot
 
-Sourcebot supports indexing and searching through public and private repositories hosted on <img src="https://github.com/favicon.ico" width="16" height="16" /> GitHub, <img src="https://gitlab.com/favicon.ico" width="16" height="16" />GitLab, and <img src="https://bitbucket.org/favicon.ico" width="16" height="16" /> BitBucket. This section will guide you through configuring the repositories that Sourcebot indexes. 
+Sourcebot supports indexing and searching through public and private repositories hosted on 
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/images/github-favicon-inverted.png">
+    <img src="https://github.com/favicon.ico" width="16" height="16" alt="GitHub icon">
+</picture> GitHub,
+<img src="https://gitlab.com/favicon.ico" width="16" height="16" />GitLab, and 
+<img src="https://bitbucket.org/favicon.ico" width="16" height="16" /> BitBucket. This section will guide you through configuring the repositories that Sourcebot indexes. 
 
 1. Create a new folder on your machine that stores your configs and `.sourcebot` cache, and navigate into it:
 ```
