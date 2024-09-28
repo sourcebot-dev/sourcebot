@@ -35,11 +35,14 @@ ENV DATA_DIR=/data
 ENV CONFIG_PATH=$DATA_DIR/config.json
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
 
+# @note: This is also set in .env
+ENV NEXT_PUBLIC_POSTHOG_KEY=phc_VFn4CkEGHRdlVyOOw8mfkoj1DKVoG6y1007EClvzAnS
+
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl
 
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
