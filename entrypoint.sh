@@ -1,6 +1,33 @@
 #!/bin/sh
 set -e
 
+# Issue a info message about telemetry
+if [ ! -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
+    echo -e "\e[34m[Info] Disabling telemetry since SOURCEBOT_TELEMETRY_DISABLED was set.\e[0m"
+fi
+
+# Check if DATA_CACHE_DIR exists, if not create it
+if [ ! -d "$DATA_CACHE_DIR" ]; then
+    mkdir -p "$DATA_CACHE_DIR"
+fi
+
+# In order to detect if this is the first run, we create a `.installed` file in
+# the cache directory.
+FIRST_RUN_FILE="$DATA_CACHE_DIR/.installed"
+if [ ! -f "$FIRST_RUN_FILE" ]; then
+    touch "$FIRST_RUN_FILE"
+
+    # If this is our first run, send a `install` event to PostHog
+    # (if telemetry is enabled)
+    if [ -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
+        curl -L -s --header "Content-Type: application/json" -d '{
+            "api_key": "'"$NEXT_PUBLIC_POSTHOG_KEY"'",
+            "event": "install",
+            "distinct_id": "'"$(uuidgen)"'"
+        }' https://us.i.posthog.com/capture/ > /dev/null
+    fi
+fi
+
 # Fallback to sample config if a config does not exist
 if [ ! -f "$CONFIG_PATH" ]; then
     echo -e "\e[33m[Warning] Config file at CONFIG_PATH not found. Falling back on sample config.\e[0m"
