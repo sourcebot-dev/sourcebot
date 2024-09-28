@@ -1,10 +1,13 @@
 #!/bin/sh
 set -e
 
-# Check if CONFIG_PATH is set
-if [ -z "$CONFIG_PATH" ]; then
-    echo "\e[33mWarning: CONFIG_PATH environment variable is not set.\e[0m"
+# Fallback to sample config if a config does not exist
+if [ ! -f "$CONFIG_PATH" ]; then
+    echo -e "\e[33m[Warning] Config file at CONFIG_PATH not found. Falling back on sample config.\e[0m"
+    CONFIG_PATH="./sample-config.json"
 fi
+
+echo -e "\e[34m[Info] Using config file at: '$CONFIG_PATH'.\e[0m"
 
 # Check if GITHUB_TOKEN is set
 if [ -n "$GITHUB_TOKEN" ]; then
@@ -17,7 +20,7 @@ if [ -n "$GITHUB_TOKEN" ]; then
        password ${GITHUB_TOKEN}" >> "$HOME/.netrc"
        chmod 600 "$HOME/.netrc"
 else
-    echo -e "\e[33mWarning: Private GitHub repositories will not be indexed since GITHUB_TOKEN was not set. If you are not using GitHub, disregard.\e[0m"
+    echo -e "\e[34m[Info] Private GitHub repositories will not be indexed since GITHUB_TOKEN was not set.\e[0m"
 fi
 
 # Check if GITLAB_TOKEN is set
@@ -31,7 +34,7 @@ if [ -n "$GITLAB_TOKEN" ]; then
        password ${GITLAB_TOKEN}" >> "$HOME/.netrc"
        chmod 600 "$HOME/.netrc"
 else
-    echo -e "\e[33mWarning: GitLab repositories will not be indexed since GITLAB_TOKEN was not set. If you are not using GitLab, disregard.\e[0m"
+    echo -e "\e[34m[Info] GitLab repositories will not be indexed since GITLAB_TOKEN was not set.\e[0m"
 fi
 
 # Update nextjs public env variables w/o requiring a rebuild.
