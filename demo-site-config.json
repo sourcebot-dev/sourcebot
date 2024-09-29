@@ -10,6 +10,27 @@
             "Type": "github",
             "GitHubOrg": "pytorch",
             "Name": "pytorch"
+        },
+        {
+            "Type": "github",
+            "GitHubOrg": "commaai",
+            "Name": "^(openpilot|tinygrad)$",
+            "IncludeForks": true
+        },
+        {
+            "Type": "github",
+            "GitHubUser": "ggerganov",
+            "Name": "^(whisper\\.cpp|llama\\.cpp)$"
+        },
+        {
+            "Type": "github",
+            "GitHubOrg": "codemirror",
+            "Name": "^(dev|lang-.*)$"
+        },
+        {
+            "Type": "github",
+            "GitHubOrg": "tailwindlabs",
+            "Name": "^tailwindcss$"
         }
     ]
 }
