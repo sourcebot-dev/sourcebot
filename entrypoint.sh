@@ -32,11 +32,11 @@ fi
 if echo "$CONFIG_PATH" | grep -qE '^https?://'; then
     if ! curl --output /dev/null --silent --head --fail "$CONFIG_PATH"; then
         echo -e "\e[33m[Warning] Remote config file at '$CONFIG_PATH' not found. Falling back on sample config.\e[0m"
-        CONFIG_PATH="./sample-config.json"
+        CONFIG_PATH="./default-config.json"
     fi
 elif [ ! -f "$CONFIG_PATH" ]; then
     echo -e "\e[33m[Warning] Config file at '$CONFIG_PATH' not found. Falling back on sample config.\e[0m"
-    CONFIG_PATH="./sample-config.json"
+    CONFIG_PATH="./default-config.json"
 fi
 
 echo -e "\e[34m[Info] Using config file at: '$CONFIG_PATH'.\e[0m"
