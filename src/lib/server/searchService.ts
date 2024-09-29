@@ -45,7 +45,7 @@ export const getFileSource = async ({ fileName, repository }: FileSourceRequest)
     const escapedRepository = escapeStringRegexp(repository);
 
     const searchResponse = await search({
-        query: `${escapedFileName} repo:^${escapedRepository}$`,
+        query: `file:${escapedFileName} repo:^${escapedRepository}$`,
         maxMatchDisplayCount: 1,
         whole: true,
     });
