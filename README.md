@@ -230,8 +230,6 @@ docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-to
     ```
     zoekt will [read this file](https://github.com/TaqlaAI/zoekt/blob/11b7713f1fb511073c502c41cea413d616f7761f/cmd/zoekt-mirror-gitlab/main.go#L43) to authenticate with GitLab.
     </details>
-    <br>
-
     </div>
 
 7. Start Sourcebot with the command:
