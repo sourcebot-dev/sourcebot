@@ -155,8 +155,8 @@ export default function SearchPage() {
                     {
                         isLoading ? (
                             <p className="text-sm font-medium">Loading...</p>
-                        ) : fileMatches.length > 0 ? (
-                            <p className="text-sm font-medium">{`[${searchDurationMs} ms] Displaying ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
+                        ) : fileMatches.length > 0 && searchResponse ? (
+                            <p className="text-sm font-medium">{`[${searchDurationMs} ms] Displaying ${numMatches} of ${searchResponse.Result.MatchCount} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
                         ) : (
                             <p className="text-sm font-medium">No results</p>
                         )
