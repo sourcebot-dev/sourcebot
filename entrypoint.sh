@@ -29,8 +29,13 @@ if [ ! -f "$FIRST_RUN_FILE" ]; then
 fi
 
 # Fallback to sample config if a config does not exist
-if [ ! -f "$CONFIG_PATH" ]; then
-    echo -e "\e[33m[Warning] Config file at CONFIG_PATH not found. Falling back on sample config.\e[0m"
+if echo "$CONFIG_PATH" | grep -qE '^https?://'; then
+    if ! curl --output /dev/null --silent --head --fail "$CONFIG_PATH"; then
+        echo -e "\e[33m[Warning] Remote config file at '$CONFIG_PATH' not found. Falling back on sample config.\e[0m"
+        CONFIG_PATH="./sample-config.json"
+    fi
+elif [ ! -f "$CONFIG_PATH" ]; then
+    echo -e "\e[33m[Warning] Config file at '$CONFIG_PATH' not found. Falling back on sample config.\e[0m"
     CONFIG_PATH="./sample-config.json"
 fi
 
