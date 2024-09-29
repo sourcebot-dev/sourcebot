@@ -11,9 +11,9 @@ Blazingly fast code search 🏎️
 <p align="center">
   <a href="https://demo.sourcebot.dev"><img src="https://img.shields.io/badge/Try the Demo!-blue?logo=googlechrome&logoColor=orange"/></a>
   <a href="mailto:brendan@sourcebot.dev"><img src="https://img.shields.io/badge/Email%20Us-brightgreen" /></a>
-  <a href="https://github.com/TaqlaAI/sourcebot/blob/main/LICENSE"><img src="https://img.shields.io/github/license/TaqlaAI/sourcebot"/></a>
-  <a href="https://github.com/TaqlaAI/sourcebot/actions/workflows/ghcr-publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/TaqlaAI/sourcebot/ghcr-publish.yml"/><a>
-  <a href="https://github.com/TaqlaAI/sourcebot/stargazers"><img src="https://img.shields.io/github/stars/TaqlaAI/sourcebot" /></a>
+  <a href="https://github.com/sourcebot-dev/sourcebot/blob/main/LICENSE"><img src="https://img.shields.io/github/license/sourcebot-dev/sourcebot"/></a>
+  <a href="https://github.com/sourcebot-dev/sourcebot/actions/workflows/ghcr-publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/sourcebot-dev/sourcebot/ghcr-publish.yml"/><a>
+  <a href="https://github.com/sourcebot-dev/sourcebot/stargazers"><img src="https://img.shields.io/github/stars/sourcebot-dev/sourcebot" /></a>
 </p>
 
 
@@ -37,7 +37,7 @@ You can try out our public hosted demo [here](https://demo.sourcebot.dev/)!
 Get started with a single docker command:
 
 ```
-docker run -p 3000:3000 --rm --name sourcebot ghcr.io/taqlaai/sourcebot:main
+docker run -p 3000:3000 --rm --name sourcebot ghcr.io/sourcebot-dev/sourcebot:main
 ```
 
 Navigate to `localhost:3000` to start searching the Sourcebot repo. Want to search your own repos? Checkout how to [configure Sourcebot](#configuring-sourcebot).
@@ -45,7 +45,7 @@ Navigate to `localhost:3000` to start searching the Sourcebot repo. Want to sear
 <details>
 <summary>What does this command do?</summary>
 
-- Pull and run the Sourcebot docker image from [ghcr.io/taqlaai/sourcebot:main](https://github.com/taqlaai/sourcebot/pkgs/container/sourcebot). Make sure you have [docker installed](https://docs.docker.com/get-started/get-docker/).
+- Pull and run the Sourcebot docker image from [ghcr.io/sourcebot-dev/sourcebot:main](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot). Make sure you have [docker installed](https://docs.docker.com/get-started/get-docker/).
 - Read the repos listed in [default config](./default-config.json) and start indexing them.
 - Map port 3000 between your machine and the docker image.
 - Starts the web server on port 3000.
@@ -70,7 +70,7 @@ Sourcebot supports indexing and searching through public and private repositorie
     ```sh
     touch my_config.json
     echo '{
-        "$schema": "https://raw.githubusercontent.com/TaqlaAI/sourcebot/main/schemas/index.json",
+        "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/index.json",
         "Configs": [
             {
                 "Type": "github",
@@ -86,13 +86,13 @@ Sourcebot supports indexing and searching through public and private repositorie
 3. Run Sourcebot and point it to the new config you created with the `-e CONFIG_PATH` flag:
 
     ```sh
-    docker run -p 3000:3000 --rm --name sourcebot -v $(pwd):/data -e CONFIG_PATH=/data/my_config.json ghcr.io/taqlaai/sourcebot:main
+    docker run -p 3000:3000 --rm --name sourcebot -v $(pwd):/data -e CONFIG_PATH=/data/my_config.json ghcr.io/sourcebot-dev/sourcebot:main
     ```
 
     <details>
     <summary>What does this command do?</summary>
 
-    - Pull and run the Sourcebot docker image from [ghcr.io/taqlaai/sourcebot:main](https://github.com/taqlaai/sourcebot/pkgs/container/sourcebot).
+    - Pull and run the Sourcebot docker image from [ghcr.io/sourcebot-dev/sourcebot:main](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot).
     - Mount the current directory (`-v $(pwd):/data`) to allow Sourcebot to persist the `.sourcebot` cache.
     - Mirrors (clones) llama.cpp at `HEAD` into `.sourcebot/github/ggerganov/llama.cpp`.
     - Indexes llama.cpp into a .zoekt index file in `.sourcebot/index/`.
@@ -101,7 +101,7 @@ Sourcebot supports indexing and searching through public and private repositorie
     </details>
     <br>
 
-    You should see a `.sourcebot` folder in your current directory. This folder stores a cache of the repositories zoekt has indexed. The `HEAD` commit of a repository is re-indexed [every hour](https://github.com/TaqlaAI/zoekt/blob/11b7713f1fb511073c502c41cea413d616f7761f/cmd/zoekt-indexserver/main.go#L86). Indexing private repos? See [Providing an access token](#providing-an-access-token).
+    You should see a `.sourcebot` folder in your current directory. This folder stores a cache of the repositories zoekt has indexed. The `HEAD` commit of a repository is re-indexed [every hour](https://github.com/sourcebot-dev/zoekt/blob/11b7713f1fb511073c502c41cea413d616f7761f/cmd/zoekt-indexserver/main.go#L86). Indexing private repos? See [Providing an access token](#providing-an-access-token).
 
     <details>
     <summary><img src="https://gitlab.com/favicon.ico" width="16" height="16" /> Using GitLab?</summary>
@@ -112,7 +112,7 @@ Sourcebot supports indexing and searching through public and private repositorie
 
     ```sh
     {
-        "$schema": "https://raw.githubusercontent.com/TaqlaAI/sourcebot/main/schemas/index.json",
+        "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/index.json",
         "Configs": [
             {
                 "Type": "gitlab"
@@ -144,7 +144,7 @@ In order to index private repositories, you'll need to generate a GitHub Persona
 You'll need to pass this PAT each time you run Sourcebot by setting the `GITHUB_TOKEN` environment variable:
 
 <pre>
-docker run -p 3000:3000 --rm --name sourcebot -e <b>GITHUB_TOKEN=[your-github-token]</b> -e CONFIG_PATH=/data/my_config.json -v $(pwd):/data ghcr.io/taqlaai/sourcebot:main
+docker run -p 3000:3000 --rm --name sourcebot -e <b>GITHUB_TOKEN=[your-github-token]</b> -e CONFIG_PATH=/data/my_config.json -v $(pwd):/data ghcr.io/sourcebot-dev/sourcebot:main
 </pre>
 </details>
 
@@ -161,7 +161,7 @@ Generate a GitLab Personal Access Token (PAT) [here](https://gitlab.com/-/user_s
 You'll need to pass this PAT each time you run Sourcebot by setting the `GITLAB_TOKEN` environment variable:
 
 <pre>
-docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-token]</b> -e CONFIG_PATH=/data/my_config.json -v $(pwd):/data ghcr.io/taqlaai/sourcebot:main
+docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-token]</b> -e CONFIG_PATH=/data/my_config.json -v $(pwd):/data ghcr.io/sourcebot-dev/sourcebot:main
 </pre>
 
 </details>
@@ -171,7 +171,7 @@ docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-to
 
 ## Build from source
 >[!NOTE]
-> Building from source is only required if you'd like to contribute. The recommended way to use Sourcebot is to use the [pre-built docker image](https://github.com/TaqlaAI/sourcebot/pkgs/container/sourcebot).
+> Building from source is only required if you'd like to contribute. The recommended way to use Sourcebot is to use the [pre-built docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot).
 
 1. Install <a href="https://go.dev/doc/install"><img src="https://go.dev/favicon.ico" width="16" height="16"> go</a> and <a href="https://nodejs.org/"><img src="https://nodejs.org/favicon.ico" width="16" height="16"> NodeJS</a>. Note that a NodeJS version of at least `21.1.0` is required.
 
@@ -186,7 +186,7 @@ docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-to
 
 3. Clone the repository with submodules:
     ```sh
-    git clone --recurse-submodules https://github.com/TaqlaAI/sourcebot.git
+    git clone --recurse-submodules https://github.com/sourcebot-dev/sourcebot.git
     ```
 
 4. Run `make` to build zoekt and install dependencies:
@@ -217,7 +217,7 @@ docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-to
     ```sh
     ghp_...
     ```
-    zoekt will [read this file](https://github.com/TaqlaAI/zoekt/blob/6a5753692b46e669f851ab23211e756a3677185d/cmd/zoekt-mirror-github/main.go#L60) to authenticate with GitHub.
+    zoekt will [read this file](https://github.com/sourcebot-dev/zoekt/blob/6a5753692b46e669f851ab23211e756a3677185d/cmd/zoekt-mirror-github/main.go#L60) to authenticate with GitHub.
     </details>
 
     <details>
@@ -228,7 +228,7 @@ docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-to
     ```sh
     glpat-...
     ```
-    zoekt will [read this file](https://github.com/TaqlaAI/zoekt/blob/11b7713f1fb511073c502c41cea413d616f7761f/cmd/zoekt-mirror-gitlab/main.go#L43) to authenticate with GitLab.
+    zoekt will [read this file](https://github.com/sourcebot-dev/zoekt/blob/11b7713f1fb511073c502c41cea413d616f7761f/cmd/zoekt-mirror-gitlab/main.go#L43) to authenticate with GitLab.
     </details>
     </div>
 
@@ -243,15 +243,15 @@ docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-to
 
 ## Telemetry
 
-By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We do not collect or transmit [any information related to your codebase](https://github.com/search?q=repo:TaqlaAI/sourcebot++captureEvent&type=code). In addition, all events are [sanitized](https://github.com/TaqlaAI/sourcebot/blob/main/src/app/posthogProvider.tsx) to ensure that no sensitive or identifying details leave your machine. The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made :)
+By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We do not collect or transmit [any information related to your codebase](https://github.com/search?q=repo:sourcebot-dev/sourcebot++captureEvent&type=code). In addition, all events are [sanitized](https://github.com/sourcebot-dev/sourcebot/blob/main/src/app/posthogProvider.tsx) to ensure that no sensitive or identifying details leave your machine. The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made :)
 
 If you'd like to disable all telemetry, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `1` in the docker run command:
 
 <pre>
-docker run -e <b>SOURCEBOT_TELEMETRY_DISABLED=1</b> /* additional args */ ghcr.io/taqlaai/sourcebot:main
+docker run -e <b>SOURCEBOT_TELEMETRY_DISABLED=1</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:main
 </pre>
 
-Or if you are [building locally](#building-sourcebot), add the following to your [.env](./.env) file:
+Or if you are [building locally](#build-from-source), add the following to your [.env](./.env) file:
 ```sh
 SOURCEBOT_TELEMETRY_DISABLED=1
 NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=1

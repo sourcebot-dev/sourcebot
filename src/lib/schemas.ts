@@ -7,7 +7,7 @@ export const searchRequestSchema = z.object({
 });
 
 
-// @see : https://github.com/TaqlaAI/zoekt/blob/main/api.go#L212
+// @see : https://github.com/sourcebot-dev/zoekt/blob/main/api.go#L212
 export const locationSchema = z.object({
     // 0-based byte offset from the beginning of the file
     ByteOffset: z.number(),
@@ -22,7 +22,7 @@ export const rangeSchema = z.object({
     End: locationSchema,
 });
 
-// @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L350
+// @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L350
 export const searchResponseStats = {
     ContentBytesLoaded: z.number(),
     IndexBytesLoaded: z.number(),
@@ -46,7 +46,7 @@ export const searchResponseStats = {
     FlushReason: z.number(),
 }
 
-// @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L497
+// @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L497
 export const searchResponseSchema = z.object({
     Result: z.object({
         ...searchResponseStats,
@@ -81,7 +81,7 @@ export const fileSourceResponseSchema = z.object({
 });
 
 
-// @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L728
+// @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L728
 const repoStatsSchema = z.object({
     Repos: z.number(),
     Shards: z.number(),
@@ -93,7 +93,7 @@ const repoStatsSchema = z.object({
     OtherBranchesNewLinesCount: z.number(),
 });
 
-// @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L716
+// @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L716
 const indexMetadataSchema = z.object({
     IndexFormatVersion: z.number(),
     IndexFeatureVersion: z.number(),
@@ -105,7 +105,7 @@ const indexMetadataSchema = z.object({
     ID: z.string(),
 });
 
-// @see : https://github.com/TaqlaAI/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L555
+// @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L555
 export const repositorySchema = z.object({
     Name: z.string(),
     URL: z.string(),

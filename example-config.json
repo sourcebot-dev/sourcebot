@@ -1,5 +1,5 @@
 {
-    "$schema": "https://raw.githubusercontent.com/TaqlaAI/sourcebot/main/schemas/index.json",
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/index.json",
     "Configs": [
         // ~~~~~~~~~~~~ GitHub Examples ~~~~~~~~~~~~
         // Index all repos in organization "my-org".

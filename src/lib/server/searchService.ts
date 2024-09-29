@@ -9,7 +9,7 @@ import { zoektFetch } from "./zoektClient";
 export const search = async ({ query, maxMatchDisplayCount, whole }: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const body = JSON.stringify({
         q: query,
-        // @see: https://github.com/TaqlaAI/zoekt/blob/main/api.go#L892
+        // @see: https://github.com/sourcebot-dev/zoekt/blob/main/api.go#L892
         opts: {
             NumContextLines: 2,
             ChunkMatches: true,

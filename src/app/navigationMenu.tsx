@@ -11,7 +11,7 @@ import logoDark from "../../public/sb_logo_dark_small.png";
 import logoLight from "../../public/sb_logo_light_small.png";
 import { useRouter } from "next/navigation";
 
-const SOURCEBOT_GITHUB_URL = "https://github.com/TaqlaAI/sourcebot";
+const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
 
 export const NavigationMenu = () => {
     const router = useRouter();
