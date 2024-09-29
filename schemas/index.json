@@ -5,12 +5,14 @@
         "RepoNameRegexIncludeFilter": {
             "type": "string",
             "description": "Only clone repos whose name matches the given regexp.",
-            "format": "regexp"
+            "format": "regexp",
+            "default": "^(foo|bar)$"
         },
         "RepoNameRegexExcludeFilter": {
             "type": "string",
             "description": "Don't mirror repos whose names match this regexp.",
-            "format": "regexp"
+            "format": "regexp",
+            "default": "^(fizz|buzz)$"
         },
         "ZoektConfig": {
             "anyOf": [
@@ -110,8 +112,7 @@
                 }
             },
             "required": [
-                "Type",
-                "GitLabURL"
+                "Type"
             ],
             "additionalProperties": false
         }

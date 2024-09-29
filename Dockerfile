@@ -69,7 +69,7 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
-COPY sample-config.json .
+COPY default-config.json .
 
 EXPOSE 3000
 ENV PORT=3000
