@@ -254,7 +254,7 @@ If you'd like to disable all telemetry, you can do so by setting the environment
 docker run -e <b>SOURCEBOT_TELEMETRY_DISABLED=1</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:main
 </pre>
 
-Or if you are [building locally](#build-from-source), add the following to your [.env](./.env) file:
+Or if you are [building locally](#build-from-source), create a `.env.local` file at the repository root with the following contents:
 ```sh
 SOURCEBOT_TELEMETRY_DISABLED=1
 NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=1
