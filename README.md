@@ -25,7 +25,8 @@ Blazingly fast code search 🏎️
 
 Sourcebot is a fast code indexing and search tool for your codebases. It is built ontop of the [zoekt](https://github.com/sourcegraph/zoekt) indexer, originally authored by Han-Wen Nienhuys and now [maintained by Sourcegraph](https://sourcegraph.com/blog/sourcegraph-accepting-zoekt-maintainership).
 
-![Demo video](https://github.com/user-attachments/assets/227176d8-fc61-42a9-8746-3cbc831f09e4)
+https://github.com/user-attachments/assets/98d46192-5469-430f-ad9e-5c042adbb10d
+
 
 ## Features
 - 💻 **One-command deployment**: Get started instantly using Docker on your own machine.
