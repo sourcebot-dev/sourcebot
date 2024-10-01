@@ -126,7 +126,7 @@ Sourcebot supports indexing and searching through public and private repositorie
     </br>
 
 ## Providing an access token
-This will depend code hosting platform you're using:
+This will depend on the code hosting platform you're using:
 
 <div>
 <details>
@@ -181,7 +181,7 @@ docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-to
     brew install universal-ctags
 
     // Linux:
-    apt-get install universal-ctags
+    snap install universal-ctags
     ```
 
 3. Clone the repository with submodules:
@@ -221,7 +221,10 @@ docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-to
     </details>
 
     <details>
-    <summary><img src="https://gitlab.com/favicon.ico" width="16" height="16" /> GitLab</summary>
+    <summary>
+        <img src="https://gitlab.com/favicon.ico" width="16" height="16" /> GitLab
+    </summary>
+    
     First, generate a personal access token (PAT). See [Providing an access token](#providing-an-access-token).
 
     Next, Create a text file named `.gitlab-token` **in your home directory** and paste the token in it. The file should look like:
