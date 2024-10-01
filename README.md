@@ -17,7 +17,7 @@ Blazingly fast code search 🏎️
 </p>
 <p align="center">
 <p align="center">
-    <a href="https://dcbadge.limes.pink/api/server/https://discord.gg/6Fhp27x7Pb"><img src="https://dcbadge.limes.pink/api/server/https://discord.gg/6Fhp27x7Pb"/></a>
+    <a href="https://dcbadge.limes.pink/api/server/https://discord.gg/6Fhp27x7Pb"><img src="https://dcbadge.limes.pink/api/server/https://discord.gg/6Fhp27x7Pb?style=flat"/></a>
 </p>
 </p>
 
