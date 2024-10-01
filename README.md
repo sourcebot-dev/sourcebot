@@ -15,7 +15,11 @@ Blazingly fast code search 🏎️
   <a href="https://github.com/sourcebot-dev/sourcebot/actions/workflows/ghcr-publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/sourcebot-dev/sourcebot/ghcr-publish.yml"/><a>
   <a href="https://github.com/sourcebot-dev/sourcebot/stargazers"><img src="https://img.shields.io/github/stars/sourcebot-dev/sourcebot" /></a>
 </p>
-
+<p align="center">
+<p align="center">
+    <a href="https://dcbadge.limes.pink/api/server/https://discord.gg/6Fhp27x7Pb"><img src="https://dcbadge.limes.pink/api/server/https://discord.gg/6Fhp27x7Pb"/></a>
+</p>
+</p>
 
 # About
 
@@ -102,6 +106,9 @@ Sourcebot supports indexing and searching through public and private repositorie
     <br>
 
     You should see a `.sourcebot` folder in your current directory. This folder stores a cache of the repositories zoekt has indexed. The `HEAD` commit of a repository is re-indexed [every hour](https://github.com/sourcebot-dev/zoekt/blob/11b7713f1fb511073c502c41cea413d616f7761f/cmd/zoekt-indexserver/main.go#L86). Indexing private repos? See [Providing an access token](#providing-an-access-token).
+
+    >[!WARNING]
+    > Depending on the size of your repo(s), SourceBot could take a couple of minutes to finish indexing. SourceBot doesn't currently support displaying indexing progress in real-time, so please be patient while it finishes. You can track the progress manually by investigating the `.sourcebot` cache in your workspace.
 
     <details>
     <summary><img src="https://gitlab.com/favicon.ico" width="16" height="16" /> Using GitLab?</summary>
@@ -224,7 +231,6 @@ docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-to
     <summary>
         <img src="https://gitlab.com/favicon.ico" width="16" height="16" /> GitLab
     </summary>
-    
     First, generate a personal access token (PAT). See [Providing an access token](#providing-an-access-token).
 
     Next, Create a text file named `.gitlab-token` **in your home directory** and paste the token in it. The file should look like:
