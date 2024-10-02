@@ -59,12 +59,17 @@ fi
 if [ -n "$GITLAB_TOKEN" ]; then
     echo "$GITLAB_TOKEN" > "$HOME/.gitlab-token"
     chmod 600 "$HOME/.gitlab-token"
-   
-       # Configure Git with the provided GITLAB_TOKEN
-       echo "machine gitlab.com
-       login oauth
-       password ${GITLAB_TOKEN}" >> "$HOME/.netrc"
-       chmod 600 "$HOME/.netrc"
+
+   # Configure Git with the provided GITLAB_TOKEN
+   # Check for custom Gitlab URL
+   gitlab_fqdn="$(cat "$CONFIG_PATH" | python3 -c 'import sys, json; print(json.load(sys.stdin)["Configs"][0]["GitLabURL"])' | sed -e 's@^https\?://\([^/]*\)/.*@\1@' 2>/dev/null)" || true
+   if [ -z "$gitlab_fqdn" ]; then
+       gitlab_fqdn="gitlab.com"
+   fi
+   echo "machine ${gitlab_fqdn}
+   login oauth
+   password ${GITLAB_TOKEN}" >> "$HOME/.netrc"
+   chmod 600 "$HOME/.netrc"
 else
     echo -e "\e[34m[Info] GitLab repositories will not be indexed since GITLAB_TOKEN was not set.\e[0m"
 fi
