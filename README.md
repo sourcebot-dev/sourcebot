@@ -42,7 +42,7 @@ You can try out our public hosted demo [here](https://demo.sourcebot.dev/)!
 Get started with a single docker command:
 
 ```
-docker run -p 3000:3000 --rm --name sourcebot ghcr.io/sourcebot-dev/sourcebot:main
+docker run -p 3000:3000 --rm --name sourcebot ghcr.io/sourcebot-dev/sourcebot:latest
 ```
 
 Navigate to `localhost:3000` to start searching the Sourcebot repo. Want to search your own repos? Checkout how to [configure Sourcebot](#configuring-sourcebot).
@@ -50,7 +50,7 @@ Navigate to `localhost:3000` to start searching the Sourcebot repo. Want to sear
 <details>
 <summary>What does this command do?</summary>
 
-- Pull and run the Sourcebot docker image from [ghcr.io/sourcebot-dev/sourcebot:main](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot). Make sure you have [docker installed](https://docs.docker.com/get-started/get-docker/).
+- Pull and run the Sourcebot docker image from [ghcr.io/sourcebot-dev/sourcebot:latest](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot). Make sure you have [docker installed](https://docs.docker.com/get-started/get-docker/).
 - Read the repos listed in [default config](./default-config.json) and start indexing them.
 - Map port 3000 between your machine and the docker image.
 - Starts the web server on port 3000.
@@ -91,13 +91,13 @@ Sourcebot supports indexing and searching through public and private repositorie
 3. Run Sourcebot and point it to the new config you created with the `-e CONFIG_PATH` flag:
 
     ```sh
-    docker run -p 3000:3000 --rm --name sourcebot -v $(pwd):/data -e CONFIG_PATH=/data/my_config.json ghcr.io/sourcebot-dev/sourcebot:main
+    docker run -p 3000:3000 --rm --name sourcebot -v $(pwd):/data -e CONFIG_PATH=/data/my_config.json ghcr.io/sourcebot-dev/sourcebot:latest
     ```
 
     <details>
     <summary>What does this command do?</summary>
 
-    - Pull and run the Sourcebot docker image from [ghcr.io/sourcebot-dev/sourcebot:main](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot).
+    - Pull and run the Sourcebot docker image from [ghcr.io/sourcebot-dev/sourcebot:latest](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot).
     - Mount the current directory (`-v $(pwd):/data`) to allow Sourcebot to persist the `.sourcebot` cache.
     - Mirrors (clones) llama.cpp at `HEAD` into `.sourcebot/github/ggerganov/llama.cpp`.
     - Indexes llama.cpp into a .zoekt index file in `.sourcebot/index/`.
@@ -152,7 +152,7 @@ In order to index private repositories, you'll need to generate a GitHub Persona
 You'll need to pass this PAT each time you run Sourcebot by setting the `GITHUB_TOKEN` environment variable:
 
 <pre>
-docker run -p 3000:3000 --rm --name sourcebot -e <b>GITHUB_TOKEN=[your-github-token]</b> -e CONFIG_PATH=/data/my_config.json -v $(pwd):/data ghcr.io/sourcebot-dev/sourcebot:main
+docker run -p 3000:3000 --rm --name sourcebot -e <b>GITHUB_TOKEN=[your-github-token]</b> -e CONFIG_PATH=/data/my_config.json -v $(pwd):/data ghcr.io/sourcebot-dev/sourcebot:latest
 </pre>
 </details>
 
@@ -169,7 +169,7 @@ Generate a GitLab Personal Access Token (PAT) [here](https://gitlab.com/-/user_s
 You'll need to pass this PAT each time you run Sourcebot by setting the `GITLAB_TOKEN` environment variable:
 
 <pre>
-docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-token]</b> -e CONFIG_PATH=/data/my_config.json -v $(pwd):/data ghcr.io/sourcebot-dev/sourcebot:main
+docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-token]</b> -e CONFIG_PATH=/data/my_config.json -v $(pwd):/data ghcr.io/sourcebot-dev/sourcebot:latest
 </pre>
 
 </details>
@@ -258,7 +258,7 @@ By default, Sourcebot collects anonymized usage data through [PostHog](https://p
 If you'd like to disable all telemetry, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `1` in the docker run command:
 
 <pre>
-docker run -e <b>SOURCEBOT_TELEMETRY_DISABLED=1</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:main
+docker run -e <b>SOURCEBOT_TELEMETRY_DISABLED=1</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
 </pre>
 
 Or if you are [building locally](#build-from-source), create a `.env.local` file at the repository root with the following contents:
