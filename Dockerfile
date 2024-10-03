@@ -35,6 +35,9 @@ ENV DATA_DIR=/data
 ENV CONFIG_PATH=$DATA_DIR/config.json
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
 
+ENV GITHUB_HOSTNAME=github.com
+ENV GITLAB_HOSTNAME=gitlab.com
+
 # @note: This is also set in .env
 ENV NEXT_PUBLIC_POSTHOG_KEY=phc_VFn4CkEGHRdlVyOOw8mfkoj1DKVoG6y1007EClvzAnS
 
