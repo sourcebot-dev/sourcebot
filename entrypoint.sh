@@ -47,10 +47,11 @@ if [ -n "$GITHUB_TOKEN" ]; then
     chmod 600 "$HOME/.github-token"
 
     # Configure Git with the provided GITHUB_TOKEN
-    echo "machine github.com
-       login oauth
-       password ${GITHUB_TOKEN}" >> "$HOME/.netrc"
-       chmod 600 "$HOME/.netrc"
+    echo -e "\e[34m[Info] Configuring GitHub credentials with hostname '$GITHUB_HOSTNAME'.\e[0m"
+    echo "machine ${GITHUB_HOSTNAME}
+    login oauth
+    password ${GITHUB_TOKEN}" >> "$HOME/.netrc"
+    chmod 600 "$HOME/.netrc"
 else
     echo -e "\e[34m[Info] Private GitHub repositories will not be indexed since GITHUB_TOKEN was not set.\e[0m"
 fi
@@ -60,11 +61,12 @@ if [ -n "$GITLAB_TOKEN" ]; then
     echo "$GITLAB_TOKEN" > "$HOME/.gitlab-token"
     chmod 600 "$HOME/.gitlab-token"
    
-       # Configure Git with the provided GITLAB_TOKEN
-       echo "machine gitlab.com
-       login oauth
-       password ${GITLAB_TOKEN}" >> "$HOME/.netrc"
-       chmod 600 "$HOME/.netrc"
+    # Configure Git with the provided GITLAB_TOKEN
+    echo -e "\e[34m[Info] Configuring GitLab credentials with hostname '$GITLAB_HOSTNAME'.\e[0m"
+    echo "machine ${GITLAB_HOSTNAME}
+    login oauth
+    password ${GITLAB_TOKEN}" >> "$HOME/.netrc"
+    chmod 600 "$HOME/.netrc"
 else
     echo -e "\e[34m[Info] GitLab repositories will not be indexed since GITLAB_TOKEN was not set.\e[0m"
 fi

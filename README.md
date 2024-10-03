@@ -176,6 +176,65 @@ docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-to
 
 </div>
 
+## Using a self-hosted GitLab / GitHub instance
+
+If you're using a self-hosted GitLab or GitHub instance with a custom domain, there is some additional config required:
+
+<div>
+<details>
+<summary>
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/images/github-favicon-inverted.png">
+    <img src="https://github.com/favicon.ico" width="16" height="16" alt="GitHub icon">
+</picture> GitHub
+</summary>
+
+1. In your config, add the `GitHubURL` field to point to your deployment's URL. For example:
+    ```json
+    {
+        "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/index.json",
+        "Configs": [
+            {
+                "Type": "github",
+                "GitHubUrl": "https://github.example.com"
+            }
+        ]
+    }
+
+2. Set the `GITHUB_HOSTNAME` environment variable to your deployment's hostname. For example:
+    <pre>
+    docker run -e <b>GITHUB_HOSTNAME=github.example.com</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
+    </pre>
+
+
+</details>
+
+<details>
+<summary><img src="https://gitlab.com/favicon.ico" width="16" height="16" /> GitLab</summary>
+
+
+1. In your config, add the `GitLabURL` field to point to your deployment's URL. For example:
+    ```json
+    {
+        "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/index.json",
+        "Configs": [
+            {
+                "Type": "gitlab",
+                "GitLabURL": "https://gitlab.example.com"
+            }
+        ]
+    }
+    ```
+
+2. Set the `GITLAB_HOSTNAME` environment variable to your deployment's hostname. For example:
+
+    <pre>
+    docker run -e <b>GITLAB_HOSTNAME=gitlab.example.com</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
+    </pre>
+
+</details>
+
+</div>
 
 ## Build from source
 >[!NOTE]

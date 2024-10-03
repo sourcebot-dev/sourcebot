@@ -7,6 +7,12 @@
             "Type": "github",
             "GitHubOrg": "my-org"
         },
+        // Index all repos in self-hosted GitHub instance.
+        // @note: the environment variable GITHUB_HOSTNAME must be set. See README.
+        {
+            "Type": "github",
+            "GitHubUrl": "https://github.example.com"
+        },
         // Index all repos in user "my-user".
         {
             "Type":  "github",
@@ -56,10 +62,11 @@
             "Type": "gitlab"
         },
         // Index all repos visible to the GITLAB_TOKEN (custom GitLab URL).
+        // @note: the environment variable GITLAB_HOSTNAME must also be set. See README.
         {
             "Type": "gitlab",
-            "GitLabURL": "https://gitlab.example.com/api/v4/" /* default: https://gitlab.com/api/v4/ */
-        }
+            "GitLabURL": "https://gitlab.example.com"
+        },
         // Index all repos (public only) visible to the GITLAB_TOKEN.
         {
             "Type": "gitlab",
