@@ -89,7 +89,7 @@ if [ -z "$NEXT_PUBLIC_SOURCEBOT_VERSION" ] && [ ! -z "$SOURCEBOT_VERSION" ]; the
     export NEXT_PUBLIC_SOURCEBOT_VERSION="$SOURCEBOT_VERSION"
 fi
 
-find /app/public /app/.next -type f -name "*.js" |
+find /app/packages/web/public /app/packages/web/.next -type f -name "*.js" |
 while read file; do
     sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED|${NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED}|g" "$file"
     sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION|${NEXT_PUBLIC_SOURCEBOT_VERSION}|g" "$file"
