@@ -20,7 +20,7 @@ type OctokitRepository = {
     archived?: boolean,
 }
 
-export const getGitHubReposFromConfig = async (config: GitHubConfig, ctx: AppContext) => {
+export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: AbortSignal, ctx: AppContext) => {
     const octokit = new Octokit({
         auth: config.token,
         ...(config.url ? [{
@@ -31,12 +31,12 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, ctx: AppCon
     let allRepos: OctokitRepository[] = [];
 
     if (config.orgs) {
-        const _repos = await getReposForOrgs(config.orgs, octokit);
+        const _repos = await getReposForOrgs(config.orgs, octokit, signal);
         allRepos = allRepos.concat(_repos);
     }
 
     if (config.repos) {
-        const _repos = await getRepos(config.repos, octokit);
+        const _repos = await getRepos(config.repos, octokit, signal);
         allRepos = allRepos.concat(_repos);
     }
 
@@ -52,7 +52,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, ctx: AppCon
         .map((repo) => {
             const hostname = config.url ? new URL(config.url).hostname : 'github.com';
             const fullName = `${hostname}/${repo.full_name}`;
-            const repoPath = path.join(ctx.reposPath, `${fullName}.git`);
+            const repoPath = path.resolve(path.join(ctx.reposPath, `${fullName}.git`));
 
             const cloneUrl = new URL(repo.clone_url!);
             if (config.token) {
@@ -64,6 +64,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, ctx: AppCon
                 fullName,
                 cloneUrl: cloneUrl.toString(),
                 path: repoPath,
+                stale: false,
                 gitConfigMetadata: {
                     'zoek.web-url-type': 'github',
                     'zoekt.web-url': repo.html_url,
@@ -88,24 +89,27 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, ctx: AppCon
         return item.fullName !== self[index - 1].fullName;
     });
 
-    logger.info(`Found ${uniqueRepos.length} unique repositories.`);
+    logger.debug(`Found ${uniqueRepos.length} unique repositories.`);
     
     return uniqueRepos;
 }
 
-const getReposForOrgs = async (orgs: string[], octokit: Octokit) => {
+const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal) => {
     // @todo : error handling
     const repos = (await Promise.all(orgs.map(async (org) => {
-        logger.info(`Fetching repository info for org ${org}...`);
+        logger.debug(`Fetching repository info for org ${org}...`);
         const start = Date.now();
 
         const result = await octokit.paginate(octokit.repos.listForOrg, {
             org: org,
             per_page: 100,
+            request: {
+                signal
+            }
         });
 
         const duration = Date.now() - start;
-        logger.info(`Found ${result.length} in org ${org} in ${duration}ms.`);
+        logger.debug(`Found ${result.length} in org ${org} in ${duration}ms.`);
 
         return result;
     }))).flat();
@@ -113,20 +117,23 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit) => {
     return repos;
 }
 
-const getRepos = async (repoList: string[], octokit: Octokit) => {
+const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal) => {
     // @todo : error handling
     const repos = await Promise.all(repoList.map(async (repo) => {
-        logger.info(`Fetching repository info for ${repo}...`);
+        logger.debug(`Fetching repository info for ${repo}...`);
         const start = Date.now();
 
         const [owner, repoName] = repo.split('/');
         const result = await octokit.repos.get({
             owner,
-            repo: repoName
+            repo: repoName,
+            request: {
+                signal
+            }
         });
 
         const duration = Date.now() - start;
-        logger.info(`Found info for repository ${repo} in ${duration}ms`);
+        logger.debug(`Found info for repository ${repo} in ${duration}ms`);
 
         return result.data;
     }));

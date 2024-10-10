@@ -21,6 +21,10 @@ export type Repository = {
     path: string;
 
     gitConfigMetadata?: Record<string, string>;
+
+    lastIndexedDate?: string;
+
+    stale: boolean;
 }
 
 export type AppContext = {
@@ -33,4 +37,6 @@ export type AppContext = {
      * Path to the index cache directory;
      */
     indexPath: string;
+
+    cachePath: string;
 }

@@ -19,6 +19,7 @@
     "dependencies": {
         "@octokit/rest": "^21.0.2",
         "argparse": "^2.0.1",
+        "lowdb": "^7.0.1",
         "simple-git": "^3.27.0",
         "winston": "^3.15.0"
     }
