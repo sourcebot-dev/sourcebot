@@ -40,6 +40,12 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
         allRepos = allRepos.concat(_repos);
     }
 
+    if (config.users) {
+        const isAuthenticated = config.token !== undefined;
+        const _repos = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
+        allRepos = allRepos.concat(_repos);
+    }
+
     // Marshall results to our type
     const repos: Repository[] = allRepos
         .filter((repo) => {
@@ -92,6 +98,43 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
     logger.debug(`Found ${uniqueRepos.length} unique repositories.`);
     
     return uniqueRepos;
+}
+
+const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, octokit: Octokit, signal: AbortSignal) => {
+    // @todo : error handling
+    const repos = (await Promise.all(users.map(async (user) => {
+        logger.debug(`Fetching repository info for user ${user}...`);
+        const start = Date.now();
+
+        const result = await (() => {
+            if (isAuthenticated) {
+                return octokit.paginate(octokit.repos.listForAuthenticatedUser, {
+                    username: user,
+                    visibility: 'all',
+                    affiliation: 'owner',
+                    per_page: 100,
+                    request: {
+                        signal,
+                    },
+                });
+            } else {
+                return octokit.paginate(octokit.repos.listForUser, {
+                    username: user,
+                    per_page: 100,
+                    request: {
+                        signal,
+                    },
+                });
+            }
+        })();
+
+        const duration = Date.now() - start;
+        logger.debug(`Found ${result.length} owned by user ${user} in ${duration}ms.`);
+
+        return result;
+    }))).flat();
+
+    return repos;
 }
 
 const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal) => {

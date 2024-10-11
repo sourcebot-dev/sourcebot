@@ -26,6 +26,10 @@ export interface GitHubConfig {
    */
   url?: string;
   /**
+   * List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property.
+   */
+  users?: string[];
+  /**
    * List of organizations to sync with. All repositories in the organization will be synced, unless explicitly defined in the `exclude` property.
    */
   orgs?: string[];

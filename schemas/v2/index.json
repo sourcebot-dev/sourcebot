@@ -26,6 +26,20 @@
                     ],
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
                 },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[\\w.-]+$"
+                    },
+                    "examples": [
+                        [
+                            "torvalds",
+                            "DHH"
+                        ]
+                    ],
+                    "description": "List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property."
+                },
                 "orgs": {
                     "type": "array",
                     "items": {
