@@ -1,14 +1,14 @@
 
 export type Repository = {
     /**
-     * Name of the repository (e.g., 'zoekt' or 'sourcebot')
+     * Name of the repository (e.g., 'sourcebot-dev/sourcebot')
      */
     name: string;
 
     /**
-     * The fully qualified name (e.g., `github.com/sourcebot-dev/sourcebot`)
+     * The unique identifier for the repository. (e.g., `github.com/sourcebot-dev/sourcebot`)
      */
-    fullName: string;
+    id: string;
     
     /**
      * The .git url for the repository
@@ -24,7 +24,9 @@ export type Repository = {
 
     lastIndexedDate?: string;
 
-    stale: boolean;
+    isStale: boolean;
+    isFork: boolean;
+    isArchived: boolean;
 }
 
 export type AppContext = {

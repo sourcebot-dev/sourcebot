@@ -3,7 +3,8 @@ import winston, { format } from 'winston';
 const { combine, colorize, timestamp, prettyPrint, errors, printf } = format;
 
 const logger = winston.createLogger({
-    level: 'info',
+    // @todo: Make log level configurable
+    level: 'debug',
     format: combine(
         errors({ stack: true }),
         timestamp(),

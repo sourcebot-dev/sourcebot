@@ -37,4 +37,18 @@ export interface GitHubConfig {
    * List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
    */
   repos?: string[];
+  exclude?: {
+    /**
+     * Exlcude forked repositories from syncing.
+     */
+    forks?: boolean;
+    /**
+     * Exlcude archived repositories from syncing.
+     */
+    archived?: boolean;
+    /**
+     * List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
+     */
+    repos?: string[];
+  };
 }

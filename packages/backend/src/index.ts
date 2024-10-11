@@ -61,46 +61,50 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
 
     // De-duplicate on fullName
     configRepos.sort((a, b) => {
-        return a.fullName.localeCompare(b.fullName);
+        return a.id.localeCompare(b.id);
     });
     configRepos = configRepos.filter((item, index, self) => {
         if (index === 0) return true;
-        return item.fullName !== self[index - 1].fullName;
+        if (item.id === self[index - 1].id) {
+            logger.debug(`Duplicate repository ${item.id} found in config file.`);
+            return false;
+        }
+        return true;
     });
 
     logger.info(`Discovered ${configRepos.length} unique repositories from config.`);
 
     // Merge the repositories into the database
     for (const newRepo of configRepos) {
-        if (newRepo.fullName in db.data.repos) {
+        if (newRepo.id in db.data.repos) {
             await db.update(({ repos: existingRepos }) => {
-                const existingRepo = existingRepos[newRepo.fullName];
-                existingRepos[newRepo.fullName] = {
+                const existingRepo = existingRepos[newRepo.id];
+                existingRepos[newRepo.id] = {
                     ...existingRepo,
                     ...newRepo,
                 }
             });
 
         } else {
-            await db.update(({ repos }) => repos[newRepo.fullName] = newRepo);
+            await db.update(({ repos }) => repos[newRepo.id] = newRepo);
         }
     }
 
     // Find repositories that are in the database, but not in the configuration file
     {
-        const a = configRepos.map(repo => repo.fullName);
+        const a = configRepos.map(repo => repo.id);
         const b = Object.keys(db.data.repos);
         const diff = b.filter(x => !a.includes(x));
 
         for (const repoName of diff) {
             await db.update(({ repos }) => {
                 const repo = repos[repoName];
-                if (repo.stale) {
+                if (repo.isStale) {
                     return;
                 }
 
                 logger.warn(`Repository ${repoName} is no longer listed in the configuration file or was not found. Marking as stale.`);
-                repo.stale = true;
+                repo.isStale = true;
             });
         }
     }
@@ -191,13 +195,13 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             const lastIndexed = repo.lastIndexedDate ? new Date(repo.lastIndexedDate) : new Date(0);
 
             if (
-                repo.stale ||
+                repo.isStale ||
                 lastIndexed.getTime() > Date.now() - REINDEX_INTERVAL_MS
             ) {
                 continue;
             }
 
-            logger.info(`Indexing ${repo.fullName}...`);
+            logger.info(`Indexing ${repo.id}...`);
 
             try {
                 if (existsSync(repo.path)) {
@@ -213,8 +217,8 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
                 continue;
             }
             
-            await db.update(({ repos }) => repos[repo.fullName].lastIndexedDate = new Date().toUTCString());
-            logger.info(`Indexed ${repo.fullName}`);
+            await db.update(({ repos }) => repos[repo.id].lastIndexedDate = new Date().toUTCString());
+            logger.info(`Indexed ${repo.id}`);
         }
 
         await new Promise(resolve => setTimeout(resolve, 1000));

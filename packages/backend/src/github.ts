@@ -47,7 +47,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
     }
 
     // Marshall results to our type
-    const repos: Repository[] = allRepos
+    let repos: Repository[] = allRepos
         .filter((repo) => {
             if (!repo.clone_url) {
                 logger.warn(`Repository ${repo.name} missing property 'clone_url'. Excluding.`)
@@ -57,8 +57,8 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
         })
         .map((repo) => {
             const hostname = config.url ? new URL(config.url).hostname : 'github.com';
-            const fullName = `${hostname}/${repo.full_name}`;
-            const repoPath = path.resolve(path.join(ctx.reposPath, `${fullName}.git`));
+            const repoId = `${hostname}/${repo.full_name}`;
+            const repoPath = path.resolve(path.join(ctx.reposPath, `${repoId}.git`));
 
             const cloneUrl = new URL(repo.clone_url!);
             if (config.token) {
@@ -66,15 +66,17 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
             }
             
             return {
-                name: repo.name,
-                fullName,
+                name: repo.full_name,
+                id: repoId,
                 cloneUrl: cloneUrl.toString(),
                 path: repoPath,
-                stale: false,
+                isStale: false,
+                isFork: repo.fork,
+                isArchived: !!repo.archived,
                 gitConfigMetadata: {
                     'zoek.web-url-type': 'github',
                     'zoekt.web-url': repo.html_url,
-                    'zoekt.name': fullName,
+                    'zoekt.name': repoId,
                     'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
                     'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
                     'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
@@ -83,21 +85,47 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
                     'zoekt.fork': repo.fork ? '1' : '0',
                     'zoekt.public': repo.private === false ? '1' : '0'
                 }
-            }
+            } satisfies Repository;
         });
 
-    // De-duplicate on fullname
-    repos.sort((a, b) => {
-        return a.fullName.localeCompare(b.fullName);
-    });
-    const uniqueRepos = repos.filter((item, index, self) => {
-        if (index === 0) return true;
-        return item.fullName !== self[index - 1].fullName;
-    });
+    if (config.exclude) {
+        const excludeForks = !!config.exclude.forks;
+        if (excludeForks) {
+            repos = repos.filter((repo) => {
+                if (repo.isFork) {
+                    logger.debug(`Excluding repo ${repo.id}. Reason: exclude.forks is true`);
+                    return false;
+                }
+                return true;
+            });
+        }
 
-    logger.debug(`Found ${uniqueRepos.length} unique repositories.`);
+        const excludeArchived = !!config.exclude.archived;
+        if (excludeArchived) {
+            repos = repos.filter((repo) => {
+                if (repo.isArchived) {
+                    logger.debug(`Excluding repo ${repo.id}. Reason: exclude.archived is true`);
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        if (config.exclude.repos) {
+            const excludedRepos = new Set(config.exclude.repos);
+            repos = repos.filter((repo) => {
+                if (excludedRepos.has(repo.name)) {
+                    logger.debug(`Excluding repo ${repo.id}. Reason: exclude.repos contains ${repo.name}`);
+                    return false;
+                }
+                return true;
+            });
+        }
+    }
+
+    logger.debug(`Found ${repos.length} total repositories.`);
     
-    return uniqueRepos;
+    return repos;
 }
 
 const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, octokit: Octokit, signal: AbortSignal) => {

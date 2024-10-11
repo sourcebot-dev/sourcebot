@@ -7,7 +7,7 @@ const logger = createLogger('git');
 
 export const cloneRepository = async (repo: Repository) => {
     if (existsSync(repo.path)) {
-        logger.warn(`${repo.fullName} already exists. Skipping clone.`)
+        logger.warn(`${repo.id} already exists. Skipping clone.`)
         return;
     }
 
