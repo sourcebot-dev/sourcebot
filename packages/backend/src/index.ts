@@ -8,7 +8,7 @@ import { getGitHubReposFromConfig } from "./github.js";
 import { AppContext, Repository } from "./types.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
-import { Database, loadDB } from './db.js';
+import { createOperation, createRepository, Database, loadDB, updateOperation, updateRepository } from './db.js';
 import { measure } from "./utils.js";
 import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
 
@@ -196,19 +196,38 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
 
             logger.info(`Indexing ${repo.id}...`);
 
-            try {
-                if (existsSync(repo.path)) {
-                    await fetchRepository(repo);
-                } else {
-                    await cloneRepository(repo);
+            if (existsSync(repo.path)) {
+                await fetchRepository(repo);
+            } else {
+                const operationId = await createOperation({
+                    type: 'clone',
+                    progress: 0,
+                    status: 'running',
+                    repoId: repo.id,
+                    startedAtDate: new Date().toUTCString(),
+                }, db);
+
+                try {
+                    await cloneRepository(repo, (progress) => {
+                        updateOperation(operationId, {
+                            progress: progress,
+                        }, db);
+                    });
+                } catch (err: any) {
+                    console.error(err);
+                    await updateOperation(operationId, {
+                        status: 'failed',
+                        message: err.message,
+                    }, db);
+                    throw err;
                 }
 
-                await indexRepository(repo, context);
-            } catch (err: any) {
-                // @todo : better error handling here..
-                logger.error(err);
-                continue;
+                await updateOperation(operationId, {
+                    status: 'completed',
+                }, db);
             }
+
+            await indexRepository(repo, context);
             
             await db.update(({ repos }) => repos[repo.id].lastIndexedDate = new Date().toUTCString());
             logger.info(`Indexed ${repo.id}`);

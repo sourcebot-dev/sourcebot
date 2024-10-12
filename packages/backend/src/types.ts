@@ -1,4 +1,13 @@
 
+export type Operation = {
+    type: 'clone',
+    status: 'running' | 'completed' | 'failed',
+    progress: number,
+    repoId: string;
+    startedAtDate: string;
+    message?: string;
+}
+
 export type Repository = {
     /**
      * Name of the repository (e.g., 'sourcebot-dev/sourcebot')
