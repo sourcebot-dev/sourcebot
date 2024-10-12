@@ -12,7 +12,6 @@
     "devDependencies": {
         "@types/argparse": "^2.0.16",
         "@types/node": "^22.7.5",
-        "@types/uuid": "^10.0.0",
         "json-schema-to-typescript": "^15.0.2",
         "tsx": "^4.19.1",
         "typescript": "^5.6.2"
@@ -22,7 +21,6 @@
         "argparse": "^2.0.1",
         "lowdb": "^7.0.1",
         "simple-git": "^3.27.0",
-        "uuid": "^10.0.0",
         "winston": "^3.15.0"
     }
 }
