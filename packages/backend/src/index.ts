@@ -59,7 +59,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
         }
     }
 
-    // De-duplicate on fullName
+    // De-duplicate on id
     configRepos.sort((a, b) => {
         return a.id.localeCompare(b.id);
     });
@@ -77,16 +77,9 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     // Merge the repositories into the database
     for (const newRepo of configRepos) {
         if (newRepo.id in db.data.repos) {
-            await db.update(({ repos: existingRepos }) => {
-                const existingRepo = existingRepos[newRepo.id];
-                existingRepos[newRepo.id] = {
-                    ...existingRepo,
-                    ...newRepo,
-                }
-            });
-
+            await updateRepository(newRepo.id, newRepo, db);
         } else {
-            await db.update(({ repos }) => repos[newRepo.id] = newRepo);
+            await createRepository(newRepo, db);
         }
     }
 
@@ -96,14 +89,14 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
         const b = Object.keys(db.data.repos);
         const diff = b.filter(x => !a.includes(x));
 
-        for (const repoName of diff) {
+        for (const id of diff) {
             await db.update(({ repos }) => {
-                const repo = repos[repoName];
+                const repo = repos[id];
                 if (repo.isStale) {
                     return;
                 }
 
-                logger.warn(`Repository ${repoName} is no longer listed in the configuration file or was not found. Marking as stale.`);
+                logger.warn(`Repository ${id} is no longer listed in the configuration file or was not found. Marking as stale.`);
                 repo.isStale = true;
             });
         }

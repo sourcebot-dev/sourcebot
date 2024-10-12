@@ -14,3 +14,15 @@ export const loadDB = async (ctx: AppContext): Promise<Database> => {
     const db = await JSONFilePreset<Schema>(`${ctx.cachePath}/db.json`, { repos: {} });
     return db;
 }
+export const updateRepository = async (repoId: string, data: Partial<Repository>, db: Database) => {
+    db.data.repos[repoId] = {
+        ...db.data.repos[repoId],
+        ...data,
+    }
+    await db.write();
+}
+
+export const createRepository = async (repo: Repository, db: Database) => {
+    db.data.repos[repo.id] = repo;
+    await db.write();
+}
