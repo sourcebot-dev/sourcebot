@@ -8,7 +8,7 @@ import { getGitHubReposFromConfig } from "./github.js";
 import { AppContext, Repository } from "./types.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
-import { Database, loadDB } from './db.js';
+import { createRepository, Database, loadDB, updateRepository } from './db.js';
 import { measure } from "./utils.js";
 import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
 
@@ -194,16 +194,27 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
                 continue;
             }
 
-            logger.info(`Indexing ${repo.id}...`);
-
             try {
                 if (existsSync(repo.path)) {
-                    await fetchRepository(repo);
+                    logger.info(`Fetching ${repo.id}...`);
+                    logger.info('');
+                    const { durationMs } = await measure(() => fetchRepository(repo, ({ method, stage , progress}) => {
+                        logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+                    }));
+                    process.stdout.write('\n');
+                    logger.info(`Fetched ${repo.id} in ${durationMs / 1000}s`);
                 } else {
-                    await cloneRepository(repo);
+                    logger.info(`Cloning ${repo.id}...`);
+                    const { durationMs } = await measure(() => cloneRepository(repo, ({ method, stage, progress }) => {
+                        logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+                    }));
+                    process.stdout.write('\n');
+                    logger.info(`Cloned ${repo.id} in ${durationMs / 1000}s`);
                 }
 
-                await indexRepository(repo, context);
+                logger.info(`Indexing ${repo.id}...`);
+                const { durationMs } = await measure(() => indexRepository(repo, context));
+                logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
             } catch (err: any) {
                 // @todo : better error handling here..
                 logger.error(err);
@@ -211,7 +222,6 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             }
             
             await db.update(({ repos }) => repos[repo.id].lastIndexedDate = new Date().toUTCString());
-            logger.info(`Indexed ${repo.id}`);
         }
 
         await new Promise(resolve => setTimeout(resolve, 1000));

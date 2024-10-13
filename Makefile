@@ -18,6 +18,8 @@ clean:
 		node_modules \
 		packages/web/node_modules \
 		packages/web/.next \
+		packages/backend/dist \
+		packages/backend/node_modules \
 		.sourcebot
 
 .PHONY: bin

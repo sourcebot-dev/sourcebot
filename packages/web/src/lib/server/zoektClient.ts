@@ -14,8 +14,6 @@ export const zoektFetch = async ({
     method,
     cache,
 }: ZoektRequest) => {
-    const start = Date.now();
-
     const response = await fetch(
         new URL(path, ZOEKT_WEBSERVER_URL),
         {
@@ -28,8 +26,6 @@ export const zoektFetch = async ({
         }
     );
 
-    const duration = Date.now() - start;
-    console.log(`[zoektClient] ${method} ${path} ${response.status} ${duration}ms`);
     // @todo : add metrics
 
     return response;
