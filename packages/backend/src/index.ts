@@ -160,7 +160,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
                     // since it implies another sync is in progress.
                 } else {
                     isSyncing = false;
-                    logger.error(err);
+                    logger.error(`Failed to sync configuration file ${args.configPath} with error:\n`, err);
                 }
 
             });
