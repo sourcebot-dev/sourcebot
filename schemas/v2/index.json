@@ -55,7 +55,7 @@
                             "commaai"
                         ]
                     ],
-                    "description": "List of organizations to sync with. All repositories in the organization will be synced, unless explicitly defined in the `exclude` property."
+                    "description": "List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property."
                 },
                 "repos": {
                     "type": "array",
@@ -96,10 +96,99 @@
             ],
             "additionalProperties": false
         },
+        "GitLabConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "gitlab",
+                    "description": "GitLab Configuration"
+                },
+                "token": {
+                    "type": "string",
+                    "description": "An authentication token."
+                },
+                "url": {
+                    "type": "string",
+                    "format": "url",
+                    "default": "https://gitlab.com",
+                    "description": "The URL of the GitLab host. Defaults to https://gitlab.com",
+                    "examples": [
+                        "https://gitlab.com",
+                        "https://example.gitlab.com"
+                    ],
+                    "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of users to sync with. All personal projects that the user owns will be synced, unless explicitly defined in the `exclude` property."
+                },
+                "groups": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "examples": [
+                        ["my-group"],
+                        [
+                            "my-group/sub-group-a",
+                            "my-group/sub-group-b"
+                        ]
+                    ],
+                    "description": "List of groups to sync with. All projects in the group visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`)."
+                },
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of individual projects to sync with. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/"
+                },
+                "exclude": {
+                    "type": "object",
+                    "properties": {
+                        "forks": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Exlcude forked projects from syncing."
+                        },
+                        "archived": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Exlcude archived projects from syncing."
+                        },
+                        "projects": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+                            },
+                            "default": [],
+                            "examples": [
+                                [
+                                    "my-group/my-project"
+                                ]
+                            ],
+                            "description": "List of individual projects to exclude from syncing. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "additionalProperties": false
+        },
         "Repos": {
             "anyOf": [
                 {
                     "$ref": "#/definitions/GitHubConfig"
+                },
+                {
+                    "$ref": "#/definitions/GitLabConfig"
                 }
             ]
         }

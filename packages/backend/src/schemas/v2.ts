@@ -1,6 +1,6 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
-export type Repos = GitHubConfig;
+export type Repos = GitHubConfig | GitLabConfig;
 
 /**
  * A Sourcebot configuration file outlines which repositories Sourcebot should sync and index.
@@ -30,7 +30,7 @@ export interface GitHubConfig {
    */
   users?: string[];
   /**
-   * List of organizations to sync with. All repositories in the organization will be synced, unless explicitly defined in the `exclude` property.
+   * List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property.
    */
   orgs?: string[];
   /**
@@ -50,5 +50,45 @@ export interface GitHubConfig {
      * List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
      */
     repos?: string[];
+  };
+}
+export interface GitLabConfig {
+  /**
+   * GitLab Configuration
+   */
+  type: "gitlab";
+  /**
+   * An authentication token.
+   */
+  token?: string;
+  /**
+   * The URL of the GitLab host. Defaults to https://gitlab.com
+   */
+  url?: string;
+  /**
+   * List of users to sync with. All personal projects that the user owns will be synced, unless explicitly defined in the `exclude` property.
+   */
+  users?: string[];
+  /**
+   * List of groups to sync with. All projects in the group visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`).
+   */
+  groups?: string[];
+  /**
+   * List of individual projects to sync with. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/
+   */
+  projects?: string[];
+  exclude?: {
+    /**
+     * Exlcude forked projects from syncing.
+     */
+    forks?: boolean;
+    /**
+     * Exlcude archived projects from syncing.
+     */
+    archived?: boolean;
+    /**
+     * List of individual projects to exclude from syncing. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/
+     */
+    projects?: string[];
   };
 }

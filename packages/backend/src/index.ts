@@ -5,6 +5,7 @@ import { exec } from "child_process";
 import path from 'path';
 import { SourcebotConfigurationSchema } from "./schemas/v2.js";
 import { getGitHubReposFromConfig } from "./github.js";
+import { getGitLabReposFromConfig } from "./gitlab.js";
 import { AppContext, Repository } from "./types.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
@@ -54,6 +55,11 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             case 'github': {
                 const gitHubRepos = await getGitHubReposFromConfig(repoConfig, signal, ctx);
                 configRepos.push(...gitHubRepos);
+                break;
+            }
+            case 'gitlab': {
+                const gitLabRepos = await getGitLabReposFromConfig(repoConfig, ctx);
+                configRepos.push(...gitLabRepos);
                 break;
             }
         }
@@ -197,7 +203,6 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             try {
                 if (existsSync(repo.path)) {
                     logger.info(`Fetching ${repo.id}...`);
-                    logger.info('');
                     const { durationMs } = await measure(() => fetchRepository(repo, ({ method, stage , progress}) => {
                         logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
                     }));

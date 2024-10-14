@@ -3,6 +3,7 @@ import { GitHubConfig } from "./schemas/v2.js";
 import { createLogger } from "./logger.js";
 import { AppContext, Repository } from "./types.js";
 import path from 'path';
+import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, marshalBool } from "./utils.js";
 
 const logger = createLogger("GitHub");
 
@@ -23,9 +24,9 @@ type OctokitRepository = {
 export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: AbortSignal, ctx: AppContext) => {
     const octokit = new Octokit({
         auth: config.token,
-        ...(config.url ? [{
+        ...(config.url ? {
             baseUrl: `${config.url}/api/v3`
-        }] : []),
+        } : {}),
     });
 
     let allRepos: OctokitRepository[] = [];
@@ -74,52 +75,31 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
                 isFork: repo.fork,
                 isArchived: !!repo.archived,
                 gitConfigMetadata: {
-                    'zoek.web-url-type': 'github',
+                    'zoekt.web-url-type': 'github',
                     'zoekt.web-url': repo.html_url,
                     'zoekt.name': repoId,
                     'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
                     'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
                     'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
                     'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
-                    'zoekt.archived': (repo.archived ?? false) ? '1' : '0',
-                    'zoekt.fork': repo.fork ? '1' : '0',
-                    'zoekt.public': repo.private === false ? '1' : '0'
+                    'zoekt.archived': marshalBool(repo.archived),
+                    'zoekt.fork': marshalBool(repo.fork),
+                    'zoekt.public': marshalBool(repo.private === false)
                 }
             } satisfies Repository;
         });
 
     if (config.exclude) {
-        const excludeForks = !!config.exclude.forks;
-        if (excludeForks) {
-            repos = repos.filter((repo) => {
-                if (repo.isFork) {
-                    logger.debug(`Excluding repo ${repo.id}. Reason: exclude.forks is true`);
-                    return false;
-                }
-                return true;
-            });
+        if (!!config.exclude.forks) {
+            repos = excludeForkedRepos(repos, logger);
         }
 
-        const excludeArchived = !!config.exclude.archived;
-        if (excludeArchived) {
-            repos = repos.filter((repo) => {
-                if (repo.isArchived) {
-                    logger.debug(`Excluding repo ${repo.id}. Reason: exclude.archived is true`);
-                    return false;
-                }
-                return true;
-            });
+        if (!!config.exclude.archived) {
+            repos = excludeArchivedRepos(repos, logger);
         }
 
         if (config.exclude.repos) {
-            const excludedRepos = new Set(config.exclude.repos);
-            repos = repos.filter((repo) => {
-                if (excludedRepos.has(repo.name)) {
-                    logger.debug(`Excluding repo ${repo.id}. Reason: exclude.repos contains ${repo.name}`);
-                    return false;
-                }
-                return true;
-            });
+            repos = excludeReposByName(repos, config.exclude.repos, logger);
         }
     }
 
