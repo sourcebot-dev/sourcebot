@@ -1,5 +1,5 @@
 import { Logger } from "winston";
-import { Repository } from "./types.js";
+import { AppContext, Repository } from "./types.js";
 
 export const measure = async <T>(cb : () => Promise<T>) => {
     const start = Date.now();
@@ -44,4 +44,15 @@ export const excludeReposByName = (repos: Repository[], excludedRepoNames: strin
         }
         return true;
     });
+}
+
+export const getTokenFromConfig = (token: string | { env: string }, ctx: AppContext) => {
+    if (typeof token === 'string') {
+        return token;
+    }
+    const tokenValue = process.env[token.env];
+    if (!tokenValue) {
+        throw new Error(`The environment variable '${token.env}' was referenced in ${ctx.configPath}, but was not set.`);
+    }
+    return tokenValue;
 }

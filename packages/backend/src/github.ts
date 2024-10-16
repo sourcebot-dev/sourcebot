@@ -3,7 +3,7 @@ import { GitHubConfig } from "./schemas/v2.js";
 import { createLogger } from "./logger.js";
 import { AppContext, Repository } from "./types.js";
 import path from 'path';
-import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, marshalBool } from "./utils.js";
+import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool } from "./utils.js";
 
 const logger = createLogger("GitHub");
 
@@ -22,8 +22,10 @@ type OctokitRepository = {
 }
 
 export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: AbortSignal, ctx: AppContext) => {
+    const token = config.token ? getTokenFromConfig(config.token, ctx) : undefined;
+
     const octokit = new Octokit({
-        auth: config.token,
+        auth: token,
         ...(config.url ? {
             baseUrl: `${config.url}/api/v3`
         } : {}),
@@ -62,8 +64,8 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
             const repoPath = path.resolve(path.join(ctx.reposPath, `${repoId}.git`));
 
             const cloneUrl = new URL(repo.clone_url!);
-            if (config.token) {
-                cloneUrl.username = config.token;
+            if (token) {
+                cloneUrl.password = token;
             }
             
             return {

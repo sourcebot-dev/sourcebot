@@ -20,7 +20,14 @@ export interface GitHubConfig {
   /**
    * A Personal Access Token (PAT).
    */
-  token?: string;
+  token?:
+    | string
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      };
   /**
    * The URL of the GitHub host. Defaults to https://github.com
    */
@@ -60,7 +67,14 @@ export interface GitLabConfig {
   /**
    * An authentication token.
    */
-  token?: string;
+  token?:
+    | string
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      };
   /**
    * The URL of the GitLab host. Defaults to https://gitlab.com
    */

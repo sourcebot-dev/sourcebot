@@ -141,6 +141,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
         indexPath,
         reposPath,
         cachePath: cacheDir,
+        configPath: args.configPath,
     }
 
     const db = await loadDB(context);
@@ -153,7 +154,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             abortController = new AbortController();
         }
 
-        logger.info(`Syncing configuration file ${args.configPath}`);
+        logger.info(`Syncing configuration file ${args.configPath} ...`);
         isSyncing = true;
         measure(() => syncConfig(args.configPath, db, abortController.signal, context))
             .then(({ durationMs }) => {
@@ -168,7 +169,6 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
                     isSyncing = false;
                     logger.error(`Failed to sync configuration file ${args.configPath} with error:\n`, err);
                 }
-
             });
     }
 

@@ -4,6 +4,26 @@
     "title": "Sourcebot configuration schema",
     "description": "A Sourcebot configuration file outlines which repositories Sourcebot should sync and index.",
     "definitions": {
+        "Token": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "env": {
+                            "type": "string",
+                            "description": "The name of the environment variable that contains the token."
+                        }
+                    },
+                    "required": [
+                        "env"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        },
         "GitHubConfig": {
             "type": "object",
             "properties": {
@@ -12,8 +32,12 @@
                     "description": "GitHub Configuration"
                 },
                 "token": {
-                    "type": "string",
-                    "description": "A Personal Access Token (PAT)."
+                    "$ref": "#/definitions/Token",
+                    "description": "A Personal Access Token (PAT).",
+                    "examples": [
+                        "secret-token",
+                        { "env": "ENV_VAR_CONTAINING_TOKEN" }
+                    ]
                 },
                 "url": {
                     "type": "string",
@@ -104,8 +128,12 @@
                     "description": "GitLab Configuration"
                 },
                 "token": {
-                    "type": "string",
-                    "description": "An authentication token."
+                    "$ref": "#/definitions/Token",
+                    "description": "An authentication token.",
+                    "examples": [
+                        "secret-token",
+                        { "env": "ENV_VAR_CONTAINING_TOKEN" }
+                    ]
                 },
                 "url": {
                     "type": "string",

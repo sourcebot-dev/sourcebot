@@ -41,4 +41,6 @@ export type AppContext = {
     indexPath: string;
 
     cachePath: string;
+
+    configPath: string;
 }

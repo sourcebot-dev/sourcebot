@@ -1,6 +1,6 @@
 import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
 import { GitLabConfig } from "./schemas/v2.js";
-import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, marshalBool, measure } from "./utils.js";
+import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool, measure } from "./utils.js";
 import { createLogger } from "./logger.js";
 import { AppContext, Repository } from "./types.js";
 import path from 'path';
@@ -8,9 +8,10 @@ import path from 'path';
 const logger = createLogger("GitLab");
 
 export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppContext) => {
+    const token = config.token ? getTokenFromConfig(config.token, ctx) : undefined;
     const api = new Gitlab({
         ...(config.token ? {
-            token: config.token,
+            token,
         } : {}),
         ...(config.url ? {
             host: config.url,
@@ -67,9 +68,9 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
             const isFork = project.forked_from_project !== undefined;
 
             const cloneUrl = new URL(project.http_url_to_repo);
-            if (config.token) {
+            if (token) {
                 cloneUrl.username = 'oauth2';
-                cloneUrl.password = config.token;
+                cloneUrl.password = token;
             }
 
             return {
