@@ -65,7 +65,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
 
             const cloneUrl = new URL(repo.clone_url!);
             if (token) {
-                cloneUrl.password = token;
+                cloneUrl.username = token;
             }
             
             return {

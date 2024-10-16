@@ -54,9 +54,6 @@ RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
 # Valid values are: debug, info, warn, error
 ENV SOURCEBOT_LOG_LEVEL=info
 
-ENV GITHUB_HOSTNAME=github.com
-ENV GITLAB_HOSTNAME=gitlab.com
-
 # @note: This is also set in .env
 ENV NEXT_PUBLIC_POSTHOG_KEY=phc_VFn4CkEGHRdlVyOOw8mfkoj1DKVoG6y1007EClvzAnS
 
@@ -64,7 +61,7 @@ ENV NEXT_PUBLIC_POSTHOG_KEY=phc_VFn4CkEGHRdlVyOOw8mfkoj1DKVoG6y1007EClvzAnS
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl
 
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
@@ -91,6 +88,8 @@ COPY --from=backend-builder /app/node_modules ./node_modules
 COPY --from=backend-builder /app/packages/backend ./packages/backend
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY prefix-output.sh ./prefix-output.sh
+RUN chmod +x ./prefix-output.sh
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
