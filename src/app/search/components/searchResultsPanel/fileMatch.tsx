@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { CodePreview } from "./codePreview";
 import { SearchResultFile, SearchResultFileMatch } from "@/lib/types";
+import { base64Decode } from "@/lib/utils";
 
 
 interface FileMatchProps {
@@ -17,7 +18,7 @@ export const FileMatch = ({
     onOpen,
 }: FileMatchProps) => {
     const content = useMemo(() => {
-        return atob(match.Content);
+        return base64Decode(match.Content);
     }, [match.Content]);
 
     // If it's just the title, don't show a code preview

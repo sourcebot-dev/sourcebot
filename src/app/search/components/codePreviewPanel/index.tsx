@@ -1,7 +1,7 @@
 'use client';
 
 import { fetchFileSource } from "@/app/api/(client)/client";
-import { getCodeHostFilePreviewLink } from "@/lib/utils";
+import { getCodeHostFilePreviewLink, base64Decode } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { CodePreview, CodePreviewFile } from "./codePreview";
 import { SearchResultFile } from "@/lib/types";
@@ -32,7 +32,7 @@ export const CodePreviewPanel = ({
                     // @todo : refector this to use the templates provided by zoekt.
                     const link = getCodeHostFilePreviewLink(fileMatch.Repository, fileMatch.FileName)
 
-                    const decodedSource = atob(source);
+                    const decodedSource = base64Decode(source);
 
                     // Filter out filename matches
                     const filteredMatches = fileMatch.ChunkMatches.filter((match) => {
