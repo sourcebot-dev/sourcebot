@@ -51,6 +51,9 @@ ARG SOURCEBOT_VERSION=unknown
 ENV SOURCEBOT_VERSION=$SOURCEBOT_VERSION
 RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
 
+# Valid values are: debug, info, warn, error
+ENV SOURCEBOT_LOG_LEVEL=info
+
 ENV GITHUB_HOSTNAME=github.com
 ENV GITLAB_HOSTNAME=gitlab.com
 

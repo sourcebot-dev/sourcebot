@@ -1,11 +1,12 @@
 import winston, { format } from 'winston';
+import { SOURCEBOT_LOG_LEVEL } from './environment.js';
 
 const { combine, colorize, timestamp, prettyPrint, errors, printf, label: labelFn } = format;
 
 const createLogger = (label: string) => {
     return winston.createLogger({
         // @todo: Make log level configurable
-        level: 'debug',
+        level: SOURCEBOT_LOG_LEVEL,
         format: combine(
             errors({ stack: true }),
             timestamp(),
