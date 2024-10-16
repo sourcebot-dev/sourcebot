@@ -24,6 +24,7 @@
         "argparse": "^2.0.1",
         "lowdb": "^7.0.1",
         "simple-git": "^3.27.0",
+        "strip-json-comments": "^5.0.1",
         "winston": "^3.15.0"
     }
 }

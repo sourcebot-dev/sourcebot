@@ -12,6 +12,7 @@ import { createLogger } from "./logger.js";
 import { createRepository, Database, loadDB, updateRepository } from './db.js';
 import { measure } from "./utils.js";
 import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
+import stripJsonComments from 'strip-json-comments';
 
 const logger = createLogger('main');
 
@@ -46,7 +47,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     });
 
     // @todo: we should validate the configuration file's structure here.
-    const config = JSON.parse(configContent) as SourcebotConfigurationSchema;
+    const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfigurationSchema;
 
     // Fetch all repositories from the config file
     let configRepos: Repository[] = [];

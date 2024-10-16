@@ -1,10 +1,12 @@
 {
-    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/index.json",
-    "Configs": [
+    // @todo : point this to the schema's URL
+    "$schema": "./schemas/v2/index.json",
+    "repos": [
         {
-            "Type": "github",
-            "GitHubOrg": "sourcebot-dev",
-            "Name": "^sourcebot$"
+            "type": "github",
+            "repos": [
+                "sourcebot-dev/sourcebot"
+            ]
         }
     ]
 }
