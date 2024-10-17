@@ -80,7 +80,7 @@ Sourcebot supports indexing and searching through public and private repositorie
             {
                 "Type": "github",
                 "GitHubUser": "ggerganov",
-                "Name": "^llama\\.cpp$"
+                "Name": "^llama\\\\.cpp$"
             }
         ]
     }' > my_config.json
