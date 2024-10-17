@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added support for specifying urls for the `--configPath` option in the backend.
+
 ## [2.0.0] - 2024-10-17
 
 ### Added
