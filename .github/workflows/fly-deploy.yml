@@ -2,9 +2,13 @@
 
 name: Fly Deploy
 on:
-  push:
-    branches:
-      - main
+  # Since the `fly.toml` specifies the `latest` tag, we trigger this
+  # deployment whenever a new version is published to the container registry.
+  # @see: ghcr-publish.yml
+  workflow_run:
+    workflows: ["Publish to ghcr"]
+    types:
+      - completed
 
 jobs:
   deploy:
