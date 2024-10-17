@@ -87,8 +87,8 @@ Sourcebot supports indexing and searching through public and private repositorie
     }' > my_config.json
     ```
 
-    >[!NOTE] 
-    > Sourcebot can also index all repos owned by a organization, user, group, etc., instead of listing them individually. For examples, see the [configs](./configs) directory. For additional usage information, see the [configuration schema](./schemas/v2/index.json).
+>[!NOTE] 
+> Sourcebot can also index all repos owned by a organization, user, group, etc., instead of listing them individually. For examples, see the [configs](./configs) directory. For additional usage information, see the [configuration schema](./schemas/v2/index.json).
 
 3. Run Sourcebot and point it to the new config you created with the `-e CONFIG_PATH` flag:
 

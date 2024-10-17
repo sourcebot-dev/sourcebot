@@ -5,8 +5,8 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
-        "dev:watch": "yarn generate:types && tsc-watch --onSuccess \"yarn dev --configPath ../../config.json --cacheDir ../../.sourcebot\"",
-        "dev": "export PATH=\"$PWD/../../bin:$PATH\" && node ./dist/index.js",
+        "dev:watch": "yarn generate:types && tsc-watch --preserveWatchOutput --onSuccess \"yarn dev --configPath ../../config.json --cacheDir ../../.sourcebot\"",
+        "dev": "export PATH=\"$PWD/../../bin:$PATH\" && export CTAGS_COMMAND=ctags && node ./dist/index.js",
         "build": "yarn generate:types && tsc",
         "generate:types": "tsx tools/generateTypes.ts"
     },
