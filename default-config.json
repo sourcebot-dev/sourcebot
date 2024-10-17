@@ -1,5 +1,4 @@
 {
-    // @todo : point this to the schema's URL
     "$schema": "./schemas/v2/index.json",
     "repos": [
         {

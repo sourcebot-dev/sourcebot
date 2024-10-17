@@ -46,7 +46,7 @@
                     "description": "The URL of the GitHub host. Defaults to https://github.com",
                     "examples": [
                         "https://github.com",
-                        "https://example.github.com"
+                        "https://github.example.com"
                     ],
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
                 },
@@ -142,7 +142,7 @@
                     "description": "The URL of the GitLab host. Defaults to https://gitlab.com",
                     "examples": [
                         "https://gitlab.com",
-                        "https://example.gitlab.com"
+                        "https://gitlab.example.com"
                     ],
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
                 },
@@ -172,6 +172,10 @@
                     "items": {
                         "type": "string"
                     },
+                    "examples": [
+                        ["my-group/my-project"],
+                        ["my-group/my-sub-group/my-project"]
+                    ],
                     "description": "List of individual projects to sync with. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/"
                 },
                 "exclude": {

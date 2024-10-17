@@ -1,0 +1,42 @@
+{
+    "$schema": "../schemas/v2/index.json",
+    // Note: to include private repositories, you must provide an authentication token.
+    // See: configs/auth.json for a example.
+    "repos": [
+        // From GitHub, include:
+        // - all public repos owned by user `torvalds`
+        // - all public repos owned by organization `commai`
+        // - repo `sourcebot-dev/sourcebot`
+        {
+            "type": "github",
+            "token": "my-token",
+            "users": [
+                "torvalds"
+            ],
+            "orgs": [
+                "commaai"
+            ],
+            "repos": [
+                "sourcebot-dev/sourcebot"
+            ]
+        },
+        // From GitLab, include:
+        // - all public projects owned by user `brendan67`
+        // - all public projects in group `my-group` and sub-group `sub-group`
+        // - project `my-group/project1`
+        {
+            "type": "gitlab",
+            "token": "my-token",
+            "users": [
+                "brendan67"
+            ],
+            "groups": [
+                "my-group",
+                "my-other-group/sub-group"
+            ],
+            "projects": [
+                "my-group/project1"
+            ]
+        }
+    ]
+}

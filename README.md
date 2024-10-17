@@ -70,23 +70,25 @@ Sourcebot supports indexing and searching through public and private repositorie
     cd sourcebot_workspace
     ```
 
-2. Create a new config following the [configuration schema](./schemas/index.json) to specify which repositories Sourcebot should index. For example, to index [llama.cpp](https://github.com/ggerganov/llama.cpp):
+2. Create a new config following the [configuration schema](./schemas/v2/index.json) to specify which repositories Sourcebot should index. For example, let's index llama.cpp:
 
     ```sh
     touch my_config.json
     echo '{
-        "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/index.json",
-        "Configs": [
+        "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/refs/tags/latest/schemas/v2/index.json",
+        "repos": [
             {
-                "Type": "github",
-                "GitHubUser": "ggerganov",
-                "Name": "^llama\\\\.cpp$"
+                "type": "github",
+                "repos": [
+                    "ggerganov/llama.cpp"
+                ]
             }
         ]
     }' > my_config.json
     ```
 
-    (For more examples, see [example-config.json](./example-config.json). For additional usage information, see the [configuration schema](./schemas/index.json)).
+    >[!NOTE] 
+    > Sourcebot can also index all repos owned by a organization, user, group, etc., instead of listing them individually. For examples, see the [configs](./configs) directory. For additional usage information, see the [configuration schema](./schemas/v2/index.json).
 
 3. Run Sourcebot and point it to the new config you created with the `-e CONFIG_PATH` flag:
 
@@ -106,31 +108,8 @@ Sourcebot supports indexing and searching through public and private repositorie
     </details>
     <br>
 
-    You should see a `.sourcebot` folder in your current directory. This folder stores a cache of the repositories zoekt has indexed. The `HEAD` commit of a repository is re-indexed [every hour](https://github.com/sourcebot-dev/zoekt/blob/11b7713f1fb511073c502c41cea413d616f7761f/cmd/zoekt-indexserver/main.go#L86). Indexing private repos? See [Providing an access token](#providing-an-access-token).
-
-    >[!WARNING]
-    > Depending on the size of your repo(s), SourceBot could take a couple of minutes to finish indexing. SourceBot doesn't currently support displaying indexing progress in real-time, so please be patient while it finishes. You can track the progress manually by investigating the `.sourcebot` cache in your workspace.
-
-    <details>
-    <summary><img src="https://gitlab.com/favicon.ico" width="16" height="16" /> Using GitLab?</summary>
-
-    _tl;dr: A `GITLAB_TOKEN` is required to index GitLab repositories (both private & public). See [Providing an access token](#providing-an-access-token)._
-
-    Currently, the GitLab indexer is restricted to only indexing repositories that the associated `GITLAB_TOKEN` has access to. For example, if the token has access to `foo`, `bar`, and `baz` repositories, the following config will index all three:
-
-    ```sh
-    {
-        "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/index.json",
-        "Configs": [
-            {
-                "Type": "gitlab"
-            }
-        ]
-    }
-    ```
-
-    See [Providing an access token](#providing-an-access-token).
-    </details>
+    You should see a `.sourcebot` folder in your current directory. This folder stores a cache of the repositories zoekt has indexed. The `HEAD` commit of a repository is re-indexed [every hour](./packages/backend/src/constants.ts). Indexing private repos? See [Providing an access token](#providing-an-access-token).
+    
     </br>
 
 ## Providing an access token
@@ -145,31 +124,92 @@ This will depend on the code hosting platform you're using:
 </picture> GitHub
 </summary>
 
-In order to index private repositories, you'll need to generate a GitHub Personal Access Token (PAT) and pass it to Sourcebot. Create a new PAT [here](https://github.com/settings/tokens/new) and make sure you select the `repo` scope:
+In order to index private repositories, you'll need to generate a GitHub Personal Access Token (PAT). Create a new PAT [here](https://github.com/settings/tokens/new) and make sure you select the `repo` scope:
 
 ![GitHub PAT creation](.github/images/github-pat-creation.png)
 
-You'll need to pass this PAT each time you run Sourcebot by setting the `GITHUB_TOKEN` environment variable:
+Next, update your configuration with the `token` field:
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/refs/tags/latest/schemas/v2/index.json",
+    "repos": [
+        {
+            "type": "github",
+            "token": "ghp_mytoken",
+            ...
+        }
+    ]
+}
+```
+
+You can also pass tokens as environment variables:
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/refs/tags/latest/schemas/v2/index.json",
+    "repos": [
+        {
+            "type": "github",
+            "token": {
+                // note: this env var can be named anything. It
+                // doesn't need to be `GITHUB_TOKEN`.
+                "env": "GITHUB_TOKEN"
+            },
+            ...
+        }
+    ]
+}
+```
+
+You'll need to pass this environment variable each time you run Sourcebot:
 
 <pre>
-docker run -p 3000:3000 --rm --name sourcebot -e <b>GITHUB_TOKEN=[your-github-token]</b> -e CONFIG_PATH=/data/my_config.json -v $(pwd):/data ghcr.io/sourcebot-dev/sourcebot:latest
+docker run -e <b>GITHUB_TOKEN=ghp_mytoken</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
 </pre>
 </details>
 
 <details>
 <summary><img src="https://gitlab.com/favicon.ico" width="16" height="16" /> GitLab</summary>
 
->[!NOTE]
-> An access token is <b>required</b> to index GitLab repositories (both private & public) since the GitLab indexer needs the token to determine which repositories to index. See [example-config.json](./example-config.json) for example usage.
-
 Generate a GitLab Personal Access Token (PAT) [here](https://gitlab.com/-/user_settings/personal_access_tokens) and make sure you select the `read_api` scope:
 
 ![GitLab PAT creation](.github/images/gitlab-pat-creation.png)
 
-You'll need to pass this PAT each time you run Sourcebot by setting the `GITLAB_TOKEN` environment variable:
+Next, update your configuration with the `token` field:
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/refs/tags/latest/schemas/v2/index.json",
+    "repos": [
+        {
+            "type": "gitlab",
+            "token": "glpat-mytoken",
+            ...
+        }
+    ]
+}
+```
+
+You can also pass tokens as environment variables:
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/refs/tags/latest/schemas/v2/index.json",
+    "repos": [
+        {
+            "type": "gitlab",
+            "token": {
+                // note: this env var can be named anything. It
+                // doesn't need to be `GITLAB_TOKEN`.
+                "env": "GITLAB_TOKEN"
+            },
+            ...
+        }
+    ]
+}
+```
+
+You'll need to pass this environment variable each time you run Sourcebot:
 
 <pre>
-docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-token]</b> -e CONFIG_PATH=/data/my_config.json -v $(pwd):/data ghcr.io/sourcebot-dev/sourcebot:latest
+docker run -e <b>GITLAB_TOKEN=glpat-mytoken</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
 </pre>
 
 </details>
@@ -178,63 +218,7 @@ docker run -p 3000:3000 --rm --name sourcebot -e <b>GITLAB_TOKEN=[your-gitlab-to
 
 ## Using a self-hosted GitLab / GitHub instance
 
-If you're using a self-hosted GitLab or GitHub instance with a custom domain, there is some additional config required:
-
-<div>
-<details>
-<summary>
-<picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/images/github-favicon-inverted.png">
-    <img src="https://github.com/favicon.ico" width="16" height="16" alt="GitHub icon">
-</picture> GitHub
-</summary>
-
-1. In your config, add the `GitHubURL` field to point to your deployment's URL. For example:
-    ```json
-    {
-        "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/index.json",
-        "Configs": [
-            {
-                "Type": "github",
-                "GitHubUrl": "https://github.example.com"
-            }
-        ]
-    }
-
-2. Set the `GITHUB_HOSTNAME` environment variable to your deployment's hostname. For example:
-    <pre>
-    docker run -e <b>GITHUB_HOSTNAME=github.example.com</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
-    </pre>
-
-
-</details>
-
-<details>
-<summary><img src="https://gitlab.com/favicon.ico" width="16" height="16" /> GitLab</summary>
-
-
-1. In your config, add the `GitLabURL` field to point to your deployment's URL. For example:
-    ```json
-    {
-        "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/index.json",
-        "Configs": [
-            {
-                "Type": "gitlab",
-                "GitLabURL": "https://gitlab.example.com"
-            }
-        ]
-    }
-    ```
-
-2. Set the `GITLAB_HOSTNAME` environment variable to your deployment's hostname. For example:
-
-    <pre>
-    docker run -e <b>GITLAB_HOSTNAME=gitlab.example.com</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
-    </pre>
-
-</details>
-
-</div>
+If you're using a self-hosted GitLab or GitHub instance with a custom domain, you can specify the domain in your config file. See [configs/self-hosted.json](configs/self-hosted.json) for examples.
 
 ## Build from source
 >[!NOTE]
@@ -266,49 +250,14 @@ If you're using a self-hosted GitLab or GitHub instance with a custom domain, th
 
 5. Create a `config.json` file at the repository root. See [Configuring Sourcebot](#configuring-sourcebot) for more information.
 
-6. (Optional) Depending on your `config.json`, you may need to pass an access token to Sourcebot:
-
-    <div>
-    <details>
-    <summary>
-    <picture>
-        <source media="(prefers-color-scheme: dark)" srcset=".github/images/github-favicon-inverted.png">
-        <img src="https://github.com/favicon.ico" width="16" height="16" alt="GitHub icon">
-    </picture>
-    GitHub
-    </summary>
-
-    First, generate a personal access token (PAT). See [Providing an access token](#providing-an-access-token).
-
-    Next, Create a text file named `.github-token` **in your home directory** and paste the token in it. The file should look like:
-    ```sh
-    ghp_...
-    ```
-    zoekt will [read this file](https://github.com/sourcebot-dev/zoekt/blob/6a5753692b46e669f851ab23211e756a3677185d/cmd/zoekt-mirror-github/main.go#L60) to authenticate with GitHub.
-    </details>
-
-    <details>
-    <summary>
-        <img src="https://gitlab.com/favicon.ico" width="16" height="16" /> GitLab
-    </summary>
-    First, generate a personal access token (PAT). See [Providing an access token](#providing-an-access-token).
-
-    Next, Create a text file named `.gitlab-token` **in your home directory** and paste the token in it. The file should look like:
-    ```sh
-    glpat-...
-    ```
-    zoekt will [read this file](https://github.com/sourcebot-dev/zoekt/blob/11b7713f1fb511073c502c41cea413d616f7761f/cmd/zoekt-mirror-gitlab/main.go#L43) to authenticate with GitLab.
-    </details>
-    </div>
-
-7. Start Sourcebot with the command:
+6. Start Sourcebot with the command:
     ```sh
     yarn dev
     ```
 
     A `.sourcebot` directory will be created and zoekt will begin to index the repositories found given `config.json`.
 
-8. Start searching at `http://localhost:3000`.
+7. Start searching at `http://localhost:3000`.
 
 ## Telemetry
 
