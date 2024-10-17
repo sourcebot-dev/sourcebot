@@ -75,7 +75,7 @@ Sourcebot supports indexing and searching through public and private repositorie
     ```sh
     touch my_config.json
     echo '{
-        "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/refs/tags/latest/schemas/v2/index.json",
+        "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v2/index.json",
         "repos": [
             {
                 "type": "github",
@@ -131,7 +131,7 @@ In order to index private repositories, you'll need to generate a GitHub Persona
 Next, update your configuration with the `token` field:
 ```json
 {
-    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/refs/tags/latest/schemas/v2/index.json",
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v2/index.json",
     "repos": [
         {
             "type": "github",
@@ -145,7 +145,7 @@ Next, update your configuration with the `token` field:
 You can also pass tokens as environment variables:
 ```json
 {
-    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/refs/tags/latest/schemas/v2/index.json",
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v2/index.json",
     "repos": [
         {
             "type": "github",
@@ -177,7 +177,7 @@ Generate a GitLab Personal Access Token (PAT) [here](https://gitlab.com/-/user_s
 Next, update your configuration with the `token` field:
 ```json
 {
-    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/refs/tags/latest/schemas/v2/index.json",
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v2/index.json",
     "repos": [
         {
             "type": "gitlab",
@@ -191,7 +191,7 @@ Next, update your configuration with the `token` field:
 You can also pass tokens as environment variables:
 ```json
 {
-    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/refs/tags/latest/schemas/v2/index.json",
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v2/index.json",
     "repos": [
         {
             "type": "gitlab",
