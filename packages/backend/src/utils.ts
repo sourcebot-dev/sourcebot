@@ -56,3 +56,7 @@ export const getTokenFromConfig = (token: string | { env: string }, ctx: AppCont
     }
     return tokenValue;
 }
+
+export const isRemotePath = (path: string) => {
+    return path.startsWith('https://') || path.startsWith('http://');
+}

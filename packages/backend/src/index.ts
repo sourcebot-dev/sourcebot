@@ -10,7 +10,7 @@ import { AppContext, Repository } from "./types.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
 import { createRepository, Database, loadDB, updateRepository } from './db.js';
-import { measure } from "./utils.js";
+import { isRemotePath, measure } from "./utils.js";
 import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
 import stripJsonComments from 'strip-json-comments';
 
@@ -41,10 +41,22 @@ const indexRepository = async (repo: Repository, ctx: AppContext) => {
 }
 
 const syncConfig = async (configPath: string, db: Database, signal: AbortSignal, ctx: AppContext) => {
-    const configContent = await readFile(configPath, { 
-        encoding: 'utf-8',
-        signal,
-    });
+    const configContent = await (async () => {
+        if (isRemotePath(configPath)) {
+            const response = await fetch(configPath, {
+                signal,
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to fetch config file ${configPath}: ${response.statusText}`);
+            }
+            return response.text();
+        } else {
+            return readFile(configPath, {
+                encoding: 'utf-8',
+                signal,
+            });
+        }
+    })();
 
     // @todo: we should validate the configuration file's structure here.
     const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfigurationSchema;
@@ -122,7 +134,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     });
     const args = parser.parse_args() as Arguments;
 
-    if (!existsSync(args.configPath)) {
+    if (!isRemotePath(args.configPath) && !existsSync(args.configPath)) {
         console.error(`Config file ${args.configPath} does not exist`);
         process.exit(1);
     }
@@ -173,11 +185,13 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             });
     }
 
-    // Re-sync on file changes
-    watch(args.configPath, () => {
-        logger.info(`Config file ${args.configPath} changed. Re-syncing...`);
-        _syncConfig();
-    });
+    // Re-sync on file changes if the config file is local
+    if (!isRemotePath(args.configPath)) {
+        watch(args.configPath, () => {
+            logger.info(`Config file ${args.configPath} changed. Re-syncing...`);
+            _syncConfig();
+        });
+    }
 
     // Re-sync every 24 hours
     setInterval(() => {
