@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+echo -e "\e[34m[Info] Sourcebot version: $SOURCEBOT_VERSION\e[0m"
+
 # Issue a info message about telemetry
 if [ ! -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
     echo -e "\e[34m[Info] Disabling telemetry since SOURCEBOT_TELEMETRY_DISABLED was set.\e[0m"
@@ -23,7 +25,10 @@ if [ ! -f "$FIRST_RUN_FILE" ]; then
         curl -L -s --header "Content-Type: application/json" -d '{
             "api_key": "'"$NEXT_PUBLIC_POSTHOG_KEY"'",
             "event": "install",
-            "distinct_id": "'"$(uuidgen)"'"
+            "distinct_id": "'"$(uuidgen)"'",
+            "properties": {
+                "sourcebot_version": "'"$SOURCEBOT_VERSION"'"
+            }
         }' https://us.i.posthog.com/capture/ > /dev/null
     fi
 fi
@@ -79,9 +84,15 @@ if [ -z "$NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED" ] && [ ! -z "$SOURCEBOT_TELE
     export NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED="$SOURCEBOT_TELEMETRY_DISABLED"
 fi
 
+# Infer NEXT_PUBLIC_SOURCEBOT_VERSION if it is not set
+if [ -z "$NEXT_PUBLIC_SOURCEBOT_VERSION" ] && [ ! -z "$SOURCEBOT_VERSION" ]; then
+    export NEXT_PUBLIC_SOURCEBOT_VERSION="$SOURCEBOT_VERSION"
+fi
+
 find /app/public /app/.next -type f -name "*.js" |
 while read file; do
     sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED|${NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED}|g" "$file"
+    sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION|${NEXT_PUBLIC_SOURCEBOT_VERSION}|g" "$file"
 done
 
 exec supervisord -c /etc/supervisor/conf.d/supervisord.conf
