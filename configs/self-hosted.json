@@ -1,0 +1,19 @@
+{
+    "$schema": "../schemas/v2/index.json",
+    "repos": [
+        {
+            "type": "github",
+            "url": "https://github.example.com",
+            "orgs": [
+                "my-org-name"
+            ]
+        },
+        {
+            "type": "gitlab",
+            "url": "https://gitlab.example.com",
+            "groups": [
+                "my-group"
+            ]
+        }
+    ]
+}

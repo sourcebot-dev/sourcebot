@@ -14,18 +14,29 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /cmd/ ./cmd/...
 FROM node-alpine AS web-builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
+
 COPY package.json yarn.lock* ./
+COPY ./packages/web ./packages/web
 
 # Fixes arm64 timeouts
 RUN yarn config set registry https://registry.npmjs.org/
 RUN yarn config set network-timeout 1200000
-RUN yarn --frozen-lockfile
-COPY . .
+RUN yarn workspace @sourcebot/web install --frozen-lockfile
 ENV NEXT_TELEMETRY_DISABLED=1
 # @see: https://phase.dev/blog/nextjs-public-runtime-variables/
 ARG NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED
 ARG NEXT_PUBLIC_SOURCEBOT_VERSION=BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION
-RUN yarn run build
+RUN yarn workspace @sourcebot/web build
+
+# ------ Build Backend ------
+FROM node-alpine AS backend-builder
+WORKDIR /app
+
+COPY package.json yarn.lock* ./
+COPY ./schemas ./schemas
+COPY ./packages/backend ./packages/backend
+RUN yarn workspace @sourcebot/backend install --frozen-lockfile
+RUN yarn workspace @sourcebot/backend build
 
 # ------ Runner ------
 FROM node-alpine AS runner
@@ -40,8 +51,8 @@ ARG SOURCEBOT_VERSION=unknown
 ENV SOURCEBOT_VERSION=$SOURCEBOT_VERSION
 RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
 
-ENV GITHUB_HOSTNAME=github.com
-ENV GITLAB_HOSTNAME=gitlab.com
+# Valid values are: debug, info, warn, error
+ENV SOURCEBOT_LOG_LEVEL=info
 
 # @note: This is also set in .env
 ENV NEXT_PUBLIC_POSTHOG_KEY=phc_VFn4CkEGHRdlVyOOw8mfkoj1DKVoG6y1007EClvzAnS
@@ -50,7 +61,7 @@ ENV NEXT_PUBLIC_POSTHOG_KEY=phc_VFn4CkEGHRdlVyOOw8mfkoj1DKVoG6y1007EClvzAnS
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl
 
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
@@ -68,12 +79,17 @@ COPY --from=zoekt-builder \
     /usr/local/bin/
 
 # Configure the webapp
-COPY --from=web-builder /app/public ./public
-RUN mkdir .next
-COPY --from=web-builder /app/.next/standalone ./
-COPY --from=web-builder /app/.next/static ./.next/static
+COPY --from=web-builder /app/packages/web/public ./packages/web/public
+COPY --from=web-builder /app/packages/web/.next/standalone ./
+COPY --from=web-builder /app/packages/web/.next/static ./packages/web/.next/static
+
+# Configure the backend
+COPY --from=backend-builder /app/node_modules ./node_modules
+COPY --from=backend-builder /app/packages/backend ./packages/backend
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY prefix-output.sh ./prefix-output.sh
+RUN chmod +x ./prefix-output.sh
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 

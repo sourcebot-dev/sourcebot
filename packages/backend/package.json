@@ -1,0 +1,30 @@
+{
+    "name": "@sourcebot/backend",
+    "version": "0.1.0",
+    "private": true,
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "dev:watch": "yarn generate:types && tsc-watch --preserveWatchOutput --onSuccess \"yarn dev --configPath ../../config.json --cacheDir ../../.sourcebot\"",
+        "dev": "export PATH=\"$PWD/../../bin:$PATH\" && export CTAGS_COMMAND=ctags && node ./dist/index.js",
+        "build": "yarn generate:types && tsc",
+        "generate:types": "tsx tools/generateTypes.ts"
+    },
+    "devDependencies": {
+        "@types/argparse": "^2.0.16",
+        "@types/node": "^22.7.5",
+        "json-schema-to-typescript": "^15.0.2",
+        "tsc-watch": "^6.2.0",
+        "tsx": "^4.19.1",
+        "typescript": "^5.6.2"
+    },
+    "dependencies": {
+        "@gitbeaker/rest": "^40.5.1",
+        "@octokit/rest": "^21.0.2",
+        "argparse": "^2.0.1",
+        "lowdb": "^7.0.1",
+        "simple-git": "^3.27.0",
+        "strip-json-comments": "^5.0.1",
+        "winston": "^3.15.0"
+    }
+}

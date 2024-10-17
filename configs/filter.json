@@ -1,0 +1,42 @@
+{
+    "$schema": "../schemas/v2/index.json",
+    "repos": [
+        // Include all repos in my-org, except:
+        // - repo1 & repo2
+        // - repos that are archived or forks
+        {
+            "type": "github",
+            "token": "my-token",
+            "orgs": [
+                "my-org"
+            ],
+            "exclude": {
+                "archived": true,
+                "forks": true,
+                "repos": [
+                    "my-org/repo1",
+                    "my-org/repo2"
+                ]
+            }
+        },
+
+        // Include all projects in my-group, except:
+        // - project1 & project2
+        // - projects that are archived or forks
+        {
+            "type": "gitlab",
+            "token": "my-token",
+            "groups": [
+                "my-group"
+            ],
+            "exclude": {
+                "archived": true,
+                "forks": true,
+                "projects": [
+                    "my-group/project1",
+                    "my-group/project2"
+                ]
+            }
+        }
+    ]
+}

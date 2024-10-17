@@ -1,41 +1,18 @@
 {
-    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/index.json",
-    "Configs": [
+    "$schema": "./schemas/v2/index.json",
+    "repos": [
         {
-            "Type": "github",
-            "GitHubUser": "torvalds",
-            "Name": "linux"
-        },
-        {
-            "Type": "github",
-            "GitHubOrg": "pytorch",
-            "Name": "pytorch"
-        },
-        {
-            "Type": "github",
-            "GitHubOrg": "commaai",
-            "Name": "^(openpilot|tinygrad)$",
-            "IncludeForks": true
-        },
-        {
-            "Type": "github",
-            "GitHubUser": "ggerganov",
-            "Name": "^(whisper\\.cpp|llama\\.cpp)$"
-        },
-        {
-            "Type": "github",
-            "GitHubOrg": "codemirror",
-            "Name": "^(dev|lang-.*)$"
-        },
-        {
-            "Type": "github",
-            "GitHubOrg": "tailwindlabs",
-            "Name": "^tailwindcss$"
-        },
-        {
-            "Type": "github",
-            "GitHubOrg": "sourcebot-dev",
-            "Name": "^sourcebot$"
+            "type": "github",
+            "repos": [
+                "torvalds/linux",
+                "pytorch/pytorch",
+                "commaai/openpilot",
+                "ggerganov/whisper.cpp",
+                "ggerganov/llama.cpp",
+                "codemirror/dev",
+                "tailwindlabs/tailwindcss",
+                "sourcebot-dev/sourcebot"
+            ]
         }
     ]
 }

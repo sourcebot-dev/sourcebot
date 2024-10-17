@@ -1,0 +1,241 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "Sourcebot configuration schema",
+    "description": "A Sourcebot configuration file outlines which repositories Sourcebot should sync and index.",
+    "definitions": {
+        "Token": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "env": {
+                            "type": "string",
+                            "description": "The name of the environment variable that contains the token."
+                        }
+                    },
+                    "required": [
+                        "env"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        },
+        "GitHubConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "github",
+                    "description": "GitHub Configuration"
+                },
+                "token": {
+                    "$ref": "#/definitions/Token",
+                    "description": "A Personal Access Token (PAT).",
+                    "examples": [
+                        "secret-token",
+                        { "env": "ENV_VAR_CONTAINING_TOKEN" }
+                    ]
+                },
+                "url": {
+                    "type": "string",
+                    "format": "url",
+                    "default": "https://github.com",
+                    "description": "The URL of the GitHub host. Defaults to https://github.com",
+                    "examples": [
+                        "https://github.com",
+                        "https://github.example.com"
+                    ],
+                    "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[\\w.-]+$"
+                    },
+                    "examples": [
+                        [
+                            "torvalds",
+                            "DHH"
+                        ]
+                    ],
+                    "description": "List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property."
+                },
+                "orgs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[\\w.-]+$"
+                    },
+                    "examples": [
+                        [
+                            "my-org-name"
+                        ],
+                        [
+                            "sourcebot-dev",
+                            "commaai"
+                        ]
+                    ],
+                    "description": "List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property."
+                },
+                "repos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+                    },
+                    "description": "List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
+                },
+                "exclude": {
+                    "type": "object",
+                    "properties": {
+                        "forks": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Exlcude forked repositories from syncing."
+                        },
+                        "archived": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Exlcude archived repositories from syncing."
+                        },
+                        "repos": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+                            },
+                            "default": [],
+                            "description": "List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "additionalProperties": false
+        },
+        "GitLabConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "gitlab",
+                    "description": "GitLab Configuration"
+                },
+                "token": {
+                    "$ref": "#/definitions/Token",
+                    "description": "An authentication token.",
+                    "examples": [
+                        "secret-token",
+                        { "env": "ENV_VAR_CONTAINING_TOKEN" }
+                    ]
+                },
+                "url": {
+                    "type": "string",
+                    "format": "url",
+                    "default": "https://gitlab.com",
+                    "description": "The URL of the GitLab host. Defaults to https://gitlab.com",
+                    "examples": [
+                        "https://gitlab.com",
+                        "https://gitlab.example.com"
+                    ],
+                    "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of users to sync with. All personal projects that the user owns will be synced, unless explicitly defined in the `exclude` property."
+                },
+                "groups": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "examples": [
+                        ["my-group"],
+                        [
+                            "my-group/sub-group-a",
+                            "my-group/sub-group-b"
+                        ]
+                    ],
+                    "description": "List of groups to sync with. All projects in the group visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`)."
+                },
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "examples": [
+                        ["my-group/my-project"],
+                        ["my-group/my-sub-group/my-project"]
+                    ],
+                    "description": "List of individual projects to sync with. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/"
+                },
+                "exclude": {
+                    "type": "object",
+                    "properties": {
+                        "forks": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Exlcude forked projects from syncing."
+                        },
+                        "archived": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Exlcude archived projects from syncing."
+                        },
+                        "projects": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+                            },
+                            "default": [],
+                            "examples": [
+                                [
+                                    "my-group/my-project"
+                                ]
+                            ],
+                            "description": "List of individual projects to exclude from syncing. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "additionalProperties": false
+        },
+        "Repos": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/GitHubConfig"
+                },
+                {
+                    "$ref": "#/definitions/GitLabConfig"
+                }
+            ]
+        }
+    },
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "repos": {
+            "type": "array",
+            "description": "Defines a collection of repositories from varying code hosts that Sourcebot should sync with.",
+            "items": {
+                "$ref": "#/definitions/Repos"
+            }
+        }
+    },
+    "additionalProperties": false
+}
