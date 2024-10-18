@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import { QueryClientProvider } from "./queryClientProvider";
 import { PHProvider } from "./posthogProvider";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,6 +26,7 @@ export default function RootLayout({
             suppressHydrationWarning
         >
             <body className={inter.className}>
+                <Toaster />
                 <PHProvider>
                     <ThemeProvider
                         attribute="class"

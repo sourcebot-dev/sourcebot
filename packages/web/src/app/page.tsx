@@ -9,13 +9,14 @@ import { RepositoryCarousel } from "./repositoryCarousel";
 import { SearchBar } from "./searchBar";
 import { Separator } from "@/components/ui/separator";
 import { SymbolIcon } from "@radix-ui/react-icons";
+import { UpgradeToast } from "./upgradeToast";
 
 
 export default async function Home() {
     return (
         <div className="flex flex-col items-center overflow-hidden">
-            {/* TopBar */}
             <NavigationMenu />
+            <UpgradeToast />
 
             <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 max-w-[90%]">
                 <div className="max-h-44 w-auto">
