@@ -33,6 +33,7 @@
     "@radix-ui/react-scroll-area": "^1.1.0",
     "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-toast": "^1.2.2",
     "@replit/codemirror-lang-csharp": "^6.2.0",
     "@replit/codemirror-vim": "^6.2.1",
     "@tanstack/react-query": "^5.53.3",
