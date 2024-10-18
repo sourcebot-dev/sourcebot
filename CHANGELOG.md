@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added a toast notification when a new Sourcebot version is available.
+
 ## [2.0.1] - 2024-10-17
 
 ### Added
