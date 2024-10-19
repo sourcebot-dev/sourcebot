@@ -1,6 +1,6 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
-export type Repos = GitHubConfig | GitLabConfig;
+export type Repos = GitHubConfig | GitLabConfig | GiteaConfig;
 
 /**
  * A Sourcebot configuration file outlines which repositories Sourcebot should sync and index.
@@ -105,4 +105,29 @@ export interface GitLabConfig {
      */
     projects?: string[];
   };
+}
+export interface GiteaConfig {
+  /**
+   * Gitea Configuration
+   */
+  type: "gitea";
+  /**
+   * An authentication token.
+   */
+  token?:
+    | string
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      };
+  /**
+   * The URL of the Gitea host. Defaults to https://gitea.com
+   */
+  url?: string;
+  /**
+   * List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property.
+   */
+  orgs?: string[];
 }

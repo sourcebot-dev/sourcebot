@@ -214,6 +214,50 @@
             ],
             "additionalProperties": false
         },
+        "GiteaConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "gitea",
+                    "description": "Gitea Configuration"
+                },
+                "token": {
+                    "$ref": "#/definitions/Token",
+                    "description": "An authentication token.",
+                    "examples": [
+                        "secret-token",
+                        { "env": "ENV_VAR_CONTAINING_TOKEN" }
+                    ]
+                },
+                "url": {
+                    "type": "string",
+                    "format": "url",
+                    "default": "https://gitea.com",
+                    "description": "The URL of the Gitea host. Defaults to https://gitea.com",
+                    "examples": [
+                        "https://gitea.com",
+                        "https://gitea.example.com"
+                    ],
+                    "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+                },
+                "orgs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "examples": [
+                        [
+                            "my-org-name"
+                        ]
+                    ],
+                    "description": "List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property."
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "additionalProperties": false
+        },
         "Repos": {
             "anyOf": [
                 {
@@ -221,6 +265,9 @@
                 },
                 {
                     "$ref": "#/definitions/GitLabConfig"
+                },
+                {
+                    "$ref": "#/definitions/GiteaConfig"
                 }
             ]
         }
