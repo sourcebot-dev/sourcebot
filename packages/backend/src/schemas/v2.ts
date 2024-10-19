@@ -130,4 +130,12 @@ export interface GiteaConfig {
    * List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property.
    */
   orgs?: string[];
+  /**
+   * List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
+   */
+  repos?: string[];
+  /**
+   * List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property.
+   */
+  users?: string[];
 }

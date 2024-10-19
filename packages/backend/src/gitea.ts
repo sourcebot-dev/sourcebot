@@ -23,6 +23,16 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
         allRepos = allRepos.concat(_repos);
     }
 
+    if (config.repos) {
+        const _repos = await getRepos(config.repos, api);
+        allRepos = allRepos.concat(_repos);
+    }
+
+    if (config.users) {
+        const _repos = await getReposOwnedByUsers(config.users, api);
+        allRepos = allRepos.concat(_repos);
+    }
+
     let repos: Repository[] = allRepos
         .map((repo) => {
             const hostname = config.url ? new URL(config.url).hostname : 'gitea.com';
@@ -48,7 +58,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
                     'zoekt.name': repoId,
                     'zoekt.archived': marshalBool(repo.archived),
                     'zoekt.fork': marshalBool(repo.fork!),
-                    'zoekt.public': marshalBool(repo.private === false),
+                    'zoekt.public': marshalBool(repo.internal === false && repo.private === false),
                 }
             } satisfies Repository;
         });
@@ -56,8 +66,25 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
     return repos;
 }
 
+const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
+    const repos = (await Promise.all(users.map(async (user) => {
+        logger.debug(`Fetching repos for user ${user}...`);
+
+        const { durationMs, data } = await measure(() =>
+            paginate((page) => api.users.userListRepos(user, {
+                page,
+            }))
+        );
+
+        logger.debug(`Found ${data.length} repos owned by user ${user} in ${durationMs}ms.`);
+        return data;
+    }))).flat();
+
+    return repos;
+}
+
 const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
-    const repos = (await Promise.all(orgs.map(async (org) => {
+    return (await Promise.all(orgs.map(async (org) => {
         logger.debug(`Fetching repos for org ${org}...`);
 
         const { durationMs, data } = await measure(() =>
@@ -70,8 +97,21 @@ const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
         logger.debug(`Found ${data.length} repos for org ${org} in ${durationMs}ms.`);
         return data;
     }))).flat();
+}
 
-    return repos;
+const getRepos = async <T>(repos: string[], api: Api<T>) => {
+    return Promise.all(repos.map(async (repo) => {
+        logger.debug(`Fetching repository info for ${repo}...`);
+
+        const [owner, repoName] = repo.split('/');
+        const { durationMs, data: response } = await measure(() =>
+            api.repos.repoGet(owner, repoName),
+        );
+
+        logger.debug(`Found repo ${repo} in ${durationMs}ms.`);
+
+        return response.data;
+    }));
 }
 
 // @see : https://docs.gitea.com/development/api-usage#pagination
