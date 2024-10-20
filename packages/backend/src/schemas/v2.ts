@@ -138,4 +138,18 @@ export interface GiteaConfig {
    * List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property.
    */
   users?: string[];
+  exclude?: {
+    /**
+     * Exlcude forked repositories from syncing.
+     */
+    forks?: boolean;
+    /**
+     * Exlcude archived repositories from syncing.
+     */
+    archived?: boolean;
+    /**
+     * List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
+     */
+    repos?: string[];
+  };
 }

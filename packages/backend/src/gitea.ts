@@ -1,6 +1,6 @@
 import { Api, giteaApi, HttpResponse, Repository as GiteaRepository } from 'gitea-js';
 import { GiteaConfig } from './schemas/v2.js';
-import { getTokenFromConfig, marshalBool, measure } from './utils.js';
+import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool, measure } from './utils.js';
 import { AppContext, Repository } from './types.js';
 import fetch from 'cross-fetch';
 import { createLogger } from './logger.js';
@@ -45,7 +45,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
             }
 
             return {
-                name: repo.name!,
+                name: repo.full_name!,
                 id: repoId,
                 cloneUrl: cloneUrl.toString(),
                 path: repoPath,
@@ -62,6 +62,20 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
                 }
             } satisfies Repository;
         });
+    
+    if (config.exclude) {
+        if (!!config.exclude.forks) {
+            repos = excludeForkedRepos(repos, logger);
+        }
+
+        if (!!config.exclude.archived) {
+            repos = excludeArchivedRepos(repos, logger);
+        }
+
+        if (config.exclude.repos) {
+            repos = excludeReposByName(repos, config.exclude.repos, logger);
+        }
+    }
     
     return repos;
 }

@@ -272,6 +272,31 @@
                         ]
                     ],
                     "description": "List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property."
+                },
+                "exclude": {
+                    "type": "object",
+                    "properties": {
+                        "forks": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Exlcude forked repositories from syncing."
+                        },
+                        "archived": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Exlcude archived repositories from syncing."
+                        },
+                        "repos": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+                            },
+                            "default": [],
+                            "description": "List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "required": [
