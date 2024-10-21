@@ -112,7 +112,7 @@ export interface GiteaConfig {
    */
   type: "gitea";
   /**
-   * An authentication token.
+   * An access token.
    */
   token?:
     | string
@@ -127,7 +127,7 @@ export interface GiteaConfig {
    */
   url?: string;
   /**
-   * List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property.
+   * List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:organization scope.
    */
   orgs?: string[];
   /**
@@ -135,7 +135,7 @@ export interface GiteaConfig {
    */
   repos?: string[];
   /**
-   * List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property.
+   * List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:user scope.
    */
   users?: string[];
   exclude?: {

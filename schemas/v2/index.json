@@ -223,7 +223,7 @@
                 },
                 "token": {
                     "$ref": "#/definitions/Token",
-                    "description": "An authentication token.",
+                    "description": "An access token.",
                     "examples": [
                         "secret-token",
                         { "env": "ENV_VAR_CONTAINING_TOKEN" }
@@ -250,7 +250,7 @@
                             "my-org-name"
                         ]
                     ],
-                    "description": "List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property."
+                    "description": "List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:organization scope."
                 },
                 "repos": {
                     "type": "array",
@@ -271,7 +271,7 @@
                             "username-2"
                         ]
                     ],
-                    "description": "List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property."
+                    "description": "List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:user scope."
                 },
                 "exclude": {
                     "type": "object",
