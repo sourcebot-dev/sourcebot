@@ -1,6 +1,6 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
-export type Repos = GitHubConfig | GitLabConfig;
+export type Repos = GitHubConfig | GitLabConfig | GiteaConfig;
 
 /**
  * A Sourcebot configuration file outlines which repositories Sourcebot should sync and index.
@@ -104,5 +104,52 @@ export interface GitLabConfig {
      * List of individual projects to exclude from syncing. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/
      */
     projects?: string[];
+  };
+}
+export interface GiteaConfig {
+  /**
+   * Gitea Configuration
+   */
+  type: "gitea";
+  /**
+   * An access token.
+   */
+  token?:
+    | string
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      };
+  /**
+   * The URL of the Gitea host. Defaults to https://gitea.com
+   */
+  url?: string;
+  /**
+   * List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:organization scope.
+   */
+  orgs?: string[];
+  /**
+   * List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
+   */
+  repos?: string[];
+  /**
+   * List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:user scope.
+   */
+  users?: string[];
+  exclude?: {
+    /**
+     * Exlcude forked repositories from syncing.
+     */
+    forks?: boolean;
+    /**
+     * Exlcude archived repositories from syncing.
+     */
+    archived?: boolean;
+    /**
+     * List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
+     */
+    repos?: string[];
   };
 }

@@ -6,6 +6,7 @@ import path from 'path';
 import { SourcebotConfigurationSchema } from "./schemas/v2.js";
 import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
+import { getGiteaReposFromConfig } from "./gitea.js";
 import { AppContext, Repository } from "./types.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
@@ -73,6 +74,11 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             case 'gitlab': {
                 const gitLabRepos = await getGitLabReposFromConfig(repoConfig, ctx);
                 configRepos.push(...gitLabRepos);
+                break;
+            }
+            case 'gitea': {
+                const giteaRepos = await getGiteaReposFromConfig(repoConfig, ctx);
+                configRepos.push(...giteaRepos);
                 break;
             }
         }
@@ -180,7 +186,8 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
                     // since it implies another sync is in progress.
                 } else {
                     isSyncing = false;
-                    logger.error(`Failed to sync configuration file ${args.configPath} with error:\n`, err);
+                    logger.error(`Failed to sync configuration file ${args.configPath} with error:`);
+                    console.log(err);
                 }
             });
     }

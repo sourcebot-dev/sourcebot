@@ -63,7 +63,7 @@ export const FileMatchContainer = ({
                 repoIcon: <Image
                     src={info.icon}
                     alt={info.costHostName}
-                    className="w-4 h-4 dark:invert"
+                    className={`w-4 h-4 ${info.iconClassname}`}
                 />
             }
         }

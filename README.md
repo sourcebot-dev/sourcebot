@@ -30,7 +30,7 @@ https://github.com/user-attachments/assets/98d46192-5469-430f-ad9e-5c042adbb10d
 
 ## Features
 - 💻 **One-command deployment**: Get started instantly using Docker on your own machine.
-- 🔍 **Multi-repo search**: Effortlessly index and search through multiple public and private repositories in GitHub or GitLab.
+- 🔍 **Multi-repo search**: Effortlessly index and search through multiple public and private repositories in GitHub, GitLab, or Gitea.
 - ⚡**Lightning fast performance**: Built on top of the powerful [Zoekt](https://github.com/sourcegraph/zoekt) search engine.
 - 📂 **Full file visualization**: Instantly view the entire file when selecting any search result.
 - 🎨 **Modern web app**: Enjoy a sleek interface with features like syntax highlighting, light/dark mode, and vim-style navigation 
@@ -62,7 +62,7 @@ Sourcebot supports indexing and searching through public and private repositorie
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/images/github-favicon-inverted.png">
     <img src="https://github.com/favicon.ico" width="16" height="16" alt="GitHub icon">
-</picture> GitHub and <img src="https://gitlab.com/favicon.ico" width="16" height="16" /> GitLab. This section will guide you through configuring the repositories that Sourcebot indexes. 
+</picture> GitHub, <img src="https://gitlab.com/favicon.ico" width="16" height="16" /> GitLab and <img src="https://gitea.com/favicon.ico" width="16" height="16"> Gitea. This section will guide you through configuring the repositories that Sourcebot indexes. 
 
 1. Create a new folder on your machine that stores your configs and `.sourcebot` cache, and navigate into it:
     ```sh
@@ -214,6 +214,53 @@ docker run -e <b>GITLAB_TOKEN=glpat-mytoken</b> /* additional args */ ghcr.io/so
 
 </details>
 
+<details>
+<summary><img src="https://gitea.com/favicon.ico" width="16" height="16"> Gitea</summary>
+
+Generate a Gitea access token [here](http://gitea.com/user/settings/applications). At minimum, you'll need to select the `read:repository` scope, but `read:user` and `read:organization` are required for the `user` and `org` fields of your config file:
+
+![Gitea Access token creation](.github/images/gitea-pat-creation.png)
+
+Next, update your configuration with the `token` field:
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v2/index.json",
+    "repos": [
+        {
+            "type": "gitea",
+            "token": "my-secret-token",
+            ...
+        }
+    ]
+}
+```
+
+You can also pass tokens as environment variables:
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v2/index.json",
+    "repos": [
+        {
+            "type": "gitea",
+            "token": {
+                // note: this env var can be named anything. It
+                // doesn't need to be `GITEA_TOKEN`.
+                "env": "GITEA_TOKEN"
+            },
+            ...
+        }
+    ]
+}
+```
+
+You'll need to pass this environment variable each time you run Sourcebot:
+
+<pre>
+docker run -e <b>GITEA_TOKEN=my-secret-token</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
+</pre>
+
+</details>
+
 </div>
 
 ## Using a self-hosted GitLab / GitHub instance
@@ -226,7 +273,7 @@ If you're using a self-hosted GitLab or GitHub instance with a custom domain, yo
 
 1. Install <a href="https://go.dev/doc/install"><img src="https://go.dev/favicon.ico" width="16" height="16"> go</a> and <a href="https://nodejs.org/"><img src="https://nodejs.org/favicon.ico" width="16" height="16"> NodeJS</a>. Note that a NodeJS version of at least `21.1.0` is required.
 
-2. Install [ctags](https://github.com/universal-ctags/ctags) (required by zoekt-indexserver)
+2. Install [ctags](https://github.com/universal-ctags/ctags) (required by zoekt)
     ```sh
     // macOS:
     brew install universal-ctags

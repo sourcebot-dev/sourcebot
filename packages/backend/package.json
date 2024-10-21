@@ -22,6 +22,8 @@
         "@gitbeaker/rest": "^40.5.1",
         "@octokit/rest": "^21.0.2",
         "argparse": "^2.0.1",
+        "cross-fetch": "^4.0.0",
+        "gitea-js": "^1.22.0",
         "lowdb": "^7.0.1",
         "simple-git": "^3.27.0",
         "strip-json-comments": "^5.0.1",
