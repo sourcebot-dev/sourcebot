@@ -95,12 +95,12 @@ export const FileMatchContainer = ({
     return (
         <div>
             <div
-                className="sticky top-0 bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2 py-0.5 flex flex-row items-center justify-between border cursor-pointer z-10"
+                className="sticky top-0 bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2 py-0.5 flex flex-row items-center justify-between cursor-pointer z-10"
                 onClick={() => {
                     onOpenFile();
                 }}
             >
-                <div className="flex flex-row gap-2 items-center">
+                <div className="flex flex-row gap-2 items-center w-full overflow-hidden">
                     {repoIcon}
                     <span
                         className={clsx("font-medium", {
@@ -115,17 +115,21 @@ export const FileMatchContainer = ({
                         {repoName}
                     </span>
                     <span>·</span>
-                    {!fileNameRange ? (
-                        <span>{file.FileName}</span>
-                    ) : (
-                        <span>
-                            {file.FileName.slice(0, fileNameRange.from)}
-                            <span className="bg-yellow-200 dark:bg-blue-700">
-                                {file.FileName.slice(fileNameRange.from, fileNameRange.to)}
-                            </span>
-                            {file.FileName.slice(fileNameRange.to)}
+                    <div className="flex-1 flex items-center overflow-hidden">
+                        <span className="inline-block w-full truncate-start">
+                            {!fileNameRange ?
+                                file.FileName
+                            : (
+                                <>
+                                    {file.FileName.slice(0, fileNameRange.from)}
+                                    <span className="bg-yellow-200 dark:bg-blue-700">
+                                        {file.FileName.slice(fileNameRange.from, fileNameRange.to)}
+                                    </span>
+                                    {file.FileName.slice(fileNameRange.to)}
+                                </>
+                            )}
                         </span>
-                    )}
+                    </div>
                 </div>
             </div>
             {matches.map((match, index) => (
