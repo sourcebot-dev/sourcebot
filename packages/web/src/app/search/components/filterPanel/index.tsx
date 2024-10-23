@@ -1,11 +1,10 @@
 'use client';
 
-import { Input } from "@/components/ui/input";
 import { SearchResultFile } from "@/lib/types";
 import { getRepoCodeHostInfo } from "@/lib/utils";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { compareEntries, Entry } from "./entry";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
+import { Entry } from "./entry";
+import { Filter } from "./filter";
 
 interface FilePanelProps {
     matches: SearchResultFile[];
@@ -17,92 +16,128 @@ export const FilterPanel = ({
     onFilterChanged,
 }: FilePanelProps) => {
     const [repos, setRepos] = useState<Record<string, Entry>>({});
-    const [searchFilter, setSearchFilter] = useState<string>("");
+    const [languages, setLanguages] = useState<Record<string, Entry>>({});
 
     useEffect(() => {
-        const _repos = matches
-            .map((fileMatch) => fileMatch['Repository'])
-            .reduce((repos, key) => {
-                if (!repos[key]) {
-                    const info = getRepoCodeHostInfo(key);
-                    repos[key] = {
-                        displayName: info?.repoName ?? key,
-                        count: 0,
-                        isSelected: false,
-                        icon: info?.icon,
-                        iconAltText: info?.costHostName,
-                        iconClassName: info?.iconClassName,
-                    };
-                }
-                repos[key].count += 1;
-                return repos;
-            }, {} as Record<string, Entry>);
-        
+        const _repos = aggregateMatches(
+            "Repository",
+            matches,
+            (key) => {
+                const info = getRepoCodeHostInfo(key);
+                return {
+                    displayName: info?.repoName ?? key,
+                    count: 0,
+                    isSelected: false,
+                    icon: info?.icon,
+                    iconAltText: info?.costHostName,
+                    iconClassName: info?.iconClassName,
+                };
+            }
+        );
+       
         setRepos(_repos);
     }, [matches, setRepos]);
 
-    const onEntryClicked = useCallback((key: string) => {
-        setRepos((repos) => ({
-            ...repos,
+    useEffect(() => {
+        const _languages = aggregateMatches(
+            "Language",
+            matches,
+            (key) => {
+                // @todo: Get language icons
+                return {
+                    displayName: key,
+                    count: 0,
+                    isSelected: false,
+                }
+            }
+        )
+
+        setLanguages(_languages);
+    }, [matches, setLanguages]);
+
+    const onEntryClicked = useCallback((
+        key: string,
+        setter: (value: SetStateAction<Record<string, Entry>>) => void,
+    ) => {
+        setter((values) => ({
+            ...values,
             [key]: {
-                ...repos[key],
-                isSelected: !repos[key].isSelected,
+                ...values[key],
+                isSelected: !values[key].isSelected,
             },
         }));
     }, []);
 
-    const filteredMatches = useMemo(() => {
+    useEffect(() => {
         const selectedRepos = new Set(
             Object.entries(repos)
                 .filter(([_, { isSelected }]) => isSelected)
-                .map(([name]) => name)
+                .map(([key]) => key)
         );
 
-        if (selectedRepos.size === 0) {
-            return matches;
-        }
+        const selectedLanguages = new Set(
+            Object.entries(languages)
+                .filter(([_, { isSelected }]) => isSelected)
+                .map(([key]) => key)
+        );
 
-        return matches.filter((match) => {
-            return selectedRepos.has(match.Repository);
-        });
-    }, [matches, repos]);
+        const filteredMatches = matches.filter((match) =>
+            (
+                (selectedRepos.size === 0 ? true : selectedRepos.has(match.Repository)) &&
+                (selectedLanguages.size === 0 ? true : selectedLanguages.has(match.Language))
+            )
+        );
 
-    useEffect(() => {
         onFilterChanged(filteredMatches);
-    }, [filteredMatches]);
+    }, [matches, repos, languages]);
 
     return (
         <div className="p-3 flex flex-col gap-3">
             <h1 className="text-lg font-semibold">Filter Results</h1>
 
-            {/* Repos filter */}
-            <div className="flex flex-col gap-2 p-1">
-                <h2 className="text-sm font-semibold">By Repository</h2>
-                <Input
-                    placeholder="Filter repositories"
-                    className="h-8"
-                    onChange={(event) => setSearchFilter(event.target.value)}
-                />
+            <Filter
+                title="By Repository"
+                searchPlaceholder="Filter repositories"
+                entries={repos}
+                onEntryClicked={(key) => onEntryClicked(key, setRepos)}
+            />
 
-                <ScrollArea
-                    className="overflow-hidden"
-                >
-                    <div
-                        className="flex flex-col gap-0.5 text-sm h-full max-h-80 px-0.5"
-                    >
-                        {Object.entries(repos)
-                            .sort(([_, entryA], [__, entryB]) => compareEntries(entryB, entryA))
-                            // @todo: replace with fuzzy find
-                            .filter(([_, { displayName }]) => displayName.startsWith(searchFilter))
-                            .map(([key, entry]) => (
-                                <Entry
-                                    entry={entry}
-                                    onClicked={() => onEntryClicked(key) }
-                                />
-                            ))}
-                    </div>
-                </ScrollArea>
-            </div>
+            <Filter
+                title="By Language"
+                searchPlaceholder="Filter languages"
+                entries={languages}
+                onEntryClicked={(key) => onEntryClicked(key, setLanguages)}
+            />
         </div>
     )
+}
+
+/* Aggregates `matches` by the given `propName`. The result is a record 
+ * of `Entry` objects, where the key is the aggregated `propName` and
+ * the value is the entry created by `createEntry`. Example:
+ * 
+ * "repo1": {
+ *  "count": 22,
+ *  ...
+ * },
+ * "repo2": {
+ *  "count": 9,
+ *  ...
+ * }
+ */
+const aggregateMatches = (
+    propName: 'Repository' | 'Language',
+    matches: SearchResultFile[],
+    createEntry: (key: string) => Entry
+) => {
+    return matches
+        .map((match) => match[propName])
+        .filter((key) => key.length > 0)
+        .reduce((aggregation, key) => {
+            if (!aggregation[key]) {
+                aggregation[key] = createEntry(key);
+            }
+            aggregation[key].count += 1;
+            return aggregation;
+        }, {} as Record<string, Entry>)
 }
