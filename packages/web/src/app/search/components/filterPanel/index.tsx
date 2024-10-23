@@ -2,7 +2,7 @@
 
 import { SearchResultFile } from "@/lib/types";
 import { getRepoCodeHostInfo } from "@/lib/utils";
-import { SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
+import { SetStateAction, useCallback, useEffect, useState } from "react";
 import { Entry } from "./entry";
 import { Filter } from "./filter";
 
