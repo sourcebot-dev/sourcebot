@@ -201,6 +201,7 @@ const PanelGroup = ({
 }: PanelGroupProps) => {
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
     const [selectedFile, setSelectedFile] = useState<SearchResultFile | undefined>(undefined);
+    const [filteredFileMatches, setFilteredFileMatches] = useState<SearchResultFile[]>(fileMatches);
 
     const codePreviewPanelRef = useRef<ImperativePanelHandle>(null);
     useEffect(() => {
@@ -225,7 +226,10 @@ const PanelGroup = ({
                 order={1}
             >
                 <FilterPanel
-                    fileMatches={fileMatches}
+                    matches={fileMatches}
+                    onFilterChanged={(filteredFileMatches) => {
+                        setFilteredFileMatches(filteredFileMatches)
+                    }}
                 />
             </ResizablePanel>
             <ResizableHandle
@@ -238,12 +242,12 @@ const PanelGroup = ({
                 id={'search-results-panel'}
                 order={2}
             >
-                {fileMatches.length > 0 ? (
+                {filteredFileMatches.length > 0 ? (
                     <ScrollArea
                         className="h-full"
                     >
                         <SearchResultsPanel
-                            fileMatches={fileMatches}
+                            fileMatches={filteredFileMatches}
                             onOpenFileMatch={(fileMatch) => {
                                 setSelectedFile(fileMatch);
                             }}
