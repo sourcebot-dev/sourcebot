@@ -2,6 +2,7 @@ import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import githubLogo from "../../public/github.svg";
 import gitlabLogo from "../../public/gitlab.svg";
+import giteaLogo from "../../public/gitea.svg";
 import { ServiceError } from "./serviceError";
 
 export function cn(...inputs: ClassValue[]) {
@@ -29,11 +30,12 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
 }
 
 type CodeHostInfo = {
-    type: "github" | "gitlab";
+    type: "github" | "gitlab" | "gitea";
     repoName: string;
     costHostName: string;
     repoLink: string;
     icon: string;
+    iconClassname?: string;
 }
 
 export const getRepoCodeHostInfo = (repoName: string): CodeHostInfo | undefined => {
@@ -44,6 +46,7 @@ export const getRepoCodeHostInfo = (repoName: string): CodeHostInfo | undefined 
             costHostName: "GitHub",
             repoLink: `https://${repoName}`,
             icon: githubLogo,
+            iconClassname: "dark:invert",
         }
     }
     
@@ -54,6 +57,16 @@ export const getRepoCodeHostInfo = (repoName: string): CodeHostInfo | undefined 
             costHostName: "GitLab",
             repoLink: `https://${repoName}`,
             icon: gitlabLogo,
+        }
+    }
+
+    if (repoName.startsWith("gitea.com")) {
+        return {
+            type: "gitea",
+            repoName: repoName.substring("gitea.com/".length),
+            costHostName: "Gitea",
+            repoLink: `https://${repoName}`,
+            icon: giteaLogo,
         }
     }
 
@@ -69,6 +82,10 @@ export const getCodeHostFilePreviewLink = (repoName: string, filePath: string): 
 
     if (info?.type === "gitlab") {
         return `${info.repoLink}/-/blob/HEAD/${filePath}`;
+    }
+
+    if (info?.type === "gitea") {
+        return `${info.repoLink}/src/branch/HEAD/${filePath}`;
     }
 
     return undefined;
