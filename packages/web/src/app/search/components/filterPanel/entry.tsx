@@ -1,6 +1,6 @@
 'use client';
 
-import { FileIcon } from "@radix-ui/react-icons";
+import { QuestionMarkCircledIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import Image from "next/image";
 
@@ -48,7 +48,7 @@ export const Entry = ({
                         className={`w-4 h-4 flex-shrink-0 ${iconClassName}`}
                     />
                 ) : (
-                    <FileIcon className="w-4 h-4 flex-shrink-0" />
+                    <QuestionMarkCircledIcon className="w-4 h-4 flex-shrink-0" />
                 )}
                 <p className="text-wrap">{displayName}</p>
             </div>
