@@ -35,7 +35,7 @@ type CodeHostInfo = {
     costHostName: string;
     repoLink: string;
     icon: string;
-    iconClassname?: string;
+    iconClassName?: string;
 }
 
 export const getRepoCodeHostInfo = (repoName: string): CodeHostInfo | undefined => {
@@ -46,7 +46,7 @@ export const getRepoCodeHostInfo = (repoName: string): CodeHostInfo | undefined 
             costHostName: "GitHub",
             repoLink: `https://${repoName}`,
             icon: githubLogo,
-            iconClassname: "dark:invert",
+            iconClassName: "dark:invert",
         }
     }
     

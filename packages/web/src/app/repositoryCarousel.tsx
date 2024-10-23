@@ -64,7 +64,7 @@ const RepositoryBadge = ({
                 repoIcon: <Image
                     src={info.icon}
                     alt={info.costHostName}
-                    className={`w-4 h-4 ${info.iconClassname}`}
+                    className={`w-4 h-4 ${info.iconClassName}`}
                 />,
                 repoName: info.repoName,
                 repoLink: info.repoLink,
