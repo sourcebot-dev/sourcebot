@@ -5,6 +5,7 @@ import { SearchResultFile } from "@/lib/types";
 import { getRepoCodeHostInfo } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { compareEntries, Entry } from "./entry";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FilePanelProps {
     matches: SearchResultFile[];
@@ -16,15 +17,16 @@ export const FilterPanel = ({
     onFilterChanged,
 }: FilePanelProps) => {
     const [repos, setRepos] = useState<Record<string, Entry>>({});
+    const [searchFilter, setSearchFilter] = useState<string>("");
 
     useEffect(() => {
         const _repos = matches
-            .map((fileMatch) => fileMatch.Repository)
-            .reduce((repos, repoId) => {
-                if (!repos[repoId]) {
-                    const info = getRepoCodeHostInfo(repoId);
-                    repos[repoId] = {
-                        displayName: info?.repoName ?? repoId,
+            .map((fileMatch) => fileMatch['Repository'])
+            .reduce((repos, key) => {
+                if (!repos[key]) {
+                    const info = getRepoCodeHostInfo(key);
+                    repos[key] = {
+                        displayName: info?.repoName ?? key,
                         count: 0,
                         isSelected: false,
                         icon: info?.icon,
@@ -32,19 +34,19 @@ export const FilterPanel = ({
                         iconClassName: info?.iconClassName,
                     };
                 }
-                repos[repoId].count += 1;
+                repos[key].count += 1;
                 return repos;
             }, {} as Record<string, Entry>);
         
         setRepos(_repos);
     }, [matches, setRepos]);
 
-    const onEntryClicked = useCallback((name: string) => {
+    const onEntryClicked = useCallback((key: string) => {
         setRepos((repos) => ({
             ...repos,
-            [name]: {
-                ...repos[name],
-                isSelected: !repos[name].isSelected,
+            [key]: {
+                ...repos[key],
+                isSelected: !repos[key].isSelected,
             },
         }));
     }, []);
@@ -75,22 +77,31 @@ export const FilterPanel = ({
 
             {/* Repos filter */}
             <div className="flex flex-col gap-2 p-1">
-                <h2 className="text-md">By Repository</h2>
+                <h2 className="text-sm font-semibold">By Repository</h2>
                 <Input
                     placeholder="Filter repositories"
                     className="h-8"
+                    onChange={(event) => setSearchFilter(event.target.value)}
                 />
 
-                <div className="flex flex-col gap-0.5 text-sm">
-                    {Object.entries(repos)
-                        .sort(([_, entryA], [__, entryB]) => compareEntries(entryB, entryA))
-                        .map(([name, entry]) => (
-                            <Entry
-                                entry={entry}
-                                onClicked={() => onEntryClicked(name) }
-                            />
-                        ))}
-                </div>
+                <ScrollArea
+                    className="overflow-hidden"
+                >
+                    <div
+                        className="flex flex-col gap-0.5 text-sm h-full max-h-80 px-0.5"
+                    >
+                        {Object.entries(repos)
+                            .sort(([_, entryA], [__, entryB]) => compareEntries(entryB, entryA))
+                            // @todo: replace with fuzzy find
+                            .filter(([_, { displayName }]) => displayName.startsWith(searchFilter))
+                            .map(([key, entry]) => (
+                                <Entry
+                                    entry={entry}
+                                    onClicked={() => onEntryClicked(key) }
+                                />
+                            ))}
+                    </div>
+                </ScrollArea>
             </div>
         </div>
     )
