@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2024-10-22
+
 ### Added
 
 - Gitea support ([#45](https://github.com/sourcebot-dev/sourcebot/pull/45))
