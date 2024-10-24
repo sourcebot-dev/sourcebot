@@ -26,6 +26,7 @@ export const FilterPanel = ({
             (key) => {
                 const info = getRepoCodeHostInfo(key);
                 return {
+                    key,
                     displayName: info?.repoName ?? key,
                     count: 0,
                     isSelected: false,
@@ -46,6 +47,7 @@ export const FilterPanel = ({
             (key) => {
                 // @todo: Get language icons
                 return {
+                    key,
                     displayName: key,
                     count: 0,
                     isSelected: false,
@@ -100,14 +102,14 @@ export const FilterPanel = ({
             <Filter
                 title="By Repository"
                 searchPlaceholder="Filter repositories"
-                entries={repos}
+                entries={Object.values(repos)}
                 onEntryClicked={(key) => onEntryClicked(key, setRepos)}
             />
 
             <Filter
                 title="By Language"
                 searchPlaceholder="Filter languages"
-                entries={languages}
+                entries={Object.values(languages)}
                 onEntryClicked={(key) => onEntryClicked(key, setLanguages)}
             />
         </div>

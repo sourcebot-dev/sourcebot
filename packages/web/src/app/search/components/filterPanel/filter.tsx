@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { compareEntries, Entry } from "./entry";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import Fuse from "fuse.js";
 
 interface FilterProps {
     title: string,
     searchPlaceholder: string,
-    entries: Record<string, Entry>,
+    entries: Entry[],
     onEntryClicked: (key: string) => void,
 }
 
@@ -19,6 +20,20 @@ export const Filter = ({
     onEntryClicked,
 }: FilterProps) => {
     const [searchFilter, setSearchFilter] = useState<string>("");
+
+    const filteredEntries = useMemo(() => {
+        if (searchFilter === "") {
+            return entries;
+        }
+
+        const fuse = new Fuse(entries, {
+            keys: ["displayName"],
+            threshold: 0.3,
+        });
+
+        const result = fuse.search(searchFilter);
+        return result.map((result) => result.item);
+    }, [entries, searchFilter]);
 
     return (
         <div className="flex flex-col gap-2 p-1">
@@ -35,14 +50,13 @@ export const Filter = ({
                 <div
                     className="flex flex-col gap-0.5 text-sm h-full max-h-80 px-0.5"
                 >
-                    {Object.entries(entries)
-                        .sort(([_, entryA], [__, entryB]) => compareEntries(entryB, entryA))
-                        // @todo: replace with fuzzy find
-                        .filter(([_, { displayName }]) => displayName.startsWith(searchFilter))
-                        .map(([key, entry]) => (
+                    {filteredEntries
+                        .sort((entryA, entryB) => compareEntries(entryB, entryA))
+                        .map((entry) => (
                             <Entry
+                                key={entry.key}
                                 entry={entry}
-                                onClicked={() => onEntryClicked(key)}
+                                onClicked={() => onEntryClicked(entry.key)}
                             />
                         ))}
                 </div>
