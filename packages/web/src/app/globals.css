@@ -86,3 +86,11 @@
 .cm-editor .cm-searchMatch-selected {
   border: solid;
 }
+
+.truncate-start {
+  direction: rtl;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
