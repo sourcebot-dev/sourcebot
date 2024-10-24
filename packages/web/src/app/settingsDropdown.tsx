@@ -107,7 +107,7 @@ export const SettingsDropdown = ({
                     </DropdownMenuSub>
                     <DropdownMenuSeparator />
                     <div className="px-2 py-1 text-sm text-muted-foreground">
-                        {NEXT_PUBLIC_SOURCEBOT_VERSION}
+                        version: {NEXT_PUBLIC_SOURCEBOT_VERSION}
                     </div>
                 </DropdownMenuGroup>
             </DropdownMenuContent>
