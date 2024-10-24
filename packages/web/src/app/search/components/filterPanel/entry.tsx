@@ -5,6 +5,7 @@ import clsx from "clsx";
 import Image from "next/image";
 
 export type Entry = {
+    key: string;
     displayName: string;
     count: number;
     isSelected: boolean;
