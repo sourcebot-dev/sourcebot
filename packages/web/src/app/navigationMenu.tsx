@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { NavigationMenu as NavigationMenuBase, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
 import Link from "next/link";
-import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import { GitHubLogoIcon, DiscordLogoIcon } from "@radix-ui/react-icons";
 import { SettingsDropdown } from "./settingsDropdown";
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
@@ -11,6 +11,7 @@ import logoDark from "../../public/sb_logo_dark_small.png";
 import logoLight from "../../public/sb_logo_light_small.png";
 import { useRouter } from "next/navigation";
 
+const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
 
 export const NavigationMenu = () => {
@@ -61,6 +62,15 @@ export const NavigationMenu = () => {
                     </div>
 
                     <div className="flex flex-row items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                                window.open(SOURCEBOT_DISCORD_URL, "_blank");
+                            }}
+                        >
+                            <DiscordLogoIcon className="w-4 h-4" />
+                        </Button>
                         <Button
                             variant="outline"
                             size="icon"
