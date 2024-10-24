@@ -5,6 +5,7 @@ import { getRepoCodeHostInfo } from "@/lib/utils";
 import { SetStateAction, useCallback, useEffect, useState } from "react";
 import { Entry } from "./entry";
 import { Filter } from "./filter";
+import { getLanguageIcon } from "./languageIcons";
 
 interface FilePanelProps {
     matches: SearchResultFile[];
@@ -48,7 +49,8 @@ export const FilterPanel = ({
                     displayName: key,
                     count: 0,
                     isSelected: false,
-                }
+                    icon: getLanguageIcon(key),
+                } satisfies Entry;
             }
         )
 
