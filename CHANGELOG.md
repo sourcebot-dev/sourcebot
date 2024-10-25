@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2024-10-25
+
 ### Fixed
 
 - Fixed issue with GitLab projects that are not owned but still visible by the provided `token` _not_ being synchronized. ([#51](https://github.com/sourcebot-dev/sourcebot/pull/51))
