@@ -25,7 +25,6 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
             logger.debug(`Fetching project info for group ${group}...`);
             const { durationMs, data } = await measure(() => api.Groups.allProjects(group, {
                 perPage: 100,
-                owned: true,
             }));
             logger.debug(`Found ${data.length} projects in group ${group} in ${durationMs}ms.`);
 
@@ -40,7 +39,6 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
             logger.debug(`Fetching project info for user ${user}...`);
             const { durationMs, data } = await measure(() => api.Users.allProjects(user, {
                 perPage: 100,
-                owned: true,
             }));
             logger.debug(`Found ${data.length} projects owned by user ${user} in ${durationMs}ms.`);
             return data;
