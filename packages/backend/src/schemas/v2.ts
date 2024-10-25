@@ -80,7 +80,7 @@ export interface GitLabConfig {
    */
   url?: string;
   /**
-   * List of users to sync with. All personal projects that the user owns will be synced, unless explicitly defined in the `exclude` property.
+   * List of users to sync with. All projects owned by the user and visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property.
    */
   users?: string[];
   /**
