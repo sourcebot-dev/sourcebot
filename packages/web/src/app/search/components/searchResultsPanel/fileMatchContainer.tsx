@@ -95,7 +95,7 @@ export const FileMatchContainer = ({
     return (
         <div>
             <div
-                className="sticky top-0 bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2 py-0.5 flex flex-row items-center justify-between cursor-pointer z-10"
+                className="top-0 bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2 py-0.5 flex flex-row items-center justify-between cursor-pointer"
                 onClick={() => {
                     onOpenFile();
                 }}

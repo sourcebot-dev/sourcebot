@@ -243,7 +243,7 @@ const PanelGroup = ({
                 order={2}
             >
                 {filteredFileMatches.length > 0 ? (
-                    <ScrollArea
+                    <div
                         className="h-full"
                     >
                         <SearchResultsPanel
@@ -265,8 +265,7 @@ const PanelGroup = ({
                                 </span>
                             </div>
                         )}
-                        <Scrollbar orientation="vertical" />
-                    </ScrollArea>
+                    </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full">
                         <p className="text-sm text-muted-foreground">No results found</p>
