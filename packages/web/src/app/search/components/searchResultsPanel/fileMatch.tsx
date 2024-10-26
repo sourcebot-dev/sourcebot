@@ -29,7 +29,7 @@ export const FileMatch = ({
     return (
         <div
             tabIndex={0}
-            className="cursor-pointer p-1 focus:ring-inset focus:ring-4 bg-white dark:bg-[#282c34]"
+            className="cursor-pointer focus:ring-inset focus:ring-4 bg-white dark:bg-[#282c34]"
             onKeyDown={(e) => {
                 if (e.key !== "Enter") {
                     return;
