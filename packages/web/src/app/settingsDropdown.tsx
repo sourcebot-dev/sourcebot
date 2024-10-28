@@ -25,6 +25,7 @@ import { useMemo } from "react"
 import { KeymapType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useKeymapType } from "@/hooks/useKeymapType"
+import { NEXT_PUBLIC_SOURCEBOT_VERSION } from "@/lib/environment.client";
 
 interface SettingsDropdownProps {
     menuButtonClassName?: string;
@@ -104,6 +105,10 @@ export const SettingsDropdown = ({
                             </DropdownMenuSubContent>
                         </DropdownMenuPortal>
                     </DropdownMenuSub>
+                    <DropdownMenuSeparator />
+                    <div className="px-2 py-1 text-sm text-muted-foreground">
+                        version: {NEXT_PUBLIC_SOURCEBOT_VERSION}
+                    </div>
                 </DropdownMenuGroup>
             </DropdownMenuContent>
         </DropdownMenu>
