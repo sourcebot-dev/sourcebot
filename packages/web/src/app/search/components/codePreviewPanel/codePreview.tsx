@@ -43,8 +43,8 @@ export const CodePreview = ({
 }: CodePreviewProps) => {
     const editorRef = useRef<ReactCodeMirrorRef>(null);
 
-    const [ keymapType ] = useKeymapType();
-    const { theme  } = useThemeNormalized();
+    const [keymapType] = useKeymapType();
+    const { theme } = useThemeNormalized();
     const [gutterWidth, setGutterWidth] = useState(0);
 
     const keymapExtension = useExtensionWithDependency(
@@ -109,7 +109,9 @@ export const CodePreview = ({
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex flex-row bg-cyan-200 dark:bg-cyan-900 items-center justify-between pr-3 py-0.5 border">
+            <div className="flex flex-row bg-cyan-200 dark:bg-cyan-900 items-center justify-between pr-3 py-0.5">
+
+                {/* Gutter icon */}
                 <div className="flex flex-row">
                     <div
                         style={{ width: `${gutterWidth}px` }}
@@ -117,20 +119,27 @@ export const CodePreview = ({
                     >
                         <FileIcon className="h-4 w-4" />
                     </div>
+                </div>
+
+                {/* File path */}
+                <div className="flex-1 overflow-hidden">
                     <span
-                        className={clsx("", {
-                            "cursor-pointer text-blue-500 hover:underline" : file?.link
+                        className={clsx("block truncate-start", {
+                            "cursor-pointer text-blue-500 hover:underline": file?.link
                         })}
                         onClick={() => {
                             if (file?.link) {
                                 window.open(file.link, "_blank");
                             }
                         }}
+                        title={file?.filepath}
                     >
                         {file?.filepath}
                     </span>
                 </div>
-                <div className="flex flex-row gap-1 items-center">
+
+                <div className="flex flex-row gap-1 items-center pl-2">
+                    {/* Match selector */}
                     {file && file.matches.length > 0 && (
                         <>
                             <p className="text-sm">{`${selectedMatchIndex + 1} of ${ranges.length}`}</p>
@@ -154,6 +163,8 @@ export const CodePreview = ({
                             </Button>
                         </>
                     )}
+
+                    {/* Close button */}
                     <Button
                         variant="ghost"
                         size="icon"
