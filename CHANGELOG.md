@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added filtering panel for filtering results by repository and by language. ([#48](https://github.com/sourcebot-dev/sourcebot/pull/48))
 
+### Fixed
+
+- Fixed issue with GitLab sub-projects not being included recursively. ([#54](https://github.com/sourcebot-dev/sourcebot/pull/54))
+
 ## [2.1.1] - 2024-10-25
 
 ### Fixed

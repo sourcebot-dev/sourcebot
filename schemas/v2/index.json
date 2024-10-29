@@ -165,7 +165,7 @@
                             "my-group/sub-group-b"
                         ]
                     ],
-                    "description": "List of groups to sync with. All projects in the group visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`)."
+                    "description": "List of groups to sync with. All projects in the group (and recursive subgroups) visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`)."
                 },
                 "projects": {
                     "type": "array",

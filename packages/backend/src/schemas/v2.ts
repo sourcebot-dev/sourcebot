@@ -84,7 +84,7 @@ export interface GitLabConfig {
    */
   users?: string[];
   /**
-   * List of groups to sync with. All projects in the group visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`).
+   * List of groups to sync with. All projects in the group (and recursive subgroups) visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`).
    */
   groups?: string[];
   /**
