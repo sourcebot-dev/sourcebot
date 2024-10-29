@@ -59,5 +59,4 @@ export const CodePreviewPanel = ({
             onSelectedMatchIndexChange={onSelectedMatchIndexChange}
         />
     )
-
 }

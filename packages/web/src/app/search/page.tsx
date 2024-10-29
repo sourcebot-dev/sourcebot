@@ -5,14 +5,12 @@ import {
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { SearchQueryParams, SearchResultFile } from "@/lib/types";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
-import { Scrollbar } from "@radix-ui/react-scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -212,6 +210,10 @@ const PanelGroup = ({
         }
     }, [selectedFile]);
 
+    const onFilterChanged = useCallback((matches: SearchResultFile[]) => {
+        setFilteredFileMatches(matches);
+    }, []);
+
     return (
         <ResizablePanelGroup
             direction="horizontal"
@@ -227,9 +229,7 @@ const PanelGroup = ({
             >
                 <FilterPanel
                     matches={fileMatches}
-                    onFilterChanged={(filteredFileMatches) => {
-                        setFilteredFileMatches(filteredFileMatches)
-                    }}
+                    onFilterChanged={onFilterChanged}
                 />
             </ResizablePanel>
             <ResizableHandle
