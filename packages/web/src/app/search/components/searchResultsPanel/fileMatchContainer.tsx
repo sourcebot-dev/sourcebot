@@ -1,7 +1,7 @@
 'use client';
 
 import { getRepoCodeHostInfo } from "@/lib/utils";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import Image from "next/image";
 import { DoubleArrowDownIcon, DoubleArrowUpIcon, FileIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
@@ -15,15 +15,18 @@ interface FileMatchContainerProps {
     file: SearchResultFile;
     onOpenFile: () => void;
     onMatchIndexChanged: (matchIndex: number) => void;
+    showAllMatches: boolean;
+    onShowAllMatchesButtonClicked: () => void;
 }
 
 export const FileMatchContainer = ({
     file,
     onOpenFile,
     onMatchIndexChanged,
+    showAllMatches,
+    onShowAllMatchesButtonClicked,
 }: FileMatchContainerProps) => {
 
-    const [showAll, setShowAll] = useState(false);
     const matchCount = useMemo(() => {
         return file.ChunkMatches.length;
     }, [file]);
@@ -33,12 +36,12 @@ export const FileMatchContainer = ({
             return a.ContentStart.LineNumber - b.ContentStart.LineNumber;
         });
 
-        if (!showAll) {
+        if (!showAllMatches) {
             return sortedMatches.slice(0, MAX_MATCHES_TO_PREVIEW);
         }
 
         return sortedMatches;
-    }, [file, showAll]);
+    }, [file, showAllMatches]);
 
     const fileNameRange = useMemo(() => {
         for (const match of matches) {
@@ -78,10 +81,6 @@ export const FileMatchContainer = ({
     const isMoreContentButtonVisible = useMemo(() => {
         return matchCount > MAX_MATCHES_TO_PREVIEW;
     }, [matchCount]);
-
-    const onShowMoreMatches = useCallback(() => {
-        setShowAll(!showAll);
-    }, [showAll]);
 
     const onOpenMatch = useCallback((index: number) => {
         const matchIndex = matches.slice(0, index).reduce((acc, match) => {
@@ -161,15 +160,15 @@ export const FileMatchContainer = ({
                         if (e.key !== "Enter") {
                             return;
                         }
-                        onShowMoreMatches();
+                        onShowAllMatchesButtonClicked();
                     }}
-                    onClick={onShowMoreMatches}
+                    onClick={onShowAllMatchesButtonClicked}
                 >
                     <p
                         className="text-blue-500 cursor-pointer text-sm flex flex-row items-center gap-2"
                     >
-                        {showAll ? <DoubleArrowUpIcon className="w-3 h-3" /> : <DoubleArrowDownIcon className="w-3 h-3" />}
-                        {showAll ? `Show fewer matches` : `Show ${matchCount - MAX_MATCHES_TO_PREVIEW} more matches`}
+                        {showAllMatches ? <DoubleArrowUpIcon className="w-3 h-3" /> : <DoubleArrowDownIcon className="w-3 h-3" />}
+                        {showAllMatches ? `Show fewer matches` : `Show ${matchCount - MAX_MATCHES_TO_PREVIEW} more matches`}
                     </p>
                 </div>
             )}

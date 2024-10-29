@@ -55,13 +55,13 @@ const LightweightCodeMirror = forwardRef<CodeMirrorRef, CodeMirrorProps>(({
         });
         setView(view);
 
-        console.debug(`[CM] Editor created.`);
+        // console.debug(`[CM] Editor created.`);
 
         return () => {
             view.destroy();
             setView(undefined);
             setState(undefined);
-            console.debug(`[CM] Editor destroyed.`);
+            // console.debug(`[CM] Editor destroyed.`);
         }
 
     }, [value]);
@@ -69,7 +69,7 @@ const LightweightCodeMirror = forwardRef<CodeMirrorRef, CodeMirrorProps>(({
     useEffect(() => {
         if (view) {
             view.dispatch({ effects: StateEffect.reconfigure.of(extensions ?? []) });
-            console.debug(`[CM] Editor reconfigured.`);
+            // console.debug(`[CM] Editor reconfigured.`);
         }
     }, [extensions, view]);
 

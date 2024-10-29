@@ -3,7 +3,7 @@
 import { SearchResultFile } from "@/lib/types";
 import { FileMatchContainer, MAX_MATCHES_TO_PREVIEW } from "./fileMatchContainer";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 interface SearchResultsPanelProps {
     fileMatches: SearchResultFile[];
@@ -25,18 +25,23 @@ export const SearchResultsPanel = ({
     onLoadMoreButtonClicked,
 }: SearchResultsPanelProps) => {
     const parentRef = useRef<HTMLDivElement>(null);
+    const [showAllMatchesStates, setShowAllMatchesStates] = useState(Array(fileMatches.length).fill(false));
+    const [lastShowAllMatchesButtonClickIndex, setLastShowAllMatchesButtonClickIndex] = useState(-1);
 
     const virtualizer = useVirtualizer({
         count: fileMatches.length,
         getScrollElement: () => parentRef.current,
         estimateSize: (index) => {
             const fileMatch = fileMatches[index];
+            const showAllMatches = showAllMatchesStates[index];
 
             // Quick guesstimation ;) This needs to be quick since the virtualizer will
             // run this upfront for all items in the list.
             const numCodeCells = fileMatch.ChunkMatches
                 .filter(match => !match.FileName)
-                .slice(0, MAX_MATCHES_TO_PREVIEW).length
+                .slice(0, showAllMatches ? fileMatch.ChunkMatches.length : MAX_MATCHES_TO_PREVIEW)
+                .length;
+
             const estimatedSize =
                 numCodeCells * ESTIMATED_NUMBER_OF_LINES_PER_CODE_CELL * ESTIMATED_LINE_HEIGHT_PX +
                 ESTIMATED_MATCH_CONTAINER_HEIGHT_PX;
@@ -47,8 +52,10 @@ export const SearchResultsPanel = ({
             // @note : Stutters were appearing when scrolling upwards. The workaround is
             // to use the cached height of the element when scrolling up.
             // @see : https://github.com/TanStack/virtual/issues/659
+            const isCacheDirty = element.hasAttribute("data-cache-dirty");
+            element.removeAttribute("data-cache-dirty");
             const direction = instance.scrollDirection;
-            if (direction === "forward" || direction === null) {
+            if (direction === "forward" || direction === null || isCacheDirty) {
                 return element.scrollHeight;
             } else {
                 const indexKey = Number(element.getAttribute("data-index"));
@@ -65,7 +72,34 @@ export const SearchResultsPanel = ({
         debug: false,
     });
 
+    const onShowAllMatchesButtonClicked = useCallback((index: number) => {
+        const states = [...showAllMatchesStates];
+        states[index] = !states[index];
+        setShowAllMatchesStates(states);
+        setLastShowAllMatchesButtonClickIndex(index);
+    }, [showAllMatchesStates]);
+
+    // After the "show N more/less matches" button is clicked, the FileMatchContainer's
+    // size can change considerably. In cases where N > 3 or 4 cells when collapsing,
+    // a visual artifact can appear where there is a large gap between the now collapsed
+    // container and the next container. This is because the container's height was not
+    // re-calculated. To get arround this, we force a re-measure of the element AFTER
+    // it was re-rendered (hence the useLayoutEffect).
+    useLayoutEffect(() => {
+        if (lastShowAllMatchesButtonClickIndex < 0) {
+            return;
+        }
+
+        const element = virtualizer.elementsCache.get(lastShowAllMatchesButtonClickIndex);
+        element?.setAttribute('data-cache-dirty', 'true');
+        virtualizer.measureElement(element);
+
+        setLastShowAllMatchesButtonClickIndex(-1);
+    }, [lastShowAllMatchesButtonClickIndex, virtualizer]);
+
+    // Reset some state when the file matches change.
     useEffect(() => {
+        setShowAllMatchesStates(Array(fileMatches.length).fill(false));
         virtualizer.scrollToIndex(0);
     }, [fileMatches, virtualizer]);
 
@@ -106,6 +140,10 @@ export const SearchResultsPanel = ({
                             }}
                             onMatchIndexChanged={(matchIndex) => {
                                 onMatchIndexChanged(matchIndex);
+                            }}
+                            showAllMatches={showAllMatchesStates[virtualRow.index]}
+                            onShowAllMatchesButtonClicked={() => {
+                                onShowAllMatchesButtonClicked(virtualRow.index);
                             }}
                         />
                     </div>
