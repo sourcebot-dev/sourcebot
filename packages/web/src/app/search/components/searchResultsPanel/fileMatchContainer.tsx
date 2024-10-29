@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { SearchResultFile } from "@/lib/types";
 import { FileMatch } from "./fileMatch";
 
-const MAX_MATCHES_TO_PREVIEW = 3;
+export const MAX_MATCHES_TO_PREVIEW = 3;
 
 interface FileMatchContainerProps {
     file: SearchResultFile;
@@ -94,6 +94,7 @@ export const FileMatchContainer = ({
 
     return (
         <div>
+            {/* Title */}
             <div
                 className="top-0 bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2 py-0.5 flex flex-row items-center justify-between cursor-pointer"
                 onClick={() => {
@@ -132,6 +133,8 @@ export const FileMatchContainer = ({
                     </div>
                 </div>
             </div>
+
+            {/* Matches */}
             {matches.map((match, index) => (
                 <div
                     key={index}
@@ -148,6 +151,8 @@ export const FileMatchContainer = ({
                     )}
                 </div>
             ))}
+
+            {/* Show more button */}
             {isMoreContentButtonVisible && (
                 <div
                     tabIndex={0}

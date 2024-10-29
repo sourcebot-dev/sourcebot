@@ -1,7 +1,7 @@
 'use client';
 
 import { SearchResultFile } from "@/lib/types";
-import { FileMatchContainer } from "./fileMatchContainer";
+import { FileMatchContainer, MAX_MATCHES_TO_PREVIEW } from "./fileMatchContainer";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
 
@@ -9,12 +9,20 @@ interface SearchResultsPanelProps {
     fileMatches: SearchResultFile[];
     onOpenFileMatch: (fileMatch: SearchResultFile) => void;
     onMatchIndexChanged: (matchIndex: number) => void;
+    isLoadMoreButtonVisible: boolean;
+    onLoadMoreButtonClicked: () => void;
 }
+
+const ESTIMATED_LINE_HEIGHT_PX = 20;
+const ESTIMATED_NUMBER_OF_LINES_PER_CODE_CELL = 10;
+const ESTIMATED_MATCH_CONTAINER_HEIGHT_PX = 30;
 
 export const SearchResultsPanel = ({
     fileMatches,
     onOpenFileMatch,
     onMatchIndexChanged,
+    isLoadMoreButtonVisible,
+    onLoadMoreButtonClicked,
 }: SearchResultsPanelProps) => {
     const parentRef = useRef<HTMLDivElement>(null);
 
@@ -22,37 +30,44 @@ export const SearchResultsPanel = ({
         count: fileMatches.length,
         getScrollElement: () => parentRef.current,
         estimateSize: (index) => {
-            const match = fileMatches[index];
-            if (match.FileName) {
-                return 30;
-            }
+            const fileMatch = fileMatches[index];
 
-            return 150;
+            // Quick guesstimation ;) This needs to be quick since the virtualizer will
+            // run this upfront for all items in the list.
+            const numCodeCells = fileMatch.ChunkMatches
+                .filter(match => !match.FileName)
+                .slice(0, MAX_MATCHES_TO_PREVIEW).length
+            const estimatedSize =
+                numCodeCells * ESTIMATED_NUMBER_OF_LINES_PER_CODE_CELL * ESTIMATED_LINE_HEIGHT_PX +
+                ESTIMATED_MATCH_CONTAINER_HEIGHT_PX;
+
+            return estimatedSize;
         },
-        measureElement: (element, entry, instance) => {
+        measureElement: (element, _entry, instance) => {
+            // @note : Stutters were appearing when scrolling upwards. The workaround is
+            // to use the cached height of the element when scrolling up.
             // @see : https://github.com/TanStack/virtual/issues/659
             const direction = instance.scrollDirection;
             if (direction === "forward" || direction === null) {
                 return element.scrollHeight;
             } else {
-                // don't remeasure if we are scrolling up
                 const indexKey = Number(element.getAttribute("data-index"));
+                // Unfortunately, the cache is a private property, so we need to
+                // hush the TS compiler.
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
                 const cacheMeasurement = instance.itemSizeCache.get(indexKey);
                 return cacheMeasurement;
             }
         },
         enabled: true,
         overscan: 10,
+        debug: false,
     });
 
     useEffect(() => {
         virtualizer.scrollToIndex(0);
-        console.log('reset');
-        // virtualizer.elementsCache.clear();
-    }, [fileMatches]);
-
-    const items = virtualizer.getVirtualItems();
-    console.log(items.length);
+    }, [fileMatches, virtualizer]);
 
     return (
         <div
@@ -71,7 +86,7 @@ export const SearchResultsPanel = ({
                     position: "relative",
                 }}
             >
-                {items.map((virtualRow) => (
+                {virtualizer.getVirtualItems().map((virtualRow) => (
                     <div
                         key={virtualRow.key}
                         data-index={virtualRow.index}
@@ -96,7 +111,16 @@ export const SearchResultsPanel = ({
                     </div>
                 ))}
             </div>
-            <p>Load more</p>
+            {isLoadMoreButtonVisible && (
+                <div className="p-3">
+                    <span
+                        className="cursor-pointer text-blue-500 hover:underline"
+                        onClick={onLoadMoreButtonClicked}
+                    >
+                        Load more results
+                    </span>
+                </div>
+            )}
         </div>
     )
 }

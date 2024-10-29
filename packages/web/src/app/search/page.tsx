@@ -25,7 +25,7 @@ import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { ImperativePanelHandle } from "react-resizable-panels";
 
-const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 200;
+const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 2048;
 
 export default function SearchPage() {
     const router = useRouter();
@@ -243,29 +243,17 @@ const PanelGroup = ({
                 order={2}
             >
                 {filteredFileMatches.length > 0 ? (
-                    <div
-                        className="h-full"
-                    >
-                        <SearchResultsPanel
-                            fileMatches={filteredFileMatches}
-                            onOpenFileMatch={(fileMatch) => {
-                                setSelectedFile(fileMatch);
-                            }}
-                            onMatchIndexChanged={(matchIndex) => {
-                                setSelectedMatchIndex(matchIndex);
-                            }}
-                        />
-                        {isMoreResultsButtonVisible && (
-                            <div className="p-3">
-                                <span
-                                    className="cursor-pointer text-blue-500 hover:underline"
-                                    onClick={onLoadMoreResults}
-                                >
-                                    Load more results
-                                </span>
-                            </div>
-                        )}
-                    </div>
+                    <SearchResultsPanel
+                        fileMatches={filteredFileMatches}
+                        onOpenFileMatch={(fileMatch) => {
+                            setSelectedFile(fileMatch);
+                        }}
+                        onMatchIndexChanged={(matchIndex) => {
+                            setSelectedMatchIndex(matchIndex);
+                        }}
+                        isLoadMoreButtonVisible={!!isMoreResultsButtonVisible}
+                        onLoadMoreButtonClicked={onLoadMoreResults}
+                    />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full">
                         <p className="text-sm text-muted-foreground">No results found</p>
