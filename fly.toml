@@ -7,7 +7,7 @@ app = 'sourcebot'
 primary_region = 'sjc'
 
 [build]
-  image = "ghcr.io/sourcebot-dev/sourcebot:latest"
+  image = "ghcr.io/sourcebot-dev/sourcebot:main"
 
 [http_service]
   internal_port = 3000
