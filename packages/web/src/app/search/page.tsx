@@ -25,7 +25,7 @@ import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { ImperativePanelHandle } from "react-resizable-panels";
 
-const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 2048;
+const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 10000;
 
 export default function SearchPage() {
     const router = useRouter();
