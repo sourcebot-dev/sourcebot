@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed issue with GitLab sub-projects not being included recursively. ([#54](https://github.com/sourcebot-dev/sourcebot/pull/54))
 - Fixed slow rendering performance when rendering a large number of results. ([#52](https://github.com/sourcebot-dev/sourcebot/pull/52))
+- Fixed issue with either `star_count` or `fork_count` not being included in the GitLab api response. ([#55](https://github.com/sourcebot-dev/sourcebot/issues/55))
 
 ## [2.1.1] - 2024-10-25
 
