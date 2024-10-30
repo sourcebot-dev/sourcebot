@@ -5,14 +5,12 @@ import {
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { SearchQueryParams, SearchResultFile } from "@/lib/types";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
-import { Scrollbar } from "@radix-ui/react-scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -27,7 +25,7 @@ import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { ImperativePanelHandle } from "react-resizable-panels";
 
-const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 200;
+const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 10000;
 
 export default function SearchPage() {
     const router = useRouter();
@@ -212,6 +210,10 @@ const PanelGroup = ({
         }
     }, [selectedFile]);
 
+    const onFilterChanged = useCallback((matches: SearchResultFile[]) => {
+        setFilteredFileMatches(matches);
+    }, []);
+
     return (
         <ResizablePanelGroup
             direction="horizontal"
@@ -227,9 +229,7 @@ const PanelGroup = ({
             >
                 <FilterPanel
                     matches={fileMatches}
-                    onFilterChanged={(filteredFileMatches) => {
-                        setFilteredFileMatches(filteredFileMatches)
-                    }}
+                    onFilterChanged={onFilterChanged}
                 />
             </ResizablePanel>
             <ResizableHandle
@@ -243,30 +243,17 @@ const PanelGroup = ({
                 order={2}
             >
                 {filteredFileMatches.length > 0 ? (
-                    <ScrollArea
-                        className="h-full"
-                    >
-                        <SearchResultsPanel
-                            fileMatches={filteredFileMatches}
-                            onOpenFileMatch={(fileMatch) => {
-                                setSelectedFile(fileMatch);
-                            }}
-                            onMatchIndexChanged={(matchIndex) => {
-                                setSelectedMatchIndex(matchIndex);
-                            }}
-                        />
-                        {isMoreResultsButtonVisible && (
-                            <div className="p-3">
-                                <span
-                                    className="cursor-pointer text-blue-500 hover:underline"
-                                    onClick={onLoadMoreResults}
-                                >
-                                    Load more results
-                                </span>
-                            </div>
-                        )}
-                        <Scrollbar orientation="vertical" />
-                    </ScrollArea>
+                    <SearchResultsPanel
+                        fileMatches={filteredFileMatches}
+                        onOpenFileMatch={(fileMatch) => {
+                            setSelectedFile(fileMatch);
+                        }}
+                        onMatchIndexChanged={(matchIndex) => {
+                            setSelectedMatchIndex(matchIndex);
+                        }}
+                        isLoadMoreButtonVisible={!!isMoreResultsButtonVisible}
+                        onLoadMoreButtonClicked={onLoadMoreResults}
+                    />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full">
                         <p className="text-sm text-muted-foreground">No results found</p>

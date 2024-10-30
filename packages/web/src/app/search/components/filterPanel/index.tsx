@@ -93,7 +93,7 @@ export const FilterPanel = ({
         );
 
         onFilterChanged(filteredMatches);
-    }, [matches, repos, languages]);
+    }, [matches, repos, languages, onFilterChanged]);
 
     return (
         <div className="p-3 flex flex-col gap-3">

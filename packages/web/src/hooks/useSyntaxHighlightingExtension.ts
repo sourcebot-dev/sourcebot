@@ -21,46 +21,50 @@ export const useSyntaxHighlightingExtension = (language: string, view: EditorVie
     const extension = useExtensionWithDependency(
         view ?? null,
         () => {
-            switch (language.toLowerCase()) {
-                case "c":
-                case "c++":
-                    return cpp();
-                case "c#":
-                    return csharp();
-                case "json":
-                    return json();
-                case "java":
-                    return java();
-                case "rust":
-                    return rust();
-                case "go":
-                    return go();
-                case "sql":
-                    return sql();
-                case "php":
-                    return php();
-                case "html":
-                    return html();
-                case "css":
-                    return css();
-                case "jsx":
-                case "tsx":
-                case "typescript":
-                case "javascript":
-                    return javascript({
-                        jsx: true,
-                        typescript: true,
-                    });
-                case "python":
-                    return python();
-                case "markdown":
-                    return markdown();
-                default:
-                    return [];
-            }
+            return getSyntaxHighlightingExtension(language);
         },
         [language]
     );
 
     return extension;
+}
+
+export const getSyntaxHighlightingExtension = (language: string) => {
+    switch (language.toLowerCase()) {
+        case "c":
+        case "c++":
+            return cpp();
+        case "c#":
+            return csharp();
+        case "json":
+            return json();
+        case "java":
+            return java();
+        case "rust":
+            return rust();
+        case "go":
+            return go();
+        case "sql":
+            return sql();
+        case "php":
+            return php();
+        case "html":
+            return html();
+        case "css":
+            return css();
+        case "jsx":
+        case "tsx":
+        case "typescript":
+        case "javascript":
+            return javascript({
+                jsx: true,
+                typescript: true,
+            });
+        case "python":
+            return python();
+        case "markdown":
+            return markdown();
+        default:
+            return [];
+    }
 }

@@ -1,12 +1,15 @@
 'use client';
 
-import { useExtensionWithDependency } from "@/hooks/useExtensionWithDependency";
-import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
-import { useThemeNormalized } from "@/hooks/useThemeNormalized";
+import { getSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
 import { lineOffsetExtension } from "@/lib/extensions/lineOffsetExtension";
 import { SearchResultRange } from "@/lib/types";
-import CodeMirror, { Decoration, DecorationSet, EditorState, EditorView, ReactCodeMirrorRef, StateField, Transaction } from "@uiw/react-codemirror";
+import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { EditorState, StateField, Transaction } from "@codemirror/state";
+import { defaultLightThemeOption, oneDarkHighlightStyle, oneDarkTheme } from "@uiw/react-codemirror";
+import { Decoration, DecorationSet, EditorView, lineNumbers } from "@codemirror/view";
 import { useMemo, useRef } from "react";
+import { LightweightCodeMirror, CodeMirrorRef } from "./lightweightCodeMirror";
+import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 
 const markDecoration = Decoration.mark({
     class: "cm-searchMatch-selected"
@@ -25,13 +28,22 @@ export const CodePreview = ({
     ranges,
     lineOffset,
 }: CodePreviewProps) => {
-    const editorRef = useRef<ReactCodeMirrorRef>(null);
+    const editorRef = useRef<CodeMirrorRef>(null);
     const { theme } = useThemeNormalized();
 
-    const syntaxHighlighting = useSyntaxHighlightingExtension(language, editorRef.current?.view);
-
-    const rangeHighlighting = useExtensionWithDependency(editorRef.current?.view ?? null, () => {
+    const extensions = useMemo(() => {
         return [
+            EditorView.editable.of(false),
+            ...(theme === 'dark' ? [
+                syntaxHighlighting(oneDarkHighlightStyle),
+                oneDarkTheme,
+            ] : [
+                syntaxHighlighting(defaultHighlightStyle),
+                defaultLightThemeOption,
+            ]),
+            lineNumbers(),
+            lineOffsetExtension(lineOffset),
+            getSyntaxHighlightingExtension(language),
             StateField.define<DecorationSet>({
                 create(editorState: EditorState) {
                     const document = editorState.doc;
@@ -61,7 +73,8 @@ export const CodePreview = ({
                             const from = document.line(startLine).from + Start.Column - 1;
                             const to = document.line(endLine).from + End.Column - 1;
                             return markDecoration.range(from, to);
-                        });
+                        })
+                        .sort((a, b) => a.from - b.from);
 
                     return Decoration.set(decorations);
                 },
@@ -70,56 +83,15 @@ export const CodePreview = ({
                 },
                 provide: (field) => EditorView.decorations.from(field),
             }),
-        ];
-    }, [ranges, lineOffset]);
-
-    const extensions = useMemo(() => {
-        return [
-            syntaxHighlighting,
-            EditorView.lineWrapping,
-            lineOffsetExtension(lineOffset),
-            rangeHighlighting,
-        ];
-    }, [syntaxHighlighting, lineOffset, rangeHighlighting]);
+        ]
+    }, [language, lineOffset, ranges, theme]);
 
     return (
-        <CodeMirror
+        <LightweightCodeMirror
             ref={editorRef}
-            readOnly={true}
-            editable={false}
             value={content}
-            theme={theme === "dark" ? "dark" : "light"}
-            basicSetup={{
-                lineNumbers: true,
-                syntaxHighlighting: true,
-
-                // Disable all this other stuff...
-                ... {
-                    foldGutter: false,
-                    highlightActiveLineGutter: false,
-                    highlightSpecialChars: false,
-                    history: false,
-                    drawSelection: false,
-                    dropCursor: false,
-                    allowMultipleSelections: false,
-                    indentOnInput: false,
-                    bracketMatching: false,
-                    closeBrackets: false,
-                    autocompletion: false,
-                    rectangularSelection: false,
-                    crosshairCursor: false,
-                    highlightActiveLine: false,
-                    highlightSelectionMatches: false,
-                    closeBracketsKeymap: false,
-                    defaultKeymap: false,
-                    searchKeymap: false,
-                    historyKeymap: false,
-                    foldKeymap: false,
-                    completionKeymap: false,
-                    lintKeymap: false,
-                }
-            }}
             extensions={extensions}
         />
     )
+
 }
