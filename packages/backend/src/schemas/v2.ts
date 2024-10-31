@@ -1,6 +1,6 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
-export type Repos = GitHubConfig | GitLabConfig | GiteaConfig;
+export type Repos = GitHubConfig | GitLabConfig | GiteaConfig | LocalConfig;
 
 /**
  * A Sourcebot configuration file outlines which repositories Sourcebot should sync and index.
@@ -152,4 +152,14 @@ export interface GiteaConfig {
      */
     repos?: string[];
   };
+}
+export interface LocalConfig {
+  /**
+   * Local Configuration
+   */
+  type: "local";
+  /**
+   * todo
+   */
+  path: string;
 }

@@ -14,7 +14,7 @@ export const loadDB = async (ctx: AppContext): Promise<Database> => {
     const db = await JSONFilePreset<Schema>(`${ctx.cachePath}/db.json`, { repos: {} });
     return db;
 }
-export const updateRepository = async (repoId: string, data: Partial<Repository>, db: Database) => {
+export const updateRepository = async (repoId: string, data: Repository, db: Database) => {
     db.data.repos[repoId] = {
         ...db.data.repos[repoId],
         ...data,

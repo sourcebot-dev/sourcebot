@@ -1,17 +1,17 @@
 import { ArgumentParser } from "argparse";
 import { mkdir, readFile } from 'fs/promises';
-import { existsSync, watch } from 'fs';
+import { existsSync, watch, statSync } from 'fs';
 import { exec } from "child_process";
 import path from 'path';
-import { SourcebotConfigurationSchema } from "./schemas/v2.js";
+import { LocalConfig, SourcebotConfigurationSchema } from "./schemas/v2.js";
 import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
-import { AppContext, Repository } from "./types.js";
+import { AppContext, LocalRepository, GitRepository, Repository } from "./types.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
 import { createRepository, Database, loadDB, updateRepository } from './db.js';
-import { isRemotePath, measure } from "./utils.js";
+import { isRemotePath, measure, resolvePathRelativeToConfig } from "./utils.js";
 import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
 import stripJsonComments from 'strip-json-comments';
 
@@ -26,7 +26,7 @@ type Arguments = {
     cacheDir: string;
 }
 
-const indexRepository = async (repo: Repository, ctx: AppContext) => {
+const indexGitRepository = async (repo: GitRepository, ctx: AppContext) => {
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
         exec(`zoekt-git-index -index ${ctx.indexPath} ${repo.path}`, (error, stdout, stderr) => {
             if (error) {
@@ -39,6 +39,47 @@ const indexRepository = async (repo: Repository, ctx: AppContext) => {
             });
         })
     });
+}
+
+const indexLocalRepository = async (repo: LocalRepository, ctx: AppContext) => {
+    return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
+        exec(`zoekt-index -index ${ctx.indexPath} ${repo.path}`, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            resolve({
+                stdout,
+                stderr
+            });
+        })
+    });
+}
+
+const getLocalRepoFromConfig = (config: LocalConfig, ctx: AppContext) => {
+    const repoPath = resolvePathRelativeToConfig(config.path, ctx.configPath);
+    logger.debug(`Resolved path '${config.path}' to '${repoPath}'`);
+
+    if (!existsSync(repoPath)) {
+        throw new Error(`The local repository path '${repoPath}' referenced in ${ctx.configPath} does not exist`);
+    }
+
+    const stat = statSync(repoPath);
+    if (!stat.isDirectory()) {
+        throw new Error(`The local repository path '${repoPath}' referenced in ${ctx.configPath} is not a directory`);
+    }
+
+    const name = path.basename(repoPath);
+
+    const repo: LocalRepository = {
+        vcs: 'local',
+        name,
+        id: repoPath,
+        path: repoPath,
+        isStale: false,
+    }
+
+    return repo;
 }
 
 const syncConfig = async (configPath: string, db: Database, signal: AbortSignal, ctx: AppContext) => {
@@ -79,6 +120,11 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             case 'gitea': {
                 const giteaRepos = await getGiteaReposFromConfig(repoConfig, ctx);
                 configRepos.push(...giteaRepos);
+                break;
+            }
+            case 'local': {
+                const repo = getLocalRepoFromConfig(repoConfig, ctx);
+                configRepos.push(repo);
                 break;
             }
         }
@@ -223,25 +269,33 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             }
 
             try {
-                if (existsSync(repo.path)) {
-                    logger.info(`Fetching ${repo.id}...`);
-                    const { durationMs } = await measure(() => fetchRepository(repo, ({ method, stage , progress}) => {
-                        logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
-                    }));
-                    process.stdout.write('\n');
-                    logger.info(`Fetched ${repo.id} in ${durationMs / 1000}s`);
-                } else {
-                    logger.info(`Cloning ${repo.id}...`);
-                    const { durationMs } = await measure(() => cloneRepository(repo, ({ method, stage, progress }) => {
-                        logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
-                    }));
-                    process.stdout.write('\n');
-                    logger.info(`Cloned ${repo.id} in ${durationMs / 1000}s`);
+                if (repo.vcs === 'git') {
+                    if (existsSync(repo.path)) {
+                        logger.info(`Fetching ${repo.id}...`);
+                        const { durationMs } = await measure(() => fetchRepository(repo, ({ method, stage , progress}) => {
+                            logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+                        }));
+                        process.stdout.write('\n');
+                        logger.info(`Fetched ${repo.id} in ${durationMs / 1000}s`);
+                    } else {
+                        logger.info(`Cloning ${repo.id}...`);
+                        const { durationMs } = await measure(() => cloneRepository(repo, ({ method, stage, progress }) => {
+                            logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+                        }));
+                        process.stdout.write('\n');
+                        logger.info(`Cloned ${repo.id} in ${durationMs / 1000}s`);
+                    }
+
+                    logger.info(`Indexing ${repo.id}...`);
+                    const { durationMs } = await measure(() => indexGitRepository(repo, context));
+                    logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
                 }
 
-                logger.info(`Indexing ${repo.id}...`);
-                const { durationMs } = await measure(() => indexRepository(repo, context));
-                logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
+                else if (repo.vcs === 'local') {
+                    logger.info(`Indexing ${repo.id}...`);
+                    const { durationMs } = await measure(() => indexLocalRepository(repo, context));
+                    logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
+                }
             } catch (err: any) {
                 // @todo : better error handling here..
                 logger.error(err);

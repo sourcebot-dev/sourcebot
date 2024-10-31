@@ -304,6 +304,25 @@
             ],
             "additionalProperties": false
         },
+        "LocalConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "local",
+                    "description": "Local Configuration"
+                },
+                "path": {
+                    "type": "string",
+                    "description": "todo",
+                    "pattern": ".+"
+                }
+            },
+            "required": [
+                "type",
+                "path"
+            ],
+            "additionalProperties": false
+        },
         "Repos": {
             "anyOf": [
                 {
@@ -314,6 +333,9 @@
                 },
                 {
                     "$ref": "#/definitions/GiteaConfig"
+                },
+                {
+                    "$ref": "#/definitions/LocalConfig"
                 }
             ]
         }

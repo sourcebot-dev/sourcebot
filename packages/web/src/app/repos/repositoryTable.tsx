@@ -13,7 +13,7 @@ export const RepositoryTable = async () => {
     const repos = _repos.List.Repos.map((repo): RepositoryColumnInfo => {
         return {
             name: repo.Repository.Name,
-            branches: repo.Repository.Branches.map((branch) => {
+            branches: (repo.Repository.Branches ?? []).map((branch) => {
                 return {
                     name: branch.Name,
                     version: branch.Version,
