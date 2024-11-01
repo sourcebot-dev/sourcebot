@@ -37,6 +37,28 @@
             "projects": [
                 "my-group/project1"
             ]
+        },
+        // From Gitea, include:
+        // - all public repos owned by user `my-user`
+        // - all public repos owned by organization `my-org`
+        // - repo `my-org/my-repo`
+        {
+            "type": "gitea",
+            "token": "my-token",
+            "users": [
+                "my-user"
+            ],
+            "orgs": [
+                "my-org"
+            ],
+            "repos": [
+                "my-org/my-repo"
+            ]
+        },
+        // Index a local repository
+        {
+            "type": "local",
+            "path": "/path/to/local/repo"
         }
     ]
 }

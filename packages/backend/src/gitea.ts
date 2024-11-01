@@ -1,7 +1,7 @@
 import { Api, giteaApi, HttpResponse, Repository as GiteaRepository } from 'gitea-js';
 import { GiteaConfig } from './schemas/v2.js';
 import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool, measure } from './utils.js';
-import { AppContext, Repository } from './types.js';
+import { AppContext, GitRepository } from './types.js';
 import fetch from 'cross-fetch';
 import { createLogger } from './logger.js';
 import path from 'path';
@@ -33,7 +33,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
         allRepos = allRepos.concat(_repos);
     }
 
-    let repos: Repository[] = allRepos
+    let repos: GitRepository[] = allRepos
         .map((repo) => {
             const hostname = config.url ? new URL(config.url).hostname : 'gitea.com';
             const repoId = `${hostname}/${repo.full_name!}`;
@@ -45,6 +45,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
             }
 
             return {
+                vcs: 'git',
                 name: repo.full_name!,
                 id: repoId,
                 cloneUrl: cloneUrl.toString(),
@@ -60,7 +61,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
                     'zoekt.fork': marshalBool(repo.fork!),
                     'zoekt.public': marshalBool(repo.internal === false && repo.private === false),
                 }
-            } satisfies Repository;
+            } satisfies GitRepository;
         });
     
     if (config.exclude) {

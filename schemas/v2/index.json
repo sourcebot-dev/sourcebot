@@ -304,6 +304,54 @@
             ],
             "additionalProperties": false
         },
+        "LocalConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "local",
+                    "description": "Local Configuration"
+                },
+                "path": {
+                    "type": "string",
+                    "description": "Path to the local directory to sync with. Relative paths are relative to the configuration file's directory.",
+                    "pattern": ".+"
+                },
+                "watch": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enables a file watcher that will automatically re-sync when changes are made within `path` (recursively). Defaults to true."
+                },
+                "exclude": {
+                    "type": "object",
+                    "properties": {
+                        "paths": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "pattern": ".+"
+                            },
+                            "description": "List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always exluded.",
+                            "default": [],
+                            "examples": [
+                                [
+                                    "node_modules",
+                                    "bin",
+                                    "dist",
+                                    "build",
+                                    "out"
+                                ]
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "required": [
+                "type",
+                "path"
+            ],
+            "additionalProperties": false
+        },
         "Repos": {
             "anyOf": [
                 {
@@ -314,6 +362,9 @@
                 },
                 {
                     "$ref": "#/definitions/GiteaConfig"
+                },
+                {
+                    "$ref": "#/definitions/LocalConfig"
                 }
             ]
         }

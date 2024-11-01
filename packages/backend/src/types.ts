@@ -1,33 +1,28 @@
 
-export type Repository = {
-    /**
-     * Name of the repository (e.g., 'sourcebot-dev/sourcebot')
-     */
-    name: string;
-
-    /**
-     * The unique identifier for the repository. (e.g., `github.com/sourcebot-dev/sourcebot`)
-     */
+interface BaseRepository {
+    vcs: 'git' | 'local';
     id: string;
-    
-    /**
-     * The .git url for the repository
-     */
-    cloneUrl: string;
-
-    /**
-     * Path to where the repository is cloned
-     */
+    name: string;
     path: string;
-
-    gitConfigMetadata?: Record<string, string>;
-
-    lastIndexedDate?: string;
-
     isStale: boolean;
-    isFork: boolean;
-    isArchived: boolean;
+    lastIndexedDate?: string;
+    isFork?: boolean;
+    isArchived?: boolean;
 }
+
+export interface GitRepository extends BaseRepository {
+    vcs: 'git';
+    cloneUrl: string;
+    gitConfigMetadata?: Record<string, string>;
+}
+
+export interface LocalRepository extends BaseRepository {
+    vcs: 'local';
+    excludedPaths: string[];
+    watch: boolean;
+}
+
+export type Repository = GitRepository | LocalRepository;
 
 export type AppContext = {
     /**

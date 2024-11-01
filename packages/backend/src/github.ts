@@ -1,7 +1,7 @@
 import { Octokit } from "@octokit/rest";
 import { GitHubConfig } from "./schemas/v2.js";
 import { createLogger } from "./logger.js";
-import { AppContext, Repository } from "./types.js";
+import { AppContext, GitRepository } from "./types.js";
 import path from 'path';
 import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool } from "./utils.js";
 
@@ -50,7 +50,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
     }
 
     // Marshall results to our type
-    let repos: Repository[] = allRepos
+    let repos: GitRepository[] = allRepos
         .filter((repo) => {
             if (!repo.clone_url) {
                 logger.warn(`Repository ${repo.name} missing property 'clone_url'. Excluding.`)
@@ -69,6 +69,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
             }
             
             return {
+                vcs: 'git',
                 name: repo.full_name,
                 id: repoId,
                 cloneUrl: cloneUrl.toString(),
@@ -88,7 +89,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
                     'zoekt.fork': marshalBool(repo.fork),
                     'zoekt.public': marshalBool(repo.private === false)
                 }
-            } satisfies Repository;
+            } satisfies GitRepository;
         });
 
     if (config.exclude) {

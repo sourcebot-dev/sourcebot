@@ -267,6 +267,37 @@ docker run -e <b>GITEA_TOKEN=my-secret-token</b> /* additional args */ ghcr.io/s
 
 If you're using a self-hosted GitLab or GitHub instance with a custom domain, you can specify the domain in your config file. See [configs/self-hosted.json](configs/self-hosted.json) for examples.
 
+## Searching a local directory
+
+Local directories can be searched by using the `local` type in your config file:
+
+```jsonc
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v2/index.json",
+    "repos": [
+        {
+            "type": "local",
+            "path": "/repos/my-repo",
+            // re-index files when a change is detected
+            "watch": true,
+            "exclude": {
+                // exclude paths from being indexed
+                "paths": [
+                    "node_modules",
+                    "build"
+                ]
+            }
+        }
+    ]
+}
+```
+
+You'll need to mount the directory as a volume when running Sourcebot:
+
+<pre>
+docker run <b>-v /path/to/my-repo:/repos/my-repo</b> /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
+</pre>
+
 ## Build from source
 >[!NOTE]
 > Building from source is only required if you'd like to contribute. The recommended way to use Sourcebot is to use the [pre-built docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot).

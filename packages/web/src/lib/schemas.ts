@@ -53,9 +53,9 @@ export const searchResponseSchema = z.object({
         Files: z.array(z.object({
             FileName: z.string(),
             Repository: z.string(),
-            Version: z.string(),
+            Version: z.string().optional(),
             Language: z.string(),
-            Branches: z.array(z.string()),
+            Branches: z.array(z.string()).optional(),
             ChunkMatches: z.array(z.object({
                 Content: z.string(),
                 Ranges: z.array(rangeSchema),
@@ -113,11 +113,11 @@ export const repositorySchema = z.object({
     Branches: z.array(z.object({
         Name: z.string(),
         Version: z.string(),
-    })),
+    })).nullable(),
     CommitURLTemplate: z.string(),
     FileURLTemplate: z.string(),
     LineFragmentTemplate: z.string(),
-    RawConfig: z.record(z.string(), z.string()),
+    RawConfig: z.record(z.string(), z.string()).nullable(),
     Rank: z.number(),
     IndexOptions: z.string(),
     HasSymbols: z.boolean(),

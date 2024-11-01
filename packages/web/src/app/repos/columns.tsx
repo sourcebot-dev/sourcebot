@@ -49,6 +49,11 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
         header: "Branches",
         cell: ({ row }) => {
             const branches = row.original.branches;
+
+            if (branches.length === 0) {
+                return <div>N/A</div>;
+            }
+
             return (
                 <div className="flex flex-col gap-2">
                     {branches.map(({ name, version }, index) => {

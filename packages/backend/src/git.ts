@@ -1,11 +1,11 @@
-import { Repository } from './types.js';
+import { GitRepository } from './types.js';
 import { simpleGit, SimpleGitProgressEvent } from 'simple-git';
 import { existsSync } from 'fs';
 import { createLogger } from './logger.js';
 
 const logger = createLogger('git');
 
-export const cloneRepository = async (repo: Repository, onProgress?: (event: SimpleGitProgressEvent) => void) => {
+export const cloneRepository = async (repo: GitRepository, onProgress?: (event: SimpleGitProgressEvent) => void) => {
     if (existsSync(repo.path)) {
         logger.warn(`${repo.id} already exists. Skipping clone.`)
         return;
@@ -34,7 +34,7 @@ export const cloneRepository = async (repo: Repository, onProgress?: (event: Sim
 }
 
 
-export const fetchRepository = async (repo: Repository, onProgress?: (event: SimpleGitProgressEvent) => void) => {
+export const fetchRepository = async (repo: GitRepository, onProgress?: (event: SimpleGitProgressEvent) => void) => {
     const git = simpleGit({
         progress: onProgress,
     });

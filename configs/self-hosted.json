@@ -14,6 +14,13 @@
             "groups": [
                 "my-group"
             ]
+        },
+        {
+            "type": "gitea",
+            "url": "https://gitea.example.com",
+            "orgs": [
+                "my-org-name"
+            ]
         }
     ]
 }

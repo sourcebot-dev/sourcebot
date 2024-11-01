@@ -2,7 +2,7 @@ import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
 import { GitLabConfig } from "./schemas/v2.js";
 import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool, measure } from "./utils.js";
 import { createLogger } from "./logger.js";
-import { AppContext, Repository } from "./types.js";
+import { AppContext, GitRepository } from "./types.js";
 import path from 'path';
 
 const logger = createLogger("GitLab");
@@ -59,7 +59,7 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
         allProjects = allProjects.concat(_projects);
     }
 
-    let repos: Repository[] = allProjects
+    let repos: GitRepository[] = allProjects
         .map((project) => {
             const hostname = config.url ? new URL(config.url).hostname : "gitlab.com";
             const repoId = `${hostname}/${project.path_with_namespace}`;
@@ -73,6 +73,7 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
             }
 
             return {
+                vcs: 'git',
                 name: project.path_with_namespace,
                 id: repoId,
                 cloneUrl: cloneUrl.toString(),
@@ -90,7 +91,7 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
                     'zoekt.fork': marshalBool(isFork),
                     'zoekt.public': marshalBool(project.visibility === 'public'),
                 }
-            } satisfies Repository;
+            } satisfies GitRepository;
         });
 
     if (config.exclude) {

@@ -1,19 +1,20 @@
 import { ArgumentParser } from "argparse";
 import { mkdir, readFile } from 'fs/promises';
-import { existsSync, watch } from 'fs';
-import { exec } from "child_process";
+import { existsSync, watch, FSWatcher } from 'fs';
 import path from 'path';
 import { SourcebotConfigurationSchema } from "./schemas/v2.js";
 import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
-import { AppContext, Repository } from "./types.js";
+import { AppContext, LocalRepository, GitRepository, Repository } from "./types.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
 import { createRepository, Database, loadDB, updateRepository } from './db.js';
 import { isRemotePath, measure } from "./utils.js";
 import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
 import stripJsonComments from 'strip-json-comments';
+import { indexGitRepository, indexLocalRepository } from "./zoekt.js";
+import { getLocalRepoFromConfig, initLocalRepoFileWatchers } from "./local.js";
 
 const logger = createLogger('main');
 
@@ -26,19 +27,32 @@ type Arguments = {
     cacheDir: string;
 }
 
-const indexRepository = async (repo: Repository, ctx: AppContext) => {
-    return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
-        exec(`zoekt-git-index -index ${ctx.indexPath} ${repo.path}`, (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-                return;
-            }
-            resolve({
-                stdout,
-                stderr
-            });
-        })
-    });
+const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
+    if (existsSync(repo.path)) {
+        logger.info(`Fetching ${repo.id}...`);
+        const { durationMs } = await measure(() => fetchRepository(repo, ({ method, stage , progress}) => {
+            logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+        }));
+        process.stdout.write('\n');
+        logger.info(`Fetched ${repo.id} in ${durationMs / 1000}s`);
+    } else {
+        logger.info(`Cloning ${repo.id}...`);
+        const { durationMs } = await measure(() => cloneRepository(repo, ({ method, stage, progress }) => {
+            logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+        }));
+        process.stdout.write('\n');
+        logger.info(`Cloned ${repo.id} in ${durationMs / 1000}s`);
+    }
+
+    logger.info(`Indexing ${repo.id}...`);
+    const { durationMs } = await measure(() => indexGitRepository(repo, ctx));
+    logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
+}
+
+const syncLocalRepository = async (repo: LocalRepository, ctx: AppContext, signal?: AbortSignal) => {
+    logger.info(`Indexing ${repo.id}...`);
+    const { durationMs } = await measure(() => indexLocalRepository(repo, ctx, signal));
+    logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
 }
 
 const syncConfig = async (configPath: string, db: Database, signal: AbortSignal, ctx: AppContext) => {
@@ -79,6 +93,11 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             case 'gitea': {
                 const giteaRepos = await getGiteaReposFromConfig(repoConfig, ctx);
                 configRepos.push(...giteaRepos);
+                break;
+            }
+            case 'local': {
+                const repo = getLocalRepoFromConfig(repoConfig, ctx);
+                configRepos.push(repo);
                 break;
             }
         }
@@ -167,7 +186,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     
     let abortController = new AbortController();
     let isSyncing = false;
-    const _syncConfig = () => {
+    const _syncConfig = async () => {
         if (isSyncing) {
             abortController.abort();
             abortController = new AbortController();
@@ -175,21 +194,28 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
 
         logger.info(`Syncing configuration file ${args.configPath} ...`);
         isSyncing = true;
-        measure(() => syncConfig(args.configPath, db, abortController.signal, context))
-            .then(({ durationMs }) => {
-                logger.info(`Synced configuration file ${args.configPath} in ${durationMs / 1000}s`);
+
+        try {
+            const { durationMs } = await measure(() => syncConfig(args.configPath, db, abortController.signal, context))
+            logger.info(`Synced configuration file ${args.configPath} in ${durationMs / 1000}s`);
+            isSyncing = false;
+        } catch (err: any) {
+            if (err.name === "AbortError") {
+                // @note: If we're aborting, we don't want to set isSyncing to false
+                // since it implies another sync is in progress.
+            } else {
                 isSyncing = false;
-            })
-            .catch((err) => {
-                if (err.name === "AbortError") {
-                    // @note: If we're aborting, we don't want to set isSyncing to false
-                    // since it implies another sync is in progress.
-                } else {
-                    isSyncing = false;
-                    logger.error(`Failed to sync configuration file ${args.configPath} with error:`);
-                    console.log(err);
-                }
-            });
+                logger.error(`Failed to sync configuration file ${args.configPath} with error:`);
+                console.log(err);
+            }
+        }
+
+        const localRepos = Object.values(db.data.repos).filter(repo => repo.vcs === 'local');
+        initLocalRepoFileWatchers(localRepos, async (repo, signal) => {
+            logger.info(`Change detected to local repository ${repo.id}. Re-syncing...`);
+            await syncLocalRepository(repo, context, signal);
+            await db.update(({ repos }) => repos[repo.id].lastIndexedDate = new Date().toUTCString());
+        });
     }
 
     // Re-sync on file changes if the config file is local
@@ -207,7 +233,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     }, RESYNC_CONFIG_INTERVAL_MS);
 
     // Sync immediately on startup
-    _syncConfig();
+    await _syncConfig();
 
     while (true) {
         const repos = db.data.repos;
@@ -223,25 +249,11 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             }
 
             try {
-                if (existsSync(repo.path)) {
-                    logger.info(`Fetching ${repo.id}...`);
-                    const { durationMs } = await measure(() => fetchRepository(repo, ({ method, stage , progress}) => {
-                        logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
-                    }));
-                    process.stdout.write('\n');
-                    logger.info(`Fetched ${repo.id} in ${durationMs / 1000}s`);
-                } else {
-                    logger.info(`Cloning ${repo.id}...`);
-                    const { durationMs } = await measure(() => cloneRepository(repo, ({ method, stage, progress }) => {
-                        logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
-                    }));
-                    process.stdout.write('\n');
-                    logger.info(`Cloned ${repo.id} in ${durationMs / 1000}s`);
+                if (repo.vcs === 'git') {
+                    await syncGitRepository(repo, context);
+                } else if (repo.vcs === 'local') {
+                    await syncLocalRepository(repo, context);
                 }
-
-                logger.info(`Indexing ${repo.id}...`);
-                const { durationMs } = await measure(() => indexRepository(repo, context));
-                logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
             } catch (err: any) {
                 // @todo : better error handling here..
                 logger.error(err);
