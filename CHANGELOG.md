@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2024-11-01
+
 ### Added
 
 - Local directory indexing support. ([#56](https://github.com/sourcebot-dev/sourcebot/pull/56))
