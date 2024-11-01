@@ -1,9 +1,8 @@
 import { ArgumentParser } from "argparse";
 import { mkdir, readFile } from 'fs/promises';
-import { existsSync, watch, statSync, FSWatcher } from 'fs';
-import { exec } from "child_process";
+import { existsSync, watch, FSWatcher } from 'fs';
 import path from 'path';
-import { LocalConfig, SourcebotConfigurationSchema } from "./schemas/v2.js";
+import { SourcebotConfigurationSchema } from "./schemas/v2.js";
 import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
@@ -11,10 +10,11 @@ import { AppContext, LocalRepository, GitRepository, Repository } from "./types.
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
 import { createRepository, Database, loadDB, updateRepository } from './db.js';
-import { isRemotePath, measure, resolvePathRelativeToConfig } from "./utils.js";
+import { isRemotePath, measure } from "./utils.js";
 import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
 import stripJsonComments from 'strip-json-comments';
 import { indexGitRepository, indexLocalRepository } from "./zoekt.js";
+import { getLocalRepoFromConfig, initLocalRepoFileWatchers } from "./local.js";
 
 const logger = createLogger('main');
 
@@ -49,9 +49,9 @@ const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
     logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
 }
 
-const syncLocalRepository = async (repo: LocalRepository, ctx: AppContext) => {
+const syncLocalRepository = async (repo: LocalRepository, ctx: AppContext, signal?: AbortSignal) => {
     logger.info(`Indexing ${repo.id}...`);
-    const { durationMs } = await measure(() => indexLocalRepository(repo, ctx));
+    const { durationMs } = await measure(() => indexLocalRepository(repo, ctx, signal));
     logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
 }
 
@@ -147,32 +147,6 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     }
 }
 
-const getLocalRepoFromConfig = (config: LocalConfig, ctx: AppContext) => {
-    const repoPath = resolvePathRelativeToConfig(config.path, ctx.configPath);
-    logger.debug(`Resolved path '${config.path}' to '${repoPath}'`);
-
-    if (!existsSync(repoPath)) {
-        throw new Error(`The local repository path '${repoPath}' referenced in ${ctx.configPath} does not exist`);
-    }
-
-    const stat = statSync(repoPath);
-    if (!stat.isDirectory()) {
-        throw new Error(`The local repository path '${repoPath}' referenced in ${ctx.configPath} is not a directory`);
-    }
-
-    const repo: LocalRepository = {
-        vcs: 'local',
-        name: path.basename(repoPath),
-        id: repoPath,
-        path: repoPath,
-        isStale: false,
-        excludedPaths: config.exclude?.paths ?? [],
-        watch: config.watch ?? true,
-    }
-
-    return repo;
-}
-
 (async () => {
     parser.add_argument("--configPath", {
         help: "Path to config file",
@@ -210,10 +184,9 @@ const getLocalRepoFromConfig = (config: LocalConfig, ctx: AppContext) => {
 
     const db = await loadDB(context);
     
-    const localWatchers = new Map<string, FSWatcher>();
     let abortController = new AbortController();
     let isSyncing = false;
-    const _syncConfig = () => {
+    const _syncConfig = async () => {
         if (isSyncing) {
             abortController.abort();
             abortController = new AbortController();
@@ -221,39 +194,28 @@ const getLocalRepoFromConfig = (config: LocalConfig, ctx: AppContext) => {
 
         logger.info(`Syncing configuration file ${args.configPath} ...`);
         isSyncing = true;
-        measure(() => syncConfig(args.configPath, db, abortController.signal, context))
-            .then(({ durationMs }) => {
-                logger.info(`Synced configuration file ${args.configPath} in ${durationMs / 1000}s`);
-                isSyncing = false;
 
-                // On success, setup the local file watchers by first
-                // closing any existing ones, and re-create them.
-                localWatchers.forEach((watcher) => {
-                    watcher.close();
-                });
-                
-                Object.values(db.data.repos)
-                    .filter(repo => repo.vcs === 'local')
-                    .filter(repo => !repo.isStale && repo.watch)
-                    .forEach((repo) => {
-                        logger.debug(`Watching local repository ${repo.id} for changes...`);
-                        const watcher = watch(repo.path, () => {
-                            logger.info(`Local repository ${repo.id} changed. Re-indexing...`);
-                            syncLocalRepository(repo, context);
-                        });
-                        localWatchers.set(repo.id, watcher);
-                    });
-            })
-            .catch((err) => {
-                if (err.name === "AbortError") {
-                    // @note: If we're aborting, we don't want to set isSyncing to false
-                    // since it implies another sync is in progress.
-                } else {
-                    isSyncing = false;
-                    logger.error(`Failed to sync configuration file ${args.configPath} with error:`);
-                    console.log(err);
-                }
-            });
+        try {
+            const { durationMs } = await measure(() => syncConfig(args.configPath, db, abortController.signal, context))
+            logger.info(`Synced configuration file ${args.configPath} in ${durationMs / 1000}s`);
+            isSyncing = false;
+        } catch (err: any) {
+            if (err.name === "AbortError") {
+                // @note: If we're aborting, we don't want to set isSyncing to false
+                // since it implies another sync is in progress.
+            } else {
+                isSyncing = false;
+                logger.error(`Failed to sync configuration file ${args.configPath} with error:`);
+                console.log(err);
+            }
+        }
+
+        const localRepos = Object.values(db.data.repos).filter(repo => repo.vcs === 'local');
+        initLocalRepoFileWatchers(localRepos, async (repo, signal) => {
+            logger.info(`Change detected to local repository ${repo.id}. Re-syncing...`);
+            await syncLocalRepository(repo, context, signal);
+            await db.update(({ repos }) => repos[repo.id].lastIndexedDate = new Date().toUTCString());
+        });
     }
 
     // Re-sync on file changes if the config file is local
@@ -271,7 +233,7 @@ const getLocalRepoFromConfig = (config: LocalConfig, ctx: AppContext) => {
     }, RESYNC_CONFIG_INTERVAL_MS);
 
     // Sync immediately on startup
-    _syncConfig();
+    await _syncConfig();
 
     while (true) {
         const repos = db.data.repos;
