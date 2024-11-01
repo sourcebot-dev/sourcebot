@@ -1,0 +1,32 @@
+{
+    "$schema": "../schemas/v2/index.json",
+    "repos": [
+        {
+            "type": "local",
+            "path": "/path/to/local/repo"
+        },
+        // Relative paths are relative to the config file
+        {
+            "type": "local",
+            "path": "../../relative/path/to/local/repo"
+        },
+        // File watcher can be disabled (enabled by default)
+        {
+            "type": "local",
+            "path": "~/myrepo",
+            "watch": false
+        },
+        // Exclude paths can be specified
+        {
+            "type": "local",
+            "path": "~/myNodeJsProject",
+            "exclude": {
+                "paths": [
+                    ".git",
+                    "node_modules",
+                    "dist"
+                ]
+            }
+        }
+    ]
+}

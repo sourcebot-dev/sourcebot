@@ -37,6 +37,25 @@
                     "my-group/project2"
                 ]
             }
-        }
+        },
+
+        // Include all repos in my-org, except:
+        // - repo1 & repo2
+        // - repos that are archived or forks
+        {
+            "type": "gitea",
+            "token": "my-token",
+            "orgs": [
+                "my-org"
+            ],
+            "exclude": {
+                "archived": true,
+                "forks": true,
+                "repos": [
+                    "my-org/repo1",
+                    "my-org/repo2"
+                ]
+            }
+        },
     ]
 }
