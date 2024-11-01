@@ -13,13 +13,13 @@
         // File watcher can be disabled (enabled by default)
         {
             "type": "local",
-            "path": "~/myrepo",
+            "path": "/path/to/local/repo",
             "watch": false
         },
         // Exclude paths can be specified
         {
             "type": "local",
-            "path": "~/myNodeJsProject",
+            "path": "/path/to/local/repo",
             "exclude": {
                 "paths": [
                     ".git",
