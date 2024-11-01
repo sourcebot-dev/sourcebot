@@ -18,6 +18,8 @@ export interface GitRepository extends BaseRepository {
 
 export interface LocalRepository extends BaseRepository {
     vcs: 'local';
+    excludedPaths: string[];
+    watch: boolean;
 }
 
 export type Repository = GitRepository | LocalRepository;

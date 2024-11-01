@@ -76,6 +76,7 @@ COPY --from=zoekt-builder \
     /cmd/zoekt-mirror-gitlab \
     /cmd/zoekt-mirror-gerrit \
     /cmd/zoekt-webserver \
+    /cmd/zoekt-index \
     /usr/local/bin/
 
 # Configure the webapp

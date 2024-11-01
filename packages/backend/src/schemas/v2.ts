@@ -162,4 +162,14 @@ export interface LocalConfig {
    * todo
    */
   path: string;
+  /**
+   * todo
+   */
+  watch?: boolean;
+  exclude?: {
+    /**
+     * List of paths relative to `path` to exclude from the index.
+     */
+    paths?: string[];
+  };
 }

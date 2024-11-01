@@ -315,6 +315,29 @@
                     "type": "string",
                     "description": "todo",
                     "pattern": ".+"
+                },
+                "watch": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "todo"
+                },
+                "exclude": {
+                    "type": "object",
+                    "properties": {
+                        "paths": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "List of paths relative to `path` to exclude from the index.",
+                            "default": [
+                                ".git",
+                                ".hg",
+                                ".svn"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "required": [

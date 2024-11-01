@@ -1,6 +1,6 @@
 import { ArgumentParser } from "argparse";
 import { mkdir, readFile } from 'fs/promises';
-import { existsSync, watch, statSync } from 'fs';
+import { existsSync, watch, statSync, FSWatcher } from 'fs';
 import { exec } from "child_process";
 import path from 'path';
 import { LocalConfig, SourcebotConfigurationSchema } from "./schemas/v2.js";
@@ -14,6 +14,7 @@ import { createRepository, Database, loadDB, updateRepository } from './db.js';
 import { isRemotePath, measure, resolvePathRelativeToConfig } from "./utils.js";
 import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
 import stripJsonComments from 'strip-json-comments';
+import { indexGitRepository, indexLocalRepository } from "./zoekt.js";
 
 const logger = createLogger('main');
 
@@ -26,60 +27,32 @@ type Arguments = {
     cacheDir: string;
 }
 
-const indexGitRepository = async (repo: GitRepository, ctx: AppContext) => {
-    return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
-        exec(`zoekt-git-index -index ${ctx.indexPath} ${repo.path}`, (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-                return;
-            }
-            resolve({
-                stdout,
-                stderr
-            });
-        })
-    });
+const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
+    if (existsSync(repo.path)) {
+        logger.info(`Fetching ${repo.id}...`);
+        const { durationMs } = await measure(() => fetchRepository(repo, ({ method, stage , progress}) => {
+            logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+        }));
+        process.stdout.write('\n');
+        logger.info(`Fetched ${repo.id} in ${durationMs / 1000}s`);
+    } else {
+        logger.info(`Cloning ${repo.id}...`);
+        const { durationMs } = await measure(() => cloneRepository(repo, ({ method, stage, progress }) => {
+            logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+        }));
+        process.stdout.write('\n');
+        logger.info(`Cloned ${repo.id} in ${durationMs / 1000}s`);
+    }
+
+    logger.info(`Indexing ${repo.id}...`);
+    const { durationMs } = await measure(() => indexGitRepository(repo, ctx));
+    logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
 }
 
-const indexLocalRepository = async (repo: LocalRepository, ctx: AppContext) => {
-    return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
-        exec(`zoekt-index -index ${ctx.indexPath} ${repo.path}`, (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-                return;
-            }
-            resolve({
-                stdout,
-                stderr
-            });
-        })
-    });
-}
-
-const getLocalRepoFromConfig = (config: LocalConfig, ctx: AppContext) => {
-    const repoPath = resolvePathRelativeToConfig(config.path, ctx.configPath);
-    logger.debug(`Resolved path '${config.path}' to '${repoPath}'`);
-
-    if (!existsSync(repoPath)) {
-        throw new Error(`The local repository path '${repoPath}' referenced in ${ctx.configPath} does not exist`);
-    }
-
-    const stat = statSync(repoPath);
-    if (!stat.isDirectory()) {
-        throw new Error(`The local repository path '${repoPath}' referenced in ${ctx.configPath} is not a directory`);
-    }
-
-    const name = path.basename(repoPath);
-
-    const repo: LocalRepository = {
-        vcs: 'local',
-        name,
-        id: repoPath,
-        path: repoPath,
-        isStale: false,
-    }
-
-    return repo;
+const syncLocalRepository = async (repo: LocalRepository, ctx: AppContext) => {
+    logger.info(`Indexing ${repo.id}...`);
+    const { durationMs } = await measure(() => indexLocalRepository(repo, ctx));
+    logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
 }
 
 const syncConfig = async (configPath: string, db: Database, signal: AbortSignal, ctx: AppContext) => {
@@ -174,6 +147,32 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     }
 }
 
+const getLocalRepoFromConfig = (config: LocalConfig, ctx: AppContext) => {
+    const repoPath = resolvePathRelativeToConfig(config.path, ctx.configPath);
+    logger.debug(`Resolved path '${config.path}' to '${repoPath}'`);
+
+    if (!existsSync(repoPath)) {
+        throw new Error(`The local repository path '${repoPath}' referenced in ${ctx.configPath} does not exist`);
+    }
+
+    const stat = statSync(repoPath);
+    if (!stat.isDirectory()) {
+        throw new Error(`The local repository path '${repoPath}' referenced in ${ctx.configPath} is not a directory`);
+    }
+
+    const repo: LocalRepository = {
+        vcs: 'local',
+        name: path.basename(repoPath),
+        id: repoPath,
+        path: repoPath,
+        isStale: false,
+        excludedPaths: config.exclude?.paths ?? [],
+        watch: config.watch ?? true,
+    }
+
+    return repo;
+}
+
 (async () => {
     parser.add_argument("--configPath", {
         help: "Path to config file",
@@ -211,6 +210,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
 
     const db = await loadDB(context);
     
+    const localWatchers = new Map<string, FSWatcher>();
     let abortController = new AbortController();
     let isSyncing = false;
     const _syncConfig = () => {
@@ -225,6 +225,24 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             .then(({ durationMs }) => {
                 logger.info(`Synced configuration file ${args.configPath} in ${durationMs / 1000}s`);
                 isSyncing = false;
+
+                // On success, setup the local file watchers by first
+                // closing any existing ones, and re-create them.
+                localWatchers.forEach((watcher) => {
+                    watcher.close();
+                });
+                
+                Object.values(db.data.repos)
+                    .filter(repo => repo.vcs === 'local')
+                    .filter(repo => !repo.isStale && repo.watch)
+                    .forEach((repo) => {
+                        logger.debug(`Watching local repository ${repo.id} for changes...`);
+                        const watcher = watch(repo.path, () => {
+                            logger.info(`Local repository ${repo.id} changed. Re-indexing...`);
+                            syncLocalRepository(repo, context);
+                        });
+                        localWatchers.set(repo.id, watcher);
+                    });
             })
             .catch((err) => {
                 if (err.name === "AbortError") {
@@ -270,31 +288,9 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
 
             try {
                 if (repo.vcs === 'git') {
-                    if (existsSync(repo.path)) {
-                        logger.info(`Fetching ${repo.id}...`);
-                        const { durationMs } = await measure(() => fetchRepository(repo, ({ method, stage , progress}) => {
-                            logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
-                        }));
-                        process.stdout.write('\n');
-                        logger.info(`Fetched ${repo.id} in ${durationMs / 1000}s`);
-                    } else {
-                        logger.info(`Cloning ${repo.id}...`);
-                        const { durationMs } = await measure(() => cloneRepository(repo, ({ method, stage, progress }) => {
-                            logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
-                        }));
-                        process.stdout.write('\n');
-                        logger.info(`Cloned ${repo.id} in ${durationMs / 1000}s`);
-                    }
-
-                    logger.info(`Indexing ${repo.id}...`);
-                    const { durationMs } = await measure(() => indexGitRepository(repo, context));
-                    logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
-                }
-
-                else if (repo.vcs === 'local') {
-                    logger.info(`Indexing ${repo.id}...`);
-                    const { durationMs } = await measure(() => indexLocalRepository(repo, context));
-                    logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
+                    await syncGitRepository(repo, context);
+                } else if (repo.vcs === 'local') {
+                    await syncLocalRepository(repo, context);
                 }
             } catch (err: any) {
                 // @todo : better error handling here..
