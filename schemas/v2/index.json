@@ -313,13 +313,13 @@
                 },
                 "path": {
                     "type": "string",
-                    "description": "todo",
+                    "description": "Path to the local directory to sync with. Relative paths are relative to the configuration file's directory.",
                     "pattern": ".+"
                 },
                 "watch": {
                     "type": "boolean",
                     "default": true,
-                    "description": "todo"
+                    "description": "Enables a file watcher that will automatically re-sync when changes are made within `path` (recursively). Defaults to true."
                 },
                 "exclude": {
                     "type": "object",
@@ -327,9 +327,10 @@
                         "paths": {
                             "type": "array",
                             "items": {
-                                "type": "string"
+                                "type": "string",
+                                "pattern": ".+"
                             },
-                            "description": "List of paths relative to `path` to exclude from the index.",
+                            "description": "List of paths relative to the provided `path` to exclude from the index.",
                             "default": [
                                 ".git",
                                 ".hg",

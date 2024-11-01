@@ -159,16 +159,16 @@ export interface LocalConfig {
    */
   type: "local";
   /**
-   * todo
+   * Path to the local directory to sync with. Relative paths are relative to the configuration file's directory.
    */
   path: string;
   /**
-   * todo
+   * Enables a file watcher that will automatically re-sync when changes are made within `path` (recursively). Defaults to true.
    */
   watch?: boolean;
   exclude?: {
     /**
-     * List of paths relative to `path` to exclude from the index.
+     * List of paths relative to the provided `path` to exclude from the index.
      */
     paths?: string[];
   };
