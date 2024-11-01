@@ -330,11 +330,16 @@
                                 "type": "string",
                                 "pattern": ".+"
                             },
-                            "description": "List of paths relative to the provided `path` to exclude from the index.",
-                            "default": [
-                                ".git",
-                                ".hg",
-                                ".svn"
+                            "description": "List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always exluded.",
+                            "default": [],
+                            "examples": [
+                                [
+                                    "node_modules",
+                                    "bin",
+                                    "dist",
+                                    "build",
+                                    "out"
+                                ]
                             ]
                         }
                     },
