@@ -58,6 +58,7 @@ export interface GitHubConfig {
      */
     repos?: string[];
   };
+  branches?: string[];
 }
 export interface GitLabConfig {
   /**

@@ -3,12 +3,13 @@ import { GitHubConfig } from "./schemas/v2.js";
 import { createLogger } from "./logger.js";
 import { AppContext, GitRepository } from "./types.js";
 import path from 'path';
-import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool } from "./utils.js";
+import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool, measure } from "./utils.js";
 
 const logger = createLogger("GitHub");
 
 type OctokitRepository = {
     name: string,
+    id: number,
     full_name: string,
     fork: boolean,
     private: boolean,
@@ -88,7 +89,8 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
                     'zoekt.archived': marshalBool(repo.archived),
                     'zoekt.fork': marshalBool(repo.fork),
                     'zoekt.public': marshalBool(repo.private === false)
-                }
+                },
+                branches: [],
             } satisfies GitRepository;
         });
 
@@ -107,9 +109,75 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
     }
 
     logger.debug(`Found ${repos.length} total repositories.`);
-    
+
+    if (config.branches) {
+        const branchRegexps = config.branches.map((branch) => {
+            return new RegExp(branch);
+        })
+
+        repos = await Promise.all(
+            repos.map(async (repo) => {
+                const [owner, name] = repo.name.split('/');
+
+                const revisions: string[] = [];
+                const [tags, branches] = await Promise.all([
+                    getTagsForRepo(owner, name, octokit, signal),
+                    getBranchesForRepo(owner, name, octokit, signal),
+                ]);
+
+                tags.forEach((tag) => revisions.push(tag.name));
+                branches.forEach((branch) => revisions.push(branch.name));
+
+                const filteredRevisions = revisions.filter((revision) => {
+                    for (const branchRegexp of branchRegexps) {
+                        if (branchRegexp.test(revision)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+
+                return {
+                    ...repo,
+                    branches: filteredRevisions,
+                };
+            })
+        );
+    }
+
     return repos;
 }
+
+const getTagsForRepo = async (owner: string, repo: string, octokit: Octokit, signal: AbortSignal) => {
+    logger.debug(`Fetching tags for repo ${owner}/${repo}...`);
+
+    const { durationMs, data: tags } = await measure(() => octokit.paginate(octokit.repos.listTags, {
+        owner,
+        repo,
+        per_page: 100,
+        request: {
+            signal
+        }
+    }));
+
+    logger.debug(`Found ${tags.length} tags for repo ${owner}/${repo} in ${durationMs}ms`);
+    return tags;
+}
+
+const getBranchesForRepo = async (owner: string, repo: string, octokit: Octokit, signal: AbortSignal) => {
+    logger.debug(`Fetching branches for repo ${owner}/${repo}...`);
+    const { durationMs, data: branches } = await measure(() => octokit.paginate(octokit.repos.listBranches, {
+        owner,
+        repo,
+        per_page: 100,
+        request: {
+            signal
+        }
+    }));
+    logger.debug(`Found ${branches.length} branches for repo ${owner}/${repo} in ${durationMs}ms`);
+    return branches;
+}
+
 
 const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, octokit: Octokit, signal: AbortSignal) => {
     // @todo : error handling
@@ -149,7 +217,6 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
 }
 
 const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal) => {
-    // @todo : error handling
     const repos = (await Promise.all(orgs.map(async (org) => {
         logger.debug(`Fetching repository info for org ${org}...`);
         const start = Date.now();
@@ -172,7 +239,6 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
 }
 
 const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal) => {
-    // @todo : error handling
     const repos = await Promise.all(repoList.map(async (repo) => {
         logger.debug(`Fetching repository info for ${repo}...`);
         const start = Date.now();

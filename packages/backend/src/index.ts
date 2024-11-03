@@ -30,16 +30,21 @@ type Arguments = {
 const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
     if (existsSync(repo.path)) {
         logger.info(`Fetching ${repo.id}...`);
+
         const { durationMs } = await measure(() => fetchRepository(repo, ({ method, stage , progress}) => {
             logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
         }));
+
         process.stdout.write('\n');
         logger.info(`Fetched ${repo.id} in ${durationMs / 1000}s`);
+
     } else {
         logger.info(`Cloning ${repo.id}...`);
+
         const { durationMs } = await measure(() => cloneRepository(repo, ({ method, stage, progress }) => {
             logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
         }));
+
         process.stdout.write('\n');
         logger.info(`Cloned ${repo.id} in ${durationMs / 1000}s`);
     }

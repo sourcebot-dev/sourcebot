@@ -1,5 +1,5 @@
 import { fileSourceResponseSchema, listRepositoriesResponseSchema, searchResponseSchema } from "@/lib/schemas";
-import { FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
+import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse> => {
     const result = await fetch(`/api/search`, {
@@ -13,16 +13,13 @@ export const search = async (body: SearchRequest): Promise<SearchResponse> => {
     return searchResponseSchema.parse(result);
 }
 
-export const fetchFileSource = async (fileName: string, repository: string): Promise<FileSourceResponse> => {
+export const fetchFileSource = async (body: FileSourceRequest): Promise<FileSourceResponse> => {
     const result = await fetch(`/api/source`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-            fileName,
-            repository,
-        }),
+        body: JSON.stringify(body),
     }).then(response => response.json());
 
     return fileSourceResponseSchema.parse(result);

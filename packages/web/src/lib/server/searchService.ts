@@ -40,12 +40,17 @@ export const search = async ({ query, maxMatchDisplayCount, whole }: SearchReque
     return parsedSearchResponse.data;
 }
 
-export const getFileSource = async ({ fileName, repository }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
+export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
     const escapedFileName = escapeStringRegexp(fileName);
     const escapedRepository = escapeStringRegexp(repository);
+    
+    let query = `file:${escapedFileName} repo:^${escapedRepository}$`;
+    if (branch) {
+        query = query.concat(` branch:${branch}`);
+    }
 
     const searchResponse = await search({
-        query: `file:${escapedFileName} repo:^${escapedRepository}$`,
+        query,
         maxMatchDisplayCount: 1,
         whole: true,
     });

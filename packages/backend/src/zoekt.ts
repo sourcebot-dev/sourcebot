@@ -4,8 +4,11 @@ import { AppContext, GitRepository, LocalRepository } from "./types.js";
 const ALWAYS_EXCLUDED_DIRS = ['.git', '.hg', '.svn'];
 
 export const indexGitRepository = async (repo: GitRepository, ctx: AppContext) => {
+    const branches = ['HEAD', ...repo.branches ?? []];
+    const command = `zoekt-git-index -index ${ctx.indexPath} -branches ${branches.join(',')} ${repo.path}`;
+
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
-        exec(`zoekt-git-index -index ${ctx.indexPath} ${repo.path}`, (error, stdout, stderr) => {
+        exec(command, (error, stdout, stderr) => {
             if (error) {
                 reject(error);
                 return;

@@ -73,7 +73,8 @@ export const searchResponseSchema = z.object({
 
 export const fileSourceRequestSchema = z.object({
     fileName: z.string(),
-    repository: z.string()
+    repository: z.string(),
+    branch: z.string().optional(),
 });
 
 export const fileSourceResponseSchema = z.object({

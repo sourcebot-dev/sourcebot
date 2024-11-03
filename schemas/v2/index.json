@@ -113,6 +113,15 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "branches": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "regexp"
+                    },
+                    "default": []
+
                 }
             },
             "required": [
