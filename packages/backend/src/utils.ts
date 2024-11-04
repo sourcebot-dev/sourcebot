@@ -74,3 +74,11 @@ export const resolvePathRelativeToConfig = (localPath: string, configPath: strin
 
     return absolutePath;
 }
+
+export const arraysEqualShallow = <T>(a?: T[], b?: T[]) => {
+    if (a === b) return true;
+    if (a === undefined || b === undefined) return false;
+    if (a.length !== b.length) return false;
+
+    return a.every(item => b.includes(item)) && b.every(item => a.includes(item));
+}
