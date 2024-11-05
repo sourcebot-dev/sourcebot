@@ -124,7 +124,7 @@ export const CodePreview = ({
                 {/* File path */}
                 <div className="flex-1 overflow-hidden">
                     <span
-                        className={clsx("block truncate-start", {
+                        className={clsx("block truncate-start text-sm font-mono", {
                             "cursor-pointer text-blue-500 hover:underline": file?.link
                         })}
                         onClick={() => {

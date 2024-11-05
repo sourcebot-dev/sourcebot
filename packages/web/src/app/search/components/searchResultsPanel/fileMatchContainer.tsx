@@ -17,6 +17,7 @@ interface FileMatchContainerProps {
     onMatchIndexChanged: (matchIndex: number) => void;
     showAllMatches: boolean;
     onShowAllMatchesButtonClicked: () => void;
+    isBranchFilteringEnabled: boolean;
 }
 
 export const FileMatchContainer = ({
@@ -25,6 +26,7 @@ export const FileMatchContainer = ({
     onMatchIndexChanged,
     showAllMatches,
     onShowAllMatchesButtonClicked,
+    isBranchFilteringEnabled,
 }: FileMatchContainerProps) => {
 
     const matchCount = useMemo(() => {
@@ -90,6 +92,14 @@ export const FileMatchContainer = ({
         onMatchIndexChanged(matchIndex);
     }, [matches, onMatchIndexChanged, onOpenFile]);
 
+    const branches = useMemo(() => {
+        if (!file.Branches) {
+            return [];
+        }
+
+        return file.Branches;
+    }, [file.Branches]);
+
 
     return (
         <div>
@@ -114,9 +124,18 @@ export const FileMatchContainer = ({
                     >
                         {repoName}
                     </span>
+                    {isBranchFilteringEnabled && branches.length > 0 && (
+                        <span
+                            className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-0.5"
+                            title={branches.join(", ")}
+                        >
+                            {`@ ${branches[0]}`}
+                            {branches.length > 1 && ` (+ ${branches.length - 1})`}
+                        </span>
+                    )}
                     <span>·</span>
                     <div className="flex-1 flex items-center overflow-hidden">
-                        <span className="inline-block w-full truncate-start">
+                        <span className="inline-block w-full truncate-start font-mono text-sm">
                             {!fileNameRange ?
                                 file.FileName
                             : (

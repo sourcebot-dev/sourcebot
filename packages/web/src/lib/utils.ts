@@ -73,19 +73,19 @@ export const getRepoCodeHostInfo = (repoName: string): CodeHostInfo | undefined 
     return undefined;
 }
 
-export const getCodeHostFilePreviewLink = (repoName: string, filePath: string): string | undefined => {
+export const getCodeHostFilePreviewLink = (repoName: string, filePath: string, branch: string = "HEAD"): string | undefined => {
     const info = getRepoCodeHostInfo(repoName);
 
     if (info?.type === "github") {
-        return `${info.repoLink}/blob/HEAD/${filePath}`;
+        return `${info.repoLink}/blob/${branch}/${filePath}`;
     }
 
     if (info?.type === "gitlab") {
-        return `${info.repoLink}/-/blob/HEAD/${filePath}`;
+        return `${info.repoLink}/-/blob/${branch}/${filePath}`;
     }
 
     if (info?.type === "gitea") {
-        return `${info.repoLink}/src/branch/HEAD/${filePath}`;
+        return `${info.repoLink}/src/branch/${branch}/${filePath}`;
     }
 
     return undefined;

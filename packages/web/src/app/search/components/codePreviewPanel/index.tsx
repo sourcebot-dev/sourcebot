@@ -38,7 +38,7 @@ export const CodePreviewPanel = ({
             })
                 .then(({ source }) => {
                     // @todo : refector this to use the templates provided by zoekt.
-                    const link = getCodeHostFilePreviewLink(fileMatch.Repository, fileMatch.FileName)
+                    const link = getCodeHostFilePreviewLink(fileMatch.Repository, fileMatch.FileName, branch);
 
                     const decodedSource = base64Decode(source);
 

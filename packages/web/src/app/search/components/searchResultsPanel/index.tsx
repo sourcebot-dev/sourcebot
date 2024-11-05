@@ -11,6 +11,7 @@ interface SearchResultsPanelProps {
     onMatchIndexChanged: (matchIndex: number) => void;
     isLoadMoreButtonVisible: boolean;
     onLoadMoreButtonClicked: () => void;
+    isBranchFilteringEnabled: boolean;
 }
 
 const ESTIMATED_LINE_HEIGHT_PX = 20;
@@ -23,6 +24,7 @@ export const SearchResultsPanel = ({
     onMatchIndexChanged,
     isLoadMoreButtonVisible,
     onLoadMoreButtonClicked,
+    isBranchFilteringEnabled,
 }: SearchResultsPanelProps) => {
     const parentRef = useRef<HTMLDivElement>(null);
     const [showAllMatchesStates, setShowAllMatchesStates] = useState(Array(fileMatches.length).fill(false));
@@ -145,6 +147,7 @@ export const SearchResultsPanel = ({
                             onShowAllMatchesButtonClicked={() => {
                                 onShowAllMatchesButtonClicked(virtualRow.index);
                             }}
+                            isBranchFilteringEnabled={isBranchFilteringEnabled}
                         />
                     </div>
                 ))}
