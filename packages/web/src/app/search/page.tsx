@@ -77,19 +77,17 @@ export default function SearchPage() {
         });
     }, [captureEvent, searchResponse]);
 
-    const isBranchFilteringEnabled = useMemo(() => {
-        return searchQuery.includes("branch:");
-    }, [searchQuery]);
-
-    const { fileMatches, searchDurationMs, totalMatchCount } = useMemo(() => {
+    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled } = useMemo(() => {
         if (!searchResponse) {
             return {
                 fileMatches: [],
                 searchDurationMs: 0,
                 totalMatchCount: 0,
+                isBranchFilteringEnabled: false,
             };
         }
 
+        const isBranchFilteringEnabled = searchResponse.isBranchFilteringEnabled;
         let fileMatches = searchResponse.Result.Files ?? [];
 
         // We only want to show matches for the default branch when
@@ -109,8 +107,9 @@ export default function SearchPage() {
             fileMatches,
             searchDurationMs: Math.round(searchResponse.Result.Duration / 1000000),
             totalMatchCount: searchResponse.Result.MatchCount,
+            isBranchFilteringEnabled,
         }
-    }, [searchResponse, searchQuery, isBranchFilteringEnabled]);
+    }, [searchResponse, searchQuery]);
 
     const isMoreResultsButtonVisible = useMemo(() => {
         return totalMatchCount > maxMatchDisplayCount;

@@ -4,6 +4,7 @@ import { createLogger } from "./logger.js";
 import { AppContext, GitRepository } from "./types.js";
 import path from 'path';
 import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool, measure } from "./utils.js";
+import micromatch from "micromatch";
 
 const logger = createLogger("GitHub");
 
@@ -110,39 +111,38 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
 
     logger.debug(`Found ${repos.length} total repositories.`);
 
-    if (config.branches) {
-        const branchRegexps = config.branches.map((branch) => {
-            return new RegExp(branch);
-        })
+    if (config.revisions) {
+        if (config.revisions.branches) {
+            const branchGlobs = config.revisions.branches;
+            repos = await Promise.all(
+                repos.map(async (repo) => {
+                    const [owner, name] = repo.name.split('/');
+                    let branches = (await getBranchesForRepo(owner, name, octokit, signal)).map(branch => branch.name);
+                    branches = micromatch.match(branches, branchGlobs);
 
-        repos = await Promise.all(
-            repos.map(async (repo) => {
-                const [owner, name] = repo.name.split('/');
+                    return {
+                        ...repo,
+                        branches,
+                    };
+                })
+            )
+        }
 
-                const revisions: string[] = [];
-                const [tags, branches] = await Promise.all([
-                    getTagsForRepo(owner, name, octokit, signal),
-                    getBranchesForRepo(owner, name, octokit, signal),
-                ]);
+        if (config.revisions.tags) {
+            const tagGlobs = config.revisions.tags;
+            repos = await Promise.all(
+                repos.map(async (repo) => {
+                    const [owner, name] = repo.name.split('/');
+                    let tags = (await getTagsForRepo(owner, name, octokit, signal)).map(tag => tag.name);
+                    tags = micromatch.match(tags, tagGlobs);
 
-                tags.forEach((tag) => revisions.push(tag.name));
-                branches.forEach((branch) => revisions.push(branch.name));
-
-                const filteredRevisions = revisions.filter((revision) => {
-                    for (const branchRegexp of branchRegexps) {
-                        if (branchRegexp.test(revision)) {
-                            return true;
-                        }
-                    }
-                    return false;
-                });
-
-                return {
-                    ...repo,
-                    branches: filteredRevisions,
-                };
-            })
-        );
+                    return {
+                        ...repo,
+                        tags,
+                    };
+                })
+            )
+        }
     }
 
     return repos;

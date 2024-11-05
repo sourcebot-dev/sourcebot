@@ -58,7 +58,11 @@ export interface GitHubConfig {
      */
     repos?: string[];
   };
+  revisions?: GitRevisions;
+}
+export interface GitRevisions {
   branches?: string[];
+  tags?: string[];
 }
 export interface GitLabConfig {
   /**

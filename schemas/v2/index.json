@@ -24,6 +24,26 @@
                 }
             ]
         },
+        "GitRevisions": {
+            "type": "object",
+            "properties": {
+                "branches": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "regexp"
+                    }
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "glob"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
         "GitHubConfig": {
             "type": "object",
             "properties": {
@@ -114,14 +134,8 @@
                     },
                     "additionalProperties": false
                 },
-                "branches": {
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                        "format": "regexp"
-                    },
-                    "default": []
-
+                "revisions": {
+                    "$ref": "#/definitions/GitRevisions"
                 }
             },
             "required": [

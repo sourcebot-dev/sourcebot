@@ -3,7 +3,9 @@ import { fileSourceRequestSchema, fileSourceResponseSchema, listRepositoriesResp
 
 export type KeymapType = "default" | "vim";
 
+export type SearchRequest = z.infer<typeof searchRequestSchema>;
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
+
 export type SearchResult = SearchResponse["Result"];
 export type SearchResultFile = NonNullable<SearchResult["Files"]>[number];
 export type SearchResultFileMatch = SearchResultFile["ChunkMatches"][number];
@@ -15,7 +17,6 @@ export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
 
 export type ListRepositoriesResponse = z.infer<typeof listRepositoriesResponseSchema>;
 export type Repository = z.infer<typeof repositorySchema>;
-export type SearchRequest = z.infer<typeof searchRequestSchema>;
 
 export enum SearchQueryParams {
     query = "query",

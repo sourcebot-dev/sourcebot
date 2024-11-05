@@ -63,14 +63,17 @@ const syncLocalRepository = async (repo: LocalRepository, ctx: AppContext, signa
 export const isRepoReindxingRequired = (previous: Repository, current: Repository) => {
 
     /**
-     * Checks if the `branches` property has changed.
+     * Checks if the any of the `revisions` properties have changed.
      */
-    const isBranchesChanged = () => {
+    const isRevisionsChanged = () => {
         if (previous.vcs !== 'git' || current.vcs !== 'git') {
             return false;
         }
 
-        return !arraysEqualShallow(previous.branches, current.branches);
+        return (
+            !arraysEqualShallow(previous.branches, current.branches) ||
+            !arraysEqualShallow(previous.tags, current.tags)
+        );
     }
 
     /**
@@ -85,7 +88,7 @@ export const isRepoReindxingRequired = (previous: Repository, current: Repositor
     }
 
     return (
-        isBranchesChanged() ||
+        isRevisionsChanged() ||
         isExcludePathsChanged()
     )
 }

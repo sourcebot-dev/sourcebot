@@ -47,7 +47,7 @@ export const searchResponseStats = {
 }
 
 // @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L497
-export const searchResponseSchema = z.object({
+export const zoektSearchResponseSchema = z.object({
     Result: z.object({
         ...searchResponseStats,
         Files: z.array(z.object({
@@ -69,6 +69,12 @@ export const searchResponseSchema = z.object({
             Content: z.string().optional(),
         })).nullable(),
     }),
+});
+
+export const searchResponseSchema = z.object({
+    ...zoektSearchResponseSchema.shape,
+    // Flag when a branch filter was used (e.g., `branch:`, `revision:`, etc.).
+    isBranchFilteringEnabled: z.boolean(),
 });
 
 export const fileSourceRequestSchema = z.object({

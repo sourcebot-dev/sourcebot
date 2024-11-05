@@ -15,6 +15,7 @@ export interface GitRepository extends BaseRepository {
     cloneUrl: string;
     gitConfigMetadata?: Record<string, string>;
     branches?: string[];
+    tags?: string[];
 }
 
 export interface LocalRepository extends BaseRepository {

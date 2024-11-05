@@ -1,12 +1,45 @@
 import escapeStringRegexp from "escape-string-regexp";
 import { SHARD_MAX_MATCH_COUNT, TOTAL_MAX_MATCH_COUNT } from "../environment";
-import { listRepositoriesResponseSchema, searchResponseSchema } from "../schemas";
+import { listRepositoriesResponseSchema, searchResponseSchema, zoektSearchResponseSchema } from "../schemas";
 import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "../types";
 import { fileNotFound, invalidZoektResponse, ServiceError, unexpectedError } from "../serviceError";
 import { isServiceError } from "../utils";
 import { zoektFetch } from "./zoektClient";
 
+// List of supported query prefixes in zoekt.
+// @see : https://github.com/sourcebot-dev/zoekt/blob/main/query/parse.go#L417
+enum zoektPrefixes {
+    archived = "archived:",
+    branchShort = "b:",
+    branch =  "branch:",
+    caseShort =  "c:",
+    case =  "case:",
+    content =  "content:",
+    fileShort =  "f:",
+    file =  "file:",
+    fork =  "fork:",
+    public =  "public:",
+    repoShort =  "r:",
+    repo =  "repo:",
+    regex =  "regex:",
+    lang =  "lang:",
+    sym =  "sym:",
+    typeShort =  "t:",
+    type =  "type:",
+}
+
+// Mapping of additional "alias" prefixes to zoekt prefixes.
+const aliasPrefixMappings: Record<string, zoektPrefixes> = {
+    "rev:": zoektPrefixes.branch,
+    "revision:": zoektPrefixes.branch,
+}
+
 export const search = async ({ query, maxMatchDisplayCount, whole }: SearchRequest): Promise<SearchResponse | ServiceError> => {
+    // Replace any alias prefixes with their corresponding zoekt prefixes.
+    for (const [prefix, zoektPrefix] of Object.entries(aliasPrefixMappings)) {
+        query = query.replaceAll(prefix, zoektPrefix);
+    }
+
     const body = JSON.stringify({
         q: query,
         // @see: https://github.com/sourcebot-dev/zoekt/blob/main/api.go#L892
@@ -31,13 +64,21 @@ export const search = async ({ query, maxMatchDisplayCount, whole }: SearchReque
     }
 
     const searchBody = await searchResponse.json();
-    const parsedSearchResponse = searchResponseSchema.safeParse(searchBody);
+    const parsedSearchResponse = zoektSearchResponseSchema.safeParse(searchBody);
     if (!parsedSearchResponse.success) {
         console.error(`Failed to parse zoekt response. Error: ${parsedSearchResponse.error}`);
         return unexpectedError(`Something went wrong while parsing the response from zoekt`);
     }
 
-    return parsedSearchResponse.data;
+    const isBranchFilteringEnabled = (
+        query.includes(zoektPrefixes.branch) ||
+        query.includes(zoektPrefixes.branchShort)
+    )
+
+    return {
+        ...parsedSearchResponse.data,
+        isBranchFilteringEnabled,
+    }
 }
 
 export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
