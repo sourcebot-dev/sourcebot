@@ -55,7 +55,7 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
             }
 
             return (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 max-h-32 overflow-scroll">
                     {branches.map(({ name, version }, index) => {
                         const shortVersion = version.substring(0, 8);
                         return (
