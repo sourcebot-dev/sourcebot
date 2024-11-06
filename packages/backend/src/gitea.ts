@@ -5,6 +5,7 @@ import { AppContext, GitRepository } from './types.js';
 import fetch from 'cross-fetch';
 import { createLogger } from './logger.js';
 import path from 'path';
+import micromatch from 'micromatch';
 
 const logger = createLogger('Gitea');
 
@@ -79,8 +80,66 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
             repos = excludeReposByName(repos, config.exclude.repos, logger);
         }
     }
+
+    logger.debug(`Found ${repos.length} total repositories.`);
+
+    if (config.revisions) {
+        if (config.revisions.branches) {
+            const branchGlobs = config.revisions.branches;
+            repos = await Promise.all(
+                repos.map(async (repo) => {
+                    const [owner, name] = repo.name.split('/');
+                    let branches = (await getBranchesForRepo(owner, name, api)).map(branch => branch.name!);
+                    branches = micromatch.match(branches, branchGlobs);
+
+                    return {
+                        ...repo,
+                        branches,
+                    };
+                })
+            )
+        }
+
+        if (config.revisions.tags) {
+            const tagGlobs = config.revisions.tags;
+            repos = await Promise.all(
+                repos.map(async (repo) => {
+                    const [owner, name] = repo.name.split('/');
+                    let tags = (await getTagsForRepo(owner, name, api)).map(tag => tag.name!);
+                    tags = micromatch.match(tags, tagGlobs);
+
+                    return {
+                        ...repo,
+                        tags,
+                    };
+                })
+            )
+        }
+    }
     
     return repos;
+}
+
+const getTagsForRepo = async <T>(owner: string, repo: string, api: Api<T>) => {
+    logger.debug(`Fetching tags for repo ${owner}/${repo}...`);
+    const { durationMs, data: tags } = await measure(() =>
+        paginate((page) => api.repos.repoListTags(owner, repo, {
+            page
+        }))
+    );
+    logger.debug(`Found ${tags.length} tags in repo ${owner}/${repo} in ${durationMs}ms.`);
+    return tags;
+}
+
+const getBranchesForRepo = async <T>(owner: string, repo: string, api: Api<T>) => {
+    logger.debug(`Fetching branches for repo ${owner}/${repo}...`);
+    const { durationMs, data: branches } = await measure(() => 
+        paginate((page) => api.repos.repoListBranches(owner, repo, {
+            page
+        }))
+    );
+    logger.debug(`Found ${branches.length} branches in repo ${owner}/${repo} in ${durationMs}ms.`);
+    return branches;
 }
 
 const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {

@@ -167,6 +167,7 @@ export interface GiteaConfig {
      */
     repos?: string[];
   };
+  revisions?: GitRevisions;
 }
 export interface LocalConfig {
   /**

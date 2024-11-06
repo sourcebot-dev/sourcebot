@@ -344,6 +344,9 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "revisions": {
+                    "$ref": "#/definitions/GitRevisions"
                 }
             },
             "required": [
