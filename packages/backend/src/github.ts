@@ -92,6 +92,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
                     'zoekt.public': marshalBool(repo.private === false)
                 },
                 branches: [],
+                tags: [],
             } satisfies GitRepository;
         });
 

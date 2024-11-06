@@ -38,6 +38,9 @@
                         [
                             "main",
                             "release/*"
+                        ],
+                        [
+                            "**"
                         ]
                     ],
                     "default": []
@@ -52,6 +55,9 @@
                         [
                             "latest",
                             "v2.*.*"
+                        ],
+                        [
+                            "**"
                         ]
                     ],
                     "default": []
@@ -245,6 +251,9 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "revisions": {
+                    "$ref": "#/definitions/GitRevisions"
                 }
             },
             "required": [

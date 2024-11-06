@@ -119,6 +119,7 @@ export interface GitLabConfig {
      */
     projects?: string[];
   };
+  revisions?: GitRevisions;
 }
 export interface GiteaConfig {
   /**

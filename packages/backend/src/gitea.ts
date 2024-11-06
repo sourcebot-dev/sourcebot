@@ -60,7 +60,9 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
                     'zoekt.archived': marshalBool(repo.archived),
                     'zoekt.fork': marshalBool(repo.fork!),
                     'zoekt.public': marshalBool(repo.internal === false && repo.private === false),
-                }
+                },
+                branches: [],
+                tags: []
             } satisfies GitRepository;
         });
     
