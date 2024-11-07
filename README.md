@@ -267,6 +267,46 @@ docker run -e <b>GITEA_TOKEN=my-secret-token</b> /* additional args */ ghcr.io/s
 
 If you're using a self-hosted GitLab or GitHub instance with a custom domain, you can specify the domain in your config file. See [configs/self-hosted.json](configs/self-hosted.json) for examples.
 
+## Searching multiple branches
+
+By default, Sourcebot will index the default branch. To configure Sourcebot to index multiple branches (or tags), the `revisions` field can be used:
+
+```jsonc
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v2/index.json",
+    "repos": [
+        {
+            "type": "github",
+            "revisions": {
+                // Index the `main` branch and any branches matching the `releases/*` glob pattern.
+                "branches": [
+                    "main",
+                    "releases/*"
+                ],
+                // Index the `latest` tag and any tags matching the `v*.*.*` glob pattern.
+                "tags": [
+                    "latest",
+                    "v*.*.*"
+                ]
+            },
+            "repos": [
+                "my_org/repo_a",
+                "my_org/repo_b"
+            ]
+        }
+    ]
+}
+```
+
+For each repository (in this case, `repo_a` and `repo_b`), Sourcebot will index all branches and tags matching the `branches` and `tags` patterns provided. Any branches or tags that don't match the patterns will be ignored and not indexed.
+
+To search on a specific revision, use the `revision` filter in the search bar:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/images/revisions_filter_dark.png">
+  <img style="max-width:700px;width:100%" src=".github/images/revisions_filter_light.png">
+</picture>
+
 ## Searching a local directory
 
 Local directories can be searched by using the `local` type in your config file:

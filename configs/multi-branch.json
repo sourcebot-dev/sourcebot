@@ -1,0 +1,26 @@
+{
+    "$schema": "../schemas/v2/index.json",
+    "repos": [
+        {
+            "type": "github",
+            "revisions": {
+                 // Specify branches to index...
+                "branches": [
+                    "main",
+                    "release/*"
+                ],
+                // ... or specify tags
+                "tags": [
+                    "v*.*.*"
+                ]
+            },
+            // For each repo (repoa, repob), Sourcebot will index all branches and tags in the repo
+            // matching the `branches` and `tags` patterns above. Any branches or tags that don't
+            // match the patterns will be ignored and not indexed.
+            "repos": [
+                "org/repoa",
+                "org/repob"
+            ]
+        }
+   ]
+}
