@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2024-11-06
+
 ### Added
 
 - Added support for indexing and searching repositories across multiple revisions (tag or branch). ([#58](https://github.com/sourcebot-dev/sourcebot/pull/58))
