@@ -10,7 +10,7 @@ import { AppContext, LocalRepository, GitRepository, Repository } from "./types.
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
 import { createRepository, Database, loadDB, updateRepository } from './db.js';
-import { isRemotePath, measure } from "./utils.js";
+import { arraysEqualShallow, isRemotePath, measure } from "./utils.js";
 import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
 import stripJsonComments from 'strip-json-comments';
 import { indexGitRepository, indexLocalRepository } from "./zoekt.js";
@@ -30,16 +30,21 @@ type Arguments = {
 const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
     if (existsSync(repo.path)) {
         logger.info(`Fetching ${repo.id}...`);
+
         const { durationMs } = await measure(() => fetchRepository(repo, ({ method, stage , progress}) => {
             logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
         }));
+
         process.stdout.write('\n');
         logger.info(`Fetched ${repo.id} in ${durationMs / 1000}s`);
+
     } else {
         logger.info(`Cloning ${repo.id}...`);
+
         const { durationMs } = await measure(() => cloneRepository(repo, ({ method, stage, progress }) => {
             logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
         }));
+
         process.stdout.write('\n');
         logger.info(`Cloned ${repo.id} in ${durationMs / 1000}s`);
     }
@@ -53,6 +58,39 @@ const syncLocalRepository = async (repo: LocalRepository, ctx: AppContext, signa
     logger.info(`Indexing ${repo.id}...`);
     const { durationMs } = await measure(() => indexLocalRepository(repo, ctx, signal));
     logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
+}
+
+export const isRepoReindxingRequired = (previous: Repository, current: Repository) => {
+
+    /**
+     * Checks if the any of the `revisions` properties have changed.
+     */
+    const isRevisionsChanged = () => {
+        if (previous.vcs !== 'git' || current.vcs !== 'git') {
+            return false;
+        }
+
+        return (
+            !arraysEqualShallow(previous.branches, current.branches) ||
+            !arraysEqualShallow(previous.tags, current.tags)
+        );
+    }
+
+    /**
+     * Check if the `exclude.paths` property has changed.
+     */
+    const isExcludePathsChanged = () => {
+        if (previous.vcs !== 'local' || current.vcs !== 'local') {
+            return false;
+        }
+
+        return !arraysEqualShallow(previous.excludedPaths, current.excludedPaths);
+    }
+
+    return (
+        isRevisionsChanged() ||
+        isExcludePathsChanged()
+    )
 }
 
 const syncConfig = async (configPath: string, db: Database, signal: AbortSignal, ctx: AppContext) => {
@@ -121,7 +159,17 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     // Merge the repositories into the database
     for (const newRepo of configRepos) {
         if (newRepo.id in db.data.repos) {
-            await updateRepository(newRepo.id, newRepo, db);
+            const existingRepo = db.data.repos[newRepo.id];
+            const isReindexingRequired = isRepoReindxingRequired(existingRepo, newRepo);
+            if (isReindexingRequired) {
+                logger.info(`Marking ${newRepo.id} for reindexing due to configuration change.`);
+            }
+            await updateRepository(existingRepo.id, {
+                ...newRepo,
+                ...(isReindexingRequired ? {
+                    lastIndexedDate: undefined,
+                }: {})
+            }, db);
         } else {
             await createRepository(newRepo, db);
         }

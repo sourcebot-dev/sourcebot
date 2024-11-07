@@ -77,35 +77,55 @@ export default function SearchPage() {
         });
     }, [captureEvent, searchResponse]);
 
-    const { fileMatches, searchDurationMs } = useMemo((): { fileMatches: SearchResultFile[], searchDurationMs: number } => {
+    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled } = useMemo(() => {
         if (!searchResponse) {
             return {
                 fileMatches: [],
                 searchDurationMs: 0,
+                totalMatchCount: 0,
+                isBranchFilteringEnabled: false,
             };
         }
 
-        return {
-            fileMatches: searchResponse.Result.Files ?? [],
-            searchDurationMs: Math.round(searchResponse.Result.Duration / 1000000),
+        const isBranchFilteringEnabled = searchResponse.isBranchFilteringEnabled;
+        let fileMatches = searchResponse.Result.Files ?? [];
+
+        // We only want to show matches for the default branch when
+        // the user isn't explicitly filtering by branch.
+        if (!isBranchFilteringEnabled) {
+            fileMatches = fileMatches.filter(match => {
+                // @note : this case handles local repos that don't have any branches.
+                if (!match.Branches) {
+                    return true;
+                }
+
+                return match.Branches.includes("HEAD");
+            });
         }
-    }, [searchResponse]);
+
+        return {
+            fileMatches,
+            searchDurationMs: Math.round(searchResponse.Result.Duration / 1000000),
+            totalMatchCount: searchResponse.Result.MatchCount,
+            isBranchFilteringEnabled,
+        }
+    }, [searchResponse, searchQuery]);
 
     const isMoreResultsButtonVisible = useMemo(() => {
-        return searchResponse && searchResponse.Result.MatchCount > maxMatchDisplayCount;
-    }, [searchResponse, maxMatchDisplayCount]);
+        return totalMatchCount > maxMatchDisplayCount;
+    }, [totalMatchCount, maxMatchDisplayCount]);
 
     const numMatches = useMemo(() => {
         // Accumualtes the number of matches across all files
-        return searchResponse?.Result.Files?.reduce(
+        return fileMatches.reduce(
             (acc, file) =>
                 acc + file.ChunkMatches.reduce(
                     (acc, chunk) => acc + chunk.Ranges.length,
                     0,
                 ),
             0,
-        ) ?? 0;
-    }, [searchResponse]);
+        );
+    }, [fileMatches]);
 
     const onLoadMoreResults = useCallback(() => {
         const url = createPathWithQueryParams('/search',
@@ -151,8 +171,8 @@ export default function SearchPage() {
                 {!isLoading && (
                     <div className="bg-accent py-1 px-2 flex flex-row items-center gap-4">
                         {
-                            fileMatches.length > 0 && searchResponse ? (
-                                <p className="text-sm font-medium">{`[${searchDurationMs} ms] Displaying ${numMatches} of ${searchResponse.Result.MatchCount} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
+                            fileMatches.length > 0 ? (
+                                <p className="text-sm font-medium">{`[${searchDurationMs} ms] Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
                             ) : (
                                 <p className="text-sm font-medium">No results</p>
                             )
@@ -180,6 +200,7 @@ export default function SearchPage() {
                     fileMatches={fileMatches}
                     isMoreResultsButtonVisible={isMoreResultsButtonVisible}
                     onLoadMoreResults={onLoadMoreResults}
+                    isBranchFilteringEnabled={isBranchFilteringEnabled}
                 />
             )}
         </div>
@@ -190,12 +211,14 @@ interface PanelGroupProps {
     fileMatches: SearchResultFile[];
     isMoreResultsButtonVisible?: boolean;
     onLoadMoreResults: () => void;
+    isBranchFilteringEnabled: boolean;
 }
 
 const PanelGroup = ({
     fileMatches,
     isMoreResultsButtonVisible,
     onLoadMoreResults,
+    isBranchFilteringEnabled,
 }: PanelGroupProps) => {
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
     const [selectedFile, setSelectedFile] = useState<SearchResultFile | undefined>(undefined);
@@ -253,6 +276,7 @@ const PanelGroup = ({
                         }}
                         isLoadMoreButtonVisible={!!isMoreResultsButtonVisible}
                         onLoadMoreButtonClicked={onLoadMoreResults}
+                        isBranchFilteringEnabled={isBranchFilteringEnabled}
                     />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full">

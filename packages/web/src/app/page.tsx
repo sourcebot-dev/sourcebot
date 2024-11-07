@@ -76,7 +76,7 @@ export default async function Home() {
                                 <Query query="lang:typescript"><Highlight>lang:</Highlight>typescript</Query> <QueryExplanation>(by language)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="branch:HEAD"><Highlight>branch:</Highlight>HEAD</Query> <QueryExplanation>(by branch)</QueryExplanation>
+                                <Query query="revision:HEAD"><Highlight>revision:</Highlight>HEAD</Query> <QueryExplanation>(by branch or tag)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
                         <HowToSection

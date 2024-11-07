@@ -4,6 +4,7 @@ import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenF
 import { createLogger } from "./logger.js";
 import { AppContext, GitRepository } from "./types.js";
 import path from 'path';
+import micromatch from "micromatch";
 
 const logger = createLogger("GitLab");
 
@@ -90,7 +91,9 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
                     'zoekt.archived': marshalBool(project.archived),
                     'zoekt.fork': marshalBool(isFork),
                     'zoekt.public': marshalBool(project.visibility === 'public'),
-                }
+                },
+                branches: [],
+                tags: [],
             } satisfies GitRepository;
         });
 
@@ -109,6 +112,42 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
     }
 
     logger.debug(`Found ${repos.length} total repositories.`);
+
+    if (config.revisions) {
+        if (config.revisions.branches) {
+            const branchGlobs = config.revisions.branches;
+            repos = await Promise.all(repos.map(async (repo) => {
+                logger.debug(`Fetching branches for repo ${repo.name}...`);
+                let { durationMs, data } = await measure(() => api.Branches.all(repo.name));
+                logger.debug(`Found ${data.length} branches in repo ${repo.name} in ${durationMs}ms.`);
+
+                let branches = data.map((branch) => branch.name);
+                branches = micromatch.match(branches, branchGlobs);
+
+                return {
+                    ...repo,
+                    branches,
+                };
+            }));
+        }
+
+        if (config.revisions.tags) {
+            const tagGlobs = config.revisions.tags;
+            repos = await Promise.all(repos.map(async (repo) => {
+                logger.debug(`Fetching tags for repo ${repo.name}...`);
+                let { durationMs, data } = await measure(() => api.Tags.all(repo.name));
+                logger.debug(`Found ${data.length} tags in repo ${repo.name} in ${durationMs}ms.`);
+
+                let tags = data.map((tag) => tag.name);
+                tags = micromatch.match(tags, tagGlobs);
+
+                return {
+                    ...repo,
+                    tags,
+                };
+            }));
+        }
+    }
 
     return repos;
 }

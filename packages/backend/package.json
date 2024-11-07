@@ -12,6 +12,7 @@
     },
     "devDependencies": {
         "@types/argparse": "^2.0.16",
+        "@types/micromatch": "^4.0.9",
         "@types/node": "^22.7.5",
         "json-schema-to-typescript": "^15.0.2",
         "tsc-watch": "^6.2.0",
@@ -25,6 +26,7 @@
         "cross-fetch": "^4.0.0",
         "gitea-js": "^1.22.0",
         "lowdb": "^7.0.1",
+        "micromatch": "^4.0.8",
         "simple-git": "^3.27.0",
         "strip-json-comments": "^5.0.1",
         "winston": "^3.15.0"

@@ -21,16 +21,24 @@ export const CodePreviewPanel = ({
 }: CodePreviewPanelProps) => {
 
     const { data: file } = useQuery({
-        queryKey: ["source", fileMatch?.FileName, fileMatch?.Repository],
+        queryKey: ["source", fileMatch?.FileName, fileMatch?.Repository, fileMatch?.Branches],
         queryFn: async (): Promise<CodePreviewFile | undefined> => {
             if (!fileMatch) {
                 return undefined;
             }
 
-            return fetchFileSource(fileMatch.FileName, fileMatch.Repository)
+            // If there are multiple branches pointing to the same revision of this file, it doesn't
+            // matter which branch we use here, so use the first one.
+            const branch = fileMatch.Branches && fileMatch.Branches.length > 0 ? fileMatch.Branches[0] : undefined;
+
+            return fetchFileSource({
+                fileName: fileMatch.FileName,
+                repository: fileMatch.Repository,
+                branch,
+            })
                 .then(({ source }) => {
                     // @todo : refector this to use the templates provided by zoekt.
-                    const link = getCodeHostFilePreviewLink(fileMatch.Repository, fileMatch.FileName)
+                    const link = getCodeHostFilePreviewLink(fileMatch.Repository, fileMatch.FileName, branch);
 
                     const decodedSource = base64Decode(source);
 
