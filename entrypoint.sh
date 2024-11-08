@@ -15,23 +15,47 @@ fi
 
 # In order to detect if this is the first run, we create a `.installed` file in
 # the cache directory.
-FIRST_RUN_FILE="$DATA_CACHE_DIR/.installed"
+FIRST_RUN_FILE="$DATA_CACHE_DIR/.installedv2"
+
 if [ ! -f "$FIRST_RUN_FILE" ]; then
     touch "$FIRST_RUN_FILE"
-
+    SOURCEBOT_INSTALL_ID=$(uuidgen)
+    
     # If this is our first run, send a `install` event to PostHog
     # (if telemetry is enabled)
     if [ -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
         curl -L -s --header "Content-Type: application/json" -d '{
             "api_key": "'"$NEXT_PUBLIC_POSTHOG_KEY"'",
             "event": "install",
-            "distinct_id": "'"$(uuidgen)"'",
+            "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
             "properties": {
                 "sourcebot_version": "'"$SOURCEBOT_VERSION"'"
             }
         }' https://us.i.posthog.com/capture/ > /dev/null
     fi
+else
+    SOURCEBOT_INSTALL_ID=$(cat "$FIRST_RUN_FILE" | jq -r '.install_id')
+    PREVIOUS_VERSION=$(cat "$FIRST_RUN_FILE" | jq -r '.version')
+
+    # If the version has changed, we assume an upgrade has occurred.
+    if [ "$PREVIOUS_VERSION" != "$SOURCEBOT_VERSION" ]; then
+        echo -e "\e[34m[Info] Upgraded from version $PREVIOUS_VERSION to $SOURCEBOT_VERSION\e[0m"
+
+        if [ -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
+            curl -L -s --header "Content-Type: application/json" -d '{
+                "api_key": "'"$NEXT_PUBLIC_POSTHOG_KEY"'",
+                "event": "upgrade",
+                "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
+                "properties": {
+                    "from_version": "'"$PREVIOUS_VERSION"'",
+                    "to_version": "'"$SOURCEBOT_VERSION"'"
+                }
+            }' https://us.i.posthog.com/capture/ > /dev/null
+        fi
+    fi
 fi
+
+echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL_ID\"}" > "$FIRST_RUN_FILE"
 
 # Fallback to sample config if a config does not exist
 if echo "$CONFIG_PATH" | grep -qE '^https?://'; then
