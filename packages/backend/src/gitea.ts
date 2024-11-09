@@ -47,6 +47,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
 
             return {
                 vcs: 'git',
+                codeHost: 'gitea',
                 name: repo.full_name!,
                 id: repoId,
                 cloneUrl: cloneUrl.toString(),

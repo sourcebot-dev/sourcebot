@@ -55,7 +55,8 @@ RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
 ENV SOURCEBOT_LOG_LEVEL=info
 
 # @note: This is also set in .env
-ENV NEXT_PUBLIC_POSTHOG_KEY=phc_VFn4CkEGHRdlVyOOw8mfkoj1DKVoG6y1007EClvzAnS
+ENV POSTHOG_KEY=phc_VFn4CkEGHRdlVyOOw8mfkoj1DKVoG6y1007EClvzAnS
+ENV NEXT_PUBLIC_POSTHOG_KEY=$POSTHOG_KEY
 
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1

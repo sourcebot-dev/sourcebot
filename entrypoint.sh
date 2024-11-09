@@ -19,13 +19,13 @@ FIRST_RUN_FILE="$DATA_CACHE_DIR/.installedv2"
 
 if [ ! -f "$FIRST_RUN_FILE" ]; then
     touch "$FIRST_RUN_FILE"
-    SOURCEBOT_INSTALL_ID=$(uuidgen)
+    export SOURCEBOT_INSTALL_ID=$(uuidgen)
     
     # If this is our first run, send a `install` event to PostHog
     # (if telemetry is enabled)
     if [ -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
         curl -L -s --header "Content-Type: application/json" -d '{
-            "api_key": "'"$NEXT_PUBLIC_POSTHOG_KEY"'",
+            "api_key": "'"$POSTHOG_KEY"'",
             "event": "install",
             "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
             "properties": {
@@ -34,7 +34,7 @@ if [ ! -f "$FIRST_RUN_FILE" ]; then
         }' https://us.i.posthog.com/capture/ > /dev/null
     fi
 else
-    SOURCEBOT_INSTALL_ID=$(cat "$FIRST_RUN_FILE" | jq -r '.install_id')
+    export SOURCEBOT_INSTALL_ID=$(cat "$FIRST_RUN_FILE" | jq -r '.install_id')
     PREVIOUS_VERSION=$(cat "$FIRST_RUN_FILE" | jq -r '.version')
 
     # If the version has changed, we assume an upgrade has occurred.
@@ -43,7 +43,7 @@ else
 
         if [ -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
             curl -L -s --header "Content-Type: application/json" -d '{
-                "api_key": "'"$NEXT_PUBLIC_POSTHOG_KEY"'",
+                "api_key": "'"$POSTHOG_KEY"'",
                 "event": "upgrade",
                 "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
                 "properties": {

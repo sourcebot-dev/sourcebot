@@ -1,6 +1,6 @@
 import { ArgumentParser } from "argparse";
 import { mkdir, readFile } from 'fs/promises';
-import { existsSync, watch, FSWatcher } from 'fs';
+import { existsSync, watch } from 'fs';
 import path from 'path';
 import { SourcebotConfigurationSchema } from "./schemas/v2.js";
 import { getGitHubReposFromConfig } from "./github.js";
@@ -15,6 +15,7 @@ import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
 import stripJsonComments from 'strip-json-comments';
 import { indexGitRepository, indexLocalRepository } from "./zoekt.js";
 import { getLocalRepoFromConfig, initLocalRepoFileWatchers } from "./local.js";
+import { captureEvent } from "./posthog.js";
 
 const logger = createLogger('main');
 
@@ -172,6 +173,11 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             }, db);
         } else {
             await createRepository(newRepo, db);
+
+            captureEvent("repo_created", {
+                vcs: newRepo.vcs,
+                codeHost: newRepo.codeHost,
+            });
         }
     }
 

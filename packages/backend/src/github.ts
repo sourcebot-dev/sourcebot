@@ -72,6 +72,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
             
             return {
                 vcs: 'git',
+                codeHost: 'github',
                 name: repo.full_name,
                 id: repoId,
                 cloneUrl: cloneUrl.toString(),
