@@ -29,15 +29,19 @@ type Arguments = {
 }
 
 const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
+    let fetchDuration_s: number | undefined = undefined;
+    let cloneDuration_s: number | undefined = undefined;
+
     if (existsSync(repo.path)) {
         logger.info(`Fetching ${repo.id}...`);
 
         const { durationMs } = await measure(() => fetchRepository(repo, ({ method, stage , progress}) => {
             logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
         }));
+        fetchDuration_s = durationMs / 1000;
 
         process.stdout.write('\n');
-        logger.info(`Fetched ${repo.id} in ${durationMs / 1000}s`);
+        logger.info(`Fetched ${repo.id} in ${fetchDuration_s}s`);
 
     } else {
         logger.info(`Cloning ${repo.id}...`);
@@ -45,20 +49,32 @@ const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
         const { durationMs } = await measure(() => cloneRepository(repo, ({ method, stage, progress }) => {
             logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
         }));
+        cloneDuration_s = durationMs / 1000;
 
         process.stdout.write('\n');
-        logger.info(`Cloned ${repo.id} in ${durationMs / 1000}s`);
+        logger.info(`Cloned ${repo.id} in ${cloneDuration_s}s`);
     }
 
     logger.info(`Indexing ${repo.id}...`);
     const { durationMs } = await measure(() => indexGitRepository(repo, ctx));
-    logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
+    const indexDuration_s = durationMs / 1000;
+    logger.info(`Indexed ${repo.id} in ${indexDuration_s}s`);
+
+    return {
+        fetchDuration_s,
+        cloneDuration_s,
+        indexDuration_s,
+    }
 }
 
 const syncLocalRepository = async (repo: LocalRepository, ctx: AppContext, signal?: AbortSignal) => {
     logger.info(`Indexing ${repo.id}...`);
     const { durationMs } = await measure(() => indexLocalRepository(repo, ctx, signal));
-    logger.info(`Indexed ${repo.id} in ${durationMs / 1000}s`);
+    const indexDuration_s = durationMs / 1000;
+    logger.info(`Indexed ${repo.id} in ${indexDuration_s}s`);
+    return {
+        indexDuration_s,
+    }
 }
 
 export const isRepoReindxingRequired = (previous: Repository, current: Repository) => {
@@ -303,11 +319,27 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             }
 
             try {
+                let indexDuration_s: number | undefined;
+                let fetchDuration_s: number | undefined;
+                let cloneDuration_s: number | undefined;
+
                 if (repo.vcs === 'git') {
-                    await syncGitRepository(repo, context);
+                    const stats = await syncGitRepository(repo, context);
+                    indexDuration_s = stats.indexDuration_s;
+                    fetchDuration_s = stats.fetchDuration_s;
+                    cloneDuration_s = stats.cloneDuration_s;
                 } else if (repo.vcs === 'local') {
-                    await syncLocalRepository(repo, context);
+                    const stats = await syncLocalRepository(repo, context);
+                    indexDuration_s = stats.indexDuration_s;
                 }
+
+                captureEvent('repo_synced', {
+                    vcs: repo.vcs,
+                    codeHost: repo.codeHost,
+                    indexDuration_s,
+                    fetchDuration_s,
+                    cloneDuration_s,
+                });
             } catch (err: any) {
                 // @todo : better error handling here..
                 logger.error(err);
@@ -318,5 +350,6 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
         }
 
         await new Promise(resolve => setTimeout(resolve, 1000));
+
     }
 })();
