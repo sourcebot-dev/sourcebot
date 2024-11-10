@@ -75,6 +75,7 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
 
             return {
                 vcs: 'git',
+                codeHost: 'gitlab',
                 name: project.path_with_namespace,
                 id: repoId,
                 cloneUrl: cloneUrl.toString(),

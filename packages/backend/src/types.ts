@@ -8,6 +8,7 @@ interface BaseRepository {
     lastIndexedDate?: string;
     isFork?: boolean;
     isArchived?: boolean;
+    codeHost?: string;
 }
 
 export interface GitRepository extends BaseRepository {
