@@ -5,6 +5,7 @@
     ],
     "scripts": {
         "build": "yarn workspaces run build",
+        "test": "yarn workspace @sourcebot/backend test",
         "dev": "npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web",
         "dev:zoekt": "export PATH=\"$PWD/bin:$PATH\" && zoekt-webserver -index .sourcebot/index -rpc",
         "dev:backend": "yarn workspace @sourcebot/backend dev:watch",

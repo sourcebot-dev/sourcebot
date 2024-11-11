@@ -75,10 +75,19 @@ export const resolvePathRelativeToConfig = (localPath: string, configPath: strin
     return absolutePath;
 }
 
-export const arraysEqualShallow = <T>(a?: T[], b?: T[]) => {
+export const arraysEqualShallow = <T>(a?: readonly T[], b?: readonly T[]) => {
     if (a === b) return true;
     if (a === undefined || b === undefined) return false;
     if (a.length !== b.length) return false;
 
-    return a.every(item => b.includes(item)) && b.every(item => a.includes(item));
+    const aSorted = a.toSorted();
+    const bSorted = b.toSorted();
+
+    for (let i = 0; i < aSorted.length; i++) {
+        if (aSorted[i] !== bSorted[i]) {
+            return false;
+        }
+    }
+
+    return true;
 }
