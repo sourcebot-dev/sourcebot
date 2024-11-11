@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.1] - 2024-11-11
+
 ### Added
 
 - Added additional telemetry events. ([#63](https://github.com/sourcebot-dev/sourcebot/pull/63))
