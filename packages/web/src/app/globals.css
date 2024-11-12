@@ -87,6 +87,10 @@
   border: solid;
 }
 
+.cm-editor.cm-focused {
+  outline: none !important;
+}
+
 .truncate-start {
   direction: rtl;
   text-align: left;
