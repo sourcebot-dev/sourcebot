@@ -1,6 +1,6 @@
 'use client';
 
-import { useThemeNormalized } from "@/hooks/useThemeNormalized";
+import { useTailwind } from "@/hooks/useTailwind";
 import { SearchQueryParams } from "@/lib/types";
 import { cn, createPathWithQueryParams } from "@/lib/utils";
 import {
@@ -26,12 +26,12 @@ import {
     selectLineBoundaryBackward,
     selectLineBoundaryForward
 } from "@codemirror/commands";
+import { createTheme } from '@uiw/codemirror-themes';
 import CodeMirror, { KeyBinding, keymap, ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
-
 const searchBarKeymap: readonly KeyBinding[] = ([
     { key: "ArrowLeft", run: cursorCharLeft, shift: selectCharLeft, preventDefault: true },
     { key: "ArrowRight", run: cursorCharRight, shift: selectCharRight, preventDefault: true },
@@ -59,7 +59,6 @@ interface SearchBarProps {
     autoFocus?: boolean;
 }
 
-
 const searchBarVariants = cva(
     "flex items-center w-full p-0.5 border rounded-md",
     {
@@ -82,8 +81,20 @@ export const SearchBar = ({
     autoFocus,
 }: SearchBarProps) => {
 
+    const tailwind = useTailwind();
+    const theme = useMemo(() => {
+        return createTheme({
+            theme: 'light',
+            settings: {
+                background: tailwind.theme.colors.background,
+                foreground: tailwind.theme.colors.foreground,
+                caret: '#AEAFAD',
+            },
+            styles: [],
+        });
+    }, []);
+
     const [query, setQuery] = useState(defaultQuery ?? "");
-    const { theme } = useThemeNormalized();
     const editorRef = useRef<ReactCodeMirrorRef>(null);
 
     useHotkeys('/', (event) => {
@@ -124,7 +135,7 @@ export const SearchBar = ({
                 onChange={(value) => {
                     setQuery(value);
                 }}
-                theme={theme === 'dark' ? 'dark' : 'light'}
+                theme={theme}
                 basicSetup={false}
                 extensions={[
                     keymap.of(searchBarKeymap),
