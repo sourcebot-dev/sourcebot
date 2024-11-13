@@ -26,12 +26,22 @@ import {
     selectLineBoundaryBackward,
     selectLineBoundaryForward
 } from "@codemirror/commands";
+import { LanguageSupport, StreamLanguage } from "@codemirror/language";
+import { tags as t } from '@lezer/highlight';
 import { createTheme } from '@uiw/codemirror-themes';
 import CodeMirror, { KeyBinding, keymap, ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
+
+interface SearchBarProps {
+    className?: string;
+    size?: "default" | "sm";
+    defaultQuery?: string;
+    autoFocus?: boolean;
+}
+
 const searchBarKeymap: readonly KeyBinding[] = ([
     { key: "ArrowLeft", run: cursorCharLeft, shift: selectCharLeft, preventDefault: true },
     { key: "ArrowRight", run: cursorCharRight, shift: selectCharRight, preventDefault: true },
@@ -52,12 +62,30 @@ const searchBarKeymap: readonly KeyBinding[] = ([
     { mac: "Mod-Delete", run: deleteLineBoundaryForward }
 ] as KeyBinding[]).concat(historyKeymap);
 
-interface SearchBarProps {
-    className?: string;
-    size?: "default" | "sm";
-    defaultQuery?: string;
-    autoFocus?: boolean;
+const zoektLanguage = StreamLanguage.define({
+    token: (stream) => {
+        if (stream.match(/-?(file|branch|revision|rev|case|repo|lang|content|sym):/)) {
+            return t.keyword.toString();
+        }
+
+        if (stream.match(/\bor\b/)) {
+            return t.keyword.toString();
+        }
+
+        stream.next();
+        return null;
+    },
+});
+
+const zoekt = () =>{
+    return new LanguageSupport(zoektLanguage);
 }
+
+const extensions = [
+    keymap.of(searchBarKeymap),
+    history(),
+    zoekt()
+];
 
 const searchBarVariants = cva(
     "flex items-center w-full p-0.5 border rounded-md",
@@ -72,7 +100,7 @@ const searchBarVariants = cva(
             size: "default",
         }
     }
-)
+);
 
 export const SearchBar = ({
     className,
@@ -80,8 +108,9 @@ export const SearchBar = ({
     defaultQuery,
     autoFocus,
 }: SearchBarProps) => {
-
+    const router = useRouter();
     const tailwind = useTailwind();
+
     const theme = useMemo(() => {
         return createTheme({
             theme: 'light',
@@ -90,9 +119,14 @@ export const SearchBar = ({
                 foreground: tailwind.theme.colors.foreground,
                 caret: '#AEAFAD',
             },
-            styles: [],
+            styles: [
+                {
+                    tag: t.keyword,
+                    color: tailwind.theme.colors.highlight,
+                },
+            ],
         });
-    }, []);
+    }, [tailwind]);
 
     const [query, setQuery] = useState(defaultQuery ?? "");
     const editorRef = useRef<ReactCodeMirrorRef>(null);
@@ -107,8 +141,6 @@ export const SearchBar = ({
             });
         }
     });
-
-    const router = useRouter();
 
     const onSubmit = () => {
         const url = createPathWithQueryParams('/search',
@@ -137,10 +169,7 @@ export const SearchBar = ({
                 }}
                 theme={theme}
                 basicSetup={false}
-                extensions={[
-                    keymap.of(searchBarKeymap),
-                    history(),
-                ]}
+                extensions={extensions}
                 indentWithTab={false}
                 autoFocus={autoFocus ?? false}
             />
