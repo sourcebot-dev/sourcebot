@@ -17,6 +17,7 @@
 		"pretty": true,
 		"resolveJsonModule": true,
 		"skipLibCheck": true,
+		"lib": ["ES2023"],
 		"strict": true,
 		"sourceMap": true,
         "inlineSources": true
