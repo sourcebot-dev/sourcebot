@@ -1743,6 +1743,15 @@
     "@codemirror/state" "^6.0.0"
     "@codemirror/view" "^6.0.0"
 
+"@uiw/codemirror-themes@^4.23.6":
+  version "4.23.6"
+  resolved "https://registry.yarnpkg.com/@uiw/codemirror-themes/-/codemirror-themes-4.23.6.tgz#47a101733a9c4aa382696178bc4b7bc0ecf0e5fa"
+  integrity sha512-0dpuLQW+V6zrKvfvor/eo71V3tpr2L2Hsu8QZAdtSzksjWABxTOzH3ShaBRxCEsrz6sU9sa9o7ShwBMMDz59bQ==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@codemirror/state" "^6.0.0"
+    "@codemirror/view" "^6.0.0"
+
 "@uiw/react-codemirror@^4.23.0":
   version "4.23.5"
   resolved "https://registry.yarnpkg.com/@uiw/react-codemirror/-/react-codemirror-4.23.5.tgz#6a16c23062067732cba105ac33ad69cf8e5c2111"

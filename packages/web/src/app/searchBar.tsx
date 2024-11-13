@@ -1,22 +1,39 @@
 'use client';
 
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { useTailwind } from "@/hooks/useTailwind";
+import { SearchQueryParams } from "@/lib/types";
 import { cn, createPathWithQueryParams } from "@/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
+import {
+    cursorCharLeft,
+    cursorCharRight,
+    cursorDocEnd,
+    cursorDocStart,
+    cursorLineBoundaryBackward,
+    cursorLineBoundaryForward,
+    deleteCharBackward,
+    deleteCharForward,
+    deleteGroupBackward,
+    deleteGroupForward,
+    deleteLineBoundaryBackward,
+    deleteLineBoundaryForward,
+    history,
+    historyKeymap,
+    selectAll,
+    selectCharLeft,
+    selectCharRight,
+    selectDocEnd,
+    selectDocStart,
+    selectLineBoundaryBackward,
+    selectLineBoundaryForward
+} from "@codemirror/commands";
+import { LanguageSupport, StreamLanguage } from "@codemirror/language";
+import { tags as t } from '@lezer/highlight';
+import { createTheme } from '@uiw/codemirror-themes';
+import CodeMirror, { KeyBinding, keymap, ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { useHotkeys } from 'react-hotkeys-hook'
-import { useRef } from "react";
-import { SearchQueryParams } from "@/lib/types";
+import { useMemo, useRef, useState } from "react";
+import { useHotkeys } from 'react-hotkeys-hook';
 
 interface SearchBarProps {
     className?: string;
@@ -25,12 +42,53 @@ interface SearchBarProps {
     autoFocus?: boolean;
 }
 
-const formSchema = z.object({
-    query: z.string(),
+const searchBarKeymap: readonly KeyBinding[] = ([
+    { key: "ArrowLeft", run: cursorCharLeft, shift: selectCharLeft, preventDefault: true },
+    { key: "ArrowRight", run: cursorCharRight, shift: selectCharRight, preventDefault: true },
+
+    { key: "Home", run: cursorLineBoundaryBackward, shift: selectLineBoundaryBackward, preventDefault: true },
+    { key: "Mod-Home", run: cursorDocStart, shift: selectDocStart },
+
+    { key: "End", run: cursorLineBoundaryForward, shift: selectLineBoundaryForward, preventDefault: true },
+    { key: "Mod-End", run: cursorDocEnd, shift: selectDocEnd },
+
+    { key: "Mod-a", run: selectAll },
+
+    { key: "Backspace", run: deleteCharBackward, shift: deleteCharBackward },
+    { key: "Delete", run: deleteCharForward },
+    { key: "Mod-Backspace", mac: "Alt-Backspace", run: deleteGroupBackward },
+    { key: "Mod-Delete", mac: "Alt-Delete", run: deleteGroupForward },
+    { mac: "Mod-Backspace", run: deleteLineBoundaryBackward },
+    { mac: "Mod-Delete", run: deleteLineBoundaryForward }
+] as KeyBinding[]).concat(historyKeymap);
+
+const zoektLanguage = StreamLanguage.define({
+    token: (stream) => {
+        if (stream.match(/-?(file|branch|revision|rev|case|repo|lang|content|sym):/)) {
+            return t.keyword.toString();
+        }
+
+        if (stream.match(/\bor\b/)) {
+            return t.keyword.toString();
+        }
+
+        stream.next();
+        return null;
+    },
 });
 
+const zoekt = () =>{
+    return new LanguageSupport(zoektLanguage);
+}
+
+const extensions = [
+    keymap.of(searchBarKeymap),
+    history(),
+    zoekt()
+];
+
 const searchBarVariants = cva(
-    "w-full",
+    "flex items-center w-full p-0.5 border rounded-md",
     {
         variants: {
             size: {
@@ -42,7 +100,7 @@ const searchBarVariants = cva(
             size: "default",
         }
     }
-)
+);
 
 export const SearchBar = ({
     className,
@@ -50,55 +108,71 @@ export const SearchBar = ({
     defaultQuery,
     autoFocus,
 }: SearchBarProps) => {
+    const router = useRouter();
+    const tailwind = useTailwind();
 
-    const inputRef = useRef<HTMLInputElement>(null);
+    const theme = useMemo(() => {
+        return createTheme({
+            theme: 'light',
+            settings: {
+                background: tailwind.theme.colors.background,
+                foreground: tailwind.theme.colors.foreground,
+                caret: '#AEAFAD',
+            },
+            styles: [
+                {
+                    tag: t.keyword,
+                    color: tailwind.theme.colors.highlight,
+                },
+            ],
+        });
+    }, [tailwind]);
+
+    const [query, setQuery] = useState(defaultQuery ?? "");
+    const editorRef = useRef<ReactCodeMirrorRef>(null);
+
     useHotkeys('/', (event) => {
         event.preventDefault();
-        inputRef.current?.focus();
-    });
-
-    const router = useRouter();
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            query: defaultQuery ?? "",
+        editorRef.current?.view?.focus();
+        if (editorRef.current?.view) {
+            cursorDocEnd({
+                state: editorRef.current.view.state,
+                dispatch: editorRef.current.view.dispatch,
+            });
         }
     });
 
-    const onSubmit = (values: z.infer<typeof formSchema>) => {
+    const onSubmit = () => {
         const url = createPathWithQueryParams('/search',
-            [SearchQueryParams.query, values.query],
+            [SearchQueryParams.query, query],
         )
         router.push(url);
     }
 
     return (
-        <Form {...form}>
-            <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="w-full"
-            >
-                <FormField
-                    control={form.control}
-                    name="query"
-                    render={( { field }) => (
-                        <FormItem>
-                            <FormControl>
-                                <Input
-                                    placeholder="Search..."
-                                    className={cn(searchBarVariants({ size, className }))}
-                                    {...field}
-                                    ref={inputRef}
-                                    autoFocus={autoFocus ?? false}
-                                    // This is needed to prevent mobile browsers from zooming in when the input is focused
-                                    style={{ fontSize: '1rem' }}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </form>
-        </Form>
+        <div
+            className={cn(searchBarVariants({ size, className }))}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onSubmit();
+                }
+            }}
+        >
+            <CodeMirror
+                ref={editorRef}
+                className="grow"
+                placeholder={"Search..."}
+                value={query}
+                onChange={(value) => {
+                    setQuery(value);
+                }}
+                theme={theme}
+                basicSetup={false}
+                extensions={extensions}
+                indentWithTab={false}
+                autoFocus={autoFocus ?? false}
+            />
+        </div>
     )
 }

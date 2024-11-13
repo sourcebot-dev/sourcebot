@@ -148,7 +148,7 @@ const HowToSection = ({ title, children }: { title: string, children: React.Reac
 
 const Highlight = ({ children }: { children: React.ReactNode }) => {
     return (
-        <span className="text-blue-700 dark:text-blue-500">
+        <span className="text-highlight">
             {children}
         </span>
     )
