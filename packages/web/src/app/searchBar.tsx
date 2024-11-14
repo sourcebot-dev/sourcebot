@@ -34,6 +34,7 @@ import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
+import Fuse from "fuse.js";
 
 interface SearchBarProps {
     className?: string;
@@ -88,7 +89,7 @@ const extensions = [
 ];
 
 const searchBarVariants = cva(
-    "flex items-center w-full p-0.5 border rounded-md",
+    "flex items-center w-full p-0.5 border rounded-md relative",
     {
         variants: {
             size: {
@@ -101,6 +102,24 @@ const searchBarVariants = cva(
         }
     }
 );
+
+const searchPrefixes = [
+    "repo:",
+    "-repo:",
+    "file:",
+    "-file:"
+];
+
+const repos = [
+    "github.com/git/git",
+    "github.com/golang/go",
+    "github.com/torvalds/linux",
+    "github.com/microsoft/vscode",
+    "github.com/microsoft/vscode-docs",
+    "github.com/rust-lang/rust",
+]
+
+type SuggestionMode = "none" | "repo";
 
 export const SearchBar = ({
     className,
@@ -149,6 +168,49 @@ export const SearchBar = ({
         router.push(url);
     }
 
+    const { allSuggestions, suggestionQuery } = useMemo<{ allSuggestions: string[], suggestionQuery: string }>(() => {
+        const queryParts = query.split(" ");
+        if (queryParts.length === 0) {
+            return {
+                allSuggestions: [],
+                suggestionQuery: "",
+            }
+        }
+        const end = queryParts[queryParts.length - 1];
+
+        if (end.startsWith("repo:") || end.startsWith("-repo:")) {
+            const index = end.indexOf(":");
+            return {
+                allSuggestions: repos,
+                suggestionQuery: end.substring(index + 1),
+            }
+        }
+
+        return {
+            allSuggestions: searchPrefixes,
+            suggestionQuery: end,
+        }
+    }, [query]);
+
+    const suggestions = useMemo(() => {
+        if (suggestionQuery.length === 0) {
+            return allSuggestions.slice(0, 10);
+        }
+
+        const fuse = new Fuse(allSuggestions, {
+            threshold: 0.1,
+        });
+
+        const results = fuse
+            .search(suggestionQuery, {
+                limit: 10,
+            })
+            .map(result => result.item);
+
+        return results;
+
+    }, [suggestionQuery, allSuggestions]);
+
     return (
         <div
             className={cn(searchBarVariants({ size, className }))}
@@ -173,6 +235,19 @@ export const SearchBar = ({
                 indentWithTab={false}
                 autoFocus={autoFocus ?? false}
             />
+            <div
+                className="w-full absolute z-10 top-12 border rounded-md bg-background drop-shadow-2xl p-2"
+            >
+                {suggestions.map((result, index) => (
+                    <div
+                        key={index}
+                        className="font-mono text-sm"
+                    >
+                        <span className="text-highlight">{result}</span>
+                        <span>{' Include only results from the given ...'}</span>
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }
