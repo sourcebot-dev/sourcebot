@@ -160,7 +160,13 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/yarn,node
 
+# IDE (intellij)
+.idea
+
 .sourcebot
 /bin
 /config.json
 .DS_Store
+*.iml
+package-lock.json
+

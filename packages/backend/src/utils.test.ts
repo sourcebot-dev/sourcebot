@@ -1,5 +1,35 @@
 import { expect, test } from 'vitest';
-import { arraysEqualShallow, isRemotePath } from './utils';
+import { arraysEqualShallow, isRemotePath, excludeReposByName } from './utils';
+import { GitRepository, Repository } from './types';
+
+const testNames: string[] = [
+  "abcdefg/zfmno/ioiwerj/fawdf",
+  "abcdefg/zfmno/ioiwerj/werw",
+  "abcdefg/zfmno/ioiwerj/terne",
+  "abcdefg/zfmno/ioiwerj/asdf45e4r",
+  "abcdefg/zfmno/ioiwerj/ddee",
+  "abcdefg/zfmno/ioiwerj/ccdfeee",
+  "abcdefg/zfmno/sadfaw",
+  "abcdefg/zfmno/ioiwerj/wwe",
+  "abcdefg/ieieiowowieu8383/ieckup-e",
+  "abcdefg/ieieiowowieu8383/fvas-eer-wwwer3",
+  "abcdefg/zfmno/sreerew"];
+
+const createRepository = (name: string) => (<Repository>{
+  vcs: 'git',
+  id: name,
+  name: name,
+  path: name,
+  isStale: false,
+  cloneUrl: name,
+  branches: [name],
+  tags: [name]
+});
+
+test('should filter repos by micromatch pattern', () => {
+  const filteredRepos = excludeReposByName(testNames.map(n => (createRepository(n))), ['**/zfmno/**']);
+  expect(filteredRepos.length).toBe(2);
+});
 
 test('should return true for identical arrays', () => {
     expect(arraysEqualShallow([1, 2, 3], [1, 2, 3])).toBe(true);

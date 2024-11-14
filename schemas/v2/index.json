@@ -147,7 +147,7 @@
                             "type": "array",
                             "items": {
                                 "type": "string",
-                                "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+                                "pattern": "^[\\w.-]+(\\/[\\w.-]+)*$"
                             },
                             "default": [],
                             "description": "List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
@@ -239,7 +239,7 @@
                             "type": "array",
                             "items": {
                                 "type": "string",
-                                "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+                                "pattern": "^[\\w.-]+(\\/[\\w.-]+)*$"
                             },
                             "default": [],
                             "examples": [
@@ -337,7 +337,7 @@
                             "type": "array",
                             "items": {
                                 "type": "string",
-                                "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+                              "pattern": "^[\\w.-]+(\\/[\\w.-]+)*$"
                             },
                             "default": [],
                             "description": "List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
