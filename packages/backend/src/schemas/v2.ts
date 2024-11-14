@@ -46,11 +46,11 @@ export interface GitHubConfig {
   repos?: string[];
   exclude?: {
     /**
-     * Exlcude forked repositories from syncing.
+     * Exclude forked repositories from syncing.
      */
     forks?: boolean;
     /**
-     * Exlcude archived repositories from syncing.
+     * Exclude archived repositories from syncing.
      */
     archived?: boolean;
     /**
@@ -107,11 +107,11 @@ export interface GitLabConfig {
   projects?: string[];
   exclude?: {
     /**
-     * Exlcude forked projects from syncing.
+     * Exclude forked projects from syncing.
      */
     forks?: boolean;
     /**
-     * Exlcude archived projects from syncing.
+     * Exclude archived projects from syncing.
      */
     archived?: boolean;
     /**
@@ -155,11 +155,11 @@ export interface GiteaConfig {
   users?: string[];
   exclude?: {
     /**
-     * Exlcude forked repositories from syncing.
+     * Exclude forked repositories from syncing.
      */
     forks?: boolean;
     /**
-     * Exlcude archived repositories from syncing.
+     * Exclude archived repositories from syncing.
      */
     archived?: boolean;
     /**
