@@ -1,6 +1,7 @@
 import { Logger } from "winston";
 import { AppContext, Repository } from "./types.js";
 import path from 'path';
+import micromatch from "micromatch";
 
 export const measure = async <T>(cb : () => Promise<T>) => {
     const start = Date.now();
@@ -36,10 +37,10 @@ export const excludeArchivedRepos = <T extends Repository>(repos: T[], logger?: 
     });
 }
 
+
 export const excludeReposByName = <T extends Repository>(repos: T[], excludedRepoNames: string[], logger?: Logger) => {
-    const excludedRepos = new Set(excludedRepoNames);
     return repos.filter((repo) => {
-        if (excludedRepos.has(repo.name)) {
+        if (micromatch.isMatch(repo.name, excludedRepoNames)) {
             logger?.debug(`Excluding repo ${repo.id}. Reason: exclude.repos contains ${repo.name}`);
             return false;
         }
