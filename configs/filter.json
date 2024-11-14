@@ -15,7 +15,9 @@
                 "forks": true,
                 "repos": [
                     "my-org/repo1",
-                    "my-org/repo2"
+                    "my-org/repo2",
+                    "my-org/sub-org-1/**",
+                    "my-org/sub-org-*/**"
                 ]
             }
         },
@@ -34,7 +36,9 @@
                 "forks": true,
                 "projects": [
                     "my-group/project1",
-                    "my-group/project2"
+                    "my-group/project2",
+                    "my-org/sub-org-1/**",
+                    "my-org/sub-org-*/**"
                 ]
             }
         },
@@ -53,7 +57,9 @@
                 "forks": true,
                 "repos": [
                     "my-org/repo1",
-                    "my-org/repo2"
+                    "my-org/repo2",
+                    "my-org/sub-org-1/**",
+                    "my-org/sub-org-*/**"
                 ]
             }
         },
