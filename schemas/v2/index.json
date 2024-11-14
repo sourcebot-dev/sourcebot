@@ -136,12 +136,12 @@
                         "forks": {
                             "type": "boolean",
                             "default": false,
-                            "description": "Exlcude forked repositories from syncing."
+                            "description": "Exclude forked repositories from syncing."
                         },
                         "archived": {
                             "type": "boolean",
                             "default": false,
-                            "description": "Exlcude archived repositories from syncing."
+                            "description": "Exclude archived repositories from syncing."
                         },
                         "repos": {
                             "type": "array",
@@ -228,12 +228,12 @@
                         "forks": {
                             "type": "boolean",
                             "default": false,
-                            "description": "Exlcude forked projects from syncing."
+                            "description": "Exclude forked projects from syncing."
                         },
                         "archived": {
                             "type": "boolean",
                             "default": false,
-                            "description": "Exlcude archived projects from syncing."
+                            "description": "Exclude archived projects from syncing."
                         },
                         "projects": {
                             "type": "array",
@@ -326,12 +326,12 @@
                         "forks": {
                             "type": "boolean",
                             "default": false,
-                            "description": "Exlcude forked repositories from syncing."
+                            "description": "Exclude forked repositories from syncing."
                         },
                         "archived": {
                             "type": "boolean",
                             "default": false,
-                            "description": "Exlcude archived repositories from syncing."
+                            "description": "Exclude archived repositories from syncing."
                         },
                         "repos": {
                             "type": "array",
