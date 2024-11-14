@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { arraysEqualShallow, isRemotePath, excludeReposByName } from './utils';
-import { GitRepository, Repository } from './types';
+import { Repository } from './types';
 
 const testNames: string[] = [
   "abcdefg/zfmno/ioiwerj/fawdf",
