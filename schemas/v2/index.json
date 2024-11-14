@@ -146,11 +146,10 @@
                         "repos": {
                             "type": "array",
                             "items": {
-                                "type": "string",
-                                "pattern": "^[\\w.-]+(\\/[\\w.-]+)*$"
+                                "type": "string"
                             },
                             "default": [],
-                            "description": "List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
+                            "description": "List of individual repositories to exclude from syncing. Glob patterns are supported."
                         }
                     },
                     "additionalProperties": false
@@ -238,8 +237,7 @@
                         "projects": {
                             "type": "array",
                             "items": {
-                                "type": "string",
-                                "pattern": "^[\\w.-]+(\\/[\\w.-]+)*$"
+                                "type": "string"
                             },
                             "default": [],
                             "examples": [
@@ -247,7 +245,7 @@
                                     "my-group/my-project"
                                 ]
                             ],
-                            "description": "List of individual projects to exclude from syncing. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/"
+                            "description": "List of projects to exclude from syncing. Glob patterns are supported. The project's namespace must be specified, see: https://docs.gitlab.com/ee/user/namespace/"
                         }
                     },
                     "additionalProperties": false
@@ -336,11 +334,10 @@
                         "repos": {
                             "type": "array",
                             "items": {
-                                "type": "string",
-                              "pattern": "^[\\w.-]+(\\/[\\w.-]+)*$"
+                                "type": "string"
                             },
                             "default": [],
-                            "description": "List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
+                            "description": "List of individual repositories to exclude from syncing. Glob patterns are supported."
                         }
                     },
                     "additionalProperties": false

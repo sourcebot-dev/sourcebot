@@ -12,8 +12,8 @@ const testNames: string[] = [
   "abcdefg/zfmno/sadfaw",
   "abcdefg/zfmno/ioiwerj/wwe",
   "abcdefg/ieieiowowieu8383/ieckup-e",
-  "abcdefg/ieieiowowieu8383/fvas-eer-wwwer3",
-  "abcdefg/zfmno/sreerew"];
+  "abcdefg/ieieiowowieu8383/fvas-eer-wwwer3"
+];
 
 const createRepository = (name: string) => (<Repository>{
   vcs: 'git',
@@ -27,8 +27,35 @@ const createRepository = (name: string) => (<Repository>{
 });
 
 test('should filter repos by micromatch pattern', () => {
+  // bad glob patterns
+  const unfilteredRepos = excludeReposByName(testNames.map(n => (createRepository(n))), ['/zfmno/']);
+  expect(unfilteredRepos.length).toBe(10);
+  expect(unfilteredRepos.map(r => r.name)).toEqual(testNames);
+  const unfilteredRepos1 = excludeReposByName(testNames.map(n => (createRepository(n))), ['**zfmno**']);
+  expect(unfilteredRepos1.length).toBe(10);
+  expect(unfilteredRepos1.map(r => r.name)).toEqual(testNames);
+
+  // good glob patterns
   const filteredRepos = excludeReposByName(testNames.map(n => (createRepository(n))), ['**/zfmno/**']);
   expect(filteredRepos.length).toBe(2);
+  expect(filteredRepos.map(r => r.name)).toEqual(["abcdefg/ieieiowowieu8383/ieckup-e", "abcdefg/ieieiowowieu8383/fvas-eer-wwwer3"]);
+  const filteredRepos1 = excludeReposByName(testNames.map(n => (createRepository(n))), ['**/*fmn*/**']);
+  expect(filteredRepos1.length).toBe(2);
+  expect(filteredRepos1.map(r => r.name)).toEqual(["abcdefg/ieieiowowieu8383/ieckup-e", "abcdefg/ieieiowowieu8383/fvas-eer-wwwer3"]);
+});
+
+test('should filter repos by name exact match', () => {
+  const filteredRepos = excludeReposByName(testNames.map(n => (createRepository(n))), testNames.slice(1, 9));
+  expect(filteredRepos.length).toBe(2);
+  expect(filteredRepos.map(r => r.name)).toEqual([testNames[0], testNames[9]]);
+
+  const filteredRepos1 = excludeReposByName(testNames.map(n => (createRepository(n))), testNames.slice(3, 5));
+  expect(filteredRepos1.length).toBe(8);
+  expect(filteredRepos1.map(r => r.name)).toEqual([testNames[0], testNames[1], testNames[2], testNames[5], testNames[6], testNames[7], testNames[8], testNames[9]]);
+
+  const filteredRepos2 = excludeReposByName(testNames.map(n => (createRepository(n))), [testNames[0], testNames[7], testNames[9]]);
+  expect(filteredRepos2.length).toBe(7);
+  expect(filteredRepos2.map(r => r.name)).toEqual([...testNames.slice(1, 7), testNames[8]]);
 });
 
 test('should return true for identical arrays', () => {
