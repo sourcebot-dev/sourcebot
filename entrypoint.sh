@@ -89,4 +89,23 @@ while read file; do
     sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION|${NEXT_PUBLIC_SOURCEBOT_VERSION}|g" "$file"
 done
 
+# @todo: document this
+if [ ! -z "$BASE_PATH" ]; then
+    if [ "$BASE_PATH" = "/" ]; then
+        BASE_PATH=""
+    elif [[ ! "$BASE_PATH" =~ ^/ ]]; then
+        BASE_PATH="/$BASE_PATH"
+    fi
+
+    echo -e "\e[34m[Info] BASE_PATH was set to "$BASE_PATH". Overriding default base path.\e[0m"
+fi
+# Always set NEXT_PUBLIC_BASE_PATH to BASE_PATH
+export NEXT_PUBLIC_BASE_PATH="$BASE_PATH"
+
+find /app/packages/web/public /app/packages/web -type f |
+while read file; do
+    sed -i "s|/BAKED_NEXT_PUBLIC_BASE_PATH|${NEXT_PUBLIC_BASE_PATH}|g" "$file"
+done
+
+# Run supervisord
 exec supervisord -c /etc/supervisor/conf.d/supervisord.conf
