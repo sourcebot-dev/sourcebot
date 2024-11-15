@@ -10,7 +10,7 @@ export const indexGitRepository = async (repo: GitRepository, ctx: AppContext) =
         ...repo.tags ?? [],
     ];
 
-    const command = `zoekt-git-index -index ${ctx.indexPath} -branches ${revisions.join(',')} ${repo.path}`;
+    const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -branches ${revisions.join(',')} ${repo.path}`;
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {
