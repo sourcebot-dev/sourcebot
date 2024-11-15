@@ -7,9 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [2.4.2] - 2024-11-14
+
+### Added
 
 - Added support for syntax highlighting in the search bar. ([#66](https://github.com/sourcebot-dev/sourcebot/pull/66))
+
+### Changed
+
+- Changed the `exclude.repo` property to support glob patterns. ([#70](https://github.com/sourcebot-dev/sourcebot/pull/70))
+
+### Fixed
+
+- Fixed issue with indexing failing for empty repositories. ([#73](https://github.com/sourcebot-dev/sourcebot/pull/73))
+- Fixed typos in schema. ([#71](https://github.com/sourcebot-dev/sourcebot/pull/71))
 
 ## [2.4.1] - 2024-11-11
 
