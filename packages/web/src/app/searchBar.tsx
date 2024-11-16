@@ -2,7 +2,7 @@
 
 import { useTailwind } from "@/hooks/useTailwind";
 import { SearchQueryParams } from "@/lib/types";
-import { cn, createPathWithQueryParams } from "@/lib/utils";
+import { cn, createPathWithQueryParams, isDefined } from "@/lib/utils";
 import {
     cursorCharLeft,
     cursorCharRight,
@@ -35,6 +35,9 @@ import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 import Fuse from "fuse.js";
+import clsx from "clsx";
+import { MixerVerticalIcon, CommitIcon } from "@radix-ui/react-icons"
+import escapeStringRegexp from "escape-string-regexp";
 
 interface SearchBarProps {
     className?: string;
@@ -103,23 +106,37 @@ const searchBarVariants = cva(
     }
 );
 
-const searchPrefixes = [
-    "repo:",
-    "-repo:",
-    "file:",
-    "-file:"
+type Suggestion = {
+    value: string;
+    description?: string;
+}
+
+const searchPrefixes: Suggestion[] = [
+    {
+        value: "repo:",
+        description: "Include only results from the given repository."
+    },
+    {
+        value: "file:",
+        description: "Include only results from the given file."
+    },
+    {
+        value: "-repo:",
+        description: "Exclude results from the given repository."
+    },
+    { value: "-file:" }
 ];
 
-const repos = [
-    "github.com/git/git",
-    "github.com/golang/go",
-    "github.com/torvalds/linux",
-    "github.com/microsoft/vscode",
-    "github.com/microsoft/vscode-docs",
-    "github.com/rust-lang/rust",
+const repos: Suggestion[] = [
+    { value: "github.com/git/git" },
+    { value: "github.com/golang/go" },
+    { value: "github.com/torvalds/linux" },
+    { value: "github.com/microsoft/vscode" },
+    { value: "github.com/microsoft/vscode-docs" },
+    { value: "github.com/rust-lang/rust" },
 ]
 
-type SuggestionMode = "none" | "repo";
+type SuggestionMode = "filter" | "repo";
 
 export const SearchBar = ({
     className,
@@ -168,48 +185,107 @@ export const SearchBar = ({
         router.push(url);
     }
 
-    const { allSuggestions, suggestionQuery } = useMemo<{ allSuggestions: string[], suggestionQuery: string }>(() => {
+    const { suggestionQuery, suggestionMode } = useMemo<{ suggestionQuery?: string, suggestionMode?: SuggestionMode }>(() => {
         const queryParts = query.split(" ");
         if (queryParts.length === 0) {
-            return {
-                allSuggestions: [],
-                suggestionQuery: "",
-            }
+            return {};
         }
         const end = queryParts[queryParts.length - 1];
 
         if (end.startsWith("repo:") || end.startsWith("-repo:")) {
             const index = end.indexOf(":");
             return {
-                allSuggestions: repos,
                 suggestionQuery: end.substring(index + 1),
+                suggestionMode: "repo",
             }
         }
 
+        // Default to filter mode
         return {
-            allSuggestions: searchPrefixes,
             suggestionQuery: end,
+            suggestionMode: "filter",
         }
     }, [query]);
 
-    const suggestions = useMemo(() => {
-        if (suggestionQuery.length === 0) {
-            return allSuggestions.slice(0, 10);
+    const { suggestions, isHighlightEnabled, Icon, onSuggestionClicked } = useMemo(() => {
+        if (!isDefined(suggestionQuery) || !isDefined(suggestionMode)) {
+            return {};
         }
 
-        const fuse = new Fuse(allSuggestions, {
-            threshold: 0.1,
+        const { threshold, list, isHighlightEnabled, onSuggestionClicked, Icon } = (() => {
+            switch (suggestionMode) {
+                case "repo":
+                    return {
+                        threshold: 0.5,
+                        list: repos,
+                        isHighlightEnabled: false,
+                        Icon: CommitIcon,
+                        onSuggestionClicked: (value: string) => {
+                            setQuery((query) => {
+                                if (suggestionQuery.length > 0) {
+                                    query = query.slice(0, -suggestionQuery.length);
+                                }
+                                query = query + `^${escapeStringRegexp(value)}$` + " ";
+                                return query;
+                            });
+                            editorRef.current?.view?.focus();
+                            if (editorRef.current?.view) {
+                                cursorDocEnd({
+                                    state: editorRef.current.view.state,
+                                    dispatch: editorRef.current.view.dispatch,
+                                });
+                            }
+                        }
+                    }
+                case "filter":
+                    return {
+                        threshold: 0.1,
+                        list: searchPrefixes,
+                        isHighlightEnabled: true,
+                        Icon: MixerVerticalIcon,
+                        onSuggestionClicked: (value: string) => {
+                            setQuery((query) => {
+                                if (suggestionQuery.length > 0) {
+                                    query = query.slice(0, -suggestionQuery.length);
+                                }
+                                query = query + value;
+                                return query;
+                            });
+                            editorRef.current?.view?.focus();
+                            if (editorRef.current?.view) {
+                                cursorDocEnd({
+                                    state: editorRef.current.view.state,
+                                    dispatch: editorRef.current.view.dispatch,
+                                });
+                            }
+                        }
+                    }
+            }
+        })();
+
+        const fuse = new Fuse(list, {
+            threshold,
+            keys: ['value'],
         });
 
-        const results = fuse
-            .search(suggestionQuery, {
+        const results = (() => {
+            if (suggestionQuery.length === 0) {
+                return list.slice(0, 10);
+            }
+
+            return fuse.search(suggestionQuery, {
                 limit: 10,
-            })
-            .map(result => result.item);
+            }).map(result => result.item)
+        })();
 
-        return results;
+        return {
+            suggestions: results,
+            isHighlightEnabled,
+            Icon,
+            onSuggestionClicked,
+        }
 
-    }, [suggestionQuery, allSuggestions]);
+    }, [suggestionQuery, suggestionMode]);
 
     return (
         <div
@@ -238,13 +314,34 @@ export const SearchBar = ({
             <div
                 className="w-full absolute z-10 top-12 border rounded-md bg-background drop-shadow-2xl p-2"
             >
-                {suggestions.map((result, index) => (
+                {suggestions && suggestions.length > 0 && (
+                    <p className="text-muted-foreground text-sm mb-1">
+                        {
+                            suggestionMode === "filter" ? "Filter by" :
+                            suggestionMode === "repo" ? "Repositories" :
+                            ""
+                        }
+                    </p>
+                )}
+                {suggestions?.map((result, index) => (
                     <div
                         key={index}
-                        className="font-mono text-sm"
+                        className="flex flex-row items-center font-mono text-sm hover:bg-muted rounded-md px-1 py-0.5 cursor-pointer"
+                        onClick={() => onSuggestionClicked(result.value)}
                     >
-                        <span className="text-highlight">{result}</span>
-                        <span>{' Include only results from the given ...'}</span>
+                        <Icon className="w-3 h-3 mr-2" />
+                        <span
+                            className={clsx('mr-1', {
+                                "text-highlight": isHighlightEnabled
+                            })}
+                        >
+                            {result.value}
+                        </span>
+                        {result.description && (
+                            <span>
+                                {result.description}
+                            </span>
+                        )}
                     </div>
                 ))}
             </div>
