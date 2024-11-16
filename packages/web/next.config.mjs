@@ -23,8 +23,8 @@ const nextConfig = {
     skipTrailingSlashRedirect: true,
 
     // @note: this is evaluated at build time.
-    ...(process.env.NEXT_PUBLIC_BASE_PATH ? {
-        basePath: process.env.NEXT_PUBLIC_BASE_PATH,
+    ...(process.env.NEXT_PUBLIC_DOMAIN_SUB_PATH ? {
+        basePath: process.env.NEXT_PUBLIC_DOMAIN_SUB_PATH,
     } : {})
 };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { NEXT_PUBLIC_BASE_PATH } from "@/lib/environment.client";
+import { NEXT_PUBLIC_DOMAIN_SUB_PATH } from "@/lib/environment.client";
 import { fileSourceResponseSchema, listRepositoriesResponseSchema, searchResponseSchema } from "@/lib/schemas";
 import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
 
@@ -48,5 +48,5 @@ export const getRepos = async (): Promise<ListRepositoriesResponse> => {
  * the base path (if any).
  */
 export const resolveServerPath = (path: string) => {
-    return `${NEXT_PUBLIC_BASE_PATH}${path}`;
+    return `${NEXT_PUBLIC_DOMAIN_SUB_PATH}${path}`;
 }
