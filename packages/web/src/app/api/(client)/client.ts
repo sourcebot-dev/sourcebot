@@ -5,7 +5,8 @@ import { fileSourceResponseSchema, listRepositoriesResponseSchema, searchRespons
 import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse> => {
-    const result = await fetch(`${NEXT_PUBLIC_BASE_PATH}/api/search`, {
+    const path = resolveServerPath("/api/search");
+    const result = await fetch(path, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -17,7 +18,8 @@ export const search = async (body: SearchRequest): Promise<SearchResponse> => {
 }
 
 export const fetchFileSource = async (body: FileSourceRequest): Promise<FileSourceResponse> => {
-    const result = await fetch(`${NEXT_PUBLIC_BASE_PATH}/api/source`, {
+    const path = resolveServerPath("/api/source");
+    const result = await fetch(path, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -29,7 +31,8 @@ export const fetchFileSource = async (body: FileSourceRequest): Promise<FileSour
 }
 
 export const getRepos = async (): Promise<ListRepositoriesResponse> => {
-    const result = await fetch(`${NEXT_PUBLIC_BASE_PATH}/api/repos`, {
+    const path = resolveServerPath("/api/repos");
+    const result = await fetch(path, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -37,4 +40,13 @@ export const getRepos = async (): Promise<ListRepositoriesResponse> => {
     }).then(response => response.json());
 
     return listRepositoriesResponseSchema.parse(result);
+}
+
+/**
+ * Given a subpath to a api route on the server (e.g., /api/search),
+ * returns the full path to that route on the server, taking into account
+ * the base path (if any).
+ */
+export const resolveServerPath = (path: string) => {
+    return `${NEXT_PUBLIC_BASE_PATH}${path}`;
 }
