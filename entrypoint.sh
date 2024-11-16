@@ -96,9 +96,12 @@ if [ ! -z "$BASE_PATH" ]; then
     elif [[ ! "$BASE_PATH" =~ ^/ ]]; then
         BASE_PATH="/$BASE_PATH"
     fi
+fi
 
+if [ ! -z "$BASE_PATH" ]; then
     echo -e "\e[34m[Info] BASE_PATH was set to "$BASE_PATH". Overriding default base path.\e[0m"
 fi
+
 # Always set NEXT_PUBLIC_BASE_PATH to BASE_PATH
 export NEXT_PUBLIC_BASE_PATH="$BASE_PATH"
 
