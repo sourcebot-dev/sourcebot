@@ -4,6 +4,7 @@ import { SourcebotConfigurationSchema } from "./schemas/v2.js";
 import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
+import { getGerritReposFromConfig } from "./gerrit.js";
 import { AppContext, LocalRepository, GitRepository, Repository } from "./types.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
@@ -139,6 +140,11 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
                 configRepos.push(...giteaRepos);
                 break;
             }
+            case 'gerrit': {
+                const gerritRepos = await getGerritReposFromConfig(repoConfig, ctx);
+                configRepos.push(...gerritRepos);
+                break;
+            }
             case 'local': {
                 const repo = getLocalRepoFromConfig(repoConfig, ctx);
                 configRepos.push(repo);
@@ -208,7 +214,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
 
 export const main = async (context: AppContext) => {
     const db = await loadDB(context);
-    
+
     let abortController = new AbortController();
     let isSyncing = false;
     const _syncConfig = async () => {

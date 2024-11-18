@@ -67,7 +67,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
                 tags: []
             } satisfies GitRepository;
         });
-    
+
     if (config.exclude) {
         if (!!config.exclude.forks) {
             repos = excludeForkedRepos(repos, logger);

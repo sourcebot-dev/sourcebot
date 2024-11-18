@@ -24,6 +24,7 @@
     "dependencies": {
         "@gitbeaker/rest": "^40.5.1",
         "@octokit/rest": "^21.0.2",
+        "@gerritkit/rest": "^1.4.4",
         "argparse": "^2.0.1",
         "cross-fetch": "^4.0.0",
         "dotenv": "^16.4.5",
