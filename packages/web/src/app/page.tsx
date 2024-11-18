@@ -6,7 +6,7 @@ import logoDark from "../../public/sb_logo_dark_large.png";
 import logoLight from "../../public/sb_logo_light_large.png";
 import { NavigationMenu } from "./navigationMenu";
 import { RepositoryCarousel } from "./repositoryCarousel";
-import { SearchBar } from "./searchBar";
+import { SearchBar } from "./components/searchBar";
 import { Separator } from "@/components/ui/separator";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { UpgradeToast } from "./upgradeToast";

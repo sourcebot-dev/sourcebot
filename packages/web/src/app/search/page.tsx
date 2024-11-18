@@ -18,7 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import logoDark from "../../../public/sb_logo_dark.png";
 import logoLight from "../../../public/sb_logo_light.png";
 import { search } from "../api/(client)/client";
-import { SearchBar } from "../searchBar";
+import { SearchBar } from "../components/searchBar";
 import { SettingsDropdown } from "../settingsDropdown";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { FilterPanel } from "./components/filterPanel";
