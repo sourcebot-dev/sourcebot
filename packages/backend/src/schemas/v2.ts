@@ -62,7 +62,7 @@ export interface GitHubConfig {
      */
     archived?: boolean;
     /**
-     * List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
+     * List of individual repositories to exclude from syncing. Glob patterns are supported.
      */
     repos?: string[];
   };
@@ -117,7 +117,7 @@ export interface GitLabConfig {
      */
     archived?: boolean;
     /**
-     * List of individual projects to exclude from syncing. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/
+     * List of projects to exclude from syncing. Glob patterns are supported. The project's namespace must be specified, see: https://docs.gitlab.com/ee/user/namespace/
      */
     projects?: string[];
   };
@@ -165,7 +165,7 @@ export interface GiteaConfig {
      */
     archived?: boolean;
     /**
-     * List of individual repositories to exclude from syncing. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
+     * List of individual repositories to exclude from syncing. Glob patterns are supported.
      */
     repos?: string[];
   };
