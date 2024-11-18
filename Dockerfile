@@ -26,6 +26,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # @see: https://phase.dev/blog/nextjs-public-runtime-variables/
 ARG NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED
 ARG NEXT_PUBLIC_SOURCEBOT_VERSION=BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION
+# @note: leading "/" is required for the basePath property. @see: https://nextjs.org/docs/app/api-reference/next-config-js/basePath
+ARG NEXT_PUBLIC_DOMAIN_SUB_PATH=/BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH
 RUN yarn workspace @sourcebot/web build
 
 # ------ Build Backend ------
@@ -53,6 +55,11 @@ RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
 
 # Valid values are: debug, info, warn, error
 ENV SOURCEBOT_LOG_LEVEL=info
+
+# Configures the sub-path of the domain to serve Sourcebot from.
+# For example, if DOMAIN_SUB_PATH is set to "/sb", Sourcebot
+# will serve from http(s)://example.com/sb
+ENV DOMAIN_SUB_PATH=/
 
 # @note: This is also set in .env
 ENV POSTHOG_KEY=phc_VFn4CkEGHRdlVyOOw8mfkoj1DKVoG6y1007EClvzAnS

@@ -20,7 +20,12 @@ const nextConfig = {
         ];
     },
     // This is required to support PostHog trailing slash API requests
-    skipTrailingSlashRedirect: true, 
+    skipTrailingSlashRedirect: true,
+
+    // @note: this is evaluated at build time.
+    ...(process.env.NEXT_PUBLIC_DOMAIN_SUB_PATH ? {
+        basePath: process.env.NEXT_PUBLIC_DOMAIN_SUB_PATH,
+    } : {})
 };
 
 export default nextConfig;
