@@ -2,44 +2,100 @@
 
 import { Repository } from "@/lib/types";
 import { isDefined } from "@/lib/utils";
-import { CommitIcon, MixerVerticalIcon } from "@radix-ui/react-icons";
+import { CommitIcon, FileIcon, MixerVerticalIcon } from "@radix-ui/react-icons";
+import { IconProps } from "@radix-ui/react-icons/dist/types";
 import clsx from "clsx";
 import escapeStringRegexp from "escape-string-regexp";
 import Fuse from "fuse.js";
 import { Dispatch, SetStateAction, useEffect, useMemo } from "react";
 
+type Icon = React.ForwardRefExoticComponent<IconProps & React.RefAttributes<SVGSVGElement>>;
 
 type Suggestion = {
     value: string;
     description?: string;
 }
 
+// @note : Order here is important
 const searchPrefixes: Suggestion[] = [
     {
         value: "repo:",
         description: "Include only results from the given repository."
     },
     {
+        value: "lang:",
+        description: "Include only results from the given language."
+    },
+    {
         value: "file:",
-        description: "Include only results from the given file."
+        description: "Include only results from filepaths matching the given search pattern."
+    },
+    {
+        value: "rev:",
+        description: "Search a given branch or tag instead of the default branch."
+    },
+    {
+        value: "sym:",
+        description: "Include only symbols matching the given search pattern."
+    },
+    {
+        value: "archived:",
+        description: "Include results from archived repositories."
+    },
+    {
+        value: "case:",
+        description: "Control case-sensitivity of search patterns."
+    },
+    {
+        value: "fork:",
+        description: "Include only results from forked repositories."
+    },
+    {
+        value: "public:",
+        description: "Filter on repository visibility."
+    },
+    {
+        value: "content:",
+        description: "Include only results from files if their content matches the given search pattern."
+    },
+    {
+        value: "-lang:",
+        description: "Exclude results from the given language."
     },
     {
         value: "-repo:",
         description: "Exclude results from the given repository."
     },
-    { value: "-file:" }
+    {
+        value: "-file:",
+        description: "Exclude results from file paths matching the given search pattern."
+    },
+    {
+        value: "-rev:",
+        description: "Exclude results from the given branch or tag."
+    },
+    {
+        value: "-sym:",
+        description: "Exclude results from symbols matching the given search pattern."
+    },
+    {
+        value: "-content:",
+        description: "Exclude results from files if their content matches the given search pattern."
+    }
 ];
 
-const repos: Suggestion[] = [
-    { value: "github.com/git/git" },
-    { value: "github.com/golang/go" },
-    { value: "github.com/torvalds/linux" },
-    { value: "github.com/microsoft/vscode" },
-    { value: "github.com/microsoft/vscode-docs" },
-    { value: "github.com/rust-lang/rust" },
-]
-
-type SuggestionMode = "filter" | "repo";
+type SuggestionMode =
+    "filter" |
+    "archived" |
+    "file" |
+    "language" |
+    "case" |
+    "fork" |
+    "public" |
+    "revision" |
+    "symbol" |
+    "content" |
+    "repo";
 
 interface SearchSuggestionsBoxProps {
     query: string;
@@ -93,6 +149,83 @@ export const SearchSuggestionsBox = ({
             }
         }
 
+        if (end.startsWith("lang:") || end.startsWith("-lang:")) {
+            const index = end.indexOf(":");
+            return {
+                suggestionQuery: end.substring(index + 1),
+                suggestionMode: "language",
+            }
+        }
+
+        if (end.startsWith("file:") || end.startsWith("-file:")) {
+            const index = end.indexOf(":");
+            return {
+                suggestionQuery: end.substring(index + 1),
+                suggestionMode: "file",
+            }
+        }
+
+        if (end.startsWith("content:") || end.startsWith("-content:")) {
+            const index = end.indexOf(":");
+            return {
+                suggestionQuery: end.substring(index + 1),
+                suggestionMode: "content",
+            }
+        }
+
+        if (
+            end.startsWith("rev:") ||
+            end.startsWith("-rev:") ||
+            end.startsWith("revision:") ||
+            end.startsWith("-revision:")
+        ) {
+            const index = end.indexOf(":");
+            return {
+                suggestionQuery: end.substring(index + 1),
+                suggestionMode: "revision",
+            }
+        }
+
+        if (end.startsWith("sym:") || end.startsWith("-sym:")) {
+            const index = end.indexOf(":");
+            return {
+                suggestionQuery: end.substring(index + 1),
+                suggestionMode: "symbol",
+            }
+        }
+
+        if (end.startsWith("archived:")) {
+            const index = end.indexOf(":");
+            return {
+                suggestionQuery: end.substring(index + 1),
+                suggestionMode: "archived",
+            }
+        }
+
+        if (end.startsWith("case:")) {
+            const index = end.indexOf(":");
+            return {
+                suggestionQuery: end.substring(index + 1),
+                suggestionMode: "case",
+            }
+        }
+
+        if (end.startsWith("fork:")) {
+            const index = end.indexOf(":");
+            return {
+                suggestionQuery: end.substring(index + 1),
+                suggestionMode: "fork",
+            }
+        }
+
+        if (end.startsWith("public:")) {
+            const index = end.indexOf(":");
+            return {
+                suggestionQuery: end.substring(index + 1),
+                suggestionMode: "public",
+            }
+        }
+
         // Default to filter mode
         return {
             suggestionQuery: end,
@@ -105,41 +238,121 @@ export const SearchSuggestionsBox = ({
             return {};
         }
 
-        const { threshold, list, isHighlightEnabled, onSuggestionClicked, Icon } = (() => {
+        const createOnSuggestionClickedHandler = (params: { regexEscaped?: boolean, trailingSpace?: boolean } = {}) => {
+            const {
+                regexEscaped = false,
+                trailingSpace = true
+            } = params;
+
+            return (value: string) => {
+                onCompletion((prevQuery) => {
+                    let newQuery = prevQuery;
+                    if (suggestionQuery.length > 0) {
+                        newQuery = newQuery.slice(0, -suggestionQuery.length);
+                    }
+
+                    if (regexEscaped) {
+                        newQuery = newQuery + `^${escapeStringRegexp(value)}$`;
+                    } else {
+                        newQuery = newQuery + value;
+                    }
+
+                    if (trailingSpace) {
+                        newQuery = newQuery + " ";
+                    }
+
+                    return newQuery;
+                });
+            }
+        }
+
+        const {
+            threshold = 0.5,
+            limit = 10,
+            list,
+            isHighlightEnabled = false,
+            onSuggestionClicked,
+            Icon,
+        } = ((): {
+            threshold?: number,
+            limit?: number,
+            list: Suggestion[],
+            isHighlightEnabled?: boolean,
+            onSuggestionClicked: (value: string) => void,
+            Icon?: Icon
+        } => {
             switch (suggestionMode) {
+                case "revision":
+                    return {
+                        list: [
+                            { value: "HEAD", description: "(default)" }
+                        ],
+                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                    }
+                case "public":
+                    return {
+                        list: [
+                            { value: "yes", description: "Only include results from public repositories." },
+                            { value: "no", description: "Only include results from private repositories." },
+                        ],
+                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                    }
+                case "fork":
+                    return {
+                        list: [
+                            { value: "yes", description: "Only include results from forked repositories." },
+                            { value: "no", description: "Only include results from non-forked repositories." },
+                        ],
+                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                    }
+                case "case":
+                    return {
+                        list: [
+                            { value: "auto", description: "Search patterns are case-insensitive if all characters are lowercase, and case sensitive otherwise (default)." },
+                            { value: "yes", description: "Case sensitive search." },
+                            { value: "no", description: "Case insensitive search." },
+                        ],
+                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                    }
+                case "archived":
+                    return {
+                        list: [
+                            { value: "yes", description: "Only include results in archived repositories." },
+                            { value: "no", description: "Only include results in non-archived repositories." },
+                        ],
+                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                    }
                 case "repo":
                     return {
-                        threshold: 0.5,
                         list: repos,
-                        isHighlightEnabled: false,
                         Icon: CommitIcon,
-                        onSuggestionClicked: (value: string) => {
-                            onCompletion((prevQuery) => {
-                                let newQuery = prevQuery;
-                                if (suggestionQuery.length > 0) {
-                                    newQuery = newQuery.slice(0, -suggestionQuery.length);
-                                }
-                                newQuery = newQuery + `^${escapeStringRegexp(value)}$` + " ";
-                                return newQuery;
-                            });
-                        }
+                        onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true}),
+                    }
+                case "language":
+                    return {
+                        // @todo: get list of languages
+                        list: [],
+                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                    }
+                case "file":
+                    return {
+                        list: [], // todo
+                        Icon: FileIcon,
+                        onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
                     }
                 case "filter":
                     return {
                         threshold: 0.1,
+                        limit: 5,
                         list: searchPrefixes,
                         isHighlightEnabled: true,
                         Icon: MixerVerticalIcon,
-                        onSuggestionClicked: (value: string) => {
-                            onCompletion((prevQuery) => {
-                                let newQuery = prevQuery;
-                                if (suggestionQuery.length > 0) {
-                                    newQuery = newQuery.slice(0, -suggestionQuery.length);
-                                }
-                                newQuery = newQuery + value;
-                                return newQuery;
-                            });
-                        }
+                        onSuggestionClicked: createOnSuggestionClickedHandler({ trailingSpace: false }),
+                    }
+                default:
+                    return {
+                        list: [],
+                        onSuggestionClicked: createOnSuggestionClickedHandler(),
                     }
             }
         })();
@@ -151,11 +364,11 @@ export const SearchSuggestionsBox = ({
 
         const results = (() => {
             if (suggestionQuery.length === 0) {
-                return list.slice(0, 10);
+                return list.slice(0, limit);
             }
 
             return fuse.search(suggestionQuery, {
-                limit: 10,
+                limit,
             }).map(result => result.item)
         })();
 
@@ -201,19 +414,23 @@ export const SearchSuggestionsBox = ({
                     className="flex flex-row items-center font-mono text-sm hover:bg-muted rounded-md px-1 py-0.5 cursor-pointer"
                     onClick={() => onSuggestionClicked(result.value)}
                 >
-                    <Icon className="w-3 h-3 mr-2" />
-                    <span
-                        className={clsx('mr-1', {
-                            "text-highlight": isHighlightEnabled
-                        })}
-                    >
-                        {result.value}
-                    </span>
-                    {result.description && (
-                        <span>
-                            {result.description}
-                        </span>
+                    {Icon && (
+                        <Icon className="w-3 h-3 mr-2" />
                     )}
+                    <div className="flex flex-row items-center">
+                        <span
+                            className={clsx('mr-2 flex-none', {
+                                "text-highlight": isHighlightEnabled
+                            })}
+                        >
+                            {result.value}
+                        </span>
+                        {result.description && (
+                            <span className="text-muted-foreground font-light">
+                                {result.description}
+                            </span>
+                        )}
+                    </div>
                 </div>
             ))}
         </div>

@@ -18,7 +18,7 @@ export default async function Home() {
             <NavigationMenu />
             <UpgradeToast />
 
-            <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 max-w-[90%]">
+            <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 min-w-[50%] max-w-[90%]">
                 <div className="max-h-44 w-auto">
                     <Image
                         src={logoDark}
@@ -76,7 +76,7 @@ export default async function Home() {
                                 <Query query="lang:typescript"><Highlight>lang:</Highlight>typescript</Query> <QueryExplanation>(by language)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="revision:HEAD"><Highlight>revision:</Highlight>HEAD</Query> <QueryExplanation>(by branch or tag)</QueryExplanation>
+                                <Query query="rev:HEAD"><Highlight>rev:</Highlight>HEAD</Query> <QueryExplanation>(by branch or tag)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
                         <HowToSection

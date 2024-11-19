@@ -68,7 +68,7 @@ const searchBarKeymap: readonly KeyBinding[] = ([
 // @todo: refactor this into a seperate extension file.
 const zoektLanguage = StreamLanguage.define({
     token: (stream) => {
-        if (stream.match(/-?(file|branch|revision|rev|case|repo|lang|content|sym):/)) {
+        if (stream.match(/-?(file|branch|revision|rev|case|repo|lang|content|sym|archived|fork|public):/)) {
             return t.keyword.toString();
         }
 
