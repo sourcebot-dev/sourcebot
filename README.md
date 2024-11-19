@@ -37,6 +37,8 @@ https://github.com/user-attachments/assets/98d46192-5469-430f-ad9e-5c042adbb10d
 
 You can try out our public hosted demo [here](https://demo.sourcebot.dev/)!
 
+For information about the query language, take a look at the [query docs](docs/query.md)
+
 # Getting Started
 
 Get started with a single docker command:
