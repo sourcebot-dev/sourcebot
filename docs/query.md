@@ -194,4 +194,72 @@ regex       = '/' , { character | escape } , '/' ;
 type        = "filematch" | "filename" | "file" | "repo" ;
 ```
 
+---
 
+### **Complex Query Examples**
+
+1. **Search for functions in Go files with TODO comments**
+   ```plaintext
+   lang:go /func .* \/\/ TODO/
+   ```
+   Matches Go files where functions are annotated with TODO comments.
+
+2. **Find Python test files containing the word "assert"**
+   ```plaintext
+   lang:python file:".*test.*\\.py" content:"assert"
+   ```
+   Looks for test files in Python containing assertions.
+
+3. **Search for all README files mentioning "installation"**
+   ```plaintext
+   file:"README.*" content:"installation"
+   ```
+   Matches README files across repositories containing the word "installation."
+
+4. **Find public repositories containing "openapi" in YAML files**
+   ```plaintext
+   file:".*\\.yaml$" content:"openapi"
+   ```
+   Matches YAML files mentioning "openapi."
+
+5. **Search Java repositories for method signatures matching `public static`**
+   ```plaintext
+   lang:java /public static .*\\(/
+   ```
+   Finds Java methods declared as public static.
+
+6. **Find JavaScript files importing React**
+   ```plaintext
+   lang:javascript content:"import React from 'react';"
+   ```
+   Matches JavaScript files importing React.
+
+7. **Find all Markdown files mentioning "license" or "agreement"**
+   ```plaintext
+   file:".*\\.md" (content:"license" or content:"agreement")
+   ```
+   Targets Markdown files containing either "license" or "agreement."
+
+8. **Find log statements in Go files**
+    ```plaintext
+    lang:go /"log\\.(Print|Printf|Fatal|Panic).*\\(.*\\)"/
+    ```
+    Matches Go log statements.
+
+9. **Look for Python repositories containing Flask imports in their `app.py` file**
+    ```plaintext
+    lang:python file:"app\\.py" content:"from flask import .*"
+    ```
+    Matches Flask applications.
+
+10. **Search for JSON files containing an array of objects**
+    ```plaintext
+    file:".*\\.json" /\\[\\s*{.*/ 
+    ```
+    Finds JSON files with object arrays.
+
+11. **Search for Kubernetes YAML files containing `kind: Deployment`**
+    ```plaintext
+    file:".*\\.yaml" content:"kind: Deployment"
+    ```
+    Matches Kubernetes deployment files.
