@@ -8,7 +8,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
-import { SearchQueryParams, SearchResultFile } from "@/lib/types";
+import { Repository, SearchQueryParams, SearchResultFile } from "@/lib/types";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -17,13 +17,14 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import logoDark from "../../../public/sb_logo_dark.png";
 import logoLight from "../../../public/sb_logo_light.png";
-import { search } from "../api/(client)/client";
-import { SearchBar } from "../searchBar";
-import { SettingsDropdown } from "../settingsDropdown";
+import { getRepos, search } from "../api/(client)/client";
+import { SearchBar } from "../components/searchBar";
+import { SettingsDropdown } from "../components/settingsDropdown";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { ImperativePanelHandle } from "react-resizable-panels";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
 
 const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 10000;
 
@@ -32,7 +33,7 @@ export default function SearchPage() {
     const searchQuery = useNonEmptyQueryParam(SearchQueryParams.query) ?? "";
     const _maxMatchDisplayCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.maxMatchDisplayCount) ?? `${DEFAULT_MAX_MATCH_DISPLAY_COUNT}`);
     const maxMatchDisplayCount = isNaN(_maxMatchDisplayCount) ? DEFAULT_MAX_MATCH_DISPLAY_COUNT : _maxMatchDisplayCount;
-
+    const { setSearchHistory } = useSearchHistory();
     const captureEvent = useCaptureEvent();
 
     const { data: searchResponse, isLoading } = useQuery({
@@ -42,6 +43,42 @@ export default function SearchPage() {
             maxMatchDisplayCount,
         }),
         enabled: searchQuery.length > 0,
+        refetchOnWindowFocus: false,
+    });
+
+    // Write the query to the search history
+    useEffect(() => {
+        if (searchQuery.length === 0) {
+            return;
+        }
+
+        const now = new Date().toUTCString();
+        setSearchHistory((searchHistory) => [
+            {
+                query: searchQuery,
+                date: now,
+            },
+            ...searchHistory.filter(search => search.query !== searchQuery),
+        ])
+    }, [searchQuery, setSearchHistory]);
+
+    // Use the /api/repos endpoint to get a useful list of
+    // repository metadata (like host type, repo name, etc.)
+    // Convert this into a map of repo name to repo metadata
+    // for easy lookup.
+    const { data: repoMetadata } = useQuery({
+        queryKey: ["repos"],
+        queryFn: () => getRepos(),
+        select: (data): Record<string, Repository> =>
+            data.List.Repos
+                .map(r => r.Repository)
+                .reduce(
+                    (acc, repo) => ({
+                        ...acc,
+                        [repo.Name]: repo,
+                    }),
+                    {},
+                ),
         refetchOnWindowFocus: false,
     });
 
@@ -77,13 +114,14 @@ export default function SearchPage() {
         });
     }, [captureEvent, searchResponse]);
 
-    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled } = useMemo(() => {
+    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled, repoUrlTemplates } = useMemo(() => {
         if (!searchResponse) {
             return {
                 fileMatches: [],
                 searchDurationMs: 0,
                 totalMatchCount: 0,
                 isBranchFilteringEnabled: false,
+                repoUrlTemplates: {},
             };
         }
 
@@ -108,8 +146,9 @@ export default function SearchPage() {
             searchDurationMs: Math.round(searchResponse.Result.Duration / 1000000),
             totalMatchCount: searchResponse.Result.MatchCount,
             isBranchFilteringEnabled,
+            repoUrlTemplates: searchResponse.Result.RepoURLs,
         }
-    }, [searchResponse, searchQuery]);
+    }, [searchResponse]);
 
     const isMoreResultsButtonVisible = useMemo(() => {
         return totalMatchCount > maxMatchDisplayCount;
@@ -161,6 +200,7 @@ export default function SearchPage() {
                         <SearchBar
                             size="sm"
                             defaultQuery={searchQuery}
+                            className="w-full"
                         />
                     </div>
                     <SettingsDropdown
@@ -201,6 +241,8 @@ export default function SearchPage() {
                     isMoreResultsButtonVisible={isMoreResultsButtonVisible}
                     onLoadMoreResults={onLoadMoreResults}
                     isBranchFilteringEnabled={isBranchFilteringEnabled}
+                    repoUrlTemplates={repoUrlTemplates}
+                    repoMetadata={repoMetadata ?? {}}
                 />
             )}
         </div>
@@ -212,6 +254,8 @@ interface PanelGroupProps {
     isMoreResultsButtonVisible?: boolean;
     onLoadMoreResults: () => void;
     isBranchFilteringEnabled: boolean;
+    repoUrlTemplates: Record<string, string>;
+    repoMetadata: Record<string, Repository>;
 }
 
 const PanelGroup = ({
@@ -219,6 +263,8 @@ const PanelGroup = ({
     isMoreResultsButtonVisible,
     onLoadMoreResults,
     isBranchFilteringEnabled,
+    repoUrlTemplates,
+    repoMetadata,
 }: PanelGroupProps) => {
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
     const [selectedFile, setSelectedFile] = useState<SearchResultFile | undefined>(undefined);
@@ -240,6 +286,7 @@ const PanelGroup = ({
     return (
         <ResizablePanelGroup
             direction="horizontal"
+            className="h-full"
         >
             {/* ~~ Filter panel ~~ */}
             <ResizablePanel
@@ -253,6 +300,7 @@ const PanelGroup = ({
                 <FilterPanel
                     matches={fileMatches}
                     onFilterChanged={onFilterChanged}
+                    repoMetadata={repoMetadata}
                 />
             </ResizablePanel>
             <ResizableHandle
@@ -277,6 +325,7 @@ const PanelGroup = ({
                         isLoadMoreButtonVisible={!!isMoreResultsButtonVisible}
                         onLoadMoreButtonClicked={onLoadMoreResults}
                         isBranchFilteringEnabled={isBranchFilteringEnabled}
+                        repoMetadata={repoMetadata}
                     />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full">
@@ -301,6 +350,7 @@ const PanelGroup = ({
                     onClose={() => setSelectedFile(undefined)}
                     selectedMatchIndex={selectedMatchIndex}
                     onSelectedMatchIndexChange={setSelectedMatchIndex}
+                    repoUrlTemplates={repoUrlTemplates}
                 />
             </ResizablePanel>
         </ResizablePanelGroup>

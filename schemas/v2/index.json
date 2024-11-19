@@ -189,6 +189,11 @@
                     ],
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
                 },
+                "all": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Sync all projects visible to the provided `token` (if any) in the GitLab instance. This option is ignored if `url` is either unset or set to https://gitlab.com ."
+                },
                 "users": {
                     "type": "array",
                     "items": {
@@ -351,6 +356,61 @@
             ],
             "additionalProperties": false
         },
+        "GerritConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "gerrit",
+                    "description": "Gerrit Configuration"
+                },
+                "url": {
+                    "type": "string",
+                    "format": "url",
+                    "description": "The URL of the Gerrit host.",
+                    "examples": [
+                        "https://gerrit.example.com"
+                    ],
+                    "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+                },
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of specific projects to sync. If not specified, all projects will be synced. Glob patterns are supported",
+                    "examples": [
+                        [
+                            "project1/repo1",
+                            "project2/**"
+                        ]
+                    ]
+                },
+                "exclude": {
+                    "type": "object",
+                    "properties": {
+                        "projects": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "examples": [
+                                [
+                                    "project1/repo1",
+                                    "project2/**"
+                                ]
+                            ],
+                            "description": "List of specific projects to exclude from syncing."
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "required": [
+                "type",
+                "url"
+            ],
+            "additionalProperties": false
+        },
         "LocalConfig": {
             "type": "object",
             "properties": {
@@ -409,6 +469,9 @@
                 },
                 {
                     "$ref": "#/definitions/GiteaConfig"
+                },
+                {
+                    "$ref": "#/definitions/GerritConfig"
                 },
                 {
                     "$ref": "#/definitions/LocalConfig"

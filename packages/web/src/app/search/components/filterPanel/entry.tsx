@@ -2,16 +2,13 @@
 
 import { QuestionMarkCircledIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
-import Image from "next/image";
 
 export type Entry = {
     key: string;
     displayName: string;
     count: number;
     isSelected: boolean;
-    icon?: string;
-    iconAltText?: string;
-    iconClassName?: string;
+    Icon?: React.ReactNode;
 }
 
 interface EntryProps {
@@ -22,18 +19,20 @@ interface EntryProps {
 export const Entry = ({
     entry: {
         isSelected,
-        icon,
-        iconAltText,
-        iconClassName,
         displayName,
         count,
+        Icon,
     },
     onClicked,
 }: EntryProps) => {
-
+    let countText = count.toString();
+    if (count > 999) {
+        countText = "999+";
+    }
     return (
         <div
-            className={clsx("flex flex-row items-center justify-between py-0.5 px-2 cursor-pointer rounded-md gap-2 select-none",
+            className={clsx(
+                "flex flex-row items-center justify-between py-0.5 px-2 cursor-pointer rounded-md gap-2 select-none",
                 {
                     "hover:bg-gray-200 dark:hover:bg-gray-700": !isSelected,
                     "bg-blue-200 dark:bg-blue-400": isSelected,
@@ -41,19 +40,15 @@ export const Entry = ({
             )}
             onClick={() => onClicked()}
         >
-            <div className="flex flex-row items-center gap-1">
-                {icon ? (
-                    <Image
-                        src={icon}
-                        alt={iconAltText ?? ''}
-                        className={`w-4 h-4 flex-shrink-0 ${iconClassName}`}
-                    />
-                ) : (
+            <div className="flex flex-row items-center gap-1 overflow-hidden">
+                {Icon ? Icon : (
                     <QuestionMarkCircledIcon className="w-4 h-4 flex-shrink-0" />
                 )}
-                <p className="text-wrap">{displayName}</p>
+                <p className="overflow-hidden text-ellipsis whitespace-nowrap">{displayName}</p>
             </div>
-            <p>{count}</p>
+            <div className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-sm rounded-md">
+                {countText}
+            </div>
         </div>
     );
 }

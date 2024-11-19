@@ -1,6 +1,6 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
-export type Repos = GitHubConfig | GitLabConfig | GiteaConfig | LocalConfig;
+export type Repos = GitHubConfig | GitLabConfig | GiteaConfig | GerritConfig | LocalConfig;
 
 /**
  * A Sourcebot configuration file outlines which repositories Sourcebot should sync and index.
@@ -94,6 +94,10 @@ export interface GitLabConfig {
    */
   url?: string;
   /**
+   * Sync all projects visible to the provided `token` (if any) in the GitLab instance. This option is ignored if `url` is either unset or set to https://gitlab.com .
+   */
+  all?: boolean;
+  /**
    * List of users to sync with. All projects owned by the user and visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property.
    */
   users?: string[];
@@ -166,6 +170,27 @@ export interface GiteaConfig {
      * List of individual repositories to exclude from syncing. Glob patterns are supported.
      */
     repos?: string[];
+  };
+  revisions?: GitRevisions;
+}
+export interface GerritConfig {
+  /**
+   * Gerrit Configuration
+   */
+  type: "gerrit";
+  /**
+   * The URL of the Gerrit host.
+   */
+  url: string;
+  /**
+   * List of specific projects to sync. If not specified, all projects will be synced. Glob patterns are supported
+   */
+  projects?: string[];
+  exclude?: {
+    /**
+     * List of specific projects to exclude from syncing.
+     */
+    projects?: string[];
   };
   revisions?: GitRevisions;
 }

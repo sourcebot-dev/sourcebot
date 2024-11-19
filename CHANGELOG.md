@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2024-12-02
+
+### Added
+
+- Gerrit support. ([#104](https://github.com/sourcebot-dev/sourcebot/pull/104))
+
+## [2.5.4] - 2024-11-29
+
+### Added
+
+- Added search history to the search bar. ([#99](https://github.com/sourcebot-dev/sourcebot/pull/99))
+
+## [2.5.3] - 2024-11-28
+
+### Added
+
+- Added symbol suggestions as suggestion type. ([#98](https://github.com/sourcebot-dev/sourcebot/pull/98))
+
+## [2.5.2] - 2024-11-27
+
+### Fixed
+
+- Fixed issue where incorrect repository icons were shown occasionally in the filter panel. ([#95](https://github.com/sourcebot-dev/sourcebot/issues/95))
+- Fixed homepage links not resolving correctly when DOMAIN_SUB_PATH is set. ([#96](https://github.com/sourcebot-dev/sourcebot/issues/96))
+
+## [2.5.1] - 2024-11-26
+
+### Added
+
+- Added file suggestions as a suggestion type. ([#88](https://github.com/sourcebot-dev/sourcebot/pull/88))
+- Added icon and link support for self-hosted repositories. ([#93](https://github.com/sourcebot-dev/sourcebot/pull/93))
+
+### Changed
+
+- Changed how PostHog telemetry key is passed into the docker image. ([#92](https://github.com/sourcebot-dev/sourcebot/pull/92))
+
+## [2.5.0] - 2024-11-22
+
+### Added
+
+- Added search suggestions to the search bar. ([#85](https://github.com/sourcebot-dev/sourcebot/pull/85))
+
+## [2.4.4] - 2024-11-20
+
+### Added
+
+- Added `DOMAIN_SUB_PATH` environment variable to allow overriding the default domain subpath. ([#74](https://github.com/sourcebot-dev/sourcebot/pull/74))
+- Added option `all` to the GitLab index schema, allowing for indexing all projects in a self-hosted GitLab instance. ([#84](https://github.com/sourcebot-dev/sourcebot/pull/84)) 
+
+## [2.4.3] - 2024-11-18
+
+### Changed
+
+- Bumped NodeJS version to v20. ([#78](https://github.com/sourcebot-dev/sourcebot/pull/78)) 
+
 ## [2.4.2] - 2024-11-14
 
 ### Added

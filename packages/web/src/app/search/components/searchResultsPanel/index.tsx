@@ -1,6 +1,6 @@
 'use client';
 
-import { SearchResultFile } from "@/lib/types";
+import { Repository, SearchResultFile } from "@/lib/types";
 import { FileMatchContainer, MAX_MATCHES_TO_PREVIEW } from "./fileMatchContainer";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -12,6 +12,7 @@ interface SearchResultsPanelProps {
     isLoadMoreButtonVisible: boolean;
     onLoadMoreButtonClicked: () => void;
     isBranchFilteringEnabled: boolean;
+    repoMetadata: Record<string, Repository>;
 }
 
 const ESTIMATED_LINE_HEIGHT_PX = 20;
@@ -25,6 +26,7 @@ export const SearchResultsPanel = ({
     isLoadMoreButtonVisible,
     onLoadMoreButtonClicked,
     isBranchFilteringEnabled,
+    repoMetadata,
 }: SearchResultsPanelProps) => {
     const parentRef = useRef<HTMLDivElement>(null);
     const [showAllMatchesStates, setShowAllMatchesStates] = useState(Array(fileMatches.length).fill(false));
@@ -148,6 +150,7 @@ export const SearchResultsPanel = ({
                                 onShowAllMatchesButtonClicked(virtualRow.index);
                             }}
                             isBranchFilteringEnabled={isBranchFilteringEnabled}
+                            repoMetadata={repoMetadata}
                         />
                     </div>
                 ))}

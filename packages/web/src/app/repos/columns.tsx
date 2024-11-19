@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { getRepoCodeHostInfo } from "@/lib/utils";
 import { Column, ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown } from "lucide-react"
 import prettyBytes from "pretty-bytes";
@@ -19,6 +18,7 @@ export type RepositoryColumnInfo = {
     lastIndexed: string;
     latestCommit: string;
     commitUrlTemplate: string;
+    url: string;
 }
 
 export const columns: ColumnDef<RepositoryColumnInfo>[] = [
@@ -27,14 +27,16 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
         header: "Name",
         cell: ({ row }) => {
             const repo = row.original;
-            const info = getRepoCodeHostInfo(repo.name);
+            const url = repo.url;
+            // local repositories will have a url of 0 length
+            const isRemoteRepo = url.length === 0;
             return (
                 <div className="flex flex-row items-center gap-2">
                     <span
-                        className={info?.repoLink ? "cursor-pointer text-blue-500 hover:underline": ""}
+                        className={!isRemoteRepo ? "cursor-pointer text-blue-500 hover:underline": ""}
                         onClick={() => {
-                            if (info?.repoLink) {
-                                window.open(info.repoLink, "_blank");
+                            if (!isRemoteRepo) {
+                                window.open(url, "_blank");
                             }
                         }}
                     >

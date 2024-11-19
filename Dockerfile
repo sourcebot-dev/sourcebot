@@ -1,4 +1,4 @@
-FROM node:18-alpine3.19 AS node-alpine
+FROM node:20-alpine3.19 AS node-alpine
 FROM golang:1.22.2-alpine3.19 AS go-alpine
 
 # ------ Build Zoekt ------
@@ -26,6 +26,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # @see: https://phase.dev/blog/nextjs-public-runtime-variables/
 ARG NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED
 ARG NEXT_PUBLIC_SOURCEBOT_VERSION=BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION
+ENV NEXT_PUBLIC_POSTHOG_PAPIK=BAKED_NEXT_PUBLIC_POSTHOG_PAPIK
+# @note: leading "/" is required for the basePath property. @see: https://nextjs.org/docs/app/api-reference/next-config-js/basePath
+ARG NEXT_PUBLIC_DOMAIN_SUB_PATH=/BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH
 RUN yarn workspace @sourcebot/web build
 
 # ------ Build Backend ------
@@ -54,9 +57,17 @@ RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
 # Valid values are: debug, info, warn, error
 ENV SOURCEBOT_LOG_LEVEL=info
 
-# @note: This is also set in .env
-ENV POSTHOG_KEY=phc_VFn4CkEGHRdlVyOOw8mfkoj1DKVoG6y1007EClvzAnS
-ENV NEXT_PUBLIC_POSTHOG_KEY=$POSTHOG_KEY
+# Configures the sub-path of the domain to serve Sourcebot from.
+# For example, if DOMAIN_SUB_PATH is set to "/sb", Sourcebot
+# will serve from http(s)://example.com/sb
+ENV DOMAIN_SUB_PATH=/
+
+# PAPIK = Project API Key
+# Note that this key does not need to be kept secret, so it's not
+# necessary to use Docker build secrets here.
+# @see: https://posthog.com/tutorials/api-capture-events#authenticating-with-the-project-api-key
+ARG POSTHOG_PAPIK=
+ENV POSTHOG_PAPIK=$POSTHOG_PAPIK
 
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1

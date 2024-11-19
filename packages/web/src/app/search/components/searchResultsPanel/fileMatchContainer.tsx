@@ -3,10 +3,10 @@
 import { getRepoCodeHostInfo } from "@/lib/utils";
 import { useCallback, useMemo } from "react";
 import Image from "next/image";
-import { DoubleArrowDownIcon, DoubleArrowUpIcon, FileIcon } from "@radix-ui/react-icons";
+import { DoubleArrowDownIcon, DoubleArrowUpIcon, LaptopIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import { Separator } from "@/components/ui/separator";
-import { SearchResultFile } from "@/lib/types";
+import { Repository, SearchResultFile } from "@/lib/types";
 import { FileMatch } from "./fileMatch";
 
 export const MAX_MATCHES_TO_PREVIEW = 3;
@@ -18,6 +18,7 @@ interface FileMatchContainerProps {
     showAllMatches: boolean;
     onShowAllMatchesButtonClicked: () => void;
     isBranchFilteringEnabled: boolean;
+    repoMetadata: Record<string, Repository>;
 }
 
 export const FileMatchContainer = ({
@@ -27,6 +28,7 @@ export const FileMatchContainer = ({
     showAllMatches,
     onShowAllMatchesButtonClicked,
     isBranchFilteringEnabled,
+    repoMetadata,
 }: FileMatchContainerProps) => {
 
     const matchCount = useMemo(() => {
@@ -59,11 +61,13 @@ export const FileMatchContainer = ({
         return null;
     }, [matches]);
 
-    const { repoIcon, repoName, repoLink } = useMemo(() => {
-        const info = getRepoCodeHostInfo(file.Repository);
+    const { repoIcon, displayName, repoLink } = useMemo(() => {
+        const repo: Repository | undefined = repoMetadata[file.Repository];
+        const info = getRepoCodeHostInfo(repo);
+
         if (info) {
             return {
-                repoName: info.repoName,
+                displayName: info.displayName,
                 repoLink: info.repoLink,
                 repoIcon: <Image
                     src={info.icon}
@@ -74,11 +78,11 @@ export const FileMatchContainer = ({
         }
 
         return {
-            repoName: file.Repository,
+            displayName: file.Repository,
             repoLink: undefined,
-            repoIcon: <FileIcon className="w-4 h-4" />
+            repoIcon: <LaptopIcon className="w-4 h-4" />
         }
-    }, [file]);
+    }, [file.Repository, repoMetadata]);
 
     const isMoreContentButtonVisible = useMemo(() => {
         return matchCount > MAX_MATCHES_TO_PREVIEW;
@@ -122,7 +126,7 @@ export const FileMatchContainer = ({
                             }
                         }}
                     >
-                        {repoName}
+                        {displayName}
                     </span>
                     {isBranchFilteringEnabled && branches.length > 0 && (
                         <span

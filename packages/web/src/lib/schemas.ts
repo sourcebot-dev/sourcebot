@@ -46,6 +46,13 @@ export const searchResponseStats = {
     FlushReason: z.number(),
 }
 
+export const symbolSchema = z.object({
+    Sym: z.string(),
+    Kind: z.string(),
+    Parent: z.string(),
+    ParentKind: z.string(),
+});
+
 // @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L497
 export const zoektSearchResponseSchema = z.object({
     Result: z.object({
@@ -62,12 +69,14 @@ export const zoektSearchResponseSchema = z.object({
                 FileName: z.boolean(),
                 ContentStart: locationSchema,
                 Score: z.number(),
+                SymbolInfo: z.array(symbolSchema).nullable(),
             })),
             Checksum: z.string(),
             Score: z.number(),
             // Set if `whole` is true.
             Content: z.string().optional(),
         })).nullable(),
+        RepoURLs: z.record(z.string(), z.string()),
     }),
 });
 
