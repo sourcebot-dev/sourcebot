@@ -189,6 +189,11 @@
                     ],
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
                 },
+                "all": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Sync all projects visible to the provided `token` (if any) in the GitLab instance. This option is ignored if `url` is either unset or set to https://gitlab.com ."
+                },
                 "users": {
                     "type": "array",
                     "items": {

@@ -94,6 +94,10 @@ export interface GitLabConfig {
    */
   url?: string;
   /**
+   * Sync all projects visible to the provided `token` (if any) in the GitLab instance. This option is ignored if `url` is either unset or set to https://gitlab.com .
+   */
+  all?: boolean;
+  /**
    * List of users to sync with. All projects owned by the user and visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property.
    */
   users?: string[];
