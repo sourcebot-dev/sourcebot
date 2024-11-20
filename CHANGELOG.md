@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.4] - 2024-11-20
+
 ### Added
 
 - Added `DOMAIN_SUB_PATH` environment variable to allow overriding the default domain subpath. ([#74](https://github.com/sourcebot-dev/sourcebot/pull/74))
