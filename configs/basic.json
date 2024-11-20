@@ -59,6 +59,15 @@
         {
             "type": "local",
             "path": "/path/to/local/repo"
+        },
+        // Index all projects in a self-hosted GitLab instance
+        // that are visible to the provided token.
+        // Note: this does not work with gitlab.com
+        {
+            "type": "gitlab",
+            "url": "https://gitlab.example.com",
+            "token": "my-token",
+            "all": true
         }
     ]
 }

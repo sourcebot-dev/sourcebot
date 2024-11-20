@@ -7,6 +7,7 @@ import path from 'path';
 import micromatch from "micromatch";
 
 const logger = createLogger("GitLab");
+const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
 export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppContext) => {
     const token = config.token ? getTokenFromConfig(config.token, ctx) : undefined;
@@ -18,8 +19,23 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
             host: config.url,
         } : {}),
     });
+    const hostname = config.url ? new URL(config.url).hostname : GITLAB_CLOUD_HOSTNAME;
+
 
     let allProjects: ProjectSchema[] = [];
+
+    if (config.all === true) {
+        if (hostname !== GITLAB_CLOUD_HOSTNAME) {
+            logger.debug(`Fetching all projects visible in ${config.url}...`);
+            const { durationMs, data: _projects } = await measure(() => api.Projects.all({
+                perPage: 100,
+            }));
+            logger.debug(`Found ${_projects.length} projects in ${durationMs}ms.`);
+            allProjects = allProjects.concat(_projects);
+        } else {
+            logger.warn(`Ignoring option all:true in ${ctx.configPath} : host is ${GITLAB_CLOUD_HOSTNAME}`);
+        }
+    }
 
     if (config.groups) {
         const _projects = (await Promise.all(config.groups.map(async (group) => {
@@ -62,7 +78,6 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
 
     let repos: GitRepository[] = allProjects
         .map((project) => {
-            const hostname = config.url ? new URL(config.url).hostname : "gitlab.com";
             const repoId = `${hostname}/${project.path_with_namespace}`;
             const repoPath = path.resolve(path.join(ctx.reposPath, `${repoId}.git`))
             const isFork = project.forked_from_project !== undefined;
