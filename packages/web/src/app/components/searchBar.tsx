@@ -81,18 +81,18 @@ const zoektLanguage = StreamLanguage.define({
     },
 });
 
-const zoekt = () =>{
+const zoekt = () => {
     return new LanguageSupport(zoektLanguage);
 }
 
 const extensions = [
     keymap.of(searchBarKeymap),
     history(),
-    zoekt()
+    zoekt(),
 ];
 
-const searchBarVariants = cva(
-    "search-bar flex items-center w-full p-0.5 border rounded-md relative",
+const searchBarContainerVariants = cva(
+    "search-bar-container flex items-center w-full p-0.5 border rounded-md relative",
     {
         variants: {
             size: {
@@ -115,7 +115,7 @@ export const SearchBar = ({
     const router = useRouter();
     const tailwind = useTailwind();
     const [ isSuggestionsBoxVisible, setIsSuggestionsBoxVisible ] = useState(false);
-    const [ highlightedSuggestionIndex, setHighlightedSuggestionIndex ] = useState(0);
+    const suggestionBoxRef = useRef<HTMLDivElement>(null);
 
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     const [query, setQuery] = useState(defaultQuery ?? "");
@@ -147,9 +147,9 @@ export const SearchBar = ({
             ],
         });
     }, [tailwind]);
-    
 
-    const moveCursorToEnd = useCallback(() => {
+
+    const focusEditorAndMoveCursorToEnd = useCallback(() => {
         editorRef.current?.view?.focus();
         if (editorRef.current?.view) {
             cursorDocEnd({
@@ -161,7 +161,7 @@ export const SearchBar = ({
 
     useHotkeys('/', (event) => {
         event.preventDefault();
-        moveCursorToEnd();
+        focusEditorAndMoveCursorToEnd();
     });
 
     const onSubmit = () => {
@@ -171,15 +171,18 @@ export const SearchBar = ({
         router.push(url);
     }
 
-    useClickListener('.search-bar', (isElementClicked) => {
+    useClickListener('.search-bar-container', (isElementClicked) => {
+        // Collapse the suggestions box if the user clicks outside of the search bar container.
         if (!isElementClicked) {
             setIsSuggestionsBoxVisible(false);
+        } else {
+            setIsSuggestionsBoxVisible(true);
         }
-    })
+    });
 
     return (
         <div
-            className={cn(searchBarVariants({ size, className }))}
+            className={cn(searchBarContainerVariants({ size, className }))}
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -191,26 +194,9 @@ export const SearchBar = ({
                     setIsSuggestionsBoxVisible(false);
                 }
 
-                // @todo: probably move this logic into the SearchSuggestionsBox component.
-                // See if we can read key state down there.
-                if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setHighlightedSuggestionIndex((curIndex) => {
-                        return curIndex + 1;
-                    });
-                }
-
                 if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setHighlightedSuggestionIndex((curIndex) => {
-                        return curIndex - 1;
-                    });
+                    suggestionBoxRef.current?.focus();
                 }
-
-            }}
-            onClick={() => {
-                setIsSuggestionsBoxVisible(true);
-                moveCursorToEnd();
             }}
         >
             <CodeMirror
@@ -228,6 +214,7 @@ export const SearchBar = ({
                 autoFocus={autoFocus ?? false}
             />
             <SearchSuggestionsBox
+                ref={suggestionBoxRef}
                 query={query}
                 onCompletion={(cb) => {
                     const newQuery = cb(query);
@@ -243,7 +230,7 @@ export const SearchBar = ({
                         changes: { from: 0, to: query.length, insert: newQuery },
                         annotations: [Annotation.define<boolean>().of(true)],
                     });
-                    moveCursorToEnd();
+                    focusEditorAndMoveCursorToEnd();
                 }}
                 isVisible={isSuggestionsBoxVisible}
                 setIsVisible={setIsSuggestionsBoxVisible}

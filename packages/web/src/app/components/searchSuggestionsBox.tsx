@@ -7,7 +7,7 @@ import { IconProps } from "@radix-ui/react-icons/dist/types";
 import clsx from "clsx";
 import escapeStringRegexp from "escape-string-regexp";
 import Fuse from "fuse.js";
-import { Dispatch, SetStateAction, useEffect, useMemo } from "react";
+import { Dispatch, forwardRef, Ref, SetStateAction, useEffect, useMemo, useState } from "react";
 
 type Icon = React.ForwardRefExoticComponent<IconProps & React.RefAttributes<SVGSVGElement>>;
 
@@ -109,13 +109,16 @@ interface SearchSuggestionsBoxProps {
     }
 }
 
-export const SearchSuggestionsBox = ({
+export const SearchSuggestionsBox = forwardRef(({
     query,
     onCompletion,
     isVisible,
     setIsVisible,
     data,
-}: SearchSuggestionsBoxProps) => {
+}: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
+
+    const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
+    const [isFocused, setIsFocused] = useState(false);
 
     // When we start typing, set the suggestion box to visible
     useEffect(() => {
@@ -233,6 +236,11 @@ export const SearchSuggestionsBox = ({
         }
     }, [query]);
 
+    // When the suggestion mode changes, reset the highlight index
+    useEffect(() => {
+        setHighlightedSuggestionIndex(0);
+    }, [suggestionMode]);
+
     const { suggestions, isHighlightEnabled, Icon, onSuggestionClicked } = useMemo(() => {
         if (!isDefined(suggestionQuery) || !isDefined(suggestionMode)) {
             return {};
@@ -326,7 +334,7 @@ export const SearchSuggestionsBox = ({
                     return {
                         list: repos,
                         Icon: CommitIcon,
-                        onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true}),
+                        onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
                     }
                 case "language":
                     return {
@@ -360,6 +368,7 @@ export const SearchSuggestionsBox = ({
         const fuse = new Fuse(list, {
             threshold,
             keys: ['value'],
+            isCaseSensitive: true,
         });
 
         const results = (() => {
@@ -403,7 +412,33 @@ export const SearchSuggestionsBox = ({
 
     return (
         <div
+            ref={ref}
             className="w-full absolute z-10 top-12 border rounded-md bg-background drop-shadow-2xl p-2"
+            tabIndex={0}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                    e.stopPropagation();
+                    // @todo: apply suggestion
+                    const value = suggestions[highlightedSuggestionIndex].value;
+                    onSuggestionClicked(value);
+                }
+
+                if (e.key === 'ArrowUp') {
+                    e.stopPropagation();
+                    setHighlightedSuggestionIndex((curIndex) => {
+                        return curIndex <= 0 ? suggestions.length - 1 : curIndex - 1;
+                    });
+                }
+
+                if (e.key === 'ArrowDown') {
+                    e.stopPropagation();
+                    setHighlightedSuggestionIndex((curIndex) => {
+                        return curIndex >= suggestions.length - 1 ? 0 : curIndex + 1;
+                    });
+                }
+            }}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
         >
             <p className="text-muted-foreground text-sm mb-1">
                 {suggestionModeText}
@@ -411,7 +446,9 @@ export const SearchSuggestionsBox = ({
             {suggestions.map((result, index) => (
                 <div
                     key={index}
-                    className="flex flex-row items-center font-mono text-sm hover:bg-muted rounded-md px-1 py-0.5 cursor-pointer"
+                    className={clsx("flex flex-row items-center font-mono text-sm hover:bg-muted rounded-md px-1 py-0.5 cursor-pointer", {
+                        "bg-muted": isFocused && index === highlightedSuggestionIndex,
+                    })}
                     onClick={() => onSuggestionClicked(result.value)}
                 >
                     {Icon && (
@@ -435,4 +472,4 @@ export const SearchSuggestionsBox = ({
             ))}
         </div>
     )
-}
+});

@@ -33,11 +33,10 @@ export default async function Home() {
                         priority={true}
                     />
                 </div>
-                <div className="w-full flex flex-row mt-4">
-                    <SearchBar
-                        autoFocus={true}
-                    />
-                </div>
+                <SearchBar
+                    autoFocus={true}
+                    className="mt-4"
+                />
                 <div className="mt-8">
                     <Suspense fallback={<div>...</div>}>
                         <RepositoryList />
