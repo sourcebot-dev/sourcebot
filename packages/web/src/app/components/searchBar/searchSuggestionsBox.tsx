@@ -1,7 +1,7 @@
 'use client';
 
 import { isDefined } from "@/lib/utils";
-import { CommitIcon, FileIcon, MixerVerticalIcon } from "@radix-ui/react-icons";
+import { CommitIcon, MixerVerticalIcon } from "@radix-ui/react-icons";
 import { IconProps } from "@radix-ui/react-icons/dist/types";
 import assert from "assert";
 import clsx from "clsx";
@@ -124,7 +124,7 @@ const suggestionModeMappings: SuggestionModeMapping[] = [
     }
 ]
 
-const searchPrefixes: Suggestion[] = [
+const refineModeSuggestions: Suggestion[] = [
     {
         value: Prefix.repo,
         description: "Include only results from the given repository.",
@@ -207,7 +207,6 @@ interface SearchSuggestionsBoxProps {
     onBlur: () => void;
     onReturnFocus: () => void;
 
-    // data
     data: {
         repos: Suggestion[];
         languages: Suggestion[];
@@ -390,7 +389,7 @@ const SearchSuggestionsBox = forwardRef(({
                 case "refine":
                     return {
                         threshold: 0.1,
-                        list: searchPrefixes,
+                        list: refineModeSuggestions,
                         isHighlightEnabled: true,
                         isSpotlightEnabled: true,
                         Icon: MixerVerticalIcon,

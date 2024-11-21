@@ -36,7 +36,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 import { SearchSuggestionsBox, Suggestion } from "./searchSuggestionsBox";
 import { useClickListener } from "@/hooks/useClickListener";
-import { getRepos } from "../api/(client)/client";
+import { getRepos } from "../../api/(client)/client";
 import languages from "./languages";
 
 
