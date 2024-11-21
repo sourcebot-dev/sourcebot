@@ -247,11 +247,6 @@ const SearchSuggestionsBox = forwardRef(({
         }
     }, [cursorPosition, query]);
 
-    // When the suggestion mode changes, reset the highlight index
-    useEffect(() => {
-        setHighlightedSuggestionIndex(0);
-    }, [suggestionMode]);
-
     const { suggestions, isHighlightEnabled, Icon, onSuggestionClicked } = useMemo(() => {
         if (!isDefined(suggestionQuery) || !isDefined(suggestionMode)) {
             return {};
@@ -425,6 +420,11 @@ const SearchSuggestionsBox = forwardRef(({
         }
 
     }, [suggestionQuery, suggestionMode, onCompletion, cursorPosition, repos]);
+
+    // When the list of suggestions change, reset the highlight index
+    useEffect(() => {
+        setHighlightedSuggestionIndex(0);
+    }, [suggestions]);
 
     const suggestionModeText = useMemo(() => {
         if (!suggestionMode) {
