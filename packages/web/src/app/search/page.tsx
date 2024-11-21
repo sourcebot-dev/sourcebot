@@ -109,7 +109,7 @@ export default function SearchPage() {
             totalMatchCount: searchResponse.Result.MatchCount,
             isBranchFilteringEnabled,
         }
-    }, [searchResponse, searchQuery]);
+    }, [searchResponse]);
 
     const isMoreResultsButtonVisible = useMemo(() => {
         return totalMatchCount > maxMatchDisplayCount;
@@ -161,6 +161,7 @@ export default function SearchPage() {
                         <SearchBar
                             size="sm"
                             defaultQuery={searchQuery}
+                            className="w-full"
                         />
                     </div>
                     <SettingsDropdown

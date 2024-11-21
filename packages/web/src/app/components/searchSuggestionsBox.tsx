@@ -102,8 +102,7 @@ const searchPrefixes: Suggestion[] = [
 interface SearchSuggestionsBoxProps {
     query: string;
     onCompletion: (value: ((prevQuery: string) => { newQuery: string, newCursorPosition: number } )) => void,
-    isVisible: boolean;
-    onVisibilityChanged: (isVisible: boolean) => void;
+    isEnabled: boolean;
     cursorPosition: number;
     isFocused: boolean;
     onFocus: () => void;
@@ -119,8 +118,7 @@ interface SearchSuggestionsBoxProps {
 const SearchSuggestionsBox = forwardRef(({
     query,
     onCompletion,
-    isVisible,
-    onVisibilityChanged,
+    isEnabled,
     data,
     cursorPosition,
     isFocused,
@@ -130,13 +128,6 @@ const SearchSuggestionsBox = forwardRef(({
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
 
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
-
-    // When we start typing, set the suggestion box to visible
-    useEffect(() => {
-        if (query.length > 0) {
-            onVisibilityChanged(true);
-        }
-    }, [query, onVisibilityChanged]);
 
     // Transform data to suggestions
     const { repos } = useMemo(() => {
@@ -441,7 +432,7 @@ const SearchSuggestionsBox = forwardRef(({
     }, [suggestionMode]);
 
     if (
-        !isVisible ||
+        !isEnabled ||
         !suggestions ||
         suggestions.length === 0
     ) {

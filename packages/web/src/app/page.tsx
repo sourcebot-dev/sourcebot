@@ -18,7 +18,7 @@ export default async function Home() {
             <NavigationMenu />
             <UpgradeToast />
 
-            <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 min-w-[50%] max-w-[90%]">
+            <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
                 <div className="max-h-44 w-auto">
                     <Image
                         src={logoDark}
@@ -35,15 +35,15 @@ export default async function Home() {
                 </div>
                 <SearchBar
                     autoFocus={true}
-                    className="mt-4"
+                    className="mt-4 w-full max-w-[800px]"
                 />
                 <div className="mt-8">
                     <Suspense fallback={<div>...</div>}>
                         <RepositoryList />
                     </Suspense>
                 </div>
-                <Separator className="mt-5 mb-8" />
                 <div className="flex flex-col items-center w-fit gap-6">
+                    <Separator className="mt-5" />
                     <span className="font-semibold">How to search</span>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <HowToSection

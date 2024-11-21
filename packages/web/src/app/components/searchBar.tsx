@@ -86,7 +86,7 @@ const zoekt = () => {
 }
 
 const searchBarContainerVariants = cva(
-    "search-bar-container flex items-center w-full p-0.5 border rounded-md relative",
+    "search-bar-container flex items-center p-0.5 border rounded-md relative",
     {
         variants: {
             size: {
@@ -108,20 +108,24 @@ export const SearchBar = ({
 }: SearchBarProps) => {
     const router = useRouter();
     const tailwind = useTailwind();
-    const [ isSuggestionsBoxVisible, setIsSuggestionsBoxVisible ] = useState(false);
     const suggestionBoxRef = useRef<HTMLDivElement>(null);
-    const [cursorPosition, setCursorPosition] = useState(0);
-
     const editorRef = useRef<ReactCodeMirrorRef>(null);
-    const [query, setQuery] = useState(defaultQuery ?? "");
-
-    const [repos, setRepos] = useState<Repository[]>([]);
-
-    const [isSuggestionBoxFocused, setIsSuggestionBoxFocused] = useState(false);
-
+    const [cursorPosition, setCursorPosition] = useState(0);
+    const [isSuggestionsBoxEnabled, setIsSuggestionsBoxEnabled ] = useState(false);
+    const [isSuggestionsBoxFocused, setIsSuggestionsBoxFocused] = useState(false);
+    
     const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
     const focusSuggestionsBox = useCallback(() => suggestionBoxRef.current?.focus(), []);
 
+    const [_query, setQuery] = useState(defaultQuery ?? "");
+    const query = useMemo(() => {
+        // Replace any newlines with spaces to handle
+        // copy & pasting text with newlines.
+        return _query.replaceAll(/\n/g, " ");
+    }, [_query]);
+
+    // @todo : clean this up
+    const [repos, setRepos] = useState<Repository[]>([]);
     useEffect(() => {
         getRepos().then((response) => {
             setRepos(response.List.Repos.map(r => r.Repository));
@@ -165,16 +169,25 @@ export const SearchBar = ({
         ];
     }, []);
 
+    // Hotkey to focus the search bar.
     useHotkeys('/', (event) => {
         event.preventDefault();
         focusEditor();
-
-        // Move the cursor to the end of the query
+        setIsSuggestionsBoxEnabled(true);
         if (editorRef.current?.view) {
             cursorDocEnd({
                 state: editorRef.current.view.state,
                 dispatch: editorRef.current.view.dispatch,
             });
+        }
+    });
+
+    // Collapse the suggestions box if the user clicks outside of the search bar container.
+    useClickListener('.search-bar-container', (isElementClicked) => {
+        if (!isElementClicked) {
+            setIsSuggestionsBoxEnabled(false);
+        } else {
+            setIsSuggestionsBoxEnabled(true);
         }
     });
 
@@ -185,41 +198,38 @@ export const SearchBar = ({
         router.push(url);
     }
 
-    useClickListener('.search-bar-container', (isElementClicked) => {
-        // Collapse the suggestions box if the user clicks outside of the search bar container.
-        if (!isElementClicked) {
-            setIsSuggestionsBoxVisible(false);
-        } else {
-            setIsSuggestionsBoxVisible(true);
-        }
-    });
-
     return (
         <div
             className={cn(searchBarContainerVariants({ size, className }))}
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
+                    setIsSuggestionsBoxEnabled(false);
                     onSubmit();
                 }
 
                 if (e.key === 'Escape') {
                     e.preventDefault();
-                    setIsSuggestionsBoxVisible(false);
+                    setIsSuggestionsBoxEnabled(false);
                 }
 
                 if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setIsSuggestionsBoxEnabled(true);
                     focusSuggestionsBox();
                 }
             }}
         >
             <CodeMirror
                 ref={editorRef}
-                className="grow"
+                className="overflow-x-auto scrollbar-hide"
                 placeholder={"Search..."}
                 value={query}
                 onChange={(value) => {
                     setQuery(value);
+                    // Whenever the user types, we want to re-enable
+                    // the suggestions box.
+                    setIsSuggestionsBoxEnabled(true);
                 }}
                 theme={theme}
                 basicSetup={false}
@@ -251,18 +261,17 @@ export const SearchBar = ({
                     // Re-focus the editor since suggestions cause focus to be lost (both click & keyboard)
                     editorRef.current?.view?.focus();
                 }}
-                isVisible={isSuggestionsBoxVisible}
-                onVisibilityChanged={setIsSuggestionsBoxVisible}
+                isEnabled={isSuggestionsBoxEnabled}
                 onReturnFocus={() => {
                     // Re-focus the editor
                     focusEditor();
                 }}
-                isFocused={isSuggestionBoxFocused}
+                isFocused={isSuggestionsBoxFocused}
                 onFocus={() => {
-                    setIsSuggestionBoxFocused(document.activeElement === suggestionBoxRef.current);
+                    setIsSuggestionsBoxFocused(document.activeElement === suggestionBoxRef.current);
                 }}
                 onBlur={() => {
-                    setIsSuggestionBoxFocused(document.activeElement === suggestionBoxRef.current);
+                    setIsSuggestionsBoxFocused(document.activeElement === suggestionBoxRef.current);
                 }}
                 cursorPosition={cursorPosition}
                 data={suggestionData}
