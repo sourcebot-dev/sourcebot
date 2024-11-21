@@ -105,6 +105,10 @@ interface SearchSuggestionsBoxProps {
     isVisible: boolean;
     onVisibilityChanged: (isVisible: boolean) => void;
     cursorPosition: number;
+    isFocused: boolean;
+    onFocus: () => void;
+    onBlur: () => void;
+    onReturnFocus: () => void;
 
     // data
     data: {
@@ -119,10 +123,13 @@ const SearchSuggestionsBox = forwardRef(({
     onVisibilityChanged,
     data,
     cursorPosition,
+    isFocused,
+    onFocus,
+    onBlur,
+    onReturnFocus,
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
 
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
-    const [isFocused, setIsFocused] = useState(false);
 
     // When we start typing, set the suggestion box to visible
     useEffect(() => {
@@ -372,7 +379,8 @@ const SearchSuggestionsBox = forwardRef(({
                     }
                 case "file":
                     return {
-                        list: [], // todo
+                        // @todo
+                        list: [],
                         Icon: FileIcon,
                         onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
                     }
@@ -427,6 +435,8 @@ const SearchSuggestionsBox = forwardRef(({
                 return "Repositories";
             case "filter":
                 return "Filter by"
+            default:
+                return "";
         }
     }, [suggestionMode]);
 
@@ -463,9 +473,14 @@ const SearchSuggestionsBox = forwardRef(({
                         return curIndex >= suggestions.length - 1 ? 0 : curIndex + 1;
                     });
                 }
+
+                if (e.key === 'Escape') {
+                    e.stopPropagation();
+                    onReturnFocus();
+                }
             }}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onFocus={onFocus}
+            onBlur={onBlur}
         >
             <p className="text-muted-foreground text-sm mb-1">
                 {suggestionModeText}
@@ -476,7 +491,10 @@ const SearchSuggestionsBox = forwardRef(({
                     className={clsx("flex flex-row items-center font-mono text-sm hover:bg-muted rounded-md px-1 py-0.5 cursor-pointer", {
                         "bg-muted": isFocused && index === highlightedSuggestionIndex,
                     })}
-                    onClick={() => onSuggestionClicked(result.value)}
+                    tabIndex={-1}
+                    onClick={() => {
+                        onSuggestionClicked(result.value)
+                    }}
                 >
                     {Icon && (
                         <Icon className="w-3 h-3 mr-2" />
@@ -497,6 +515,13 @@ const SearchSuggestionsBox = forwardRef(({
                     </div>
                 </div>
             ))}
+            {isFocused && (
+                <div className="flex flex-row items-center justify-end mt-1">
+                    <span className="text-muted-foreground text-xs">
+                        Press <kbd className="font-mono text-xs font-bold">Enter</kbd> to select
+                    </span>
+                </div>
+            )}
         </div>
     )
 });

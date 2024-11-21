@@ -116,6 +116,12 @@ export const SearchBar = ({
     const [query, setQuery] = useState(defaultQuery ?? "");
 
     const [repos, setRepos] = useState<Repository[]>([]);
+
+    const [isSuggestionBoxFocused, setIsSuggestionBoxFocused] = useState(false);
+
+    const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
+    const focusSuggestionsBox = useCallback(() => suggestionBoxRef.current?.focus(), []);
+
     useEffect(() => {
         getRepos().then((response) => {
             setRepos(response.List.Repos.map(r => r.Repository));
@@ -159,19 +165,17 @@ export const SearchBar = ({
         ];
     }, []);
 
-    const focusEditorAndMoveCursorToEnd = useCallback(() => {
-        editorRef.current?.view?.focus();
+    useHotkeys('/', (event) => {
+        event.preventDefault();
+        focusEditor();
+
+        // Move the cursor to the end of the query
         if (editorRef.current?.view) {
             cursorDocEnd({
                 state: editorRef.current.view.state,
                 dispatch: editorRef.current.view.dispatch,
             });
         }
-    }, []);
-
-    useHotkeys('/', (event) => {
-        event.preventDefault();
-        focusEditorAndMoveCursorToEnd();
     });
 
     const onSubmit = () => {
@@ -205,7 +209,7 @@ export const SearchBar = ({
                 }
 
                 if (e.key === 'ArrowDown') {
-                    suggestionBoxRef.current?.focus();
+                    focusSuggestionsBox();
                 }
             }}
         >
@@ -249,6 +253,17 @@ export const SearchBar = ({
                 }}
                 isVisible={isSuggestionsBoxVisible}
                 onVisibilityChanged={setIsSuggestionsBoxVisible}
+                onReturnFocus={() => {
+                    // Re-focus the editor
+                    focusEditor();
+                }}
+                isFocused={isSuggestionBoxFocused}
+                onFocus={() => {
+                    setIsSuggestionBoxFocused(document.activeElement === suggestionBoxRef.current);
+                }}
+                onBlur={() => {
+                    setIsSuggestionBoxFocused(document.activeElement === suggestionBoxRef.current);
+                }}
                 cursorPosition={cursorPosition}
                 data={suggestionData}
             />
