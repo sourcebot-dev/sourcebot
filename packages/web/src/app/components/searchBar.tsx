@@ -34,9 +34,11 @@ import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
-import { SearchSuggestionsBox } from "./searchSuggestionsBox";
+import { SearchSuggestionsBox, Suggestion } from "./searchSuggestionsBox";
 import { useClickListener } from "@/hooks/useClickListener";
 import { getRepos } from "../api/(client)/client";
+import languages from "./languages";
+
 
 interface SearchBarProps {
     className?: string;
@@ -132,9 +134,34 @@ export const SearchBar = ({
         });
     }, []);
 
-    const suggestionData = useMemo(() => ({
-        repos,
-    }), [repos]);
+    const suggestionData = useMemo(() => {
+        const repoSuggestions: Suggestion[] = repos.map((repo) => {
+            return {
+                value: repo.Name,
+            }
+        });
+
+        const languageSuggestions: Suggestion[] = languages.map((lang) => {
+            const spotlight = [
+                "Python",
+                "Java",
+                "TypeScript",
+                "Go",
+                "C++",
+                "C#"
+            ].includes(lang);
+
+            return {
+                value: lang,
+                spotlight,
+            };
+        })
+
+        return {
+            repos: repoSuggestions,
+            languages: languageSuggestions,
+        }
+    }, [repos]);
 
     const theme = useMemo(() => {
         return createTheme({
@@ -222,7 +249,7 @@ export const SearchBar = ({
         >
             <CodeMirror
                 ref={editorRef}
-                className="overflow-x-auto scrollbar-hide"
+                className="overflow-x-auto scrollbar-hide w-full"
                 placeholder={"Search..."}
                 value={query}
                 onChange={(value) => {

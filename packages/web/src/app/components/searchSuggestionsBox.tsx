@@ -1,6 +1,5 @@
 'use client';
 
-import { Repository } from "@/lib/types";
 import { isDefined } from "@/lib/utils";
 import { CommitIcon, FileIcon, MixerVerticalIcon } from "@radix-ui/react-icons";
 import { IconProps } from "@radix-ui/react-icons/dist/types";
@@ -12,13 +11,14 @@ import { forwardRef, Ref, useEffect, useMemo, useState } from "react";
 
 type Icon = React.ForwardRefExoticComponent<IconProps & React.RefAttributes<SVGSVGElement>>;
 
-type Suggestion = {
+export type Suggestion = {
     value: string;
     description?: string;
+    spotlight?: boolean;
 }
 
 type SuggestionMode =
-    "filter" |
+    "refine" |
     "archived" |
     "file" |
     "language" |
@@ -30,78 +30,176 @@ type SuggestionMode =
     "content" |
     "repo";
 
-// @note : Order here is important
+
+enum Prefix {
+    repo = "repo:",
+    r = "r:",
+    lang = "lang:",
+    file = "file:",
+    rev = "rev:",
+    revision = "revision:",
+    b = "b:",
+    branch = "branch:",
+    sym = "sym:",
+    content = "content:",
+    archived = "archived:",
+    case = "case:",
+    fork = "fork:",
+    public = "public:"
+}
+
+const negate = (prefix: Prefix) => {
+    return `-${prefix}`;
+}
+
+type SuggestionModeMapping = {
+    suggestionMode: SuggestionMode,
+    prefixes: string[],
+}
+
+const suggestionModeMappings: SuggestionModeMapping[] = [
+    {
+        suggestionMode: "repo",
+        prefixes: [
+            Prefix.repo, negate(Prefix.repo),
+            Prefix.r, negate(Prefix.r),
+        ]
+    },
+    {
+        suggestionMode: "language",
+        prefixes: [
+            Prefix.lang, negate(Prefix.lang),
+        ]
+    },
+    {
+        suggestionMode: "file",
+        prefixes: [
+            Prefix.file, negate(Prefix.file),
+        ]
+    },
+    {
+        suggestionMode: "content",
+        prefixes: [
+            Prefix.content, negate(Prefix.content),
+        ]
+    },
+    {
+        suggestionMode: "revision",
+        prefixes: [
+            Prefix.rev, negate(Prefix.rev),
+            Prefix.revision, negate(Prefix.revision),
+            Prefix.branch, negate(Prefix.branch),
+            Prefix.b, negate(Prefix.b),
+        ]
+    },
+    {
+        suggestionMode: "symbol",
+        prefixes: [
+            Prefix.sym, negate(Prefix.sym),
+        ]
+    },
+    {
+        suggestionMode: "archived",
+        prefixes: [
+            Prefix.archived
+        ]
+    },
+    {
+        suggestionMode: "case",
+        prefixes: [
+            Prefix.case
+        ]
+    },
+    {
+        suggestionMode: "fork",
+        prefixes: [
+            Prefix.fork
+        ]
+    },
+    {
+        suggestionMode: "public",
+        prefixes: [
+            Prefix.public
+        ]
+    }
+]
+
 const searchPrefixes: Suggestion[] = [
     {
-        value: "repo:",
-        description: "Include only results from the given repository."
+        value: Prefix.repo,
+        description: "Include only results from the given repository.",
+        spotlight: true,
     },
     {
-        value: "lang:",
-        description: "Include only results from the given language."
-    },
-    {
-        value: "file:",
-        description: "Include only results from filepaths matching the given search pattern."
-    },
-    {
-        value: "rev:",
-        description: "Search a given branch or tag instead of the default branch."
-    },
-    {
-        value: "sym:",
-        description: "Include only symbols matching the given search pattern."
-    },
-    {
-        value: "archived:",
-        description: "Include results from archived repositories."
-    },
-    {
-        value: "case:",
-        description: "Control case-sensitivity of search patterns."
-    },
-    {
-        value: "fork:",
-        description: "Include only results from forked repositories."
-    },
-    {
-        value: "public:",
-        description: "Filter on repository visibility."
-    },
-    {
-        value: "content:",
-        description: "Include only results from files if their content matches the given search pattern."
-    },
-    {
-        value: "-lang:",
-        description: "Exclude results from the given language."
-    },
-    {
-        value: "-repo:",
+        value: negate(Prefix.repo),
         description: "Exclude results from the given repository."
     },
     {
-        value: "-file:",
+        value: Prefix.lang,
+        description: "Include only results from the given language.",
+        spotlight: true,
+    },
+    {
+        value: negate(Prefix.lang),
+        description: "Exclude results from the given language."
+    },
+    {
+        value: Prefix.file,
+        description: "Include only results from filepaths matching the given search pattern.",
+        spotlight: true,
+    },
+    {
+        value: negate(Prefix.file),
         description: "Exclude results from file paths matching the given search pattern."
     },
     {
-        value: "-rev:",
+        value: Prefix.rev,
+        description: "Search a given branch or tag instead of the default branch.",
+        spotlight: true,
+    },
+    {
+        value: negate(Prefix.rev),
         description: "Exclude results from the given branch or tag."
     },
     {
-        value: "-sym:",
+        value: Prefix.sym,
+        description: "Include only symbols matching the given search pattern.",
+        spotlight: true,
+    },
+    {
+        value: negate(Prefix.sym),
         description: "Exclude results from symbols matching the given search pattern."
     },
     {
-        value: "-content:",
+        value: Prefix.content,
+        description: "Include only results from files if their content matches the given search pattern."
+    },
+    {
+        value: negate(Prefix.content),
         description: "Exclude results from files if their content matches the given search pattern."
-    }
+    },
+    {
+        value: Prefix.archived,
+        description: "Include results from archived repositories.",
+    },
+    {
+        value: Prefix.case,
+        description: "Control case-sensitivity of search patterns."
+    },
+    {
+        value: Prefix.fork,
+        description: "Include only results from forked repositories."
+    },
+    {
+        value: Prefix.public,
+        description: "Filter on repository visibility."
+    },
 ];
 
 
 interface SearchSuggestionsBoxProps {
     query: string;
-    onCompletion: (value: ((prevQuery: string) => { newQuery: string, newCursorPosition: number } )) => void,
+    onCompletion: (value: ((prevQuery: string) => { newQuery: string, newCursorPosition: number })) => void,
     isEnabled: boolean;
     cursorPosition: number;
     isFocused: boolean;
@@ -111,7 +209,8 @@ interface SearchSuggestionsBoxProps {
 
     // data
     data: {
-        repos: Repository[];
+        repos: Suggestion[];
+        languages: Suggestion[];
     }
 }
 
@@ -129,16 +228,6 @@ const SearchSuggestionsBox = forwardRef(({
 
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
 
-    // Transform data to suggestions
-    const { repos } = useMemo(() => {
-        const repos: Suggestion[] = data.repos.map((repo) => ({
-            value: repo.Name,
-        }));
-        return {
-            repos,
-        };
-    }, [data.repos]);
-
     const { suggestionQuery, suggestionMode } = useMemo<{ suggestionQuery?: string, suggestionMode?: SuggestionMode }>(() => {
         const { queryParts, cursorIndex } = splitQuery(query, " ", cursorPosition);
         if (queryParts.length === 0) {
@@ -146,95 +235,32 @@ const SearchSuggestionsBox = forwardRef(({
         }
         const part = queryParts[cursorIndex];
 
-        if (part.startsWith("repo:") || part.startsWith("-repo:")) {
+        // Check if the query part starts with one of the
+        // prefixes. If it does, then we are in the corresponding
+        // suggestion mode for that prefix.
+        const suggestionMode = (() => {
+            for (const mapping of suggestionModeMappings) {
+                for (const prefix of mapping.prefixes) {
+                    if (part.startsWith(prefix)) {
+                        return mapping.suggestionMode;
+                    }
+                }
+            }
+        })();
+
+        if (suggestionMode) {
             const index = part.indexOf(":");
             return {
                 suggestionQuery: part.substring(index + 1),
-                suggestionMode: "repo",
+                suggestionMode,
             }
         }
-
-        if (part.startsWith("lang:") || part.startsWith("-lang:")) {
-            const index = part.indexOf(":");
-            return {
-                suggestionQuery: part.substring(index + 1),
-                suggestionMode: "language",
-            }
-        }
-
-        if (part.startsWith("file:") || part.startsWith("-file:")) {
-            const index = part.indexOf(":");
-            return {
-                suggestionQuery: part.substring(index + 1),
-                suggestionMode: "file",
-            }
-        }
-
-        if (part.startsWith("content:") || part.startsWith("-content:")) {
-            const index = part.indexOf(":");
-            return {
-                suggestionQuery: part.substring(index + 1),
-                suggestionMode: "content",
-            }
-        }
-
-        if (
-            part.startsWith("rev:") ||
-            part.startsWith("-rev:") ||
-            part.startsWith("revision:") ||
-            part.startsWith("-revision:")
-        ) {
-            const index = part.indexOf(":");
-            return {
-                suggestionQuery: part.substring(index + 1),
-                suggestionMode: "revision",
-            }
-        }
-
-        if (part.startsWith("sym:") || part.startsWith("-sym:")) {
-            const index = part.indexOf(":");
-            return {
-                suggestionQuery: part.substring(index + 1),
-                suggestionMode: "symbol",
-            }
-        }
-
-        if (part.startsWith("archived:")) {
-            const index = part.indexOf(":");
-            return {
-                suggestionQuery: part.substring(index + 1),
-                suggestionMode: "archived",
-            }
-        }
-
-        if (part.startsWith("case:")) {
-            const index = part.indexOf(":");
-            return {
-                suggestionQuery: part.substring(index + 1),
-                suggestionMode: "case",
-            }
-        }
-
-        if (part.startsWith("fork:")) {
-            const index = part.indexOf(":");
-            return {
-                suggestionQuery: part.substring(index + 1),
-                suggestionMode: "fork",
-            }
-        }
-
-        if (part.startsWith("public:")) {
-            const index = part.indexOf(":");
-            return {
-                suggestionQuery: part.substring(index + 1),
-                suggestionMode: "public",
-            }
-        }
-
-        // Default to filter mode
+        
+        // Default to the refine suggestion mode
+        // if there was no match.
         return {
             suggestionQuery: part,
-            suggestionMode: "filter",
+            suggestionMode: "refine",
         }
     }, [cursorPosition, query]);
 
@@ -267,6 +293,8 @@ const SearchSuggestionsBox = forwardRef(({
 
                     if (regexEscaped) {
                         part = part + `^${escapeStringRegexp(value)}$`;
+                    } else if (value.includes(" ")) {
+                        part = part + `"${value}"`;
                     } else {
                         part = part + value;
                     }
@@ -300,6 +328,7 @@ const SearchSuggestionsBox = forwardRef(({
             limit = 10,
             list,
             isHighlightEnabled = false,
+            isSpotlightEnabled = false,
             onSuggestionClicked,
             Icon,
         } = ((): {
@@ -307,17 +336,11 @@ const SearchSuggestionsBox = forwardRef(({
             limit?: number,
             list: Suggestion[],
             isHighlightEnabled?: boolean,
+            isSpotlightEnabled?: boolean,
             onSuggestionClicked: (value: string) => void,
             Icon?: Icon
         } => {
             switch (suggestionMode) {
-                case "revision":
-                    return {
-                        list: [
-                            { value: "HEAD", description: "(default)" }
-                        ],
-                        onSuggestionClicked: createOnSuggestionClickedHandler(),
-                    }
                 case "public":
                     return {
                         list: [
@@ -353,33 +376,30 @@ const SearchSuggestionsBox = forwardRef(({
                     }
                 case "repo":
                     return {
-                        list: repos,
+                        list: data.repos,
                         Icon: CommitIcon,
                         onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
                     }
-                case "language":
+                case "language": {
                     return {
-                        // @todo: get list of languages
-                        list: [],
+                        list: data.languages,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
+                        isSpotlightEnabled: true,
                     }
-                case "file":
-                    return {
-                        // @todo
-                        list: [],
-                        Icon: FileIcon,
-                        onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
-                    }
-                case "filter":
+                }
+                case "refine":
                     return {
                         threshold: 0.1,
-                        limit: 5,
                         list: searchPrefixes,
                         isHighlightEnabled: true,
+                        isSpotlightEnabled: true,
                         Icon: MixerVerticalIcon,
                         onSuggestionClicked: createOnSuggestionClickedHandler({ trailingSpace: false }),
                     }
-                default:
+                case "file":
+                case "revision":
+                case "content":
+                case "symbol":
                     return {
                         list: [],
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
@@ -395,7 +415,16 @@ const SearchSuggestionsBox = forwardRef(({
 
         const results = (() => {
             if (suggestionQuery.length === 0) {
-                return list.slice(0, limit);
+                // If spotlight is enabled, get the suggestions that are
+                // flagged to be surfaced.
+                if (isSpotlightEnabled) {
+                    const spotlightSuggestions = list.filter((suggestion) => suggestion.spotlight);
+                    return spotlightSuggestions;
+
+                    // Otherwise, just show the Nth first suggestions.
+                } else {
+                    return list.slice(0, limit);
+                }
             }
 
             return fuse.search(suggestionQuery, {
@@ -410,7 +439,7 @@ const SearchSuggestionsBox = forwardRef(({
             onSuggestionClicked,
         }
 
-    }, [suggestionQuery, suggestionMode, onCompletion, cursorPosition, repos]);
+    }, [suggestionQuery, suggestionMode, onCompletion, cursorPosition, data.repos, data.languages]);
 
     // When the list of suggestions change, reset the highlight index
     useEffect(() => {
@@ -424,8 +453,8 @@ const SearchSuggestionsBox = forwardRef(({
         switch (suggestionMode) {
             case "repo":
                 return "Repositories";
-            case "filter":
-                return "Filter by"
+            case "refine":
+                return "Refine search"
             default:
                 return "";
         }
@@ -524,13 +553,18 @@ const splitQuery = (query: string, seperator: string, cursorPos: number) => {
     const queryParts = [];
     let cursorIndex = 0;
     let accumulator = "";
+    let isInQuoteCapture = false;
 
     for (let i = 0; i < query.length; i++) {
         if (i === cursorPos) {
             cursorIndex = queryParts.length;
         }
 
-        if (query[i] === seperator) {
+        if (query[i] === "\"") {
+            isInQuoteCapture = !isInQuoteCapture;
+        }
+
+        if (!isInQuoteCapture && query[i] === seperator) {
             queryParts.push(accumulator);
             accumulator = "";
             continue;
@@ -539,7 +573,7 @@ const splitQuery = (query: string, seperator: string, cursorPos: number) => {
         accumulator += query[i];
     }
     queryParts.push(accumulator);
-    
+
     // Edge case: if the cursor is at the end of the query, set the cursor index to the last query part
     if (cursorPos === query.length) {
         cursorIndex = queryParts.length - 1;
