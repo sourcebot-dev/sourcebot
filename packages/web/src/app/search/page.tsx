@@ -19,7 +19,7 @@ import logoDark from "../../../public/sb_logo_dark.png";
 import logoLight from "../../../public/sb_logo_light.png";
 import { search } from "../api/(client)/client";
 import { SearchBar } from "../components/searchBar";
-import { SettingsDropdown } from "../settingsDropdown";
+import { SettingsDropdown } from "../components/settingsDropdown";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";

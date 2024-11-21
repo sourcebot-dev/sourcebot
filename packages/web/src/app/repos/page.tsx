@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { NavigationMenu } from "../navigationMenu";
+import { NavigationMenu } from "../components/navigationMenu";
 import { RepositoryTable } from "./repositoryTable";
 
 export default function ReposPage() {

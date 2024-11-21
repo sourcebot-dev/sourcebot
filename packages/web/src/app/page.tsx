@@ -4,12 +4,12 @@ import Image from "next/image";
 import { Suspense } from "react";
 import logoDark from "../../public/sb_logo_dark_large.png";
 import logoLight from "../../public/sb_logo_light_large.png";
-import { NavigationMenu } from "./navigationMenu";
-import { RepositoryCarousel } from "./repositoryCarousel";
+import { NavigationMenu } from "./components/navigationMenu";
+import { RepositoryCarousel } from "./components/repositoryCarousel";
 import { SearchBar } from "./components/searchBar";
 import { Separator } from "@/components/ui/separator";
 import { SymbolIcon } from "@radix-ui/react-icons";
-import { UpgradeToast } from "./upgradeToast";
+import { UpgradeToast } from "./components/upgradeToast";
 
 
 export default async function Home() {
