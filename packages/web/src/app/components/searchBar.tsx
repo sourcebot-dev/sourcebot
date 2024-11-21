@@ -29,7 +29,7 @@ import {
 import { LanguageSupport, StreamLanguage } from "@codemirror/language";
 import { tags as t } from '@lezer/highlight';
 import { createTheme } from '@uiw/codemirror-themes';
-import CodeMirror, { Annotation, KeyBinding, keymap, ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import CodeMirror, { Annotation, EditorView, KeyBinding, keymap, ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -85,12 +85,6 @@ const zoekt = () => {
     return new LanguageSupport(zoektLanguage);
 }
 
-const extensions = [
-    keymap.of(searchBarKeymap),
-    history(),
-    zoekt(),
-];
-
 const searchBarContainerVariants = cva(
     "search-bar-container flex items-center w-full p-0.5 border rounded-md relative",
     {
@@ -116,6 +110,7 @@ export const SearchBar = ({
     const tailwind = useTailwind();
     const [ isSuggestionsBoxVisible, setIsSuggestionsBoxVisible ] = useState(false);
     const suggestionBoxRef = useRef<HTMLDivElement>(null);
+    const [cursorPosition, setCursorPosition] = useState(0);
 
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     const [query, setQuery] = useState(defaultQuery ?? "");
@@ -148,6 +143,21 @@ export const SearchBar = ({
         });
     }, [tailwind]);
 
+    const extensions = useMemo(() => {
+        return [
+            keymap.of(searchBarKeymap),
+            history(),
+            zoekt(),
+            EditorView.updateListener.of(update => {
+                if (update.selectionSet) {
+                    const selection = update.state.selection.main;
+                    if (selection.empty) {
+                        setCursorPosition(selection.anchor);
+                    }
+                }
+            })
+        ];
+    }, []);
 
     const focusEditorAndMoveCursorToEnd = useCallback(() => {
         editorRef.current?.view?.focus();
@@ -217,23 +227,29 @@ export const SearchBar = ({
                 ref={suggestionBoxRef}
                 query={query}
                 onCompletion={(cb) => {
-                    const newQuery = cb(query);
+                    const { newQuery, newCursorPosition } = cb(query);
                     setQuery(newQuery);
 
-                    // Move the cursor to the end of the query
+                    // Move the cursor to it's new position.
                     // @note : normally, react-codemirror handles syncing `query`
                     // and the document state, but this happens on re-render. Since
-                    // we want to move the cursor to the end of the query before
-                    // the component re-renders, we manually update the document
-                    // state inline.
+                    // we want to move the cursor before the component re-renders,
+                    // we manually update the document state inline.
                     editorRef.current?.view?.dispatch({
                         changes: { from: 0, to: query.length, insert: newQuery },
                         annotations: [Annotation.define<boolean>().of(true)],
                     });
-                    focusEditorAndMoveCursorToEnd();
+
+                    editorRef.current?.view?.dispatch({
+                        selection: { anchor: newCursorPosition, head: newCursorPosition },
+                    });
+
+                    // Re-focus the editor since suggestions cause focus to be lost (both click & keyboard)
+                    editorRef.current?.view?.focus();
                 }}
                 isVisible={isSuggestionsBoxVisible}
-                setIsVisible={setIsSuggestionsBoxVisible}
+                onVisibilityChanged={setIsSuggestionsBoxVisible}
+                cursorPosition={cursorPosition}
                 data={suggestionData}
             />
         </div>

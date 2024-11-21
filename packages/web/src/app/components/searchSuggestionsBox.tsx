@@ -4,10 +4,11 @@ import { Repository } from "@/lib/types";
 import { isDefined } from "@/lib/utils";
 import { CommitIcon, FileIcon, MixerVerticalIcon } from "@radix-ui/react-icons";
 import { IconProps } from "@radix-ui/react-icons/dist/types";
+import assert from "assert";
 import clsx from "clsx";
 import escapeStringRegexp from "escape-string-regexp";
 import Fuse from "fuse.js";
-import { Dispatch, forwardRef, Ref, SetStateAction, useEffect, useMemo, useState } from "react";
+import { forwardRef, Ref, useEffect, useMemo, useState } from "react";
 
 type Icon = React.ForwardRefExoticComponent<IconProps & React.RefAttributes<SVGSVGElement>>;
 
@@ -15,6 +16,19 @@ type Suggestion = {
     value: string;
     description?: string;
 }
+
+type SuggestionMode =
+    "filter" |
+    "archived" |
+    "file" |
+    "language" |
+    "case" |
+    "fork" |
+    "public" |
+    "revision" |
+    "symbol" |
+    "content" |
+    "repo";
 
 // @note : Order here is important
 const searchPrefixes: Suggestion[] = [
@@ -84,24 +98,13 @@ const searchPrefixes: Suggestion[] = [
     }
 ];
 
-type SuggestionMode =
-    "filter" |
-    "archived" |
-    "file" |
-    "language" |
-    "case" |
-    "fork" |
-    "public" |
-    "revision" |
-    "symbol" |
-    "content" |
-    "repo";
 
 interface SearchSuggestionsBoxProps {
     query: string;
-    onCompletion: (value: ((prevQuery: string) => string)) => void,
+    onCompletion: (value: ((prevQuery: string) => { newQuery: string, newCursorPosition: number } )) => void,
     isVisible: boolean;
-    setIsVisible: Dispatch<SetStateAction<boolean>>;
+    onVisibilityChanged: (isVisible: boolean) => void;
+    cursorPosition: number;
 
     // data
     data: {
@@ -109,12 +112,13 @@ interface SearchSuggestionsBoxProps {
     }
 }
 
-export const SearchSuggestionsBox = forwardRef(({
+const SearchSuggestionsBox = forwardRef(({
     query,
     onCompletion,
     isVisible,
-    setIsVisible,
+    onVisibilityChanged,
     data,
+    cursorPosition,
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
 
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
@@ -123,9 +127,9 @@ export const SearchSuggestionsBox = forwardRef(({
     // When we start typing, set the suggestion box to visible
     useEffect(() => {
         if (query.length > 0) {
-            setIsVisible(true);
+            onVisibilityChanged(true);
         }
-    }, [query, setIsVisible]);
+    }, [query, onVisibilityChanged]);
 
     // Transform data to suggestions
     const { repos } = useMemo(() => {
@@ -134,107 +138,107 @@ export const SearchSuggestionsBox = forwardRef(({
         }));
         return {
             repos,
-        }
+        };
     }, [data.repos]);
 
     const { suggestionQuery, suggestionMode } = useMemo<{ suggestionQuery?: string, suggestionMode?: SuggestionMode }>(() => {
-        const queryParts = query.split(" ");
+        const { queryParts, cursorIndex } = splitQuery(query, " ", cursorPosition);
         if (queryParts.length === 0) {
             return {};
         }
-        const end = queryParts[queryParts.length - 1];
+        const part = queryParts[cursorIndex];
 
-        if (end.startsWith("repo:") || end.startsWith("-repo:")) {
-            const index = end.indexOf(":");
+        if (part.startsWith("repo:") || part.startsWith("-repo:")) {
+            const index = part.indexOf(":");
             return {
-                suggestionQuery: end.substring(index + 1),
+                suggestionQuery: part.substring(index + 1),
                 suggestionMode: "repo",
             }
         }
 
-        if (end.startsWith("lang:") || end.startsWith("-lang:")) {
-            const index = end.indexOf(":");
+        if (part.startsWith("lang:") || part.startsWith("-lang:")) {
+            const index = part.indexOf(":");
             return {
-                suggestionQuery: end.substring(index + 1),
+                suggestionQuery: part.substring(index + 1),
                 suggestionMode: "language",
             }
         }
 
-        if (end.startsWith("file:") || end.startsWith("-file:")) {
-            const index = end.indexOf(":");
+        if (part.startsWith("file:") || part.startsWith("-file:")) {
+            const index = part.indexOf(":");
             return {
-                suggestionQuery: end.substring(index + 1),
+                suggestionQuery: part.substring(index + 1),
                 suggestionMode: "file",
             }
         }
 
-        if (end.startsWith("content:") || end.startsWith("-content:")) {
-            const index = end.indexOf(":");
+        if (part.startsWith("content:") || part.startsWith("-content:")) {
+            const index = part.indexOf(":");
             return {
-                suggestionQuery: end.substring(index + 1),
+                suggestionQuery: part.substring(index + 1),
                 suggestionMode: "content",
             }
         }
 
         if (
-            end.startsWith("rev:") ||
-            end.startsWith("-rev:") ||
-            end.startsWith("revision:") ||
-            end.startsWith("-revision:")
+            part.startsWith("rev:") ||
+            part.startsWith("-rev:") ||
+            part.startsWith("revision:") ||
+            part.startsWith("-revision:")
         ) {
-            const index = end.indexOf(":");
+            const index = part.indexOf(":");
             return {
-                suggestionQuery: end.substring(index + 1),
+                suggestionQuery: part.substring(index + 1),
                 suggestionMode: "revision",
             }
         }
 
-        if (end.startsWith("sym:") || end.startsWith("-sym:")) {
-            const index = end.indexOf(":");
+        if (part.startsWith("sym:") || part.startsWith("-sym:")) {
+            const index = part.indexOf(":");
             return {
-                suggestionQuery: end.substring(index + 1),
+                suggestionQuery: part.substring(index + 1),
                 suggestionMode: "symbol",
             }
         }
 
-        if (end.startsWith("archived:")) {
-            const index = end.indexOf(":");
+        if (part.startsWith("archived:")) {
+            const index = part.indexOf(":");
             return {
-                suggestionQuery: end.substring(index + 1),
+                suggestionQuery: part.substring(index + 1),
                 suggestionMode: "archived",
             }
         }
 
-        if (end.startsWith("case:")) {
-            const index = end.indexOf(":");
+        if (part.startsWith("case:")) {
+            const index = part.indexOf(":");
             return {
-                suggestionQuery: end.substring(index + 1),
+                suggestionQuery: part.substring(index + 1),
                 suggestionMode: "case",
             }
         }
 
-        if (end.startsWith("fork:")) {
-            const index = end.indexOf(":");
+        if (part.startsWith("fork:")) {
+            const index = part.indexOf(":");
             return {
-                suggestionQuery: end.substring(index + 1),
+                suggestionQuery: part.substring(index + 1),
                 suggestionMode: "fork",
             }
         }
 
-        if (end.startsWith("public:")) {
-            const index = end.indexOf(":");
+        if (part.startsWith("public:")) {
+            const index = part.indexOf(":");
             return {
-                suggestionQuery: end.substring(index + 1),
+                suggestionQuery: part.substring(index + 1),
                 suggestionMode: "public",
             }
         }
 
         // Default to filter mode
         return {
-            suggestionQuery: end,
+            suggestionQuery: part,
             suggestionMode: "filter",
         }
-    }, [query]);
+    }, [cursorPosition, query]);
 
     // When the suggestion mode changes, reset the highlight index
     useEffect(() => {
@@ -254,22 +258,46 @@ export const SearchSuggestionsBox = forwardRef(({
 
             return (value: string) => {
                 onCompletion((prevQuery) => {
-                    let newQuery = prevQuery;
+                    const { queryParts, cursorIndex } = splitQuery(prevQuery, " ", cursorPosition);
+
+                    const start = queryParts.slice(0, cursorIndex).join(" ");
+                    const end = queryParts.slice(cursorIndex + 1).join(" ");
+
+                    let part = queryParts[cursorIndex];
+
+                    // Remove whatever query we have in the suggestion so far (if any).
+                    // For example, if our part is "repo:gith", then we want to remove "gith"
+                    // from the part before we complete the suggestion.
                     if (suggestionQuery.length > 0) {
-                        newQuery = newQuery.slice(0, -suggestionQuery.length);
+                        part = part.slice(0, -suggestionQuery.length);
                     }
 
                     if (regexEscaped) {
-                        newQuery = newQuery + `^${escapeStringRegexp(value)}$`;
+                        part = part + `^${escapeStringRegexp(value)}$`;
                     } else {
-                        newQuery = newQuery + value;
+                        part = part + value;
                     }
 
-                    if (trailingSpace) {
-                        newQuery = newQuery + " ";
+                    // Add a trailing space if we are at the end of the query
+                    if (trailingSpace && cursorIndex === queryParts.length - 1) {
+                        part += " ";
                     }
 
-                    return newQuery;
+                    let newQuery = [
+                        ...(start.length > 0 ? [start] : []),
+                        part,
+                    ].join(" ");
+                    const newCursorPosition = newQuery.length;
+
+                    newQuery = [
+                        newQuery,
+                        ...(end.length > 0 ? [end] : []),
+                    ].join(" ");
+
+                    return {
+                        newQuery,
+                        newCursorPosition,
+                    }
                 });
             }
         }
@@ -388,7 +416,7 @@ export const SearchSuggestionsBox = forwardRef(({
             onSuggestionClicked,
         }
 
-    }, [suggestionQuery, suggestionMode, repos, onCompletion]);
+    }, [suggestionQuery, suggestionMode, onCompletion, cursorPosition, repos]);
 
     const suggestionModeText = useMemo(() => {
         if (!suggestionMode) {
@@ -418,7 +446,6 @@ export const SearchSuggestionsBox = forwardRef(({
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                     e.stopPropagation();
-                    // @todo: apply suggestion
                     const value = suggestions[highlightedSuggestionIndex].value;
                     onSuggestionClicked(value);
                 }
@@ -473,3 +500,41 @@ export const SearchSuggestionsBox = forwardRef(({
         </div>
     )
 });
+
+SearchSuggestionsBox.displayName = "SearchSuggestionsBox";
+export { SearchSuggestionsBox };
+
+const splitQuery = (query: string, seperator: string, cursorPos: number) => {
+    const queryParts = [];
+    let cursorIndex = 0;
+    let accumulator = "";
+
+    for (let i = 0; i < query.length; i++) {
+        if (i === cursorPos) {
+            cursorIndex = queryParts.length;
+        }
+
+        if (query[i] === seperator) {
+            queryParts.push(accumulator);
+            accumulator = "";
+            continue;
+        }
+
+        accumulator += query[i];
+    }
+    queryParts.push(accumulator);
+    
+    // Edge case: if the cursor is at the end of the query, set the cursor index to the last query part
+    if (cursorPos === query.length) {
+        cursorIndex = queryParts.length - 1;
+    }
+
+    // @note: since we're guaranteed to have at least one query part, we can safely assume that the cursor position
+    // will be within bounds.
+    assert(cursorIndex >= 0 && cursorIndex < queryParts.length, "Cursor position is out of bounds");
+
+    return {
+        queryParts,
+        cursorIndex
+    }
+}
