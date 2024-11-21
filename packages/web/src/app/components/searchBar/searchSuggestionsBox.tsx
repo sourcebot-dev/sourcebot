@@ -8,6 +8,14 @@ import clsx from "clsx";
 import escapeStringRegexp from "escape-string-regexp";
 import Fuse from "fuse.js";
 import { forwardRef, Ref, useEffect, useMemo, useState } from "react";
+import {
+    archivedModeSuggestions,
+    caseModeSuggestions,
+    forkModeSuggestions,
+    publicModeSuggestions,
+    refineModeSuggestions,
+    suggestionModeMappings
+} from "./constants";
 
 type Icon = React.ForwardRefExoticComponent<IconProps & React.RefAttributes<SVGSVGElement>>;
 
@@ -17,7 +25,7 @@ export type Suggestion = {
     spotlight?: boolean;
 }
 
-type SuggestionMode =
+export type SuggestionMode =
     "refine" |
     "archived" |
     "file" |
@@ -29,173 +37,6 @@ type SuggestionMode =
     "symbol" |
     "content" |
     "repo";
-
-
-enum Prefix {
-    repo = "repo:",
-    r = "r:",
-    lang = "lang:",
-    file = "file:",
-    rev = "rev:",
-    revision = "revision:",
-    b = "b:",
-    branch = "branch:",
-    sym = "sym:",
-    content = "content:",
-    archived = "archived:",
-    case = "case:",
-    fork = "fork:",
-    public = "public:"
-}
-
-const negate = (prefix: Prefix) => {
-    return `-${prefix}`;
-}
-
-type SuggestionModeMapping = {
-    suggestionMode: SuggestionMode,
-    prefixes: string[],
-}
-
-const suggestionModeMappings: SuggestionModeMapping[] = [
-    {
-        suggestionMode: "repo",
-        prefixes: [
-            Prefix.repo, negate(Prefix.repo),
-            Prefix.r, negate(Prefix.r),
-        ]
-    },
-    {
-        suggestionMode: "language",
-        prefixes: [
-            Prefix.lang, negate(Prefix.lang),
-        ]
-    },
-    {
-        suggestionMode: "file",
-        prefixes: [
-            Prefix.file, negate(Prefix.file),
-        ]
-    },
-    {
-        suggestionMode: "content",
-        prefixes: [
-            Prefix.content, negate(Prefix.content),
-        ]
-    },
-    {
-        suggestionMode: "revision",
-        prefixes: [
-            Prefix.rev, negate(Prefix.rev),
-            Prefix.revision, negate(Prefix.revision),
-            Prefix.branch, negate(Prefix.branch),
-            Prefix.b, negate(Prefix.b),
-        ]
-    },
-    {
-        suggestionMode: "symbol",
-        prefixes: [
-            Prefix.sym, negate(Prefix.sym),
-        ]
-    },
-    {
-        suggestionMode: "archived",
-        prefixes: [
-            Prefix.archived
-        ]
-    },
-    {
-        suggestionMode: "case",
-        prefixes: [
-            Prefix.case
-        ]
-    },
-    {
-        suggestionMode: "fork",
-        prefixes: [
-            Prefix.fork
-        ]
-    },
-    {
-        suggestionMode: "public",
-        prefixes: [
-            Prefix.public
-        ]
-    }
-]
-
-const refineModeSuggestions: Suggestion[] = [
-    {
-        value: Prefix.repo,
-        description: "Include only results from the given repository.",
-        spotlight: true,
-    },
-    {
-        value: negate(Prefix.repo),
-        description: "Exclude results from the given repository."
-    },
-    {
-        value: Prefix.lang,
-        description: "Include only results from the given language.",
-        spotlight: true,
-    },
-    {
-        value: negate(Prefix.lang),
-        description: "Exclude results from the given language."
-    },
-    {
-        value: Prefix.file,
-        description: "Include only results from filepaths matching the given search pattern.",
-        spotlight: true,
-    },
-    {
-        value: negate(Prefix.file),
-        description: "Exclude results from file paths matching the given search pattern."
-    },
-    {
-        value: Prefix.rev,
-        description: "Search a given branch or tag instead of the default branch.",
-        spotlight: true,
-    },
-    {
-        value: negate(Prefix.rev),
-        description: "Exclude results from the given branch or tag."
-    },
-    {
-        value: Prefix.sym,
-        description: "Include only symbols matching the given search pattern.",
-        spotlight: true,
-    },
-    {
-        value: negate(Prefix.sym),
-        description: "Exclude results from symbols matching the given search pattern."
-    },
-    {
-        value: Prefix.content,
-        description: "Include only results from files if their content matches the given search pattern."
-    },
-    {
-        value: negate(Prefix.content),
-        description: "Exclude results from files if their content matches the given search pattern."
-    },
-    {
-        value: Prefix.archived,
-        description: "Include results from archived repositories.",
-    },
-    {
-        value: Prefix.case,
-        description: "Control case-sensitivity of search patterns."
-    },
-    {
-        value: Prefix.fork,
-        description: "Include only results from forked repositories."
-    },
-    {
-        value: Prefix.public,
-        description: "Filter on repository visibility."
-    },
-];
-
 
 interface SearchSuggestionsBoxProps {
     query: string;
@@ -342,35 +183,22 @@ const SearchSuggestionsBox = forwardRef(({
             switch (suggestionMode) {
                 case "public":
                     return {
-                        list: [
-                            { value: "yes", description: "Only include results from public repositories." },
-                            { value: "no", description: "Only include results from private repositories." },
-                        ],
+                        list: publicModeSuggestions,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                     }
                 case "fork":
                     return {
-                        list: [
-                            { value: "yes", description: "Only include results from forked repositories." },
-                            { value: "no", description: "Only include results from non-forked repositories." },
-                        ],
+                        list: forkModeSuggestions,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                     }
                 case "case":
                     return {
-                        list: [
-                            { value: "auto", description: "Search patterns are case-insensitive if all characters are lowercase, and case sensitive otherwise (default)." },
-                            { value: "yes", description: "Case sensitive search." },
-                            { value: "no", description: "Case insensitive search." },
-                        ],
+                        list: caseModeSuggestions,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                     }
                 case "archived":
                     return {
-                        list: [
-                            { value: "yes", description: "Only include results in archived repositories." },
-                            { value: "no", description: "Only include results in non-archived repositories." },
-                        ],
+                        list: archivedModeSuggestions,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                     }
                 case "repo":
