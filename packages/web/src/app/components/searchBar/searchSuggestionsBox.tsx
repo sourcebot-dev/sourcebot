@@ -69,7 +69,7 @@ const SearchSuggestionsBox = forwardRef(({
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
 
     const { suggestionQuery, suggestionMode } = useMemo<{ suggestionQuery?: string, suggestionMode?: SuggestionMode }>(() => {
-        const { queryParts, cursorIndex } = splitQuery(query, " ", cursorPosition);
+        const { queryParts, cursorIndex } = splitQuery(query, cursorPosition);
         if (queryParts.length === 0) {
             return {};
         }
@@ -117,7 +117,7 @@ const SearchSuggestionsBox = forwardRef(({
 
             return (value: string) => {
                 onCompletion((prevQuery) => {
-                    const { queryParts, cursorIndex } = splitQuery(prevQuery, " ", cursorPosition);
+                    const { queryParts, cursorIndex } = splitQuery(prevQuery, cursorPosition);
 
                     const start = queryParts.slice(0, cursorIndex).join(" ");
                     const end = queryParts.slice(cursorIndex + 1).join(" ");
@@ -382,8 +382,9 @@ const SearchSuggestionsBox = forwardRef(({
 SearchSuggestionsBox.displayName = "SearchSuggestionsBox";
 export { SearchSuggestionsBox };
 
-const splitQuery = (query: string, seperator: string, cursorPos: number) => {
+export const splitQuery = (query: string, cursorPos: number) => {
     const queryParts = [];
+    const seperator = " ";
     let cursorIndex = 0;
     let accumulator = "";
     let isInQuoteCapture = false;
