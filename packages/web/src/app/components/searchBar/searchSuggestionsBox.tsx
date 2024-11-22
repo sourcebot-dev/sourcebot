@@ -40,7 +40,7 @@ export type SuggestionMode =
 
 interface SearchSuggestionsBoxProps {
     query: string;
-    onCompletion: (value: ((prevQuery: string) => { newQuery: string, newCursorPosition: number })) => void,
+    onCompletion: (newQuery: string, newCursorPosition: number) => void,
     isEnabled: boolean;
     cursorPosition: number;
     isFocused: boolean;
@@ -115,52 +115,20 @@ const SearchSuggestionsBox = forwardRef(({
                 trailingSpace = true
             } = params;
 
-            return (value: string) => {
-                onCompletion((prevQuery) => {
-                    const { queryParts, cursorIndex } = splitQuery(prevQuery, cursorPosition);
-
-                    const start = queryParts.slice(0, cursorIndex).join(" ");
-                    const end = queryParts.slice(cursorIndex + 1).join(" ");
-
-                    let part = queryParts[cursorIndex];
-
-                    // Remove whatever query we have in the suggestion so far (if any).
-                    // For example, if our part is "repo:gith", then we want to remove "gith"
-                    // from the part before we complete the suggestion.
-                    if (suggestionQuery.length > 0) {
-                        part = part.slice(0, -suggestionQuery.length);
-                    }
-
-                    if (regexEscaped) {
-                        part = part + `^${escapeStringRegexp(value)}$`;
-                    } else if (value.includes(" ")) {
-                        part = part + `"${value}"`;
-                    } else {
-                        part = part + value;
-                    }
-
-                    // Add a trailing space if we are at the end of the query
-                    if (trailingSpace && cursorIndex === queryParts.length - 1) {
-                        part += " ";
-                    }
-
-                    let newQuery = [
-                        ...(start.length > 0 ? [start] : []),
-                        part,
-                    ].join(" ");
-                    const newCursorPosition = newQuery.length;
-
-                    newQuery = [
-                        newQuery,
-                        ...(end.length > 0 ? [end] : []),
-                    ].join(" ");
-
-                    return {
-                        newQuery,
-                        newCursorPosition,
-                    }
+            const onSuggestionClicked = (suggestion: string) => {
+                const { newQuery, newCursorPosition } = completeSuggestion({
+                    query,
+                    cursorPosition,
+                    regexEscaped,
+                    trailingSpace,
+                    suggestion,
+                    suggestionQuery,
                 });
+
+                onCompletion(newQuery, newCursorPosition);
             }
+
+            return onSuggestionClicked;
         }
 
         const {
@@ -248,7 +216,7 @@ const SearchSuggestionsBox = forwardRef(({
                     const spotlightSuggestions = list.filter((suggestion) => suggestion.spotlight);
                     return spotlightSuggestions;
 
-                // Otherwise, just show the Nth first suggestions.
+                    // Otherwise, just show the Nth first suggestions.
                 } else {
                     return list.slice(0, limit);
                 }
@@ -420,5 +388,66 @@ export const splitQuery = (query: string, cursorPos: number) => {
     return {
         queryParts,
         cursorIndex
+    }
+}
+
+export const completeSuggestion = (params: {
+    query: string,
+    suggestionQuery: string,
+    cursorPosition: number,
+    suggestion: string,
+    trailingSpace: boolean,
+    regexEscaped: boolean,
+}) => {
+    const {
+        query,
+        suggestionQuery,
+        cursorPosition,
+        suggestion,
+        trailingSpace,
+        regexEscaped,
+    } = params;
+
+    const { queryParts, cursorIndex } = splitQuery(query, cursorPosition);
+
+    const start = queryParts.slice(0, cursorIndex).join(" ");
+    const end = queryParts.slice(cursorIndex + 1).join(" ");
+
+    let part = queryParts[cursorIndex];
+
+    // Remove whatever query we have in the suggestion so far (if any).
+    // For example, if our part is "repo:gith", then we want to remove "gith"
+    // from the part before we complete the suggestion.
+    if (suggestionQuery.length > 0) {
+        part = part.slice(0, -suggestionQuery.length);
+    }
+
+    if (regexEscaped) {
+        part = part + `^${escapeStringRegexp(suggestion)}$`;
+    } else if (suggestion.includes(" ")) {
+        part = part + `"${suggestion}"`;
+    } else {
+        part = part + suggestion;
+    }
+
+    // Add a trailing space if we are at the end of the query
+    if (trailingSpace && cursorIndex === queryParts.length - 1) {
+        part += " ";
+    }
+
+    let newQuery = [
+        ...(start.length > 0 ? [start] : []),
+        part,
+    ].join(" ");
+    const newCursorPosition = newQuery.length;
+
+    newQuery = [
+        newQuery,
+        ...(end.length > 0 ? [end] : []),
+    ].join(" ");
+
+    return {
+        newQuery,
+        newCursorPosition,
     }
 }

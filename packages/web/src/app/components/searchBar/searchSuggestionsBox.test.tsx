@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { splitQuery } from './searchSuggestionsBox'
+import { completeSuggestion, splitQuery } from './searchSuggestionsBox'
 
 test('splitQuery returns a single element when the query is empty', () => {
     const { queryParts, cursorIndex } = splitQuery('', 0);
@@ -78,4 +78,144 @@ test('splitQuery sets the cursor index to 0 when the cursor position is out of b
     expect(cursorIndex).toBe(0);
     expect(queryParts[cursorIndex]).toBe("hello");
     expect(queryParts).toEqual(['hello', 'world']);
+});
+
+test('completeSuggestion can complete a empty query', () => {
+    const suggestionQuery = ``;
+    const query = ``;
+    const suggestion = "hello";
+    const { newQuery, newCursorPosition } = completeSuggestion({
+        query,
+        suggestionQuery,
+        suggestion,
+        trailingSpace: false,
+        regexEscaped: false,
+        cursorPosition: 0,
+    });
+
+    const expectedNewQuery = String.raw`hello`;
+    expect(newQuery).toEqual(expectedNewQuery);
+    expect(newCursorPosition).toBe(newQuery.length);
+});
+
+test('completeSuggestion can complete with a empty suggestion query', () => {
+    const suggestionQuery = ``;
+    const query = `case:`;
+    const suggestion = "auto";
+    const { newQuery, newCursorPosition } = completeSuggestion({
+        query,
+        suggestionQuery,
+        suggestion,
+        trailingSpace: false,
+        regexEscaped: false,
+        cursorPosition: query.length,
+    });
+
+    const expectedNewQuery = `case:auto`;
+    expect(newQuery).toEqual(expectedNewQuery);
+    expect(newCursorPosition).toBe(newQuery.length);
+});
+
+test('completeSuggestion inserts a trailing space when trailingSpace is true and the completion is at the end of the query', () => {
+    const suggestionQuery = 'a';
+    const part1 = String.raw`lang:Go`;
+    const part2 = String.raw`case:${suggestionQuery}`;
+    const query = `${part1} ${part2}`
+    const suggestion = 'auto';
+    const cursorPosition = query.length;
+
+    const { newQuery, newCursorPosition } = completeSuggestion({
+        query,
+        suggestionQuery,
+        suggestion,
+        trailingSpace: true,
+        regexEscaped: false,
+        cursorPosition,
+    });
+
+    const expectedPart2 = `case:auto`
+    const expectedNewQuery = `${part1} ${expectedPart2} `;
+    expect(newQuery).toEqual(expectedNewQuery);
+    expect(newCursorPosition).toBe(newQuery.length);
+});
+
+test('completeSuggestion does not insert a trailing space when trailingSpace is true and the completion is not at the end of the query', () => {
+    const suggestionQuery = 'G';
+    const part1 = String.raw`lang:${suggestionQuery}`;
+    const part2 = String.raw`case:auto`;
+    const query = `${part1} ${part2}`
+    const suggestion = 'Go';
+    const cursorPosition = part1.length;
+
+    const { newQuery, newCursorPosition } = completeSuggestion({
+        query,
+        suggestionQuery,
+        suggestion,
+        trailingSpace: true,
+        regexEscaped: false,
+        cursorPosition,
+    });
+
+    const expectedPart1 = `lang:Go`
+    const expectedNewQuery = `${expectedPart1} ${part2}`; // Notice no trailing space
+    expect(newQuery).toEqual(expectedNewQuery);
+    expect(newCursorPosition).toBe(expectedPart1.length);
+});
+
+test('completeSuggestion wraps suggestions in quotes when the suggestion contains a space and regexEscaped is false', () => {
+    const suggestionQuery = `m`;
+    const query = `lang:${suggestionQuery}`;
+    const suggestion = `my language`;
+    const { newQuery, newCursorPosition } = completeSuggestion({
+        query,
+        suggestionQuery,
+        suggestion,
+        trailingSpace: false,
+        regexEscaped: false,
+        cursorPosition: query.length,
+    });
+
+    const expectedNewQuery = `lang:"my language"`;
+    expect(newQuery).toEqual(expectedNewQuery);
+    expect(newCursorPosition).toBe(newQuery.length);
+});
+
+test('completeSuggestion completes on query parts that are inbetween other parts', () => {
+    const part1 = String.raw`repo:^github\.com/sourcebot\x2ddev/sourcebot$`;
+    const suggestionQuery = 'Type';
+    const part2 = String.raw`lang:${suggestionQuery}`;
+    const part3 = String.raw`case:auto`;
+    const query = `${part1} ${part2} ${part3}`;
+    const suggestion = 'TypeScript';
+    const cursorPosition = ([part1, part2].join(" ").length);
+
+    const { newQuery, newCursorPosition } = completeSuggestion({
+        query,
+        suggestionQuery,
+        suggestion,
+        trailingSpace: false,
+        regexEscaped: false,
+        cursorPosition,
+    });
+
+    const expectedPart2 = "lang:TypeScript";
+    const expectedNewQuery = String.raw`${part1} ${expectedPart2} ${part3}`;
+    expect(newQuery).toEqual(expectedNewQuery);
+    expect(newCursorPosition).toBe([part1, expectedPart2].join(" ").length);
+});
+
+test('completeSuggestions regex escapes suggestions when regexEscaped is true', () => {
+    const query = "repo:github";
+    const { newQuery, newCursorPosition } = completeSuggestion({
+        query,
+        suggestionQuery: "github",
+        suggestion: "github.com/sourcebot-dev/sourcebot",
+        trailingSpace: true,
+        regexEscaped: true,
+        cursorPosition: query.length,
+    });
+
+    const expectedNewQuery = String.raw`repo:^github\.com/sourcebot\x2ddev/sourcebot$ `;
+    expect(newQuery).toEqual(expectedNewQuery);
+    expect(newCursorPosition).toBe(newQuery.length);
 });

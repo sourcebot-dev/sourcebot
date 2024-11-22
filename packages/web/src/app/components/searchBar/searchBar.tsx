@@ -253,8 +253,7 @@ export const SearchBar = ({
             <SearchSuggestionsBox
                 ref={suggestionBoxRef}
                 query={query}
-                onCompletion={(cb) => {
-                    const { newQuery, newCursorPosition } = cb(query);
+                onCompletion={(newQuery: string, newCursorPosition: number) => {
                     setQuery(newQuery);
 
                     // Move the cursor to it's new position.
