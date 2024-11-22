@@ -26,7 +26,6 @@ import {
     selectLineBoundaryBackward,
     selectLineBoundaryForward
 } from "@codemirror/commands";
-import { LanguageSupport, StreamLanguage } from "@codemirror/language";
 import { tags as t } from '@lezer/highlight';
 import { createTheme } from '@uiw/codemirror-themes';
 import CodeMirror, { Annotation, EditorView, KeyBinding, keymap, ReactCodeMirrorRef } from "@uiw/react-codemirror";
@@ -38,7 +37,7 @@ import { SearchSuggestionsBox, Suggestion } from "./searchSuggestionsBox";
 import { useClickListener } from "@/hooks/useClickListener";
 import { getRepos } from "../../api/(client)/client";
 import languages from "./languages";
-
+import { zoekt } from "./zoektLanguageExtension";
 
 interface SearchBarProps {
     className?: string;
@@ -66,26 +65,6 @@ const searchBarKeymap: readonly KeyBinding[] = ([
     { mac: "Mod-Backspace", run: deleteLineBoundaryBackward },
     { mac: "Mod-Delete", run: deleteLineBoundaryForward }
 ] as KeyBinding[]).concat(historyKeymap);
-
-// @todo: refactor this into a seperate extension file.
-const zoektLanguage = StreamLanguage.define({
-    token: (stream) => {
-        if (stream.match(/-?(file|branch|revision|rev|case|repo|lang|content|sym|archived|fork|public):/)) {
-            return t.keyword.toString();
-        }
-
-        if (stream.match(/\bor\b/)) {
-            return t.keyword.toString();
-        }
-
-        stream.next();
-        return null;
-    },
-});
-
-const zoekt = () => {
-    return new LanguageSupport(zoektLanguage);
-}
 
 const searchBarContainerVariants = cva(
     "search-bar-container flex items-center p-0.5 border rounded-md relative",
@@ -126,7 +105,6 @@ export const SearchBar = ({
         return _query.replaceAll(/\n/g, " ");
     }, [_query]);
 
-    // @todo : clean this up
     const [repos, setRepos] = useState<Repository[]>([]);
     useEffect(() => {
         getRepos().then((response) => {
@@ -176,6 +154,10 @@ export const SearchBar = ({
                     tag: t.keyword,
                     color: tailwind.theme.colors.highlight,
                 },
+                {
+                    tag: t.paren,
+                    color: tailwind.theme.colors.highlight,
+                }
             ],
         });
     }, [tailwind]);
@@ -294,7 +276,6 @@ export const SearchBar = ({
                 }}
                 isEnabled={isSuggestionsBoxEnabled}
                 onReturnFocus={() => {
-                    // Re-focus the editor
                     focusEditor();
                 }}
                 isFocused={isSuggestionsBoxFocused}

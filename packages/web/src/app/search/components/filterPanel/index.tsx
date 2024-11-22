@@ -45,7 +45,6 @@ export const FilterPanel = ({
             "Language",
             matches,
             (key) => {
-                // @todo: Get language icons
                 return {
                     key,
                     displayName: key,
