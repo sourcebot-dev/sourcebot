@@ -240,7 +240,7 @@ const SearchSuggestionsBox = forwardRef(({
             onSuggestionClicked,
         }
 
-    }, [suggestionQuery, suggestionMode, onCompletion, cursorPosition, data.repos, data.languages]);
+    }, [suggestionQuery, suggestionMode, onCompletion, cursorPosition, data.repos, data.languages, query]);
 
     // When the list of suggestions change, reset the highlight index
     useEffect(() => {

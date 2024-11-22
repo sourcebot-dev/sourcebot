@@ -8,7 +8,7 @@ test('splitQuery returns a single element when the query is empty', () => {
 });
 
 test('splitQuery splits on spaces', () => {
-    const query = "repo:^github\.com/example/example$ world";
+    const query = String.raw`repo:^github\.com/example/example$ world`;
     const { queryParts, cursorIndex } = splitQuery(query, 0);
     expect(queryParts).toEqual(query.split(" "));
     expect(cursorIndex).toEqual(0);
