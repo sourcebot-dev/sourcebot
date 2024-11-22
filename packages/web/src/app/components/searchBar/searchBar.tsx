@@ -245,6 +245,10 @@ export const SearchBar = ({
                     setIsSuggestionsBoxEnabled(true);
                     focusSuggestionsBox();
                 }
+
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                }
             }}
         >
             <CodeMirror

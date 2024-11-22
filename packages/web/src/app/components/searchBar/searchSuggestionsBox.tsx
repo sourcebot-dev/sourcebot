@@ -95,7 +95,7 @@ const SearchSuggestionsBox = forwardRef(({
                 suggestionMode,
             }
         }
-        
+
         // Default to the refine suggestion mode
         // if there was no match.
         return {
@@ -240,7 +240,7 @@ const SearchSuggestionsBox = forwardRef(({
             isCaseSensitive: true,
         });
 
-        const results = (() => {
+        const suggestions = (() => {
             if (suggestionQuery.length === 0) {
                 // If spotlight is enabled, get the suggestions that are
                 // flagged to be surfaced.
@@ -248,19 +248,25 @@ const SearchSuggestionsBox = forwardRef(({
                     const spotlightSuggestions = list.filter((suggestion) => suggestion.spotlight);
                     return spotlightSuggestions;
 
-                    // Otherwise, just show the Nth first suggestions.
+                // Otherwise, just show the Nth first suggestions.
                 } else {
                     return list.slice(0, limit);
                 }
             }
 
+            // Special case: don't show any suggestions if the query
+            // is the keyword "or".
+            if (suggestionQuery === "or") {
+                return [];
+            }
+
             return fuse.search(suggestionQuery, {
                 limit,
-            }).map(result => result.item)
+            }).map(result => result.item);
         })();
 
         return {
-            suggestions: results,
+            suggestions,
             isHighlightEnabled,
             Icon,
             onSuggestionClicked,

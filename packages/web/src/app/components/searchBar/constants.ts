@@ -100,7 +100,7 @@ export const suggestionModeMappings: SuggestionModeMapping[] = [
             SearchPrefix.public
         ]
     }
-]
+];
 
 export const refineModeSuggestions: Suggestion[] = [
     {
