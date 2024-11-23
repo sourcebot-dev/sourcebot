@@ -18,8 +18,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import logoDark from "../../../public/sb_logo_dark.png";
 import logoLight from "../../../public/sb_logo_light.png";
 import { search } from "../api/(client)/client";
-import { SearchBar } from "../searchBar";
-import { SettingsDropdown } from "../settingsDropdown";
+import { SearchBar } from "../components/searchBar";
+import { SettingsDropdown } from "../components/settingsDropdown";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
@@ -109,7 +109,7 @@ export default function SearchPage() {
             totalMatchCount: searchResponse.Result.MatchCount,
             isBranchFilteringEnabled,
         }
-    }, [searchResponse, searchQuery]);
+    }, [searchResponse]);
 
     const isMoreResultsButtonVisible = useMemo(() => {
         return totalMatchCount > maxMatchDisplayCount;
@@ -161,6 +161,7 @@ export default function SearchPage() {
                         <SearchBar
                             size="sm"
                             defaultQuery={searchQuery}
+                            className="w-full"
                         />
                     </div>
                     <SettingsDropdown

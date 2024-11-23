@@ -7,7 +7,7 @@ import tailwindConfig from '../../tailwind.config';
 export const useTailwind = () => {
     const tailwind = useMemo(() => {
         return resolveConfig(tailwindConfig);
-    }, [tailwindConfig]);
+    }, []);
 
     return tailwind;
 }

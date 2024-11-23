@@ -119,3 +119,8 @@ export const base64Decode = (base64: string): string => {
     const binString = atob(base64);
     return Buffer.from(Uint8Array.from(binString, (m) => m.codePointAt(0)!).buffer).toString();
 }
+
+// @see: https://stackoverflow.com/a/65959350/23221295
+export const isDefined = <T>(arg: T | null | undefined): arg is T extends null | undefined ? never : T => {
+    return arg !== null && arg !== undefined;
+}

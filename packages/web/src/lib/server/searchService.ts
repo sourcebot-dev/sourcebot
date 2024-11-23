@@ -1,6 +1,6 @@
 import escapeStringRegexp from "escape-string-regexp";
 import { SHARD_MAX_MATCH_COUNT, TOTAL_MAX_MATCH_COUNT } from "../environment";
-import { listRepositoriesResponseSchema, searchResponseSchema, zoektSearchResponseSchema } from "../schemas";
+import { listRepositoriesResponseSchema, zoektSearchResponseSchema } from "../schemas";
 import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "../types";
 import { fileNotFound, invalidZoektResponse, ServiceError, unexpectedError } from "../serviceError";
 import { isServiceError } from "../utils";

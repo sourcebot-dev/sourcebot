@@ -4,12 +4,12 @@ import Image from "next/image";
 import { Suspense } from "react";
 import logoDark from "../../public/sb_logo_dark_large.png";
 import logoLight from "../../public/sb_logo_light_large.png";
-import { NavigationMenu } from "./navigationMenu";
-import { RepositoryCarousel } from "./repositoryCarousel";
-import { SearchBar } from "./searchBar";
+import { NavigationMenu } from "./components/navigationMenu";
+import { RepositoryCarousel } from "./components/repositoryCarousel";
+import { SearchBar } from "./components/searchBar";
 import { Separator } from "@/components/ui/separator";
 import { SymbolIcon } from "@radix-ui/react-icons";
-import { UpgradeToast } from "./upgradeToast";
+import { UpgradeToast } from "./components/upgradeToast";
 
 
 export default async function Home() {
@@ -18,7 +18,7 @@ export default async function Home() {
             <NavigationMenu />
             <UpgradeToast />
 
-            <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 max-w-[90%]">
+            <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
                 <div className="max-h-44 w-auto">
                     <Image
                         src={logoDark}
@@ -33,18 +33,17 @@ export default async function Home() {
                         priority={true}
                     />
                 </div>
-                <div className="w-full flex flex-row mt-4">
-                    <SearchBar
-                        autoFocus={true}
-                    />
-                </div>
+                <SearchBar
+                    autoFocus={true}
+                    className="mt-4 w-full max-w-[800px]"
+                />
                 <div className="mt-8">
                     <Suspense fallback={<div>...</div>}>
                         <RepositoryList />
                     </Suspense>
                 </div>
-                <Separator className="mt-5 mb-8" />
                 <div className="flex flex-col items-center w-fit gap-6">
+                    <Separator className="mt-5" />
                     <span className="font-semibold">How to search</span>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <HowToSection
@@ -76,7 +75,7 @@ export default async function Home() {
                                 <Query query="lang:typescript"><Highlight>lang:</Highlight>typescript</Query> <QueryExplanation>(by language)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="revision:HEAD"><Highlight>revision:</Highlight>HEAD</Query> <QueryExplanation>(by branch or tag)</QueryExplanation>
+                                <Query query="rev:HEAD"><Highlight>rev:</Highlight>HEAD</Query> <QueryExplanation>(by branch or tag)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
                         <HowToSection
