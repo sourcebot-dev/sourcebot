@@ -119,8 +119,8 @@ export const SearchBar = ({
     useEffect(() => {
         if (suggestionMode === "file") {
             search({
-                query: `file:`,
-                maxMatchDisplayCount: 1000000000000000, // Display all the files
+                query: `file:${suggestionQuery}`,
+                maxMatchDisplayCount: 15,
             }).then((response) => {
                 const filenames = response.Result.Files?.map((file) => {
                     return file.FileName;
@@ -128,9 +128,11 @@ export const SearchBar = ({
                 if (filenames) {
                     setFiles(filenames);
                 }
-            });
+            }).catch((error) => {
+                console.error(error);
+            })
         }
-    }, [suggestionMode]);
+    }, [suggestionMode, suggestionQuery]);
 
     const suggestionData = useMemo(() => {
         const repoSuggestions: Suggestion[] = repos.map((repo) => {

@@ -202,7 +202,7 @@ const SearchSuggestionsBox = forwardRef(({
                     return {
                         list: data.files,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
-                        isClientSideSearchEnabled: true,
+                        isClientSideSearchEnabled: false,
                     }
                 case "revision":
                 case "content":
@@ -241,10 +241,8 @@ const SearchSuggestionsBox = forwardRef(({
             }
 
             if (!isClientSideSearchEnabled) {
-                return list.slice(0, limit);
+                return list;
             }
-
-            console.log(list.length);
 
             return fuse.search(suggestionQuery, {
                 limit,
