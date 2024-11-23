@@ -33,9 +33,9 @@ import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
-import { SearchSuggestionsBox, Suggestion } from "./searchSuggestionsBox";
+import { SearchSuggestionsBox, Suggestion, SuggestionMode } from "./searchSuggestionsBox";
 import { useClickListener } from "@/hooks/useClickListener";
-import { getRepos } from "../../api/(client)/client";
+import { getRepos, search } from "../../api/(client)/client";
 import languages from "./languages";
 import { zoekt } from "./zoektLanguageExtension";
 
@@ -97,6 +97,8 @@ export const SearchBar = ({
     
     const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
     const focusSuggestionsBox = useCallback(() => suggestionBoxRef.current?.focus(), []);
+    const [suggestionMode, setSuggestionMode] = useState<SuggestionMode>("refine");
+    const [suggestionQuery, setSuggestionQuery] = useState("");
 
     const [_query, setQuery] = useState(defaultQuery ?? "");
     const query = useMemo(() => {
@@ -112,10 +114,34 @@ export const SearchBar = ({
         });
     }, []);
 
+    const [files, setFiles] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (suggestionMode === "file") {
+            search({
+                query: `file:`,
+                maxMatchDisplayCount: 1000000000000000, // Display all the files
+            }).then((response) => {
+                const filenames = response.Result.Files?.map((file) => {
+                    return file.FileName;
+                });
+                if (filenames) {
+                    setFiles(filenames);
+                }
+            });
+        }
+    }, [suggestionMode]);
+
     const suggestionData = useMemo(() => {
         const repoSuggestions: Suggestion[] = repos.map((repo) => {
             return {
                 value: repo.Name,
+            }
+        });
+
+        const fileSuggestions: Suggestion[] = files.map((file) => {
+            return {
+                value: file,
             }
         });
 
@@ -138,8 +164,9 @@ export const SearchBar = ({
         return {
             repos: repoSuggestions,
             languages: languageSuggestions,
+            files: fileSuggestions,
         }
-    }, [repos]);
+    }, [repos, files]);
 
     const theme = useMemo(() => {
         return createTheme({
@@ -286,6 +313,12 @@ export const SearchBar = ({
                 }}
                 cursorPosition={cursorPosition}
                 data={suggestionData}
+                onSuggestionModeChanged={(suggestionMode) => {
+                    setSuggestionMode(suggestionMode);
+                }}
+                onSuggestionQueryChanged={(suggestionQuery) => {
+                    setSuggestionQuery(suggestionQuery);
+                }}
             />
         </div>
     )

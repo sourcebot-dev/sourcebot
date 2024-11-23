@@ -47,10 +47,13 @@ interface SearchSuggestionsBoxProps {
     onFocus: () => void;
     onBlur: () => void;
     onReturnFocus: () => void;
+    onSuggestionModeChanged: (suggestionMode: SuggestionMode) => void;
+    onSuggestionQueryChanged: (suggestionQuery: string) => void;
 
     data: {
         repos: Suggestion[];
         languages: Suggestion[];
+        files: Suggestion[];
     }
 }
 
@@ -64,6 +67,8 @@ const SearchSuggestionsBox = forwardRef(({
     onFocus,
     onBlur,
     onReturnFocus,
+    onSuggestionModeChanged,
+    onSuggestionQueryChanged,
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
 
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
@@ -137,6 +142,7 @@ const SearchSuggestionsBox = forwardRef(({
             list,
             isHighlightEnabled = false,
             isSpotlightEnabled = false,
+            isClientSideSearchEnabled = true,
             onSuggestionClicked,
             Icon,
         } = ((): {
@@ -145,6 +151,7 @@ const SearchSuggestionsBox = forwardRef(({
             list: Suggestion[],
             isHighlightEnabled?: boolean,
             isSpotlightEnabled?: boolean,
+            isClientSideSearchEnabled?: boolean,
             onSuggestionClicked: (value: string) => void,
             Icon?: Icon
         } => {
@@ -192,6 +199,11 @@ const SearchSuggestionsBox = forwardRef(({
                         onSuggestionClicked: createOnSuggestionClickedHandler({ trailingSpace: false }),
                     }
                 case "file":
+                    return {
+                        list: data.files,
+                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                        isClientSideSearchEnabled: true,
+                    }
                 case "revision":
                 case "content":
                 case "symbol":
@@ -228,6 +240,12 @@ const SearchSuggestionsBox = forwardRef(({
                 return [];
             }
 
+            if (!isClientSideSearchEnabled) {
+                return list.slice(0, limit);
+            }
+
+            console.log(list.length);
+
             return fuse.search(suggestionQuery, {
                 limit,
             }).map(result => result.item);
@@ -240,12 +258,24 @@ const SearchSuggestionsBox = forwardRef(({
             onSuggestionClicked,
         }
 
-    }, [suggestionQuery, suggestionMode, onCompletion, cursorPosition, data.repos, data.languages, query]);
+    }, [suggestionQuery, suggestionMode, query, cursorPosition, onCompletion, data.repos, data.files, data.languages]);
 
     // When the list of suggestions change, reset the highlight index
     useEffect(() => {
         setHighlightedSuggestionIndex(0);
     }, [suggestions]);
+
+    useEffect(() => {
+        if (isDefined(suggestionMode)) {
+            onSuggestionModeChanged(suggestionMode);
+        }
+    }, [onSuggestionModeChanged, suggestionMode]);
+
+    useEffect(() => {
+        if (isDefined(suggestionQuery)) {
+            onSuggestionQueryChanged(suggestionQuery);
+        }
+    }, [onSuggestionQueryChanged, suggestionQuery]);
 
     const suggestionModeText = useMemo(() => {
         if (!suggestionMode) {
