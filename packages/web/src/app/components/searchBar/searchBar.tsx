@@ -1,7 +1,8 @@
 'use client';
 
+import { useClickListener } from "@/hooks/useClickListener";
 import { useTailwind } from "@/hooks/useTailwind";
-import { Repository, SearchQueryParams } from "@/lib/types";
+import { SearchQueryParams } from "@/lib/types";
 import { cn, createPathWithQueryParams } from "@/lib/utils";
 import {
     cursorCharLeft,
@@ -31,12 +32,10 @@ import { createTheme } from '@uiw/codemirror-themes';
 import CodeMirror, { Annotation, EditorView, KeyBinding, keymap, ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
-import { SearchSuggestionsBox, Suggestion } from "./searchSuggestionsBox";
-import { useClickListener } from "@/hooks/useClickListener";
-import { getRepos } from "../../api/(client)/client";
-import languages from "./languages";
+import { SearchSuggestionsBox, SuggestionMode } from "./searchSuggestionsBox";
+import { useSuggestionsData } from "./useSuggestionsData";
 import { zoekt } from "./zoektLanguageExtension";
 
 interface SearchBarProps {
@@ -97,6 +96,8 @@ export const SearchBar = ({
     
     const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
     const focusSuggestionsBox = useCallback(() => suggestionBoxRef.current?.focus(), []);
+    const [suggestionMode, setSuggestionMode] = useState<SuggestionMode>("refine");
+    const [suggestionQuery, setSuggestionQuery] = useState("");
 
     const [_query, setQuery] = useState(defaultQuery ?? "");
     const query = useMemo(() => {
@@ -105,41 +106,10 @@ export const SearchBar = ({
         return _query.replaceAll(/\n/g, " ");
     }, [_query]);
 
-    const [repos, setRepos] = useState<Repository[]>([]);
-    useEffect(() => {
-        getRepos().then((response) => {
-            setRepos(response.List.Repos.map(r => r.Repository));
-        });
-    }, []);
-
-    const suggestionData = useMemo(() => {
-        const repoSuggestions: Suggestion[] = repos.map((repo) => {
-            return {
-                value: repo.Name,
-            }
-        });
-
-        const languageSuggestions: Suggestion[] = languages.map((lang) => {
-            const spotlight = [
-                "Python",
-                "Java",
-                "TypeScript",
-                "Go",
-                "C++",
-                "C#"
-            ].includes(lang);
-
-            return {
-                value: lang,
-                spotlight,
-            };
-        })
-
-        return {
-            repos: repoSuggestions,
-            languages: languageSuggestions,
-        }
-    }, [repos]);
+    const suggestionData = useSuggestionsData({
+        suggestionMode,
+        suggestionQuery,
+    });
 
     const theme = useMemo(() => {
         return createTheme({
@@ -286,6 +256,12 @@ export const SearchBar = ({
                 }}
                 cursorPosition={cursorPosition}
                 data={suggestionData}
+                onSuggestionModeChanged={(suggestionMode) => {
+                    setSuggestionMode(suggestionMode);
+                }}
+                onSuggestionQueryChanged={(suggestionQuery) => {
+                    setSuggestionQuery(suggestionQuery);
+                }}
             />
         </div>
     )
