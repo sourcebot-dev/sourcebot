@@ -1,7 +1,8 @@
 'use client';
 
+import { useClickListener } from "@/hooks/useClickListener";
 import { useTailwind } from "@/hooks/useTailwind";
-import { Repository, SearchQueryParams } from "@/lib/types";
+import { SearchQueryParams } from "@/lib/types";
 import { cn, createPathWithQueryParams } from "@/lib/utils";
 import {
     cursorCharLeft,
@@ -31,12 +32,10 @@ import { createTheme } from '@uiw/codemirror-themes';
 import CodeMirror, { Annotation, EditorView, KeyBinding, keymap, ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
-import { SearchSuggestionsBox, Suggestion, SuggestionMode } from "./searchSuggestionsBox";
-import { useClickListener } from "@/hooks/useClickListener";
-import { getRepos, search } from "../../api/(client)/client";
-import languages from "./languages";
+import { SearchSuggestionsBox, SuggestionMode } from "./searchSuggestionsBox";
+import { useSuggestionsData } from "./useSuggestionsData";
 import { zoekt } from "./zoektLanguageExtension";
 
 interface SearchBarProps {
@@ -107,68 +106,10 @@ export const SearchBar = ({
         return _query.replaceAll(/\n/g, " ");
     }, [_query]);
 
-    const [repos, setRepos] = useState<Repository[]>([]);
-    useEffect(() => {
-        getRepos().then((response) => {
-            setRepos(response.List.Repos.map(r => r.Repository));
-        });
-    }, []);
-
-    const [files, setFiles] = useState<string[]>([]);
-
-    useEffect(() => {
-        if (suggestionMode === "file") {
-            search({
-                query: `file:${suggestionQuery}`,
-                maxMatchDisplayCount: 15,
-            }).then((response) => {
-                const filenames = response.Result.Files?.map((file) => {
-                    return file.FileName;
-                });
-                if (filenames) {
-                    setFiles(filenames);
-                }
-            }).catch((error) => {
-                console.error(error);
-            })
-        }
-    }, [suggestionMode, suggestionQuery]);
-
-    const suggestionData = useMemo(() => {
-        const repoSuggestions: Suggestion[] = repos.map((repo) => {
-            return {
-                value: repo.Name,
-            }
-        });
-
-        const fileSuggestions: Suggestion[] = files.map((file) => {
-            return {
-                value: file,
-            }
-        });
-
-        const languageSuggestions: Suggestion[] = languages.map((lang) => {
-            const spotlight = [
-                "Python",
-                "Java",
-                "TypeScript",
-                "Go",
-                "C++",
-                "C#"
-            ].includes(lang);
-
-            return {
-                value: lang,
-                spotlight,
-            };
-        })
-
-        return {
-            repos: repoSuggestions,
-            languages: languageSuggestions,
-            files: fileSuggestions,
-        }
-    }, [repos, files]);
+    const suggestionData = useSuggestionsData({
+        suggestionMode,
+        suggestionQuery,
+    });
 
     const theme = useMemo(() => {
         return createTheme({
