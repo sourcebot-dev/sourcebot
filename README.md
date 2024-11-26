@@ -9,7 +9,7 @@
 Blazingly fast code search 🏎️
 </p>
 <p align="center">
-  <a href="https://demo.sourcebot.dev"><img src="https://img.shields.io/badge/Try the Demo!-blue?logo=googlechrome&logoColor=orange"/></a>
+  <a href="https://sourcebot.dev/search"><img src="https://img.shields.io/badge/Try the Demo!-blue?logo=googlechrome&logoColor=orange"/></a>
   <a href="mailto:brendan@sourcebot.dev"><img src="https://img.shields.io/badge/Email%20Us-brightgreen" /></a>
   <a href="https://github.com/sourcebot-dev/sourcebot/blob/main/LICENSE"><img src="https://img.shields.io/github/license/sourcebot-dev/sourcebot"/></a>
   <a href="https://github.com/sourcebot-dev/sourcebot/actions/workflows/ghcr-publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/sourcebot-dev/sourcebot/ghcr-publish.yml"/><a>
@@ -35,7 +35,7 @@ https://github.com/user-attachments/assets/98d46192-5469-430f-ad9e-5c042adbb10d
 - 📂 **Full file visualization**: Instantly view the entire file when selecting any search result.
 - 🎨 **Modern web app**: Enjoy a sleek interface with features like syntax highlighting, light/dark mode, and vim-style navigation 
 
-You can try out our public hosted demo [here](https://demo.sourcebot.dev/)!
+You can try out our public hosted demo [here](https://sourcebot.dev/search)!
 
 # Getting Started
 
@@ -379,7 +379,7 @@ docker run <b>-v /path/to/my-repo:/repos/my-repo</b> /* additional args */ ghcr.
 
 ## Telemetry
 
-By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We do not collect or transmit [any information related to your codebase](https://demo.sourcebot.dev/search?query=captureEvent%20repo%3Asourcebot%20case%3Ano). In addition, all events are [sanitized](./src/app/posthogProvider.tsx) to ensure that no sensitive or identifying details leave your machine. The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made :)
+By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We do not collect or transmit [any information related to your codebase](https://sourcebot.dev/search/search?query=captureEvent%20repo%3Asourcebot%20case%3Ano). In addition, all events are [sanitized](./src/app/posthogProvider.tsx) to ensure that no sensitive or identifying details leave your machine. The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made :)
 
 If you'd like to disable all telemetry, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `1` in the docker run command:
 
