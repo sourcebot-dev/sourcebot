@@ -3,9 +3,10 @@ import { NEXT_PUBLIC_POSTHOG_PAPIK, NEXT_PUBLIC_POSTHOG_UI_HOST, NEXT_PUBLIC_SOU
 import posthog from 'posthog-js'
 import { PostHogProvider } from 'posthog-js/react'
 import { resolveServerPath } from './api/(client)/client'
+import { isDefined } from '@/lib/utils'
 
 if (typeof window !== 'undefined') {
-    if (!NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED) {
+    if (!NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED && isDefined(NEXT_PUBLIC_POSTHOG_PAPIK)) {
         // @see next.config.mjs for path rewrites to the "/ingest" route.
         const posthogHostPath = resolveServerPath('/ingest');
 

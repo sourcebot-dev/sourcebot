@@ -99,7 +99,7 @@ export const isServiceError = (data: unknown): data is ServiceError => {
         'message' in data;
 }
 
-export const getEnv = (env: string | undefined, defaultValue = '') => {
+export const getEnv = (env: string | undefined, defaultValue?: string) => {
 	return env ?? defaultValue;
 }
 
