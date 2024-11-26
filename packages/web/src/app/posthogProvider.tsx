@@ -1,5 +1,5 @@
 'use client'
-import { NEXT_PUBLIC_POSTHOG_KEY, NEXT_PUBLIC_POSTHOG_UI_HOST, NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED } from '@/lib/environment.client'
+import { NEXT_PUBLIC_POSTHOG_PAPIK, NEXT_PUBLIC_POSTHOG_UI_HOST, NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED } from '@/lib/environment.client'
 import posthog from 'posthog-js'
 import { PostHogProvider } from 'posthog-js/react'
 import { resolveServerPath } from './api/(client)/client'
@@ -9,7 +9,7 @@ if (typeof window !== 'undefined') {
         // @see next.config.mjs for path rewrites to the "/ingest" route.
         const posthogHostPath = resolveServerPath('/ingest');
 
-        posthog.init(NEXT_PUBLIC_POSTHOG_KEY!, {
+        posthog.init(NEXT_PUBLIC_POSTHOG_PAPIK, {
             api_host: posthogHostPath,
             ui_host: NEXT_PUBLIC_POSTHOG_UI_HOST,
             person_profiles: 'identified_only',

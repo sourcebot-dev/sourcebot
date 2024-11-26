@@ -3,6 +3,12 @@ set -e
 
 echo -e "\e[34m[Info] Sourcebot version: $SOURCEBOT_VERSION\e[0m"
 
+# If we don't have a PostHog key, then we need to disable telemetry.
+if [ -z "$POSTHOG_PAPIK" ]; then
+    echo -e "\e[33m[Warning] POSTHOG_PAPIK was not set. Setting SOURCEBOT_TELEMETRY_DISABLED.\e[0m"
+    export SOURCEBOT_TELEMETRY_DISABLED=1
+fi
+
 # Issue a info message about telemetry
 if [ ! -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
     echo -e "\e[34m[Info] Disabling telemetry since SOURCEBOT_TELEMETRY_DISABLED was set.\e[0m"
@@ -25,7 +31,7 @@ if [ ! -f "$FIRST_RUN_FILE" ]; then
     # (if telemetry is enabled)
     if [ -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
         curl -L -s --header "Content-Type: application/json" -d '{
-            "api_key": "'"$POSTHOG_KEY"'",
+            "api_key": "'"$POSTHOG_PAPIK"'",
             "event": "install",
             "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
             "properties": {
@@ -43,7 +49,7 @@ else
 
         if [ -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
             curl -L -s --header "Content-Type: application/json" -d '{
-                "api_key": "'"$POSTHOG_KEY"'",
+                "api_key": "'"$POSTHOG_PAPIK"'",
                 "event": "upgrade",
                 "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
                 "properties": {
@@ -83,12 +89,16 @@ echo -e "\e[34m[Info] Using config file at: '$CONFIG_PATH'.\e[0m"
         export NEXT_PUBLIC_SOURCEBOT_VERSION="$SOURCEBOT_VERSION"
     fi
 
+    # Always infer NEXT_PUBLIC_POSTHOG_PAPIK
+    export NEXT_PUBLIC_POSTHOG_PAPIK="$POSTHOG_PAPIK"
+
     # Iterate over all .js files in .next & public, making substitutions for the `BAKED_` sentinal values
     # with their actual desired runtime value.
     find /app/packages/web/public /app/packages/web/.next -type f -name "*.js" |
     while read file; do
         sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED|${NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED}|g" "$file"
         sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION|${NEXT_PUBLIC_SOURCEBOT_VERSION}|g" "$file"
+        sed -i "s|BAKED_NEXT_PUBLIC_POSTHOG_PAPIK|${NEXT_PUBLIC_POSTHOG_PAPIK}|g" "$file"
     done
 }
 
