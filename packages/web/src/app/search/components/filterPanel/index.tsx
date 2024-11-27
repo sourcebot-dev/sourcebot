@@ -51,7 +51,7 @@ export const FilterPanel = ({
         );
 
         setRepos(_repos);
-    }, [matches, setRepos]);
+    }, [matches, repoMetadata, setRepos]);
 
     useEffect(() => {
         const _languages = aggregateMatches(
