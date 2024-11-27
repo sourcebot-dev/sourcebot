@@ -10,6 +10,7 @@ import { SearchBar } from "./components/searchBar";
 import { Separator } from "@/components/ui/separator";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { UpgradeToast } from "./components/upgradeToast";
+import Link from "next/link";
 
 
 export default async function Home() {
@@ -123,12 +124,12 @@ const RepositoryList = async () => {
         <div className="flex flex-col items-center gap-3">
             <span className="text-sm">
                 {`Search ${repos.length} `}
-                <a
+                <Link
                     href="/repos"
                     className="text-blue-500"
                 >
                     {repos.length > 1 ? 'repositories' : 'repository'}
-                </a>
+                </Link>
             </span>
             <RepositoryCarousel repos={repos} />
         </div>
@@ -171,11 +172,11 @@ const QueryExplanation = ({ children }: { children: React.ReactNode }) => {
 
 const Query = ({ query, children }: { query: string, children: React.ReactNode }) => {
     return (
-        <a
+        <Link
             href={`/search?query=${query}`}
             className="cursor-pointer hover:underline"
         >
             {children}
-        </a>
+        </Link>
     )
 }
