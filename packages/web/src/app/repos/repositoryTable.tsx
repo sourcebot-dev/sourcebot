@@ -26,6 +26,7 @@ export const RepositoryTable = async () => {
             latestCommit: repo.Repository.LatestCommitDate,
             indexedFiles: repo.Stats.Documents,
             commitUrlTemplate: repo.Repository.CommitURLTemplate,
+            url: repo.Repository.URL,
         }
     }).sort((a, b) => {
         return new Date(b.lastIndexed).getTime() -  new Date(a.lastIndexed).getTime();

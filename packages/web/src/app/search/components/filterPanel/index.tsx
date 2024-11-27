@@ -1,20 +1,24 @@
 'use client';
 
-import { SearchResultFile } from "@/lib/types";
-import { getRepoCodeHostInfo } from "@/lib/utils";
+import { Repository, SearchResultFile } from "@/lib/types";
+import { cn, getRepoCodeHostInfo } from "@/lib/utils";
 import { SetStateAction, useCallback, useEffect, useState } from "react";
 import { Entry } from "./entry";
 import { Filter } from "./filter";
 import { getLanguageIcon } from "./languageIcons";
+import Image from "next/image";
+import { LaptopIcon, QuestionMarkCircledIcon } from "@radix-ui/react-icons";
 
 interface FilePanelProps {
     matches: SearchResultFile[];
     onFilterChanged: (filteredMatches: SearchResultFile[]) => void,
+    repoMetadata: Record<string, Repository>;
 }
 
 export const FilterPanel = ({
     matches,
     onFilterChanged,
+    repoMetadata,
 }: FilePanelProps) => {
     const [repos, setRepos] = useState<Record<string, Entry>>({});
     const [languages, setLanguages] = useState<Record<string, Entry>>({});
@@ -24,19 +28,28 @@ export const FilterPanel = ({
             "Repository",
             matches,
             (key) => {
-                const info = getRepoCodeHostInfo(key);
+                const repo: Repository | undefined = repoMetadata[key];
+                const info = getRepoCodeHostInfo(repo);
+                const Icon = info ? (
+                    <Image
+                        src={info.icon}
+                        alt={info.costHostName}
+                        className={cn('w-4 h-4 flex-shrink-0', info.iconClassName)}
+                    />
+                ) : (
+                    <LaptopIcon className="w-4 h-4 flex-shrink-0" />
+                );
+
                 return {
                     key,
-                    displayName: info?.repoName ?? key,
+                    displayName: info?.displayName ?? key,
                     count: 0,
                     isSelected: false,
-                    icon: info?.icon,
-                    iconAltText: info?.costHostName,
-                    iconClassName: info?.iconClassName,
+                    Icon,
                 };
             }
         );
-       
+
         setRepos(_repos);
     }, [matches, setRepos]);
 
@@ -45,12 +58,23 @@ export const FilterPanel = ({
             "Language",
             matches,
             (key) => {
+                const iconSrc = getLanguageIcon(key);
+                const Icon = iconSrc ? (
+                    <Image
+                        src={iconSrc}
+                        alt={key}
+                        className="w-4 h-4 flex-shrink-0"
+                    />
+                ) : (
+                    <QuestionMarkCircledIcon className="w-4 h-4 flex-shrink-0" />
+                );
+
                 return {
                     key,
                     displayName: key,
                     count: 0,
                     isSelected: false,
-                    icon: getLanguageIcon(key),
+                    Icon: Icon,
                 } satisfies Entry;
             }
         )
@@ -85,10 +109,10 @@ export const FilterPanel = ({
         );
 
         const filteredMatches = matches.filter((match) =>
-            (
-                (selectedRepos.size === 0 ? true : selectedRepos.has(match.Repository)) &&
-                (selectedLanguages.size === 0 ? true : selectedLanguages.has(match.Language))
-            )
+        (
+            (selectedRepos.size === 0 ? true : selectedRepos.has(match.Repository)) &&
+            (selectedLanguages.size === 0 ? true : selectedLanguages.has(match.Language))
+        )
         );
 
         onFilterChanged(filteredMatches);

@@ -68,6 +68,7 @@ export const zoektSearchResponseSchema = z.object({
             // Set if `whole` is true.
             Content: z.string().optional(),
         })).nullable(),
+        RepoURLs: z.record(z.string(), z.string()),
     }),
 });
 
