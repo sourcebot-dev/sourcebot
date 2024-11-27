@@ -62,6 +62,12 @@ export const zoektSearchResponseSchema = z.object({
                 FileName: z.boolean(),
                 ContentStart: locationSchema,
                 Score: z.number(),
+                SymbolInfo: z.array(z.object({
+                    Sym: z.string(),
+                    Kind: z.string(),
+                    Parent: z.string(),
+                    ParentKind: z.string(),
+                })).nullable(),
             })),
             Checksum: z.string(),
             Score: z.number(),

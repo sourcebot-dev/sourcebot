@@ -45,6 +45,26 @@ export const useSuggestionsData = ({
         enabled: suggestionMode === "file"
     });
 
+    const { data: symbolSuggestions } = useQuery({
+        queryKey: ["symbolSuggestions", suggestionQuery],
+        queryFn: () => search({
+            query: `sym:${suggestionQuery.length > 0 ? suggestionQuery : ".*"}`,
+            maxMatchDisplayCount: 15,
+        }),
+        select: (data): Suggestion[] => {
+            const symbols = data.Result.Files?.flatMap((file) => file.ChunkMatches).flatMap((chunk) => chunk.SymbolInfo ?? []);
+            if (!symbols) {
+                return [];
+            }
+
+            const symbolSet = new Set(symbols.map((symbol) => symbol.Sym));
+            return Array.from(symbolSet).map((sym) => ({
+                value: sym,
+            }));
+        },
+        enabled: suggestionMode === "symbol",
+    });
+
     const languageSuggestions = useMemo((): Suggestion[] => {
         return languages.map((lang) => {
             const spotlight = [
@@ -68,8 +88,9 @@ export const useSuggestionsData = ({
             repos: repoSuggestions ?? [],
             languages: languageSuggestions,
             files: fileSuggestions ?? [],
+            symbols: symbolSuggestions ?? [],
         }
-    }, [repoSuggestions, fileSuggestions, languageSuggestions]);
+    }, [repoSuggestions, fileSuggestions, languageSuggestions, symbolSuggestions]);
 
     return data;
 }

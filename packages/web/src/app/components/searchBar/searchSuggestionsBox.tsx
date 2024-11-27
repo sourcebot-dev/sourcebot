@@ -54,6 +54,7 @@ interface SearchSuggestionsBoxProps {
         repos: Suggestion[];
         languages: Suggestion[];
         files: Suggestion[];
+        symbols: Suggestion[];
     }
 }
 
@@ -204,9 +205,14 @@ const SearchSuggestionsBox = forwardRef(({
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                         isClientSideSearchEnabled: false,
                     }
+                case "symbol":
+                    return {
+                        list: data.symbols,
+                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                        isClientSideSearchEnabled: false,
+                    }
                 case "revision":
                 case "content":
-                case "symbol":
                     return {
                         list: [],
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
