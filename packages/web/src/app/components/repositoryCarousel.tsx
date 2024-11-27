@@ -56,8 +56,8 @@ interface RepositoryBadgeProps {
 const RepositoryBadge = ({
     repo
 }: RepositoryBadgeProps) => {
-    const { repoIcon, repoName, repoLink } = (() => {
-        const info = getRepoCodeHostInfo(repo.Name);
+    const { repoIcon, displayName, repoLink } = (() => {
+        const info = getRepoCodeHostInfo(repo);
 
         if (info) {
             return {
@@ -66,14 +66,14 @@ const RepositoryBadge = ({
                     alt={info.costHostName}
                     className={`w-4 h-4 ${info.iconClassName}`}
                 />,
-                repoName: info.repoName,
+                displayName: info.displayName,
                 repoLink: info.repoLink,
             }
         }
 
         return {
             repoIcon: <FileIcon className="w-4 h-4" />,
-            repoName: repo.Name,
+            displayName: repo.Name,
             repoLink: undefined,
         }
     })();
@@ -91,7 +91,7 @@ const RepositoryBadge = ({
         >
             {repoIcon}
             <span className="text-sm font-mono">
-                {repoName}
+                {displayName}
             </span>
         </div>
     )

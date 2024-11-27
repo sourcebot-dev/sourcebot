@@ -1,7 +1,7 @@
 'use client';
 
 import { fetchFileSource } from "@/app/api/(client)/client";
-import { getCodeHostFilePreviewLink, base64Decode } from "@/lib/utils";
+import { base64Decode } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { CodePreview, CodePreviewFile } from "./codePreview";
 import { SearchResultFile } from "@/lib/types";
@@ -11,6 +11,7 @@ interface CodePreviewPanelProps {
     onClose: () => void;
     selectedMatchIndex: number;
     onSelectedMatchIndexChange: (index: number) => void;
+    repoUrlTemplates: Record<string, string>;
 }
 
 export const CodePreviewPanel = ({
@@ -18,6 +19,7 @@ export const CodePreviewPanel = ({
     onClose,
     selectedMatchIndex,
     onSelectedMatchIndexChange,
+    repoUrlTemplates,
 }: CodePreviewPanelProps) => {
 
     const { data: file } = useQuery({
@@ -37,8 +39,15 @@ export const CodePreviewPanel = ({
                 branch,
             })
                 .then(({ source }) => {
-                    // @todo : refector this to use the templates provided by zoekt.
-                    const link = getCodeHostFilePreviewLink(fileMatch.Repository, fileMatch.FileName, branch);
+                    const link = (() => {
+                        const template = repoUrlTemplates[fileMatch.Repository];
+                        if (!template) {
+                            return undefined;
+                        }
+                        return template
+                            .replace("{{.Version}}", branch ?? "HEAD")
+                            .replace("{{.Path}}", fileMatch.FileName);
+                    })();
 
                     const decodedSource = base64Decode(source);
 

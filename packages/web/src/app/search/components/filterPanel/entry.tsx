@@ -2,16 +2,13 @@
 
 import { QuestionMarkCircledIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
-import Image from "next/image";
 
 export type Entry = {
     key: string;
     displayName: string;
     count: number;
     isSelected: boolean;
-    icon?: string;
-    iconAltText?: string;
-    iconClassName?: string;
+    Icon?: React.ReactNode;
 }
 
 interface EntryProps {
@@ -22,11 +19,9 @@ interface EntryProps {
 export const Entry = ({
     entry: {
         isSelected,
-        icon,
-        iconAltText,
-        iconClassName,
         displayName,
         count,
+        Icon,
     },
     onClicked,
 }: EntryProps) => {
@@ -42,13 +37,7 @@ export const Entry = ({
             onClick={() => onClicked()}
         >
             <div className="flex flex-row items-center gap-1">
-                {icon ? (
-                    <Image
-                        src={icon}
-                        alt={iconAltText ?? ''}
-                        className={`w-4 h-4 flex-shrink-0 ${iconClassName}`}
-                    />
-                ) : (
+                {Icon ? Icon : (
                     <QuestionMarkCircledIcon className="w-4 h-4 flex-shrink-0" />
                 )}
                 <p className="text-wrap">{displayName}</p>

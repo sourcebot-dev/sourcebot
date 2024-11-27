@@ -4,6 +4,7 @@ import githubLogo from "../../public/github.svg";
 import gitlabLogo from "../../public/gitlab.svg";
 import giteaLogo from "../../public/gitea.svg";
 import { ServiceError } from "./serviceError";
+import { Repository } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -31,64 +32,53 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
 
 type CodeHostInfo = {
     type: "github" | "gitlab" | "gitea";
-    repoName: string;
+    displayName: string;
     costHostName: string;
     repoLink: string;
     icon: string;
     iconClassName?: string;
 }
 
-export const getRepoCodeHostInfo = (repoName: string): CodeHostInfo | undefined => {
-    if (repoName.startsWith("github.com")) {
-        return {
-            type: "github",
-            repoName: repoName.substring("github.com/".length),
-            costHostName: "GitHub",
-            repoLink: `https://${repoName}`,
-            icon: githubLogo,
-            iconClassName: "dark:invert",
-        }
-    }
-    
-    if (repoName.startsWith("gitlab.com")) {
-        return {
-            type: "gitlab",
-            repoName: repoName.substring("gitlab.com/".length),
-            costHostName: "GitLab",
-            repoLink: `https://${repoName}`,
-            icon: gitlabLogo,
-        }
+export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined => {
+    if (!repo) {
+        return undefined;
     }
 
-    if (repoName.startsWith("gitea.com")) {
-        return {
-            type: "gitea",
-            repoName: repoName.substring("gitea.com/".length),
-            costHostName: "Gitea",
-            repoLink: `https://${repoName}`,
-            icon: giteaLogo,
-        }
+    const hostType = repo.RawConfig ? repo.RawConfig['web-url-type'] : undefined;
+    if (!hostType) {
+        return undefined;
     }
 
-    return undefined;
-}
+    const url = new URL(repo.URL);
+    const displayName = url.pathname.slice(1);
 
-export const getCodeHostFilePreviewLink = (repoName: string, filePath: string, branch: string = "HEAD"): string | undefined => {
-    const info = getRepoCodeHostInfo(repoName);
-
-    if (info?.type === "github") {
-        return `${info.repoLink}/blob/${branch}/${filePath}`;
+    switch (hostType) {
+        case 'github':
+            return {
+                type: "github",
+                displayName: displayName,
+                costHostName: "GitHub",
+                repoLink: repo.URL,
+                icon: githubLogo,
+                iconClassName: "dark:invert",
+            }
+        case 'gitlab':
+            return {
+                type: "gitlab",
+                displayName: displayName,
+                costHostName: "GitLab",
+                repoLink: repo.URL,
+                icon: gitlabLogo,
+            }
+        case 'gitea':
+            return {
+                type: "gitea",
+                displayName: displayName,
+                costHostName: "Gitea",
+                repoLink: repo.URL,
+                icon: giteaLogo,
+            }
     }
-
-    if (info?.type === "gitlab") {
-        return `${info.repoLink}/-/blob/${branch}/${filePath}`;
-    }
-
-    if (info?.type === "gitea") {
-        return `${info.repoLink}/src/branch/${branch}/${filePath}`;
-    }
-
-    return undefined;
 }
 
 export const isServiceError = (data: unknown): data is ServiceError => {
