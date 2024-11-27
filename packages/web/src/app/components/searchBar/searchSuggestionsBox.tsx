@@ -1,7 +1,7 @@
 'use client';
 
 import { isDefined } from "@/lib/utils";
-import { CommitIcon, MixerVerticalIcon } from "@radix-ui/react-icons";
+import { CommitIcon, FileIcon, MixerVerticalIcon } from "@radix-ui/react-icons";
 import { IconProps } from "@radix-ui/react-icons/dist/types";
 import assert from "assert";
 import clsx from "clsx";
@@ -204,6 +204,7 @@ const SearchSuggestionsBox = forwardRef(({
                         list: data.files,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                         isClientSideSearchEnabled: false,
+                        Icon: FileIcon,
                     }
                 case "symbol":
                     return {
@@ -262,7 +263,7 @@ const SearchSuggestionsBox = forwardRef(({
             onSuggestionClicked,
         }
 
-    }, [suggestionQuery, suggestionMode, query, cursorPosition, onCompletion, data.repos, data.files, data.languages]);
+    }, [suggestionQuery, suggestionMode, query, cursorPosition, onCompletion, data.repos, data.files, data.symbols, data.languages]);
 
     // When the list of suggestions change, reset the highlight index
     useEffect(() => {
@@ -289,7 +290,11 @@ const SearchSuggestionsBox = forwardRef(({
             case "repo":
                 return "Repositories";
             case "refine":
-                return "Refine search"
+                return "Refine search";
+            case "file":
+                return "Files";
+            case "symbol":
+                return "Symbols";
             default:
                 return "";
         }
@@ -352,22 +357,21 @@ const SearchSuggestionsBox = forwardRef(({
                     }}
                 >
                     {Icon && (
-                        <Icon className="w-3 h-3 mr-2" />
+                        <Icon className="w-3 h-3 mr-2 flex-none" />
                     )}
-                    <div className="flex flex-row items-center">
-                        <span
-                            className={clsx('mr-2 flex-none', {
-                                "text-highlight": isHighlightEnabled
-                            })}
-                        >
-                            {result.value}
+                    <span
+                        className={clsx('mr-2', {
+                            "text-highlight": isHighlightEnabled,
+                            "truncate": !result.description,
+                        })}
+                    >
+                        {result.value}
+                    </span>
+                    {result.description && (
+                        <span className="text-muted-foreground font-light">
+                            {result.description}
                         </span>
-                        {result.description && (
-                            <span className="text-muted-foreground font-light">
-                                {result.description}
-                            </span>
-                        )}
-                    </div>
+                    )}
                 </div>
             ))}
             {isFocused && (
