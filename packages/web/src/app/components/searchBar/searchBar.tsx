@@ -255,13 +255,16 @@ export const SearchBar = ({
                     setIsSuggestionsBoxFocused(document.activeElement === suggestionBoxRef.current);
                 }}
                 cursorPosition={cursorPosition}
-                data={suggestionData}
-                onSuggestionModeChanged={(suggestionMode) => {
-                    setSuggestionMode(suggestionMode);
+                onSuggestionModeChanged={(newSuggestionMode) => {
+                    if (suggestionMode !== newSuggestionMode) {
+                        console.debug(`Suggestion mode changed: ${suggestionMode} -> ${newSuggestionMode}`);
+                    }
+                    setSuggestionMode(newSuggestionMode);
                 }}
                 onSuggestionQueryChanged={(suggestionQuery) => {
                     setSuggestionQuery(suggestionQuery);
                 }}
+                {...suggestionData}
             />
         </div>
     )
