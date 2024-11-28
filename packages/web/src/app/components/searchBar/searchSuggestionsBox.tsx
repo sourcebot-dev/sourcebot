@@ -1,8 +1,6 @@
 'use client';
 
 import { isDefined } from "@/lib/utils";
-import { CommitIcon, FileIcon, MixerVerticalIcon } from "@radix-ui/react-icons";
-import { IconProps } from "@radix-ui/react-icons/dist/types";
 import assert from "assert";
 import clsx from "clsx";
 import escapeStringRegexp from "escape-string-regexp";
@@ -16,13 +14,14 @@ import {
     refineModeSuggestions,
     suggestionModeMappings
 } from "./constants";
-
-type Icon = React.ForwardRefExoticComponent<IconProps & React.RefAttributes<SVGSVGElement>>;
+import { IconType } from "react-icons/lib";
+import { VscFile, VscFilter, VscRepo, VscSymbolMisc } from "react-icons/vsc";
 
 export type Suggestion = {
     value: string;
     description?: string;
     spotlight?: boolean;
+    Icon?: IconType;
 }
 
 export type SuggestionMode =
@@ -75,6 +74,14 @@ const SearchSuggestionsBox = forwardRef(({
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
 
     const { suggestionQuery, suggestionMode } = useMemo<{ suggestionQuery?: string, suggestionMode?: SuggestionMode }>(() => {
+        // Only re-calculate the suggestion mode and query if the box is enabled.
+        // This is to avoid transitioning the suggestion mode and causing a fetch
+        // when it is not needed.
+        // @see: useSuggestionsData.ts
+        if (!isEnabled) {
+            return {};
+        }
+
         const { queryParts, cursorIndex } = splitQuery(query, cursorPosition);
         if (queryParts.length === 0) {
             return {};
@@ -108,10 +115,10 @@ const SearchSuggestionsBox = forwardRef(({
             suggestionQuery: part,
             suggestionMode: "refine",
         }
-    }, [cursorPosition, query]);
+    }, [cursorPosition, isEnabled, query]);
 
-    const { suggestions, isHighlightEnabled, Icon, onSuggestionClicked } = useMemo(() => {
-        if (!isDefined(suggestionQuery) || !isDefined(suggestionMode)) {
+    const { suggestions, isHighlightEnabled, DefaultIcon, onSuggestionClicked } = useMemo(() => {
+        if (!isEnabled || !isDefined(suggestionQuery) || !isDefined(suggestionMode)) {
             return {};
         }
 
@@ -145,7 +152,7 @@ const SearchSuggestionsBox = forwardRef(({
             isSpotlightEnabled = false,
             isClientSideSearchEnabled = true,
             onSuggestionClicked,
-            Icon,
+            DefaultIcon,
         } = ((): {
             threshold?: number,
             limit?: number,
@@ -154,7 +161,7 @@ const SearchSuggestionsBox = forwardRef(({
             isSpotlightEnabled?: boolean,
             isClientSideSearchEnabled?: boolean,
             onSuggestionClicked: (value: string) => void,
-            Icon?: Icon
+            DefaultIcon?: IconType
         } => {
             switch (suggestionMode) {
                 case "public":
@@ -180,7 +187,7 @@ const SearchSuggestionsBox = forwardRef(({
                 case "repo":
                     return {
                         list: data.repos,
-                        Icon: CommitIcon,
+                        DefaultIcon: VscRepo,
                         onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
                     }
                 case "language": {
@@ -196,7 +203,7 @@ const SearchSuggestionsBox = forwardRef(({
                         list: refineModeSuggestions,
                         isHighlightEnabled: true,
                         isSpotlightEnabled: true,
-                        Icon: MixerVerticalIcon,
+                        DefaultIcon: VscFilter,
                         onSuggestionClicked: createOnSuggestionClickedHandler({ trailingSpace: false }),
                     }
                 case "file":
@@ -204,13 +211,14 @@ const SearchSuggestionsBox = forwardRef(({
                         list: data.files,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                         isClientSideSearchEnabled: false,
-                        Icon: FileIcon,
+                        DefaultIcon: VscFile,
                     }
                 case "symbol":
                     return {
                         list: data.symbols,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                         isClientSideSearchEnabled: false,
+                        DefaultIcon: VscSymbolMisc,
                     }
                 case "revision":
                 case "content":
@@ -259,11 +267,11 @@ const SearchSuggestionsBox = forwardRef(({
         return {
             suggestions,
             isHighlightEnabled,
-            Icon,
+            DefaultIcon,
             onSuggestionClicked,
         }
 
-    }, [suggestionQuery, suggestionMode, query, cursorPosition, onCompletion, data.repos, data.files, data.symbols, data.languages]);
+    }, [isEnabled, suggestionQuery, suggestionMode, query, cursorPosition, onCompletion, data.repos, data.files, data.symbols, data.languages]);
 
     // When the list of suggestions change, reset the highlight index
     useEffect(() => {
@@ -356,9 +364,11 @@ const SearchSuggestionsBox = forwardRef(({
                         onSuggestionClicked(result.value)
                     }}
                 >
-                    {Icon && (
-                        <Icon className="w-3 h-3 mr-2 flex-none" />
-                    )}
+                    {result.Icon ? (
+                        <result.Icon className="w-3 h-3 mr-2 flex-none" />
+                    ) : DefaultIcon ? (
+                        <DefaultIcon className="w-3 h-3 mr-2 flex-none" />
+                    ) : null}
                     <span
                         className={clsx('mr-2', {
                             "text-highlight": isHighlightEnabled,
