@@ -31,7 +31,7 @@ export const useSuggestionsData = ({
     suggestionMode,
     suggestionQuery,
 }: Props) => {
-    const { data: repoSuggestions } = useQuery({
+    const { data: repoSuggestions, isLoading: _isLoadingRepos } = useQuery({
         queryKey: ["repoSuggestions"],
         queryFn: getRepos,
         select: (data): Suggestion[] => {
@@ -43,8 +43,9 @@ export const useSuggestionsData = ({
         },
         enabled: suggestionMode === "repo",
     });
+    const isLoadingRepos = useMemo(() => suggestionMode === "repo" && _isLoadingRepos, [_isLoadingRepos, suggestionMode]);
 
-    const { data: fileSuggestions } = useQuery({
+    const { data: fileSuggestions, isLoading: _isLoadingFiles } = useQuery({
         queryKey: ["fileSuggestions", suggestionQuery],
         queryFn: () => search({
             query: `file:${suggestionQuery}`,
@@ -57,23 +58,21 @@ export const useSuggestionsData = ({
         },
         enabled: suggestionMode === "file"
     });
+    const isLoadingFiles = useMemo(() => suggestionMode === "file" && _isLoadingFiles, [_isLoadingFiles, suggestionMode]);
 
-    const { data: symbolSuggestions } = useQuery({
+    const { data: symbolSuggestions, isLoading: _isLoadingSymbols } = useQuery({
         queryKey: ["symbolSuggestions", suggestionQuery],
-        queryFn: () => {
-            console.log("fetching symbols for", suggestionQuery);
-            console.log(suggestionMode);
-            return search({
-                query: `sym:${suggestionQuery.length > 0 ? suggestionQuery : ".*"}`,
-                maxMatchDisplayCount: 15,
-            })
-        },
+        queryFn: () => search({
+            query: `sym:${suggestionQuery.length > 0 ? suggestionQuery : ".*"}`,
+            maxMatchDisplayCount: 15,
+        }),
         select: (data): Suggestion[] => {
             const symbols = data.Result.Files?.flatMap((file) => file.ChunkMatches).flatMap((chunk) => chunk.SymbolInfo ?? []);
             if (!symbols) {
                 return [];
             }
 
+            // De-duplicate on symbol name & kind.
             const symbolMap = new Map<string, Symbol>(symbols.map((symbol: Symbol) => [`${symbol.Kind}.${symbol.Sym}`, symbol]));
             const suggestions = Array.from(symbolMap.values()).map((symbol) => ({
                 value: symbol.Sym,
@@ -84,6 +83,7 @@ export const useSuggestionsData = ({
         },
         enabled: suggestionMode === "symbol",
     });
+    const isLoadingSymbols = useMemo(() => suggestionMode === "symbol" && _isLoadingSymbols, [suggestionMode, _isLoadingSymbols]);
 
     const languageSuggestions = useMemo((): Suggestion[] => {
         return languages.map((lang) => {
@@ -103,16 +103,17 @@ export const useSuggestionsData = ({
         });
     }, []);
 
-    const data = useMemo(() => {
-        return {
-            repos: repoSuggestions ?? [],
-            languages: languageSuggestions,
-            files: fileSuggestions ?? [],
-            symbols: symbolSuggestions ?? [],
-        }
-    }, [repoSuggestions, fileSuggestions, languageSuggestions, symbolSuggestions]);
+    const isLoadingSuggestions = useMemo(() => {
+        return isLoadingSymbols || isLoadingFiles || isLoadingRepos;
+    }, [isLoadingFiles, isLoadingRepos, isLoadingSymbols]);
 
-    return data;
+    return {
+        repoSuggestions: repoSuggestions ?? [],
+        fileSuggestions: fileSuggestions ?? [],
+        symbolSuggestions: symbolSuggestions ?? [],
+        languageSuggestions,
+        isLoadingSuggestions,
+    }
 }
 
 const getSymbolIcon = (symbol: Symbol) => {

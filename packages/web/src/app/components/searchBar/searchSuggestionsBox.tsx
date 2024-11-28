@@ -49,19 +49,17 @@ interface SearchSuggestionsBoxProps {
     onSuggestionModeChanged: (suggestionMode: SuggestionMode) => void;
     onSuggestionQueryChanged: (suggestionQuery: string) => void;
 
-    data: {
-        repos: Suggestion[];
-        languages: Suggestion[];
-        files: Suggestion[];
-        symbols: Suggestion[];
-    }
+    isLoadingSuggestions: boolean;
+    repoSuggestions: Suggestion[];
+    fileSuggestions: Suggestion[];
+    symbolSuggestions: Suggestion[];
+    languageSuggestions: Suggestion[];
 }
 
 const SearchSuggestionsBox = forwardRef(({
     query,
     onCompletion,
     isEnabled,
-    data,
     cursorPosition,
     isFocused,
     onFocus,
@@ -69,6 +67,11 @@ const SearchSuggestionsBox = forwardRef(({
     onReturnFocus,
     onSuggestionModeChanged,
     onSuggestionQueryChanged,
+    isLoadingSuggestions,
+    repoSuggestions,
+    fileSuggestions,
+    symbolSuggestions,
+    languageSuggestions,
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
 
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
@@ -186,13 +189,13 @@ const SearchSuggestionsBox = forwardRef(({
                     }
                 case "repo":
                     return {
-                        list: data.repos,
+                        list: repoSuggestions,
                         DefaultIcon: VscRepo,
                         onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
                     }
                 case "language": {
                     return {
-                        list: data.languages,
+                        list: languageSuggestions,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                         isSpotlightEnabled: true,
                     }
@@ -208,14 +211,14 @@ const SearchSuggestionsBox = forwardRef(({
                     }
                 case "file":
                     return {
-                        list: data.files,
+                        list: fileSuggestions,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                         isClientSideSearchEnabled: false,
                         DefaultIcon: VscFile,
                     }
                 case "symbol":
                     return {
-                        list: data.symbols,
+                        list: symbolSuggestions,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                         isClientSideSearchEnabled: false,
                         DefaultIcon: VscSymbolMisc,
@@ -271,7 +274,7 @@ const SearchSuggestionsBox = forwardRef(({
             onSuggestionClicked,
         }
 
-    }, [isEnabled, suggestionQuery, suggestionMode, query, cursorPosition, onCompletion, data.repos, data.files, data.symbols, data.languages]);
+    }, [isEnabled, suggestionQuery, suggestionMode, query, cursorPosition, onCompletion, repoSuggestions, fileSuggestions, symbolSuggestions, languageSuggestions]);
 
     // When the list of suggestions change, reset the highlight index
     useEffect(() => {
@@ -303,6 +306,8 @@ const SearchSuggestionsBox = forwardRef(({
                 return "Files";
             case "symbol":
                 return "Symbols";
+            case "language":
+                return "Languages";
             default:
                 return "";
         }
@@ -310,9 +315,12 @@ const SearchSuggestionsBox = forwardRef(({
 
     if (
         !isEnabled ||
-        !suggestions ||
-        suggestions.length === 0
+        !suggestions
     ) {
+        return null;
+    }
+
+    if (suggestions.length === 0 && !isLoadingSuggestions) {
         return null;
     }
 
@@ -324,6 +332,9 @@ const SearchSuggestionsBox = forwardRef(({
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                     e.stopPropagation();
+                    if (highlightedSuggestionIndex < 0 || highlightedSuggestionIndex >= suggestions.length) {
+                        return;
+                    }
                     const value = suggestions[highlightedSuggestionIndex].value;
                     onSuggestionClicked(value);
                 }
@@ -353,7 +364,17 @@ const SearchSuggestionsBox = forwardRef(({
             <p className="text-muted-foreground text-sm mb-1">
                 {suggestionModeText}
             </p>
-            {suggestions.map((result, index) => (
+            {isLoadingSuggestions ? (
+                // Skeleton placeholder
+                <div className="animate-pulse flex flex-col gap-2 px-1 py-0.5">
+                    {
+                        Array.from({ length: 10 }).map((_, index) => (
+                            <div key={index} className="h-4 bg-muted rounded-md w-full"></div>
+                        ))
+                    }
+                </div>
+            ) : suggestions.map((result, index) => (
+                // Suggestion list
                 <div
                     key={index}
                     className={clsx("flex flex-row items-center font-mono text-sm hover:bg-muted rounded-md px-1 py-0.5 cursor-pointer", {
