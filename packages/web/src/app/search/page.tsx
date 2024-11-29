@@ -24,6 +24,7 @@ import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { ImperativePanelHandle } from "react-resizable-panels";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
 
 const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 10000;
 
@@ -32,6 +33,7 @@ export default function SearchPage() {
     const searchQuery = useNonEmptyQueryParam(SearchQueryParams.query) ?? "";
     const _maxMatchDisplayCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.maxMatchDisplayCount) ?? `${DEFAULT_MAX_MATCH_DISPLAY_COUNT}`);
     const maxMatchDisplayCount = isNaN(_maxMatchDisplayCount) ? DEFAULT_MAX_MATCH_DISPLAY_COUNT : _maxMatchDisplayCount;
+    const { setSearchHistory } = useSearchHistory();
 
     const captureEvent = useCaptureEvent();
 
@@ -44,6 +46,13 @@ export default function SearchPage() {
         enabled: searchQuery.length > 0,
         refetchOnWindowFocus: false,
     });
+
+    useEffect(() => {
+        setSearchHistory((searchHistory) => [
+            searchQuery,
+            ...searchHistory.filter(q => q !== searchQuery)
+        ])
+    }, [searchQuery, setSearchHistory]);
 
     // Use the /api/repos endpoint to get a useful list of
     // repository metadata (like host type, repo name, etc.)

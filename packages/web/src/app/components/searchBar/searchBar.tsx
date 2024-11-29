@@ -34,9 +34,12 @@ import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
-import { SearchSuggestionsBox, SuggestionMode } from "./searchSuggestionsBox";
+import { SearchSuggestionsBox } from "./searchSuggestionsBox";
 import { useSuggestionsData } from "./useSuggestionsData";
 import { zoekt } from "./zoektLanguageExtension";
+import { CounterClockwiseClockIcon } from "@radix-ui/react-icons";
+import clsx from "clsx";
+import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 
 interface SearchBarProps {
     className?: string;
@@ -91,13 +94,12 @@ export const SearchBar = ({
     const suggestionBoxRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     const [cursorPosition, setCursorPosition] = useState(0);
-    const [isSuggestionsBoxEnabled, setIsSuggestionsBoxEnabled ] = useState(false);
+    const [isSuggestionsEnabled, setIsSuggestionsEnabled] = useState(false);
     const [isSuggestionsBoxFocused, setIsSuggestionsBoxFocused] = useState(false);
+    const [isHistorySearchEnabled, setIsHistorySearchEnabled] = useState(false);
     
     const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
     const focusSuggestionsBox = useCallback(() => suggestionBoxRef.current?.focus(), []);
-    const [suggestionMode, setSuggestionMode] = useState<SuggestionMode>("refine");
-    const [suggestionQuery, setSuggestionQuery] = useState("");
 
     const [_query, setQuery] = useState(defaultQuery ?? "");
     const query = useMemo(() => {
@@ -105,6 +107,13 @@ export const SearchBar = ({
         // copy & pasting text with newlines.
         return _query.replaceAll(/\n/g, " ");
     }, [_query]);
+
+    const { suggestionMode, suggestionQuery } = useSuggestionModeAndQuery({
+        isSuggestionsEnabled,
+        isHistorySearchEnabled,
+        cursorPosition,
+        query,
+    });
 
     const suggestionData = useSuggestionsData({
         suggestionMode,
@@ -152,7 +161,7 @@ export const SearchBar = ({
     useHotkeys('/', (event) => {
         event.preventDefault();
         focusEditor();
-        setIsSuggestionsBoxEnabled(true);
+        setIsSuggestionsEnabled(true);
         if (editorRef.current?.view) {
             cursorDocEnd({
                 state: editorRef.current.view.state,
@@ -164,16 +173,16 @@ export const SearchBar = ({
     // Collapse the suggestions box if the user clicks outside of the search bar container.
     useClickListener('.search-bar-container', (isElementClicked) => {
         if (!isElementClicked) {
-            setIsSuggestionsBoxEnabled(false);
+            setIsSuggestionsEnabled(false);
         } else {
-            setIsSuggestionsBoxEnabled(true);
+            setIsSuggestionsEnabled(true);
         }
     });
 
     const onSubmit = () => {
         const url = createPathWithQueryParams('/search',
             [SearchQueryParams.query, query],
-        )
+        );
         router.push(url);
     }
 
@@ -183,18 +192,18 @@ export const SearchBar = ({
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    setIsSuggestionsBoxEnabled(false);
+                    setIsSuggestionsEnabled(false);
                     onSubmit();
                 }
 
                 if (e.key === 'Escape') {
                     e.preventDefault();
-                    setIsSuggestionsBoxEnabled(false);
+                    setIsSuggestionsEnabled(false);
                 }
 
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
-                    setIsSuggestionsBoxEnabled(true);
+                    setIsSuggestionsEnabled(true);
                     focusSuggestionsBox();
                 }
 
@@ -203,6 +212,18 @@ export const SearchBar = ({
                 }
             }}
         >
+            <CounterClockwiseClockIcon
+                className={clsx("w-6 h-6 hover:cursor-pointer rounded-md p-1", {
+                    "bg-blue-200 hover:bg-blue-300": isHistorySearchEnabled,
+                    "hover:bg-blue-200": !isHistorySearchEnabled,
+                })}
+                onClick={() => {
+                    setQuery("");
+                    setIsHistorySearchEnabled(!isHistorySearchEnabled);
+                    setIsSuggestionsEnabled(true);
+                    focusEditor();
+                }}
+            />
             <CodeMirror
                 ref={editorRef}
                 className="overflow-x-auto scrollbar-hide w-full"
@@ -212,7 +233,7 @@ export const SearchBar = ({
                     setQuery(value);
                     // Whenever the user types, we want to re-enable
                     // the suggestions box.
-                    setIsSuggestionsBoxEnabled(true);
+                    setIsSuggestionsEnabled(true);
                 }}
                 theme={theme}
                 basicSetup={false}
@@ -223,6 +244,8 @@ export const SearchBar = ({
             <SearchSuggestionsBox
                 ref={suggestionBoxRef}
                 query={query}
+                suggestionQuery={suggestionQuery}
+                suggestionMode={suggestionMode}
                 onCompletion={(newQuery: string, newCursorPosition: number) => {
                     setQuery(newQuery);
 
@@ -243,7 +266,7 @@ export const SearchBar = ({
                     // Re-focus the editor since suggestions cause focus to be lost (both click & keyboard)
                     editorRef.current?.view?.focus();
                 }}
-                isEnabled={isSuggestionsBoxEnabled}
+                isEnabled={isSuggestionsEnabled}
                 onReturnFocus={() => {
                     focusEditor();
                 }}
@@ -255,15 +278,6 @@ export const SearchBar = ({
                     setIsSuggestionsBoxFocused(document.activeElement === suggestionBoxRef.current);
                 }}
                 cursorPosition={cursorPosition}
-                onSuggestionModeChanged={(newSuggestionMode) => {
-                    if (suggestionMode !== newSuggestionMode) {
-                        console.debug(`Suggestion mode changed: ${suggestionMode} -> ${newSuggestionMode}`);
-                    }
-                    setSuggestionMode(newSuggestionMode);
-                }}
-                onSuggestionQueryChanged={(suggestionQuery) => {
-                    setSuggestionQuery(suggestionQuery);
-                }}
                 {...suggestionData}
             />
         </div>

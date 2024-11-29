@@ -17,6 +17,7 @@ import {
     VscSymbolStructure,
     VscSymbolVariable
 } from "react-icons/vsc";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
 
 
 interface Props {
@@ -103,6 +104,13 @@ export const useSuggestionsData = ({
         });
     }, []);
 
+    const { searchHistory } = useSearchHistory();
+    const searchHistorySuggestions = useMemo(() => {
+        return searchHistory.map(query => ({
+            value: query,
+        } satisfies Suggestion));
+    }, [searchHistory]);
+
     const isLoadingSuggestions = useMemo(() => {
         return isLoadingSymbols || isLoadingFiles || isLoadingRepos;
     }, [isLoadingFiles, isLoadingRepos, isLoadingSymbols]);
@@ -112,6 +120,7 @@ export const useSuggestionsData = ({
         fileSuggestions: fileSuggestions ?? [],
         symbolSuggestions: symbolSuggestions ?? [],
         languageSuggestions,
+        searchHistorySuggestions,
         isLoadingSuggestions,
     }
 }

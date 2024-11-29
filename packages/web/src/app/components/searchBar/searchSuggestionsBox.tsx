@@ -1,6 +1,6 @@
 'use client';
 
-import { isDefined } from "@/lib/utils";
+import { createPathWithQueryParams } from "@/lib/utils";
 import assert from "assert";
 import clsx from "clsx";
 import escapeStringRegexp from "escape-string-regexp";
@@ -12,10 +12,11 @@ import {
     forkModeSuggestions,
     publicModeSuggestions,
     refineModeSuggestions,
-    suggestionModeMappings
 } from "./constants";
 import { IconType } from "react-icons/lib";
 import { VscFile, VscFilter, VscRepo, VscSymbolMisc } from "react-icons/vsc";
+import { useRouter } from "next/navigation";
+import { SearchQueryParams } from "@/lib/types";
 
 export type Suggestion = {
     value: string;
@@ -25,6 +26,7 @@ export type Suggestion = {
 }
 
 export type SuggestionMode =
+    "none" |
     "refine" |
     "archived" |
     "file" |
@@ -35,10 +37,13 @@ export type SuggestionMode =
     "revision" |
     "symbol" |
     "content" |
-    "repo";
+    "repo" |
+    "searchHistory";
 
 interface SearchSuggestionsBoxProps {
     query: string;
+    suggestionQuery: string;
+    suggestionMode: SuggestionMode;
     onCompletion: (newQuery: string, newCursorPosition: number) => void,
     isEnabled: boolean;
     cursorPosition: number;
@@ -46,18 +51,19 @@ interface SearchSuggestionsBoxProps {
     onFocus: () => void;
     onBlur: () => void;
     onReturnFocus: () => void;
-    onSuggestionModeChanged: (suggestionMode: SuggestionMode) => void;
-    onSuggestionQueryChanged: (suggestionQuery: string) => void;
 
     isLoadingSuggestions: boolean;
     repoSuggestions: Suggestion[];
     fileSuggestions: Suggestion[];
     symbolSuggestions: Suggestion[];
     languageSuggestions: Suggestion[];
+    searchHistorySuggestions: Suggestion[];
 }
 
 const SearchSuggestionsBox = forwardRef(({
     query,
+    suggestionQuery,
+    suggestionMode,
     onCompletion,
     isEnabled,
     cursorPosition,
@@ -65,63 +71,18 @@ const SearchSuggestionsBox = forwardRef(({
     onFocus,
     onBlur,
     onReturnFocus,
-    onSuggestionModeChanged,
-    onSuggestionQueryChanged,
     isLoadingSuggestions,
     repoSuggestions,
     fileSuggestions,
     symbolSuggestions,
     languageSuggestions,
+    searchHistorySuggestions,
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
-
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
-
-    const { suggestionQuery, suggestionMode } = useMemo<{ suggestionQuery?: string, suggestionMode?: SuggestionMode }>(() => {
-        // Only re-calculate the suggestion mode and query if the box is enabled.
-        // This is to avoid transitioning the suggestion mode and causing a fetch
-        // when it is not needed.
-        // @see: useSuggestionsData.ts
-        if (!isEnabled) {
-            return {};
-        }
-
-        const { queryParts, cursorIndex } = splitQuery(query, cursorPosition);
-        if (queryParts.length === 0) {
-            return {};
-        }
-        const part = queryParts[cursorIndex];
-
-        // Check if the query part starts with one of the
-        // prefixes. If it does, then we are in the corresponding
-        // suggestion mode for that prefix.
-        const suggestionMode = (() => {
-            for (const mapping of suggestionModeMappings) {
-                for (const prefix of mapping.prefixes) {
-                    if (part.startsWith(prefix)) {
-                        return mapping.suggestionMode;
-                    }
-                }
-            }
-        })();
-
-        if (suggestionMode) {
-            const index = part.indexOf(":");
-            return {
-                suggestionQuery: part.substring(index + 1),
-                suggestionMode,
-            }
-        }
-
-        // Default to the refine suggestion mode
-        // if there was no match.
-        return {
-            suggestionQuery: part,
-            suggestionMode: "refine",
-        }
-    }, [cursorPosition, isEnabled, query]);
+    const router = useRouter();
 
     const { suggestions, isHighlightEnabled, DefaultIcon, onSuggestionClicked } = useMemo(() => {
-        if (!isEnabled || !isDefined(suggestionQuery) || !isDefined(suggestionMode)) {
+        if (!isEnabled) {
             return {};
         }
 
@@ -223,6 +184,17 @@ const SearchSuggestionsBox = forwardRef(({
                         isClientSideSearchEnabled: false,
                         DefaultIcon: VscSymbolMisc,
                     }
+                case "searchHistory":
+                    return {
+                        list: searchHistorySuggestions,
+                        onSuggestionClicked: (value: string) => {
+                            const url = createPathWithQueryParams('/search',
+                                [SearchQueryParams.query, value],
+                            );
+                            router.push(url);
+                        },
+                    }
+                case "none":
                 case "revision":
                 case "content":
                     return {
@@ -274,24 +246,25 @@ const SearchSuggestionsBox = forwardRef(({
             onSuggestionClicked,
         }
 
-    }, [isEnabled, suggestionQuery, suggestionMode, query, cursorPosition, onCompletion, repoSuggestions, fileSuggestions, symbolSuggestions, languageSuggestions]);
+    }, [
+        isEnabled,
+        suggestionQuery,
+        suggestionMode,
+        query,
+        cursorPosition,
+        onCompletion,
+        repoSuggestions,
+        fileSuggestions,
+        symbolSuggestions,
+        searchHistorySuggestions,
+        languageSuggestions,
+        router,
+    ]);
 
     // When the list of suggestions change, reset the highlight index
     useEffect(() => {
         setHighlightedSuggestionIndex(0);
     }, [suggestions]);
-
-    useEffect(() => {
-        if (isDefined(suggestionMode)) {
-            onSuggestionModeChanged(suggestionMode);
-        }
-    }, [onSuggestionModeChanged, suggestionMode]);
-
-    useEffect(() => {
-        if (isDefined(suggestionQuery)) {
-            onSuggestionQueryChanged(suggestionQuery);
-        }
-    }, [onSuggestionQueryChanged, suggestionQuery]);
 
     const suggestionModeText = useMemo(() => {
         if (!suggestionMode) {
@@ -308,6 +281,8 @@ const SearchSuggestionsBox = forwardRef(({
                 return "Symbols";
             case "language":
                 return "Languages";
+            case "searchHistory":
+                return "Search history"
             default:
                 return "";
         }
