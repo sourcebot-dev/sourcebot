@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { QueryClientProvider } from "./queryClientProvider";
 import { PHProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,13 +36,15 @@ export default function RootLayout({
                         disableTransitionOnChange
                     >
                         <QueryClientProvider>
-                            {/*
-                                @todo : ideally we don't wrap everything in a suspense boundary.
-                                @see : https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
-                            */}
-                            <Suspense>
-                                {children}
-                            </Suspense>
+                            <TooltipProvider>
+                                {/*
+                                    @todo : ideally we don't wrap everything in a suspense boundary.
+                                    @see : https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+                                */}
+                                <Suspense>
+                                    {children}
+                                </Suspense>
+                            </TooltipProvider>
                         </QueryClientProvider>
                     </ThemeProvider>
                 </PHProvider>

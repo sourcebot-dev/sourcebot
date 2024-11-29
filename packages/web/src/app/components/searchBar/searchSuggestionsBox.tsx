@@ -1,6 +1,5 @@
 'use client';
 
-import { isDefined } from "@/lib/utils";
 import assert from "assert";
 import clsx from "clsx";
 import escapeStringRegexp from "escape-string-regexp";
@@ -12,10 +11,11 @@ import {
     forkModeSuggestions,
     publicModeSuggestions,
     refineModeSuggestions,
-    suggestionModeMappings
 } from "./constants";
 import { IconType } from "react-icons/lib";
 import { VscFile, VscFilter, VscRepo, VscSymbolMisc } from "react-icons/vsc";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 
 export type Suggestion = {
     value: string;
@@ -25,6 +25,7 @@ export type Suggestion = {
 }
 
 export type SuggestionMode =
+    "none" |
     "refine" |
     "archived" |
     "file" |
@@ -35,29 +36,33 @@ export type SuggestionMode =
     "revision" |
     "symbol" |
     "content" |
-    "repo";
+    "repo" |
+    "searchHistory";
 
 interface SearchSuggestionsBoxProps {
     query: string;
-    onCompletion: (newQuery: string, newCursorPosition: number) => void,
+    suggestionQuery: string;
+    suggestionMode: SuggestionMode;
+    onCompletion: (newQuery: string, newCursorPosition: number, autoSubmit?: boolean) => void,
     isEnabled: boolean;
     cursorPosition: number;
     isFocused: boolean;
     onFocus: () => void;
     onBlur: () => void;
     onReturnFocus: () => void;
-    onSuggestionModeChanged: (suggestionMode: SuggestionMode) => void;
-    onSuggestionQueryChanged: (suggestionQuery: string) => void;
 
     isLoadingSuggestions: boolean;
     repoSuggestions: Suggestion[];
     fileSuggestions: Suggestion[];
     symbolSuggestions: Suggestion[];
     languageSuggestions: Suggestion[];
+    searchHistorySuggestions: Suggestion[];
 }
 
 const SearchSuggestionsBox = forwardRef(({
     query,
+    suggestionQuery,
+    suggestionMode,
     onCompletion,
     isEnabled,
     cursorPosition,
@@ -65,63 +70,17 @@ const SearchSuggestionsBox = forwardRef(({
     onFocus,
     onBlur,
     onReturnFocus,
-    onSuggestionModeChanged,
-    onSuggestionQueryChanged,
     isLoadingSuggestions,
     repoSuggestions,
     fileSuggestions,
     symbolSuggestions,
     languageSuggestions,
+    searchHistorySuggestions,
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
-
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
 
-    const { suggestionQuery, suggestionMode } = useMemo<{ suggestionQuery?: string, suggestionMode?: SuggestionMode }>(() => {
-        // Only re-calculate the suggestion mode and query if the box is enabled.
-        // This is to avoid transitioning the suggestion mode and causing a fetch
-        // when it is not needed.
-        // @see: useSuggestionsData.ts
+    const { suggestions, isHighlightEnabled, descriptionPlacement, DefaultIcon, onSuggestionClicked } = useMemo(() => {
         if (!isEnabled) {
-            return {};
-        }
-
-        const { queryParts, cursorIndex } = splitQuery(query, cursorPosition);
-        if (queryParts.length === 0) {
-            return {};
-        }
-        const part = queryParts[cursorIndex];
-
-        // Check if the query part starts with one of the
-        // prefixes. If it does, then we are in the corresponding
-        // suggestion mode for that prefix.
-        const suggestionMode = (() => {
-            for (const mapping of suggestionModeMappings) {
-                for (const prefix of mapping.prefixes) {
-                    if (part.startsWith(prefix)) {
-                        return mapping.suggestionMode;
-                    }
-                }
-            }
-        })();
-
-        if (suggestionMode) {
-            const index = part.indexOf(":");
-            return {
-                suggestionQuery: part.substring(index + 1),
-                suggestionMode,
-            }
-        }
-
-        // Default to the refine suggestion mode
-        // if there was no match.
-        return {
-            suggestionQuery: part,
-            suggestionMode: "refine",
-        }
-    }, [cursorPosition, isEnabled, query]);
-
-    const { suggestions, isHighlightEnabled, DefaultIcon, onSuggestionClicked } = useMemo(() => {
-        if (!isEnabled || !isDefined(suggestionQuery) || !isDefined(suggestionMode)) {
             return {};
         }
 
@@ -154,6 +113,7 @@ const SearchSuggestionsBox = forwardRef(({
             isHighlightEnabled = false,
             isSpotlightEnabled = false,
             isClientSideSearchEnabled = true,
+            descriptionPlacement = "left",
             onSuggestionClicked,
             DefaultIcon,
         } = ((): {
@@ -163,6 +123,7 @@ const SearchSuggestionsBox = forwardRef(({
             isHighlightEnabled?: boolean,
             isSpotlightEnabled?: boolean,
             isClientSideSearchEnabled?: boolean,
+            descriptionPlacement?: "left" | "right",
             onSuggestionClicked: (value: string) => void,
             DefaultIcon?: IconType
         } => {
@@ -223,6 +184,15 @@ const SearchSuggestionsBox = forwardRef(({
                         isClientSideSearchEnabled: false,
                         DefaultIcon: VscSymbolMisc,
                     }
+                case "searchHistory":
+                    return {
+                        list: searchHistorySuggestions,
+                        onSuggestionClicked: (value: string) => {
+                            onCompletion(value, value.length, /* autoSubmit = */ true);
+                        },
+                        descriptionPlacement: "right",
+                    }
+                case "none":
                 case "revision":
                 case "content":
                     return {
@@ -270,28 +240,29 @@ const SearchSuggestionsBox = forwardRef(({
         return {
             suggestions,
             isHighlightEnabled,
+            descriptionPlacement,
             DefaultIcon,
             onSuggestionClicked,
         }
 
-    }, [isEnabled, suggestionQuery, suggestionMode, query, cursorPosition, onCompletion, repoSuggestions, fileSuggestions, symbolSuggestions, languageSuggestions]);
+    }, [
+        isEnabled,
+        suggestionQuery,
+        suggestionMode,
+        query,
+        cursorPosition,
+        onCompletion,
+        repoSuggestions,
+        fileSuggestions,
+        symbolSuggestions,
+        searchHistorySuggestions,
+        languageSuggestions,
+    ]);
 
     // When the list of suggestions change, reset the highlight index
     useEffect(() => {
         setHighlightedSuggestionIndex(0);
     }, [suggestions]);
-
-    useEffect(() => {
-        if (isDefined(suggestionMode)) {
-            onSuggestionModeChanged(suggestionMode);
-        }
-    }, [onSuggestionModeChanged, suggestionMode]);
-
-    useEffect(() => {
-        if (isDefined(suggestionQuery)) {
-            onSuggestionQueryChanged(suggestionQuery);
-        }
-    }, [onSuggestionQueryChanged, suggestionQuery]);
 
     const suggestionModeText = useMemo(() => {
         if (!suggestionMode) {
@@ -308,6 +279,8 @@ const SearchSuggestionsBox = forwardRef(({
                 return "Symbols";
             case "language":
                 return "Languages";
+            case "searchHistory":
+                return "Search history"
             default:
                 return "";
         }
@@ -369,7 +342,7 @@ const SearchSuggestionsBox = forwardRef(({
                 <div className="animate-pulse flex flex-col gap-2 px-1 py-0.5">
                     {
                         Array.from({ length: 10 }).map((_, index) => (
-                            <div key={index} className="h-4 bg-muted rounded-md w-full"></div>
+                            <Skeleton key={index} className="h-4 w-full" />
                         ))
                     }
                 </div>
@@ -399,18 +372,28 @@ const SearchSuggestionsBox = forwardRef(({
                         {result.value}
                     </span>
                     {result.description && (
-                        <span className="text-muted-foreground font-light">
+                        <span
+                            className={clsx("text-muted-foreground font-light", {
+                                "ml-auto": descriptionPlacement === "right",
+                            })}
+                        >
                             {result.description}
                         </span>
                     )}
                 </div>
             ))}
             {isFocused && (
-                <div className="flex flex-row items-center justify-end mt-1">
-                    <span className="text-muted-foreground text-xs">
-                        Press <kbd className="font-mono text-xs font-bold">Enter</kbd> to select
-                    </span>
-                </div>
+                <>
+                    <Separator
+                        orientation="horizontal"
+                        className="my-2"
+                    />
+                    <div className="flex flex-row items-center justify-end mt-1">
+                        <span className="text-muted-foreground text-xs">
+                            Press <kbd className="font-mono text-xs font-bold">Enter</kbd> to select
+                        </span>
+                    </div>
+                </>
             )}
         </div>
     )
