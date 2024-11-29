@@ -32,7 +32,7 @@ import { createTheme } from '@uiw/codemirror-themes';
 import CodeMirror, { Annotation, EditorView, KeyBinding, keymap, ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 import { SearchSuggestionsBox } from "./searchSuggestionsBox";
 import { useSuggestionsData } from "./useSuggestionsData";
@@ -109,6 +109,15 @@ export const SearchBar = ({
         // copy & pasting text with newlines.
         return _query.replaceAll(/\n/g, " ");
     }, [_query]);
+
+    // When the user navigates backwards/forwards while on the
+    // search page (causing the `query` search param to change),
+    // we want to update what query is displayed in the search bar.
+    useEffect(() => {
+        if (defaultQuery) {
+            setQuery(defaultQuery);
+        }
+    }, [defaultQuery])
 
     const { suggestionMode, suggestionQuery } = useSuggestionModeAndQuery({
         isSuggestionsEnabled,

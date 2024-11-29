@@ -34,7 +34,6 @@ export default function SearchPage() {
     const _maxMatchDisplayCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.maxMatchDisplayCount) ?? `${DEFAULT_MAX_MATCH_DISPLAY_COUNT}`);
     const maxMatchDisplayCount = isNaN(_maxMatchDisplayCount) ? DEFAULT_MAX_MATCH_DISPLAY_COUNT : _maxMatchDisplayCount;
     const { setSearchHistory } = useSearchHistory();
-
     const captureEvent = useCaptureEvent();
 
     const { data: searchResponse, isLoading } = useQuery({

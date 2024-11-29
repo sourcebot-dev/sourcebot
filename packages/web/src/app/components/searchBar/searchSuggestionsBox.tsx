@@ -15,6 +15,7 @@ import {
 import { IconType } from "react-icons/lib";
 import { VscFile, VscFilter, VscRepo, VscSymbolMisc } from "react-icons/vsc";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 
 export type Suggestion = {
     value: string;
@@ -382,11 +383,17 @@ const SearchSuggestionsBox = forwardRef(({
                 </div>
             ))}
             {isFocused && (
-                <div className="flex flex-row items-center justify-end mt-1">
-                    <span className="text-muted-foreground text-xs">
-                        Press <kbd className="font-mono text-xs font-bold">Enter</kbd> to select
-                    </span>
-                </div>
+                <>
+                    <Separator
+                        orientation="horizontal"
+                        className="my-2"
+                    />
+                    <div className="flex flex-row items-center justify-end mt-1">
+                        <span className="text-muted-foreground text-xs">
+                            Press <kbd className="font-mono text-xs font-bold">Enter</kbd> to select
+                        </span>
+                    </div>
+                </>
             )}
         </div>
     )
