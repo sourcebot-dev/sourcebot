@@ -47,10 +47,19 @@ export default function SearchPage() {
         refetchOnWindowFocus: false,
     });
 
+    // Write the query to the search history
     useEffect(() => {
+        if (searchQuery.length === 0) {
+            return;
+        }
+
+        const now = new Date().toUTCString();
         setSearchHistory((searchHistory) => [
-            searchQuery,
-            ...searchHistory.filter(q => q !== searchQuery)
+            {
+                query: searchQuery,
+                date: now,
+            },
+            ...searchHistory.filter(search => search.query !== searchQuery),
         ])
     }, [searchQuery, setSearchHistory]);
 

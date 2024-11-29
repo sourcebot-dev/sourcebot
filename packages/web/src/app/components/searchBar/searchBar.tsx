@@ -38,8 +38,10 @@ import { SearchSuggestionsBox } from "./searchSuggestionsBox";
 import { useSuggestionsData } from "./useSuggestionsData";
 import { zoekt } from "./zoektLanguageExtension";
 import { CounterClockwiseClockIcon } from "@radix-ui/react-icons";
-import clsx from "clsx";
 import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Toggle } from "@/components/ui/toggle";
 
 interface SearchBarProps {
     className?: string;
@@ -69,7 +71,7 @@ const searchBarKeymap: readonly KeyBinding[] = ([
 ] as KeyBinding[]).concat(historyKeymap);
 
 const searchBarContainerVariants = cva(
-    "search-bar-container flex items-center p-0.5 border rounded-md relative",
+    "search-bar-container flex items-center py-0.5 px-1 border rounded-md relative",
     {
         variants: {
             size: {
@@ -97,7 +99,7 @@ export const SearchBar = ({
     const [isSuggestionsEnabled, setIsSuggestionsEnabled] = useState(false);
     const [isSuggestionsBoxFocused, setIsSuggestionsBoxFocused] = useState(false);
     const [isHistorySearchEnabled, setIsHistorySearchEnabled] = useState(false);
-    
+
     const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
     const focusSuggestionsBox = useCallback(() => suggestionBoxRef.current?.focus(), []);
 
@@ -179,12 +181,15 @@ export const SearchBar = ({
         }
     });
 
-    const onSubmit = () => {
+    const onSubmit = useCallback((query: string) => {
+        setIsSuggestionsEnabled(false);
+        setIsHistorySearchEnabled(false);
+
         const url = createPathWithQueryParams('/search',
             [SearchQueryParams.query, query],
         );
         router.push(url);
-    }
+    }, [router]);
 
     return (
         <div
@@ -193,7 +198,7 @@ export const SearchBar = ({
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     setIsSuggestionsEnabled(false);
-                    onSubmit();
+                    onSubmit(query);
                 }
 
                 if (e.key === 'Escape') {
@@ -212,11 +217,8 @@ export const SearchBar = ({
                 }
             }}
         >
-            <CounterClockwiseClockIcon
-                className={clsx("w-6 h-6 hover:cursor-pointer rounded-md p-1", {
-                    "bg-blue-200 hover:bg-blue-300": isHistorySearchEnabled,
-                    "hover:bg-blue-200": !isHistorySearchEnabled,
-                })}
+            <SearchHistoryButton
+                isToggled={isHistorySearchEnabled}
                 onClick={() => {
                     setQuery("");
                     setIsHistorySearchEnabled(!isHistorySearchEnabled);
@@ -224,10 +226,14 @@ export const SearchBar = ({
                     focusEditor();
                 }}
             />
+            <Separator
+                className="mx-1 h-6"
+                orientation="vertical"
+            />
             <CodeMirror
                 ref={editorRef}
                 className="overflow-x-auto scrollbar-hide w-full"
-                placeholder={"Search..."}
+                placeholder={isHistorySearchEnabled ? "Filter history..." : "Search..."}
                 value={query}
                 onChange={(value) => {
                     setQuery(value);
@@ -246,7 +252,7 @@ export const SearchBar = ({
                 query={query}
                 suggestionQuery={suggestionQuery}
                 suggestionMode={suggestionMode}
-                onCompletion={(newQuery: string, newCursorPosition: number) => {
+                onCompletion={(newQuery: string, newCursorPosition: number, autoSubmit = false) => {
                     setQuery(newQuery);
 
                     // Move the cursor to it's new position.
@@ -265,6 +271,10 @@ export const SearchBar = ({
 
                     // Re-focus the editor since suggestions cause focus to be lost (both click & keyboard)
                     editorRef.current?.view?.focus();
+
+                    if (autoSubmit) {
+                        onSubmit(newQuery);
+                    }
                 }}
                 isEnabled={isSuggestionsEnabled}
                 onReturnFocus={() => {
@@ -281,5 +291,37 @@ export const SearchBar = ({
                 {...suggestionData}
             />
         </div>
+    )
+}
+
+const SearchHistoryButton = ({
+    isToggled,
+    onClick,
+}: {
+    isToggled: boolean,
+    onClick: () => void
+}) => {
+    return (
+        <Tooltip>
+            <TooltipTrigger
+                asChild={true}
+            >
+                {/* @see : https://github.com/shadcn-ui/ui/issues/1988#issuecomment-1980597269 */}
+                <div>
+                    <Toggle
+                        pressed={isToggled}
+                        className="h-6 w-6 min-w-6 px-0 p-1 cursor-pointer"
+                        onClick={onClick}
+                    >
+                        <CounterClockwiseClockIcon />
+                    </Toggle>
+                </div>
+            </TooltipTrigger>
+            <TooltipContent
+                side="bottom"
+            >
+                Search history
+            </TooltipContent>
+        </Tooltip>
     )
 }

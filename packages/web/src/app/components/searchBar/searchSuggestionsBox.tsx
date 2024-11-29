@@ -1,6 +1,5 @@
 'use client';
 
-import { createPathWithQueryParams } from "@/lib/utils";
 import assert from "assert";
 import clsx from "clsx";
 import escapeStringRegexp from "escape-string-regexp";
@@ -15,8 +14,7 @@ import {
 } from "./constants";
 import { IconType } from "react-icons/lib";
 import { VscFile, VscFilter, VscRepo, VscSymbolMisc } from "react-icons/vsc";
-import { useRouter } from "next/navigation";
-import { SearchQueryParams } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export type Suggestion = {
     value: string;
@@ -44,7 +42,7 @@ interface SearchSuggestionsBoxProps {
     query: string;
     suggestionQuery: string;
     suggestionMode: SuggestionMode;
-    onCompletion: (newQuery: string, newCursorPosition: number) => void,
+    onCompletion: (newQuery: string, newCursorPosition: number, autoSubmit?: boolean) => void,
     isEnabled: boolean;
     cursorPosition: number;
     isFocused: boolean;
@@ -79,9 +77,8 @@ const SearchSuggestionsBox = forwardRef(({
     searchHistorySuggestions,
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
-    const router = useRouter();
 
-    const { suggestions, isHighlightEnabled, DefaultIcon, onSuggestionClicked } = useMemo(() => {
+    const { suggestions, isHighlightEnabled, descriptionPlacement, DefaultIcon, onSuggestionClicked } = useMemo(() => {
         if (!isEnabled) {
             return {};
         }
@@ -115,6 +112,7 @@ const SearchSuggestionsBox = forwardRef(({
             isHighlightEnabled = false,
             isSpotlightEnabled = false,
             isClientSideSearchEnabled = true,
+            descriptionPlacement = "left",
             onSuggestionClicked,
             DefaultIcon,
         } = ((): {
@@ -124,6 +122,7 @@ const SearchSuggestionsBox = forwardRef(({
             isHighlightEnabled?: boolean,
             isSpotlightEnabled?: boolean,
             isClientSideSearchEnabled?: boolean,
+            descriptionPlacement?: "left" | "right",
             onSuggestionClicked: (value: string) => void,
             DefaultIcon?: IconType
         } => {
@@ -188,11 +187,9 @@ const SearchSuggestionsBox = forwardRef(({
                     return {
                         list: searchHistorySuggestions,
                         onSuggestionClicked: (value: string) => {
-                            const url = createPathWithQueryParams('/search',
-                                [SearchQueryParams.query, value],
-                            );
-                            router.push(url);
+                            onCompletion(value, value.length, /* autoSubmit = */ true);
                         },
+                        descriptionPlacement: "right",
                     }
                 case "none":
                 case "revision":
@@ -242,6 +239,7 @@ const SearchSuggestionsBox = forwardRef(({
         return {
             suggestions,
             isHighlightEnabled,
+            descriptionPlacement,
             DefaultIcon,
             onSuggestionClicked,
         }
@@ -258,7 +256,6 @@ const SearchSuggestionsBox = forwardRef(({
         symbolSuggestions,
         searchHistorySuggestions,
         languageSuggestions,
-        router,
     ]);
 
     // When the list of suggestions change, reset the highlight index
@@ -344,7 +341,7 @@ const SearchSuggestionsBox = forwardRef(({
                 <div className="animate-pulse flex flex-col gap-2 px-1 py-0.5">
                     {
                         Array.from({ length: 10 }).map((_, index) => (
-                            <div key={index} className="h-4 bg-muted rounded-md w-full"></div>
+                            <Skeleton key={index} className="h-4 w-full" />
                         ))
                     }
                 </div>
@@ -374,7 +371,11 @@ const SearchSuggestionsBox = forwardRef(({
                         {result.value}
                     </span>
                     {result.description && (
-                        <span className="text-muted-foreground font-light">
+                        <span
+                            className={clsx("text-muted-foreground font-light", {
+                                "ml-auto": descriptionPlacement === "right",
+                            })}
+                        >
                             {result.description}
                         </span>
                     )}
