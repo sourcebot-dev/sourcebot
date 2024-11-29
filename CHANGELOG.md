@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.4] - 2024-11-29
+
 ### Added
 
 - Added search history to the search bar. ([#99](https://github.com/sourcebot-dev/sourcebot/pull/99))
