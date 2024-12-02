@@ -30,7 +30,7 @@ https://github.com/user-attachments/assets/98d46192-5469-430f-ad9e-5c042adbb10d
 
 ## Features
 - 💻 **One-command deployment**: Get started instantly using Docker on your own machine.
-- 🔍 **Multi-repo search**: Effortlessly index and search through multiple public and private repositories in GitHub, GitLab, or Gitea.
+- 🔍 **Multi-repo search**: Effortlessly index and search through multiple public and private repositories in GitHub, GitLab, Gitea, or Gerrit.
 - ⚡**Lightning fast performance**: Built on top of the powerful [Zoekt](https://github.com/sourcegraph/zoekt) search engine.
 - 📂 **Full file visualization**: Instantly view the entire file when selecting any search result.
 - 🎨 **Modern web app**: Enjoy a sleek interface with features like syntax highlighting, light/dark mode, and vim-style navigation 
@@ -62,7 +62,7 @@ Sourcebot supports indexing and searching through public and private repositorie
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/images/github-favicon-inverted.png">
     <img src="https://github.com/favicon.ico" width="16" height="16" alt="GitHub icon">
-</picture> GitHub, <img src="https://gitlab.com/favicon.ico" width="16" height="16" /> GitLab and <img src="https://gitea.com/favicon.ico" width="16" height="16"> Gitea. This section will guide you through configuring the repositories that Sourcebot indexes. 
+</picture> GitHub, <img src="https://gitlab.com/favicon.ico" width="16" height="16" /> GitLab, <img src="https://gitea.com/favicon.ico" width="16" height="16"> Gitea, and <img src="https://gerrit-review.googlesource.com/favicon.ico" width="16" height="16"> Gerrit. This section will guide you through configuring the repositories that Sourcebot indexes. 
 
 1. Create a new folder on your machine that stores your configs and `.sourcebot` cache, and navigate into it:
     ```sh
@@ -260,6 +260,12 @@ docker run -e <b>GITEA_TOKEN=my-secret-token</b> /* additional args */ ghcr.io/s
 </pre>
 
 </details>
+
+<details>
+<summary><img src="https://gerrit-review.googlesource.com/favicon.ico" width="16" height="16"> Gerrit</summary>
+Gerrit authentication is not yet currently supported.
+</details>
+
 
 </div>
 
