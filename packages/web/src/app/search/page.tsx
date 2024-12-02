@@ -269,6 +269,7 @@ const PanelGroup = ({
     return (
         <ResizablePanelGroup
             direction="horizontal"
+            className="h-full"
         >
             {/* ~~ Filter panel ~~ */}
             <ResizablePanel
