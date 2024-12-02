@@ -21,12 +21,6 @@ interface GerritWebLink {
    url: string;
 }
 
-interface GerritBranch {
-   ref: string;
-   revision: string;
-   web_links?: GerritWebLink[];
-}
-
 const logger = createLogger('Gerrit');
 
 export const getGerritReposFromConfig = async (config: GerritConfig, ctx: AppContext) => {

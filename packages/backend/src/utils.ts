@@ -51,7 +51,7 @@ export const excludeReposByName = <T extends Repository>(repos: T[], excludedRep
 export const includeReposByName = <T extends Repository>(repos: T[], includedRepoNames: string[], logger?: Logger) => {
     return repos.filter((repo) => {
         if (micromatch.isMatch(repo.name, includedRepoNames)) {
-            logger?.debug(`Including repo ${repo.id}. Reason: repos does not contain ${repo.name}`);
+            logger?.debug(`Including repo ${repo.id}. Reason: repos contain ${repo.name}`);
             return true;
         }
         return false;
