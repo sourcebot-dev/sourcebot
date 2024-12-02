@@ -3,6 +3,7 @@ import { twMerge } from "tailwind-merge"
 import githubLogo from "../../public/github.svg";
 import gitlabLogo from "../../public/gitlab.svg";
 import giteaLogo from "../../public/gitea.svg";
+import gerritLogo from "../../public/gerrit.svg";
 import { ServiceError } from "./serviceError";
 import { Repository } from "./types";
 
@@ -31,7 +32,7 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
 }
 
 type CodeHostInfo = {
-    type: "github" | "gitlab" | "gitea";
+    type: "github" | "gitlab" | "gitea" | "gerrit";
     displayName: string;
     costHostName: string;
     repoLink: string;
@@ -44,15 +45,14 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
         return undefined;
     }
 
-    const hostType = repo.RawConfig ? repo.RawConfig['web-url-type'] : undefined;
-    if (!hostType) {
+    const webUrlType = repo.RawConfig ? repo.RawConfig['web-url-type'] : undefined;
+    if (!webUrlType) {
         return undefined;
     }
 
     const url = new URL(repo.URL);
     const displayName = url.pathname.slice(1);
-
-    switch (hostType) {
+    switch (webUrlType) {
         case 'github':
             return {
                 type: "github",
@@ -77,6 +77,14 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
                 costHostName: "Gitea",
                 repoLink: repo.URL,
                 icon: giteaLogo,
+            }
+        case 'gitiles':
+            return {
+                type: "gerrit",
+                displayName: displayName,
+                costHostName: "Gerrit",
+                repoLink: repo.URL,
+                icon: gerritLogo,
             }
     }
 }
