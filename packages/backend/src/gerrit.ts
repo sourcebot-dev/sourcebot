@@ -30,10 +30,6 @@ interface GerritBranch {
 const logger = createLogger('Gerrit');
 
 export const getGerritReposFromConfig = async (config: GerritConfig, ctx: AppContext) => {
-   // Example URLs for experimentation:
-   // https://chromium-review.googlesource.com
-   // https://review.opendev.org
-   // https://android-review.googlesource.com
 
    const url = config.url.endsWith('/') ? config.url : `${config.url}/`;
    const hostname = new URL(config.url).hostname;
