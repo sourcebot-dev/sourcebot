@@ -39,7 +39,7 @@ export const getGerritReposFromConfig = async (config: GerritConfig, ctx: AppCon
    const hostname = new URL(config.url).hostname;
 
    const { durationMs, data: projects } = await measure(() =>
-      fetchAllProjects(url, config)
+      fetchAllProjects(url)
    );
 
    // exclude "All-Projects" and "All-Users" projects
@@ -99,12 +99,11 @@ export const getGerritReposFromConfig = async (config: GerritConfig, ctx: AppCon
    return repos;
 };
 
-const fetchAllProjects = async (url: string, config: GerritConfig): Promise<GerritProjects> => {
+const fetchAllProjects = async (url: string): Promise<GerritProjects> => {
 
    const projectsEndpoint = `${url}projects/`;
    logger.debug(`Fetching projects from Gerrit at ${projectsEndpoint}...`);
-   let response = null;
-   response = await fetch(projectsEndpoint);
+   const response = await fetch(projectsEndpoint);
 
    if (!response.ok) {
       throw new Error(`Failed to fetch projects from Gerrit: ${response.statusText}`);
@@ -113,6 +112,7 @@ const fetchAllProjects = async (url: string, config: GerritConfig): Promise<Gerr
    const text = await response.text();
 
    // Gerrit prepends ")]}'\n" to prevent XSSI attacks; remove it
+   // https://gerrit-review.googlesource.com/Documentation/rest-api.html
    const jsonText = text.replace(")]}'\n", '');
    const data = JSON.parse(jsonText);
    return data;
