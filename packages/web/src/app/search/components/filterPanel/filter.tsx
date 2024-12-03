@@ -5,12 +5,14 @@ import { compareEntries, Entry } from "./entry";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Fuse from "fuse.js";
+import { cn } from "@/lib/utils"
 
 interface FilterProps {
     title: string,
     searchPlaceholder: string,
     entries: Entry[],
     onEntryClicked: (key: string) => void,
+    className?: string,
 }
 
 export const Filter = ({
@@ -18,6 +20,7 @@ export const Filter = ({
     searchPlaceholder,
     entries,
     onEntryClicked,
+    className,
 }: FilterProps) => {
     const [searchFilter, setSearchFilter] = useState<string>("");
 
@@ -36,7 +39,10 @@ export const Filter = ({
     }, [entries, searchFilter]);
 
     return (
-        <div className="flex flex-col gap-2 p-1">
+        <div className={cn(
+            "flex flex-col gap-2 p-1",
+            className
+        )}>
             <h2 className="text-sm font-semibold">{title}</h2>
             <Input
                 placeholder={searchPlaceholder}
@@ -44,11 +50,9 @@ export const Filter = ({
                 onChange={(event) => setSearchFilter(event.target.value)}
             />
 
-            <ScrollArea
-                className="overflow-hidden"
-            >
+            <ScrollArea>
                 <div
-                    className="flex flex-col gap-0.5 text-sm h-full max-h-80 px-0.5"
+                    className="flex flex-col gap-0.5 text-sm px-0.5"
                 >
                     {filteredEntries
                         .sort((entryA, entryB) => compareEntries(entryB, entryA))

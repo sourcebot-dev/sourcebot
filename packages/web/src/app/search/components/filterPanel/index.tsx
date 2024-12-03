@@ -118,22 +118,23 @@ export const FilterPanel = ({
         onFilterChanged(filteredMatches);
     }, [matches, repos, languages, onFilterChanged]);
 
+    const numRepos = Object.keys(repos).length > 100 ? '100+' : Object.keys(repos).length;
+    const numLanguages = Object.keys(languages).length > 100 ? '100+' : Object.keys(languages).length;
     return (
-        <div className="p-3 flex flex-col gap-3">
-            <h1 className="text-lg font-semibold">Filter Results</h1>
-
+        <div className="p-3 flex flex-col gap-3 h-full">
             <Filter
-                title="By Repository"
-                searchPlaceholder="Filter repositories"
+                title="Filter By Repository"
+                searchPlaceholder={`Filter ${numRepos} repositories`}
                 entries={Object.values(repos)}
                 onEntryClicked={(key) => onEntryClicked(key, setRepos)}
+                className="max-h-[50%]"
             />
-
             <Filter
-                title="By Language"
-                searchPlaceholder="Filter languages"
+                title="Filter By Language"
+                searchPlaceholder={`Filter ${numLanguages} languages`}
                 entries={Object.values(languages)}
                 onEntryClicked={(key) => onEntryClicked(key, setLanguages)}
+                className="overflow-auto"
             />
         </div>
     )
