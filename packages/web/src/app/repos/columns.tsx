@@ -25,6 +25,7 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
     {
         accessorKey: "name",
         header: "Name",
+        size: 300,
         cell: ({ row }) => {
             const repo = row.original;
             const url = repo.url;
