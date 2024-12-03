@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2024-12-02
+
+### Added
+
+- Gerrit support. ([#104](https://github.com/sourcebot-dev/sourcebot/pull/104))
+
+## [2.5.4] - 2024-11-29
+
+### Added
+
+- Added search history to the search bar. ([#99](https://github.com/sourcebot-dev/sourcebot/pull/99))
+
 ## [2.5.3] - 2024-11-28
 
 ### Added

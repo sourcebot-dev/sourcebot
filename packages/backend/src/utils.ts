@@ -48,6 +48,16 @@ export const excludeReposByName = <T extends Repository>(repos: T[], excludedRep
     });
 }
 
+export const includeReposByName = <T extends Repository>(repos: T[], includedRepoNames: string[], logger?: Logger) => {
+    return repos.filter((repo) => {
+        if (micromatch.isMatch(repo.name, includedRepoNames)) {
+            logger?.debug(`Including repo ${repo.id}. Reason: repos contain ${repo.name}`);
+            return true;
+        }
+        return false;
+    });
+}
+
 export const getTokenFromConfig = (token: string | { env: string }, ctx: AppContext) => {
     if (typeof token === 'string') {
         return token;
