@@ -25,7 +25,7 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
     {
         accessorKey: "name",
         header: "Name",
-        size: 300,
+        size: 250,
         cell: ({ row }) => {
             const repo = row.original;
             const url = repo.url;
@@ -34,7 +34,7 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
             return (
                 <div className="flex flex-row items-center gap-2">
                     <span
-                        className={!isRemoteRepo ? "cursor-pointer text-blue-500 hover:underline": ""}
+                        className={"whitespace-normal break-all " + (!isRemoteRepo ? "cursor-pointer text-blue-500 hover:underline" : "")}
                         onClick={() => {
                             if (!isRemoteRepo) {
                                 window.open(url, "_blank");
@@ -62,7 +62,8 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
                     {branches.map(({ name, version }, index) => {
                         const shortVersion = version.substring(0, 8);
                         return (
-                            <span key={index}>
+                            <span
+                                key={index}>
                                 {name}
                                 @
                                 <span

@@ -29,15 +29,14 @@ export const RepositoryTable = async () => {
             url: repo.Repository.URL,
         }
     }).sort((a, b) => {
-        return new Date(b.lastIndexed).getTime() -  new Date(a.lastIndexed).getTime();
+        return new Date(b.lastIndexed).getTime() - new Date(a.lastIndexed).getTime();
     });
-
     return (
         <DataTable
             columns={columns}
             data={repos}
             searchKey="name"
-            searchPlaceholder="Search repositories..."
+            searchPlaceholder={`Search ${repos.length} repositories...`}
         />
     );
 }

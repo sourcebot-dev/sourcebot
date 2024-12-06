@@ -192,7 +192,6 @@ export interface GerritConfig {
      */
     projects?: string[];
   };
-  revisions?: GitRevisions;
 }
 export interface LocalConfig {
   /**

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React from "react";
 import {
@@ -12,16 +12,17 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
@@ -40,7 +41,7 @@ export function DataTable<TData, TValue>({
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [pagination, setPagination] = React.useState({
         pageIndex: 0,
-        pageSize: 10, // Initial page size
+        pageSize: 10, // Default page size
     });
 
     const table = useReactTable({
@@ -60,49 +61,19 @@ export function DataTable<TData, TValue>({
         getFilteredRowModel: getFilteredRowModel(),
     });
 
-    React.useEffect(() => {
-        function calculatePageSize() {
-            if (typeof window !== 'undefined') {
-                const windowHeight = window.innerHeight;
-                const otherElementsHeight = 200; // Total height of other elements (header, footer, etc.)
-                const availableHeight = windowHeight - otherElementsHeight;
-                const rowHeight = 75; // Approximate height of a table row in pixels
-                const rowsThatFit = Math.floor(availableHeight / rowHeight);
-                return rowsThatFit > 0 ? rowsThatFit : 1;
-            }
-            return 10; // Default page size if window is undefined
-        }
-
-        function handleResize() {
-            const newPageSize = calculatePageSize();
-            setPagination((prev) => ({
-                ...prev,
-                pageSize: newPageSize,
-            }));
-        }
-
-        if (typeof window !== 'undefined') {
-            window.addEventListener('resize', handleResize);
-            handleResize(); // Initial calculation
-            return () => window.removeEventListener('resize', handleResize);
-        }
-    }, []);
-
     return (
-        <div>
+        <div className="pb-12">
             <div className="flex items-center justify-between py-4">
                 <Input
                     placeholder={searchPlaceholder}
-                    value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ''}
-                    onChange={(event) =>
-                        table.getColumn(searchKey)?.setFilterValue(event.target.value)
-                    }
+                    value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+                    onChange={(event) => table.getColumn(searchKey)?.setFilterValue(event.target.value)}
                     className="max-w-sm"
                 />
+
                 {/* Pagination Controls */}
-                <div className="flex items-center justify-end space-x-2 py-4">
-                    {/* Display Current Page and Total Pages */}
-                    <span className="text-sm font-medium">
+                <div className="flex items-center space-x-4">
+                    <span className="text-sm font-medium min-w-20">
                         Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
                     </span>
                     <Button
@@ -121,8 +92,36 @@ export function DataTable<TData, TValue>({
                     >
                         Next
                     </Button>
+
+                    {/* Radix Dropdown for items per page */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            {/* Fixed width here to prevent layout shift */}
+                            <Button variant="outline" size="sm" className="w-28 justify-between">
+                                Show {pagination.pageSize}
+                                <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-28">
+                            <DropdownMenuRadioGroup
+                                value={String(pagination.pageSize)}
+                                onValueChange={(value) =>
+                                    setPagination((prev) => ({
+                                        ...prev,
+                                        pageSize: Number(value),
+                                    }))
+                                }
+                            >
+                                <DropdownMenuRadioItem value="10">10</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="20">20</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="50">50</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="100">100</DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
+
             <div className="rounded-md border">
                 <Table className="table-fixed">
                     <TableHeader>
@@ -147,19 +146,10 @@ export function DataTable<TData, TValue>({
                     <TableBody>
                         {table.getRowModel().rows?.length ? (
                             table.getRowModel().rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    data-state={row.getIsSelected() && 'selected'}
-                                >
+                                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell
-                                            key={cell.id}
-                                            style={{ width: cell.column.getSize() }}
-                                        >
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
+                                        <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
                                 </TableRow>
