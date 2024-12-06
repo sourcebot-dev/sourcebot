@@ -1,7 +1,6 @@
-# Zoekt Query Language Guide
+# Search Query Language Guide
 
-This guide explains the Zoekt query language, used for searching text within Git repositories. Zoekt queries allow combining multiple filters and expressions using logical operators, negations, and grouping. Here's how to craft queries effectively.
-
+This guide explains the search query language used by Sourcebot, which is a derivative of the Zoekt query language with some minor differences. Search queries allow for combining multiple filters and expressions using logical operators, negations, and grouping. Here's how to craft queries effectively.
 ---
 
 ## Syntax Overview
@@ -12,6 +11,8 @@ A query is made up of expressions. An **expression** can be:
 - A grouping (e.g., parentheses `()`),
 
 Logical `OR` operations combine multiple expressions. The **`AND` operator is implicit**, meaning multiple expressions written together will be automatically treated as `AND`.
+
+All expressions are evaluated as regular expressions unless wrapped with "".
 
 ---
 
@@ -33,8 +34,7 @@ Fields restrict your query to specific criteria. Here's a list of fields and the
 | `regex:`     |         | Regex pattern          | Matches content using a regular expression.                | `regex:/foo.*bar/`                     |
 | `repo:`      | `r:`    | Text (string or regex) | Filters repositories by name.                              | `repo:"github.com/user/project"`       |
 | `sym:`       |         | Text                   | Searches for symbol names.                                 | `sym:"MyFunction"`                     |
-| `branch:`    | `b:`    | Text                   | Searches within a specific branch.                         | `branch:main`                          |
-| `type:`      | `t:`    | `filematch`, `filename`, `file`, or `repo` | Limits result types.                   | `type:filematch`                       |
+| `revision:`  | `rev:`  | Text                   | Searches within a specific branch or tag.                  | `revision:main`                        |
 
 ---
 
@@ -84,6 +84,18 @@ Use `or` to combine multiple expressions.
 
 ---
 
+### 5. **Exact Matching**
+
+Quotes "" works to match exactly what you are looking for, instead of using regular expressions.
+
+#### Examples:
+- Find test.* exactly:
+  ```plaintext
+  content:"test.*"
+  ```
+
+---
+
 ## Special Query Values
 
 - **Boolean Values**:
@@ -92,7 +104,7 @@ Use `or` to combine multiple expressions.
 - **Text Fields**:
   Text fields (`content:`, `repo:`, etc.) accept:
   - Strings: `"my text"`
-  - Regular expressions: `/my.*regex/`
+  - Regular expressions: `my.*regex`
 
 - **Escape Characters**:
   To include special characters, use backslashes (`\`).
@@ -104,7 +116,7 @@ Use `or` to combine multiple expressions.
   ```
 - Match the regex `foo.*bar`:
   ```plaintext
-  content:/foo.*bar/
+  content:foo.*bar
   ```
 
 ---
@@ -118,7 +130,7 @@ Use `or` to combine multiple expressions.
 
 2. **Exclude archived repositories and match a regex**:
    ```plaintext
-   archived:no regex:/error.*handler/
+   archived:no error.*handler
    ```
 
 3. **Find files named `README.md` in forks**:
@@ -133,7 +145,7 @@ Use `or` to combine multiple expressions.
 
 5. **Combine multiple fields**:
    ```plaintext
-   (repo:"github.com/example" or repo:"github.com/test") and lang:go
+   (repo:"github.com/example" or repo:"github.com/test") lang:go
    ```
 
 ---
@@ -147,7 +159,7 @@ Use `or` to combine multiple expressions.
 
 2. **Use Regular Expressions**: Make complex content searches more powerful:
    ```plaintext
-   content:/func\s+\w+\s*\(/
+   content:func\s+\w+\s*\(
    ```
 
 3. **Case Sensitivity**: Use `case:yes` for exact matches:
@@ -159,40 +171,6 @@ Use `or` to combine multiple expressions.
    ```plaintext
    file:".*\.go" content:"package main"
    ```
-
-### EBNF Summary
-
-```ebnf
-query       = expression , { "or" , expression } ;
-
-expression  = negation
-            | grouping
-            | field ;
-
-negation    = "-" , expression ;
-
-grouping    = "(" , query , ")" ;
-
-field       = ( ( "archived:" | "a:" ) , boolean )
-            | ( ( "case:" | "c:" ) , ("yes" | "no" | "auto") )
-            | ( ( "content:" | "c:" ) , text )
-            | ( ( "file:" | "f:" ) , text )
-            | ( ( "fork:" | "f:" ) , boolean )
-            | ( ( "lang:" | "l:" ) , text )
-            | ( ( "public:" ) , boolean )
-            | ( ( "regex:" ) , text )
-            | ( ( "repo:" | "r:" ) , text )
-            | ( ( "sym:" ) , text )
-            | ( ( "branch:" | "b:" ) , text )
-            | ( ( "type:" | "t:" ) , type );
-
-boolean     = "yes" | "no" ;
-text        = string | regex ;
-string      = '"' , { character | escape } , '"' ;
-regex       = '/' , { character | escape } , '/' ;
-
-type        = "filematch" | "filename" | "file" | "repo" ;
-```
 
 ---
 
