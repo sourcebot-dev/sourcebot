@@ -35,6 +35,8 @@ export const getGerritReposFromConfig = async (config: GerritConfig, ctx: AppCon
    // exclude "All-Projects" and "All-Users" projects
    delete projects['All-Projects'];
    delete projects['All-Users'];
+   delete projects['All-Avatars']
+   delete projects['All-Archived-Projects']
 
    logger.debug(`Fetched ${Object.keys(projects).length} projects in ${durationMs}ms.`);
 
