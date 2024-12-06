@@ -23,7 +23,7 @@ interface GerritWebLink {
 
 const logger = createLogger('Gerrit');
 
-export const getGerritReposFromConfig = async (config: GerritConfig, ctx: AppContext) => {
+export const getGerritReposFromConfig = async (config: GerritConfig, ctx: AppContext): Promise<GitRepository[]> => {
 
    const url = config.url.endsWith('/') ? config.url : `${config.url}/`;
    const hostname = new URL(config.url).hostname;
@@ -90,20 +90,35 @@ export const getGerritReposFromConfig = async (config: GerritConfig, ctx: AppCon
 };
 
 const fetchAllProjects = async (url: string): Promise<GerritProjects> => {
-
    const projectsEndpoint = `${url}projects/`;
-   logger.debug(`Fetching projects from Gerrit at ${projectsEndpoint}...`);
-   const response = await fetch(projectsEndpoint);
+   let allProjects: GerritProjects = {};
+   let start = 0; // Start offset for pagination
+   let hasMoreProjects = true;
 
-   if (!response.ok) {
-      throw new Error(`Failed to fetch projects from Gerrit: ${response.statusText}`);
+   while (hasMoreProjects) {
+      const endpointWithParams = `${projectsEndpoint}?S=${start}`;
+      logger.debug(`Fetching projects from Gerrit at ${endpointWithParams}`);
+
+      const response = await fetch(endpointWithParams);
+      if (!response.ok) {
+         throw new Error(`Failed to fetch projects from Gerrit: ${response.statusText}`);
+      }
+
+      const text = await response.text();
+      const jsonText = text.replace(")]}'\n", ''); // Remove XSSI protection prefix
+      const data: GerritProjects = JSON.parse(jsonText);
+
+      // Merge the current batch of projects with allProjects
+      Object.assign(allProjects, data);
+
+      // Check if there are more projects to fetch
+      hasMoreProjects = Object.values(data).some(
+         (project) => (project as any)._more_projects === true
+      );
+
+      // Update the offset based on the number of projects in the current response
+      start += Object.keys(data).length;
    }
 
-   const text = await response.text();
-
-   // Gerrit prepends ")]}'\n" to prevent XSSI attacks; remove it
-   // https://gerrit-review.googlesource.com/Documentation/rest-api.html
-   const jsonText = text.replace(")]}'\n", '');
-   const data = JSON.parse(jsonText);
-   return data;
+   return allProjects;
 };
