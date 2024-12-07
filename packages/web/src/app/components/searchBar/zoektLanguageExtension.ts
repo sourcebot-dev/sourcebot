@@ -1,4 +1,5 @@
 import { LanguageSupport, StreamLanguage } from "@codemirror/language";
+import { tags as t } from "@lezer/highlight";
 
 export const zoekt = () => {
     const zoektLanguage = StreamLanguage.define({
@@ -14,18 +15,18 @@ export const zoekt = () => {
                 if (state.escaped) {
                     state.escaped = false;
                     stream.next();
-                    return "string";
+                    return t.string.toString();
                 }
                 const ch = stream.next();
                 if (ch === "\\") {
                     state.escaped = true;
-                    return "string";
+                    return t.string.toString();
                 } else if (ch === '"') {
                     // End of string
                     state.inString = false;
-                    return "string";
+                    return t.string.toString();
                 } else {
-                    return "string";
+                    return t.string.toString();
                 }
             }
 
@@ -36,18 +37,18 @@ export const zoekt = () => {
 
             // Negation operator
             if (stream.match(/-/)) {
-                return "operator";
+                return t.operator.toString();
             }
 
             // Parentheses
             if (stream.match("(") || stream.match(")")) {
-                return "paren";
+                return t.paren.toString();
             }
 
             // Check for prefixes first
             // If these match, we return 'keyword'
             if (stream.match(/(archived:|branch:|b:|c:|case:|content:|f:|file:|fork:|public:|r:|repo:|regex:|lang:|sym:|t:|type:)/)) {
-                return "keyword";
+                return t.keyword.toString();
             }
 
             // Now try matching a standalone word
@@ -55,7 +56,7 @@ export const zoekt = () => {
             if (stream.match(/[A-Za-z0-9_]+/)) {
                 const word = stream.current();
                 if (word === "or") {
-                    return "keyword";
+                    return t.keyword.toString();
                 }
                 return null;
             }
@@ -64,7 +65,7 @@ export const zoekt = () => {
             if (stream.peek() === '"') {
                 stream.next(); // consume opening quote
                 state.inString = true;
-                return "string";
+                return t.string.toString();
             }
 
             // If we reach here, consume a single character and return null
