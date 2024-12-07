@@ -145,9 +145,17 @@ export const SearchBar = ({
                     color: tailwind.theme.colors.highlight,
                 },
                 {
+                    tag: t.string,
+                    color: '#2aa198',
+                },
+                {
+                    tag: t.operator,
+                    color: '#d33682',
+                },
+                {
                     tag: t.paren,
                     color: tailwind.theme.colors.highlight,
-                }
+                },
             ],
         });
     }, [tailwind]);
