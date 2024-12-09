@@ -5,12 +5,12 @@ import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
 import { getGerritReposFromConfig } from "./gerrit.js";
-import { AppContext, LocalRepository, GitRepository, Repository } from "./types.js";
+import { AppContext, LocalRepository, GitRepository, Repository, Settings } from "./types.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
-import { createRepository, Database, loadDB, updateRepository } from './db.js';
+import { createRepository, Database, loadDB, updateRepository, updateSettings } from './db.js';
 import { arraysEqualShallow, isRemotePath, measure } from "./utils.js";
-import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
+import { DEFAULT_SETTINGS, REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
 import stripJsonComments from 'strip-json-comments';
 import { indexGitRepository, indexLocalRepository } from "./zoekt.js";
 import { getLocalRepoFromConfig, initLocalRepoFileWatchers } from "./local.js";
@@ -18,7 +18,7 @@ import { captureEvent } from "./posthog.js";
 
 const logger = createLogger('main');
 
-const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
+const syncGitRepository = async (repo: GitRepository, settings: Settings, ctx: AppContext) => {
     let fetchDuration_s: number | undefined = undefined;
     let cloneDuration_s: number | undefined = undefined;
 
@@ -46,7 +46,7 @@ const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
     }
 
     logger.info(`Indexing ${repo.id}...`);
-    const { durationMs } = await measure(() => indexGitRepository(repo, ctx));
+    const { durationMs } = await measure(() => indexGitRepository(repo, settings, ctx));
     const indexDuration_s = durationMs / 1000;
     logger.info(`Indexed ${repo.id} in ${indexDuration_s}s`);
 
@@ -57,9 +57,9 @@ const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
     }
 }
 
-const syncLocalRepository = async (repo: LocalRepository, ctx: AppContext, signal?: AbortSignal) => {
+const syncLocalRepository = async (repo: LocalRepository, settings: Settings, ctx: AppContext, signal?: AbortSignal) => {
     logger.info(`Indexing ${repo.id}...`);
-    const { durationMs } = await measure(() => indexLocalRepository(repo, ctx, signal));
+    const { durationMs } = await measure(() => indexLocalRepository(repo, settings, ctx, signal));
     const indexDuration_s = durationMs / 1000;
     logger.info(`Indexed ${repo.id} in ${indexDuration_s}s`);
     return {
@@ -67,8 +67,11 @@ const syncLocalRepository = async (repo: LocalRepository, ctx: AppContext, signa
     }
 }
 
-export const isRepoReindxingRequired = (previous: Repository, current: Repository) => {
-
+/**
+ * Certain configuration changes (e.g., a branch is added) require
+ * a reindexing of the repository.
+ */
+export const isRepoReindexingRequired = (previous: Repository, current: Repository) => {
     /**
      * Checks if the any of the `revisions` properties have changed.
      */
@@ -100,6 +103,16 @@ export const isRepoReindxingRequired = (previous: Repository, current: Repositor
     )
 }
 
+/**
+ * Certain settings changes (e.g., the file limit size is changed) require
+ * a reindexing of _all_ repositories.
+ */
+export const isAllRepoReindexingRequired = (previous: Settings, current: Settings) => {
+    return (
+        previous?.maxFileSize !== current?.maxFileSize
+    )
+}
+
 const syncConfig = async (configPath: string, db: Database, signal: AbortSignal, ctx: AppContext) => {
     const configContent = await (async () => {
         if (isRemotePath(configPath)) {
@@ -120,6 +133,13 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
 
     // @todo: we should validate the configuration file's structure here.
     const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfigurationSchema;
+
+    // Update the settings
+    const updatedSettings: Settings = {
+        maxFileSize: config.settings?.maxFileSize ?? DEFAULT_SETTINGS.maxFileSize,
+    }
+    const _isAllRepoReindexingRequired = isAllRepoReindexingRequired(db.data.settings, updatedSettings);
+    await updateSettings(updatedSettings, db);
 
     // Fetch all repositories from the config file
     let configRepos: Repository[] = [];
@@ -172,7 +192,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     for (const newRepo of configRepos) {
         if (newRepo.id in db.data.repos) {
             const existingRepo = db.data.repos[newRepo.id];
-            const isReindexingRequired = isRepoReindxingRequired(existingRepo, newRepo);
+            const isReindexingRequired = _isAllRepoReindexingRequired || isRepoReindexingRequired(existingRepo, newRepo);
             if (isReindexingRequired) {
                 logger.info(`Marking ${newRepo.id} for reindexing due to configuration change.`);
             }
@@ -244,7 +264,7 @@ export const main = async (context: AppContext) => {
         const localRepos = Object.values(db.data.repos).filter(repo => repo.vcs === 'local');
         initLocalRepoFileWatchers(localRepos, async (repo, signal) => {
             logger.info(`Change detected to local repository ${repo.id}. Re-syncing...`);
-            await syncLocalRepository(repo, context, signal);
+            await syncLocalRepository(repo, db.data.settings, context, signal);
             await db.update(({ repos }) => repos[repo.id].lastIndexedDate = new Date().toUTCString());
         });
     }
@@ -285,12 +305,12 @@ export const main = async (context: AppContext) => {
                 let cloneDuration_s: number | undefined;
 
                 if (repo.vcs === 'git') {
-                    const stats = await syncGitRepository(repo, context);
+                    const stats = await syncGitRepository(repo, db.data.settings, context);
                     indexDuration_s = stats.indexDuration_s;
                     fetchDuration_s = stats.fetchDuration_s;
                     cloneDuration_s = stats.cloneDuration_s;
                 } else if (repo.vcs === 'local') {
-                    const stats = await syncLocalRepository(repo, context);
+                    const stats = await syncLocalRepository(repo, db.data.settings, context);
                     indexDuration_s = stats.indexDuration_s;
                 }
 

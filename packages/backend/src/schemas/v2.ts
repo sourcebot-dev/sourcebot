@@ -7,10 +7,20 @@ export type Repos = GitHubConfig | GitLabConfig | GiteaConfig | GerritConfig | L
  */
 export interface SourcebotConfigurationSchema {
   $schema?: string;
+  settings?: Settings;
   /**
    * Defines a collection of repositories from varying code hosts that Sourcebot should sync with.
    */
   repos?: Repos[];
+}
+/**
+ * Global settings. These settings are applied to all repositories.
+ */
+export interface Settings {
+  /**
+   * The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be inexed. Defaults to 2MB (2097152 bytes).
+   */
+  maxFileSize?: number;
 }
 export interface GitHubConfig {
   /**

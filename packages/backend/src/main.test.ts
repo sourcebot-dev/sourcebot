@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { isRepoReindxingRequired } from './main';
-import { Repository } from './types';
+import { isAllRepoReindexingRequired, isRepoReindexingRequired } from './main';
+import { Repository, Settings } from './types';
 
 test('isRepoReindexingRequired should return false when no changes are made', () => {
     const previous: Repository = {
@@ -15,7 +15,7 @@ test('isRepoReindexingRequired should return false when no changes are made', ()
     };
     const current = previous;
 
-    expect(isRepoReindxingRequired(previous, current)).toBe(false);
+    expect(isRepoReindexingRequired(previous, current)).toBe(false);
 })
 
 test('isRepoReindexingRequired should return true when git branches change', () => {
@@ -35,7 +35,7 @@ test('isRepoReindexingRequired should return true when git branches change', () 
         branches: ['main', 'feature']
     };
 
-    expect(isRepoReindxingRequired(previous, current)).toBe(true);
+    expect(isRepoReindexingRequired(previous, current)).toBe(true);
 });
 
 test('isRepoReindexingRequired should return true when git tags change', () => {
@@ -55,7 +55,7 @@ test('isRepoReindexingRequired should return true when git tags change', () => {
         tags: ['v1.0', 'v2.0']
     };
 
-    expect(isRepoReindxingRequired(previous, current)).toBe(true);
+    expect(isRepoReindexingRequired(previous, current)).toBe(true);
 });
 
 test('isRepoReindexingRequired should return true when local excludedPaths change', () => {
@@ -74,5 +74,26 @@ test('isRepoReindexingRequired should return true when local excludedPaths chang
         excludedPaths: ['node_modules', 'dist']
     };
 
-    expect(isRepoReindxingRequired(previous, current)).toBe(true);
+    expect(isRepoReindexingRequired(previous, current)).toBe(true);
+});
+
+test('isAllRepoReindexingRequired should return false when fileLimitSize has not changed', () => {
+    const previous: Settings = {
+        maxFileSize: 1000,
+    }
+    const current: Settings = {
+        ...previous,
+    }
+    expect(isAllRepoReindexingRequired(previous, current)).toBe(false);
+});
+
+test('isAllRepoReindexingRequired should return true when fileLimitSize has changed', () => {
+    const previous: Settings = {
+        maxFileSize: 1000,
+    }
+    const current: Settings = {
+        ...previous,
+        maxFileSize: 2000,
+    }
+    expect(isAllRepoReindexingRequired(previous, current)).toBe(true);
 });

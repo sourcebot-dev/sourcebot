@@ -1,4 +1,3 @@
-
 interface BaseRepository {
     vcs: 'git' | 'local';
     id: string;
@@ -42,3 +41,12 @@ export type AppContext = {
 
     configPath: string;
 }
+
+export type Settings = {
+    maxFileSize: number;
+}
+
+// @see : https://stackoverflow.com/a/61132308
+export type DeepPartial<T> = T extends object ? {
+    [P in keyof T]?: DeepPartial<T[P]>;
+} : T;
