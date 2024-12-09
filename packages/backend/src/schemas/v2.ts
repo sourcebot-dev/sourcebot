@@ -20,7 +20,7 @@ export interface Settings {
   /**
    * The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be inexed. Defaults to 2MB (2097152 bytes).
    */
-  fileLimitSize?: number;
+  maxFileSize?: number;
 }
 export interface GitHubConfig {
   /**

@@ -52,7 +52,7 @@ export const applyMigrations = async (db: Database) => {
     await db.update((schema) => {
         // @NOTE: please ensure new migrations are added after older ones!
         schema = migration_addSettings(schema, log);
-        schema = migration_addFileLimitSize(schema, log);
+        schema = migration_addMaxFileSize(schema, log);
         return schema;
     });
 }
@@ -72,10 +72,10 @@ export const migration_addSettings = (schema: Schema, log?: (name: string) => vo
 /**
  * @see: https://github.com/sourcebot-dev/sourcebot/pull/118
  */
-export const migration_addFileLimitSize = (schema: Schema, log?: (name: string) => void) => {
-    if (!schema.settings.fileLimitSize) {
-        log?.("addFileLimitSize");
-        schema.settings.fileLimitSize = DEFAULT_SETTINGS.fileLimitSize;
+export const migration_addMaxFileSize = (schema: Schema, log?: (name: string) => void) => {
+    if (!schema.settings.maxFileSize) {
+        log?.("addMaxFileSize");
+        schema.settings.maxFileSize = DEFAULT_SETTINGS.maxFileSize;
     }
 
     return schema;

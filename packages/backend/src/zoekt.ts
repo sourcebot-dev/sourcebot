@@ -10,7 +10,7 @@ export const indexGitRepository = async (repo: GitRepository, settings: Settings
         ...repo.tags ?? [],
     ];
 
-    const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -file_limit ${settings.fileLimitSize} -branches ${revisions.join(',')} ${repo.path}`;
+    const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -file_limit ${settings.maxFileSize} -branches ${revisions.join(',')} ${repo.path}`;
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {
@@ -28,7 +28,7 @@ export const indexGitRepository = async (repo: GitRepository, settings: Settings
 
 export const indexLocalRepository = async (repo: LocalRepository, settings: Settings, ctx: AppContext, signal?: AbortSignal) => {
     const excludedDirs = [...ALWAYS_EXCLUDED_DIRS, repo.excludedPaths];
-    const command = `zoekt-index -index ${ctx.indexPath} -fileLimitSize ${settings.fileLimitSize} -ignore_dirs ${excludedDirs.join(',')} ${repo.path}`;
+    const command = `zoekt-index -index ${ctx.indexPath} -file_limit ${settings.maxFileSize} -ignore_dirs ${excludedDirs.join(',')} ${repo.path}`;
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
         exec(command, { signal }, (error, stdout, stderr) => {

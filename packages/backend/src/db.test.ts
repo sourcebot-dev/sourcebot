@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { migration_addFileLimitSize, migration_addSettings, Schema } from './db';
+import { migration_addMaxFileSize, migration_addSettings, Schema } from './db';
 import { DEFAULT_SETTINGS } from './constants';
 import { DeepPartial } from './types';
 
@@ -13,20 +13,20 @@ test('migration_addSettings adds the `settings` field with defaults if it does n
     });
 });
 
-test('migration_addFileLimitSize adds the `fileLimitSize` field with the default value if it does not exist', () => {
+test('migration_addMaxFileSize adds the `maxFileSize` field with the default value if it does not exist', () => {
     const schema: DeepPartial<Schema> = {
         settings: {},
     }
 
-    const migratedSchema = migration_addFileLimitSize(schema as Schema);
+    const migratedSchema = migration_addMaxFileSize(schema as Schema);
     expect(migratedSchema).toStrictEqual({
         settings: {
-            fileLimitSize: DEFAULT_SETTINGS.fileLimitSize,
+            maxFileSize: DEFAULT_SETTINGS.maxFileSize,
         }
     });
 });
 
-test('migration_addFileLimitSize will throw if `settings` is not defined', () => {
+test('migration_addMaxFileSize will throw if `settings` is not defined', () => {
     const schema: DeepPartial<Schema> = {};
-    expect(() => migration_addFileLimitSize(schema as Schema)).toThrow();
+    expect(() => migration_addMaxFileSize(schema as Schema)).toThrow();
 });

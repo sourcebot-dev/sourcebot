@@ -109,7 +109,7 @@ export const isRepoReindexingRequired = (previous: Repository, current: Reposito
  */
 export const isAllRepoReindexingRequired = (previous: Settings, current: Settings) => {
     return (
-        previous?.fileLimitSize !== current?.fileLimitSize
+        previous?.maxFileSize !== current?.maxFileSize
     )
 }
 
@@ -136,7 +136,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
 
     // Update the settings
     const updatedSettings: Settings = {
-        fileLimitSize: config.settings?.fileLimitSize ?? DEFAULT_SETTINGS.fileLimitSize,
+        maxFileSize: config.settings?.maxFileSize ?? DEFAULT_SETTINGS.maxFileSize,
     }
     const _isAllRepoReindexingRequired = isAllRepoReindexingRequired(db.data.settings, updatedSettings);
     await updateSettings(updatedSettings, db);

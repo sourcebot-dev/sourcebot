@@ -14,5 +14,5 @@ export const RESYNC_CONFIG_INTERVAL_MS = 1000 * 60 * 60 * 24;
  * Default settings.
  */
 export const DEFAULT_SETTINGS: Settings = {
-    fileLimitSize: 2 * 1024 * 1024, // 2MB in bytes
+    maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
 }

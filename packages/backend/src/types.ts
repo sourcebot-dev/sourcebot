@@ -43,7 +43,7 @@ export type AppContext = {
 }
 
 export type Settings = {
-    fileLimitSize: number;
+    maxFileSize: number;
 }
 
 // @see : https://stackoverflow.com/a/61132308
