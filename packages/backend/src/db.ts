@@ -50,6 +50,7 @@ export const applyMigrations = async (db: Database) => {
     }
 
     await db.update((schema) => {
+        // @NOTE: please ensure new migrations are added after older ones!
         schema = migration_addSettings(schema, log);
         schema = migration_addFileLimitSize(schema, log);
         return schema;
@@ -57,7 +58,7 @@ export const applyMigrations = async (db: Database) => {
 }
 
 /**
- * @todo: add link to PR that adds this migration
+ * @see: https://github.com/sourcebot-dev/sourcebot/pull/118
  */
 export const migration_addSettings = (schema: Schema, log?: (name: string) => void) => {
     if (!schema.settings) {
@@ -69,7 +70,7 @@ export const migration_addSettings = (schema: Schema, log?: (name: string) => vo
 }
 
 /**
- * @todo: add link to PR that adds this migration
+ * @see: https://github.com/sourcebot-dev/sourcebot/pull/118
  */
 export const migration_addFileLimitSize = (schema: Schema, log?: (name: string) => void) => {
     if (!schema.settings.fileLimitSize) {
