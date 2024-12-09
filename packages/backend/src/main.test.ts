@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { isRepoReindxingRequired } from './main';
+import { isRepoReindexingRequired } from './main';
 import { Repository } from './types';
 
 test('isRepoReindexingRequired should return false when no changes are made', () => {
@@ -15,7 +15,7 @@ test('isRepoReindexingRequired should return false when no changes are made', ()
     };
     const current = previous;
 
-    expect(isRepoReindxingRequired(previous, current)).toBe(false);
+    expect(isRepoReindexingRequired(previous, current)).toBe(false);
 })
 
 test('isRepoReindexingRequired should return true when git branches change', () => {
@@ -35,7 +35,7 @@ test('isRepoReindexingRequired should return true when git branches change', () 
         branches: ['main', 'feature']
     };
 
-    expect(isRepoReindxingRequired(previous, current)).toBe(true);
+    expect(isRepoReindexingRequired(previous, current)).toBe(true);
 });
 
 test('isRepoReindexingRequired should return true when git tags change', () => {
@@ -55,7 +55,7 @@ test('isRepoReindexingRequired should return true when git tags change', () => {
         tags: ['v1.0', 'v2.0']
     };
 
-    expect(isRepoReindxingRequired(previous, current)).toBe(true);
+    expect(isRepoReindexingRequired(previous, current)).toBe(true);
 });
 
 test('isRepoReindexingRequired should return true when local excludedPaths change', () => {
@@ -74,5 +74,9 @@ test('isRepoReindexingRequired should return true when local excludedPaths chang
         excludedPaths: ['node_modules', 'dist']
     };
 
-    expect(isRepoReindxingRequired(previous, current)).toBe(true);
+    expect(isRepoReindexingRequired(previous, current)).toBe(true);
+});
+
+test('isAllRepoReindexingRequired ...', () => {
+    // todo!
 });

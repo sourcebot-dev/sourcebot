@@ -1,4 +1,3 @@
-
 interface BaseRepository {
     vcs: 'git' | 'local';
     id: string;
@@ -41,4 +40,8 @@ export type AppContext = {
     cachePath: string;
 
     configPath: string;
+}
+
+export type Settings = {
+    fileLimitSize: number;
 }

@@ -477,11 +477,27 @@
                     "$ref": "#/definitions/LocalConfig"
                 }
             ]
+        },
+        "Settings": {
+            "type": "object",
+            "description": "Global settings. These settings are applied to all repositories.",
+            "properties": {
+                "fileLimitSize": {
+                    "type": "integer",
+                    "description": "The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be inexed. Defaults to 2MB (2097152 bytes).",
+                    "default": 2097152,
+                    "minimum": 1
+                }
+            },
+            "additionalProperties": false
         }
     },
     "properties": {
         "$schema": {
             "type": "string"
+        },
+        "settings": {
+            "$ref": "#/definitions/Settings"
         },
         "repos": {
             "type": "array",
