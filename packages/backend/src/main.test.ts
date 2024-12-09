@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { isRepoReindexingRequired } from './main';
-import { Repository } from './types';
+import { isAllRepoReindexingRequired, isRepoReindexingRequired } from './main';
+import { Repository, Settings } from './types';
 
 test('isRepoReindexingRequired should return false when no changes are made', () => {
     const previous: Repository = {
@@ -77,6 +77,23 @@ test('isRepoReindexingRequired should return true when local excludedPaths chang
     expect(isRepoReindexingRequired(previous, current)).toBe(true);
 });
 
-test('isAllRepoReindexingRequired ...', () => {
-    // todo!
+test('isAllRepoReindexingRequired should return false when fileLimitSize has not changed', () => {
+    const previous: Settings = {
+        fileLimitSize: 1000,
+    }
+    const current: Settings = {
+        ...previous,
+    }
+    expect(isAllRepoReindexingRequired(previous, current)).toBe(false);
+});
+
+test('isAllRepoReindexingRequired should return true when fileLimitSize has changed', () => {
+    const previous: Settings = {
+        fileLimitSize: 1000,
+    }
+    const current: Settings = {
+        ...previous,
+        fileLimitSize: 2000,
+    }
+    expect(isAllRepoReindexingRequired(previous, current)).toBe(true);
 });
