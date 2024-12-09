@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added config option `settings.maxFileSize` to control the maximum file size zoekt will index. ([#118](https://github.com/sourcebot-dev/sourcebot/pull/118))
+
 ## [2.6.0] - 2024-12-02
 
 ### Added
