@@ -54,6 +54,12 @@ export interface GitHubConfig {
    * List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
    */
   repos?: string[];
+  /**
+   * List of repository topics to include when syncing. Only repositories that match at least one of the provided `topics` will be synced. If not specified, all repositories will be synced, unless explicitly defined in the `exclude` property. Glob patterns are supported.
+   *
+   * @minItems 1
+   */
+  topics?: [string, ...string[]];
   exclude?: {
     /**
      * Exclude forked repositories from syncing.
@@ -67,6 +73,7 @@ export interface GitHubConfig {
      * List of individual repositories to exclude from syncing. Glob patterns are supported.
      */
     repos?: string[];
+    topics?: string[];
   };
   revisions?: GitRevisions;
 }
