@@ -54,6 +54,12 @@ export interface GitHubConfig {
    * List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
    */
   repos?: string[];
+  /**
+   * List of repository topics to include when syncing. Only repositories that match at least one of the provided `topics` will be synced. If not specified, all repositories will be synced, unless explicitly defined in the `exclude` property. Glob patterns are supported.
+   *
+   * @minItems 1
+   */
+  topics?: [string, ...string[]];
   exclude?: {
     /**
      * Exclude forked repositories from syncing.
@@ -67,6 +73,10 @@ export interface GitHubConfig {
      * List of individual repositories to exclude from syncing. Glob patterns are supported.
      */
     repos?: string[];
+    /**
+     * List of repository topics to exclude when syncing. Repositories that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.
+     */
+    topics?: string[];
   };
   revisions?: GitRevisions;
 }
@@ -119,6 +129,12 @@ export interface GitLabConfig {
    * List of individual projects to sync with. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/
    */
   projects?: string[];
+  /**
+   * List of project topics to include when syncing. Only projects that match at least one of the provided `topics` will be synced. If not specified, all projects will be synced, unless explicitly defined in the `exclude` property. Glob patterns are supported.
+   *
+   * @minItems 1
+   */
+  topics?: [string, ...string[]];
   exclude?: {
     /**
      * Exclude forked projects from syncing.
@@ -132,6 +148,10 @@ export interface GitLabConfig {
      * List of projects to exclude from syncing. Glob patterns are supported. The project's namespace must be specified, see: https://docs.gitlab.com/ee/user/namespace/
      */
     projects?: string[];
+    /**
+     * List of project topics to exclude when syncing. Projects that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.
+     */
+    topics?: string[];
   };
   revisions?: GitRevisions;
 }
