@@ -1,6 +1,6 @@
 import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
 import { GitLabConfig } from "./schemas/v2.js";
-import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool, measure } from "./utils.js";
+import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, excludeReposByTopic, getTokenFromConfig, includeReposByTopic, marshalBool, measure } from "./utils.js";
 import { createLogger } from "./logger.js";
 import { AppContext, GitRepository } from "./types.js";
 import path from 'path';
@@ -98,6 +98,7 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
                 isStale: false,
                 isFork,
                 isArchived: project.archived,
+                topics: project.topics ?? [],
                 gitConfigMetadata: {
                     'zoekt.web-url-type': 'gitlab',
                     'zoekt.web-url': project.web_url,
@@ -113,6 +114,10 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
             } satisfies GitRepository;
         });
 
+    if (config.topics) {
+        repos = includeReposByTopic(repos, config.topics, logger);
+    }
+
     if (config.exclude) {
         if (!!config.exclude.forks) {
             repos = excludeForkedRepos(repos, logger);
@@ -124,6 +129,10 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
 
         if (config.exclude.projects) {
             repos = excludeReposByName(repos, config.exclude.projects, logger);
+        }
+
+        if (config.exclude.topics) {
+            repos = excludeReposByTopic(repos, config.exclude.topics, logger);
         }
     }
 
