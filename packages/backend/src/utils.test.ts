@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { arraysEqualShallow, isRemotePath, excludeReposByName } from './utils';
+import { arraysEqualShallow, isRemotePath, excludeReposByName, includeReposByTopic, excludeReposByTopic } from './utils';
 import { Repository } from './types';
 
 const testNames: string[] = [
@@ -124,4 +124,136 @@ test('isRemotePath should return false for non HTTP paths', () => {
     expect(isRemotePath('C:\\Windows\\System32')).toBe(false);
     expect(isRemotePath('')).toBe(false);
     expect(isRemotePath('   ')).toBe(false);
+});
+
+
+test('includeReposByTopic should return repos with matching topics', () => {
+    const repos = [
+        { id: '1', topics: ['javascript', 'typescript'] },
+        { id: '2', topics: ['python', 'django'] },
+        { id: '3', topics: ['typescript', 'react'] }
+    ].map(r => ({
+        ...createRepository(r.id),
+        ...r,
+    } satisfies Repository));
+
+    const result = includeReposByTopic(repos, ['typescript']);
+    expect(result.length).toBe(2);
+    expect(result.map(r => r.id)).toEqual(['1', '3']);
+});
+
+test('includeReposByTopic should handle glob patterns in topic matching', () => {
+    const repos = [
+        { id: '1', topics: ['frontend-app', 'backend-app'] },
+        { id: '2', topics: ['mobile-app', 'web-app'] },
+        { id: '3', topics: ['desktop-app', 'cli-app'] }
+    ].map(r => ({
+        ...createRepository(r.id),
+        ...r,
+    } satisfies Repository));
+
+    const result = includeReposByTopic(repos, ['*-app']);
+    expect(result.length).toBe(3);
+});
+
+test('includeReposByTopic should handle repos with no topics', () => {
+    const repos = [
+        { id: '1', topics: ['javascript'] },
+        { id: '2', topics: undefined },
+        { id: '3', topics: [] }
+    ].map(r => ({
+        ...createRepository(r.id),
+        ...r,
+    } satisfies Repository));
+
+    const result = includeReposByTopic(repos, ['javascript']);
+    expect(result.length).toBe(1);
+    expect(result[0].id).toBe('1');
+});
+
+test('includeReposByTopic should return empty array when no repos match topics', () => {
+    const repos = [
+        { id: '1', topics: ['frontend'] },
+        { id: '2', topics: ['backend'] }
+    ].map(r => ({
+        ...createRepository(r.id),
+        ...r,
+    } satisfies Repository));
+
+    const result = includeReposByTopic(repos, ['mobile']);
+    expect(result).toEqual([]);
+});
+
+
+test('excludeReposByTopic should exclude repos with matching topics', () => {
+    const repos = [
+        { id: '1', topics: ['javascript', 'typescript'] },
+        { id: '2', topics: ['python', 'django'] },
+        { id: '3', topics: ['typescript', 'react'] }
+    ].map(r => ({
+        ...createRepository(r.id),
+        ...r,
+    } satisfies Repository));
+
+    const result = excludeReposByTopic(repos, ['typescript']);
+    expect(result.length).toBe(1);
+    expect(result[0].id).toBe('2');
+});
+
+test('excludeReposByTopic should handle glob patterns', () => {
+    const repos = [
+        { id: '1', topics: ['test-lib', 'test-app'] },
+        { id: '2', topics: ['prod-lib', 'prod-app'] },
+        { id: '3', topics: ['dev-tool'] }
+    ].map(r => ({
+        ...createRepository(r.id),
+        ...r,
+    } satisfies Repository));
+
+    const result = excludeReposByTopic(repos, ['test-*']);
+    expect(result.length).toBe(2);
+    expect(result.map(r => r.id)).toEqual(['2', '3']);
+});
+
+test('excludeReposByTopic should handle multiple exclude patterns', () => {
+    const repos = [
+        { id: '1', topics: ['frontend', 'react'] },
+        { id: '2', topics: ['backend', 'node'] },
+        { id: '3', topics: ['mobile', 'react-native'] }
+    ].map(r => ({
+        ...createRepository(r.id),
+        ...r,
+    } satisfies Repository));
+
+    const result = excludeReposByTopic(repos, ['*end', '*native']);
+    expect(result.length).toBe(0);
+});
+
+test('excludeReposByTopic should not exclude repos when no topics match', () => {
+    const repos = [
+        { id: '1', topics: ['frontend'] },
+        { id: '2', topics: ['backend'] },
+        { id: '3', topics: undefined }
+    ].map(r => ({
+        ...createRepository(r.id),
+        ...r,
+    } satisfies Repository));
+
+    const result = excludeReposByTopic(repos, ['mobile']);
+    expect(result.length).toBe(3);
+    expect(result.map(r => r.id)).toEqual(['1', '2', '3']);
+});
+
+test('excludeReposByTopic should handle empty exclude patterns array', () => {
+    const repos = [
+        { id: '1', topics: ['frontend'] },
+        { id: '2', topics: ['backend'] }
+    ].map(r => ({
+        ...createRepository(r.id),
+        ...r,
+    } satisfies Repository));
+
+    const result = excludeReposByTopic(repos, []);
+    expect(result.length).toBe(2);
+    expect(result).toEqual(repos);
 });

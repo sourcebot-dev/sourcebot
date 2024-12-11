@@ -3,7 +3,7 @@ import { GitHubConfig } from "./schemas/v2.js";
 import { createLogger } from "./logger.js";
 import { AppContext, GitRepository } from "./types.js";
 import path from 'path';
-import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool, measure } from "./utils.js";
+import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, excludeReposByTopic, getTokenFromConfig, includeReposByTopic, marshalBool, measure } from "./utils.js";
 import micromatch from "micromatch";
 
 const logger = createLogger("GitHub");
@@ -21,6 +21,7 @@ type OctokitRepository = {
     subscribers_count?: number,
     forks_count?: number,
     archived?: boolean,
+    topics?: string[],
 }
 
 export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: AbortSignal, ctx: AppContext) => {
@@ -80,6 +81,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
                 isStale: false,
                 isFork: repo.fork,
                 isArchived: !!repo.archived,
+                topics: repo.topics ?? [],
                 gitConfigMetadata: {
                     'zoekt.web-url-type': 'github',
                     'zoekt.web-url': repo.html_url,
@@ -97,6 +99,10 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
             } satisfies GitRepository;
         });
 
+    if (config.topics) {
+        repos = includeReposByTopic(repos, config.topics, logger);
+    }
+
     if (config.exclude) {
         if (!!config.exclude.forks) {
             repos = excludeForkedRepos(repos, logger);
@@ -108,6 +114,10 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
 
         if (config.exclude.repos) {
             repos = excludeReposByName(repos, config.exclude.repos, logger);
+        }
+
+        if (config.exclude.topics) {
+            repos = excludeReposByTopic(repos, config.exclude.topics, logger);
         }
     }
 

@@ -8,6 +8,7 @@ interface BaseRepository {
     isFork?: boolean;
     isArchived?: boolean;
     codeHost?: string;
+    topics?: string[];
 }
 
 export interface GitRepository extends BaseRepository {
