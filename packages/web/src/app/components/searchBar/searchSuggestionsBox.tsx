@@ -113,6 +113,7 @@ const SearchSuggestionsBox = forwardRef(({
             isHighlightEnabled = false,
             isSpotlightEnabled = false,
             isClientSideSearchEnabled = true,
+            isClientSideSearchCaseSensitive = true,
             descriptionPlacement = "left",
             onSuggestionClicked,
             DefaultIcon,
@@ -123,6 +124,7 @@ const SearchSuggestionsBox = forwardRef(({
             isHighlightEnabled?: boolean,
             isSpotlightEnabled?: boolean,
             isClientSideSearchEnabled?: boolean,
+            isClientSideSearchCaseSensitive?: boolean,
             descriptionPlacement?: "left" | "right",
             onSuggestionClicked: (value: string) => void,
             DefaultIcon?: IconType
@@ -159,6 +161,7 @@ const SearchSuggestionsBox = forwardRef(({
                         list: languageSuggestions,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                         isSpotlightEnabled: true,
+                        isClientSideSearchCaseSensitive: false,
                     }
                 }
                 case "refine":
@@ -205,7 +208,7 @@ const SearchSuggestionsBox = forwardRef(({
         const fuse = new Fuse(list, {
             threshold,
             keys: ['value'],
-            isCaseSensitive: true,
+            isCaseSensitive: isClientSideSearchCaseSensitive,
         });
 
         const suggestions = (() => {
