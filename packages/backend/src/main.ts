@@ -1,24 +1,26 @@
-import { readFile } from 'fs/promises';
+import { readFile, rm } from 'fs/promises';
 import { existsSync, watch } from 'fs';
 import { SourcebotConfigurationSchema } from "./schemas/v2.js";
 import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
 import { getGerritReposFromConfig } from "./gerrit.js";
-import { AppContext, LocalRepository, GitRepository, Repository } from "./types.js";
+import { AppContext, LocalRepository, GitRepository, Repository, Settings } from "./types.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
-import { createRepository, Database, loadDB, updateRepository } from './db.js';
+import { createRepository, Database, loadDB, updateRepository, updateSettings } from './db.js';
 import { arraysEqualShallow, isRemotePath, measure } from "./utils.js";
-import { REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
+import { DEFAULT_SETTINGS, REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
 import stripJsonComments from 'strip-json-comments';
 import { indexGitRepository, indexLocalRepository } from "./zoekt.js";
 import { getLocalRepoFromConfig, initLocalRepoFileWatchers } from "./local.js";
 import { captureEvent } from "./posthog.js";
+import { glob } from 'glob';
+import path from 'path';
 
 const logger = createLogger('main');
 
-const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
+const syncGitRepository = async (repo: GitRepository, settings: Settings, ctx: AppContext) => {
     let fetchDuration_s: number | undefined = undefined;
     let cloneDuration_s: number | undefined = undefined;
 
@@ -46,7 +48,7 @@ const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
     }
 
     logger.info(`Indexing ${repo.id}...`);
-    const { durationMs } = await measure(() => indexGitRepository(repo, ctx));
+    const { durationMs } = await measure(() => indexGitRepository(repo, settings, ctx));
     const indexDuration_s = durationMs / 1000;
     logger.info(`Indexed ${repo.id} in ${indexDuration_s}s`);
 
@@ -57,9 +59,9 @@ const syncGitRepository = async (repo: GitRepository, ctx: AppContext) => {
     }
 }
 
-const syncLocalRepository = async (repo: LocalRepository, ctx: AppContext, signal?: AbortSignal) => {
+const syncLocalRepository = async (repo: LocalRepository, settings: Settings, ctx: AppContext, signal?: AbortSignal) => {
     logger.info(`Indexing ${repo.id}...`);
-    const { durationMs } = await measure(() => indexLocalRepository(repo, ctx, signal));
+    const { durationMs } = await measure(() => indexLocalRepository(repo, settings, ctx, signal));
     const indexDuration_s = durationMs / 1000;
     logger.info(`Indexed ${repo.id} in ${indexDuration_s}s`);
     return {
@@ -67,8 +69,72 @@ const syncLocalRepository = async (repo: LocalRepository, ctx: AppContext, signa
     }
 }
 
-export const isRepoReindxingRequired = (previous: Repository, current: Repository) => {
+export const deleteStaleRepository = async (repo: Repository, db: Database, ctx: AppContext) => {
+    logger.info(`Deleting stale repository ${repo.id}:`);
 
+    // Delete the checked out git repository (if applicable)
+    if (repo.vcs === "git") {
+        logger.info(`\tDeleting git directory ${repo.path}...`);
+        await rm(repo.path, {
+            recursive: true
+        });
+    }
+
+    // Delete all .zoekt index files
+    {
+        // .zoekt index files are named with the repository name,
+        // index version, and shard number. Some examples:
+        //
+        //   git repos:
+        //   github.com%2Fsourcebot-dev%2Fsourcebot_v16.00000.zoekt
+        //   gitlab.com%2Fmy-org%2Fmy-project.00000.zoekt
+        //
+        //   local repos:
+        //   UnrealEngine_v16.00000.zoekt
+        //   UnrealEngine_v16.00001.zoekt
+        //   ...
+        //   UnrealEngine_v16.00016.zoekt
+        //
+        // Notice that local repos are named with the repository basename and
+        // git repos are named with the query-encoded repository name. Form a
+        // glob pattern with the correct prefix & suffix to match the correct
+        // index file(s) for the repository.
+        //
+        // @see : https://github.com/sourcegraph/zoekt/blob/c03b77fbf18b76904c0e061f10f46597eedd7b14/build/builder.go#L348
+        const indexFilesGlobPattern = (() => {
+            switch (repo.vcs) {
+                case 'git':
+                    return `${encodeURIComponent(repo.id)}*.zoekt`;
+                case 'local':
+                    return `${path.basename(repo.path)}*.zoekt`;
+            }
+        })();
+
+        const indexFiles = await glob(indexFilesGlobPattern, {
+            cwd: ctx.indexPath,
+            absolute: true
+        });
+
+        await Promise.all(indexFiles.map((file) => {
+            logger.info(`\tDeleting index file ${file}...`);
+            return rm(file);
+        }));
+    }
+
+    // Delete db entry
+    logger.info(`\tDeleting db entry...`);
+    await db.update(({ repos }) => {
+        delete repos[repo.id];
+    });
+    
+    logger.info(`Deleted stale repository ${repo.id}`);
+}
+
+/**
+ * Certain configuration changes (e.g., a branch is added) require
+ * a reindexing of the repository.
+ */
+export const isRepoReindexingRequired = (previous: Repository, current: Repository) => {
     /**
      * Checks if the any of the `revisions` properties have changed.
      */
@@ -100,6 +166,16 @@ export const isRepoReindxingRequired = (previous: Repository, current: Repositor
     )
 }
 
+/**
+ * Certain settings changes (e.g., the file limit size is changed) require
+ * a reindexing of _all_ repositories.
+ */
+export const isAllRepoReindexingRequired = (previous: Settings, current: Settings) => {
+    return (
+        previous?.maxFileSize !== current?.maxFileSize
+    )
+}
+
 const syncConfig = async (configPath: string, db: Database, signal: AbortSignal, ctx: AppContext) => {
     const configContent = await (async () => {
         if (isRemotePath(configPath)) {
@@ -120,6 +196,14 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
 
     // @todo: we should validate the configuration file's structure here.
     const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfigurationSchema;
+
+    // Update the settings
+    const updatedSettings: Settings = {
+        maxFileSize: config.settings?.maxFileSize ?? DEFAULT_SETTINGS.maxFileSize,
+        autoDeleteStaleRepos: config.settings?.autoDeleteStaleRepos ?? DEFAULT_SETTINGS.autoDeleteStaleRepos,
+    }
+    const _isAllRepoReindexingRequired = isAllRepoReindexingRequired(db.data.settings, updatedSettings);
+    await updateSettings(updatedSettings, db);
 
     // Fetch all repositories from the config file
     let configRepos: Repository[] = [];
@@ -172,7 +256,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     for (const newRepo of configRepos) {
         if (newRepo.id in db.data.repos) {
             const existingRepo = db.data.repos[newRepo.id];
-            const isReindexingRequired = isRepoReindxingRequired(existingRepo, newRepo);
+            const isReindexingRequired = _isAllRepoReindexingRequired || isRepoReindexingRequired(existingRepo, newRepo);
             if (isReindexingRequired) {
                 logger.info(`Marking ${newRepo.id} for reindexing due to configuration change.`);
             }
@@ -244,7 +328,7 @@ export const main = async (context: AppContext) => {
         const localRepos = Object.values(db.data.repos).filter(repo => repo.vcs === 'local');
         initLocalRepoFileWatchers(localRepos, async (repo, signal) => {
             logger.info(`Change detected to local repository ${repo.id}. Re-syncing...`);
-            await syncLocalRepository(repo, context, signal);
+            await syncLocalRepository(repo, db.data.settings, context, signal);
             await db.update(({ repos }) => repos[repo.id].lastIndexedDate = new Date().toUTCString());
         });
     }
@@ -272,10 +356,16 @@ export const main = async (context: AppContext) => {
         for (const [_, repo] of Object.entries(repos)) {
             const lastIndexed = repo.lastIndexedDate ? new Date(repo.lastIndexedDate) : new Date(0);
 
-            if (
-                repo.isStale ||
-                lastIndexed.getTime() > Date.now() - REINDEX_INTERVAL_MS
-            ) {
+            if (repo.isStale) {
+                if (db.data.settings.autoDeleteStaleRepos) {
+                    await deleteStaleRepository(repo, db, context);
+                } else {
+                    // skip deletion...
+                }
+                continue;
+            }
+
+            if (lastIndexed.getTime() > Date.now() - REINDEX_INTERVAL_MS) {
                 continue;
             }
 
@@ -285,12 +375,12 @@ export const main = async (context: AppContext) => {
                 let cloneDuration_s: number | undefined;
 
                 if (repo.vcs === 'git') {
-                    const stats = await syncGitRepository(repo, context);
+                    const stats = await syncGitRepository(repo, db.data.settings, context);
                     indexDuration_s = stats.indexDuration_s;
                     fetchDuration_s = stats.fetchDuration_s;
                     cloneDuration_s = stats.cloneDuration_s;
                 } else if (repo.vcs === 'local') {
-                    const stats = await syncLocalRepository(repo, context);
+                    const stats = await syncLocalRepository(repo, db.data.settings, context);
                     indexDuration_s = stats.indexDuration_s;
                 }
 

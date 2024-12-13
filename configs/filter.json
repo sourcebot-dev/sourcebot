@@ -63,5 +63,39 @@
                 ]
             }
         },
+        // Include all repos in my-org that have the topic
+        // "TypeScript" and do not have a topic that starts
+        // with "test-"
+        {
+            "type": "github",
+            "orgs": [
+                "my-org"
+            ],
+            "topics": [
+                "TypeScript"
+            ],
+            "exclude": {
+                "topics": [
+                    "test-**"
+                ]
+            }
+        },
+        // Include all repos in my-group that have the topic
+        // "TypeScript" and do not have a topic that starts
+        // with "test-"
+        {
+            "type": "gitlab",
+            "groups": [
+                "my-group"
+            ],
+            "topics": [
+                "TypeScript"
+            ],
+            "exclude": {
+                "topics": [
+                    "test-**"
+                ]
+            }
+        }
     ]
 }
