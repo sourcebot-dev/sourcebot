@@ -83,7 +83,7 @@ export const migration_addMaxFileSize = (schema: Schema, log?: (name: string) =>
 }
 
 /**
- * @todo: add PR link
+ * @see: https://github.com/sourcebot-dev/sourcebot/pull/128
  */
 export const migration_addDeleteStaleRepos = (schema: Schema, log?: (name: string) => void) => {
     if (schema.settings.autoDeleteStaleRepos === undefined) {
