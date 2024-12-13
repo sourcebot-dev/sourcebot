@@ -1,6 +1,5 @@
 // https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml
 export const getFileIconIconify = (language: string): string | null => {
-   console.log(language);
    // icons from:
    // https://icon-sets.iconify.design/?&list=icons
    const languageIconMap: { [key: string]: string | null } = {
@@ -108,7 +107,7 @@ export const getFileIconIconify = (language: string): string | null => {
       "Clarity": "devicon:clarity",
       "Classic ASP": "vscode-icons:file-type-asp",
       "Clean": null,
-      "Click": null,
+      "Click": "file-icons:click",
       "Clojure": "vscode-icons:file-type-clojure",
       "Closure Templates": null,
       "Cloud Firestore Security Rules": null,

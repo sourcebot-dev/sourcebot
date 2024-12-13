@@ -11,7 +11,7 @@ interface FileIconProps {
 }
 
 export const FileIcon = ({ language }: FileIconProps) => {
-   let iconSvg = getFileIconSvg(language);
+   const iconSvg = getFileIconSvg(language);
    let iconifyName = null;
    if (!iconSvg) {
       iconifyName = getFileIconIconify(language);

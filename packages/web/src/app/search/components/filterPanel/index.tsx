@@ -5,10 +5,9 @@ import { cn, getRepoCodeHostInfo } from "@/lib/utils";
 import { SetStateAction, useCallback, useEffect, useState } from "react";
 import { Entry } from "./entry";
 import { Filter } from "./filter";
-import { getFileIconSvg } from "./fileIconSvg";
 import Image from "next/image";
-import { LaptopIcon, QuestionMarkCircledIcon } from "@radix-ui/react-icons";
-import { FileIcon } from "./fileIcon";
+import { LaptopIcon } from "@radix-ui/react-icons";
+import { FileIcon } from "@/components/ui/fileIcon";
 
 interface FilePanelProps {
     matches: SearchResultFile[];
