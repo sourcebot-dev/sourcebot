@@ -89,7 +89,7 @@ export const getFileIconSvg = (language: string): any | null => {
         "Swift": SwiftIcon,
         "Tex": TexIcon,
         "Text": TextIcon,
-        "Typescript": TypeScriptIcon,
+        "TypeScript": TypeScriptIcon,
         "YAML": YAMLIcon,
         "Zig": ZigIcon
     };
