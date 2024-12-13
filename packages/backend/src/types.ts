@@ -1,4 +1,3 @@
-
 interface BaseRepository {
     vcs: 'git' | 'local';
     id: string;
@@ -9,6 +8,7 @@ interface BaseRepository {
     isFork?: boolean;
     isArchived?: boolean;
     codeHost?: string;
+    topics?: string[];
 }
 
 export interface GitRepository extends BaseRepository {
@@ -42,3 +42,13 @@ export type AppContext = {
 
     configPath: string;
 }
+
+export type Settings = {
+    maxFileSize: number;
+    autoDeleteStaleRepos: boolean;
+}
+
+// @see : https://stackoverflow.com/a/61132308
+export type DeepPartial<T> = T extends object ? {
+    [P in keyof T]?: DeepPartial<T[P]>;
+} : T;
