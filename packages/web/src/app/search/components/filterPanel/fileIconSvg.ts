@@ -32,7 +32,11 @@ import PowershellIcon from "@/public/languages/file_type_powershell.svg";
 import TexIcon from "@/public/languages/file_type_tex.svg";
 import AssemblyIcon from "@/public/languages/file_type_assembly.svg";
 
-export const getLanguageIcon = (language: string) => {
+/**
+ * Get the SVG icon for a linguist language
+ * https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml
+ */
+export const getFileIconSvg = (language: string) => {
     switch (language.toLowerCase()) {
         case "tsx":
         case "typescript":
@@ -87,7 +91,6 @@ export const getLanguageIcon = (language: string) => {
             return HaskellIcon;
         case "perl":
             return PerlIcon;
-        case "makefile":
         case "shell":
             return ShellIcon;
         case "zig":
