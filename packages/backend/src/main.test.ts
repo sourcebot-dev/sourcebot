@@ -80,6 +80,7 @@ test('isRepoReindexingRequired should return true when local excludedPaths chang
 test('isAllRepoReindexingRequired should return false when fileLimitSize has not changed', () => {
     const previous: Settings = {
         maxFileSize: 1000,
+        autoDeleteStaleRepos: true,
     }
     const current: Settings = {
         ...previous,
@@ -90,10 +91,23 @@ test('isAllRepoReindexingRequired should return false when fileLimitSize has not
 test('isAllRepoReindexingRequired should return true when fileLimitSize has changed', () => {
     const previous: Settings = {
         maxFileSize: 1000,
+        autoDeleteStaleRepos: true,
     }
     const current: Settings = {
         ...previous,
         maxFileSize: 2000,
     }
     expect(isAllRepoReindexingRequired(previous, current)).toBe(true);
+});
+
+test('isAllRepoReindexingRequired should return false when autoDeleteStaleRepos has changed', () => {
+    const previous: Settings = {
+        maxFileSize: 1000,
+        autoDeleteStaleRepos: true,
+    }
+    const current: Settings = {
+        ...previous,
+        autoDeleteStaleRepos: false,
+    }
+    expect(isAllRepoReindexingRequired(previous, current)).toBe(false);
 });

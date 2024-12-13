@@ -53,6 +53,7 @@ export const applyMigrations = async (db: Database) => {
         // @NOTE: please ensure new migrations are added after older ones!
         schema = migration_addSettings(schema, log);
         schema = migration_addMaxFileSize(schema, log);
+        schema = migration_addDeleteStaleRepos(schema, log);
         return schema;
     });
 }
@@ -76,6 +77,18 @@ export const migration_addMaxFileSize = (schema: Schema, log?: (name: string) =>
     if (!schema.settings.maxFileSize) {
         log?.("addMaxFileSize");
         schema.settings.maxFileSize = DEFAULT_SETTINGS.maxFileSize;
+    }
+
+    return schema;
+}
+
+/**
+ * @todo: add PR link
+ */
+export const migration_addDeleteStaleRepos = (schema: Schema, log?: (name: string) => void) => {
+    if (schema.settings.autoDeleteStaleRepos === undefined) {
+        log?.("deleteStaleRepos");
+        schema.settings.autoDeleteStaleRepos = DEFAULT_SETTINGS.autoDeleteStaleRepos;
     }
 
     return schema;

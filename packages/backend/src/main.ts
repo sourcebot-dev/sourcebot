@@ -1,4 +1,4 @@
-import { readFile } from 'fs/promises';
+import { readFile, rm } from 'fs/promises';
 import { existsSync, watch } from 'fs';
 import { SourcebotConfigurationSchema } from "./schemas/v2.js";
 import { getGitHubReposFromConfig } from "./github.js";
@@ -15,6 +15,7 @@ import stripJsonComments from 'strip-json-comments';
 import { indexGitRepository, indexLocalRepository } from "./zoekt.js";
 import { getLocalRepoFromConfig, initLocalRepoFileWatchers } from "./local.js";
 import { captureEvent } from "./posthog.js";
+import { glob } from 'glob';
 
 const logger = createLogger('main');
 
@@ -65,6 +66,44 @@ const syncLocalRepository = async (repo: LocalRepository, settings: Settings, ct
     return {
         indexDuration_s,
     }
+}
+
+const deleteStaleRepository = async (repo: Repository, db: Database, ctx: AppContext) => {
+    logger.info(`Deleting stale repository ${repo.id}:`);
+
+    if (repo.vcs === "git") {
+        logger.info(`\tDeleting git directory ${repo.path}...`);
+        await rm(repo.path, {
+            recursive: true,
+            force: true
+        });
+    }
+
+    const globPattern = (() => {
+        switch (repo.vcs) {
+            case 'git':
+                return `${encodeURIComponent(repo.id)}*.zoekt`;
+            case 'local':
+                return `${repo.name}*.zoekt`;
+        }
+    })();
+
+    const indexFiles = await glob(globPattern, {
+        cwd: ctx.indexPath,
+        absolute: true
+    });
+
+    await Promise.all(indexFiles.map((file) => {
+        logger.info(`\tDeleting index file ${file}...`);
+        return rm(file, { force: true });
+    }));
+
+    logger.info(`\tDeleting db entry...`);
+    await db.update(({ repos }) => {
+        delete repos[repo.id];
+    });
+    
+    logger.info(`Deleted stale repository ${repo.id}`);
 }
 
 /**
@@ -137,6 +176,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     // Update the settings
     const updatedSettings: Settings = {
         maxFileSize: config.settings?.maxFileSize ?? DEFAULT_SETTINGS.maxFileSize,
+        autoDeleteStaleRepos: config.settings?.autoDeleteStaleRepos ?? DEFAULT_SETTINGS.autoDeleteStaleRepos,
     }
     const _isAllRepoReindexingRequired = isAllRepoReindexingRequired(db.data.settings, updatedSettings);
     await updateSettings(updatedSettings, db);
@@ -292,10 +332,16 @@ export const main = async (context: AppContext) => {
         for (const [_, repo] of Object.entries(repos)) {
             const lastIndexed = repo.lastIndexedDate ? new Date(repo.lastIndexedDate) : new Date(0);
 
-            if (
-                repo.isStale ||
-                lastIndexed.getTime() > Date.now() - REINDEX_INTERVAL_MS
-            ) {
+            if (repo.isStale) {
+                if (db.data.settings.autoDeleteStaleRepos) {
+                    await deleteStaleRepository(repo, db, context);
+                } else {
+                    // skip deletion...
+                }
+                continue;
+            }
+
+            if (lastIndexed.getTime() > Date.now() - REINDEX_INTERVAL_MS) {
                 continue;
             }
 

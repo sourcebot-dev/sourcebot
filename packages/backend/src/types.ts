@@ -45,6 +45,7 @@ export type AppContext = {
 
 export type Settings = {
     maxFileSize: number;
+    autoDeleteStaleRepos: boolean;
 }
 
 // @see : https://stackoverflow.com/a/61132308

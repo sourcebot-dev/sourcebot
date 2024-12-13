@@ -529,6 +529,11 @@
                     "description": "The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be inexed. Defaults to 2MB (2097152 bytes).",
                     "default": 2097152,
                     "minimum": 1
+                },
+                "autoDeleteStaleRepos": {
+                    "type": "boolean",
+                    "description": "Automatically delete stale repositories from the index. Defaults to true.",
+                    "default": true
                 }
             },
             "additionalProperties": false
