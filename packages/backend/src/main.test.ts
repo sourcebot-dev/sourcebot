@@ -1,6 +1,29 @@
-import { expect, test } from 'vitest';
-import { isAllRepoReindexingRequired, isRepoReindexingRequired } from './main';
-import { Repository, Settings } from './types';
+import { expect, test, vi } from 'vitest';
+import { deleteStaleRepository, isAllRepoReindexingRequired, isRepoReindexingRequired } from './main';
+import { AppContext, GitRepository, LocalRepository, Repository, Settings } from './types';
+import { DEFAULT_DB_DATA } from './db';
+import { createMockDB } from './db.test';
+import { rm } from 'fs/promises';
+import path from 'path';
+import { glob } from 'glob';
+
+vi.mock('fs/promises', () => ({
+    rm: vi.fn(),
+}));
+
+vi.mock('glob', () => ({
+    glob: vi.fn().mockReturnValue(['fake_index.zoekt']),
+}));
+
+const createMockContext = (rootPath: string = '/app') => {
+    return {
+        configPath: path.join(rootPath, 'config.json'),
+        cachePath: path.join(rootPath, '.sourcebot'),
+        indexPath: path.join(rootPath, '.sourcebot/index'),
+        reposPath: path.join(rootPath, '.sourcebot/repos'),
+    } satisfies AppContext;
+}
+
 
 test('isRepoReindexingRequired should return false when no changes are made', () => {
     const previous: Repository = {
@@ -80,6 +103,7 @@ test('isRepoReindexingRequired should return true when local excludedPaths chang
 test('isAllRepoReindexingRequired should return false when fileLimitSize has not changed', () => {
     const previous: Settings = {
         maxFileSize: 1000,
+        autoDeleteStaleRepos: true,
     }
     const current: Settings = {
         ...previous,
@@ -90,10 +114,89 @@ test('isAllRepoReindexingRequired should return false when fileLimitSize has not
 test('isAllRepoReindexingRequired should return true when fileLimitSize has changed', () => {
     const previous: Settings = {
         maxFileSize: 1000,
+        autoDeleteStaleRepos: true,
     }
     const current: Settings = {
         ...previous,
         maxFileSize: 2000,
     }
     expect(isAllRepoReindexingRequired(previous, current)).toBe(true);
+});
+
+test('isAllRepoReindexingRequired should return false when autoDeleteStaleRepos has changed', () => {
+    const previous: Settings = {
+        maxFileSize: 1000,
+        autoDeleteStaleRepos: true,
+    }
+    const current: Settings = {
+        ...previous,
+        autoDeleteStaleRepos: false,
+    }
+    expect(isAllRepoReindexingRequired(previous, current)).toBe(false);
+});
+
+test('deleteStaleRepository can delete a git repository', async () => {
+    const ctx = createMockContext();
+
+    const repo: GitRepository = {
+        id: 'github.com/sourcebot-dev/sourcebot',
+        vcs: 'git',
+        name: 'sourcebot',
+        cloneUrl: 'https://github.com/sourcebot-dev/sourcebot',
+        path: `${ctx.reposPath}/github.com/sourcebot-dev/sourcebot`,
+        branches: ['main'],
+        tags: [''],
+        isStale: true,
+    }
+
+    const db = createMockDB({
+        ...DEFAULT_DB_DATA,
+        repos: {
+            'github.com/sourcebot-dev/sourcebot': repo,
+        }
+    });
+
+
+    await deleteStaleRepository(repo, db, ctx);
+
+    expect(db.data.repos['github.com/sourcebot-dev/sourcebot']).toBeUndefined();;
+    expect(rm).toHaveBeenCalledWith(`${ctx.reposPath}/github.com/sourcebot-dev/sourcebot`, {
+        recursive: true,
+    });
+    expect(glob).toHaveBeenCalledWith(`github.com%2Fsourcebot-dev%2Fsourcebot*.zoekt`, {
+        cwd: ctx.indexPath,
+        absolute: true
+    });
+    expect(rm).toHaveBeenCalledWith(`fake_index.zoekt`);
+});
+
+test('deleteStaleRepository can delete a local repository', async () => {
+    const ctx = createMockContext();
+
+    const repo: LocalRepository = {
+        vcs: 'local',
+        name: 'UnrealEngine',
+        id: '/path/to/UnrealEngine',
+        path: '/path/to/UnrealEngine',
+        watch: false,
+        excludedPaths: [],
+        isStale: true,
+    }
+
+    const db = createMockDB({
+        ...DEFAULT_DB_DATA,
+        repos: {
+            '/path/to/UnrealEngine': repo,
+        }
+    });
+
+    await deleteStaleRepository(repo, db, ctx);
+
+    expect(db.data.repos['/path/to/UnrealEngine']).toBeUndefined();
+    expect(rm).not.toHaveBeenCalledWith('/path/to/UnrealEngine');
+    expect(glob).toHaveBeenCalledWith(`UnrealEngine*.zoekt`, {
+        cwd: ctx.indexPath,
+        absolute: true
+    });
+    expect(rm).toHaveBeenCalledWith('fake_index.zoekt');
 });

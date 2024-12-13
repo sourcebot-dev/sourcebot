@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Made language suggestions case insensitive. ([#124](https://github.com/sourcebot-dev/sourcebot/pull/124))
+- Stale repositories are now automatically deleted from the index. This can be configured via `settings.autoDeleteStaleRepos` in the config. ([#128](https://github.com/sourcebot-dev/sourcebot/pull/128))
 
 ## [2.6.1] - 2024-12-09
 

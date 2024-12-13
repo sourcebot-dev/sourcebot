@@ -100,7 +100,8 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
         });
 
     if (config.topics) {
-        repos = includeReposByTopic(repos, config.topics, logger);
+        const topics = config.topics.map(topic => topic.toLowerCase());
+        repos = includeReposByTopic(repos, topics, logger);
     }
 
     if (config.exclude) {
@@ -117,7 +118,8 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
         }
 
         if (config.exclude.topics) {
-            repos = excludeReposByTopic(repos, config.exclude.topics, logger);
+            const topics = config.exclude.topics.map(topic => topic.toLowerCase());
+            repos = excludeReposByTopic(repos, topics, logger);
         }
     }
 

@@ -21,6 +21,10 @@ export interface Settings {
    * The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be inexed. Defaults to 2MB (2097152 bytes).
    */
   maxFileSize?: number;
+  /**
+   * Automatically delete stale repositories from the index. Defaults to true.
+   */
+  autoDeleteStaleRepos?: boolean;
 }
 export interface GitHubConfig {
   /**

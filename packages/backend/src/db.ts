@@ -13,13 +13,15 @@ export type Schema = {
     }
 }
 
+export const DEFAULT_DB_DATA: Schema = {
+    repos: {},
+    settings: DEFAULT_SETTINGS,
+}
+
 export type Database = Low<Schema>;
 
 export const loadDB = async (ctx: AppContext): Promise<Database> => {
-    const db = await JSONFilePreset<Schema>(`${ctx.cachePath}/db.json`, {
-        repos: {},
-        settings: DEFAULT_SETTINGS,
-    });
+    const db = await JSONFilePreset<Schema>(`${ctx.cachePath}/db.json`, DEFAULT_DB_DATA);
 
     await applyMigrations(db);
 
@@ -53,6 +55,7 @@ export const applyMigrations = async (db: Database) => {
         // @NOTE: please ensure new migrations are added after older ones!
         schema = migration_addSettings(schema, log);
         schema = migration_addMaxFileSize(schema, log);
+        schema = migration_addDeleteStaleRepos(schema, log);
         return schema;
     });
 }
@@ -76,6 +79,18 @@ export const migration_addMaxFileSize = (schema: Schema, log?: (name: string) =>
     if (!schema.settings.maxFileSize) {
         log?.("addMaxFileSize");
         schema.settings.maxFileSize = DEFAULT_SETTINGS.maxFileSize;
+    }
+
+    return schema;
+}
+
+/**
+ * @see: https://github.com/sourcebot-dev/sourcebot/pull/128
+ */
+export const migration_addDeleteStaleRepos = (schema: Schema, log?: (name: string) => void) => {
+    if (schema.settings.autoDeleteStaleRepos === undefined) {
+        log?.("deleteStaleRepos");
+        schema.settings.autoDeleteStaleRepos = DEFAULT_SETTINGS.autoDeleteStaleRepos;
     }
 
     return schema;
