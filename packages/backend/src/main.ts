@@ -16,6 +16,7 @@ import { indexGitRepository, indexLocalRepository } from "./zoekt.js";
 import { getLocalRepoFromConfig, initLocalRepoFileWatchers } from "./local.js";
 import { captureEvent } from "./posthog.js";
 import { glob } from 'glob';
+import path from 'path';
 
 const logger = createLogger('main');
 
@@ -71,33 +72,56 @@ const syncLocalRepository = async (repo: LocalRepository, settings: Settings, ct
 const deleteStaleRepository = async (repo: Repository, db: Database, ctx: AppContext) => {
     logger.info(`Deleting stale repository ${repo.id}:`);
 
+    // Delete the checked out git repository (if applicable)
     if (repo.vcs === "git") {
         logger.info(`\tDeleting git directory ${repo.path}...`);
         await rm(repo.path, {
-            recursive: true,
-            force: true
+            recursive: true
         });
     }
 
-    const globPattern = (() => {
-        switch (repo.vcs) {
-            case 'git':
-                return `${encodeURIComponent(repo.id)}*.zoekt`;
-            case 'local':
-                return `${repo.name}*.zoekt`;
-        }
-    })();
+    // Delete all .zoekt index files
+    {
+        // .zoekt index files are named with the repository name,
+        // index version, and shard number. Some examples:
+        //
+        //   git repos:
+        //   github.com%2Fsourcebot-dev%2Fsourcebot_v16.00000.zoekt
+        //   gitlab.com%2Fmy-org%2Fmy-project.00000.zoekt
+        //
+        //   local repos:
+        //   UnrealEngine_v16.00000.zoekt
+        //   UnrealEngine_v16.00001.zoekt
+        //   ...
+        //   UnrealEngine_v16.00016.zoekt
+        //
+        // Notice that local repos are named with the repository basename and
+        // git repos are named with the query-encoded repository name. Form a
+        // glob pattern with the correct prefix & suffix to match the correct
+        // index file(s) for the repository.
+        //
+        // @see : https://github.com/sourcegraph/zoekt/blob/c03b77fbf18b76904c0e061f10f46597eedd7b14/build/builder.go#L348
+        const indexFilesGlobPattern = (() => {
+            switch (repo.vcs) {
+                case 'git':
+                    return `${encodeURIComponent(repo.id)}*.zoekt`;
+                case 'local':
+                    return `${path.basename(repo.path)}*.zoekt`;
+            }
+        })();
 
-    const indexFiles = await glob(globPattern, {
-        cwd: ctx.indexPath,
-        absolute: true
-    });
+        const indexFiles = await glob(indexFilesGlobPattern, {
+            cwd: ctx.indexPath,
+            absolute: true
+        });
 
-    await Promise.all(indexFiles.map((file) => {
-        logger.info(`\tDeleting index file ${file}...`);
-        return rm(file, { force: true });
-    }));
+        await Promise.all(indexFiles.map((file) => {
+            logger.info(`\tDeleting index file ${file}...`);
+            return rm(file);
+        }));
+    }
 
+    // Delete db entry
     logger.info(`\tDeleting db entry...`);
     await db.update(({ repos }) => {
         delete repos[repo.id];
