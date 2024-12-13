@@ -69,7 +69,7 @@ const syncLocalRepository = async (repo: LocalRepository, settings: Settings, ct
     }
 }
 
-const deleteStaleRepository = async (repo: Repository, db: Database, ctx: AppContext) => {
+export const deleteStaleRepository = async (repo: Repository, db: Database, ctx: AppContext) => {
     logger.info(`Deleting stale repository ${repo.id}:`);
 
     // Delete the checked out git repository (if applicable)

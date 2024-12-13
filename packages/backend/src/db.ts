@@ -13,13 +13,15 @@ export type Schema = {
     }
 }
 
+export const DEFAULT_DB_DATA: Schema = {
+    repos: {},
+    settings: DEFAULT_SETTINGS,
+}
+
 export type Database = Low<Schema>;
 
 export const loadDB = async (ctx: AppContext): Promise<Database> => {
-    const db = await JSONFilePreset<Schema>(`${ctx.cachePath}/db.json`, {
-        repos: {},
-        settings: DEFAULT_SETTINGS,
-    });
+    const db = await JSONFilePreset<Schema>(`${ctx.cachePath}/db.json`, DEFAULT_DB_DATA);
 
     await applyMigrations(db);
 
