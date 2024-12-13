@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.2] - 2024-12-13
+
 ### Added
 
 - Added config support for filtering GitLab & GitHub repositories by topic. ([#121](https://github.com/sourcebot-dev/sourcebot/pull/121))
+- Added additional language syntax support. ([#125](https://github.com/sourcebot-dev/sourcebot/pull/125))
+- Added additional language icon support. ([#129](https://github.com/sourcebot-dev/sourcebot/pull/129))
 
 ### Changed
 
