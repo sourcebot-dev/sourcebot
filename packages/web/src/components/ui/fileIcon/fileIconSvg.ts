@@ -32,79 +32,70 @@ import PowershellIcon from "@/public/languages/file_type_powershell.svg";
 import TexIcon from "@/public/languages/file_type_tex.svg";
 import AssemblyIcon from "@/public/languages/file_type_assembly.svg";
 
-export const getLanguageIcon = (language: string) => {
-    switch (language.toLowerCase()) {
-        case "tsx":
-        case "typescript":
-            return TypeScriptIcon;
-        case "jsx":
-        case "javascript":
-            return JavaScriptIcon;
-        case "go":
-            return GoIcon;
-        case "markdown":
-            return MarkdownIcon;
-        case "c":
-            return CIcon;
-        case "c++":
-            return CppIcon;
-        case "python":
-            return PythonIcon;
-        case "c#":
-            return CSharpIcon;
-        case "html":
-            return HTMLIcon;
-        case "css":
-            return CSSIcon;
-        case "java":
-            return JavaIcon;
-        case "json with comments":
-        case "json":
-            return JSONIcon;
-        case "ruby":
-            return RubyIcon;
-        case "rust":
-            return RustIcon;
-        case "yaml":
-            return YAMLIcon;
-        case "kotlin":
-            return KotlinIcon;
-        case "swift":
-            return SwiftIcon;
-        case "php":
-            return PHPIcon;
-        case "r":
-            return RIcon;
-        case "matlab":
-            return MatlabIcon;
-        case "objective-c":
-            return ObjectiveCIcon;
-        case "lua":
-            return LuaIcon;
-        case "dart":
-            return DartIcon;
-        case "haskell":
-            return HaskellIcon;
-        case "perl":
-            return PerlIcon;
-        case "makefile":
-        case "shell":
-            return ShellIcon;
-        case "zig":
-            return ZigIcon;
-        case "julia":
-            return JuliaIcon;
-        case "ocaml":
-            return OcamlIcon;
-        case "text":
-            return TextIcon;
-        case "powershell":
-            return PowershellIcon;
-        case "tex":
-            return TexIcon;
-        case "assembly":
-            return AssemblyIcon;
-        default:
-            return null;
+/**
+ * Get the SVG icon for a linguist language
+ * https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml
+ */
+export const getFileIconSvg = (language: string): any | null => {
+    const languageIconMap: { [key: string]: any } = {
+        "Assembly": AssemblyIcon,
+        "C": CIcon,
+        "C#": CSharpIcon,
+        "C++": CppIcon,
+        "CSS": CSSIcon,
+        "Dart": DartIcon,
+        "GN": PythonIcon,
+        "Go": GoIcon,
+        "HTML+ECR": HTMLIcon,
+        "HTML+EEX": HTMLIcon,
+        "HTML+ERB": HTMLIcon,
+        "HTML+PHP": HTMLIcon,
+        "HTML+Razor": HTMLIcon,
+        "Haskell": HaskellIcon,
+        "Html": HTMLIcon,
+        "JSON with Comments": JSONIcon,
+        "JSON5": JSONIcon,
+        "JSONLD": JSONIcon,
+        "JSONiq": JSONIcon,
+        "Java": JavaIcon,
+        "Java Properties": JavaIcon,
+        "Java Server Pages": JavaIcon,
+        "Java Template Engine": JavaIcon,
+        "JavaScript": JavaScriptIcon,
+        "JavaScript+ERB": JavaIcon,
+        "Json": JSONIcon,
+        "Julia": JuliaIcon,
+        "Kotlin": KotlinIcon,
+        "Lua": LuaIcon,
+        "MATLAB": MatlabIcon,
+        "Markdown": MarkdownIcon,
+        "OASv2-json": JSONIcon,
+        "OASv2-yaml": YAMLIcon,
+        "OASv3-json": JSONIcon,
+        "OASv3-yaml": YAMLIcon,
+        "OCaml": OcamlIcon,
+        "Objective-C": ObjectiveCIcon,
+        "PHP": PHPIcon,
+        "Pep8": PythonIcon,
+        "Perl": PerlIcon,
+        "PowerShell": PowershellIcon,
+        "Python": PythonIcon,
+        "Python console": PythonIcon,
+        "Python traceback": PythonIcon,
+        "R": RIcon,
+        "Ruby": RubyIcon,
+        "Rust": RustIcon,
+        "Shell": ShellIcon,
+        "Swift": SwiftIcon,
+        "Tex": TexIcon,
+        "Text": TextIcon,
+        "Typescript": TypeScriptIcon,
+        "YAML": YAMLIcon,
+        "Zig": ZigIcon
+    };
+    if (language in languageIconMap) {
+        return languageIconMap[language as keyof typeof languageIconMap];
+    } else {
+        return null;
     }
 }

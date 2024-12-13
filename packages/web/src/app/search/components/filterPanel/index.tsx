@@ -5,9 +5,9 @@ import { cn, getRepoCodeHostInfo } from "@/lib/utils";
 import { SetStateAction, useCallback, useEffect, useState } from "react";
 import { Entry } from "./entry";
 import { Filter } from "./filter";
-import { getLanguageIcon } from "./languageIcons";
 import Image from "next/image";
-import { LaptopIcon, QuestionMarkCircledIcon } from "@radix-ui/react-icons";
+import { LaptopIcon } from "@radix-ui/react-icons";
+import { FileIcon } from "@/components/ui/fileIcon";
 
 interface FilePanelProps {
     matches: SearchResultFile[];
@@ -58,16 +58,9 @@ export const FilterPanel = ({
             "Language",
             matches,
             (key) => {
-                const iconSrc = getLanguageIcon(key);
-                const Icon = iconSrc ? (
-                    <Image
-                        src={iconSrc}
-                        alt={key}
-                        className="w-4 h-4 flex-shrink-0"
-                    />
-                ) : (
-                    <QuestionMarkCircledIcon className="w-4 h-4 flex-shrink-0" />
-                );
+                const Icon = (
+                    <FileIcon language={key} />
+                )
 
                 return {
                     key,
