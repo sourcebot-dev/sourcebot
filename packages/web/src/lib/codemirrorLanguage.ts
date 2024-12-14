@@ -1,25 +1,48 @@
 import { StreamLanguage, LanguageSupport } from "@codemirror/language";
 
 // CodeMirror 6 languages
+import { brainfuck } from "codemirror-lang-brainfuck"; // 3rd party
 import { css } from "@codemirror/lang-css";
 import { cpp } from "@codemirror/lang-cpp";
-import { csharp } from "@replit/codemirror-lang-csharp";
+import { dot } from "@viz-js/lang-dot"; // 3rd party
+import { csharp } from "@replit/codemirror-lang-csharp"; // 3rd party
+import { elixir } from "codemirror-lang-elixir"; // 3rd party
 import { go } from "@codemirror/lang-go";
+import { graphqlLanguageSupport } from "cm6-graphql"; // 3rd party
+import { handlebarsLanguage } from "@xiechao/codemirror-lang-handlebars"
+import { hcl } from "codemirror-lang-hcl"; // 3rd party
 import { html } from "@codemirror/lang-html";
+import { j } from "codemirror-lang-j"; // 3rd party
 import { java } from "@codemirror/lang-java";
 import { javascript } from "@codemirror/lang-javascript";
+import { jq } from "codemirror-lang-jq"; // 3rd party
 import { json } from "@codemirror/lang-json";
+import { jsonc } from "@shopify/lang-jsonc"; // 3rd party
 import { less } from "@codemirror/lang-less";
 import { liquid } from "@codemirror/lang-liquid";
+import { makefile } from "codemirror-lang-makefile"; // 3rd party
 import { markdown } from "@codemirror/lang-markdown";
+import { mermaid } from "codemirror-lang-mermaid"; // 3rd party
+import { nix } from "@replit/codemirror-lang-nix" // 3rd party
+// import { perl } from "codemirror-lang-perl"; // 3rd party (not working?)
 import { php } from "@codemirror/lang-php";
+import { prolog } from "codemirror-lang-prolog"; // 3rd party (comments are broken)
 import { python } from "@codemirror/lang-python";
+// import { r } from "codemirror-lang-r" // 3rd party (not working?)
 import { rust } from "@codemirror/lang-rust";
 import { sass } from "@codemirror/lang-sass";
+import { solidity } from "@replit/codemirror-lang-solidity"; // 3rd party
+import { sparql } from "codemirror-lang-sparql"; // 3rd party
+import { spreadsheet } from "codemirror-lang-spreadsheet"; // 3rd party
 import { sql } from "@codemirror/lang-sql";
+import { svelte } from "@replit/codemirror-lang-svelte"; // 3rd party
+import { twig } from "@ssddanbrown/codemirror-lang-twig"; // 3rd party
 import { vue } from "@codemirror/lang-vue";
+import { wast } from "@codemirror/lang-wast";
+import { wgsl } from "@iizukak/codemirror-lang-wgsl"; // 3rd party
 import { xml } from "@codemirror/lang-xml"
 import { yaml } from "@codemirror/lang-yaml";
+import { zig } from "codemirror-lang-zig"; // 3rd party
 
 // Legacy CodeMirror 5 modes
 // https://codemirror.net/5/mode/
@@ -79,10 +102,9 @@ import { turtle } from "@codemirror/legacy-modes/mode/turtle";
 import { vb } from "@codemirror/legacy-modes/mode/vb";
 import { vbScript } from "@codemirror/legacy-modes/mode/vbscript";
 import { velocity } from "@codemirror/legacy-modes/mode/velocity";
-// import { vue } from "@codemirror/legacy-modes/mode/vue"; // not present anymore
 import { verilog } from "@codemirror/legacy-modes/mode/verilog";
 import { vhdl } from "@codemirror/legacy-modes/mode/vhdl";
-import { wast } from "@codemirror/legacy-modes/mode/wast"; // webassembly
+// import { wast } from "@codemirror/legacy-modes/mode/wast"; // available in CodeMirror 6
 import { webIDL } from "@codemirror/legacy-modes/mode/webidl";
 import { xQuery } from "@codemirror/legacy-modes/mode/xquery";
 import { languageMetadataMap } from "@/lib/languageMetadata";
@@ -102,27 +124,50 @@ export const getCodemirrorLanguage = (linguistLanguage: string): StreamLanguage<
 
 export const codemirrorLanguageMap = {
     // CodeMirror 6 languages
+    "brainfuck": brainfuck(),
     "css": css(),
     "c": cpp(),
     "c#": csharp(),
+    "dot": dot(),
+    "elixir": elixir(),
     "go": go(),
+    "graphql": graphqlLanguageSupport(),
+    "handlebars": new LanguageSupport(handlebarsLanguage),
+    "hcl": hcl(),
     "html": html(),
+    "j": j(),
     "java": java(),
     "jsx": javascript({ jsx: true, typescript: false }),
-    "typescript": javascript({ jsx: false, typescript: true }),
-    "tsx": javascript({ jsx: true, typescript: true }),
+    "jq": jq(),
     "json": json(),
+    "jsonc": jsonc(),
     "less": less(),
     "liquid": liquid(),
+    "makefile": makefile(),
     "markdown": markdown(),
+    "mermaid": mermaid(), // not recognized by linguist/enry
+    "nix": nix(),
+    //  "perl": perl(), // not working - use codemirror 5 mode
     "php": php(),
+    "prolog": prolog(),
     "python": python(),
+    //  "r": r(), // not working - use codemirror 5 mode
     "rust": rust(),
     "sass": sass(),
+    "solidity": solidity,
+    "sparql": sparql(),
+    "spreadsheet": spreadsheet(),
     "sql": sql(),
+    "svelte": svelte(),
+    "tsx": javascript({ jsx: true, typescript: true }),
+    "twig": twig(),
+    "typescript": javascript({ jsx: false, typescript: true }),
     "vue": vue(),
+    "wast": wast(),
+    "wgsl": wgsl(),
     "xml": xml(),
     "yaml": yaml(),
+    "zig": zig(),
     // Legacy CodeMirror 5 modes
     "apl": StreamLanguage.define(apl),
     "ceylon": StreamLanguage.define(ceylon),
@@ -179,7 +224,7 @@ export const codemirrorLanguageMap = {
     "velocity": StreamLanguage.define(velocity),
     "verilog": StreamLanguage.define(verilog),
     "vhdl": StreamLanguage.define(vhdl),
-    "wast": StreamLanguage.define(wast),
+   //  "wast": StreamLanguage.define(wast), // available in CodeMirror 6
     "webidl": StreamLanguage.define(webIDL),
     "xquery": StreamLanguage.define(xQuery),
 };

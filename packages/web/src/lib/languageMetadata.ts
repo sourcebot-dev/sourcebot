@@ -268,7 +268,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "Brainfuck": {
       "iconify": "file-icons:brainfuck",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "brainfuck",
    },
    "BrighterScript": {
       "iconify": null,
@@ -340,7 +340,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "CSV": {
       "iconify": "vscode-icons:file-type-excel",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "spreadsheet",
    },
    "CUE": {
       "iconify": null,
@@ -564,7 +564,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "DTrace": {
       "iconify": null,
-      "codemirrorLanguage": "clike",
+      "codemirrorLanguage": "c",
    },
    "Dafny": {
       "iconify": "file-icons:dafny",
@@ -692,7 +692,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "Elixir": {
       "iconify": "vscode-icons:file-type-elixir",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "elixir",
    },
    "Elm": {
       "iconify": "vscode-icons:file-type-elm",
@@ -984,11 +984,11 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "GraphQL": {
       "iconify": "vscode-icons:file-type-graphql",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "graphql",
    },
    "Graphviz (DOT)": {
       "iconify": "file-icons:graphviz",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "dot",
    },
    "Groovy": {
       "iconify": "vscode-icons:file-type-groovy",
@@ -1004,7 +1004,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "HCL": {
       "iconify": "simple-icons:hcl",
-      "codemirrorLanguage": "ruby",
+      "codemirrorLanguage": "hcl",
    },
    "HLSL": {
       "iconify": "vscode-icons:file-type-hlsl",
@@ -1056,7 +1056,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "Handlebars": {
       "iconify": "vscode-icons:file-type-handlebars",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "handlebars",
    },
    "Harbour": {
       "iconify": "vscode-icons:file-type-harbour",
@@ -1155,8 +1155,8 @@ export const languageMetadataMap: LanguageMetadataMap = {
       "codemirrorLanguage": null,
    },
    "J": {
-      "iconify": null,
-      "codemirrorLanguage": null,
+      "iconify": "noto-v1:letter-j",
+      "codemirrorLanguage": "j",
    },
    "JAR Manifest": {
       "iconify": "vscode-icons:file-type-java",
@@ -1176,7 +1176,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "JSON with Comments": {
       "iconify": "vscode-icons:file-type-json",
-      "codemirrorLanguage": "json",
+      "codemirrorLanguage": "jsonc",
    },
    "JSON5": {
       "iconify": "vscode-icons:file-type-json5",
@@ -1480,7 +1480,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "Makefile": {
       "iconify": "vscode-icons:file-type-makefile",
-      "codemirrorLanguage": "cmake",
+      "codemirrorLanguage": "makefile",
    },
    "Mako": {
       "iconify": "file-icons:mako",
@@ -1516,7 +1516,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "Mermaid": {
       "iconify": "vscode-icons:file-type-mermaid",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "mermaid",
    },
    "Meson": {
       "iconify": "vscode-icons:file-type-meson",
@@ -1696,7 +1696,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "Nix": {
       "iconify": "vscode-icons:file-type-nix",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "nix",
    },
    "Noir": {
       "iconify": null,
@@ -2004,7 +2004,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "Prolog": {
       "iconify": "vscode-icons:file-type-prolog",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "prolog",
    },
    "Promela": {
       "iconify": null,
@@ -2268,7 +2268,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "SPARQL": {
       "iconify": "vscode-icons:file-type-sparql",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "sparql",
    },
    "SQF": {
       "iconify": "vscode-icons:file-type-sqf",
@@ -2420,7 +2420,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "Solidity": {
       "iconify": "vscode-icons:file-type-solidity",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "solidity",
    },
    "Soong": {
       "iconify": null,
@@ -2476,7 +2476,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "Svelte": {
       "iconify": "vscode-icons:file-type-svelte",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "svelte",
    },
    "Sway": {
       "iconify": null,
@@ -2600,7 +2600,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "Twig": {
       "iconify": "vscode-icons:file-type-twig",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "twig",
    },
    "Type Language": {
       "iconify": null,
@@ -2716,7 +2716,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "WGSL": {
       "iconify": "vscode-icons:file-type-wgsl",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "wgsl",
    },
    "Wavefront Material": {
       "iconify": null,
@@ -2892,7 +2892,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "Zig": {
       "iconify": "vscode-icons:file-type-zig",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "zig",
    },
    "Zimpl": {
       "iconify": null,
@@ -2936,7 +2936,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "jq": {
       "iconify": null,
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": "jq",
    },
    "kvlang": {
       "iconify": null,
