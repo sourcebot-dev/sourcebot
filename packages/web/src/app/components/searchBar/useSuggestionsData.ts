@@ -5,7 +5,7 @@ import { Suggestion, SuggestionMode } from "./searchSuggestionsBox";
 import { getRepos, search } from "@/app/api/(client)/client";
 import { useMemo } from "react";
 import { Symbol } from "@/lib/types";
-import languages from "./languages";
+import { languageMetadataMap } from "@/lib/languageMetadata";
 import {
     VscSymbolClass,
     VscSymbolConstant,
@@ -87,7 +87,7 @@ export const useSuggestionsData = ({
     const isLoadingSymbols = useMemo(() => suggestionMode === "symbol" && _isLoadingSymbols, [suggestionMode, _isLoadingSymbols]);
 
     const languageSuggestions = useMemo((): Suggestion[] => {
-        return languages.map((lang) => {
+        return Object.keys(languageMetadataMap).map((lang) => {
             const spotlight = [
                 "Python",
                 "Java",

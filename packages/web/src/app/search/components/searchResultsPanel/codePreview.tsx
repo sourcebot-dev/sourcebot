@@ -1,6 +1,6 @@
 'use client';
 
-import { getSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
+import { getCodemirrorLanguage } from "@/lib/codemirrorLanguage";
 import { lineOffsetExtension } from "@/lib/extensions/lineOffsetExtension";
 import { SearchResultRange } from "@/lib/types";
 import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -32,6 +32,7 @@ export const CodePreview = ({
     const { theme } = useThemeNormalized();
 
     const extensions = useMemo(() => {
+        const codemirrorExtension = getCodemirrorLanguage(language);
         return [
             EditorView.editable.of(false),
             ...(theme === 'dark' ? [
@@ -43,7 +44,7 @@ export const CodePreview = ({
             ]),
             lineNumbers(),
             lineOffsetExtension(lineOffset),
-            getSyntaxHighlightingExtension(language),
+            codemirrorExtension ? codemirrorExtension : [],
             StateField.define<DecorationSet>({
                 create(editorState: EditorState) {
                     const document = editorState.doc;
