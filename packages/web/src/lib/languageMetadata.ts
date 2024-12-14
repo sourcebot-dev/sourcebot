@@ -1,6 +1,4 @@
 import { CodeMirrorLanguageKey } from "@/lib/codemirrorLanguage";
-import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
-import { vbScript } from "@codemirror/legacy-modes/mode/vbscript";
 
 type LanguageMetadataMap = { [key: string]: LanguageMetadata };
 
