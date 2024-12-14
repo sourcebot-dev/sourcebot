@@ -6,6 +6,9 @@
     "repos": [
         {
             "type": "github",
+            "token": {
+                "env": "GITHUB_TOKEN"
+            },
             "repos": [
                 "torvalds/linux",
                 "pytorch/pytorch",
