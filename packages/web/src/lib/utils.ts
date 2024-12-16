@@ -4,6 +4,7 @@ import githubLogo from "../../public/github.svg";
 import gitlabLogo from "../../public/gitlab.svg";
 import giteaLogo from "../../public/gitea.svg";
 import gerritLogo from "../../public/gerrit.svg";
+import bitbucketLogo from "../../public/bitbucket.svg";
 import { ServiceError } from "./serviceError";
 import { Repository } from "./types";
 
@@ -32,7 +33,7 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
 }
 
 type CodeHostInfo = {
-    type: "github" | "gitlab" | "gitea" | "gerrit";
+    type: "github" | "gitlab" | "gitea" | "gerrit" | "bitbucket";
     displayName: string;
     costHostName: string;
     repoLink: string;
@@ -85,6 +86,14 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
                 costHostName: "Gerrit",
                 repoLink: repo.URL,
                 icon: gerritLogo,
+            }
+        case 'bitbucket':
+            return {
+                type: "bitbucket",
+                displayName: displayName,
+                costHostName: "Bitbucket",
+                repoLink: repo.URL,
+                icon: bitbucketLogo,
             }
     }
 }
