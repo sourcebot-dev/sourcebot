@@ -25,6 +25,7 @@
         "@gitbeaker/rest": "^40.5.1",
         "@octokit/rest": "^21.0.2",
         "argparse": "^2.0.1",
+        "@coderabbitai/bitbucket": "^1.1.1",
         "cross-fetch": "^4.0.0",
         "dotenv": "^16.4.5",
         "gitea-js": "^1.22.0",

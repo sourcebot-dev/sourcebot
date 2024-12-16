@@ -339,6 +339,13 @@
     style-mod "^4.1.0"
     w3c-keyname "^2.2.4"
 
+"@coderabbitai/bitbucket@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@coderabbitai/bitbucket/-/bitbucket-1.1.1.tgz#4093593d38cd3dab4a6b2bb9cd30b0affe4c9a8e"
+  integrity sha512-ZEOTVjecyIdr9Gz0wlrMO79h48T8HbtNLCLlo3kVf7zG5YoP73x0r95MzP2VHCKmlzDIilcjHCE4oxgLF7OytA==
+  dependencies:
+    openapi-fetch "^0.12.2"
+
 "@colors/colors@1.6.0", "@colors/colors@^1.6.0":
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/@colors/colors/-/colors-1.6.0.tgz#ec6cd237440700bc23ca23087f513c75508958b0"
@@ -4717,6 +4724,18 @@ one-time@^1.0.0:
   integrity sha512-5DXOiRKwuSEcQ/l0kGCF6Q3jcADFv5tSmRaJck/OqkVFcOzutB134KRSfF0xDrL39MNnqxbHBbUUcjZIhTgb2g==
   dependencies:
     fn.name "1.x.x"
+
+openapi-fetch@^0.12.2:
+  version "0.12.5"
+  resolved "https://registry.yarnpkg.com/openapi-fetch/-/openapi-fetch-0.12.5.tgz#b0cabd3fe2d423f44b83a0ce99a20e1aa4067287"
+  integrity sha512-FnAMWLt0MNL6ComcL4q/YbB1tUgyz5YnYtwA1+zlJ5xcucmK5RlWsgH1ynxmEeu8fGJkYjm8armU/HVpORc9lw==
+  dependencies:
+    openapi-typescript-helpers "^0.0.15"
+
+openapi-typescript-helpers@^0.0.15:
+  version "0.0.15"
+  resolved "https://registry.yarnpkg.com/openapi-typescript-helpers/-/openapi-typescript-helpers-0.0.15.tgz#96ffa762a5e01ef66a661b163d5f1109ed1967ed"
+  integrity sha512-opyTPaunsklCBpTK8JGef6mfPhLSnyy5a0IN9vKtx3+4aExf+KxEqYwIy3hqkedXIB97u357uLMJsOnm3GVjsw==
 
 optionator@^0.9.3:
   version "0.9.4"
