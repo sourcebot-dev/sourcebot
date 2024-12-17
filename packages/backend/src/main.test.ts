@@ -15,6 +15,10 @@ vi.mock('glob', () => ({
     glob: vi.fn().mockReturnValue(['fake_index.zoekt']),
 }));
 
+vi.mock('fs', () => ({
+    existsSync: vi.fn().mockReturnValue(true),
+}));
+
 const createMockContext = (rootPath: string = '/app') => {
     return {
         configPath: path.join(rootPath, 'config.json'),
@@ -159,7 +163,7 @@ test('deleteStaleRepository can delete a git repository', async () => {
 
     await deleteStaleRepository(repo, db, ctx);
 
-    expect(db.data.repos['github.com/sourcebot-dev/sourcebot']).toBeUndefined();;
+    expect(db.data.repos['github.com/sourcebot-dev/sourcebot']).toBeUndefined();
     expect(rm).toHaveBeenCalledWith(`${ctx.reposPath}/github.com/sourcebot-dev/sourcebot`, {
         recursive: true,
     });

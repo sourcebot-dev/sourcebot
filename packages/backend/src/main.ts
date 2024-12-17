@@ -73,10 +73,10 @@ export const deleteStaleRepository = async (repo: Repository, db: Database, ctx:
     logger.info(`Deleting stale repository ${repo.id}:`);
 
     // Delete the checked out git repository (if applicable)
-    if (repo.vcs === "git") {
+    if (repo.vcs === "git" && existsSync(repo.path)) {
         logger.info(`\tDeleting git directory ${repo.path}...`);
         await rm(repo.path, {
-            recursive: true
+            recursive: true,
         });
     }
 
@@ -116,6 +116,10 @@ export const deleteStaleRepository = async (repo: Repository, db: Database, ctx:
         });
 
         await Promise.all(indexFiles.map((file) => {
+            if (!existsSync(file)) {
+                return;
+            }
+
             logger.info(`\tDeleting index file ${file}...`);
             return rm(file);
         }));
