@@ -84,7 +84,7 @@
     "@lezer/common" "^1.0.0"
     "@lezer/go" "^1.0.0"
 
-"@codemirror/lang-html@^6.0.0", "@codemirror/lang-html@^6.4.9":
+"@codemirror/lang-html@^6.0.0", "@codemirror/lang-html@^6.4.7", "@codemirror/lang-html@^6.4.9":
   version "6.4.9"
   resolved "https://registry.yarnpkg.com/@codemirror/lang-html/-/lang-html-6.4.9.tgz#d586f2cc9c341391ae07d1d7c545990dfa069727"
   integrity sha512-aQv37pIMSlueybId/2PVSP6NPnmurFDVmZwzc7jszd2KAF8qd4VBbvNYPXWQq90WIARjsdVkPbw29pszmHws3Q==
@@ -231,6 +231,16 @@
     "@lezer/highlight" "^1.0.0"
     "@lezer/lr" "^1.3.1"
 
+"@codemirror/lang-wast@^6.0.2":
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/@codemirror/lang-wast/-/lang-wast-6.0.2.tgz#d2b14175e5e80d7878cbbb29e20ec90dc12d3a2b"
+  integrity sha512-Imi2KTpVGm7TKuUkqyJ5NRmeFWF7aMpNiwHnLQe0x9kmrxElndyH0K6H/gXtWwY6UshMRAhpENsgfpSwsgmC6Q==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@lezer/common" "^1.2.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+
 "@codemirror/lang-xml@^6.1.0":
   version "6.1.0"
   resolved "https://registry.yarnpkg.com/@codemirror/lang-xml/-/lang-xml-6.1.0.tgz#e3e786e1a89fdc9520efe75c1d6d3de1c40eb91c"
@@ -255,6 +265,18 @@
     "@lezer/highlight" "^1.2.0"
     "@lezer/lr" "^1.0.0"
     "@lezer/yaml" "^1.0.0"
+
+"@codemirror/language@6.x", "@codemirror/language@^6.10.2", "@codemirror/language@^6.10.3", "@codemirror/language@^6.9.0":
+  version "6.10.6"
+  resolved "https://registry.yarnpkg.com/@codemirror/language/-/language-6.10.6.tgz#3770aa55fce575b45b1037b390b576907f0061c7"
+  integrity sha512-KrsbdCnxEztLVbB5PycWXFxas4EOyk/fPAfruSOnDDppevQgid2XZ+KbJ9u+fDikP/e7MW7HPBTvTb8JlZK9vA==
+  dependencies:
+    "@codemirror/state" "^6.0.0"
+    "@codemirror/view" "^6.23.0"
+    "@lezer/common" "^1.1.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+    style-mod "^4.0.0"
 
 "@codemirror/language@^6.0.0", "@codemirror/language@^6.3.0", "@codemirror/language@^6.4.0", "@codemirror/language@^6.6.0", "@codemirror/language@^6.8.0":
   version "6.10.3"
@@ -321,6 +343,15 @@
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/@colors/colors/-/colors-1.6.0.tgz#ec6cd237440700bc23ca23087f513c75508958b0"
   integrity sha512-Ir+AOibqzrIsL6ajt3Rz3LskB7OiMVHqltZmspbW/TJuTVuyOMirVqAkjfY6JISiLHgyNqicAC8AyHHGzNd/dA==
+
+"@cookshack/codemirror-lang-csv@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@cookshack/codemirror-lang-csv/-/codemirror-lang-csv-0.1.0.tgz#4bb154910b596bbb9cd06654a57e9638fb570ec7"
+  integrity sha512-CfrZsN80+4fUKeeXVOMNIPMQkGSnftTXPg/lSYBT8QeIpKff/zF/gtS+QtcrsWuRwVI1raXMLuQ9UaApR35Frg==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
 
 "@dabh/diagnostics@^2.0.2":
   version "2.0.3"
@@ -695,6 +726,16 @@
   resolved "https://registry.yarnpkg.com/@iconify/types/-/types-2.0.0.tgz#ab0e9ea681d6c8a1214f30cd741fe3a20cc57f57"
   integrity sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==
 
+"@iizukak/codemirror-lang-wgsl@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@iizukak/codemirror-lang-wgsl/-/codemirror-lang-wgsl-0.3.0.tgz#17b975ff2575f526ed563441e0bb8ec1f1cd7ef1"
+  integrity sha512-Hv957EXK8CzJvoAlKLtHBfC3BIiqFlTBu/0znBgSYhooDBZBpZQEKp1zgr3OYbg03CG1mRJmrypO/HQXB3xavA==
+  dependencies:
+    "@codemirror/language" "6.x"
+    "@lezer/highlight" "1.x"
+    "@lezer/lr" "^1.x"
+    codemirror "6.x"
+
 "@img/sharp-darwin-arm64@0.33.5":
   version "0.33.5"
   resolved "https://registry.yarnpkg.com/@img/sharp-darwin-arm64/-/sharp-darwin-arm64-0.33.5.tgz#ef5b5a07862805f1e8145a377c8ba6e98813ca08"
@@ -874,6 +915,11 @@
   resolved "https://registry.yarnpkg.com/@lezer/common/-/common-1.2.2.tgz#33cb2de75d72602d3ca905cdf7e32049fbe7402c"
   integrity sha512-Z+R3hN6kXbgBWAuejUNPihylAL1Z5CaFqnIe0nTX8Ej+XlIy3EGtXxn6WtLMO+os2hRkQvm2yvaGMYliUzlJaw==
 
+"@lezer/common@^1.0.3":
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/@lezer/common/-/common-1.2.3.tgz#138fcddab157d83da557554851017c6c1e5667fd"
+  integrity sha512-w7ojc8ejBqr2REPsWxJjrMFsA/ysDCFICn8zEOR9mrqzOu2amhITYuLD8ag6XZf0CFXDrhKqw7+tW8cX66NaDA==
+
 "@lezer/cpp@^1.0.0":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@lezer/cpp/-/cpp-1.1.2.tgz#1db93b09e011e8a7a08c347c9d5b7749971253bf"
@@ -901,7 +947,7 @@
     "@lezer/highlight" "^1.0.0"
     "@lezer/lr" "^1.0.0"
 
-"@lezer/highlight@^1.0.0", "@lezer/highlight@^1.1.3", "@lezer/highlight@^1.2.0":
+"@lezer/highlight@1.x", "@lezer/highlight@^1.0.0", "@lezer/highlight@^1.1.3", "@lezer/highlight@^1.1.6", "@lezer/highlight@^1.2.0", "@lezer/highlight@^1.2.1":
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/@lezer/highlight/-/highlight-1.2.1.tgz#596fa8f9aeb58a608be0a563e960c373cbf23f8b"
   integrity sha512-Z5duk4RN/3zuVO7Jq0pGLJ3qynpxUVsh7IbUbGj88+uV2ApSAn6kWg2au3iJb+0Zi7kKtqffIESgNcRXWZWmSA==
@@ -944,7 +990,7 @@
     "@lezer/highlight" "^1.0.0"
     "@lezer/lr" "^1.0.0"
 
-"@lezer/lr@^1.0.0", "@lezer/lr@^1.1.0", "@lezer/lr@^1.3.0", "@lezer/lr@^1.3.1", "@lezer/lr@^1.4.0":
+"@lezer/lr@^1.0.0", "@lezer/lr@^1.1.0", "@lezer/lr@^1.3.0", "@lezer/lr@^1.3.1", "@lezer/lr@^1.3.10", "@lezer/lr@^1.3.7", "@lezer/lr@^1.4.0", "@lezer/lr@^1.4.2", "@lezer/lr@^1.x":
   version "1.4.2"
   resolved "https://registry.yarnpkg.com/@lezer/lr/-/lr-1.4.2.tgz#931ea3dea8e9de84e90781001dae30dea9ff1727"
   integrity sha512-pu0K1jCIdnQ12aWNaAVU5bzi7Bd1w54J3ECgANPmYLtQKP0HBj2cE/5coBD66MT10xbtIuUr7tg0Shbsvk0mDA==
@@ -995,7 +1041,7 @@
     "@lezer/highlight" "^1.0.0"
     "@lezer/lr" "^1.0.0"
 
-"@lezer/xml@^1.0.0":
+"@lezer/xml@^1.0.0", "@lezer/xml@^1.0.2":
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/@lezer/xml/-/xml-1.0.5.tgz#4bb7fd3e527f41b78372477aa753f035b41c3846"
   integrity sha512-VFouqOzmUWfIg+tfmpcdV33ewtK+NSwd4ngSe1aG7HFb4BN0ExyY1b8msp+ndFrnlG4V4iC8yXacjFtrwERnaw==
@@ -1530,6 +1576,23 @@
   resolved "https://registry.yarnpkg.com/@replit/codemirror-lang-csharp/-/codemirror-lang-csharp-6.2.0.tgz#bd652f5788ad93579ee0dcab5b163ed2674b974f"
   integrity sha512-6utbaWkoymhoAXj051mkRp+VIJlpwUgCX9Toevz3YatiZsz512fw3OVCedXQx+WcR0wb6zVHjChnuxqfCLtFVQ==
 
+"@replit/codemirror-lang-nix@^6.0.1":
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/@replit/codemirror-lang-nix/-/codemirror-lang-nix-6.0.1.tgz#d87af4ce9eb2cf30fdd64c9be0cb576783331217"
+  integrity sha512-lvzjoYn9nfJzBD5qdm3Ut6G3+Or2wEacYIDJ49h9+19WSChVnxv4ojf+rNmQ78ncuxIt/bfbMvDLMeMP0xze6g==
+
+"@replit/codemirror-lang-solidity@^6.0.2":
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/@replit/codemirror-lang-solidity/-/codemirror-lang-solidity-6.0.2.tgz#035443a0f40bc95e333980f626d0c4ae92d95a4a"
+  integrity sha512-/dpTVH338KFV6SaDYYSadkB4bI/0B0QRF/bkt1XS3t3QtyR49mn6+2k0OUQhvt2ZSO7kt10J+OPilRAtgbmX0w==
+  dependencies:
+    "@lezer/highlight" "^1.2.0"
+
+"@replit/codemirror-lang-svelte@^6.0.0":
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/@replit/codemirror-lang-svelte/-/codemirror-lang-svelte-6.0.0.tgz#a9d36a2c762280db66809190f0d68fa43befe0d9"
+  integrity sha512-U2OqqgMM6jKelL0GNWbAmqlu1S078zZNoBqlJBW+retTc5M4Mha6/Y2cf4SVg6ddgloJvmcSpt4hHrVoM4ePRA==
+
 "@replit/codemirror-vim@^6.2.1":
   version "6.2.1"
   resolved "https://registry.yarnpkg.com/@replit/codemirror-vim/-/codemirror-vim-6.2.1.tgz#6673ff4be93b7da03d303ef37d6cbfa5f647b74b"
@@ -1634,6 +1697,23 @@
   version "1.10.4"
   resolved "https://registry.yarnpkg.com/@rushstack/eslint-patch/-/eslint-patch-1.10.4.tgz#427d5549943a9c6fce808e39ea64dbe60d4047f1"
   integrity sha512-WJgX9nzTqknM393q1QJDJmoW28kUfEnybeTfVNcNAPnIx210RXm2DiXiHzfNPJNIUUb1tJnz/l4QGtJ30PgWmA==
+
+"@shopify/lang-jsonc@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@shopify/lang-jsonc/-/lang-jsonc-1.0.0.tgz#b556b227518f8881f215c4014589b7c5b30b6297"
+  integrity sha512-Zvj0eerl0pKoY41no0DBayDT44PVkTx0hGuD98t3v2JSzqOcyvuP3HtW/NVi8StTbKPLWObX+gqZ+u+rUR2H3g==
+  dependencies:
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.3.7"
+
+"@ssddanbrown/codemirror-lang-twig@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@ssddanbrown/codemirror-lang-twig/-/codemirror-lang-twig-1.0.0.tgz#691c1c8229f650dda878b81b75b3cf9789fa29ff"
+  integrity sha512-7WIMIh8Ssc54TooGCY57WU2rKEqZZrcV2tZSVRPtd0gKYsrDEKCSLWpQjUWEx7bdgh3NKHUjq1O4ugIzI/+dwQ==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
 
 "@swc/counter@^0.1.3":
   version "0.1.3"
@@ -2044,6 +2124,28 @@
     loupe "^3.1.2"
     tinyrainbow "^1.2.0"
 
+"@viz-js/lang-dot@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@viz-js/lang-dot/-/lang-dot-1.0.4.tgz#ffa2ffdef23d40638c0405b63add557e990a7270"
+  integrity sha512-429ck5wTMDzzFjX5QAQfamNp1MZwAti3PV0k6mnC7H50sZYjo5qloTl/mwz7parc8DlqkTU2nOQ+RRIsHMM/Tg==
+  dependencies:
+    "@codemirror/language" "^6.8.0"
+    "@lezer/common" "^1.0.3"
+    "@lezer/highlight" "^1.1.6"
+    "@lezer/xml" "^1.0.2"
+
+"@xiechao/codemirror-lang-handlebars@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@xiechao/codemirror-lang-handlebars/-/codemirror-lang-handlebars-1.0.4.tgz#79bf3952a01147461ac0216d8b2cf22097ba008a"
+  integrity sha512-ghOpKUrRvvPQnvoVXY8axEA3xVFxC8M0zNDgiUdfJykqCMxusb3pN9ZbYYg/8KuoGUR/LDd2rb6eaW7ftcCqOg==
+  dependencies:
+    "@codemirror/lang-html" "^6.4.7"
+    "@codemirror/language" "^6.0.0"
+    "@lezer/common" "^1.2.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+    codemirror "^6.0.1"
+
 abort-controller@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/abort-controller/-/abort-controller-3.0.0.tgz#eaf54d53b62bae4138e809ca225c8439a6efb392"
@@ -2442,7 +2544,129 @@ clsx@^2.1.1:
   resolved "https://registry.yarnpkg.com/clsx/-/clsx-2.1.1.tgz#eed397c9fd8bd882bfb18deab7102049a2f32999"
   integrity sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==
 
-codemirror@^6.0.0:
+cm6-graphql@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/cm6-graphql/-/cm6-graphql-0.2.0.tgz#f73880eeed63d0bbe331f14c8220f2265c6735fd"
+  integrity sha512-nlH5J9doRFUXLPZN9yFiaW6RVkTx35IH5rqfmmYVlNdIRlfBFiJ6UPG8O2zmxZWmBY/jr7+7NvOzaEx5S40rjg==
+  dependencies:
+    graphql-language-service "^5.3.0"
+
+codemirror-lang-brainfuck@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-brainfuck/-/codemirror-lang-brainfuck-0.1.0.tgz#528d8a4dd4c7c1f57151f6f1c8141719e7313c18"
+  integrity sha512-4KrqYlQYM0NWzuIjNrUX/Auz7Mo8e99SJB1h9AjXz6PsgMQMl7ljrczhm/DbSD66dthVyYeda2SXpMx9kcbmhw==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+
+codemirror-lang-elixir@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-elixir/-/codemirror-lang-elixir-4.0.0.tgz#f3e8c0784d0997afb0f307f15592a4c960cc63ef"
+  integrity sha512-mzFesxo/t6KOxwnkqVd34R/q7yk+sMtHh6vUKGAvjwHmpL7bERHB+vQAsmU/nqrndkwVeJEHWGw/z/ybfdiudA==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    lezer-elixir "^1.0.0"
+
+codemirror-lang-hcl@^0.0.0-beta.2:
+  version "0.0.0-beta.2"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-hcl/-/codemirror-lang-hcl-0.0.0-beta.2.tgz#05ab6dfa6399c5987942e2eb5051f3426d44aad5"
+  integrity sha512-R3ew7Z2EYTdHTMXsWKBW9zxnLoLPYO+CrAa3dPZjXLrIR96Q3GR4cwJKF7zkSsujsnWgwRQZonyWpXYXfhQYuQ==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+
+codemirror-lang-j@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-j/-/codemirror-lang-j-0.1.1.tgz#0ab6ce456b53890505e1d16fea9fe1a0ad8f61cc"
+  integrity sha512-bA9kZteIwKZG5Qrn43SzB/TlAQ0FOQPjS1VwZ6MDyqxEILvjY1LGxXZARORnIhFGBwuYOo0SokVcZvJvBUy4ZA==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@lezer/common" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+
+codemirror-lang-jq@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-jq/-/codemirror-lang-jq-1.0.0.tgz#6865885dea031a0c4e405a0961c071e436c090a4"
+  integrity sha512-oE0kFbhPQekIykUMty9gN9SoijER5gScGbX+b1GYAUp+XtAekP/NPyUHNiFG3OeqGK/B3NWO0di2CYij9Pf48A==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+
+codemirror-lang-makefile@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-makefile/-/codemirror-lang-makefile-0.1.1.tgz#0b26d6a89f02faff66af8cf8d16873e62eacbdfd"
+  integrity sha512-aCmX0TIj88pQDFeBLmfhiE1ZYmLcWf2c9hk0pscbshCk1x1JO1314q67fbpSaPWm86fl8+wZ2gFuNPlVJ2iFzw==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+
+codemirror-lang-mermaid@^0.5.0:
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-mermaid/-/codemirror-lang-mermaid-0.5.0.tgz#7e31bd474128febf6296d72412e85d86a9a493eb"
+  integrity sha512-Taw/2gPCyNArQJCxIP/HSUif+3zrvD+6Ugt7KJZ2dUKou/8r3ZhcfG8krNTZfV2iu8AuGnymKuo7bLPFyqsh/A==
+  dependencies:
+    "@codemirror/language" "^6.9.0"
+    "@lezer/highlight" "^1.1.6"
+    "@lezer/lr" "^1.3.10"
+
+codemirror-lang-perl@^0.1.5-beta.6:
+  version "0.1.5-beta.6"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-perl/-/codemirror-lang-perl-0.1.5-beta.6.tgz#f6c7013ea271805c96e6befbc505e9dc2ec186e8"
+  integrity sha512-RpKsMRr/5IGcVbo0cj1JWga6My7jbx+Lzs9tbijEEE31a3BcyHcNN0VbmBVm1Z1UJA/C9q0TxhZu5WH/ZgYjFA==
+  dependencies:
+    "@codemirror/language" "^6.10.2"
+    "@lezer/highlight" "^1.2.1"
+    "@lezer/lr" "^1.4.2"
+
+codemirror-lang-prolog@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-prolog/-/codemirror-lang-prolog-0.1.0.tgz#9864ec3a1a554fa9d710d9bbd76b9b0fa2f85227"
+  integrity sha512-l8UvvCy3ub9kHbREFPG44xhHNG/AuCwkQEbLANfppHi1qZEWdr59ChSo4ZVu5XmC4PrHH3aMUHF+E2KS/V+LpA==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+
+codemirror-lang-r@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-r/-/codemirror-lang-r-0.1.1.tgz#32c80f61e74008d14ee94b164f9a3cb6c22555de"
+  integrity sha512-ke9Bm7IPKOoEk0p8LxZJaRlqp8CGOOZns9eKyj/WUaNV58h4uEeWbMpWeJJhVIPvfiuXYkv4FG1hD70gguWJLQ==
+  dependencies:
+    "@codemirror/language" "^6.10.3"
+    lezer-r "^0.1.3"
+
+codemirror-lang-sparql@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-sparql/-/codemirror-lang-sparql-2.0.0.tgz#b4c428c4a6a3fd341ada8a092261152102f6455f"
+  integrity sha512-RM05p8q14KpvwJuQ0Nh30LPR/Uwpti3sH/REUBdOXgVCHJCtgxq0mncrzzrvv+BRUb84GC0t6I5dd6jLg4HggQ==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+
+codemirror-lang-spreadsheet@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-spreadsheet/-/codemirror-lang-spreadsheet-1.3.0.tgz#0105d8142948477891bc837f86dda64bb2ac1dad"
+  integrity sha512-Gudwf+QYesPP2202iGcFV5NiS8fzlBM3xDRv0M4NgBDyTbzkN9mHLggMziKxfB9o2jz6yL53w7D11Kt12cQlhQ==
+  dependencies:
+    "@codemirror/language" "^6.6.0"
+    "@lezer/highlight" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+
+codemirror-lang-zig@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/codemirror-lang-zig/-/codemirror-lang-zig-0.1.0.tgz#1973868ce1f4a5a968ef14f922c25dc39fc54eea"
+  integrity sha512-/6rTQzs1SUQKNTkD88+B4g89h46Yad+Vm1AIuXfgLSWWsqRjkTZovhjZny6TW1BijSjIR2OC9cJlC7mHa/Ystw==
+  dependencies:
+    "@codemirror/language" "^6.0.0"
+    "@lezer/common" "^1.0.0"
+    "@lezer/lr" "^1.0.0"
+
+codemirror@6.x, codemirror@^6.0.0, codemirror@^6.0.1:
   version "6.0.1"
   resolved "https://registry.yarnpkg.com/codemirror/-/codemirror-6.0.1.tgz#62b91142d45904547ee3e0e0e4c1a79158035a29"
   integrity sha512-J8j+nZ+CdWmIeFIGXEFbFPtpiYacFMDR8GlHK3IyHQJMCaVRfGx9NT+Hxivv1ckLWPvNdZqndbr/7lVhrf/Svg==
@@ -2454,6 +2678,11 @@ codemirror@^6.0.0:
     "@codemirror/search" "^6.0.0"
     "@codemirror/state" "^6.0.0"
     "@codemirror/view" "^6.0.0"
+
+codemirror@^5.65.3:
+  version "5.65.18"
+  resolved "https://registry.yarnpkg.com/codemirror/-/codemirror-5.65.18.tgz#d7146e4271135a9b4adcd023a270185457c9c428"
+  integrity sha512-Gaz4gHnkbHMGgahNt3CA5HBk5lLQBqmD/pBgeB4kQU6OedZmqMBjlRF0LSrp2tJ4wlLNPm2FfaUd1pDy0mdlpA==
 
 color-convert@^1.9.0, color-convert@^1.9.3:
   version "1.9.3"
@@ -2616,6 +2845,11 @@ data-view-byte-offset@^1.0.0:
     call-bind "^1.0.6"
     es-errors "^1.3.0"
     is-data-view "^1.0.1"
+
+debounce-promise@^3.1.2:
+  version "3.1.2"
+  resolved "https://registry.yarnpkg.com/debounce-promise/-/debounce-promise-3.1.2.tgz#320fb8c7d15a344455cd33cee5ab63530b6dc7c5"
+  integrity sha512-rZHcgBkbYavBeD9ej6sP56XfG53d51CD4dnaw989YX/nZ/ZJfgRx/9ePKmTNiUiyQvh4mtrMoS3OAWW+yoYtpg==
 
 debug@4, debug@^4.1.1, debug@^4.3.1, debug@^4.3.2, debug@^4.3.4, debug@^4.3.5, debug@^4.3.7:
   version "4.3.7"
@@ -3563,6 +3797,20 @@ graphemer@^1.4.0:
   resolved "https://registry.yarnpkg.com/graphemer/-/graphemer-1.4.0.tgz#fb2f1d55e0e3a1849aeffc90c4fa0dd53a0e66c6"
   integrity sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==
 
+graphql-language-service@^5.3.0:
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/graphql-language-service/-/graphql-language-service-5.3.0.tgz#e99da78b129e30bc6e2a3fd897f7df4ab23b2fee"
+  integrity sha512-gCQIIy7lM9CB1KPLEb+DNZLczA9zuTLEOJE2hEQZTFYInogdmMDRa6RAkvM4LL0LcgcS+3uPs6KtHlcjCqRbUg==
+  dependencies:
+    debounce-promise "^3.1.2"
+    nullthrows "^1.0.0"
+    vscode-languageserver-types "^3.17.1"
+
+graphql@^16.9.0:
+  version "16.9.0"
+  resolved "https://registry.yarnpkg.com/graphql/-/graphql-16.9.0.tgz#1c310e63f16a49ce1fbb230bd0a000e99f6f115f"
+  integrity sha512-GGTKBX4SD7Wdb8mqeDLni2oaRGYQWjWHGKPQ24ZMnUtKfcsVoiv4uX8+LJr1K6U5VW2Lu1BwJnj7uiori0YtRw==
+
 has-bigints@^1.0.1, has-bigints@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/has-bigints/-/has-bigints-1.0.2.tgz#0871bd3e3d51626f6ca0966668ba35d5602d6eaa"
@@ -4092,6 +4340,22 @@ levn@^0.4.1:
     prelude-ls "^1.2.1"
     type-check "~0.4.0"
 
+lezer-elixir@^1.0.0:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/lezer-elixir/-/lezer-elixir-1.1.2.tgz#094d287c609742bd36265f8d2156815509286cc8"
+  integrity sha512-K3yPMJcNhqCL6ugr5NkgOC1g37rcOM38XZezO9lBXy0LwWFd8zdWXfmRbY829vZVk0OGCQoI02yDWp9FF2OWZA==
+  dependencies:
+    "@lezer/highlight" "^1.2.0"
+    "@lezer/lr" "^1.3.0"
+
+lezer-r@^0.1.3:
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/lezer-r/-/lezer-r-0.1.3.tgz#78f70baf8bfd2d485e463d80d773cfc30e0a5b4a"
+  integrity sha512-tk+7Q54+ZYHKlLZj69GuZNC8+nMYPIFhGjrSe2fTyQAk9GyUsxgRsmF8V4r7cUiB65+lRu5/SrePeTEKQx5ZAQ==
+  dependencies:
+    "@lezer/highlight" "^1.2.1"
+    "@lezer/lr" "^1.4.2"
+
 lilconfig@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/lilconfig/-/lilconfig-2.1.0.tgz#78e23ac89ebb7e1bfbf25b18043de756548e7f52"
@@ -4363,6 +4627,11 @@ npm-run-all@^4.1.5:
     read-pkg "^3.0.0"
     shell-quote "^1.6.1"
     string.prototype.padend "^3.0.0"
+
+nullthrows@^1.0.0:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/nullthrows/-/nullthrows-1.1.1.tgz#7818258843856ae971eae4208ad7d7eb19a431b1"
+  integrity sha512-2vPPEi+Z7WqML2jZYddDIfy5Dqb0r2fze2zTxNNknZaFpVHU3mFB3R+DWeJWGVx0ecvttSGlJTI+WG+8Z4cDWw==
 
 nwsapi@^2.2.12:
   version "2.2.13"
@@ -5877,6 +6146,11 @@ vitest@^2.1.5:
     vite "^5.0.0"
     vite-node "2.1.5"
     why-is-node-running "^2.3.0"
+
+vscode-languageserver-types@^3.17.1:
+  version "3.17.5"
+  resolved "https://registry.yarnpkg.com/vscode-languageserver-types/-/vscode-languageserver-types-3.17.5.tgz#3273676f0cf2eab40b3f44d085acbb7f08a39d8a"
+  integrity sha512-Ld1VelNuX9pdF39h2Hgaeb5hEZM2Z3jUrrMgWQAu82jMtZp7p3vJT3BzToKtZI7NgQssZje5o0zryOrhQvzQAg==
 
 w3c-keyname@^2.2.4:
   version "2.2.8"
