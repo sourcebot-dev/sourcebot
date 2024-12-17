@@ -22,6 +22,7 @@ type OctokitRepository = {
     forks_count?: number,
     archived?: boolean,
     topics?: string[],
+    size?: number,
 }
 
 export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: AbortSignal, ctx: AppContext) => {
@@ -94,6 +95,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
                     'zoekt.fork': marshalBool(repo.fork),
                     'zoekt.public': marshalBool(repo.private === false)
                 },
+                sizeInBytes: repo.size ? repo.size * 1000 : undefined,
                 branches: [],
                 tags: [],
             } satisfies GitRepository;
@@ -120,6 +122,42 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
         if (config.exclude.topics) {
             const topics = config.exclude.topics.map(topic => topic.toLowerCase());
             repos = excludeReposByTopic(repos, topics, logger);
+        }
+
+        if (config.exclude.size) {
+            const min = config.exclude.size.min;
+            const max = config.exclude.size.max;
+            if (min) {
+                repos = repos.filter((repo) => {
+                    // If we don't have a size, we can't filter by size.
+                    if (!repo.sizeInBytes) {
+                        return true;
+                    }
+
+                    if (repo.sizeInBytes < min) {
+                        logger.debug(`Excluding repo ${repo.name}. Reason: repo is less than \`exclude.size.min\`=${min} bytes.`);
+                        return false;
+                    }
+
+                    return true;
+                });
+            }
+
+            if (max) {
+                repos = repos.filter((repo) => {
+                    // If we don't have a size, we can't filter by size.
+                    if (!repo.sizeInBytes) {
+                        return true;
+                    }
+
+                    if (repo.sizeInBytes > max) {
+                        logger.debug(`Excluding repo ${repo.name}. Reason: repo is greater than \`exclude.size.max\`=${max} bytes.`);
+                        return false;
+                    }
+
+                    return true;
+                });
+            }
         }
     }
 

@@ -11,6 +11,11 @@
             "token": {
                 "env": "GITHUB_TOKEN"
             },
+            "exclude": {
+                "size": {
+                    "max": 1000000000 // Limit to 1GB
+                }
+            },
             "repos": [
                 "torvalds/linux",
                 "pytorch/pytorch",

@@ -9,6 +9,7 @@ interface BaseRepository {
     isArchived?: boolean;
     codeHost?: string;
     topics?: string[];
+    sizeInBytes?: number;
 }
 
 export interface GitRepository extends BaseRepository {
