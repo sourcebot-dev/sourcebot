@@ -99,7 +99,7 @@ export const migration_addDeleteStaleRepos = (schema: Schema, log?: (name: strin
 }
 
 /**
- * @todo : add PR comment
+ * @see: https://github.com/sourcebot-dev/sourcebot/pull/134
  */
 export const migration_addReindexInterval = (schema: Schema, log?: (name: string) => void) => {
     if (schema.settings.reindexInterval === undefined) {
@@ -111,7 +111,7 @@ export const migration_addReindexInterval = (schema: Schema, log?: (name: string
 }
 
 /**
- * @todo : add PR comment
+ * @see: https://github.com/sourcebot-dev/sourcebot/pull/134
  */
 export const migration_addResyncInterval = (schema: Schema, log?: (name: string) => void) => {
     if (schema.settings.resyncInterval === undefined) {
