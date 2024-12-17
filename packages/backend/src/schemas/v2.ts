@@ -25,6 +25,14 @@ export interface Settings {
    * Automatically delete stale repositories from the index. Defaults to true.
    */
   autoDeleteStaleRepos?: boolean;
+  /**
+   * The interval (in milliseconds) at which the indexer should re-index all repositories. Repositories are always indexed when first added. Defaults to 1 hour (3600000 milliseconds).
+   */
+  reindexInterval?: number;
+  /**
+   * The interval (in milliseconds) at which the configuration file should be re-synced. The configuration file is always synced on startup. Defaults to 24 hours (86400000 milliseconds).
+   */
+  resyncInterval?: number;
 }
 export interface GitHubConfig {
   /**

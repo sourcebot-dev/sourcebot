@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { DEFAULT_DB_DATA, migration_addDeleteStaleRepos, migration_addMaxFileSize, migration_addSettings, Schema } from './db';
+import { DEFAULT_DB_DATA, migration_addDeleteStaleRepos, migration_addMaxFileSize, migration_addReindexInterval, migration_addResyncInterval, migration_addSettings, Schema } from './db';
 import { DEFAULT_SETTINGS } from './constants';
 import { DeepPartial } from './types';
 import { Low } from 'lowdb';
@@ -60,4 +60,66 @@ test('migration_addDeleteStaleRepos adds the `autoDeleteStaleRepos` field with t
             autoDeleteStaleRepos: DEFAULT_SETTINGS.autoDeleteStaleRepos,
         }
     });
+});
+
+test('migration_addReindexInterval adds the `reindexInterval` field with the default value if it does not exist', () => {
+    const schema: DeepPartial<Schema> = {
+        settings: {
+            maxFileSize: DEFAULT_SETTINGS.maxFileSize,
+            autoDeleteStaleRepos: DEFAULT_SETTINGS.autoDeleteStaleRepos,
+        },
+    }
+
+    const migratedSchema = migration_addReindexInterval(schema as Schema);
+    expect(migratedSchema).toStrictEqual({
+        settings: {
+            maxFileSize: DEFAULT_SETTINGS.maxFileSize,
+            autoDeleteStaleRepos: DEFAULT_SETTINGS.autoDeleteStaleRepos,
+            reindexInterval: DEFAULT_SETTINGS.reindexInterval,
+        }
+    });
+});
+
+test('migration_addReindexInterval preserves existing reindexInterval value if already set', () => {
+    const customInterval = 60;
+    const schema: DeepPartial<Schema> = {
+        settings: {
+            maxFileSize: DEFAULT_SETTINGS.maxFileSize,
+            reindexInterval: customInterval,
+        },
+    }
+
+    const migratedSchema = migration_addReindexInterval(schema as Schema);
+    expect(migratedSchema.settings.reindexInterval).toBe(customInterval);
+});
+
+test('migration_addResyncInterval adds the `resyncInterval` field with the default value if it does not exist', () => {
+    const schema: DeepPartial<Schema> = {
+        settings: {
+            maxFileSize: DEFAULT_SETTINGS.maxFileSize,
+            autoDeleteStaleRepos: DEFAULT_SETTINGS.autoDeleteStaleRepos,
+        },
+    }
+
+    const migratedSchema = migration_addResyncInterval(schema as Schema);
+    expect(migratedSchema).toStrictEqual({
+        settings: {
+            maxFileSize: DEFAULT_SETTINGS.maxFileSize,
+            autoDeleteStaleRepos: DEFAULT_SETTINGS.autoDeleteStaleRepos,
+            resyncInterval: DEFAULT_SETTINGS.resyncInterval,
+        }
+    });
+});
+
+test('migration_addResyncInterval preserves existing resyncInterval value if already set', () => {
+    const customInterval = 120;
+    const schema: DeepPartial<Schema> = {
+        settings: {
+            maxFileSize: DEFAULT_SETTINGS.maxFileSize,
+            resyncInterval: customInterval,
+        },
+    }
+
+    const migratedSchema = migration_addResyncInterval(schema as Schema);
+    expect(migratedSchema.settings.resyncInterval).toBe(customInterval);
 });

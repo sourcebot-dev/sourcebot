@@ -10,7 +10,7 @@ import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
 import { createRepository, Database, loadDB, updateRepository, updateSettings } from './db.js';
 import { arraysEqualShallow, isRemotePath, measure } from "./utils.js";
-import { DEFAULT_SETTINGS, REINDEX_INTERVAL_MS, RESYNC_CONFIG_INTERVAL_MS } from "./constants.js";
+import { DEFAULT_SETTINGS } from "./constants.js";
 import stripJsonComments from 'strip-json-comments';
 import { indexGitRepository, indexLocalRepository } from "./zoekt.js";
 import { getLocalRepoFromConfig, initLocalRepoFileWatchers } from "./local.js";
@@ -201,6 +201,8 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     const updatedSettings: Settings = {
         maxFileSize: config.settings?.maxFileSize ?? DEFAULT_SETTINGS.maxFileSize,
         autoDeleteStaleRepos: config.settings?.autoDeleteStaleRepos ?? DEFAULT_SETTINGS.autoDeleteStaleRepos,
+        reindexInterval: config.settings?.reindexInterval ?? DEFAULT_SETTINGS.reindexInterval,
+        resyncInterval: config.settings?.resyncInterval ?? DEFAULT_SETTINGS.resyncInterval,
     }
     const _isAllRepoReindexingRequired = isAllRepoReindexingRequired(db.data.settings, updatedSettings);
     await updateSettings(updatedSettings, db);
@@ -341,11 +343,10 @@ export const main = async (context: AppContext) => {
         });
     }
 
-    // Re-sync every 24 hours
+    // Re-sync at a fixed interval
     setInterval(() => {
-        logger.info(`Re-syncing configuration file ${context.configPath}`);
         _syncConfig();
-    }, RESYNC_CONFIG_INTERVAL_MS);
+    }, db.data.settings.resyncInterval);
 
     // Sync immediately on startup
     await _syncConfig();
@@ -365,7 +366,7 @@ export const main = async (context: AppContext) => {
                 continue;
             }
 
-            if (lastIndexed.getTime() > Date.now() - REINDEX_INTERVAL_MS) {
+            if (lastIndexed.getTime() > (Date.now() - db.data.settings.reindexInterval)) {
                 continue;
             }
 

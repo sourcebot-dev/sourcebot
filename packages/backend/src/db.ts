@@ -56,6 +56,8 @@ export const applyMigrations = async (db: Database) => {
         schema = migration_addSettings(schema, log);
         schema = migration_addMaxFileSize(schema, log);
         schema = migration_addDeleteStaleRepos(schema, log);
+        schema = migration_addReindexInterval(schema, log);
+        schema = migration_addResyncInterval(schema, log);
         return schema;
     });
 }
@@ -89,8 +91,32 @@ export const migration_addMaxFileSize = (schema: Schema, log?: (name: string) =>
  */
 export const migration_addDeleteStaleRepos = (schema: Schema, log?: (name: string) => void) => {
     if (schema.settings.autoDeleteStaleRepos === undefined) {
-        log?.("deleteStaleRepos");
+        log?.("addDeleteStaleRepos");
         schema.settings.autoDeleteStaleRepos = DEFAULT_SETTINGS.autoDeleteStaleRepos;
+    }
+
+    return schema;
+}
+
+/**
+ * @todo : add PR comment
+ */
+export const migration_addReindexInterval = (schema: Schema, log?: (name: string) => void) => {
+    if (schema.settings.reindexInterval === undefined) {
+        log?.("addReindexInterval");
+        schema.settings.reindexInterval = DEFAULT_SETTINGS.reindexInterval;
+    }
+
+    return schema;
+}
+
+/**
+ * @todo : add PR comment
+ */
+export const migration_addResyncInterval = (schema: Schema, log?: (name: string) => void) => {
+    if (schema.settings.resyncInterval === undefined) {
+        log?.("addResyncInterval");
+        schema.settings.resyncInterval = DEFAULT_SETTINGS.resyncInterval;
     }
 
     return schema;
