@@ -171,6 +171,21 @@
                             "examples": [
                                 ["tests", "ci"]
                             ]
+                        },
+                        "size": {
+                            "type": "object",
+                            "description": "Exclude repositories based on their disk usage. Note: the disk usage is calculated by GitHub and may not reflect the actual disk usage when cloned.",
+                            "properties": {
+                                "min": {
+                                    "type": "integer",
+                                    "description": "Minimum repository size (in bytes) to sync (inclusive). Repositories less than this size will be excluded from syncing."
+                                },
+                                "max": {
+                                    "type": "integer",
+                                    "description": "Maximum repository size (in bytes) to sync (inclusive). Repositories greater than this size will be excluded from syncing."
+                                }
+                            },
+                            "additionalProperties": false
                         }
                     },
                     "additionalProperties": false

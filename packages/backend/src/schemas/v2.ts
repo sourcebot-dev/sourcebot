@@ -89,6 +89,19 @@ export interface GitHubConfig {
      * List of repository topics to exclude when syncing. Repositories that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.
      */
     topics?: string[];
+    /**
+     * Exclude repositories based on their disk usage. Note: the disk usage is calculated by GitHub and may not reflect the actual disk usage when cloned.
+     */
+    size?: {
+      /**
+       * Minimum repository size (in bytes) to sync (inclusive). Repositories less than this size will be excluded from syncing.
+       */
+      min?: number;
+      /**
+       * Maximum repository size (in bytes) to sync (inclusive). Repositories greater than this size will be excluded from syncing.
+       */
+      max?: number;
+    };
   };
   revisions?: GitRevisions;
 }
