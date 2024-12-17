@@ -25,6 +25,14 @@ export interface Settings {
    * Automatically delete stale repositories from the index. Defaults to true.
    */
   autoDeleteStaleRepos?: boolean;
+  /**
+   * The interval (in milliseconds) at which the indexer should re-index all repositories. Repositories are always indexed when first added. Defaults to 1 hour (3600000 milliseconds).
+   */
+  reindexInterval?: number;
+  /**
+   * The interval (in milliseconds) at which the configuration file should be re-synced. The configuration file is always synced on startup. Defaults to 24 hours (86400000 milliseconds).
+   */
+  resyncInterval?: number;
 }
 export interface GitHubConfig {
   /**
@@ -81,6 +89,19 @@ export interface GitHubConfig {
      * List of repository topics to exclude when syncing. Repositories that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.
      */
     topics?: string[];
+    /**
+     * Exclude repositories based on their disk usage. Note: the disk usage is calculated by GitHub and may not reflect the actual disk usage when cloned.
+     */
+    size?: {
+      /**
+       * Minimum repository size (in bytes) to sync (inclusive). Repositories less than this size will be excluded from syncing.
+       */
+      min?: number;
+      /**
+       * Maximum repository size (in bytes) to sync (inclusive). Repositories greater than this size will be excluded from syncing.
+       */
+      max?: number;
+    };
   };
   revisions?: GitRevisions;
 }

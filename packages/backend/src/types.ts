@@ -9,6 +9,7 @@ interface BaseRepository {
     isArchived?: boolean;
     codeHost?: string;
     topics?: string[];
+    sizeInBytes?: number;
 }
 
 export interface GitRepository extends BaseRepository {
@@ -44,8 +45,22 @@ export type AppContext = {
 }
 
 export type Settings = {
+    /**
+     * The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be inexed.
+     */
     maxFileSize: number;
+    /**
+     * Automatically delete stale repositories from the index. Defaults to true.
+     */
     autoDeleteStaleRepos: boolean;
+    /**
+     * The interval (in milliseconds) at which the indexer should re-index all repositories.
+     */
+    reindexInterval: number;
+    /**
+     * The interval (in milliseconds) at which the configuration file should be re-synced.
+     */
+    resyncInterval: number;
 }
 
 // @see : https://stackoverflow.com/a/61132308
