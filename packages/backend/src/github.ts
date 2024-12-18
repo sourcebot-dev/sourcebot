@@ -201,68 +201,78 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
 }
 
 const getTagsForRepo = async (owner: string, repo: string, octokit: Octokit, signal: AbortSignal) => {
-    logger.debug(`Fetching tags for repo ${owner}/${repo}...`);
+    try {
+        logger.debug(`Fetching tags for repo ${owner}/${repo}...`);
+        const { durationMs, data: tags } = await measure(() => octokit.paginate(octokit.repos.listTags, {
+            owner,
+            repo,
+            per_page: 100,
+            request: {
+                signal
+            }
+        }));
 
-    const { durationMs, data: tags } = await measure(() => octokit.paginate(octokit.repos.listTags, {
-        owner,
-        repo,
-        per_page: 100,
-        request: {
-            signal
-        }
-    }));
-
-    logger.debug(`Found ${tags.length} tags for repo ${owner}/${repo} in ${durationMs}ms`);
-    return tags;
+        logger.debug(`Found ${tags.length} tags for repo ${owner}/${repo} in ${durationMs}ms`);
+        return tags;
+    } catch (e) {
+        logger.debug(`Error fetching tags for repo ${owner}/${repo}: ${e}`);
+        return [];
+    }
 }
 
 const getBranchesForRepo = async (owner: string, repo: string, octokit: Octokit, signal: AbortSignal) => {
-    logger.debug(`Fetching branches for repo ${owner}/${repo}...`);
-    const { durationMs, data: branches } = await measure(() => octokit.paginate(octokit.repos.listBranches, {
-        owner,
-        repo,
-        per_page: 100,
-        request: {
-            signal
-        }
-    }));
-    logger.debug(`Found ${branches.length} branches for repo ${owner}/${repo} in ${durationMs}ms`);
-    return branches;
+    try {
+        logger.debug(`Fetching branches for repo ${owner}/${repo}...`);
+        const { durationMs, data: branches } = await measure(() => octokit.paginate(octokit.repos.listBranches, {
+            owner,
+            repo,
+            per_page: 100,
+            request: {
+                signal
+            }
+        }));
+        logger.debug(`Found ${branches.length} branches for repo ${owner}/${repo} in ${durationMs}ms`);
+        return branches;
+    } catch (e) {
+        logger.debug(`Error fetching branches for repo ${owner}/${repo}: ${e}`);
+        return [];
+    }
 }
 
 
 const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, octokit: Octokit, signal: AbortSignal) => {
-    // @todo : error handling
     const repos = (await Promise.all(users.map(async (user) => {
-        logger.debug(`Fetching repository info for user ${user}...`);
-        const start = Date.now();
+        try {
+            logger.debug(`Fetching repository info for user ${user}...`);
 
-        const result = await (() => {
-            if (isAuthenticated) {
-                return octokit.paginate(octokit.repos.listForAuthenticatedUser, {
-                    username: user,
-                    visibility: 'all',
-                    affiliation: 'owner',
-                    per_page: 100,
-                    request: {
-                        signal,
-                    },
-                });
-            } else {
-                return octokit.paginate(octokit.repos.listForUser, {
-                    username: user,
-                    per_page: 100,
-                    request: {
-                        signal,
-                    },
-                });
-            }
-        })();
+            const { durationMs, data } = await measure(async () => {
+                if (isAuthenticated) {
+                    return octokit.paginate(octokit.repos.listForAuthenticatedUser, {
+                        username: user,
+                        visibility: 'all',
+                        affiliation: 'owner',
+                        per_page: 100,
+                        request: {
+                            signal,
+                        },
+                    });
+                } else {
+                    return octokit.paginate(octokit.repos.listForUser, {
+                        username: user,
+                        per_page: 100,
+                        request: {
+                            signal,
+                        },
+                    });
+                }
+            });
 
-        const duration = Date.now() - start;
-        logger.debug(`Found ${result.length} owned by user ${user} in ${duration}ms.`);
-
-        return result;
+            logger.debug(`Found ${data.length} owned by user ${user} in ${durationMs}ms.`);
+            return data;
+        } catch (e) {
+            logger.error(`Failed to fetch repository info for user ${user}.`, e);
+            return [];
+        }
     }))).flat();
 
     return repos;
@@ -270,45 +280,50 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
 
 const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal) => {
     const repos = (await Promise.all(orgs.map(async (org) => {
-        logger.debug(`Fetching repository info for org ${org}...`);
-        const start = Date.now();
+        try {
+            logger.debug(`Fetching repository info for org ${org}...`);
 
-        const result = await octokit.paginate(octokit.repos.listForOrg, {
-            org: org,
-            per_page: 100,
-            request: {
-                signal
-            }
-        });
+            const { durationMs, data } = await measure(() => octokit.paginate(octokit.repos.listForOrg, {
+                org: org,
+                per_page: 100,
+                request: {
+                    signal
+                }
+            }));
 
-        const duration = Date.now() - start;
-        logger.debug(`Found ${result.length} in org ${org} in ${duration}ms.`);
-
-        return result;
+            logger.debug(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
+            return data;
+        } catch (e) {
+            logger.error(`Failed to fetch repository info for org ${org}.`, e);
+            return [];
+        }
     }))).flat();
 
     return repos;
 }
 
 const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal) => {
-    const repos = await Promise.all(repoList.map(async (repo) => {
-        logger.debug(`Fetching repository info for ${repo}...`);
-        const start = Date.now();
+    const repos = (await Promise.all(repoList.map(async (repo) => {
+        try {
+            logger.debug(`Fetching repository info for ${repo}...`);
 
-        const [owner, repoName] = repo.split('/');
-        const result = await octokit.repos.get({
-            owner,
-            repo: repoName,
-            request: {
-                signal
-            }
-        });
+            const [owner, repoName] = repo.split('/');
+            const { durationMs, data: result } = await measure(() => octokit.repos.get({
+                owner,
+                repo: repoName,
+                request: {
+                    signal
+                }
+            }));
 
-        const duration = Date.now() - start;
-        logger.debug(`Found info for repository ${repo} in ${duration}ms`);
+            logger.debug(`Found info for repository ${repo} in ${durationMs}ms`);
 
-        return result.data;
-    }));
+            return [result.data];
+        } catch (e) {
+            logger.error(`Failed to fetch repository info for ${repo}.`, e);
+            return [];
+        }
+    }))).flat();
 
     return repos;
 }

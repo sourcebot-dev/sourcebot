@@ -33,7 +33,7 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
                 }));
                 logger.debug(`Found ${_projects.length} projects in ${durationMs}ms.`);
                 allProjects = allProjects.concat(_projects);
-            } catch (e: any) {
+            } catch (e) {
                 logger.error(`Failed to fetch all projects visible in ${config.url}.`, e);
             }
         } else {
@@ -51,7 +51,7 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
                 }));
                 logger.debug(`Found ${data.length} projects in group ${group} in ${durationMs}ms.`);
                 return data;
-            } catch (e: any) {
+            } catch (e) {
                 logger.error(`Failed to fetch project info for group ${group}.`, e);
                 return [];
             }
@@ -69,7 +69,7 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
                 }));
                 logger.debug(`Found ${data.length} projects owned by user ${user} in ${durationMs}ms.`);
                 return data;
-            } catch (e: any) {
+            } catch (e) {
                 logger.error(`Failed to fetch project info for user ${user}.`, e);
                 return [];
             }
@@ -85,7 +85,7 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
                 const { durationMs, data } = await measure(() => api.Projects.show(project));
                 logger.debug(`Found project ${project} in ${durationMs}ms.`);
                 return [data];
-            } catch (e: any) {
+            } catch (e) {
                 logger.error(`Failed to fetch project info for project ${project}.`, e);
                 return [];
             }
@@ -162,34 +162,44 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
         if (config.revisions.branches) {
             const branchGlobs = config.revisions.branches;
             repos = await Promise.all(repos.map(async (repo) => {
-                logger.debug(`Fetching branches for repo ${repo.name}...`);
-                let { durationMs, data } = await measure(() => api.Branches.all(repo.name));
-                logger.debug(`Found ${data.length} branches in repo ${repo.name} in ${durationMs}ms.`);
+                try {
+                    logger.debug(`Fetching branches for repo ${repo.name}...`);
+                    let { durationMs, data } = await measure(() => api.Branches.all(repo.name));
+                    logger.debug(`Found ${data.length} branches in repo ${repo.name} in ${durationMs}ms.`);
 
-                let branches = data.map((branch) => branch.name);
-                branches = micromatch.match(branches, branchGlobs);
+                    let branches = data.map((branch) => branch.name);
+                    branches = micromatch.match(branches, branchGlobs);
 
-                return {
-                    ...repo,
-                    branches,
-                };
+                    return {
+                        ...repo,
+                        branches,
+                    };
+                } catch (e) {
+                    logger.error(`Failed to fetch branches for repo ${repo.name}.`, e);
+                    return repo;
+                }
             }));
         }
 
         if (config.revisions.tags) {
             const tagGlobs = config.revisions.tags;
             repos = await Promise.all(repos.map(async (repo) => {
-                logger.debug(`Fetching tags for repo ${repo.name}...`);
-                let { durationMs, data } = await measure(() => api.Tags.all(repo.name));
-                logger.debug(`Found ${data.length} tags in repo ${repo.name} in ${durationMs}ms.`);
+                try {
+                    logger.debug(`Fetching tags for repo ${repo.name}...`);
+                    let { durationMs, data } = await measure(() => api.Tags.all(repo.name));
+                    logger.debug(`Found ${data.length} tags in repo ${repo.name} in ${durationMs}ms.`);
 
-                let tags = data.map((tag) => tag.name);
-                tags = micromatch.match(tags, tagGlobs);
+                    let tags = data.map((tag) => tag.name);
+                    tags = micromatch.match(tags, tagGlobs);
 
-                return {
-                    ...repo,
-                    tags,
-                };
+                    return {
+                        ...repo,
+                        tags,
+                    };
+                } catch (e) {
+                    logger.error(`Failed to fetch tags for repo ${repo.name}.`, e);
+                    return repo;
+                }
             }));
         }
     }
