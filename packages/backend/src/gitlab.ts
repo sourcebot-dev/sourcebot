@@ -26,12 +26,16 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
 
     if (config.all === true) {
         if (hostname !== GITLAB_CLOUD_HOSTNAME) {
-            logger.debug(`Fetching all projects visible in ${config.url}...`);
-            const { durationMs, data: _projects } = await measure(() => api.Projects.all({
-                perPage: 100,
-            }));
-            logger.debug(`Found ${_projects.length} projects in ${durationMs}ms.`);
-            allProjects = allProjects.concat(_projects);
+            try {
+                logger.debug(`Fetching all projects visible in ${config.url}...`);
+                const { durationMs, data: _projects } = await measure(() => api.Projects.all({
+                    perPage: 100,
+                }));
+                logger.debug(`Found ${_projects.length} projects in ${durationMs}ms.`);
+                allProjects = allProjects.concat(_projects);
+            } catch (e: any) {
+                logger.error(`Failed to fetch all projects visible in ${config.url}.`, e);
+            }
         } else {
             logger.warn(`Ignoring option all:true in ${ctx.configPath} : host is ${GITLAB_CLOUD_HOSTNAME}`);
         }
@@ -39,14 +43,18 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
 
     if (config.groups) {
         const _projects = (await Promise.all(config.groups.map(async (group) => {
-            logger.debug(`Fetching project info for group ${group}...`);
-            const { durationMs, data } = await measure(() => api.Groups.allProjects(group, {
-                perPage: 100,
-                includeSubgroups: true
-            }));
-            logger.debug(`Found ${data.length} projects in group ${group} in ${durationMs}ms.`);
-
-            return data;
+            try {
+                logger.debug(`Fetching project info for group ${group}...`);
+                const { durationMs, data } = await measure(() => api.Groups.allProjects(group, {
+                    perPage: 100,
+                    includeSubgroups: true
+                }));
+                logger.debug(`Found ${data.length} projects in group ${group} in ${durationMs}ms.`);
+                return data;
+            } catch (e: any) {
+                logger.error(`Failed to fetch project info for group ${group}.`, e);
+                return [];
+            }
         }))).flat();
 
         allProjects = allProjects.concat(_projects);
@@ -54,24 +62,34 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
 
     if (config.users) {
         const _projects = (await Promise.all(config.users.map(async (user) => {
-            logger.debug(`Fetching project info for user ${user}...`);
-            const { durationMs, data } = await measure(() => api.Users.allProjects(user, {
-                perPage: 100,
-            }));
-            logger.debug(`Found ${data.length} projects owned by user ${user} in ${durationMs}ms.`);
-            return data;
+            try {
+                logger.debug(`Fetching project info for user ${user}...`);
+                const { durationMs, data } = await measure(() => api.Users.allProjects(user, {
+                    perPage: 100,
+                }));
+                logger.debug(`Found ${data.length} projects owned by user ${user} in ${durationMs}ms.`);
+                return data;
+            } catch (e: any) {
+                logger.error(`Failed to fetch project info for user ${user}.`, e);
+                return [];
+            }
         }))).flat();
 
         allProjects = allProjects.concat(_projects);
     }
 
     if (config.projects) {
-        const _projects = await Promise.all(config.projects.map(async (project) => {
-            logger.debug(`Fetching project info for project ${project}...`);
-            const { durationMs, data } = await measure(() => api.Projects.show(project));
-            logger.debug(`Found project ${project} in ${durationMs}ms.`);
-            return data;
-        }));
+        const _projects = (await Promise.all(config.projects.map(async (project) => {
+            try {
+                logger.debug(`Fetching project info for project ${project}...`);
+                const { durationMs, data } = await measure(() => api.Projects.show(project));
+                logger.debug(`Found project ${project} in ${durationMs}ms.`);
+                return [data];
+            } catch (e: any) {
+                logger.error(`Failed to fetch project info for project ${project}.`, e);
+                return [];
+            }
+        }))).flat();
 
         allProjects = allProjects.concat(_projects);
     }
