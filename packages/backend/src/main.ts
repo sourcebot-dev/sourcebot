@@ -132,6 +132,11 @@ export const deleteStaleRepository = async (repo: Repository, db: Database, ctx:
     });
     
     logger.info(`Deleted stale repository ${repo.id}`);
+
+    captureEvent('repo_deleted', {
+        vcs: repo.vcs,
+        codeHost: repo.codeHost,
+    })
 }
 
 /**
