@@ -1,6 +1,6 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
-export type Repos = GitHubConfig | GitLabConfig | GiteaConfig | GerritConfig | LocalConfig;
+export type Repos = GitHubConfig | GitLabConfig | GiteaConfig | GerritConfig | LocalConfig | BitbucketConfig;
 
 /**
  * A Sourcebot configuration file outlines which repositories Sourcebot should sync and index.
@@ -267,4 +267,60 @@ export interface LocalConfig {
      */
     paths?: string[];
   };
+}
+export interface BitbucketConfig {
+  /**
+   * Bitbucket configuration
+   */
+  type: "bitbucket";
+  /**
+   * Count watchers and forks
+   */
+  countMisc?: boolean;
+  /**
+   * Bitbucket URL
+   */
+  url?: string;
+  /**
+   * server type
+   */
+  serverType?: "cloud" | "server";
+  exclude?: {
+    /**
+     * Exclude archived repositories from syncing.
+     */
+    archived?: boolean;
+    /**
+     * Exclude forked repositories from syncing.
+     */
+    forks?: boolean;
+    /**
+     * List of specific workspaces to exclude from syncing.
+     */
+    workspaces?: string[];
+    /**
+     * List of specific projects to exclude from syncing.
+     */
+    projects?: string[];
+    /**
+     * List of specific repos to exclude from syncing.
+     */
+    repos?: string[];
+  };
+  /**
+   * A bitbucket API key.
+   */
+  token:
+    | string
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      };
+  /**
+   * User name for authentication
+   */
+  user: string;
+  revisions?: GitRevisions;
 }
