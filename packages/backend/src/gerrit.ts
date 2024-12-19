@@ -28,9 +28,18 @@ export const getGerritReposFromConfig = async (config: GerritConfig, ctx: AppCon
    const url = config.url.endsWith('/') ? config.url : `${config.url}/`;
    const hostname = new URL(config.url).hostname;
 
-   const { durationMs, data: projects } = await measure(() =>
-      fetchAllProjects(url)
-   );
+   const { durationMs, data: projects } = await measure(async () => {
+      try {
+         return fetchAllProjects(url)
+      } catch (err) {
+         logger.error(`Failed to fetch projects from ${url}`, err);
+         return null;
+      }
+   });
+
+   if (!projects) {
+      return [];
+   }
 
    // exclude "All-Projects" and "All-Users" projects
    delete projects['All-Projects'];

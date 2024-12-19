@@ -122,39 +122,54 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
 }
 
 const getTagsForRepo = async <T>(owner: string, repo: string, api: Api<T>) => {
-    logger.debug(`Fetching tags for repo ${owner}/${repo}...`);
-    const { durationMs, data: tags } = await measure(() =>
-        paginate((page) => api.repos.repoListTags(owner, repo, {
-            page
-        }))
-    );
-    logger.debug(`Found ${tags.length} tags in repo ${owner}/${repo} in ${durationMs}ms.`);
-    return tags;
+    try {
+        logger.debug(`Fetching tags for repo ${owner}/${repo}...`);
+        const { durationMs, data: tags } = await measure(() =>
+            paginate((page) => api.repos.repoListTags(owner, repo, {
+                page
+            }))
+        );
+        logger.debug(`Found ${tags.length} tags in repo ${owner}/${repo} in ${durationMs}ms.`);
+        return tags;
+    } catch (e) {
+        logger.error(`Failed to fetch tags for repo ${owner}/${repo}.`, e);
+        return [];
+    }
 }
 
 const getBranchesForRepo = async <T>(owner: string, repo: string, api: Api<T>) => {
-    logger.debug(`Fetching branches for repo ${owner}/${repo}...`);
-    const { durationMs, data: branches } = await measure(() => 
-        paginate((page) => api.repos.repoListBranches(owner, repo, {
-            page
-        }))
-    );
-    logger.debug(`Found ${branches.length} branches in repo ${owner}/${repo} in ${durationMs}ms.`);
-    return branches;
+    try {
+        logger.debug(`Fetching branches for repo ${owner}/${repo}...`);
+        const { durationMs, data: branches } = await measure(() => 
+            paginate((page) => api.repos.repoListBranches(owner, repo, {
+                page
+            }))
+        );
+        logger.debug(`Found ${branches.length} branches in repo ${owner}/${repo} in ${durationMs}ms.`);
+        return branches;
+    } catch (e) {
+        logger.error(`Failed to fetch branches for repo ${owner}/${repo}.`, e);
+        return [];
+    }
 }
 
 const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
     const repos = (await Promise.all(users.map(async (user) => {
-        logger.debug(`Fetching repos for user ${user}...`);
+        try {
+            logger.debug(`Fetching repos for user ${user}...`);
 
-        const { durationMs, data } = await measure(() =>
-            paginate((page) => api.users.userListRepos(user, {
-                page,
-            }))
-        );
+            const { durationMs, data } = await measure(() =>
+                paginate((page) => api.users.userListRepos(user, {
+                    page,
+                }))
+            );
 
-        logger.debug(`Found ${data.length} repos owned by user ${user} in ${durationMs}ms.`);
-        return data;
+            logger.debug(`Found ${data.length} repos owned by user ${user} in ${durationMs}ms.`);
+            return data;
+        } catch (e) {
+            logger.error(`Failed to fetch repos for user ${user}.`, e);
+            return [];
+        }
     }))).flat();
 
     return repos;
@@ -162,33 +177,43 @@ const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
 
 const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
     return (await Promise.all(orgs.map(async (org) => {
-        logger.debug(`Fetching repos for org ${org}...`);
+        try {
+            logger.debug(`Fetching repos for org ${org}...`);
 
-        const { durationMs, data } = await measure(() =>
-            paginate((page) => api.orgs.orgListRepos(org, {
-                limit: 100,
-                page,
-            }))
-        );
+            const { durationMs, data } = await measure(() =>
+                paginate((page) => api.orgs.orgListRepos(org, {
+                    limit: 100,
+                    page,
+                }))
+            );
 
-        logger.debug(`Found ${data.length} repos for org ${org} in ${durationMs}ms.`);
-        return data;
+            logger.debug(`Found ${data.length} repos for org ${org} in ${durationMs}ms.`);
+            return data;
+        } catch (e) {
+            logger.error(`Failed to fetch repos for org ${org}.`, e);
+            return [];
+        }
     }))).flat();
 }
 
 const getRepos = async <T>(repos: string[], api: Api<T>) => {
-    return Promise.all(repos.map(async (repo) => {
-        logger.debug(`Fetching repository info for ${repo}...`);
+    return (await Promise.all(repos.map(async (repo) => {
+        try {
+            logger.debug(`Fetching repository info for ${repo}...`);
 
-        const [owner, repoName] = repo.split('/');
-        const { durationMs, data: response } = await measure(() =>
-            api.repos.repoGet(owner, repoName),
-        );
+            const [owner, repoName] = repo.split('/');
+            const { durationMs, data: response } = await measure(() =>
+                api.repos.repoGet(owner, repoName),
+            );
 
-        logger.debug(`Found repo ${repo} in ${durationMs}ms.`);
+            logger.debug(`Found repo ${repo} in ${durationMs}ms.`);
 
-        return response.data;
-    }));
+            return [response.data];
+        } catch (e) {
+            logger.error(`Failed to fetch repository info for ${repo}.`, e);
+            return [];
+        }
+    }))).flat();
 }
 
 // @see : https://docs.gitea.com/development/api-usage#pagination
