@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added config option `settings.reindexInterval` and `settings.resyncInterval` to control how often the index should be re-indexed and re-synced. ([#134](https://github.com/sourcebot-dev/sourcebot/pull/134))
 - Added `exclude.size` to the GitHub config to allow excluding repositories by size. ([#137](https://github.com/sourcebot-dev/sourcebot/pull/137))
 
+### Fixed
+
+- Fixed issue where config synchronization was failing entirely when a single api call fails. ([#142](https://github.com/sourcebot-dev/sourcebot/pull/142))
+
 ## [2.6.2] - 2024-12-13
 
 ### Added
