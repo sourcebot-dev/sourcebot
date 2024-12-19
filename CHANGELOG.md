@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.3] - 2024-12-18
+
 ### Added
 
 - Added config option `settings.reindexInterval` and `settings.resyncInterval` to control how often the index should be re-indexed and re-synced. ([#134](https://github.com/sourcebot-dev/sourcebot/pull/134))
@@ -15,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed issue where config synchronization was failing entirely when a single api call fails. ([#142](https://github.com/sourcebot-dev/sourcebot/pull/142))
+- Fixed 'directory not found' error in certain scenarios when deleting a repository. ([#136](https://github.com/sourcebot-dev/sourcebot/pull/136))
 
 ## [2.6.2] - 2024-12-13
 
