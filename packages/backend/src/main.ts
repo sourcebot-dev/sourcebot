@@ -154,7 +154,8 @@ export const isRepoReindexingRequired = (previous: Repository, current: Reposito
 
         return (
             !arraysEqualShallow(previous.branches, current.branches) ||
-            !arraysEqualShallow(previous.tags, current.tags)
+            !arraysEqualShallow(previous.tags, current.tags) ||
+            previous.defaultBranch !== current.defaultBranch
         );
     }
 

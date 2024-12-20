@@ -114,6 +114,7 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
                 cloneUrl: cloneUrl.toString(),
                 path: repoPath,
                 isStale: false,
+                defaultBranch: project.default_branch,
                 isFork,
                 isArchived: project.archived,
                 topics: project.topics ?? [],

@@ -10,6 +10,7 @@ interface BaseRepository {
     codeHost?: string;
     topics?: string[];
     sizeInBytes?: number;
+    defaultBranch: string;
 }
 
 export interface GitRepository extends BaseRepository {
