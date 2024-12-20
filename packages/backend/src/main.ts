@@ -5,6 +5,7 @@ import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
 import { getGerritReposFromConfig } from "./gerrit.js";
+import { getBitbucketReposFromConfig } from "./bitbucket.js";
 import { AppContext, LocalRepository, GitRepository, Repository, Settings } from "./types.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
@@ -243,6 +244,11 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             case 'local': {
                 const repo = getLocalRepoFromConfig(repoConfig, ctx);
                 configRepos.push(repo);
+                break;
+            }
+            case 'bitbucket': {
+                const bitbucketRepos = await getBitbucketReposFromConfig(repoConfig, ctx);
+                configRepos.push(...bitbucketRepos);
                 break;
             }
         }
