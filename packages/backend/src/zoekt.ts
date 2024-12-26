@@ -9,6 +9,7 @@ export const indexGitRepository = async (repo: GitRepository, settings: Settings
         ...repo.branches ?? [],
         ...repo.tags ?? [],
     ];
+    if (repo.defaultBranch) revisions.push(repo.defaultBranch);
 
     const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -file_limit ${settings.maxFileSize} -branches ${revisions.join(',')} ${repo.path}`;
 
