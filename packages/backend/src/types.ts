@@ -10,7 +10,6 @@ interface BaseRepository {
     codeHost?: string;
     topics?: string[];
     sizeInBytes?: number;
-    defaultBranch?: string;
 }
 
 export interface GitRepository extends BaseRepository {
@@ -18,6 +17,7 @@ export interface GitRepository extends BaseRepository {
     cloneUrl: string;
     branches: string[];
     tags: string[];
+    defaultBranch?: string;
     gitConfigMetadata?: Record<string, string>;
 }
 
