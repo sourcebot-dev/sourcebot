@@ -1,2 +1,0 @@
-1. Verify that reindexing via the "isRepoReindexingRequired" method does what you think it does
-2. Match other git services to gitlab (i.e. make sure github, gittea, local, and gerrit all include the default branch in there)
