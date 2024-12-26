@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="4adbd03d-240f-4d00-a28c-82bcb177ab4d" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/packages/backend/src/github.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/backend/src/github.ts" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectCodeStyleSettingsMigration">
+    <option name="version" value="2" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="2oo1nd5qjZs5bXdoI2r53cASlZa" />
+  <component name="ProjectViewState">
+    <option name="autoscrollFromSource" value="true" />
+    <option name="showLibraryContents" value="true" />
+    <option name="showMembers" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Node.js.backend > index.ts.executor": "Debug",
+    "Node.js.backend > main.ts.executor": "Debug",
+    "Node.js.index.ts.executor": "Debug",
+    "Node.js.main.ts.executor": "Debug",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "Vitest.backend > utils.test.ts.executor": "Debug",
+    "Vitest.should filter repos by micromatch pattern.executor": "Debug",
+    "Vitest.should filter repos by name exact match.executor": "Debug",
+    "Vitest.should work.executor": "Run",
+    "git-widget-placeholder": "index-default-branch",
+    "kotlin-language-version-configured": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "yarn",
+    "npm.dev.executor": "Debug",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "preferences.editor",
+    "ts.external.directory.path": "/Users/snagie/Documents/sourcebot/node_modules/typescript/lib",
+    "vue.rearranger.settings.migration": "true"
+  },
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "JSON"
+    ]
+  }
+}]]></component>
+  <component name="RunManager" selected="Node.js.index.ts">
+    <configuration name="backend &gt; utils.test.ts" type="JavaScriptTestRunnerVitest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <vitest-package value="$PROJECT_DIR$/node_modules/vitest" />
+      <working-dir value="$PROJECT_DIR$/packages/backend" />
+      <vitest-options value="--run" />
+      <envs />
+      <scope-kind value="TEST_FILE" />
+      <test-file value="$PROJECT_DIR$/packages/backend/src/utils.test.ts" />
+      <method v="2" />
+    </configuration>
+    <configuration name="should filter repos by micromatch pattern" type="JavaScriptTestRunnerVitest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <vitest-package value="$PROJECT_DIR$/node_modules/vitest" />
+      <working-dir value="$PROJECT_DIR$/packages/backend" />
+      <vitest-options value="--run" />
+      <envs />
+      <scope-kind value="TEST" />
+      <test-file value="$PROJECT_DIR$/packages/backend/src/utils.test.ts" />
+      <test-names>
+        <test-name value="should filter repos by micromatch pattern" />
+      </test-names>
+      <method v="2" />
+    </configuration>
+    <configuration name="should filter repos by name exact match" type="JavaScriptTestRunnerVitest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <vitest-package value="$PROJECT_DIR$/node_modules/vitest" />
+      <working-dir value="$PROJECT_DIR$/packages/backend" />
+      <vitest-options value="--run" />
+      <envs />
+      <scope-kind value="TEST" />
+      <test-file value="$PROJECT_DIR$/packages/backend/src/utils.test.ts" />
+      <test-names>
+        <test-name value="should filter repos by name exact match" />
+      </test-names>
+      <method v="2" />
+    </configuration>
+    <configuration name="should work" type="JavaScriptTestRunnerVitest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <vitest-package value="$PROJECT_DIR$/node_modules/vitest" />
+      <working-dir value="$PROJECT_DIR$/packages/backend" />
+      <vitest-options value="--run" />
+      <envs />
+      <scope-kind value="TEST" />
+      <test-file value="$PROJECT_DIR$/packages/backend/src/utils.test.ts" />
+      <test-names>
+        <test-name value="should work" />
+      </test-names>
+      <method v="2" />
+    </configuration>
+    <configuration name="index.ts" type="NodeJSConfigurationType" temporary="true" application-parameters="--configPath ../../../config.json --cacheDir ../../../.sourcebot" nameIsGenerated="true" path-to-js-file="index.ts" typescript-loader="bundled" working-dir="$PROJECT_DIR$/packages/backend/src">
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Node.js.index.ts" />
+      <item itemvalue="Vitest.backend &gt; utils.test.ts" />
+      <item itemvalue="Vitest.should filter repos by micromatch pattern" />
+      <item itemvalue="Vitest.should filter repos by name exact match" />
+      <item itemvalue="Vitest.should work" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Node.js.index.ts" />
+        <item itemvalue="Vitest.should filter repos by micromatch pattern" />
+        <item itemvalue="Vitest.backend &gt; utils.test.ts" />
+        <item itemvalue="Vitest.should filter repos by name exact match" />
+        <item itemvalue="Vitest.should work" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23339.11" />
+        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23339.11" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="4adbd03d-240f-4d00-a28c-82bcb177ab4d" name="Changes" comment="" />
+      <created>1731521287325</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1731521287325</updated>
+      <workItem from="1731521288315" duration="4551000" />
+      <workItem from="1731530308365" duration="1490000" />
+      <workItem from="1731533003595" duration="14413000" />
+      <workItem from="1731615524310" duration="1657000" />
+      <workItem from="1731699746697" duration="247000" />
+      <workItem from="1731700557882" duration="973000" />
+      <workItem from="1731701606159" duration="1386000" />
+      <workItem from="1731703616903" duration="3000" />
+      <workItem from="1734733032097" duration="3307000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/packages/backend/src/gitlab.ts</url>
+          <line>110</line>
+          <option name="timeStamp" value="13" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/packages/backend/src/gitlab.ts</url>
+          <line>114</line>
+          <option name="timeStamp" value="14" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" log-message="true" suspend="NONE" type="javascript">
+          <url>file://$PROJECT_DIR$/packages/backend/src/utils.ts</url>
+          <line>38</line>
+          <option name="timeStamp" value="20" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/packages/backend/src/gitlab.ts</url>
+          <line>24</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="21" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/packages/backend/src/gitlab.ts</url>
+          <line>96</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="22" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/packages/backend/src/gitlab.ts</url>
+          <line>102</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="23" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
