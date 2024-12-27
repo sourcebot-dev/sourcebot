@@ -129,3 +129,9 @@ export const arraysEqualShallow = <T>(a?: readonly T[], b?: readonly T[]) => {
 
     return true;
 }
+
+export const stringsEqualFalseySafe = (a?: string, b?: string): boolean => {
+    if (a === b) return true;
+    else if (!a && !b) return true;
+    else return false;
+}
