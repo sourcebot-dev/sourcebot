@@ -7,6 +7,7 @@ import { getFileSource } from '@/lib/server/searchService';
 import { base64Decode, isServiceError } from "@/lib/utils";
 import { SearchBar } from "@/app/components/searchBar";
 import { CodePreview } from "./codePreview";
+import { TopBar } from "@/app/components/topBar";
 
 interface BrowsePageProps {
     params: {
@@ -75,32 +76,9 @@ export default async function BrowsePage({
     return (
         <div>
             <div className='sticky top-0 left-0 right-0 z-10'>
-                <div className="flex flex-row justify-between items-center py-1.5 px-3 gap-4 bg-background">
-                    <div className="grow flex flex-row gap-4 items-center">
-                        <div
-                            className="shrink-0 cursor-pointer"
-                        >
-                            <Image
-                                src={logoDark}
-                                className="h-4 w-auto hidden dark:block"
-                                alt={"Sourcebot logo"}
-                            />
-                            <Image
-                                src={logoLight}
-                                className="h-4 w-auto block dark:hidden"
-                                alt={"Sourcebot logo"}
-                            />
-                        </div>
-                        <SearchBar
-                            size="sm"
-                            defaultQuery={`repo:${repoName} `}
-                            className="w-full"
-                        />
-                    </div>
-                    <SettingsDropdown
-                        menuButtonClassName="w-8 h-8"
-                    />
-                </div>
+                <TopBar
+                    defaultSearchQuery={`repo:${repoName} `}
+                />
                 <Separator />
                 <div className="bg-accent py-1 px-2 flex flex-row">
                     <span className="text-sm font-mono">

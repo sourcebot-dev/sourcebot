@@ -8,23 +8,19 @@ import {
 import { Separator } from "@/components/ui/separator";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { Repository, SearchQueryParams, SearchResultFile } from "@/lib/types";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import logoDark from "../../../public/sb_logo_dark.png";
-import logoLight from "../../../public/sb_logo_light.png";
+import { ImperativePanelHandle } from "react-resizable-panels";
 import { getRepos, search } from "../api/(client)/client";
-import { SearchBar } from "../components/searchBar";
-import { SettingsDropdown } from "../components/settingsDropdown";
+import { TopBar } from "../components/topBar";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
-import { ImperativePanelHandle } from "react-resizable-panels";
-import { useSearchHistory } from "@/hooks/useSearchHistory";
 
 const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 10000;
 
@@ -178,35 +174,7 @@ export default function SearchPage() {
         <div className="flex flex-col h-screen overflow-clip">
             {/* TopBar */}
             <div className="sticky top-0 left-0 right-0 z-10">
-                <div className="flex flex-row justify-between items-center py-1.5 px-3 gap-4">
-                    <div className="grow flex flex-row gap-4 items-center">
-                        <div
-                            className="shrink-0 cursor-pointer"
-                            onClick={() => {
-                                router.push("/");
-                            }}
-                        >
-                            <Image
-                                src={logoDark}
-                                className="h-4 w-auto hidden dark:block"
-                                alt={"Sourcebot logo"}
-                            />
-                            <Image
-                                src={logoLight}
-                                className="h-4 w-auto block dark:hidden"
-                                alt={"Sourcebot logo"}
-                            />
-                        </div>
-                        <SearchBar
-                            size="sm"
-                            defaultQuery={searchQuery}
-                            className="w-full"
-                        />
-                    </div>
-                    <SettingsDropdown
-                        menuButtonClassName="w-8 h-8"
-                    />
-                </div>
+                <TopBar defaultSearchQuery={searchQuery} />
                 <Separator />
                 {!isLoading && (
                     <div className="bg-accent py-1 px-2 flex flex-row items-center gap-4">
