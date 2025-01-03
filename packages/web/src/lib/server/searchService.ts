@@ -106,9 +106,12 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
         return fileNotFound(fileName, repository);
     }
 
-    const source = files[0].Content ?? '';
+    const file = files[0];
+    const source = file.Content ?? '';
+    const language = file.Language;
     return {
-        source
+        source,
+        language,
     }
 }
 
