@@ -34,6 +34,7 @@ export const CodePreview = ({
             ref={editorRef}
             value={source}
             extensions={extensions}
+            readOnly={true}
             theme={theme === "dark" ? "dark" : "light"}
         />
     )

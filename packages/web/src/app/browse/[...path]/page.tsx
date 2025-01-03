@@ -1,13 +1,9 @@
-import Image from "next/image";
-import logoDark from '@/public/sb_logo_dark.png';
-import logoLight from '@/public/sb_logo_light.png';
-import { SettingsDropdown } from '@/app/components/settingsDropdown';
-import { Separator } from '@/components/ui/separator';
-import { getFileSource } from '@/lib/server/searchService';
-import { base64Decode, isServiceError } from "@/lib/utils";
-import { SearchBar } from "@/app/components/searchBar";
-import { CodePreview } from "./codePreview";
+import { FileHeader } from "@/app/components/fireHeader";
 import { TopBar } from "@/app/components/topBar";
+import { Separator } from '@/components/ui/separator';
+import { getFileSource, listRepositories } from '@/lib/server/searchService';
+import { base64Decode, isServiceError } from "@/lib/utils";
+import { CodePreview } from "./codePreview";
 
 interface BrowsePageProps {
     params: {
@@ -57,21 +53,35 @@ export default async function BrowsePage({
     }
     
     // @todo: this will depend on `pathType`.
-    const response = await getFileSource({
+    const fileSourceResponse = await getFileSource({
         fileName: path,
         repository: repoName,
-        // @TODO: Incorporate branch in path
+        // @todo: Incorporate branch in path
         branch: 'HEAD'
     });
 
-    if (isServiceError(response)) {
+    if (isServiceError(fileSourceResponse)) {
         // @todo : proper error handling
         return (
             <>
-                Error: {response.message}
+                Error: {fileSourceResponse.message}
             </>
         )
     }
+
+    const reposResponse = await listRepositories();
+    if (isServiceError(reposResponse)) {
+        // @todo : proper error handling
+        return (
+            <>
+                Error: {reposResponse.message}
+            </>
+        )
+    }
+
+    // @todo (bkellam) : We should probably have a endpoint to fetch repository metadata
+    // given it's name or id.
+    const repo = reposResponse.List.Repos.find(r => r.Repository.Name === repoName);
 
     return (
         <div>
@@ -81,15 +91,18 @@ export default async function BrowsePage({
                 />
                 <Separator />
                 <div className="bg-accent py-1 px-2 flex flex-row">
-                    <span className="text-sm font-mono">
-                        {rawPath}
-                    </span>
+                    <FileHeader
+                        fileName={path}
+                        repo={repo?.Repository}
+                        // @todo
+                        // branchName={}
+                    />
                 </div>
                 <Separator />
             </div>
             <CodePreview
-                source={base64Decode(response.source)}
-                language={response.language}
+                source={base64Decode(fileSourceResponse.source)}
+                language={fileSourceResponse.language}
             />
         </div>
     )

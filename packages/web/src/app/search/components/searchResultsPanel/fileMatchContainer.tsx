@@ -1,12 +1,10 @@
 'use client';
 
-import { getRepoCodeHostInfo } from "@/lib/utils";
-import { useCallback, useMemo } from "react";
-import Image from "next/image";
-import { DoubleArrowDownIcon, DoubleArrowUpIcon, LaptopIcon } from "@radix-ui/react-icons";
-import clsx from "clsx";
+import { FileHeader } from "@/app/components/fireHeader";
 import { Separator } from "@/components/ui/separator";
 import { Repository, SearchResultFile } from "@/lib/types";
+import { DoubleArrowDownIcon, DoubleArrowUpIcon } from "@radix-ui/react-icons";
+import { useCallback, useMemo } from "react";
 import { FileMatch } from "./fileMatch";
 
 export const MAX_MATCHES_TO_PREVIEW = 3;
@@ -58,31 +56,8 @@ export const FileMatchContainer = ({
             }
         }
 
-        return null;
+        return undefined;
     }, [matches]);
-
-    const { repoIcon, displayName, repoLink } = useMemo(() => {
-        const repo: Repository | undefined = repoMetadata[file.Repository];
-        const info = getRepoCodeHostInfo(repo);
-
-        if (info) {
-            return {
-                displayName: info.displayName,
-                repoLink: info.repoLink,
-                repoIcon: <Image
-                    src={info.icon}
-                    alt={info.costHostName}
-                    className={`w-4 h-4 ${info.iconClassName}`}
-                />
-            }
-        }
-
-        return {
-            displayName: file.Repository,
-            repoLink: undefined,
-            repoIcon: <LaptopIcon className="w-4 h-4" />
-        }
-    }, [file.Repository, repoMetadata]);
 
     const isMoreContentButtonVisible = useMemo(() => {
         return matchCount > MAX_MATCHES_TO_PREVIEW;
@@ -104,6 +79,14 @@ export const FileMatchContainer = ({
         return file.Branches;
     }, [file.Branches]);
 
+    const branchDisplayName = useMemo(() => {
+        if (!isBranchFilteringEnabled || branches.length === 0) {
+            return undefined;
+        }
+
+        return `${branches[0]}${branches.length > 1 ? ` +${branches.length - 1}` : ''}`;
+    }, [isBranchFilteringEnabled, branches]);
+
 
     return (
         <div>
@@ -114,46 +97,13 @@ export const FileMatchContainer = ({
                     onOpenFile();
                 }}
             >
-                <div className="flex flex-row gap-2 items-center w-full overflow-hidden">
-                    {repoIcon}
-                    <span
-                        className={clsx("font-medium", {
-                            "cursor-pointer hover:underline": repoLink,
-                        })}
-                        onClick={() => {
-                            if (repoLink) {
-                                window.open(repoLink, "_blank");
-                            }
-                        }}
-                    >
-                        {displayName}
-                    </span>
-                    {isBranchFilteringEnabled && branches.length > 0 && (
-                        <span
-                            className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-0.5"
-                            title={branches.join(", ")}
-                        >
-                            {`@ ${branches[0]}`}
-                            {branches.length > 1 && ` (+ ${branches.length - 1})`}
-                        </span>
-                    )}
-                    <span>·</span>
-                    <div className="flex-1 flex items-center overflow-hidden">
-                        <span className="inline-block w-full truncate-start font-mono text-sm">
-                            {!fileNameRange ?
-                                file.FileName
-                            : (
-                                <>
-                                    {file.FileName.slice(0, fileNameRange.from)}
-                                    <span className="bg-yellow-200 dark:bg-blue-700">
-                                        {file.FileName.slice(fileNameRange.from, fileNameRange.to)}
-                                    </span>
-                                    {file.FileName.slice(fileNameRange.to)}
-                                </>
-                            )}
-                        </span>
-                    </div>
-                </div>
+                <FileHeader
+                    repo={repoMetadata[file.Repository]}
+                    fileName={file.FileName}
+                    fileNameHighlightRange={fileNameRange}
+                    branchDisplayName={branchDisplayName}
+                    branchDisplayTitle={branches.join(", ")}
+                />
             </div>
 
             {/* Matches */}
