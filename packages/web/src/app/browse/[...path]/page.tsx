@@ -144,6 +144,8 @@ const CodePreviewWrapper = async ({
         <CodePreview
             source={base64Decode(fileSourceResponse.source)}
             language={fileSourceResponse.language}
+            repoName={repoName}
+            path={path}
         />
     )
 }
