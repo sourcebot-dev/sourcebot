@@ -8,7 +8,7 @@ import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 import { search } from "@codemirror/search";
 import CodeMirror, { Decoration, DecorationSet, EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, StateField, ViewUpdate } from "@uiw/react-codemirror";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ContextMenu } from "./contextMenu";
+import { EditorContextMenu } from "../../components/editorContextMenu";
 
 interface CodePreviewProps {
     path: string;
@@ -133,7 +133,7 @@ export const CodePreview = ({
                 theme={theme === "dark" ? "dark" : "light"}
             >
                 {editorRef.current && editorRef.current.view && currentSelection && (
-                    <ContextMenu
+                    <EditorContextMenu
                         view={editorRef.current.view}
                         selection={currentSelection}
                         repoName={repoName}

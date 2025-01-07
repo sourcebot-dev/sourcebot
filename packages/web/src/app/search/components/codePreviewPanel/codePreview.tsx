@@ -1,6 +1,6 @@
 'use client';
 
-import { ContextMenu } from "@/app/browse/[...path]/contextMenu";
+import { EditorContextMenu } from "@/app/components/editorContextMenu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
@@ -67,7 +67,10 @@ export const CodePreview = ({
                 }
             }),
             EditorView.updateListener.of((update) => {
-                if (update.selectionSet) {
+                // @note: it's important we reset the selection when
+                // the document changes... otherwise we will get a floating
+                // context menu where it shouldn't be.
+                if (update.selectionSet || update.docChanged) {
                     setCurrentSelection(update.state.selection.main);
                 }
             })
@@ -171,6 +174,7 @@ export const CodePreview = ({
             <ScrollArea className="h-full overflow-auto flex-1">
                 <CodeMirror
                     ref={editorRef}
+                    className="relative"
                     readOnly={true}
                     value={file?.content}
                     theme={theme === "dark" ? "dark" : "light"}
@@ -182,7 +186,7 @@ export const CodePreview = ({
                         repoName &&
                         currentSelection &&
                         (
-                            <ContextMenu
+                            <EditorContextMenu
                                 view={editorRef.current.view}
                                 path={file?.filepath}
                                 repoName={repoName}

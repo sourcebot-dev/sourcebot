@@ -6,7 +6,7 @@ import { createPathWithQueryParams } from "@/lib/utils";
 import { autoPlacement, computePosition, offset, VirtualElement } from "@floating-ui/react";
 import { Link2Icon } from "@radix-ui/react-icons";
 import { EditorView, SelectionRange } from "@uiw/react-codemirror";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 interface ContextMenuProps {
     view: EditorView;
@@ -15,43 +15,26 @@ interface ContextMenuProps {
     path: string;
 }
 
-export const ContextMenu = ({
+export const EditorContextMenu = ({
     view,
     selection,
     repoName,
     path,
 }: ContextMenuProps) => {
     const ref = useRef<HTMLDivElement>(null);
-    const [isMouseDown, setIsMouseDown] = useState(false);
     const { toast } = useToast();
 
-    const { show, hide } = useMemo(() => {
-        return {
-            show: () => ref.current?.classList.remove('hidden'),
-            hide: () => ref.current?.classList.add('hidden'),
+    useEffect(() => {
+        if (selection.empty) {
+            ref.current?.classList.add('hidden');
+        } else {
+            ref.current?.classList.remove('hidden');
         }
-    }, []);
+    }, [selection.empty]);
+
 
     useEffect(() => {
-        const onMouseDown = () => {
-            setIsMouseDown(true);
-        }
-
-        const onMouseUp = () => {
-            setIsMouseDown(false);
-        }
-
-        view.dom.addEventListener('mousedown', onMouseDown);
-        view.dom.addEventListener('mouseup', onMouseUp);
-        return () => {
-            view.dom.removeEventListener('mousedown', onMouseDown);
-            view.dom.removeEventListener('mouseup', onMouseUp);
-        }
-    }, [view.dom]);
-
-    useEffect(() => {
-        if (selection.empty || isMouseDown) {
-            hide();
+        if (selection.empty) {
             return;
         }
 
@@ -95,12 +78,11 @@ export const ContextMenu = ({
                 if (ref.current) {
                     ref.current.style.left = `${x}px`;
                     ref.current.style.top = `${y}px`;
-                    show();
                 }
             });
         }
 
-    }, [hide, isMouseDown, selection, show, view]);
+    }, [selection, view]);
 
     const onCopyLinkToSelection = useCallback(() => {
         const toLineAndColumn = (pos: number) => {
@@ -122,13 +104,22 @@ export const ContextMenu = ({
         toast({
             description: "✅ Copied link to selection",
         });
-        hide();
-    }, [hide, path, repoName, selection.from, selection.to, toast, view.state.doc]);
+
+        // Reset the selection
+        view.dispatch(
+            {
+                selection: {
+                    anchor: selection.to,
+                    head: selection.to,
+                }     
+            }
+        )
+    }, [path, repoName, selection.from, selection.to, toast, view]);
 
     return (
         <div
             ref={ref}
-            className="fixed z-10 flex flex-col gap-2 bg-background border border-gray-300 dark:border-gray-700 rounded-md shadow-lg p-2"
+            className="absolute z-10 flex flex-col gap-2 bg-background border border-gray-300 dark:border-gray-700 rounded-md shadow-lg p-2"
         >
             <Button
                 variant="ghost"
