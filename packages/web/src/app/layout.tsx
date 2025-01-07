@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
@@ -7,8 +6,6 @@ import { QueryClientProvider } from "./queryClientProvider";
 import { PHProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
     title: "Sourcebot",
@@ -26,7 +23,7 @@ export default function RootLayout({
             // @see : https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
             suppressHydrationWarning
         >
-            <body className={inter.className}>
+            <body>
                 <Toaster />
                 <PHProvider>
                     <ThemeProvider
