@@ -62,6 +62,7 @@ export const CodePreviewPanel = ({
                         matches: filteredMatches,
                         link: link,
                         language: fileMatch.Language,
+                        revision: branch ?? "HEAD",
                     };
                 });
         },
@@ -71,6 +72,7 @@ export const CodePreviewPanel = ({
     return (
         <CodePreview
             file={file}
+            repoName={fileMatch?.Repository}
             onClose={onClose}
             selectedMatchIndex={selectedMatchIndex}
             onSelectedMatchIndexChange={onSelectedMatchIndexChange}
