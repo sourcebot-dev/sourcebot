@@ -71,6 +71,7 @@ export const CodePreviewPanel = ({
     return (
         <CodePreview
             file={file}
+            repoName={fileMatch?.Repository}
             onClose={onClose}
             selectedMatchIndex={selectedMatchIndex}
             onSelectedMatchIndexChange={onSelectedMatchIndexChange}

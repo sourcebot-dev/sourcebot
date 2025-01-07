@@ -62,8 +62,6 @@ export default async function BrowsePage({
             </>
         )
     }
-    
-    
 
     return (
         <div className="flex flex-col h-screen">

@@ -1,21 +1,19 @@
 'use client';
 
+import { ContextMenu } from "@/app/browse/[...path]/contextMenu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useExtensionWithDependency } from "@/hooks/useExtensionWithDependency";
-import { useKeymapType } from "@/hooks/useKeymapType";
+import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
 import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 import { gutterWidthExtension } from "@/lib/extensions/gutterWidthExtension";
 import { highlightRanges, searchResultHighlightExtension } from "@/lib/extensions/searchResultHighlightExtension";
 import { SearchResultFileMatch } from "@/lib/types";
-import { defaultKeymap } from "@codemirror/commands";
 import { search } from "@codemirror/search";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import { Cross1Icon, FileIcon } from "@radix-ui/react-icons";
 import { Scrollbar } from "@radix-ui/react-scroll-area";
-import { vim } from "@replit/codemirror-vim";
-import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import CodeMirror, { ReactCodeMirrorRef, SelectionRange } from '@uiw/react-codemirror';
 import clsx from "clsx";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -30,6 +28,7 @@ export interface CodePreviewFile {
 
 interface CodePreviewProps {
     file?: CodePreviewFile;
+    repoName?: string;
     selectedMatchIndex: number;
     onSelectedMatchIndexChange: (index: number) => void;
     onClose: () => void;
@@ -37,30 +36,19 @@ interface CodePreviewProps {
 
 export const CodePreview = ({
     file,
+    repoName,
     selectedMatchIndex,
     onSelectedMatchIndexChange,
     onClose,
 }: CodePreviewProps) => {
     const editorRef = useRef<ReactCodeMirrorRef>(null);
 
-    const [keymapType] = useKeymapType();
     const { theme } = useThemeNormalized();
     const [gutterWidth, setGutterWidth] = useState(0);
 
-    const keymapExtension = useExtensionWithDependency(
-        editorRef.current?.view ?? null,
-        () => {
-            switch (keymapType) {
-                case "default":
-                    return keymap.of(defaultKeymap);
-                case "vim":
-                    return vim();
-            }
-        },
-        [keymapType]
-    );
-
+    const keymapExtension = useKeymapExtension(editorRef.current?.view);
     const syntaxHighlighting = useSyntaxHighlightingExtension(file?.language ?? '', editorRef.current?.view);
+    const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
 
     const extensions = useMemo(() => {
         return [
@@ -72,12 +60,17 @@ export const CodePreview = ({
             search({
                 top: true,
             }),
-            EditorView.updateListener.of(update => {
+            EditorView.updateListener.of((update) => {
                 const width = update.view.plugin(gutterWidthExtension)?.width;
                 if (width) {
                     setGutterWidth(width);
                 }
             }),
+            EditorView.updateListener.of((update) => {
+                if (update.selectionSet) {
+                    setCurrentSelection(update.state.selection.main);
+                }
+            })
         ];
     }, [keymapExtension, syntaxHighlighting]);
 
@@ -182,7 +175,22 @@ export const CodePreview = ({
                     value={file?.content}
                     theme={theme === "dark" ? "dark" : "light"}
                     extensions={extensions}
-                />
+                >
+                    {
+                        editorRef.current?.view &&
+                        file?.filepath &&
+                        repoName &&
+                        currentSelection &&
+                        (
+                            <ContextMenu
+                                view={editorRef.current.view}
+                                path={file?.filepath}
+                                repoName={repoName}
+                                selection={currentSelection}
+                            />
+                        )
+                    }
+                </CodeMirror>
                 <Scrollbar orientation="vertical" />
                 <Scrollbar orientation="horizontal" />
             </ScrollArea>

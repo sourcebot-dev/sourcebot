@@ -115,8 +115,7 @@ export const ContextMenu = ({
         const to = toLineAndColumn(selection.to);
 
         const url = createPathWithQueryParams(`${window.location.origin}/browse/${repoName}/-/blob/${path}`,
-            ['from', `${from?.line}:${from?.column}`],
-            ['to', `${to?.line}:${to?.column}`],
+            ['highlightRange', `${from?.line}:${from?.column},${to?.line}:${to?.column}`],
         );
 
         navigator.clipboard.writeText(url);
