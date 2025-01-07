@@ -81,6 +81,9 @@ export const search = async ({ query, maxMatchDisplayCount, whole }: SearchReque
     }
 }
 
+// @todo (bkellam) : We should really be using `git show <hash>:<path>` to fetch file contents here.
+// This will allow us to support permalinks to files at a specific revision that may not be indexed
+// by zoekt.
 export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
     const escapedFileName = escapeStringRegexp(fileName);
     const escapedRepository = escapeStringRegexp(repository);
