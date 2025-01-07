@@ -3,6 +3,7 @@
 import { NEXT_PUBLIC_DOMAIN_SUB_PATH } from "@/lib/environment.client";
 import { fileSourceResponseSchema, listRepositoriesResponseSchema, searchResponseSchema } from "@/lib/schemas";
 import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
+import assert from "assert";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse> => {
     const path = resolveServerPath("/api/search");
@@ -48,5 +49,6 @@ export const getRepos = async (): Promise<ListRepositoriesResponse> => {
  * the base path (if any).
  */
 export const resolveServerPath = (path: string) => {
+    assert(path.startsWith("/"));
     return `${NEXT_PUBLIC_DOMAIN_SUB_PATH}${path}`;
 }
