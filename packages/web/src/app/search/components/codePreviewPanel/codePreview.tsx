@@ -24,6 +24,7 @@ export interface CodePreviewFile {
     link?: string;
     matches: SearchResultFileMatch[];
     language: string;
+    revision: string;
 }
 
 interface CodePreviewProps {
@@ -191,6 +192,7 @@ export const CodePreview = ({
                                 path={file?.filepath}
                                 repoName={repoName}
                                 selection={currentSelection}
+                                revisionName={file.revision}
                             />
                         )
                     }

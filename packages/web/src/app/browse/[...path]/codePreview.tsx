@@ -13,6 +13,7 @@ import { EditorContextMenu } from "../../components/editorContextMenu";
 interface CodePreviewProps {
     path: string;
     repoName: string;
+    revisionName: string;
     source: string;
     language: string;
 }
@@ -22,6 +23,7 @@ export const CodePreview = ({
     language,
     path,
     repoName,
+    revisionName,
 }: CodePreviewProps) => {
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     const syntaxHighlighting = useSyntaxHighlightingExtension(language, editorRef.current?.view);
@@ -138,6 +140,7 @@ export const CodePreview = ({
                         selection={currentSelection}
                         repoName={repoName}
                         path={path}
+                        revisionName={revisionName}
                     />
                 )}
             </CodeMirror>

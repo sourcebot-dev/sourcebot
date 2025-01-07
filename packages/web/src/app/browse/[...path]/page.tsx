@@ -17,13 +17,16 @@ interface BrowsePageProps {
 export default async function BrowsePage({
     params,
 }: BrowsePageProps) {
-    const rawPath = params.path.join('/');
+    const rawPath = decodeURIComponent(params.path.join('/'));
     const sentinalIndex = rawPath.search(/\/-\/(tree|blob)\//);
     if (sentinalIndex === -1) {
         return <PageNotFound />;
     }
 
-    const repoName = rawPath.substring(0, sentinalIndex);
+    const repoAndRevisionName = rawPath.substring(0, sentinalIndex).split('@');
+    const repoName = repoAndRevisionName[0];
+    const revisionName = repoAndRevisionName.length > 1 ? repoAndRevisionName[1] : undefined;
+
     const { path, pathType } = ((): { path: string, pathType: 'tree' | 'blob' } => {
         const path = rawPath.substring(sentinalIndex + '/-/'.length);
         const pathType = path.startsWith('tree/') ? 'tree' : 'blob';
@@ -67,7 +70,7 @@ export default async function BrowsePage({
         <div className="flex flex-col h-screen">
             <div className='sticky top-0 left-0 right-0 z-10'>
                 <TopBar
-                    defaultSearchQuery={`repo:${repoName} `}
+                    defaultSearchQuery={`repo:${repoName}${revisionName ? ` rev:${revisionName}` : ''} `}
                 />
                 <Separator />
                 {repo && (
@@ -76,8 +79,7 @@ export default async function BrowsePage({
                             <FileHeader
                                 fileName={path}
                                 repo={repo.Repository}
-                                // @todo
-                                // branchName={}
+                                branchDisplayName={revisionName}
                             />
                         </div>
                         <Separator />
@@ -95,6 +97,7 @@ export default async function BrowsePage({
                 <CodePreviewWrapper
                     path={path}
                     repoName={repoName}
+                    revisionName={revisionName ?? 'HEAD'}
                 />
             )}
         </div>
@@ -104,18 +107,19 @@ export default async function BrowsePage({
 interface CodePreviewWrapper {
     path: string,
     repoName: string,
+    revisionName: string,
 }
 
 const CodePreviewWrapper = async ({
     path,
     repoName,
+    revisionName,
 }: CodePreviewWrapper) => {
     // @todo: this will depend on `pathType`.
     const fileSourceResponse = await getFileSource({
         fileName: path,
         repository: repoName,
-        // @todo: Incorporate branch in path
-        branch: 'HEAD'
+        branch: revisionName,
     });
 
     if (isServiceError(fileSourceResponse)) {
@@ -144,6 +148,7 @@ const CodePreviewWrapper = async ({
             language={fileSourceResponse.language}
             repoName={repoName}
             path={path}
+            revisionName={revisionName}
         />
     )
 }

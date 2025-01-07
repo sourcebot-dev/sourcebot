@@ -62,6 +62,7 @@ export const CodePreviewPanel = ({
                         matches: filteredMatches,
                         link: link,
                         language: fileMatch.Language,
+                        revision: branch ?? "HEAD",
                     };
                 });
         },

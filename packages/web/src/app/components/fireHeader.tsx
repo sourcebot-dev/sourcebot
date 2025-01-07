@@ -46,12 +46,22 @@ export const FileHeader = ({
                 {info?.displayName}
             </Link>
             {branchDisplayName && (
-                <span
-                    className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-0.5"
+                <p
+                    className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-0.5"
                     title={branchDisplayTitle}
                 >
-                    {`@ ${branchDisplayName}`}
-                </span>
+                    {/* hack since to make the @ symbol look more centered with the text */}
+                    <span
+                        style={{
+                            fontSize: "0.60rem",
+                            lineHeight: "1rem",
+                            marginBottom: "0.1rem",
+                        }}
+                    >
+                        @
+                    </span>
+                    {`${branchDisplayName}`}
+                </p>
             )}
             <span>·</span>
             <div className="flex-1 flex items-center overflow-hidden">

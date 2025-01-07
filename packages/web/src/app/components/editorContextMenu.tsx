@@ -4,7 +4,7 @@ import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { createPathWithQueryParams } from "@/lib/utils";
-import { autoPlacement, computePosition, offset, VirtualElement } from "@floating-ui/react";
+import { autoPlacement, computePosition, offset, shift, VirtualElement } from "@floating-ui/react";
 import { Link2Icon } from "@radix-ui/react-icons";
 import { EditorView, SelectionRange } from "@uiw/react-codemirror";
 import { useCallback, useEffect, useRef } from "react";
@@ -14,6 +14,7 @@ interface ContextMenuProps {
     selection: SelectionRange;
     repoName: string;
     path: string;
+    revisionName: string;
 }
 
 export const EditorContextMenu = ({
@@ -21,6 +22,7 @@ export const EditorContextMenu = ({
     selection,
     repoName,
     path,
+    revisionName,
 }: ContextMenuProps) => {
     const ref = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
@@ -74,6 +76,9 @@ export const EditorContextMenu = ({
                         boundary: view.dom,
                         padding: 5,
                         allowedPlacements: ['bottom'],
+                    }),
+                    shift({
+                        padding: 5
                     })
                 ],
             }).then(({ x, y }) => {
@@ -98,7 +103,7 @@ export const EditorContextMenu = ({
         const from = toLineAndColumn(selection.from);
         const to = toLineAndColumn(selection.to);
 
-        const url = createPathWithQueryParams(`${window.location.origin}/browse/${repoName}/-/blob/${path}`,
+        const url = createPathWithQueryParams(`${window.location.origin}/browse/${repoName}@${revisionName}/-/blob/${path}`,
             ['highlightRange', `${from?.line}:${from?.column},${to?.line}:${to?.column}`],
         );
 
@@ -118,7 +123,7 @@ export const EditorContextMenu = ({
                 }     
             }
         )
-    }, [captureEvent, path, repoName, selection.from, selection.to, toast, view]);
+    }, [captureEvent, path, repoName, selection.from, selection.to, toast, view, revisionName]);
 
     return (
         <div
