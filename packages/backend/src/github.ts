@@ -95,6 +95,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
                     'zoekt.fork': marshalBool(repo.fork),
                     'zoekt.public': marshalBool(repo.private === false)
                 },
+                tenantId: config.tenantId,
                 sizeInBytes: repo.size ? repo.size * 1000 : undefined,
                 branches: [],
                 tags: [],

@@ -72,6 +72,7 @@ export interface GitHubConfig {
    * @minItems 1
    */
   topics?: [string, ...string[]];
+  tenantId?: number;
   exclude?: {
     /**
      * Exclude forked repositories from syncing.

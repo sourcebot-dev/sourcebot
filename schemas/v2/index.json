@@ -141,6 +141,9 @@
                         ["docs", "core"]
                     ]
                 },
+                "tenantId": {
+                    "type": "number"
+                },
                 "exclude": {
                     "type": "object",
                     "properties": {
