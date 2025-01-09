@@ -516,6 +516,108 @@
             ],
             "additionalProperties": false
         },
+        "BitbucketConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "bitbucket",
+                    "description": "Bitbucket configuration"
+                },
+                "countMisc": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Count watchers and forks"
+                },
+                "url": {
+                    "type": "string",
+                    "format": "url",
+                    "default": "https://api.bitbucket.org/2.0",
+                    "description": "Bitbucket URL"
+                },
+                "serverType": {
+                    "type": "string",
+                    "enum": ["cloud", "server"],
+                    "default": "cloud",
+                    "description": "server type"
+                },
+                "exclude": {
+                    "type": "object",
+                    "properties": {
+                        "archived": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Exclude archived repositories from syncing."
+                        },
+                        "forks": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Exclude forked repositories from syncing."
+                        },
+                        "workspaces": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "examples": [
+                                [
+                                    "workspace1/repo1",
+                                    "workspace2/**"
+                                ]
+                            ],
+                            "description": "List of specific workspaces to exclude from syncing."
+                        },
+                        "projects": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "examples": [
+                                [
+                                    "project1/repo1",
+                                    "project2/**"
+                                ]
+                            ],
+                            "description": "List of specific projects to exclude from syncing."
+                        },
+                        "repos": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "examples": [
+                                [
+                                    "workspace1/repo1",
+                                    "workspace2/**"
+                                ]
+                            ],
+                            "description": "List of specific repos to exclude from syncing."
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "token": {
+                    "$ref": "#/definitions/Token",
+                    "description": "A bitbucket API key.",
+                    "examples": [
+                        "secret-token",
+                        { "env": "ENV_VAR_CONTAINING_TOKEN" }
+                    ]
+                },
+                "user": {
+                    "type": "string",
+                    "description": "User name for authentication"
+                },
+                "revisions": {
+                    "$ref": "#/definitions/GitRevisions"
+                }
+            },
+            "required": [
+                "token",
+                "type",
+                "user"
+            ],
+            "additionalProperties": false
+        },
         "Repos": {
             "anyOf": [
                 {
@@ -532,6 +634,9 @@
                 },
                 {
                     "$ref": "#/definitions/LocalConfig"
+                },
+                {
+                    "$ref": "#/definitions/BitbucketConfig"
                 }
             ]
         },

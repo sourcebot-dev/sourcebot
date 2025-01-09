@@ -1,0 +1,21 @@
+{
+    "$schema": "../schemas/v2/index.json",
+    // Note: to include private repositories, you must provide an authentication token.
+    // See: configs/auth.json for a example.
+    "repos": [
+        // From bitbucket, include:
+        // - all repos in workspaces owned by user
+        {
+            "type": "bitbucket",
+            "url": "http://localhost:4010",
+            "token": "<use your token here>",
+            "serverType": "server",
+            "revisions": {
+                "branches": [
+                    "main",
+                    "master"
+                ]
+            }
+        }
+    ]
+}
