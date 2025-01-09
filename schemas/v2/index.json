@@ -516,6 +516,28 @@
             ],
             "additionalProperties": false
         },
+        "GitConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "git",
+                    "description": "Git Configuration"
+                },
+                "url": {
+                    "type": "string",
+                    "format": "url",
+                    "description": "The URL to the git repository."
+                },
+                "revisions": {
+                    "$ref": "#/definitions/GitRevisions"
+                }
+            },
+            "required": [
+                "type",
+                "url"
+            ],
+            "additionalProperties": false
+        },
         "Repos": {
             "anyOf": [
                 {
@@ -532,6 +554,9 @@
                 },
                 {
                     "$ref": "#/definitions/LocalConfig"
+                },
+                {
+                    "$ref": "#/definitions/GitConfig"
                 }
             ]
         },
