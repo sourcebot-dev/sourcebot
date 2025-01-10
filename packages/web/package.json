@@ -90,7 +90,7 @@
     "graphql": "^16.9.0",
     "http-status-codes": "^2.3.0",
     "lucide-react": "^0.435.0",
-    "next": "14.2.15",
+    "next": "14.2.21",
     "next-themes": "^0.3.0",
     "posthog-js": "^1.161.5",
     "pretty-bytes": "^6.1.1",
