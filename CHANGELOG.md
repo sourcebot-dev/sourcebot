@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2025-01-10
+
 ### Added
 
 - Added support for creating share links to snippets of code. ([#149](https://github.com/sourcebot-dev/sourcebot/pull/149))
