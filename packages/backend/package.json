@@ -9,7 +9,8 @@
         "dev": "export PATH=\"$PWD/../../bin:$PATH\" && export CTAGS_COMMAND=ctags && node ./dist/index.js",
         "build": "yarn generate:types && tsc",
         "generate:types": "tsx tools/generateTypes.ts",
-        "test": "vitest --config ./vitest.config.ts"
+        "test": "vitest --config ./vitest.config.ts",
+        "playground": "tsx tools/playground.ts"
     },
     "devDependencies": {
         "@types/argparse": "^2.0.16",
@@ -25,6 +26,7 @@
         "@gitbeaker/rest": "^40.5.1",
         "@octokit/rest": "^21.0.2",
         "argparse": "^2.0.1",
+        "bull": "^4.16.5",
         "cross-fetch": "^4.0.0",
         "dotenv": "^16.4.5",
         "gitea-js": "^1.22.0",
