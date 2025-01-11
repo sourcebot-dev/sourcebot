@@ -1,0 +1,19 @@
+{
+    "name": "@sourcebot/db",
+    "version": "0.1.0",
+    "main": "dist/index.js",
+    "private": true,
+    "scripts": {
+        "prisma:generate": "prisma generate",
+        "prisma:migrate:dev": "prisma migrate dev",
+        "prisma:db:push": "prisma db push",
+        "prisma:studio": "prisma studio",
+        "build": "yarn prisma:generate && tsc"
+    },
+    "devDependencies": {
+        "prisma": "^6.2.1"
+    },
+    "dependencies": {
+        "@prisma/client": "6.2.1"
+    }
+}
