@@ -1,0 +1,24 @@
+{
+    "name": "@sourcebot/db",
+    "version": "0.1.0",
+    "main": "dist/index.js",
+    "private": true,
+    "scripts": {
+        "prisma:generate": "prisma generate",
+        "prisma:generate:watch": "prisma generate --watch",
+        "prisma:migrate:dev": "prisma migrate dev",
+        "prisma:migrate:prod": "prisma migrate deploy",
+        "prisma:migrate:reset": "prisma migrate reset",
+        "prisma:db:push": "prisma db push",
+        "prisma:studio": "prisma studio",
+        "build": "yarn prisma:generate && tsc",
+        "postinstall": "yarn build"
+    },
+    "devDependencies": {
+        "prisma": "^6.2.1",
+        "typescript": "^5.7.3"
+    },
+    "dependencies": {
+        "@prisma/client": "6.2.1"
+    }
+}

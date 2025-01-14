@@ -1,13 +1,12 @@
 import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
-import { GitLabConfig } from "./schemas/v2.js";
-import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, excludeReposByTopic, getTokenFromConfig, includeReposByTopic, marshalBool, measure } from "./utils.js";
-import { createLogger } from "./logger.js";
-import { AppContext, GitRepository } from "./types.js";
-import path from 'path';
 import micromatch from "micromatch";
+import { createLogger } from "./logger.js";
+import { GitLabConfig } from "./schemas/v2.js";
+import { AppContext } from "./types.js";
+import { getTokenFromConfig, marshalBool, measure } from "./utils.js";
 
 const logger = createLogger("GitLab");
-const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
+export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
 export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppContext) => {
     const token = config.token ? getTokenFromConfig(config.token, ctx) : undefined;
@@ -94,115 +93,83 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppCon
         allProjects = allProjects.concat(_projects);
     }
 
-    let repos: GitRepository[] = allProjects
-        .map((project) => {
-            const repoId = `${hostname}/${project.path_with_namespace}`;
-            const repoPath = path.resolve(path.join(ctx.reposPath, `${repoId}.git`))
-            const isFork = project.forked_from_project !== undefined;
-
-            const cloneUrl = new URL(project.http_url_to_repo);
-            if (token) {
-                cloneUrl.username = 'oauth2';
-                cloneUrl.password = token;
-            }
-
-            return {
-                vcs: 'git',
-                codeHost: 'gitlab',
-                name: project.path_with_namespace,
-                id: repoId,
-                cloneUrl: cloneUrl.toString(),
-                path: repoPath,
-                isStale: false,
-                isFork,
-                isArchived: project.archived,
-                topics: project.topics ?? [],
-                gitConfigMetadata: {
-                    'zoekt.web-url-type': 'gitlab',
-                    'zoekt.web-url': project.web_url,
-                    'zoekt.name': repoId,
-                    'zoekt.gitlab-stars': project.star_count?.toString() ?? '0',
-                    'zoekt.gitlab-forks': project.forks_count?.toString() ?? '0',
-                    'zoekt.archived': marshalBool(project.archived),
-                    'zoekt.fork': marshalBool(isFork),
-                    'zoekt.public': marshalBool(project.visibility === 'public'),
+    let repos = allProjects
+        .filter((project) => {
+            const isExcluded = shouldExcludeProject({
+                project,
+                include: {
+                    topics: config.topics,
                 },
-                branches: [],
-                tags: [],
-            } satisfies GitRepository;
+                exclude: config.exclude
+            });
+
+            return !isExcluded;
         });
-
-    if (config.topics) {
-        const topics = config.topics.map(topic => topic.toLowerCase());
-        repos = includeReposByTopic(repos, topics, logger);
-    }
-
-    if (config.exclude) {
-        if (!!config.exclude.forks) {
-            repos = excludeForkedRepos(repos, logger);
-        }
-
-        if (!!config.exclude.archived) {
-            repos = excludeArchivedRepos(repos, logger);
-        }
-
-        if (config.exclude.projects) {
-            repos = excludeReposByName(repos, config.exclude.projects, logger);
-        }
-
-        if (config.exclude.topics) {
-            const topics = config.exclude.topics.map(topic => topic.toLowerCase());
-            repos = excludeReposByTopic(repos, topics, logger);
-        }
-    }
-
+        
     logger.debug(`Found ${repos.length} total repositories.`);
 
-    if (config.revisions) {
-        if (config.revisions.branches) {
-            const branchGlobs = config.revisions.branches;
-            repos = await Promise.all(repos.map(async (repo) => {
-                try {
-                    logger.debug(`Fetching branches for repo ${repo.name}...`);
-                    let { durationMs, data } = await measure(() => api.Branches.all(repo.name));
-                    logger.debug(`Found ${data.length} branches in repo ${repo.name} in ${durationMs}ms.`);
+    return repos;
+}
 
-                    let branches = data.map((branch) => branch.name);
-                    branches = micromatch.match(branches, branchGlobs);
+export const shouldExcludeProject = ({
+    project,
+    include,
+    exclude,
+}: {
+    project: ProjectSchema,
+    include?: {
+        topics?: GitLabConfig['topics'],
+    },
+    exclude?: GitLabConfig['exclude'],
+}) => {
+    const projectName = project.path_with_namespace;
+    let reason = '';
 
-                    return {
-                        ...repo,
-                        branches,
-                    };
-                } catch (e) {
-                    logger.error(`Failed to fetch branches for repo ${repo.name}.`, e);
-                    return repo;
-                }
-            }));
+    const shouldExclude = (() => {
+        if (!!exclude?.archived && project.archived) {
+            reason = `\`exclude.archived\` is true`;
+            return true;
         }
 
-        if (config.revisions.tags) {
-            const tagGlobs = config.revisions.tags;
-            repos = await Promise.all(repos.map(async (repo) => {
-                try {
-                    logger.debug(`Fetching tags for repo ${repo.name}...`);
-                    let { durationMs, data } = await measure(() => api.Tags.all(repo.name));
-                    logger.debug(`Found ${data.length} tags in repo ${repo.name} in ${durationMs}ms.`);
-
-                    let tags = data.map((tag) => tag.name);
-                    tags = micromatch.match(tags, tagGlobs);
-
-                    return {
-                        ...repo,
-                        tags,
-                    };
-                } catch (e) {
-                    logger.error(`Failed to fetch tags for repo ${repo.name}.`, e);
-                    return repo;
-                }
-            }));
+        if (!!exclude?.forks && project.forked_from_project !== undefined) {
+            reason = `\`exclude.forks\` is true`;
+            return true;
         }
+
+        if (exclude?.projects) {
+            if (micromatch.isMatch(projectName, exclude.projects)) {
+                reason = `\`exclude.projects\` contains ${projectName}`;
+                return true;
+            }
+        }
+
+        if (include?.topics) {
+            const configTopics = include.topics.map(topic => topic.toLowerCase());
+            const projectTopics = project.topics ?? [];
+
+            const matchingTopics = projectTopics.filter((topic) => micromatch.isMatch(topic, configTopics));
+            if (matchingTopics.length === 0) {
+                reason = `\`include.topics\` does not match any of the following topics: ${configTopics.join(', ')}`;
+                return true;
+            }
+        }
+
+        if (exclude?.topics) {
+            const configTopics = exclude.topics.map(topic => topic.toLowerCase());
+            const projectTopics = project.topics ?? [];
+
+            const matchingTopics = projectTopics.filter((topic) => micromatch.isMatch(topic, configTopics));
+            if (matchingTopics.length > 0) {
+                reason = `\`exclude.topics\` matches the following topics: ${matchingTopics.join(', ')}`;
+                return true;
+            }
+        }
+    })();
+
+    if (shouldExclude) {
+        logger.debug(`Excluding project ${projectName}. Reason: ${reason}`);
+        return true;
     }
 
-    return repos;
+    return false;
 }

@@ -1,0 +1,32 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Repo {
+  id         Int       @id @default(autoincrement())
+  name       String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  indexedAt  DateTime?
+  isFork     Boolean
+  isArchived Boolean
+  metadata   Json
+  cloneUrl   String
+
+  // The id of the repo in the external service
+  external_id           String
+  // The type of the external service (e.g., github, gitlab, etc.)
+  external_codeHostType String
+  // The base url of the external service (e.g., https://github.com)
+  external_codeHostUrl  String
+
+  @@unique([external_id, external_codeHostUrl])
+}

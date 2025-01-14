@@ -1,14 +1,13 @@
 import { Octokit } from "@octokit/rest";
 import { GitHubConfig } from "./schemas/v2.js";
 import { createLogger } from "./logger.js";
-import { AppContext, GitRepository } from "./types.js";
-import path from 'path';
-import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, excludeReposByTopic, getTokenFromConfig, includeReposByTopic, marshalBool, measure } from "./utils.js";
+import { AppContext } from "./types.js";
+import { getTokenFromConfig, measure } from "./utils.js";
 import micromatch from "micromatch";
 
 const logger = createLogger("GitHub");
 
-type OctokitRepository = {
+export type OctokitRepository = {
     name: string,
     id: number,
     full_name: string,
@@ -22,6 +21,7 @@ type OctokitRepository = {
     forks_count?: number,
     archived?: boolean,
     topics?: string[],
+    // @note: this is expressed in kilobytes.
     size?: number,
 }
 
@@ -54,191 +54,123 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
     }
 
     // Marshall results to our type
-    let repos: GitRepository[] = allRepos
+    let repos = allRepos
         .filter((repo) => {
-            if (!repo.clone_url) {
-                logger.warn(`Repository ${repo.name} missing property 'clone_url'. Excluding.`)
-                return false;
-            }
-            return true;
-        })
-        .map((repo) => {
-            const hostname = config.url ? new URL(config.url).hostname : 'github.com';
-            const repoId = `${hostname}/${repo.full_name}`;
-            const repoPath = path.resolve(path.join(ctx.reposPath, `${repoId}.git`));
-
-            const cloneUrl = new URL(repo.clone_url!);
-            if (token) {
-                cloneUrl.username = token;
-            }
-            
-            return {
-                vcs: 'git',
-                codeHost: 'github',
-                name: repo.full_name,
-                id: repoId,
-                cloneUrl: cloneUrl.toString(),
-                path: repoPath,
-                isStale: false,
-                isFork: repo.fork,
-                isArchived: !!repo.archived,
-                topics: repo.topics ?? [],
-                gitConfigMetadata: {
-                    'zoekt.web-url-type': 'github',
-                    'zoekt.web-url': repo.html_url,
-                    'zoekt.name': repoId,
-                    'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
-                    'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
-                    'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
-                    'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
-                    'zoekt.archived': marshalBool(repo.archived),
-                    'zoekt.fork': marshalBool(repo.fork),
-                    'zoekt.public': marshalBool(repo.private === false)
+            const isExcluded = shouldExcludeRepo({
+                repo,
+                include: {
+                    topics: config.topics,
                 },
-                sizeInBytes: repo.size ? repo.size * 1000 : undefined,
-                branches: [],
-                tags: [],
-            } satisfies GitRepository;
+                exclude: config.exclude,
+            });
+
+            return !isExcluded;
         });
 
-    if (config.topics) {
-        const topics = config.topics.map(topic => topic.toLowerCase());
-        repos = includeReposByTopic(repos, topics, logger);
-    }
-
-    if (config.exclude) {
-        if (!!config.exclude.forks) {
-            repos = excludeForkedRepos(repos, logger);
-        }
-
-        if (!!config.exclude.archived) {
-            repos = excludeArchivedRepos(repos, logger);
-        }
-
-        if (config.exclude.repos) {
-            repos = excludeReposByName(repos, config.exclude.repos, logger);
-        }
-
-        if (config.exclude.topics) {
-            const topics = config.exclude.topics.map(topic => topic.toLowerCase());
-            repos = excludeReposByTopic(repos, topics, logger);
-        }
-
-        if (config.exclude.size) {
-            const min = config.exclude.size.min;
-            const max = config.exclude.size.max;
-            if (min) {
-                repos = repos.filter((repo) => {
-                    // If we don't have a size, we can't filter by size.
-                    if (!repo.sizeInBytes) {
-                        return true;
-                    }
-
-                    if (repo.sizeInBytes < min) {
-                        logger.debug(`Excluding repo ${repo.name}. Reason: repo is less than \`exclude.size.min\`=${min} bytes.`);
-                        return false;
-                    }
-
-                    return true;
-                });
-            }
-
-            if (max) {
-                repos = repos.filter((repo) => {
-                    // If we don't have a size, we can't filter by size.
-                    if (!repo.sizeInBytes) {
-                        return true;
-                    }
-
-                    if (repo.sizeInBytes > max) {
-                        logger.debug(`Excluding repo ${repo.name}. Reason: repo is greater than \`exclude.size.max\`=${max} bytes.`);
-                        return false;
-                    }
-
-                    return true;
-                });
-            }
-        }
-    }
-
     logger.debug(`Found ${repos.length} total repositories.`);
-
-    if (config.revisions) {
-        if (config.revisions.branches) {
-            const branchGlobs = config.revisions.branches;
-            repos = await Promise.all(
-                repos.map(async (repo) => {
-                    const [owner, name] = repo.name.split('/');
-                    let branches = (await getBranchesForRepo(owner, name, octokit, signal)).map(branch => branch.name);
-                    branches = micromatch.match(branches, branchGlobs);
-
-                    return {
-                        ...repo,
-                        branches,
-                    };
-                })
-            )
-        }
-
-        if (config.revisions.tags) {
-            const tagGlobs = config.revisions.tags;
-            repos = await Promise.all(
-                repos.map(async (repo) => {
-                    const [owner, name] = repo.name.split('/');
-                    let tags = (await getTagsForRepo(owner, name, octokit, signal)).map(tag => tag.name);
-                    tags = micromatch.match(tags, tagGlobs);
-
-                    return {
-                        ...repo,
-                        tags,
-                    };
-                })
-            )
-        }
-    }
 
     return repos;
 }
 
-const getTagsForRepo = async (owner: string, repo: string, octokit: Octokit, signal: AbortSignal) => {
-    try {
-        logger.debug(`Fetching tags for repo ${owner}/${repo}...`);
-        const { durationMs, data: tags } = await measure(() => octokit.paginate(octokit.repos.listTags, {
-            owner,
-            repo,
-            per_page: 100,
-            request: {
-                signal
-            }
-        }));
+export const getGitHubRepoFromId = async (id: string, hostURL: string, token?: string) => {
+    const octokit = new Octokit({
+        auth: token,
+        ...(hostURL !== 'https://github.com' ? {
+            baseUrl: `${hostURL}/api/v3`
+        } : {})
+    });
 
-        logger.debug(`Found ${tags.length} tags for repo ${owner}/${repo} in ${durationMs}ms`);
-        return tags;
-    } catch (e) {
-        logger.debug(`Error fetching tags for repo ${owner}/${repo}: ${e}`);
-        return [];
-    }
+    const repo = await octokit.request('GET /repositories/:id', {
+        id,
+    });
+    return repo;
 }
 
-const getBranchesForRepo = async (owner: string, repo: string, octokit: Octokit, signal: AbortSignal) => {
-    try {
-        logger.debug(`Fetching branches for repo ${owner}/${repo}...`);
-        const { durationMs, data: branches } = await measure(() => octokit.paginate(octokit.repos.listBranches, {
-            owner,
-            repo,
-            per_page: 100,
-            request: {
-                signal
-            }
-        }));
-        logger.debug(`Found ${branches.length} branches for repo ${owner}/${repo} in ${durationMs}ms`);
-        return branches;
-    } catch (e) {
-        logger.debug(`Error fetching branches for repo ${owner}/${repo}: ${e}`);
-        return [];
-    }
-}
+export const shouldExcludeRepo = ({
+    repo,
+    include,
+    exclude
+} : {
+    repo: OctokitRepository,
+    include?: {
+        topics?: GitHubConfig['topics']
+    },
+    exclude?: GitHubConfig['exclude']
+}) => {
+    let reason = '';
+    const repoName = repo.full_name;
 
+    const shouldExclude = (() => {
+        if (!repo.clone_url) {
+            reason = 'clone_url is undefined';
+            return true;
+        }
+
+        if (!!exclude?.forks && repo.fork) {
+            reason = `\`exclude.forks\` is true`;
+            return true;
+        }
+    
+        if (!!exclude?.archived && !!repo.archived) {
+            reason = `\`exclude.archived\` is true`;
+            return true;
+        }
+    
+        if (exclude?.repos) {
+            if (micromatch.isMatch(repoName, exclude.repos)) {
+                reason = `\`exclude.repos\` contains ${repoName}`;
+                return true;
+            }
+        }
+    
+        if (exclude?.topics) {
+            const configTopics = exclude.topics.map(topic => topic.toLowerCase());
+            const repoTopics = repo.topics ?? [];
+    
+            const matchingTopics = repoTopics.filter((topic) => micromatch.isMatch(topic, configTopics));
+            if (matchingTopics.length > 0) {
+                reason = `\`exclude.topics\` matches the following topics: ${matchingTopics.join(', ')}`;
+                return true;
+            }
+        }
+
+        if (include?.topics) {
+            const configTopics = include.topics.map(topic => topic.toLowerCase());
+            const repoTopics = repo.topics ?? [];
+
+            const matchingTopics = repoTopics.filter((topic) => micromatch.isMatch(topic, configTopics));
+            if (matchingTopics.length === 0) {
+                reason = `\`include.topics\` does not match any of the following topics: ${configTopics.join(', ')}`;
+                return true;
+            }
+        }
+    
+        const repoSizeInBytes = repo.size ? repo.size * 1000 : undefined;
+        if (exclude?.size && repoSizeInBytes) {
+            const min = exclude.size.min;
+            const max = exclude.size.max;
+    
+            if (min && repoSizeInBytes < min) {
+                reason = `repo is less than \`exclude.size.min\`=${min} bytes.`;
+                return true;
+            }
+    
+            if (max && repoSizeInBytes > max) {
+                reason = `repo is greater than \`exclude.size.max\`=${max} bytes.`;
+                return true;
+            }
+        }
+
+        return false;
+    })();
+
+    if (shouldExclude) {
+        logger.debug(`Excluding repo ${repoName}. Reason: ${reason}`);
+        return true;
+    }
+
+    return false;
+}
 
 const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, octokit: Octokit, signal: AbortSignal) => {
     const repos = (await Promise.all(users.map(async (user) => {

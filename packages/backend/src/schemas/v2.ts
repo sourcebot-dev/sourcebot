@@ -71,7 +71,7 @@ export interface GitHubConfig {
    *
    * @minItems 1
    */
-  topics?: [string, ...string[]];
+  topics?: string[];
   exclude?: {
     /**
      * Exclude forked repositories from syncing.
@@ -159,7 +159,7 @@ export interface GitLabConfig {
    *
    * @minItems 1
    */
-  topics?: [string, ...string[]];
+  topics?: string[];
   exclude?: {
     /**
      * Exclude forked projects from syncing.
