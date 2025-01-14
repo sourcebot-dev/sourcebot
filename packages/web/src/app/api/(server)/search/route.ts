@@ -8,12 +8,20 @@ import { NextRequest } from "next/server";
 
 export const POST = async (request: NextRequest) => {
     const body = await request.json();
-    const parsed = await searchRequestSchema.safeParseAsync(body);
+    const tenantId = await request.headers.get("X-Tenant-ID");
+
+    console.log(tenantId);
+
+    const parsed = await searchRequestSchema.safeParseAsync({
+        ...body,
+        ...(tenantId && { tenantId: parseInt(tenantId) }),
+    });
     if (!parsed.success) {
         return serviceErrorResponse(
             schemaValidationError(parsed.error)
         );
     }
+
 
     const response = await search(parsed.data);
     if (isServiceError(response)) {
