@@ -9,3 +9,23 @@ datasource db {
   provider = "sqlite"
   url      = "file:../../../.sourcebot/db.sqlite"
 }
+
+model Repo {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  isFork     Boolean
+  isArchived Boolean
+  metadata   Json
+  // @todo : probably rename this
+  uri        String
+
+  // The id of the repo in the external service
+  external_id           String
+  // The type of the external service (e.g., github, gitlab, etc.)
+  external_codeHostType String
+  // The base url of the external service (e.g., https://github.com)
+  external_codeHostURL  String
+
+  @@unique([external_id, external_codeHostURL])
+}

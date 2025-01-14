@@ -2,7 +2,7 @@ import { Octokit } from "@octokit/rest";
 import { GitHubConfig } from "./schemas/v2.js";
 import { createLogger } from "./logger.js";
 import { AppContext } from "./types.js";
-import { getTokenFromConfig, marshalBool, measure } from "./utils.js";
+import { getTokenFromConfig, measure } from "./utils.js";
 import micromatch from "micromatch";
 
 const logger = createLogger("GitHub");
@@ -65,76 +65,27 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
             });
 
             return !isExcluded;
-        })
-        .map((repo) => {
-            const hostname = config.url ? new URL(config.url).hostname : 'github.com';
-            const repoId = `${hostname}/${repo.full_name}`;
-            // const repoPath = path.resolve(path.join(ctx.reposPath, `${repoId}.git`));
-
-            const cloneUrl = new URL(repo.clone_url!);
-            if (token) {
-                cloneUrl.username = token;
-            }
-            
-            return {
-                id: repo.id,
-                uri: cloneUrl.toString(),
-                isFork: repo.fork,
-                isArchived: !!repo.archived,
-                metadata: {
-                    'zoekt.web-url-type': 'github',
-                    'zoekt.web-url': repo.html_url,
-                    'zoekt.name': repoId,
-                    'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
-                    'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
-                    'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
-                    'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
-                    'zoekt.archived': marshalBool(repo.archived),
-                    'zoekt.fork': marshalBool(repo.fork),
-                    'zoekt.public': marshalBool(repo.private === false)
-                },
-            };
         });
 
     logger.debug(`Found ${repos.length} total repositories.`);
 
-    // @nocheckin : add back revision support
-    // if (config.revisions) {
-    //     if (config.revisions.branches) {
-    //         const branchGlobs = config.revisions.branches;
-    //         repos = await Promise.all(
-    //             repos.map(async (repo) => {
-    //                 const [owner, name] = repo.name.split('/');
-    //                 let branches = (await getBranchesForRepo(owner, name, octokit, signal)).map(branch => branch.name);
-    //                 branches = micromatch.match(branches, branchGlobs);
-
-    //                 return {
-    //                     ...repo,
-    //                     branches,
-    //                 };
-    //             })
-    //         )
-    //     }
-
-    //     if (config.revisions.tags) {
-    //         const tagGlobs = config.revisions.tags;
-    //         repos = await Promise.all(
-    //             repos.map(async (repo) => {
-    //                 const [owner, name] = repo.name.split('/');
-    //                 let tags = (await getTagsForRepo(owner, name, octokit, signal)).map(tag => tag.name);
-    //                 tags = micromatch.match(tags, tagGlobs);
-
-    //                 return {
-    //                     ...repo,
-    //                     tags,
-    //                 };
-    //             })
-    //         )
-    //     }
-    // }
-
     return repos;
 }
+
+export const getGitHubRepoFromId = async (id: string, hostURL: string, token?: string) => {
+    const octokit = new Octokit({
+        auth: token,
+        ...(hostURL !== 'https://github.com' ? {
+            baseUrl: `${hostURL}/api/v3`
+        } : {})
+    });
+
+    const repo = await octokit.request('GET /repositories/:id', {
+        id,
+    });
+    return repo;
+}
+
 export const shouldExcludeRepo = ({
     repo,
     include,
@@ -147,6 +98,7 @@ export const shouldExcludeRepo = ({
     exclude?: GitHubConfig['exclude']
 }) => {
     let reason = '';
+    const repoName = repo.full_name;
 
     const shouldExclude = (() => {
         if (!repo.clone_url) {
@@ -165,8 +117,8 @@ export const shouldExcludeRepo = ({
         }
     
         if (exclude?.repos) {
-            if (micromatch.isMatch(repo.full_name, exclude.repos)) {
-                reason = `\`exclude.repos\` contains ${repo.full_name}`;
+            if (micromatch.isMatch(repoName, exclude.repos)) {
+                reason = `\`exclude.repos\` contains ${repoName}`;
                 return true;
             }
         }
@@ -213,52 +165,12 @@ export const shouldExcludeRepo = ({
     })();
 
     if (shouldExclude) {
-        logger.debug(`Excluding repo ${repo.full_name}. Reason: ${reason}`);
+        logger.debug(`Excluding repo ${repoName}. Reason: ${reason}`);
         return true;
     }
 
     return false;
 }
-
-const getTagsForRepo = async (owner: string, repo: string, octokit: Octokit, signal: AbortSignal) => {
-    try {
-        logger.debug(`Fetching tags for repo ${owner}/${repo}...`);
-        const { durationMs, data: tags } = await measure(() => octokit.paginate(octokit.repos.listTags, {
-            owner,
-            repo,
-            per_page: 100,
-            request: {
-                signal
-            }
-        }));
-
-        logger.debug(`Found ${tags.length} tags for repo ${owner}/${repo} in ${durationMs}ms`);
-        return tags;
-    } catch (e) {
-        logger.debug(`Error fetching tags for repo ${owner}/${repo}: ${e}`);
-        return [];
-    }
-}
-
-const getBranchesForRepo = async (owner: string, repo: string, octokit: Octokit, signal: AbortSignal) => {
-    try {
-        logger.debug(`Fetching branches for repo ${owner}/${repo}...`);
-        const { durationMs, data: branches } = await measure(() => octokit.paginate(octokit.repos.listBranches, {
-            owner,
-            repo,
-            per_page: 100,
-            request: {
-                signal
-            }
-        }));
-        logger.debug(`Found ${branches.length} branches for repo ${owner}/${repo} in ${durationMs}ms`);
-        return branches;
-    } catch (e) {
-        logger.debug(`Error fetching branches for repo ${owner}/${repo}: ${e}`);
-        return [];
-    }
-}
-
 
 const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, octokit: Octokit, signal: AbortSignal) => {
     const repos = (await Promise.all(users.map(async (user) => {

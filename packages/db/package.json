@@ -5,7 +5,9 @@
     "private": true,
     "scripts": {
         "prisma:generate": "prisma generate",
+        "prisma:generate:watch": "prisma generate --watch",
         "prisma:migrate:dev": "prisma migrate dev",
+        "prisma:migrate:reset": "prisma migrate reset",
         "prisma:db:push": "prisma db push",
         "prisma:studio": "prisma studio",
         "build": "yarn prisma:generate && tsc"
