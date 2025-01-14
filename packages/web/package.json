@@ -7,8 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "vitest",
-    "asdf": "tsx hello.ts"
+    "test": "vitest"
   },
   "dependencies": {
     "@codemirror/commands": "^6.6.0",
