@@ -35,6 +35,7 @@ export const syncConfig = async (configPath: string, db: PrismaClient, signal: A
                 const gitHubRepos = await getGitHubReposFromConfig(repoConfig, signal, ctx);
                 const hostUrl = repoConfig.url ?? 'https://github.com';
                 const hostname = repoConfig.url ? new URL(repoConfig.url).hostname : 'github.com';
+                const tenantId = repoConfig.tenantId ?? 0;
 
                 await Promise.all(gitHubRepos.map((repo) => {
                     const repoName = `${hostname}/${repo.full_name}`;
@@ -51,6 +52,7 @@ export const syncConfig = async (configPath: string, db: PrismaClient, signal: A
                         name: repoName,
                         isFork: repo.fork,
                         isArchived: !!repo.archived,
+                        tenantId: tenantId,
                         metadata: {
                             'zoekt.web-url-type': 'github',
                             'zoekt.web-url': repo.html_url,
@@ -101,6 +103,7 @@ export const syncConfig = async (configPath: string, db: PrismaClient, signal: A
                             external_codeHostUrl: hostUrl,
                             cloneUrl: cloneUrl.toString(),
                             name: repoName,
+                            tenantId: 0, // TODO: add support for tenantId in GitLab config
                             isFork,
                             isArchived: project.archived,
                             metadata: {
