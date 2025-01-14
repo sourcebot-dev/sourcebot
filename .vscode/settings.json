@@ -18,5 +18,6 @@
             "cx\\(([^)]*)\\)",
             "(?:'|\"|`)([^']*)(?:'|\"|`)"
         ]
-    ]
+    ],
+    "github.copilot.inlineSuggest.enable": true
 }
