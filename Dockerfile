@@ -31,6 +31,15 @@ ENV NEXT_PUBLIC_POSTHOG_PAPIK=BAKED_NEXT_PUBLIC_POSTHOG_PAPIK
 ARG NEXT_PUBLIC_DOMAIN_SUB_PATH=/BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH
 RUN yarn workspace @sourcebot/web build
 
+# ------ Build Database ------
+FROM node-alpine AS database-builder
+WORKDIR /app
+
+COPY package.json yarn.lock* ./
+COPY ./packages/db ./packages/db
+RUN yarn workspace @sourcebot/db install --frozen-lockfile
+
+
 # ------ Build Backend ------
 FROM node-alpine AS backend-builder
 WORKDIR /app
@@ -38,6 +47,8 @@ WORKDIR /app
 COPY package.json yarn.lock* ./
 COPY ./schemas ./schemas
 COPY ./packages/backend ./packages/backend
+COPY --from=database-builder /app/node_modules ./node_modules
+COPY --from=database-builder /app/packages/db ./packages/db
 RUN yarn workspace @sourcebot/backend install --frozen-lockfile
 RUN yarn workspace @sourcebot/backend build
 
@@ -99,6 +110,10 @@ COPY --from=web-builder /app/packages/web/.next/static ./packages/web/.next/stat
 # Configure the backend
 COPY --from=backend-builder /app/node_modules ./node_modules
 COPY --from=backend-builder /app/packages/backend ./packages/backend
+
+# Configure the database
+COPY --from=database-builder /app/node_modules ./node_modules
+COPY --from=database-builder /app/packages/db ./packages/db
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY prefix-output.sh ./prefix-output.sh
