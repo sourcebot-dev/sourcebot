@@ -10,7 +10,7 @@ export const POST = async (request: NextRequest) => {
     const body = await request.json();
     const tenantId = await request.headers.get("X-Tenant-ID");
 
-    console.log(tenantId);
+    console.log(`Search request received. Tenant ID: ${tenantId}`);
 
     const parsed = await searchRequestSchema.safeParseAsync({
         ...body,
