@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:../../../.sourcebot/db.sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model Repo {

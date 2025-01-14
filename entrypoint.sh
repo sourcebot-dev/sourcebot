@@ -19,6 +19,11 @@ if [ ! -d "$DATA_CACHE_DIR" ]; then
     mkdir -p "$DATA_CACHE_DIR"
 fi
 
+# Run a Database migration
+echo -e "\e[34m[Info] Running database migration...\e[0m"
+export DATABASE_URL="file:$DATA_CACHE_DIR/db.sqlite"
+yarn workspace @sourcebot/db prisma:migrate:prod
+
 # In order to detect if this is the first run, we create a `.installed` file in
 # the cache directory.
 FIRST_RUN_FILE="$DATA_CACHE_DIR/.installedv2"
