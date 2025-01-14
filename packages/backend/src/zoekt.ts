@@ -1,16 +1,18 @@
 import { exec } from "child_process";
-import { AppContext, GitRepository, LocalRepository, Settings } from "./types.js";
+import { AppContext, LocalRepository, Settings } from "./types.js";
+import { Repo } from "@sourcebot/db";
+import { getRepoPath } from "./utils.js";
+import { DEFAULT_SETTINGS } from "./constants.js";
 
 const ALWAYS_EXCLUDED_DIRS = ['.git', '.hg', '.svn'];
 
-export const indexGitRepository = async (repo: GitRepository, settings: Settings, ctx: AppContext) => {
+export const indexGitRepository = async (repo: Repo, ctx: AppContext) => {
     const revisions = [
-        'HEAD',
-        ...repo.branches ?? [],
-        ...repo.tags ?? [],
+        'HEAD'
     ];
 
-    const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -file_limit ${settings.maxFileSize} -branches ${revisions.join(',')} ${repo.path}`;
+    const repoPath = getRepoPath(repo, ctx);
+    const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -file_limit ${DEFAULT_SETTINGS.maxFileSize} -branches ${revisions.join(',')} -shard_prefix ${repo.id} ${repoPath}`;
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {

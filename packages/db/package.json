@@ -10,7 +10,8 @@
         "prisma:migrate:reset": "prisma migrate reset",
         "prisma:db:push": "prisma db push",
         "prisma:studio": "prisma studio",
-        "build": "yarn prisma:generate && tsc"
+        "build": "yarn prisma:generate && tsc",
+        "postinstall": "yarn build"
     },
     "devDependencies": {
         "prisma": "^6.2.1"

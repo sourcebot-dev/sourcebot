@@ -11,21 +11,22 @@ datasource db {
 }
 
 model Repo {
-  id         Int      @id @default(autoincrement())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id         Int       @id @default(autoincrement())
+  name       String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  indexedAt  DateTime?
   isFork     Boolean
   isArchived Boolean
   metadata   Json
-  // @todo : probably rename this
-  uri        String
+  cloneUrl   String
 
   // The id of the repo in the external service
   external_id           String
   // The type of the external service (e.g., github, gitlab, etc.)
   external_codeHostType String
   // The base url of the external service (e.g., https://github.com)
-  external_codeHostURL  String
+  external_codeHostUrl  String
 
-  @@unique([external_id, external_codeHostURL])
+  @@unique([external_id, external_codeHostUrl])
 }
