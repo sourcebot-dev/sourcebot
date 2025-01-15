@@ -68,3 +68,11 @@ export const unexpectedError = (message: string): ServiceError => {
         message: `Unexpected error: ${message}`,
     };
 }
+
+export const notAuthenticated = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        errorCode: ErrorCode.NOT_AUTHENTICATED,
+        message: "Not authenticated",
+    }
+}
