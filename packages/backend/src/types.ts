@@ -17,6 +17,7 @@ export interface GitRepository extends BaseRepository {
     cloneUrl: string;
     branches: string[];
     tags: string[];
+    defaultBranch?: string;
     gitConfigMetadata?: Record<string, string>;
 }
 
