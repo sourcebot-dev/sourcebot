@@ -4,6 +4,7 @@ export const searchRequestSchema = z.object({
     query: z.string(),
     maxMatchDisplayCount: z.number(),
     whole: z.boolean().optional(),
+    tenantId: z.number().optional(),
 });
 
 

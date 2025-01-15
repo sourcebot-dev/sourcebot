@@ -20,6 +20,7 @@ model Repo {
   isArchived Boolean
   metadata   Json
   cloneUrl   String
+  tenantId   Int
 
   // The id of the repo in the external service
   external_id           String
