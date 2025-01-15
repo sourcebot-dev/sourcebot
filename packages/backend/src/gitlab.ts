@@ -3,7 +3,7 @@ import micromatch from "micromatch";
 import { createLogger } from "./logger.js";
 import { GitLabConfig } from "./schemas/v2.js";
 import { AppContext } from "./types.js";
-import { getTokenFromConfig, marshalBool, measure } from "./utils.js";
+import { getTokenFromConfig, measure } from "./utils.js";
 
 const logger = createLogger("GitLab");
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";

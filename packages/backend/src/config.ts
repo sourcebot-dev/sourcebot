@@ -105,7 +105,7 @@ export const syncConfig = async (configPath: string, db: PrismaClient, signal: A
                             name: repoName,
                             tenantId: 0, // TODO: add support for tenantId in GitLab config
                             isFork,
-                            isArchived: project.archived,
+                            isArchived: !!project.archived,
                             metadata: {
                                 'zoekt.web-url-type': 'gitlab',
                                 'zoekt.web-url': project.web_url,
