@@ -10,6 +10,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum RepoIndexingStatus {
+  NEW
+  IN_INDEX_QUEUE
+  INDEXING
+  INDEXED
+  FAILED
+}
+
 model Repo {
   id         Int       @id @default(autoincrement())
   name       String
@@ -21,6 +29,8 @@ model Repo {
   metadata   Json
   cloneUrl   String
   tenantId   Int
+
+  repoIndexingStatus RepoIndexingStatus @default(NEW)
 
   // The id of the repo in the external service
   external_id           String

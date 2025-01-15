@@ -74,6 +74,10 @@ export type Settings = {
      * The interval (in milliseconds) at which the configuration file should be re-synced.
      */
     resyncIntervalMs: number;
+    /**
+     * The multiple of the number of CPUs to use for indexing.
+     */
+    indexConcurrencyMultiple: number;
 }
 
 // @see : https://stackoverflow.com/a/61132308

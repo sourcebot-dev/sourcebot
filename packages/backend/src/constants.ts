@@ -6,6 +6,7 @@ import { Settings } from "./types.js";
 export const DEFAULT_SETTINGS: Settings = {
     maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
     autoDeleteStaleRepos: true,
-    reindexIntervalMs: 1000 * 60 * 60, // 1 hour in milliseconds
+    reindexIntervalMs: 1000 * 60,
     resyncIntervalMs: 1000 * 60 * 60 * 24, // 1 day in milliseconds
+    indexConcurrencyMultiple: 3,
 }
