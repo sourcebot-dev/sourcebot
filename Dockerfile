@@ -84,7 +84,7 @@ ENV POSTHOG_PAPIK=$POSTHOG_PAPIK
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis
 
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
