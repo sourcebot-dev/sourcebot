@@ -58,21 +58,18 @@ const syncGitRepository = async (repo: Repo, ctx: AppContext) => {
 
 async function addReposToQueue(db: PrismaClient, queue: Queue, repos: Repo[]) {
     for (const repo of repos) {
-        try {
-            await db.$transaction(async (tx) => {
-                await tx.repo.update({
-                    where: { id: repo.id },
-                    data: { repoIndexingStatus: RepoIndexingStatus.IN_INDEX_QUEUE },
-                });
-
-                // Add the job to the queue
-                await queue.add('indexJob', repo);
+        await db.$transaction(async (tx) => {
+            await tx.repo.update({
+                where: { id: repo.id },
+                data: { repoIndexingStatus: RepoIndexingStatus.IN_INDEX_QUEUE },
             });
 
+            // Add the job to the queue
+            await queue.add('indexJob', repo);
             logger.info(`Added job to queue for repo ${repo.id}`);
-        } catch (error) {
-            logger.error(`Failed to add job to queue for repo ${repo.id}: ${error}`);
-        }
+        }).catch((err) => {
+            logger.error(`Failed to add job to queue for repo ${repo.id}: ${err}`);
+        });
     }
 }
 
