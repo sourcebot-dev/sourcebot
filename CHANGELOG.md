@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed issue where we crash on startup if the install / upgrade PostHog event fails to send. ([#159](https://github.com/sourcebot-dev/sourcebot/pull/159))
+- Fixed issue with broken file links. ([#161](https://github.com/sourcebot-dev/sourcebot/pull/161))
 
 ## [2.7.0] - 2025-01-10
 
