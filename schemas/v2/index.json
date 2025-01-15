@@ -142,7 +142,8 @@
                     ]
                 },
                 "tenantId": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "@nocheckin"
                 },
                 "exclude": {
                     "type": "object",
