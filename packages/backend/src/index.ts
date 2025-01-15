@@ -8,6 +8,7 @@ import { main } from "./main.js"
 import { PrismaClient } from "@sourcebot/db";
 
 
+
 const parser = new ArgumentParser({
     description: "Sourcebot backend tool",
 });
