@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed issue where we crash on startup if the install / upgrade PostHog event fails to send. ([#159](https://github.com/sourcebot-dev/sourcebot/pull/159))
+- Fixed issue with broken file links. ([#161](https://github.com/sourcebot-dev/sourcebot/pull/161))
+
+## [2.7.0] - 2025-01-10
+
+### Added
+
+- Added support for creating share links to snippets of code. ([#149](https://github.com/sourcebot-dev/sourcebot/pull/149))
+- Added support for indexing raw remote git repository. ([#152](https://github.com/sourcebot-dev/sourcebot/pull/152))
+
 ## [2.6.3] - 2024-12-18
 
 ### Added

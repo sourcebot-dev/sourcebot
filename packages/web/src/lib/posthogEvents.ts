@@ -23,7 +23,8 @@ export type PosthogEventMap = {
         regexpsConsidered: number,
         flushReason: number,
         fileLanguages: string[]
-    }
+    },
+    share_link_created: {},
 }
 
 export type PosthogEvent = keyof PosthogEventMap;

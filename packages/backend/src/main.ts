@@ -6,7 +6,7 @@ import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
 import { getGerritReposFromConfig } from "./gerrit.js";
 import { AppContext, LocalRepository, GitRepository, Repository, Settings } from "./types.js";
-import { cloneRepository, fetchRepository } from "./git.js";
+import { cloneRepository, fetchRepository, getGitRepoFromConfig } from "./git.js";
 import { createLogger } from "./logger.js";
 import { createRepository, Database, loadDB, updateRepository, updateSettings } from './db.js';
 import { arraysEqualShallow, stringsEqualFalseySafe, isRemotePath, measure } from "./utils.js";
@@ -244,6 +244,11 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
             case 'local': {
                 const repo = getLocalRepoFromConfig(repoConfig, ctx);
                 configRepos.push(repo);
+                break;
+            }
+            case 'git': {
+                const gitRepo = await  getGitRepoFromConfig(repoConfig, ctx);
+                gitRepo && configRepos.push(gitRepo);
                 break;
             }
         }
