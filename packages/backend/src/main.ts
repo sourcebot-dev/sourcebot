@@ -192,7 +192,8 @@ export const main = async (db: PrismaClient, context: AppContext) => {
                 },
                 OR: [
                     { indexedAt: null },
-                    { indexedAt: { lt: thresholdDate } }
+                    { indexedAt: { lt: thresholdDate } },
+                    { repoIndexingStatus: RepoIndexingStatus.NEW }
                 ]
             }
         });
