@@ -6,10 +6,9 @@ import Image from "next/image";
 import logoDark from "../../../public/sb_logo_dark_small.png";
 import logoLight from "../../../public/sb_logo_light_small.png";
 import { ProfilePicture } from "./profilePicture";
-import { auth, signIn } from "@/auth";
+import { signOut } from "@/auth";
 
 export const NavigationMenu = async () => {
-    const session = await auth();
 
     return (
         <div className="flex flex-col w-screen h-fit">
@@ -54,23 +53,20 @@ export const NavigationMenu = async () => {
                 </div>
 
                 <div className="flex flex-row items-center gap-2">
-                    {!session ? (
-                        <form
-                            action={async () => {
-                                "use server";
-                                await signIn("github");
-                            }}
+                    <form
+                        action={async () => {
+                            "use server";
+                            await signOut();
+                        }}
+                    >
+                        <Button
+                            variant="outline"
+                            size="default"
                         >
-                            <Button
-                                variant="outline"
-                                size="default"
-                            >
-                                Login
-                            </Button>
-                        </form>
-                    ) : (
-                        <ProfilePicture />
-                    )}
+                            Logout
+                        </Button>
+                    </form>
+                    <ProfilePicture />
                 </div>
             </div>
             <Separator />

@@ -10,6 +10,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.7.4",
     "@codemirror/commands": "^6.6.0",
     "@codemirror/lang-cpp": "^6.0.2",
     "@codemirror/lang-css": "^6.3.0",
@@ -121,6 +122,7 @@
     "jsdom": "^25.0.1",
     "npm-run-all": "^4.1.5",
     "postcss": "^8",
+    "@sourcebot/db": "^0.1.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vite-tsconfig-paths": "^5.1.3",
