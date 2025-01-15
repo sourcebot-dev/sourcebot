@@ -1,3 +1,6 @@
+/**
+ * @deprecated in V3
+ */
 interface BaseRepository {
     vcs: 'git' | 'local';
     id: string;
@@ -10,8 +13,12 @@ interface BaseRepository {
     codeHost?: string;
     topics?: string[];
     sizeInBytes?: number;
+    tenantId?: number;
 }
 
+/**
+ * @deprecated in V3
+ */
 export interface GitRepository extends BaseRepository {
     vcs: 'git';
     cloneUrl: string;
@@ -20,12 +27,18 @@ export interface GitRepository extends BaseRepository {
     gitConfigMetadata?: Record<string, string>;
 }
 
+/**
+ * @deprecated in V3
+ */
 export interface LocalRepository extends BaseRepository {
     vcs: 'local';
     excludedPaths: string[];
     watch: boolean;
 }
 
+/**
+ * @deprecated in V3
+ */
 export type Repository = GitRepository | LocalRepository;
 
 export type AppContext = {
@@ -56,11 +69,15 @@ export type Settings = {
     /**
      * The interval (in milliseconds) at which the indexer should re-index all repositories.
      */
-    reindexInterval: number;
+    reindexIntervalMs: number;
     /**
      * The interval (in milliseconds) at which the configuration file should be re-synced.
      */
-    resyncInterval: number;
+    resyncIntervalMs: number;
+    /**
+     * The multiple of the number of CPUs to use for indexing.
+     */
+    indexConcurrencyMultiple: number;
 }
 
 // @see : https://stackoverflow.com/a/61132308

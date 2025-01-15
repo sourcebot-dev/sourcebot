@@ -1,10 +1,11 @@
 
-CMDS := zoekt ui
+CMDS := zoekt yarn
 
 ALL: $(CMDS)
 
-ui:
+yarn:
 	yarn install
+	yarn workspace @sourcebot/db prisma:migrate:dev
 
 zoekt:
 	mkdir -p bin
@@ -20,6 +21,8 @@ clean:
 		packages/web/.next \
 		packages/backend/dist \
 		packages/backend/node_modules \
+		packages/db/node_modules \
+		packages/db/dist \
 		.sourcebot
 
 .PHONY: bin
