@@ -8,4 +8,5 @@ export const DEFAULT_SETTINGS: Settings = {
     autoDeleteStaleRepos: true,
     reindexIntervalMs: 1000 * 60,
     resyncIntervalMs: 1000 * 60 * 60 * 24, // 1 day in milliseconds
+    indexConcurrencyMultiple: 3,
 }

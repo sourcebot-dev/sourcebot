@@ -8,8 +8,9 @@ import { AppContext } from "./types.js";
 import { getRepoPath, isRemotePath, measure } from "./utils.js";
 import { indexGitRepository } from "./zoekt.js";
 import { DEFAULT_SETTINGS } from './constants.js';
-import { Queue, Worker } from 'bullmq';
+import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
+import * as os from 'os';
 
 const logger = createLogger('main');
 
@@ -133,31 +134,29 @@ export const main = async (db: PrismaClient, context: AppContext) => {
     });
 
     const indexQueue = new Queue('indexQueue');
+
+    const numCores = os.cpus().length;
+    const numWorkers = numCores * DEFAULT_SETTINGS.indexConcurrencyMultiple;
+    logger.info(`Detected ${numCores} cores. Setting max concurrency to ${numWorkers}`);
     const worker = new Worker('indexQueue', async (job) => {
         const repo = job.data as Repo;
 
-        try {
-            let indexDuration_s: number | undefined;
-            let fetchDuration_s: number | undefined;
-            let cloneDuration_s: number | undefined;
+        let indexDuration_s: number | undefined;
+        let fetchDuration_s: number | undefined;
+        let cloneDuration_s: number | undefined;
 
-            const stats = await syncGitRepository(repo, context);
-            indexDuration_s = stats.indexDuration_s;
-            fetchDuration_s = stats.fetchDuration_s;
-            cloneDuration_s = stats.cloneDuration_s;
+        const stats = await syncGitRepository(repo, context);
+        indexDuration_s = stats.indexDuration_s;
+        fetchDuration_s = stats.fetchDuration_s;
+        cloneDuration_s = stats.cloneDuration_s;
 
-            captureEvent('repo_synced', {
-                vcs: 'git',
-                codeHost: repo.external_codeHostType,
-                indexDuration_s,
-                fetchDuration_s,
-                cloneDuration_s,
-            });
-        } catch (err: any) {
-            // @todo : better error handling here..
-            logger.error(err);
-            return false;
-        }
+        captureEvent('repo_synced', {
+            vcs: 'git',
+            codeHost: repo.external_codeHostType,
+            indexDuration_s,
+            fetchDuration_s,
+            cloneDuration_s,
+        });
 
         await db.repo.update({
             where: {
@@ -168,70 +167,42 @@ export const main = async (db: PrismaClient, context: AppContext) => {
                 repoIndexingStatus: RepoIndexingStatus.INDEXED,
             }
         });
-    }, { connection: redis, concurrency: 10 });
+    }, { connection: redis, concurrency: numWorkers });
 
     worker.on('completed', (job) => {
         logger.info(`Job ${job.id} completed`);
     });
-    worker.on('failed', (job, err) => {
+    worker.on('failed', async (job: Job | undefined, err) => {
         logger.info(`Job failed with error: ${err}`);
+        if (job) {
+            await db.repo.update({
+                where: {
+                    id: job.data.id,
+                },
+                data: {
+                    repoIndexingStatus: RepoIndexingStatus.FAILED,
+                }
+            })
+        }
     });
 
     while (true) {
         const thresholdDate = new Date(Date.now() - DEFAULT_SETTINGS.reindexIntervalMs);
         const repos = await db.repo.findMany({
             where: {
-                AND: [
-                    { repoIndexingStatus: { not: RepoIndexingStatus.IN_INDEX_QUEUE } },
-                    {
-                        OR: [
-                            { indexedAt: null },
-                            { indexedAt: { lt: thresholdDate } }
-                        ],
-                    }
+                repoIndexingStatus: {
+                    notIn: [RepoIndexingStatus.IN_INDEX_QUEUE, RepoIndexingStatus.FAILED]
+                },
+                OR: [
+                    { indexedAt: null },
+                    { indexedAt: { lt: thresholdDate } }
                 ]
             }
         });
         logger.info(`Found ${repos.length} repos to index...`);
         addReposToQueue(db, indexQueue, repos);
 
-        /*
-        for (const repo of repos) {
-            try {
-                let indexDuration_s: number | undefined;
-                let fetchDuration_s: number | undefined;
-                let cloneDuration_s: number | undefined;
-
-                const stats = await syncGitRepository(repo, context);
-                indexDuration_s = stats.indexDuration_s;
-                fetchDuration_s = stats.fetchDuration_s;
-                cloneDuration_s = stats.cloneDuration_s;
-
-                captureEvent('repo_synced', {
-                    vcs: 'git',
-                    codeHost: repo.external_codeHostType,
-                    indexDuration_s,
-                    fetchDuration_s,
-                    cloneDuration_s,
-                });
-            } catch (err: any) {
-                // @todo : better error handling here..
-                logger.error(err);
-                continue;
-            }
-
-            await db.repo.update({
-                where: {
-                    id: repo.id,
-                },
-                data: {
-                    indexedAt: new Date(),
-                }
-            });
-        }
-        */
 
         await new Promise(resolve => setTimeout(resolve, 1000));
-
     }
 }

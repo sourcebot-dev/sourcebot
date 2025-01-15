@@ -15,7 +15,7 @@ enum RepoIndexingStatus {
   IN_INDEX_QUEUE
   INDEXING
   INDEXED
-  ERROR
+  FAILED
 }
 
 model Repo {
