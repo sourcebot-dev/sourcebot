@@ -81,31 +81,31 @@ fi
 
 echo -e "\e[34m[Info] Using config file at: '$CONFIG_PATH'.\e[0m"
 
-# # Update NextJs public env variables w/o requiring a rebuild.
-# # @see: https://phase.dev/blog/nextjs-public-runtime-variables/
-# {
-#     # Infer NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED if it is not set
-#     if [ -z "$NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED" ] && [ ! -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
-#         export NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED="$SOURCEBOT_TELEMETRY_DISABLED"
-#     fi
+# Update NextJs public env variables w/o requiring a rebuild.
+# @see: https://phase.dev/blog/nextjs-public-runtime-variables/
+{
+    # Infer NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED if it is not set
+    if [ -z "$NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED" ] && [ ! -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
+        export NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED="$SOURCEBOT_TELEMETRY_DISABLED"
+    fi
 
-#     # Infer NEXT_PUBLIC_SOURCEBOT_VERSION if it is not set
-#     if [ -z "$NEXT_PUBLIC_SOURCEBOT_VERSION" ] && [ ! -z "$SOURCEBOT_VERSION" ]; then
-#         export NEXT_PUBLIC_SOURCEBOT_VERSION="$SOURCEBOT_VERSION"
-#     fi
+    # Infer NEXT_PUBLIC_SOURCEBOT_VERSION if it is not set
+    if [ -z "$NEXT_PUBLIC_SOURCEBOT_VERSION" ] && [ ! -z "$SOURCEBOT_VERSION" ]; then
+        export NEXT_PUBLIC_SOURCEBOT_VERSION="$SOURCEBOT_VERSION"
+    fi
 
-#     # Always infer NEXT_PUBLIC_POSTHOG_PAPIK
-#     export NEXT_PUBLIC_POSTHOG_PAPIK="$POSTHOG_PAPIK"
+    # Always infer NEXT_PUBLIC_POSTHOG_PAPIK
+    export NEXT_PUBLIC_POSTHOG_PAPIK="$POSTHOG_PAPIK"
 
-#     # Iterate over all .js files in .next & public, making substitutions for the `BAKED_` sentinal values
-#     # with their actual desired runtime value.
-#     find /app/packages/web/public /app/packages/web/.next -type f -name "*.js" |
-#     while read file; do
-#         sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED|${NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED}|g" "$file"
-#         sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION|${NEXT_PUBLIC_SOURCEBOT_VERSION}|g" "$file"
-#         sed -i "s|BAKED_NEXT_PUBLIC_POSTHOG_PAPIK|${NEXT_PUBLIC_POSTHOG_PAPIK}|g" "$file"
-#     done
-# }
+    # Iterate over all .js files in .next & public, making substitutions for the `BAKED_` sentinal values
+    # with their actual desired runtime value.
+    find /app/packages/web/public /app/packages/web/.next -type f -name "*.js" |
+    while read file; do
+        sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED|${NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED}|g" "$file"
+        sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION|${NEXT_PUBLIC_SOURCEBOT_VERSION}|g" "$file"
+        sed -i "s|BAKED_NEXT_PUBLIC_POSTHOG_PAPIK|${NEXT_PUBLIC_POSTHOG_PAPIK}|g" "$file"
+    done
+}
 
 # @nocheckin: This was interfering with the the `matcher` regex in middleware.ts,
 # causing regular expressions parsing errors when making a request. It's unclear
