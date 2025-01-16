@@ -107,46 +107,50 @@ echo -e "\e[34m[Info] Using config file at: '$CONFIG_PATH'.\e[0m"
     done
 }
 
-
-# Update specifically NEXT_PUBLIC_DOMAIN_SUB_PATH w/o requiring a rebuild.
-# Ultimately, the DOMAIN_SUB_PATH sets the `basePath` param in the next.config.mjs.
-# Similar to above, we pass in a `BAKED_` sentinal value into next.config.mjs at build
-# time. Unlike above, the `basePath` configuration is set in files other than just javascript
-# code (e.g., manifest files, css files, etc.), so this section has subtle differences.
+# @nocheckin: This was interfering with the the `matcher` regex in middleware.ts,
+# causing regular expressions parsing errors when making a request. It's unclear
+# why exactly this was happening, but it's likely due to a bad replacement happening
+# in the `sed` command.
 #
-# @see: https://nextjs.org/docs/app/api-reference/next-config-js/basePath
-# @see: https://phase.dev/blog/nextjs-public-runtime-variables/
-{
-    if [ ! -z "$DOMAIN_SUB_PATH" ]; then
-        # If the sub-path is "/", this creates problems with certain replacements. For example:
-        # /BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH/_next/image -> //_next/image (notice the double slash...)
-        # To get around this, we default to an empty sub-path, which is the default when no sub-path is defined.
-        if [ "$DOMAIN_SUB_PATH" = "/" ]; then
-            DOMAIN_SUB_PATH=""
+# # Update specifically NEXT_PUBLIC_DOMAIN_SUB_PATH w/o requiring a rebuild.
+# # Ultimately, the DOMAIN_SUB_PATH sets the `basePath` param in the next.config.mjs.
+# # Similar to above, we pass in a `BAKED_` sentinal value into next.config.mjs at build
+# # time. Unlike above, the `basePath` configuration is set in files other than just javascript
+# # code (e.g., manifest files, css files, etc.), so this section has subtle differences.
+# #
+# # @see: https://nextjs.org/docs/app/api-reference/next-config-js/basePath
+# # @see: https://phase.dev/blog/nextjs-public-runtime-variables/
+# {
+#     if [ ! -z "$DOMAIN_SUB_PATH" ]; then
+#         # If the sub-path is "/", this creates problems with certain replacements. For example:
+#         # /BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH/_next/image -> //_next/image (notice the double slash...)
+#         # To get around this, we default to an empty sub-path, which is the default when no sub-path is defined.
+#         if [ "$DOMAIN_SUB_PATH" = "/" ]; then
+#             DOMAIN_SUB_PATH=""
 
-        # Otherwise, we need to ensure that the sub-path starts with a slash, since this is a requirement
-        # for the basePath property. For example, assume DOMAIN_SUB_PATH=/bot, then:
-        # /BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH/_next/image -> /bot/_next/image
-        elif [[ ! "$DOMAIN_SUB_PATH" =~ ^/ ]]; then
-            DOMAIN_SUB_PATH="/$DOMAIN_SUB_PATH"
-        fi
-    fi
+#         # Otherwise, we need to ensure that the sub-path starts with a slash, since this is a requirement
+#         # for the basePath property. For example, assume DOMAIN_SUB_PATH=/bot, then:
+#         # /BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH/_next/image -> /bot/_next/image
+#         elif [[ ! "$DOMAIN_SUB_PATH" =~ ^/ ]]; then
+#             DOMAIN_SUB_PATH="/$DOMAIN_SUB_PATH"
+#         fi
+#     fi
 
-    if [ ! -z "$DOMAIN_SUB_PATH" ]; then
-        echo -e "\e[34m[Info] DOMAIN_SUB_PATH was set to "$DOMAIN_SUB_PATH". Overriding default path.\e[0m"
-    fi
+#     if [ ! -z "$DOMAIN_SUB_PATH" ]; then
+#         echo -e "\e[34m[Info] DOMAIN_SUB_PATH was set to "$DOMAIN_SUB_PATH". Overriding default path.\e[0m"
+#     fi
 
-    # Always set NEXT_PUBLIC_DOMAIN_SUB_PATH to DOMAIN_SUB_PATH (even if it is empty!!)
-    export NEXT_PUBLIC_DOMAIN_SUB_PATH="$DOMAIN_SUB_PATH"
+#     # Always set NEXT_PUBLIC_DOMAIN_SUB_PATH to DOMAIN_SUB_PATH (even if it is empty!!)
+#     export NEXT_PUBLIC_DOMAIN_SUB_PATH="$DOMAIN_SUB_PATH"
 
-    # Iterate over _all_ files in the web directory, making substitutions for the `BAKED_` sentinal values
-    # with their actual desired runtime value.
-    find /app/packages/web -type f |
-    while read file; do
-        # @note: the leading "/" is required here as it is included at build time. See Dockerfile.
-        sed -i "s|/BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH|${NEXT_PUBLIC_DOMAIN_SUB_PATH}|g" "$file"
-    done
-}
+#     # Iterate over _all_ files in the web directory, making substitutions for the `BAKED_` sentinal values
+#     # with their actual desired runtime value.
+#     find /app/packages/web -type f |
+#     while read file; do
+#         # @note: the leading "/" is required here as it is included at build time. See Dockerfile.
+#         sed -i "s|/BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH|${NEXT_PUBLIC_DOMAIN_SUB_PATH}|g" "$file"
+#     done
+# }
 
 
 # Run supervisord

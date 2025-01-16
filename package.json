@@ -6,8 +6,8 @@
     "scripts": {
         "build": "yarn workspaces run build",
         "test": "yarn workspaces run test",
-        "dev": "npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web dev:redis",
-        "dev:mt": "npm-run-all --print-label --parallel dev:zoekt:mt dev:backend dev:web dev:redis",
+        "dev": "yarn workspace @sourcebot/db prisma:migrate:dev && npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web dev:redis",
+        "dev:mt": "yarn workspace @sourcebot/db prisma:migrate:dev && npm-run-all --print-label --parallel dev:zoekt:mt dev:backend dev:web dev:redis",
         "dev:zoekt": "export PATH=\"$PWD/bin:$PATH\" && export SRC_TENANT_ENFORCEMENT_MODE=none && zoekt-webserver -index .sourcebot/index -rpc",
         "dev:zoekt:mt": "export PATH=\"$PWD/bin:$PATH\" && export SRC_TENANT_ENFORCEMENT_MODE=strict && zoekt-webserver -index .sourcebot/index -rpc",
         "dev:backend": "yarn workspace @sourcebot/backend dev:watch",
