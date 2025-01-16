@@ -73,7 +73,7 @@ export default async function Login(props: {
                                         <Image
                                             src={logo}
                                             alt={provider.name}
-                                            className="w-5 h-5 invert mr-2"
+                                            className="w-5 h-5 invert dark:invert-0 mr-2"
                                         />
                                     )}
                                     Sign in with {provider.name}

@@ -7,6 +7,12 @@ import logoDark from "../../../public/sb_logo_dark_small.png";
 import logoLight from "../../../public/sb_logo_light_small.png";
 import { ProfilePicture } from "./profilePicture";
 import { signOut } from "@/auth";
+import { SettingsDropdown } from "./settingsDropdown";
+import { GitHubLogoIcon, DiscordLogoIcon } from "@radix-ui/react-icons";
+import { redirect } from "next/navigation";
+
+const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
+const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
 
 export const NavigationMenu = async () => {
 
@@ -56,10 +62,40 @@ export const NavigationMenu = async () => {
                     <form
                         action={async () => {
                             "use server";
+                            redirect(SOURCEBOT_DISCORD_URL);
+                        }}
+                    >
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            type="submit"
+                        >
+                            <DiscordLogoIcon className="w-4 h-4" />
+                        </Button>
+                    </form>
+                    <form
+                        action={async () => {
+                            "use server";
+                            redirect(SOURCEBOT_GITHUB_URL);
+                        }}
+                    >
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            type="submit"
+                        >
+                            <GitHubLogoIcon className="w-4 h-4" />
+                        </Button>
+                    </form>
+                    <SettingsDropdown />
+                    <form
+                        action={async () => {
+                            "use server";
                             await signOut();
                         }}
                     >
                         <Button
+                            type="submit"
                             variant="outline"
                             size="default"
                         >
