@@ -10,6 +10,14 @@ RUN go mod download
 COPY vendor/zoekt ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o /cmd/ ./cmd/...
 
+# ------ Build Database ------
+FROM node-alpine AS database-builder
+WORKDIR /app
+
+COPY package.json yarn.lock* ./
+COPY ./packages/db ./packages/db
+RUN yarn workspace @sourcebot/db install --frozen-lockfile
+
 # ------ Build Web ------
 FROM node-alpine AS web-builder
 RUN apk add --no-cache libc6-compat
@@ -17,6 +25,8 @@ WORKDIR /app
 
 COPY package.json yarn.lock* ./
 COPY ./packages/web ./packages/web
+COPY --from=database-builder /app/node_modules ./node_modules
+COPY --from=database-builder /app/packages/db ./packages/db
 
 # Fixes arm64 timeouts
 RUN yarn config set registry https://registry.npmjs.org/
@@ -30,14 +40,6 @@ ENV NEXT_PUBLIC_POSTHOG_PAPIK=BAKED_NEXT_PUBLIC_POSTHOG_PAPIK
 # @note: leading "/" is required for the basePath property. @see: https://nextjs.org/docs/app/api-reference/next-config-js/basePath
 ARG NEXT_PUBLIC_DOMAIN_SUB_PATH=/BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH
 RUN yarn workspace @sourcebot/web build
-
-# ------ Build Database ------
-FROM node-alpine AS database-builder
-WORKDIR /app
-
-COPY package.json yarn.lock* ./
-COPY ./packages/db ./packages/db
-RUN yarn workspace @sourcebot/db install --frozen-lockfile
 
 
 # ------ Build Backend ------
