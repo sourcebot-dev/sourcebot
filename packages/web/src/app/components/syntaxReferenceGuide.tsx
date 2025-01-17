@@ -43,7 +43,7 @@ export const SyntaxReferenceGuide = () => {
         } else {
             closeDialog();
         }
-    }, []);
+    }, [closeDialog, openDialog]);
 
     useHotkeys("mod+/", (event) => {
         event.preventDefault();
@@ -61,13 +61,11 @@ export const SyntaxReferenceGuide = () => {
         >
             <DialogContent
                 className="max-h-[80vh] max-w-[700px] overflow-scroll"
-                aria-description="Syntax Reference Guide"
-                aria-describedby="syntax-reference-guide"
             >
                 <DialogHeader>
                     <DialogTitle>Syntax Reference Guide</DialogTitle>
                     <DialogDescription className="text-sm text-foreground">
-                        Queries consist of space-seperated regular expressions. Wrapping expressions in <Code>""</Code> combines them. By default, a file must have at least one match for each expression to be included.
+                        Queries consist of space-seperated regular expressions. Wrapping expressions in <Code>{`""`}</Code> combines them. By default, a file must have at least one match for each expression to be included.
                     </DialogDescription>
                 </DialogHeader>
                 <Table>
@@ -87,7 +85,7 @@ export const SyntaxReferenceGuide = () => {
                             <TableCell className="py-2">Match files with regex <Code>/foo/</Code> <b>and</b> <Code>/bar/</Code></TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className="py-2"><Code>"foo bar"</Code></TableCell>
+                            <TableCell className="py-2"><Code>{`"foo bar"`}</Code></TableCell>
                             <TableCell className="py-2">Match files with regex <Code>/foo bar/</Code></TableCell>
                         </TableRow>
                     </TableBody>
@@ -95,7 +93,7 @@ export const SyntaxReferenceGuide = () => {
 
                 <Separator className="my-2"/>
                 <p className="text-sm">
-                    Multiple expressions can be or'd together with <Code>or</Code>, negated with <Code>-</Code>, or grouped with <Code>()</Code>.
+                    {`Multiple expressions can be or'd together with `}<Code>or</Code>, negated with <Code>-</Code>, or grouped with <Code>()</Code>.
                 </p>
                 <Table>
                     <TableHeader>
@@ -147,7 +145,7 @@ export const SyntaxReferenceGuide = () => {
                                     <Code
                                         title="Filter results to filepaths that match regex /my file/"
                                     >
-                                        <Highlight>file:</Highlight>"my file"
+                                        <Highlight>file:</Highlight>{`"my file"`}
                                     </Code>
                                     <Code
                                         title="Ignore results from filepaths match regex /test\.ts$/"
