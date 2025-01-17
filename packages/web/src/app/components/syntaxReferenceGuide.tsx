@@ -1,8 +1,7 @@
 'use client';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useState } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import {
     Table,
     TableBody,
@@ -10,28 +9,56 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table"
-import { Separator } from "@/components/ui/separator";
+} from "@/components/ui/table";
 import clsx from "clsx";
 import Link from "next/link";
+import { useCallback, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 
 const LINGUIST_LINK = "https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml";
 const CTAGS_LINK = "https://ctags.io/";
 
 export const SyntaxReferenceGuide = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const previousFocusedElement = useRef<HTMLElement | null>(null);
+
+    const openDialog = useCallback(() => {
+        previousFocusedElement.current = document.activeElement as HTMLElement;
+        setIsOpen(true);
+    }, []);
+
+    const closeDialog = useCallback(() => {
+        console.log(previousFocusedElement);
+        setIsOpen(false);
+
+        // @note: Without requestAnimationFrame, focus was not being returned
+        // to codemirror elements for some reason.
+        requestAnimationFrame(() => {
+            previousFocusedElement.current?.focus();
+        });
+    }, []);
+
+    const handleOpenChange = useCallback((isOpen: boolean) => {
+        if (isOpen) {
+            openDialog();
+        } else {
+            closeDialog();
+        }
+    }, []);
 
     useHotkeys("mod+/", (event) => {
         event.preventDefault();
-        setIsOpen(!isOpen);
+        handleOpenChange(!isOpen);
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Open Syntax Reference Guide",
     });
 
     return (
         <Dialog
             open={isOpen}
-            onOpenChange={(isOpen) => {
-                setIsOpen(isOpen);
-            }}
+            onOpenChange={handleOpenChange}
         >
             <DialogContent
                 className="max-h-[80vh] max-w-[700px] overflow-scroll"
