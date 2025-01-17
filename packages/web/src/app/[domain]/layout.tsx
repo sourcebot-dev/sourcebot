@@ -10,6 +10,7 @@ import { cookies, headers } from "next/headers";
 import { getSelectorsByUserAgent } from "react-device-detect";
 import { MobileUnsupportedSplashScreen } from "./components/mobileUnsupportedSplashScreen";
 import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "@/lib/constants";
+import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -79,5 +80,10 @@ export default async function Layout({
             <MobileUnsupportedSplashScreen />
         )
     }
-    return children;
+    return (
+        <>
+            {children}
+            <SyntaxReferenceGuide />
+        </>
+    )
 }

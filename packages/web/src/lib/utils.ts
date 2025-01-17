@@ -36,7 +36,7 @@ export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit";
 type CodeHostInfo = {
     type: CodeHostType;
     displayName: string;
-    costHostName: string;
+    codeHostName: string;
     repoLink: string;
     icon: string;
     iconClassName?: string;
@@ -60,7 +60,7 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
             return {
                 type: "github",
                 displayName: displayName,
-                costHostName: "GitHub",
+                codeHostName: "GitHub",
                 repoLink: repo.URL,
                 icon: src,
                 iconClassName: className,
@@ -71,7 +71,7 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
             return {
                 type: "gitlab",
                 displayName: displayName,
-                costHostName: "GitLab",
+                codeHostName: "GitLab",
                 repoLink: repo.URL,
                 icon: src,
                 iconClassName: className,
@@ -82,7 +82,7 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
             return {
                 type: "gitea",
                 displayName: displayName,
-                costHostName: "Gitea",
+                codeHostName: "Gitea",
                 repoLink: repo.URL,
                 icon: src,
                 iconClassName: className,
@@ -93,7 +93,7 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
             return {
                 type: "gerrit",
                 displayName: displayName,
-                costHostName: "Gerrit",
+                codeHostName: "Gerrit",
                 repoLink: repo.URL,
                 icon: src,
                 iconClassName: className,
