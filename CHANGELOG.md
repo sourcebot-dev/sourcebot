@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.0] - 2025-01-17
+
 ### Added
 
 - Added a syntax reference guide. The guide can be opened using the hotkey "Cmd + /" ("Ctrl + /" on Windows). ([#169](https://github.com/sourcebot-dev/sourcebot/pull/169))
