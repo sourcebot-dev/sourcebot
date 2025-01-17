@@ -42,14 +42,37 @@ model Repo {
   @@unique([external_id, external_codeHostUrl])
 }
 
+model Org {
+  id        Int         @id @default(autoincrement())
+  name      String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  members   UserToOrg[]
+}
+
+model UserToOrg {
+  joinedAt DateTime @default(now())
+
+  /// The linked organization
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  /// The linked user
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@id([orgId, userId])
+}
+
 // @see : https://authjs.dev/concepts/database-models#user
 model User {
-  id            String          @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String?
-  email         String?         @unique
+  email         String?   @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
+  orgs          UserToOrg[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
