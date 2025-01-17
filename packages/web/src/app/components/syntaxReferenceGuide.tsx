@@ -1,6 +1,6 @@
 'use client';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import {
     Table,
@@ -28,7 +28,6 @@ export const SyntaxReferenceGuide = () => {
     }, []);
 
     const closeDialog = useCallback(() => {
-        console.log(previousFocusedElement);
         setIsOpen(false);
 
         // @note: Without requestAnimationFrame, focus was not being returned
@@ -62,13 +61,15 @@ export const SyntaxReferenceGuide = () => {
         >
             <DialogContent
                 className="max-h-[80vh] max-w-[700px] overflow-scroll"
+                aria-description="Syntax Reference Guide"
+                aria-describedby="syntax-reference-guide"
             >
                 <DialogHeader>
                     <DialogTitle>Syntax Reference Guide</DialogTitle>
+                    <DialogDescription className="text-sm text-foreground">
+                        Queries consist of space-seperated regular expressions. Wrapping expressions in <Code>""</Code> combines them. By default, a file must have at least one match for each expression to be included.
+                    </DialogDescription>
                 </DialogHeader>
-                <p className="text-sm">
-                    Queries consist of space-seperated regular expressions. Wrapping expressions in <Code>""</Code> combines them. By default, a file must have at least one match for each expression to be included.
-                </p>
                 <Table>
                     <TableHeader>
                         <TableRow>
