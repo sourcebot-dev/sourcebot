@@ -12,6 +12,7 @@ const BANNER_COMMENT = '// THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY
     const content = await compileFromFile(schemaPath, {
         bannerComment: BANNER_COMMENT,
         cwd,
+        ignoreMinAndMaxItems: true,
     });
 
     await fs.promises.writeFile(

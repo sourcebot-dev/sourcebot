@@ -2,6 +2,7 @@ import { Logger } from "winston";
 import { AppContext, Repository } from "./types.js";
 import path from 'path';
 import micromatch from "micromatch";
+import { Repo } from "@sourcebot/db";
 
 export const measure = async <T>(cb : () => Promise<T>) => {
     const start = Date.now();
@@ -128,4 +129,8 @@ export const arraysEqualShallow = <T>(a?: readonly T[], b?: readonly T[]) => {
     }
 
     return true;
+}
+
+export const getRepoPath = (repo: Repo, ctx: AppContext) => {
+    return path.join(ctx.reposPath, repo.id.toString());
 }

@@ -34,7 +34,7 @@ const aliasPrefixMappings: Record<string, zoektPrefixes> = {
     "revision:": zoektPrefixes.branch,
 }
 
-export const search = async ({ query, maxMatchDisplayCount, whole }: SearchRequest): Promise<SearchResponse | ServiceError> => {
+export const search = async ({ query, maxMatchDisplayCount, whole, tenantId }: SearchRequest): Promise<SearchResponse | ServiceError> => {
     // Replace any alias prefixes with their corresponding zoekt prefixes.
     for (const [prefix, zoektPrefix] of Object.entries(aliasPrefixMappings)) {
         query = query.replaceAll(prefix, zoektPrefix);
@@ -53,9 +53,17 @@ export const search = async ({ query, maxMatchDisplayCount, whole }: SearchReque
         }
     });
 
+    let header: Record<string, string> = {};
+    if (tenantId) {
+        header = {
+            "X-Tenant-ID": tenantId.toString()
+        };
+    }
+
     const searchResponse = await zoektFetch({
         path: "/api/search",
         body,
+        header,
         method: "POST",
     });
 

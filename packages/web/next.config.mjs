@@ -22,10 +22,14 @@ const nextConfig = {
     // This is required to support PostHog trailing slash API requests
     skipTrailingSlashRedirect: true,
 
+    // @nocheckin: This was interfering with the the `matcher` regex in middleware.ts,
+    // causing regular expressions parsing errors when making a request. It's unclear
+    // why exactly this was happening, but it's likely due to a bad replacement happening
+    // in the `sed` command.
     // @note: this is evaluated at build time.
-    ...(process.env.NEXT_PUBLIC_DOMAIN_SUB_PATH ? {
-        basePath: process.env.NEXT_PUBLIC_DOMAIN_SUB_PATH,
-    } : {})
+    // ...(process.env.NEXT_PUBLIC_DOMAIN_SUB_PATH ? {
+    //     basePath: process.env.NEXT_PUBLIC_DOMAIN_SUB_PATH,
+    // } : {})
 };
 
 export default nextConfig;

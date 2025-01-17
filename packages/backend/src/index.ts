@@ -5,6 +5,7 @@ import path from 'path';
 import { isRemotePath } from "./utils.js";
 import { AppContext } from "./types.js";
 import { main } from "./main.js"
+import { PrismaClient } from "@sourcebot/db";
 
 
 const parser = new ArgumentParser({
@@ -50,6 +51,17 @@ const context: AppContext = {
     configPath: args.configPath,
 }
 
-main(context).finally(() => {
-    console.log("Shutting down...");
-});
+const prisma = new PrismaClient();
+
+main(prisma, context)
+    .then(async () => {
+        await prisma.$disconnect();
+    })
+    .catch(async (e) => {
+        console.error(e);
+        await prisma.$disconnect();
+        process.exit(1);
+    })
+    .finally(() => {
+        console.log("Shutting down...");
+    });
