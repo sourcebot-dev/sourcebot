@@ -33,7 +33,7 @@ export const FilterPanel = ({
                 const Icon = info ? (
                     <Image
                         src={info.icon}
-                        alt={info.costHostName}
+                        alt={info.codeHostName}
                         className={cn('w-4 h-4 flex-shrink-0', info.iconClassName)}
                     />
                 ) : (
