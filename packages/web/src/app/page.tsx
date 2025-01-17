@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { UpgradeToast } from "./components/upgradeToast";
 import Link from "next/link";
-
+import { KeyboardShortcutHint } from "./components/keyboardShortcutHint";
 
 export default async function Home() {
     return (
@@ -95,6 +95,9 @@ export default async function Home() {
                                 <Query query="content:README"><Highlight>content:</Highlight>README</Query> <QueryExplanation>(search content only)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
+                    </div>
+                    <div className="text-sm">
+                        <span className="dark:text-gray-300">Reference guide: </span><KeyboardShortcutHint shortcut="⌘" /> <KeyboardShortcutHint shortcut="/" />
                     </div>
                 </div>
             </div>

@@ -31,7 +31,7 @@ export const FileHeader = ({
             {info?.icon ? (
                 <Image
                     src={info.icon}
-                    alt={info.costHostName}
+                    alt={info.codeHostName}
                     className={`w-4 h-4 ${info.iconClassName}`}
                 />
             ): (

@@ -16,6 +16,7 @@ import { IconType } from "react-icons/lib";
 import { VscFile, VscFilter, VscRepo, VscSymbolMisc } from "react-icons/vsc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { KeyboardShortcutHint } from "../keyboardShortcutHint";
 
 export type Suggestion = {
     value: string;
@@ -337,7 +338,7 @@ const SearchSuggestionsBox = forwardRef(({
             onFocus={onFocus}
             onBlur={onBlur}
         >
-            <p className="text-muted-foreground text-sm mb-1">
+            <p className="text-muted-foreground text-sm mb-2">
                 {suggestionModeText}
             </p>
             {isLoadingSuggestions ? (
@@ -385,19 +386,29 @@ const SearchSuggestionsBox = forwardRef(({
                     )}
                 </div>
             ))}
-            {isFocused && (
-                <>
-                    <Separator
-                        orientation="horizontal"
-                        className="my-2"
-                    />
-                    <div className="flex flex-row items-center justify-end mt-1">
-                        <span className="text-muted-foreground text-xs">
-                            Press <kbd className="font-mono text-xs font-bold">Enter</kbd> to select
-                        </span>
+            <Separator
+                orientation="horizontal"
+                className="my-2"
+            />
+            <div className="flex flex-row items-center justify-between mt-1">
+                <div className="flex flex-row gap-1.5 items-center">
+                    <p className="text-muted-foreground text-sm">
+                        Syntax help:
+                    </p>
+                    <div className="flex flex-row gap-0.5 items-center">
+                        <KeyboardShortcutHint shortcut="⌘" />
+                        <KeyboardShortcutHint shortcut="/" />
                     </div>
-                </>
-            )}
+                </div>
+                {isFocused && (
+                    <span className="flex flex-row gap-1.5 items-center">
+                        <KeyboardShortcutHint shortcut="↵" />
+                        <span className="text-muted-foreground text-sm font-medium">
+                            to select
+                        </span>
+                    </span>
+                )}
+            </div>
         </div>
     )
 });

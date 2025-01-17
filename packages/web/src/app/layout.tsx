@@ -6,6 +6,7 @@ import { QueryClientProvider } from "./queryClientProvider";
 import { PHProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 
 export const metadata: Metadata = {
     title: "Sourcebot",
@@ -41,6 +42,7 @@ export default function RootLayout({
                                 <Suspense>
                                     {children}
                                 </Suspense>
+                                <SyntaxReferenceGuide />
                             </TooltipProvider>
                         </QueryClientProvider>
                     </ThemeProvider>
