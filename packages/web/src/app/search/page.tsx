@@ -14,7 +14,7 @@ import { createPathWithQueryParams } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ImperativePanelHandle } from "react-resizable-panels";
 import { getRepos, search } from "../api/(client)/client";
 import { TopBar } from "../components/topBar";
@@ -25,6 +25,17 @@ import { SearchResultsPanel } from "./components/searchResultsPanel";
 const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 10000;
 
 export default function SearchPage() {
+    // We need a suspense boundary here since we are accessing query params
+    // in the top level page.
+    // @see : https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    return (
+        <Suspense>
+            <SearchPageInternal />
+        </Suspense>
+    )
+}
+
+const SearchPageInternal = () => {
     const router = useRouter();
     const searchQuery = useNonEmptyQueryParam(SearchQueryParams.query) ?? "";
     const _maxMatchDisplayCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.maxMatchDisplayCount) ?? `${DEFAULT_MAX_MATCH_DISPLAY_COUNT}`);
