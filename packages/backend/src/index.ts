@@ -6,6 +6,7 @@ import { isRemotePath } from "./utils.js";
 import { AppContext } from "./types.js";
 import { main } from "./main.js"
 import { PrismaClient } from "@sourcebot/db";
+import { SOURCEBOT_TENANT_MODE } from "./environment.js";
 
 
 const parser = new ArgumentParser({
@@ -19,7 +20,7 @@ type Arguments = {
 
 parser.add_argument("--configPath", {
     help: "Path to config file",
-    required: true,
+    required: false,
 });
 
 parser.add_argument("--cacheDir", {
@@ -28,8 +29,8 @@ parser.add_argument("--cacheDir", {
 });
 const args = parser.parse_args() as Arguments;
 
-if (!isRemotePath(args.configPath) && !existsSync(args.configPath)) {
-    console.error(`Config file ${args.configPath} does not exist`);
+if (SOURCEBOT_TENANT_MODE === "single" && !isRemotePath(args.configPath) && !existsSync(args.configPath)) {
+    console.error(`Config file ${args.configPath} does not exist, and is required in single tenant mode`);
     process.exit(1);
 }
 

@@ -1,6 +1,6 @@
-import { PrismaClient, Repo, RepoIndexingStatus } from '@sourcebot/db';
+import { ConfigSyncStatus, PrismaClient, Repo, Config, RepoIndexingStatus, Prisma } from '@sourcebot/db';
 import { existsSync, watch } from 'fs';
-import { syncConfig } from "./config.js";
+import { fetchConfigFromPath, syncConfig } from "./config.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
 import { captureEvent } from "./posthog.js";
@@ -11,6 +11,8 @@ import { DEFAULT_SETTINGS } from './constants.js';
 import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import * as os from 'os';
+import { SOURCEBOT_TENANT_MODE } from './environment.js';
+import { SourcebotConfigurationSchema } from './schemas/v2.js';
 
 const logger = createLogger('main');
 
@@ -56,6 +58,23 @@ const syncGitRepository = async (repo: Repo, ctx: AppContext) => {
     }
 }
 
+async function addConfigsToQueue(db: PrismaClient, queue: Queue, configs: Config[]) {
+    for (const config of configs) {
+        await db.$transaction(async (tx) => {
+            await tx.config.update({
+                where: { id: config.id },
+                data: { syncStatus: ConfigSyncStatus.IN_SYNC_QUEUE },
+            });
+
+            // Add the job to the queue
+            await queue.add('configSyncJob', config);
+            logger.info(`Added job to queue for config ${config.id}`);
+        }).catch((err: unknown) => {
+            logger.error(`Failed to add job to queue for config ${config.id}: ${err}`);
+        });
+    }
+}
+
 async function addReposToQueue(db: PrismaClient, queue: Queue, repos: Repo[]) {
     for (const repo of repos) {
         await db.$transaction(async (tx) => {
@@ -67,7 +86,7 @@ async function addReposToQueue(db: PrismaClient, queue: Queue, repos: Repo[]) {
             // Add the job to the queue
             await queue.add('indexJob', repo);
             logger.info(`Added job to queue for repo ${repo.id}`);
-        }).catch((err) => {
+        }).catch((err: unknown) => {
             logger.error(`Failed to add job to queue for repo ${repo.id}: ${err}`);
         });
     }
@@ -76,18 +95,32 @@ async function addReposToQueue(db: PrismaClient, queue: Queue, repos: Repo[]) {
 export const main = async (db: PrismaClient, context: AppContext) => {
     let abortController = new AbortController();
     let isSyncing = false;
-    const _syncConfig = async () => {
+    const _syncConfig = async (dbConfig?: Prisma.JsonValue | undefined) => {
         if (isSyncing) {
             abortController.abort();
             abortController = new AbortController();
         }
+ 
+        let config: SourcebotConfigurationSchema;
+        switch (SOURCEBOT_TENANT_MODE) {
+            case 'single':
+                logger.info(`Syncing configuration file ${context.configPath} ...`);
+                config = await fetchConfigFromPath(context.configPath, abortController.signal);
+                break;
+            case 'multi':
+                if(!dbConfig) {
+                    throw new Error('config object is required in multi tenant mode');
+                }
+                config = dbConfig as SourcebotConfigurationSchema
+                break;
+            default:
+                throw new Error(`Invalid SOURCEBOT_TENANT_MODE: ${SOURCEBOT_TENANT_MODE}`);
+        }
 
-        logger.info(`Syncing configuration file ${context.configPath} ...`);
         isSyncing = true;
-
         try {
-            const { durationMs } = await measure(() => syncConfig(context.configPath, db, abortController.signal, context))
-            logger.info(`Synced configuration file ${context.configPath} in ${durationMs / 1000}s`);
+            const { durationMs } = await measure(() => syncConfig(config, db, abortController.signal, context))
+            logger.info(`Synced configuration file in ${durationMs / 1000}s`);
             isSyncing = false;
         } catch (err: any) {
             if (err.name === "AbortError") {
@@ -95,28 +128,15 @@ export const main = async (db: PrismaClient, context: AppContext) => {
                 // since it implies another sync is in progress.
             } else {
                 isSyncing = false;
-                logger.error(`Failed to sync configuration file ${context.configPath} with error:`);
+                logger.error(`Failed to sync configuration file with error:`);
                 console.log(err);
             }
         }
     }
 
-    // Re-sync on file changes if the config file is local
-    if (!isRemotePath(context.configPath)) {
-        watch(context.configPath, () => {
-            logger.info(`Config file ${context.configPath} changed. Re-syncing...`);
-            _syncConfig();
-        });
-    }
-
-    // Re-sync at a fixed interval
-    setInterval(() => {
-        _syncConfig();
-    }, DEFAULT_SETTINGS.resyncIntervalMs);
-
-    // Sync immediately on startup
-    await _syncConfig();
-
+    /////////////////////////////
+    // Init Redis
+    /////////////////////////////
     const redis = new Redis({
         host: 'localhost',
         port: 6379,
@@ -124,18 +144,74 @@ export const main = async (db: PrismaClient, context: AppContext) => {
     });
     redis.ping().then(() => {
         logger.info('Connected to redis');
-    }).catch((err) => {
+    }).catch((err: unknown) => {
         logger.error('Failed to connect to redis');
         console.error(err);
         process.exit(1);
     });
 
+    /////////////////////////////
+    // Setup config sync watchers
+    /////////////////////////////
+    switch (SOURCEBOT_TENANT_MODE) {
+        case 'single':
+            // Re-sync on file changes if the config file is local
+            if (!isRemotePath(context.configPath)) {
+                watch(context.configPath, () => {
+                    logger.info(`Config file ${context.configPath} changed. Re-syncing...`);
+                    _syncConfig();
+                });
+            }
+        
+            // Re-sync at a fixed interval
+            setInterval(() => {
+                _syncConfig();
+            }, DEFAULT_SETTINGS.resyncIntervalMs);
+        
+            // Sync immediately on startup
+            await _syncConfig();
+            break;
+        case 'multi':
+            const configSyncQueue = new Queue('configSyncQueue');
+            const numCores = os.cpus().length;
+            const numWorkers = numCores * DEFAULT_SETTINGS.configSyncConcurrencyMultiple;
+            logger.info(`Detected ${numCores} cores. Setting config sync max concurrency to ${numWorkers}`);
+            const configSyncWorker = new Worker('configSyncQueue', async (job: Job) => {
+                const config = job.data as Config;
+                await _syncConfig(config.data);
+            }, { connection: redis, concurrency: numWorkers });
+            configSyncWorker.on('completed', (job: Job) => {
+                logger.info(`Config sync job ${job.id} completed`);
+            });
+            configSyncWorker.on('failed', (job: Job | undefined, err: unknown) => {
+                logger.info(`Config sync job failed with error: ${err}`);
+            });
+
+            setInterval(async () => {
+                const configs = await db.config.findMany({
+                    where: {
+                        syncStatus: ConfigSyncStatus.SYNC_NEEDED,
+                    }
+                });
+
+                logger.info(`Found ${configs.length} configs to sync...`);
+                addConfigsToQueue(db, configSyncQueue, configs);
+            }, 1000);
+            break;
+        default:
+            throw new Error(`Invalid SOURCEBOT_TENANT_MODE: ${SOURCEBOT_TENANT_MODE}`);
+    }
+
+
+    /////////////////////////
+    // Setup repo indexing
+    /////////////////////////
     const indexQueue = new Queue('indexQueue');
 
     const numCores = os.cpus().length;
     const numWorkers = numCores * DEFAULT_SETTINGS.indexConcurrencyMultiple;
-    logger.info(`Detected ${numCores} cores. Setting max concurrency to ${numWorkers}`);
-    const worker = new Worker('indexQueue', async (job) => {
+    logger.info(`Detected ${numCores} cores. Setting repo index max concurrency to ${numWorkers}`);
+    const worker = new Worker('indexQueue', async (job: Job) => {
         const repo = job.data as Repo;
 
         let indexDuration_s: number | undefined;
@@ -166,10 +242,10 @@ export const main = async (db: PrismaClient, context: AppContext) => {
         });
     }, { connection: redis, concurrency: numWorkers });
 
-    worker.on('completed', (job) => {
+    worker.on('completed', (job: Job) => {
         logger.info(`Job ${job.id} completed`);
     });
-    worker.on('failed', async (job: Job | undefined, err) => {
+    worker.on('failed', async (job: Job | undefined, err: unknown) => {
         logger.info(`Job failed with error: ${err}`);
         if (job) {
             await db.repo.update({
@@ -183,6 +259,7 @@ export const main = async (db: PrismaClient, context: AppContext) => {
         }
     });
 
+    // Repo indexing loop
     while (true) {
         const thresholdDate = new Date(Date.now() - DEFAULT_SETTINGS.reindexIntervalMs);
         const repos = await db.repo.findMany({

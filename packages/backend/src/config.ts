@@ -7,7 +7,7 @@ import { SourcebotConfigurationSchema } from "./schemas/v2.js";
 import { AppContext } from "./types.js";
 import { getTokenFromConfig, isRemotePath, marshalBool } from "./utils.js";
 
-export const syncConfig = async (configPath: string, db: PrismaClient, signal: AbortSignal, ctx: AppContext) => {
+export const fetchConfigFromPath = async (configPath: string, signal: AbortSignal) => {
     const configContent = await (async () => {
         if (isRemotePath(configPath)) {
             const response = await fetch(configPath, {
@@ -25,9 +25,11 @@ export const syncConfig = async (configPath: string, db: PrismaClient, signal: A
         }
     })();
 
-    // @todo: we should validate the configuration file's structure here.
     const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfigurationSchema;
+    return config;
+}
 
+export const syncConfig = async (config: SourcebotConfigurationSchema, db: PrismaClient, signal: AbortSignal, ctx: AppContext) => {
     for (const repoConfig of config.repos ?? []) {
         switch (repoConfig.type) {
             case 'github': {
