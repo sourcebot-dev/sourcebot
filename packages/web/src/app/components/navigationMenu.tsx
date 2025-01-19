@@ -5,8 +5,6 @@ import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
 import logoDark from "../../../public/sb_logo_dark_small.png";
 import logoLight from "../../../public/sb_logo_light_small.png";
-import { ProfilePicture } from "./profilePicture";
-import { signOut } from "@/auth";
 import { SettingsDropdown } from "./settingsDropdown";
 import { GitHubLogoIcon, DiscordLogoIcon } from "@radix-ui/react-icons";
 import { redirect } from "next/navigation";
@@ -88,21 +86,6 @@ export const NavigationMenu = async () => {
                         </Button>
                     </form>
                     <SettingsDropdown />
-                    <form
-                        action={async () => {
-                            "use server";
-                            await signOut();
-                        }}
-                    >
-                        <Button
-                            type="submit"
-                            variant="outline"
-                            size="default"
-                        >
-                            Logout
-                        </Button>
-                    </form>
-                    <ProfilePicture />
                 </div>
             </div>
             <Separator />

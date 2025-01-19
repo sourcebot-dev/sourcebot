@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
-import { Suspense } from "react";
 import { QueryClientProvider } from "./queryClientProvider";
 import { PHProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SessionProvider } from "next-auth/react";
 
 export const metadata: Metadata = {
     title: "Sourcebot",
@@ -25,26 +25,22 @@ export default function RootLayout({
         >
             <body>
                 <Toaster />
-                <PHProvider>
-                    <ThemeProvider
-                        attribute="class"
-                        defaultTheme="system"
-                        enableSystem
-                        disableTransitionOnChange
-                    >
-                        <QueryClientProvider>
-                            <TooltipProvider>
-                                {/*
-                                    @todo : ideally we don't wrap everything in a suspense boundary.
-                                    @see : https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
-                                */}
-                                <Suspense>
+                <SessionProvider>
+                    <PHProvider>
+                        <ThemeProvider
+                            attribute="class"
+                            defaultTheme="system"
+                            enableSystem
+                            disableTransitionOnChange
+                        >
+                            <QueryClientProvider>
+                                <TooltipProvider>
                                     {children}
-                                </Suspense>
-                            </TooltipProvider>
-                        </QueryClientProvider>
-                    </ThemeProvider>
-                </PHProvider>
+                                </TooltipProvider>
+                            </QueryClientProvider>
+                        </ThemeProvider>
+                    </PHProvider>
+                </SessionProvider>
             </body>
         </html>
     );
