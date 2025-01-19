@@ -3,6 +3,7 @@
 import {
     CodeIcon,
     Laptop,
+    LogOut,
     Moon,
     Settings,
     Sun
@@ -12,7 +13,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuGroup,
-    DropdownMenuLabel,
+    DropdownMenuItem,
     DropdownMenuPortal,
     DropdownMenuRadioGroup,
     DropdownMenuRadioItem,
@@ -28,6 +29,10 @@ import { KeymapType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useKeymapType } from "@/hooks/useKeymapType"
 import { NEXT_PUBLIC_SOURCEBOT_VERSION } from "@/lib/environment.client";
+import { useSession } from "next-auth/react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { signOut } from "next-auth/react"
+
 
 interface SettingsDropdownProps {
     menuButtonClassName?: string;
@@ -38,7 +43,8 @@ export const SettingsDropdown = ({
 }: SettingsDropdownProps) => {
 
     const { theme: _theme, setTheme } = useTheme();
-    const [ keymapType, setKeymapType ] = useKeymapType();
+    const [keymapType, setKeymapType] = useKeymapType();
+    const { data: session } = useSession();
 
     const theme = useMemo(() => {
         return _theme ?? "light";
@@ -64,9 +70,31 @@ export const SettingsDropdown = ({
                     <Settings className="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-                <DropdownMenuLabel>Settings</DropdownMenuLabel>
-                <DropdownMenuSeparator />
+            <DropdownMenuContent className="w-64">
+                {session?.user && (
+                    <DropdownMenuGroup>
+                        <div className="flex flex-row items-center gap-1 p-2">
+                            <Avatar>
+                                <AvatarImage
+                                    src={session.user.image ?? ""}
+                                />
+                                <AvatarFallback>
+                                    {session.user.name && session.user.name.length > 0 ? session.user.name[0] : 'U'}
+                                </AvatarFallback>
+                            </Avatar>
+                            <p className="text-sm font-medium text-ellipsis">{session.user.email ?? "User"}</p>
+                        </div>
+                        <DropdownMenuItem
+                            onClick={() => {
+                                signOut();
+                            }}
+                        >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Log out</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                    </DropdownMenuGroup>
+                )}
                 <DropdownMenuGroup>
                     <DropdownMenuSub>
                         <DropdownMenuSubTrigger>
@@ -107,11 +135,11 @@ export const SettingsDropdown = ({
                             </DropdownMenuSubContent>
                         </DropdownMenuPortal>
                     </DropdownMenuSub>
-                    <DropdownMenuSeparator />
-                    <div className="px-2 py-1 text-sm text-muted-foreground">
-                        version: {NEXT_PUBLIC_SOURCEBOT_VERSION}
-                    </div>
                 </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <div className="px-2 py-1 text-sm text-muted-foreground">
+                    version: {NEXT_PUBLIC_SOURCEBOT_VERSION}
+                </div>
             </DropdownMenuContent>
         </DropdownMenu>
     )
