@@ -24,18 +24,9 @@ export const providerMap = providers
     })
     .filter((provider) => provider.id !== "credentials");
 
-
-export const { handlers, signIn, signOut, auth } = NextAuth({
-    secret: AUTH_SECRET,
-    adapter: PrismaAdapter(prisma),
-    session: {
-        strategy: "jwt",
-    },
-    events: {
-        // create a new organization when a user is created
-        createUser: async ({ user }) => {
+const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
             if (!user.id) {
-                throw new Error("User ID is required");
+            throw new Error("User ID is required.");
             }
 
             const orgName = (() => {
@@ -46,7 +37,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
             })();
 
-            await prisma.org.create({
+        await prisma.$transaction((async (tx) => {
+            const org = await tx.org.create({
                 data: {
                     name: orgName,
                     members: {
@@ -61,7 +53,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     }
                 }
             });
-        }
+
+            await tx.user.update({
+                where: {
+                    id: user.id,
+                },
+                data: {
+                    activeOrgId: org.id,
+                }
+            });
+        }));
+    }
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+    secret: AUTH_SECRET,
+    adapter: PrismaAdapter(prisma),
+    session: {
+        strategy: "jwt",
+    },
+    events: {
+        createUser: onCreateUser,
     },
     providers: providers,
     pages: {
