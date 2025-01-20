@@ -47,6 +47,9 @@ model Repo {
   // The base url of the external service (e.g., https://github.com)
   external_codeHostUrl  String
 
+  org   Org? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int?
+
   @@unique([external_id, external_codeHostUrl])
 }
 
@@ -71,6 +74,7 @@ model Org {
   updatedAt DateTime    @updatedAt
   members   UserToOrg[]
   configs   Config[]
+  repos     Repo[]
 }
 
 enum OrgRole {
@@ -103,7 +107,7 @@ model User {
   image         String?
   accounts      Account[]
   orgs          UserToOrg[]
-  activeOrgId Int?
+  activeOrgId   Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

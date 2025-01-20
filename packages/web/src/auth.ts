@@ -1,9 +1,10 @@
-import NextAuth from "next-auth"
+import NextAuth, { User as AuthJsUser } from "next-auth"
 import GitHub from "next-auth/providers/github"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
 import type { Provider } from "next-auth/providers"
 import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_SECRET } from "./lib/environment";
+
 
 const providers: Provider[] = [
     GitHub({
@@ -25,17 +26,17 @@ export const providerMap = providers
     .filter((provider) => provider.id !== "credentials");
 
 const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
-            if (!user.id) {
+        if (!user.id) {
             throw new Error("User ID is required.");
+        }
+    
+        const orgName = (() => {
+            if (user.name) {
+                return `${user.name}'s Org`;
+            } else {
+                return `Default Org`;
             }
-
-            const orgName = (() => {
-                if (user.name) {
-                    return `${user.name}'s Org`;
-                } else {
-                    return `Default Org`;
-                }
-            })();
+        })();
 
         await prisma.$transaction((async (tx) => {
             const org = await tx.org.create({
