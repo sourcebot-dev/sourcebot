@@ -31,6 +31,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session: {
         strategy: "jwt",
     },
+    events: {
+        // create a new organization when a user is created
+        createUser: async ({ user }) => {
+            if (!user.id) {
+                throw new Error("User ID is required");
+            }
+
+            const orgName = (() => {
+                if (user.name) {
+                    return `${user.name}'s Org`;
+                } else {
+                    return `Default Org`;
+                }
+            })();
+
+            await prisma.org.create({
+                data: {
+                    name: orgName,
+                    members: {
+                        create: {
+                            role: "OWNER",
+                            user: {
+                                connect: {
+                                    id: user.id,
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    },
     providers: providers,
     pages: {
         signIn: "/login"

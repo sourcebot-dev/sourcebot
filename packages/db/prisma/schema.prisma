@@ -73,6 +73,11 @@ model Org {
   configs   Config[]
 }
 
+enum OrgRole {
+  OWNER
+  MEMBER
+}
+
 model UserToOrg {
   joinedAt DateTime @default(now())
 
@@ -83,6 +88,8 @@ model UserToOrg {
   /// The linked user
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
+
+  role      OrgRole     @default(MEMBER)
 
   @@id([orgId, userId])
 }
