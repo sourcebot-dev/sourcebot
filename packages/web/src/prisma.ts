@@ -1,3 +1,4 @@
+import 'server-only';
 import { PrismaClient } from "@sourcebot/db";
 
 // @see: https://authjs.dev/getting-started/adapters/prisma

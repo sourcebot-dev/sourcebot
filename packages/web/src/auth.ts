@@ -1,10 +1,17 @@
-import NextAuth, { User as AuthJsUser } from "next-auth"
+import NextAuth, { User as AuthJsUser, DefaultSession } from "next-auth"
 import GitHub from "next-auth/providers/github"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
 import type { Provider } from "next-auth/providers"
 import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_SECRET } from "./lib/environment";
 
+declare module 'next-auth' {
+    interface Session {
+      user: {
+        id: string;
+      } & DefaultSession['user'];
+    }
+  }
 
 const providers: Provider[] = [
     GitHub({
@@ -75,8 +82,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     events: {
         createUser: onCreateUser,
     },
+    callbacks: {
+        async session({ session, token }) {
+            session.user = {
+                ...session.user,
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                id: token.sub,
+            }
+            return session;
+        }
+    },
     providers: providers,
     pages: {
         signIn: "/login"
     }
-})
+});
