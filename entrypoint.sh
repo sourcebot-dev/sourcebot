@@ -68,18 +68,27 @@ fi
 
 echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL_ID\"}" > "$FIRST_RUN_FILE"
 
-# Fallback to sample config if a config does not exist
-if echo "$CONFIG_PATH" | grep -qE '^https?://'; then
-    if ! curl --output /dev/null --silent --head --fail "$CONFIG_PATH"; then
-        echo -e "\e[33m[Warning] Remote config file at '$CONFIG_PATH' not found. Falling back on sample config.\e[0m"
-        CONFIG_PATH="./default-config.json"
-    fi
-elif [ ! -f "$CONFIG_PATH" ]; then
-    echo -e "\e[33m[Warning] Config file at '$CONFIG_PATH' not found. Falling back on sample config.\e[0m"
-    CONFIG_PATH="./default-config.json"
+if [ ! -z "$SOURCEBOT_TENANT_MODE" ]; then
+    echo -e "\e[34m[Info] Sourcebot tenant mode: $SOURCEBOT_TENANT_MODE\e[0m"
+else
+    echo -e "\e[31m[Error] SOURCEBOT_TENANT_MODE is not set.\e[0m"
+    exit 1
 fi
 
-echo -e "\e[34m[Info] Using config file at: '$CONFIG_PATH'.\e[0m"
+# If we're in single tenant mode, fallback to sample config if a config does not exist
+if [ "$SOURCEBOT_TENANT_MODE" = "single" ]; then
+    if echo "$CONFIG_PATH" | grep -qE '^https?://'; then
+        if ! curl --output /dev/null --silent --head --fail "$CONFIG_PATH"; then
+            echo -e "\e[33m[Warning] Remote config file at '$CONFIG_PATH' not found. Falling back on sample config.\e[0m"
+            CONFIG_PATH="./default-config.json"
+        fi
+    elif [ ! -f "$CONFIG_PATH" ]; then
+        echo -e "\e[33m[Warning] Config file at '$CONFIG_PATH' not found. Falling back on sample config.\e[0m"
+        CONFIG_PATH="./default-config.json"
+    fi
+
+    echo -e "\e[34m[Info] Using config file at: '$CONFIG_PATH'.\e[0m"
+fi
 
 # Update NextJs public env variables w/o requiring a rebuild.
 # @see: https://phase.dev/blog/nextjs-public-runtime-variables/

@@ -73,6 +73,8 @@ ARG SOURCEBOT_VERSION=unknown
 ENV SOURCEBOT_VERSION=$SOURCEBOT_VERSION
 RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
 
+ENV SOURCEBOT_TENANT_MODE=single
+
 # Valid values are: debug, info, warn, error
 ENV SOURCEBOT_LOG_LEVEL=info
 
