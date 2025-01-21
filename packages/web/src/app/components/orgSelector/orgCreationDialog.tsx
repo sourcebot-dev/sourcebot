@@ -54,7 +54,7 @@ export const OrgCreationDialog = ({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Create an organization</DialogTitle>
-                    <DialogDescription>Collaborate with</DialogDescription>
+                    <DialogDescription>Organizations allow you to collaborate with team members.</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>

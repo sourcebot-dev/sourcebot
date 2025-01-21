@@ -1,9 +1,11 @@
+import 'next-auth/jwt';
 import NextAuth, { User as AuthJsUser, DefaultSession } from "next-auth"
 import GitHub from "next-auth/providers/github"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
 import type { Provider } from "next-auth/providers"
 import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_SECRET } from "./lib/environment";
+import { User } from '@sourcebot/db';
 
 declare module 'next-auth' {
     interface Session {
@@ -12,6 +14,12 @@ declare module 'next-auth' {
         } & DefaultSession['user'];
     }
 }
+
+declare module 'next-auth/jwt' {
+    interface JWT {
+      userId: string
+    }
+  }
 
 const providers: Provider[] = [
     GitHub({
@@ -83,12 +91,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         createUser: onCreateUser,
     },
     callbacks: {
+        async jwt({ token, user: _user }) {
+            const user = _user as User | undefined;
+            // @note: `user` will be available on signUp or signIn triggers.
+            // Cache the userId in the JWT for later use.
+            if (user) {
+                token.userId = user.id;
+            }
+            return token;
+        },
         async session({ session, token }) {
+            // @WARNING: Anything stored in the session will be sent over
+            // to the client.
             session.user = {
                 ...session.user,
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-expect-error
-                id: token.sub,
+                // Propogate the userId to the session.
+                id: token.userId,
             }
             return session;
         }
