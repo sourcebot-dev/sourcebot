@@ -8,6 +8,7 @@ import logoLight from "../../../public/sb_logo_light_small.png";
 import { SettingsDropdown } from "./settingsDropdown";
 import { GitHubLogoIcon, DiscordLogoIcon } from "@radix-ui/react-icons";
 import { redirect } from "next/navigation";
+import { OrgSelector } from "./orgSelector";
 
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
@@ -35,6 +36,9 @@ export const NavigationMenu = async () => {
                             priority={true}
                         />
                     </Link>
+
+                    <OrgSelector />
+                    <Separator orientation="vertical" className="h-6 mx-2" />
 
                     <NavigationMenuBase>
                         <NavigationMenuList>

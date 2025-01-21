@@ -47,6 +47,9 @@ model Repo {
   // The base url of the external service (e.g., https://github.com)
   external_codeHostUrl  String
 
+  org   Org? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int?
+
   @@unique([external_id, external_codeHostUrl])
 }
 
@@ -71,6 +74,12 @@ model Org {
   updatedAt DateTime    @updatedAt
   members   UserToOrg[]
   configs   Config[]
+  repos     Repo[]
+}
+
+enum OrgRole {
+  OWNER
+  MEMBER
 }
 
 model UserToOrg {
@@ -84,18 +93,21 @@ model UserToOrg {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
+  role OrgRole @default(MEMBER)
+
   @@id([orgId, userId])
 }
 
 // @see : https://authjs.dev/concepts/database-models#user
 model User {
-  id            String    @id @default(cuid())
+  id            String      @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?     @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   orgs          UserToOrg[]
+  activeOrgId   Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

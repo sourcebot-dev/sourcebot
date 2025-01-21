@@ -76,3 +76,11 @@ export const notAuthenticated = (): ServiceError => {
         message: "Not authenticated",
     }
 }
+
+export const notFound = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.NOT_FOUND,
+        errorCode: ErrorCode.NOT_FOUND,
+        message: "Not found",
+    }
+}
