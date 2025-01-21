@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { isServiceError } from "@/lib/utils";
-import { CaretSortIcon, CheckIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
+import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { OrgCreationDialog } from "./orgCreationDialog";
+import { OrgIcon } from "./orgIcon";
 
 
 interface OrgSelectorDropdownProps {
@@ -106,7 +107,7 @@ export const OrgSelectorDropdown = ({
         >
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="default">
-                    <GitHubLogoIcon className="h-5 w-5 mr-1.5" />
+                    <OrgIcon className="mr-1.5" />
                     <p className="font-medium text-sm mr-1">{activeOrg.name}</p>
                     <CaretSortIcon className="h-5 w-5 font-medium" />
                 </Button>
@@ -146,7 +147,7 @@ export const OrgSelectorDropdown = ({
                                         onSelect={() => onSwitchOrg(org.id, org.name)}
                                     >
                                         <div className="flex flex-row gap-1.5 items-center">
-                                            <GitHubLogoIcon className="h-5 w-5" />
+                                            <OrgIcon />
                                             {org.name}
                                         </div>
                                         {org.id === activeOrgId && (
