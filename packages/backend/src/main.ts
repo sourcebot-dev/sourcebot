@@ -95,41 +95,73 @@ async function addReposToQueue(db: PrismaClient, queue: Queue, repos: Repo[]) {
 export const main = async (db: PrismaClient, context: AppContext) => {
     let abortController = new AbortController();
     let isSyncing = false;
-    const _syncConfig = async (dbConfig?: Prisma.JsonValue | undefined) => {
-        if (isSyncing) {
-            abortController.abort();
-            abortController = new AbortController();
-        }
- 
+    const _syncConfig = async (dbConfig?: Config | undefined) => {
+
+        // Fetch config object and update syncing status
         let config: SourcebotConfigurationSchema;
         switch (SOURCEBOT_TENANT_MODE) {
             case 'single':
                 logger.info(`Syncing configuration file ${context.configPath} ...`);
+
+                if (isSyncing) {
+                    abortController.abort();
+                    abortController = new AbortController();
+                }
                 config = await fetchConfigFromPath(context.configPath, abortController.signal);
+                isSyncing = true;
                 break;
             case 'multi':
                 if(!dbConfig) {
                     throw new Error('config object is required in multi tenant mode');
                 }
-                config = dbConfig as SourcebotConfigurationSchema
+                config = dbConfig.data as SourcebotConfigurationSchema
+                db.config.update({
+                    where: {
+                        id: dbConfig.id,
+                    },
+                    data: {
+                        syncStatus: ConfigSyncStatus.SYNCING,
+                    }
+                })
                 break;
             default:
                 throw new Error(`Invalid SOURCEBOT_TENANT_MODE: ${SOURCEBOT_TENANT_MODE}`);
         }
 
-        isSyncing = true;
+        // Attempt to sync the config, handle failure cases
         try {
             const { durationMs } = await measure(() => syncConfig(config, db, abortController.signal, context))
-            logger.info(`Synced configuration file in ${durationMs / 1000}s`);
+            logger.info(`Synced configuration in ${durationMs / 1000}s`);
             isSyncing = false;
         } catch (err: any) {
-            if (err.name === "AbortError") {
-                // @note: If we're aborting, we don't want to set isSyncing to false
-                // since it implies another sync is in progress.
-            } else {
-                isSyncing = false;
-                logger.error(`Failed to sync configuration file with error:`);
-                console.log(err);
+            switch(SOURCEBOT_TENANT_MODE) {
+                case 'single':
+                    if (err.name === "AbortError") {
+                        // @note: If we're aborting, we don't want to set isSyncing to false
+                        // since it implies another sync is in progress.
+                    } else {
+                        isSyncing = false;
+                        logger.error(`Failed to sync configuration file with error:`);
+                        console.log(err);
+                    }
+                    break;
+                case 'multi':
+                    if (dbConfig) {
+                        await db.config.update({
+                            where: {
+                                id: dbConfig.id,
+                            },
+                            data: {
+                                syncStatus: ConfigSyncStatus.FAILED,
+                            }
+                        })
+                        logger.error(`Failed to sync configuration ${dbConfig.id} with error: ${err}`);
+                    } else {
+                        logger.error(`DB config undefined. Failed to sync configuration with error: ${err}`);
+                    }
+                    break;
+                default:
+                    throw new Error(`Invalid SOURCEBOT_TENANT_MODE: ${SOURCEBOT_TENANT_MODE}`);
             }
         }
     }
@@ -172,16 +204,27 @@ export const main = async (db: PrismaClient, context: AppContext) => {
             await _syncConfig();
             break;
         case 'multi':
+            // Setup config sync queue and workers
             const configSyncQueue = new Queue('configSyncQueue');
             const numCores = os.cpus().length;
             const numWorkers = numCores * DEFAULT_SETTINGS.configSyncConcurrencyMultiple;
             logger.info(`Detected ${numCores} cores. Setting config sync max concurrency to ${numWorkers}`);
             const configSyncWorker = new Worker('configSyncQueue', async (job: Job) => {
                 const config = job.data as Config;
-                await _syncConfig(config.data);
+                await _syncConfig(config);
             }, { connection: redis, concurrency: numWorkers });
-            configSyncWorker.on('completed', (job: Job) => {
+            configSyncWorker.on('completed', async (job: Job) => {
                 logger.info(`Config sync job ${job.id} completed`);
+
+                const config = job.data as Config;
+                await db.config.update({
+                    where: {
+                        id: config.id,
+                    },
+                    data: {
+                        syncStatus: ConfigSyncStatus.SYNCED,
+                    }
+                })
             });
             configSyncWorker.on('failed', (job: Job | undefined, err: unknown) => {
                 logger.info(`Config sync job failed with error: ${err}`);
