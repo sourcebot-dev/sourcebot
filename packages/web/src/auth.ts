@@ -7,11 +7,11 @@ import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_SECRET } from ".
 
 declare module 'next-auth' {
     interface Session {
-      user: {
-        id: string;
-      } & DefaultSession['user'];
+        user: {
+            id: string;
+        } & DefaultSession['user'];
     }
-  }
+}
 
 const providers: Provider[] = [
     GitHub({
@@ -33,45 +33,45 @@ export const providerMap = providers
     .filter((provider) => provider.id !== "credentials");
 
 const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
-        if (!user.id) {
-            throw new Error("User ID is required.");
-        }
-    
-        const orgName = (() => {
-            if (user.name) {
-                return `${user.name}'s Org`;
-            } else {
-                return `Default Org`;
-            }
-        })();
+    if (!user.id) {
+        throw new Error("User ID is required.");
+    }
 
-        await prisma.$transaction((async (tx) => {
-            const org = await tx.org.create({
-                data: {
-                    name: orgName,
-                    members: {
-                        create: {
-                            role: "OWNER",
-                            user: {
-                                connect: {
-                                    id: user.id,
-                                }
+    const orgName = (() => {
+        if (user.name) {
+            return `${user.name}'s Org`;
+        } else {
+            return `Default Org`;
+        }
+    })();
+
+    await prisma.$transaction((async (tx) => {
+        const org = await tx.org.create({
+            data: {
+                name: orgName,
+                members: {
+                    create: {
+                        role: "OWNER",
+                        user: {
+                            connect: {
+                                id: user.id,
                             }
                         }
                     }
                 }
-            });
+            }
+        });
 
-            await tx.user.update({
-                where: {
-                    id: user.id,
-                },
-                data: {
-                    activeOrgId: org.id,
-                }
-            });
-        }));
-    }
+        await tx.user.update({
+            where: {
+                id: user.id,
+            },
+            data: {
+                activeOrgId: org.id,
+            }
+        });
+    }));
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     secret: AUTH_SECRET,
