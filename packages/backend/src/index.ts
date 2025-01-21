@@ -20,7 +20,7 @@ type Arguments = {
 
 parser.add_argument("--configPath", {
     help: "Path to config file",
-    required: false,
+    required: SOURCEBOT_TENANT_MODE === "single",
 });
 
 parser.add_argument("--cacheDir", {
