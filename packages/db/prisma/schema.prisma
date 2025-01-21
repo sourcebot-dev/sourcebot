@@ -18,6 +18,14 @@ enum RepoIndexingStatus {
   FAILED
 }
 
+enum ConfigSyncStatus {
+  SYNC_NEEDED
+  IN_SYNC_QUEUE
+  SYNCING
+  SYNCED
+  FAILED
+}
+
 model Repo {
   id         Int       @id @default(autoincrement())
   name       String
@@ -42,12 +50,27 @@ model Repo {
   @@unique([external_id, external_codeHostUrl])
 }
 
+model Config {
+  id        Int      @id @default(autoincrement())
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  syncedAt  DateTime?
+
+  syncStatus ConfigSyncStatus @default(SYNC_NEEDED)
+
+  // The organization that owns this config
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId     Int
+}
+
 model Org {
   id        Int         @id @default(autoincrement())
   name      String
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   members   UserToOrg[]
+  configs   Config[]
 }
 
 model UserToOrg {
