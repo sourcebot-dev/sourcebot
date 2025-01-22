@@ -6,7 +6,7 @@
     "scripts": {
         "prisma:generate": "prisma generate",
         "prisma:generate:watch": "prisma generate --watch",
-        "prisma:migrate:dev": "prisma migrate dev",
+        "prisma:migrate:dev": "./prisma-migrate-dev.sh",
         "prisma:migrate:prod": "prisma migrate deploy",
         "prisma:migrate:reset": "prisma migrate reset",
         "prisma:db:push": "prisma db push",
