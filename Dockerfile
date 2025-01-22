@@ -60,6 +60,9 @@ COPY --from=database-builder /app/packages/db ./packages/db
 RUN yarn workspace @sourcebot/backend install --frozen-lockfile
 RUN yarn workspace @sourcebot/backend build
 
+# ------- Install Postgres -------
+
+
 # ------ Runner ------
 FROM node-alpine AS runner
 WORKDIR /app
@@ -68,6 +71,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATA_DIR=/data
 ENV CONFIG_PATH=$DATA_DIR/config.json
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
+ENV DB_DATA_DIR=$DATA_DIR/db
 
 ARG SOURCEBOT_VERSION=unknown
 ENV SOURCEBOT_VERSION=$SOURCEBOT_VERSION
@@ -94,7 +98,7 @@ ENV POSTHOG_PAPIK=$POSTHOG_PAPIK
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib
 
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
@@ -122,6 +126,14 @@ COPY --from=backend-builder /app/node_modules ./node_modules
 COPY --from=backend-builder /app/packages/backend ./packages/backend
 
 # Configure the database
+RUN mkdir -p $DB_DATA_DIR \
+    && chown -R postgres:postgres $DB_DATA_DIR \
+    && [ "$(ls -A $DB_DATA_DIR)" ] || su postgres -c "initdb -D $DB_DATA_DIR"
+USER postgres
+RUN initdb -D $DB_DATA_DIR
+USER root
+    
+
 COPY --from=database-builder /app/node_modules ./node_modules
 COPY --from=database-builder /app/packages/db ./packages/db
 
