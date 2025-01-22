@@ -66,6 +66,7 @@
     "@uiw/react-codemirror": "^4.23.0",
     "@viz-js/lang-dot": "^1.0.4",
     "@xiechao/codemirror-lang-handlebars": "^1.0.4",
+    "ajv": "^8.17.1",
     "class-variance-authority": "^0.7.0",
     "client-only": "^0.0.1",
     "clsx": "^2.1.1",
