@@ -73,6 +73,7 @@
     "cm6-graphql": "^0.2.0",
     "cmdk": "1.0.0",
     "codemirror": "^5.65.3",
+    "codemirror-json-schema": "^0.8.0",
     "codemirror-lang-brainfuck": "^0.1.0",
     "codemirror-lang-elixir": "^4.0.0",
     "codemirror-lang-hcl": "^0.0.0-beta.2",

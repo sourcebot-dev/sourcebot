@@ -1,13 +1,27 @@
 
 'use client';
 
-import { z } from "zod";
-import Ajv from "ajv";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import CodeMirror from "@uiw/react-codemirror";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useKeymapExtension } from "@/hooks/useKeymapExtension";
+import { useThemeNormalized } from "@/hooks/useThemeNormalized";
+import { json, jsonLanguage, jsonParseLinter } from "@codemirror/lang-json";
+import { linter } from "@codemirror/lint";
+import { EditorView, hoverTooltip } from "@codemirror/view";
+import { zodResolver } from "@hookform/resolvers/zod";
+import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import Ajv from "ajv";
+import {
+    handleRefresh,
+    jsonCompletion,
+    jsonSchemaHover,
+    jsonSchemaLinter,
+    stateExtensions
+} from "codemirror-json-schema";
+import { useRef } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
 
 // @todo: generate this from the schema
 const schema = {
@@ -15,7 +29,8 @@ const schema = {
     type: "object",
     properties: {
         type: {
-            "const": "github"
+            "const": "github",
+            "description": "GitHub Configuration",
         }
     },
     required: ["type"],
@@ -51,6 +66,20 @@ const formSchema = z.object({
         }),
 });
 
+// Add this theme extension to your extensions array
+const customAutocompleteStyle = EditorView.baseTheme({
+    ".cm-tooltip.cm-completionInfo": {
+        padding: "8px",
+        fontSize: "12px",
+        fontFamily: "monospace",
+    },
+    ".cm-tooltip-hover.cm-tooltip": {
+        padding: "8px",
+        fontSize: "12px",
+        fontFamily: "monospace",
+    }
+  })
+
 export default function NewConnectionPage() {
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -59,6 +88,10 @@ export default function NewConnectionPage() {
             config: "",
         },
     });
+
+    const editorRef = useRef<ReactCodeMirrorRef>(null);
+    const keymapExtension = useKeymapExtension(editorRef.current?.view);
+    const { theme } = useThemeNormalized();
 
     return (
         <div>
@@ -73,8 +106,26 @@ export default function NewConnectionPage() {
                                 <FormLabel>aksjdflkj</FormLabel>
                                 <FormControl>
                                     <CodeMirror
+                                        ref={editorRef}
                                         value={value}
                                         onChange={onChange}
+                                        extensions={[
+                                            keymapExtension,
+                                            json(),
+                                            linter(jsonParseLinter(), {
+                                                delay: 300,
+                                            }),
+                                            linter(jsonSchemaLinter(), {
+                                                needsRefresh: handleRefresh,
+                                            }),
+                                            jsonLanguage.data.of({
+                                                autocomplete: jsonCompletion(),
+                                            }),
+                                            hoverTooltip(jsonSchemaHover()),
+                                            stateExtensions(schema as any),
+                                            customAutocompleteStyle,
+                                        ]}
+                                        theme={theme === "dark" ? "dark" : "light"}
                                     >
                                     </CodeMirror>
                                 </FormControl>
