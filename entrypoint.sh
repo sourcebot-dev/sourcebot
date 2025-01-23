@@ -19,10 +19,12 @@ if [ ! -d "$DATA_CACHE_DIR" ]; then
     mkdir -p "$DATA_CACHE_DIR"
 fi
 
-# Run a Database migration
-echo -e "\e[34m[Info] Running database migration...\e[0m"
-export DATABASE_URL="file:$DATA_CACHE_DIR/db.sqlite"
-yarn workspace @sourcebot/db prisma:migrate:prod
+# Check if DB_DATA_DIR exists, if not initialize it
+if [ ! -d "$DB_DATA_DIR" ]; then
+    echo -e "\e[34m[Info] Initializing database at $DB_DATA_DIR...\e[0m"
+    mkdir -p $DB_DATA_DIR && chown -R postgres:postgres "$DB_DATA_DIR"
+    su postgres -c "initdb -D $DB_DATA_DIR"
+fi
 
 # In order to detect if this is the first run, we create a `.installed` file in
 # the cache directory.
@@ -161,6 +163,28 @@ fi
 #     done
 # }
 
+
+# Start the database and wait for it to be ready before starting any other service
+su postgres -c "postgres -D $DB_DATA_DIR" &
+until pg_isready -h localhost -p 5432 -U postgres; do
+    echo -e "\e[34m[Info] Waiting for the database to be ready...\e[0m"
+    sleep 1
+done
+
+# Check if the database already exists, and create it if it dne
+EXISTING_DB=$(psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'")
+
+if [ "$EXISTING_DB" = "1" ]; then
+  echo "Database '$DB_NAME' already exists; skipping creation."
+else
+  echo "Creating database '$DB_NAME'..."
+  psql -U postgres -c "CREATE DATABASE \"$DB_NAME\""
+fi
+
+# Run a Database migration
+export DATABASE_URL="postgresql://postgres@localhost:5432/$DB_NAME"
+echo -e "\e[34m[Info] Running database migration...\e[0m"
+yarn workspace @sourcebot/db prisma:migrate:prod
 
 # Run supervisord
 exec supervisord -c /etc/supervisor/conf.d/supervisord.conf

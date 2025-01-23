@@ -47,7 +47,6 @@ ENV NEXT_PUBLIC_POSTHOG_PAPIK=BAKED_NEXT_PUBLIC_POSTHOG_PAPIK
 
 RUN yarn workspace @sourcebot/web build
 
-
 # ------ Build Backend ------
 FROM node-alpine AS backend-builder
 WORKDIR /app
@@ -59,7 +58,8 @@ COPY --from=database-builder /app/node_modules ./node_modules
 COPY --from=database-builder /app/packages/db ./packages/db
 RUN yarn workspace @sourcebot/backend install --frozen-lockfile
 RUN yarn workspace @sourcebot/backend build
-
+    
+        
 # ------ Runner ------
 FROM node-alpine AS runner
 WORKDIR /app
@@ -68,6 +68,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATA_DIR=/data
 ENV CONFIG_PATH=$DATA_DIR/config.json
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
+ENV DB_DATA_DIR=$DATA_CACHE_DIR/db
+ENV DB_NAME=sourcebot
 
 ARG SOURCEBOT_VERSION=unknown
 ENV SOURCEBOT_VERSION=$SOURCEBOT_VERSION
@@ -94,23 +96,23 @@ ENV POSTHOG_PAPIK=$POSTHOG_PAPIK
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib
 
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
 RUN ./install-ctags-alpine.sh && rm install-ctags-alpine.sh
 RUN mkdir -p ${DATA_CACHE_DIR}
 COPY --from=zoekt-builder \
-    /cmd/zoekt-git-index \
-    /cmd/zoekt-indexserver \
-    /cmd/zoekt-mirror-github \
-    /cmd/zoekt-mirror-gitiles \
-    /cmd/zoekt-mirror-bitbucket-server \
-    /cmd/zoekt-mirror-gitlab \
-    /cmd/zoekt-mirror-gerrit \
-    /cmd/zoekt-webserver \
-    /cmd/zoekt-index \
-    /usr/local/bin/
+/cmd/zoekt-git-index \
+/cmd/zoekt-indexserver \
+/cmd/zoekt-mirror-github \
+/cmd/zoekt-mirror-gitiles \
+/cmd/zoekt-mirror-bitbucket-server \
+/cmd/zoekt-mirror-gitlab \
+/cmd/zoekt-mirror-gerrit \
+/cmd/zoekt-webserver \
+/cmd/zoekt-index \
+/usr/local/bin/
 
 # Configure the webapp
 COPY --from=web-builder /app/packages/web/public ./packages/web/public
@@ -122,6 +124,9 @@ COPY --from=backend-builder /app/node_modules ./node_modules
 COPY --from=backend-builder /app/packages/backend ./packages/backend
 
 # Configure the database
+RUN mkdir -p /run/postgresql && \
+    chown -R postgres:postgres /run/postgresql && \
+    chmod 775 /run/postgresql
 COPY --from=database-builder /app/node_modules ./node_modules
 COPY --from=database-builder /app/packages/db ./packages/db
 
