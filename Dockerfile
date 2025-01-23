@@ -139,7 +139,6 @@ RUN chmod +x ./entrypoint.sh
 COPY default-config.json .
 
 EXPOSE 3000
-EXPOSE 5432
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENTRYPOINT ["/sbin/tini", "--", "./entrypoint.sh"]
