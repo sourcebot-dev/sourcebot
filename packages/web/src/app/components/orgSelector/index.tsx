@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { getUser, getUserOrgs } from "../../data/user";
+import { getUser, getUserOrgs } from "../../../data/user";
 import { OrgSelectorDropdown } from "./orgSelectorDropdown";
 
 export const OrgSelector = async () => {

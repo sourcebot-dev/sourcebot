@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "yarn generate:schemas && next dev",
+    "build": "yarn generate:schemas && next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "vitest"
+    "test": "vitest",
+    "generate:schemas": "tsx tools/generateSchemas.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
@@ -114,6 +115,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@apidevtools/json-schema-ref-parser": "^11.7.3",
     "@sourcebot/db": "^0.1.0",
     "@types/node": "^20",
     "@types/react": "^18",
@@ -128,6 +130,7 @@
     "npm-run-all": "^4.1.5",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.19.2",
     "typescript": "^5",
     "vite-tsconfig-paths": "^5.1.3",
     "vitest": "^2.1.5"

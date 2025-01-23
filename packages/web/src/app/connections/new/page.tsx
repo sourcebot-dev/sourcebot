@@ -18,29 +18,25 @@ import {
     jsonSchemaLinter,
     stateExtensions
 } from "codemirror-json-schema";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { githubSchema } from "@/schemas/github.schema";
+import { Input } from "@/components/ui/input";
+import { createConnection } from "@/actions";
+import { useToast } from "@/components/hooks/use-toast";
+import { isServiceError } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
+const ajv = new Ajv({
+    validateFormats: false,
+});
 
-// @todo: generate this from the schema
-const schema = {
-    $schema: "http://json-schema.org/draft-07/schema#",
-    type: "object",
-    properties: {
-        type: {
-            "const": "github",
-            "description": "GitHub Configuration",
-        }
-    },
-    required: ["type"],
-    additionalProperties: false,
-};
-
-const ajv = new Ajv();
-const validate = ajv.compile(schema);
+// @todo: we will need to validate the config against different schemas based on the type of connection.
+const validate = ajv.compile(githubSchema);
 
 const formSchema = z.object({
+    name: z.string().min(1),
     config: z
         .string()
         .superRefine((data, ctx) => {
@@ -78,61 +74,95 @@ const customAutocompleteStyle = EditorView.baseTheme({
         fontSize: "12px",
         fontFamily: "monospace",
     }
-  })
+})
 
 export default function NewConnectionPage() {
-
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            config: "",
+            config: JSON.stringify({ type: "github" }, null, 2),
         },
     });
 
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     const keymapExtension = useKeymapExtension(editorRef.current?.view);
     const { theme } = useThemeNormalized();
+    const { toast } = useToast();
+    const router = useRouter();
+
+    const onSubmit = useCallback((data: z.infer<typeof formSchema>) => {
+        createConnection(data.config)
+            .then((response) => {
+                if (isServiceError(response)) {
+                    toast({
+                        description: `❌ Failed to create connection. Reason: ${response.message}`
+                    });
+                } else {
+                    toast({
+                        description: `✅ Connection created successfully!`
+                    });
+                    router.push('/');
+                }
+            });
+    }, [router, toast]);
 
     return (
         <div>
             <h1 className="text-2xl font-bold mb-4">Create a connection</h1>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(() => { })}>
-                    <FormField
-                        control={form.control}
-                        name="config"
-                        render={({ field: { value, onChange } }) => (
-                            <FormItem>
-                                <FormLabel>aksjdflkj</FormLabel>
-                                <FormControl>
-                                    <CodeMirror
-                                        ref={editorRef}
-                                        value={value}
-                                        onChange={onChange}
-                                        extensions={[
-                                            keymapExtension,
-                                            json(),
-                                            linter(jsonParseLinter(), {
-                                                delay: 300,
-                                            }),
-                                            linter(jsonSchemaLinter(), {
-                                                needsRefresh: handleRefresh,
-                                            }),
-                                            jsonLanguage.data.of({
-                                                autocomplete: jsonCompletion(),
-                                            }),
-                                            hoverTooltip(jsonSchemaHover()),
-                                            stateExtensions(schema as any),
-                                            customAutocompleteStyle,
-                                        ]}
-                                        theme={theme === "dark" ? "dark" : "light"}
-                                    >
-                                    </CodeMirror>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <div className="flex flex-col gap-4">
+                        <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Display Name</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="config"
+                            render={({ field: { value, onChange } }) => (
+                                <FormItem>
+                                    <FormLabel>Configuration</FormLabel>
+                                    <FormControl>
+                                        <CodeMirror
+                                            ref={editorRef}
+                                            value={value}
+                                            onChange={onChange}
+                                            extensions={[
+                                                keymapExtension,
+                                                json(),
+                                                linter(jsonParseLinter(), {
+                                                    delay: 300,
+                                                }),
+                                                linter(jsonSchemaLinter(), {
+                                                    needsRefresh: handleRefresh,
+                                                }),
+                                                jsonLanguage.data.of({
+                                                    autocomplete: jsonCompletion(),
+                                                }),
+                                                hoverTooltip(jsonSchemaHover()),
+                                                // @todo: we will need to validate the config against different schemas based on the type of connection.
+                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                stateExtensions(githubSchema as any),
+                                                customAutocompleteStyle,
+                                            ]}
+                                            theme={theme === "dark" ? "dark" : "light"}
+                                        >
+                                        </CodeMirror>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                     <Button className="mt-5" type="submit">Submit</Button>
                 </form>
             </Form>

@@ -1,11 +1,19 @@
 'use server';
 
+import Ajv from "ajv";
+import { getUser } from "./data/user";
 import { auth } from "./auth";
-import { notAuthenticated, notFound } from "./lib/serviceError";
+import { notAuthenticated, notFound, ServiceError, unexpectedError } from "./lib/serviceError";
 import { prisma } from "@/prisma";
+import { githubSchema } from "./schemas/github.schema";
+import { StatusCodes } from "http-status-codes";
+import { ErrorCode } from "./lib/errorCodes";
 
+const ajv = new Ajv({
+    validateFormats: false,
+});
 
-export const createOrg = async (name: string) => {
+export const createOrg = async (name: string): Promise<{ id: number } | ServiceError> => {
     const session = await auth();
     if (!session) {
         return notAuthenticated();
@@ -29,13 +37,14 @@ export const createOrg = async (name: string) => {
     }
 }
 
-export const switchActiveOrg = async (orgId: number) => {
+export const switchActiveOrg = async (orgId: number): Promise<{ id: number } | ServiceError> => {
     const session = await auth();
     if (!session) {
         return notAuthenticated();
     }
 
     // Check to see if the user is a member of the org
+    // @todo: refactor this into a shared function
     const membership = await prisma.userToOrg.findUnique({
         where: {
             orgId_userId: {
@@ -60,5 +69,66 @@ export const switchActiveOrg = async (orgId: number) => {
 
     return {
         id: orgId,
+    }
+}
+
+export const createConnection = async (config: string): Promise<{ id: number } | ServiceError> => {
+    const session = await auth();
+    if (!session) {
+        return notAuthenticated();
+    }
+
+    const user = await getUser(session.user.id);
+    if (!user) {
+        return unexpectedError("User not found");
+    }
+    const orgId = user.activeOrgId;
+    if (!orgId) {
+        return unexpectedError("User has no active org");
+    }
+
+    // @todo: refactor this into a shared function
+    const membership = await prisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                userId: session.user.id,
+                orgId,
+            }
+        },
+    });
+    if (!membership) {
+        return notFound();
+    }
+
+    let parsedConfig;
+    try {
+        parsedConfig = JSON.parse(config);
+    } catch (e) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: "config must be a valid JSON object."
+        } satisfies ServiceError;
+    }
+
+    // @todo: we will need to validate the config against different schemas based on the type of connection.
+    const isValidConfig = ajv.validate(githubSchema, parsedConfig);
+    if (!isValidConfig) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: `config schema validation failed with errors: ${ajv.errorsText(ajv.errors)}`,
+        } satisfies ServiceError;
+    }
+
+    const connection = await prisma.config.create({
+        data: {
+            orgId: orgId,
+            data: parsedConfig,
+        }
+    });
+
+    return {
+        id: connection.id,
     }
 }

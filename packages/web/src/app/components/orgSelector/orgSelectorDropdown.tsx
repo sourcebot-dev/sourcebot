@@ -157,7 +157,6 @@ export const OrgSelectorDropdown = ({
                                 ))}
                             </CommandGroup>
                         </CommandList>
-
                     </Command>
                 </DropdownMenuGroup>
                 {searchFilter.length === 0 && (
