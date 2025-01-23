@@ -6,19 +6,12 @@
     "scripts": {
         "build": "yarn workspaces run build",
         "test": "yarn workspaces run test",
-        "dev": "(cross-env SOURCEBOT_TENANT_MODE=single npm-run-all --print-label dev:deps:start dev:deps:wait dev:start); yarn dev:deps:stop",
-        "dev:mt": "(cross-env SOURCEBOT_TENANT_MODE=multi npm-run-all --print-label dev:deps:start dev:deps:wait dev:start); yarn dev:deps:stop",
-        "dev:start": "yarn workspace @sourcebot/db prisma:migrate:dev && cross-env npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web dev:redis",
+        "dev": "cross-env SOURCEBOT_TENANT_MODE=single npm-run-all --print-label dev:start",
+        "dev:mt": "cross-env SOURCEBOT_TENANT_MODE=multi npm-run-all --print-label dev:start",
+        "dev:start": "yarn workspace @sourcebot/db prisma:migrate:dev && cross-env npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web",
         "dev:zoekt": "export PATH=\"$PWD/bin:$PATH\" && export SRC_TENANT_ENFORCEMENT_MODE=none && zoekt-webserver -index .sourcebot/index -rpc",
         "dev:backend": "yarn workspace @sourcebot/backend dev:watch",
-        "dev:web": "yarn workspace @sourcebot/web dev",
-        "dev:deps:start": "npm-run-all --print-label --parallel dev:postgres dev:redis",
-        "dev:deps:wait": "npm-run-all --print-label --parallel dev:postgres:wait dev:redis:wait",
-        "dev:deps:stop": "docker stop redis postgres",
-        "dev:redis": "docker ps --filter 'name=redis' --filter 'status=running' --quiet | grep -q . || docker run -d --rm --name redis -p 6379:6379 redis:7.4.2",
-        "dev:redis:wait": "sh -c 'while ! nc -z localhost 6379; do echo \"Waiting for Redis...\"; sleep 1; done'",
-        "dev:postgres": "docker ps --filter 'name=postgres' --filter 'status=running' --quiet | grep -q . || docker run -d --rm --name postgres -p 5432:5432 -v $(pwd)/.sourcebot/db:/var/lib/postgresql/data -e POSTGRES_USER=postgres -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sourcebot postgres:17.2",
-        "dev:postgres:wait": "sh -c 'while ! nc -z localhost 5432; do echo \"Waiting for PostgreSQL...\"; sleep 1; done'"
+        "dev:web": "yarn workspace @sourcebot/web dev"
     },
     "devDependencies": {
         "cross-env": "^7.0.3",
