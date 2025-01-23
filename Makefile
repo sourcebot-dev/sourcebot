@@ -5,7 +5,6 @@ ALL: $(CMDS)
 
 yarn:
 	yarn install
-	yarn workspace @sourcebot/db prisma:migrate:dev
 
 zoekt:
 	mkdir -p bin
