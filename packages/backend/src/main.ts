@@ -223,6 +223,7 @@ export const main = async (db: PrismaClient, context: AppContext) => {
                     },
                     data: {
                         syncStatus: ConfigSyncStatus.SYNCED,
+                        syncedAt: new Date()
                     }
                 })
             });
