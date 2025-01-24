@@ -11,11 +11,9 @@ export const indexGitRepository = async (repo: Repo, ctx: AppContext) => {
         'HEAD'
     ];
     
-    const tenantId = repo.tenantId ?? 0;
-    const shardPrefix = `${tenantId}_${repo.id}`;
-
+    const shardPrefix = `${repo.orgId}_${repo.id}`;
     const repoPath = getRepoPath(repo, ctx);
-    const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -file_limit ${DEFAULT_SETTINGS.maxFileSize} -branches ${revisions.join(',')} -tenant_id ${tenantId} -shard_prefix ${shardPrefix} ${repoPath}`;
+    const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -file_limit ${DEFAULT_SETTINGS.maxFileSize} -branches ${revisions.join(',')} -tenant_id ${repo.orgId} -shard_prefix ${shardPrefix} ${repoPath}`;
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {

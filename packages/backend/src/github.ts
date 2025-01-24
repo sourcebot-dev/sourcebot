@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import { GitHubConfig } from "@sourcebot/schemas/v2/index.type"
+import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { createLogger } from "./logger.js";
 import { AppContext } from "./types.js";
 import { getTokenFromConfig, measure } from "./utils.js";
@@ -25,7 +25,7 @@ export type OctokitRepository = {
     size?: number,
 }
 
-export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: AbortSignal, ctx: AppContext) => {
+export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, signal: AbortSignal, ctx: AppContext) => {
     const token = config.token ? getTokenFromConfig(config.token, ctx) : undefined;
 
     const octokit = new Octokit({
@@ -93,9 +93,9 @@ export const shouldExcludeRepo = ({
 } : {
     repo: OctokitRepository,
     include?: {
-        topics?: GitHubConfig['topics']
+        topics?: GithubConnectionConfig['topics']
     },
-    exclude?: GitHubConfig['exclude']
+    exclude?: GithubConnectionConfig['exclude']
 }) => {
     let reason = '';
     const repoName = repo.full_name;
@@ -202,8 +202,9 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
             logger.debug(`Found ${data.length} owned by user ${user} in ${durationMs}ms.`);
             return data;
         } catch (e) {
+            // @todo: handle rate limiting errors
             logger.error(`Failed to fetch repository info for user ${user}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 
@@ -226,8 +227,9 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
             logger.debug(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
             return data;
         } catch (e) {
+            // @todo: handle rate limiting errors
             logger.error(`Failed to fetch repository info for org ${org}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 
@@ -252,8 +254,9 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
 
             return [result.data];
         } catch (e) {
+            // @todo: handle rate limiting errors
             logger.error(`Failed to fetch repository info for ${repo}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 

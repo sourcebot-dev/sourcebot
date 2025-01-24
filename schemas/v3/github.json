@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
-    "title": "GitHubConfig",
+    "title": "GithubConnectionConfig",
     "properties": {
         "type": {
             "const": "github",
@@ -80,10 +80,6 @@
                     "core"
                 ]
             ]
-        },
-        "tenantId": {
-            "type": "number",
-            "description": "@nocheckin"
         },
         "exclude": {
             "type": "object",

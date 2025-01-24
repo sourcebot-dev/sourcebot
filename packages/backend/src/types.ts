@@ -71,9 +71,9 @@ export type Settings = {
      */
     reindexIntervalMs: number;
     /**
-     * The interval (in milliseconds) at which the configuration file should be re-synced.
+     * The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced.
      */
-    resyncIntervalMs: number;
+    resyncConnectionPollingIntervalMs: number;
     /**
      * The multiple of the number of CPUs to use for indexing.
      */
@@ -88,3 +88,6 @@ export type Settings = {
 export type DeepPartial<T> = T extends object ? {
     [P in keyof T]?: DeepPartial<T[P]>;
 } : T;
+
+// @see: https://stackoverflow.com/a/69328045
+export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
