@@ -18,7 +18,7 @@ enum RepoIndexingStatus {
   FAILED
 }
 
-enum ConfigSyncStatus {
+enum ConnectionSyncStatus {
   SYNC_NEEDED
   IN_SYNC_QUEUE
   SYNCING
@@ -36,7 +36,6 @@ model Repo {
   isArchived Boolean
   metadata   Json
   cloneUrl   String
-  tenantId   Int
 
   repoIndexingStatus RepoIndexingStatus @default(NEW)
 
@@ -47,35 +46,35 @@ model Repo {
   // The base url of the external service (e.g., https://github.com)
   external_codeHostUrl  String
 
-  org   Org? @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  orgId Int?
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
 
   @@unique([external_id, external_codeHostUrl])
 }
 
-model Config {
-  id        Int      @id @default(autoincrement())
-  data      Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Connection {
+  id        Int       @id @default(autoincrement())
+  config    Json
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   syncedAt  DateTime?
 
-  syncStatus ConfigSyncStatus @default(SYNC_NEEDED)
+  syncStatus ConnectionSyncStatus @default(SYNC_NEEDED)
 
-  // The organization that owns this config
-  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  orgId     Int
+  // The organization that owns this connection
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
 }
 
 model Org {
-  id        Int         @id @default(autoincrement())
-  name      String
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  members   UserToOrg[]
-  configs   Config[]
-  repos     Repo[]
-  secrets   Secret[]
+  id          Int          @id @default(autoincrement())
+  name        String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  members     UserToOrg[]
+  connections Connection[]
+  repos       Repo[]
+  secrets     Secret[]
 }
 
 enum OrgRole {
