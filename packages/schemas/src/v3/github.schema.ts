@@ -2,7 +2,7 @@
 const schema = {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "title": "GitHubConfig",
+  "title": "GithubConnectionConfig",
   "properties": {
     "type": {
       "const": "github",
@@ -98,10 +98,6 @@ const schema = {
           "core"
         ]
       ]
-    },
-    "tenantId": {
-      "type": "number",
-      "description": "@nocheckin"
     },
     "exclude": {
       "type": "object",
