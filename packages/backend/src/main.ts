@@ -12,7 +12,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import * as os from 'os';
 import { SOURCEBOT_TENANT_MODE } from './environment.js';
-import { SourcebotConfigurationSchema } from './schemas/v2.js';
+import { SourcebotConfigurationSchema } from "@sourcebot/schemas/v2/index.type"
 
 const logger = createLogger('main');
 

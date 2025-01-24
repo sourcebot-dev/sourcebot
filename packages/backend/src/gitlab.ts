@@ -1,7 +1,7 @@
 import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
 import micromatch from "micromatch";
 import { createLogger } from "./logger.js";
-import { GitLabConfig } from "./schemas/v2.js";
+import { GitLabConfig } from "@sourcebot/schemas/v2/index.type"
 import { AppContext } from "./types.js";
 import { getTokenFromConfig, measure } from "./utils.js";
 

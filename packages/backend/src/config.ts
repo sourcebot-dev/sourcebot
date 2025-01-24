@@ -3,7 +3,7 @@ import { readFile } from 'fs/promises';
 import stripJsonComments from 'strip-json-comments';
 import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig, GITLAB_CLOUD_HOSTNAME } from "./gitlab.js";
-import { SourcebotConfigurationSchema } from "./schemas/v2.js";
+import { SourcebotConfigurationSchema } from "@sourcebot/schemas/v2/index.type";
 import { AppContext } from "./types.js";
 import { getTokenFromConfig, isRemotePath, marshalBool } from "./utils.js";
 

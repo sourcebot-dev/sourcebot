@@ -20,7 +20,10 @@
 		"sourceMap": true,
 		"target": "ES2017",
         "rootDir": "src",
-        "baseUrl": "."
+        "baseUrl": ".",
+        // This is needed otherwise .tsbuildinfo wasn't being written
+        // into the dist folder for some reason.
+        "tsBuildInfoFile": "./dist/.tsbuildinfo"
 	},
 	"include": ["src/**/*.ts"],
 	"exclude": ["node_modules"]

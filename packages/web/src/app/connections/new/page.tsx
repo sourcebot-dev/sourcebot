@@ -21,12 +21,12 @@ import {
 import { useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { githubSchema } from "@/schemas/github.schema";
 import { Input } from "@/components/ui/input";
 import { createConnection } from "@/actions";
 import { useToast } from "@/components/hooks/use-toast";
 import { isServiceError } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 
 const ajv = new Ajv({
     validateFormats: false,

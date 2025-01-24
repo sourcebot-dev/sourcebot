@@ -22,6 +22,8 @@ clean:
 		packages/backend/node_modules \
 		packages/db/node_modules \
 		packages/db/dist \
+		packages/schemas/node_modules \
+		packages/schemas/dist \
 		.sourcebot
 
 .PHONY: bin

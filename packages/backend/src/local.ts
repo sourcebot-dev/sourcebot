@@ -1,6 +1,6 @@
 import { existsSync, FSWatcher, statSync, watch } from "fs";
 import { createLogger } from "./logger.js";
-import { LocalConfig } from "./schemas/v2.js";
+import { LocalConfig } from "@sourcebot/schemas/v2/index.type"
 import { AppContext, LocalRepository } from "./types.js";
 import { resolvePathRelativeToConfig } from "./utils.js";
 import path from "path";
