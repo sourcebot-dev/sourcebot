@@ -135,8 +135,20 @@ export class ConnectionManager implements IConnectionManager {
         })
     }
 
-    private async onSyncJobFailed(_job: Job | undefined, err: unknown) {
+    private async onSyncJobFailed(job: Job | undefined, err: unknown) {
         this.logger.info(`Config sync job failed with error: ${err}`);
+        if (job) {
+            const { connectionId } = job.data;
+            await this.db.connection.update({
+                where: {
+                    id: connectionId,
+                },
+                data: {
+                    syncStatus: ConnectionSyncStatus.FAILED,
+                    syncedAt: new Date()
+                }
+            })
+        }
     }
 
     public dispose() {

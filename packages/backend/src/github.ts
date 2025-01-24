@@ -202,8 +202,9 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
             logger.debug(`Found ${data.length} owned by user ${user} in ${durationMs}ms.`);
             return data;
         } catch (e) {
+            // @todo: handle rate limiting errors
             logger.error(`Failed to fetch repository info for user ${user}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 
@@ -226,8 +227,9 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
             logger.debug(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
             return data;
         } catch (e) {
+            // @todo: handle rate limiting errors
             logger.error(`Failed to fetch repository info for org ${org}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 
@@ -252,8 +254,9 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
 
             return [result.data];
         } catch (e) {
+            // @todo: handle rate limiting errors
             logger.error(`Failed to fetch repository info for ${repo}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 
