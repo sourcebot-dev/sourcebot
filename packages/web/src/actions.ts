@@ -121,10 +121,10 @@ export const createConnection = async (config: string): Promise<{ id: number } |
         } satisfies ServiceError;
     }
 
-    const connection = await prisma.config.create({
+    const connection = await prisma.connection.create({
         data: {
             orgId: orgId,
-            data: parsedConfig,
+            config: parsedConfig,
         }
     });
 
