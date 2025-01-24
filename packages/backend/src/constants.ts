@@ -7,7 +7,7 @@ export const DEFAULT_SETTINGS: Settings = {
     maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
     autoDeleteStaleRepos: true,
     reindexIntervalMs: 1000 * 60,
-    resyncIntervalMs: 1000 * 60 * 60 * 24, // 1 day in milliseconds
+    resyncConnectionPollingIntervalMs: 1000,
     indexConcurrencyMultiple: 3,
     configSyncConcurrencyMultiple: 3,
 }

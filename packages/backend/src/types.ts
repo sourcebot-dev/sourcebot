@@ -71,9 +71,9 @@ export type Settings = {
      */
     reindexIntervalMs: number;
     /**
-     * The interval (in milliseconds) at which the configuration file should be re-synced.
+     * The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced.
      */
-    resyncIntervalMs: number;
+    resyncConnectionPollingIntervalMs: number;
     /**
      * The multiple of the number of CPUs to use for indexing.
      */

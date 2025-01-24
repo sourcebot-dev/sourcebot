@@ -1,18 +1,16 @@
-import { ConfigSyncStatus, PrismaClient, Repo, Config, RepoIndexingStatus, Prisma } from '@sourcebot/db';
-import { existsSync, watch } from 'fs';
-import { fetchConfigFromPath, syncConfig } from "./config.js";
+import { ConnectionSyncStatus, PrismaClient, Repo, RepoIndexingStatus } from '@sourcebot/db';
+import { existsSync } from 'fs';
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
 import { captureEvent } from "./posthog.js";
 import { AppContext } from "./types.js";
-import { getRepoPath, isRemotePath, measure } from "./utils.js";
+import { getRepoPath, measure } from "./utils.js";
 import { indexGitRepository } from "./zoekt.js";
 import { DEFAULT_SETTINGS } from './constants.js';
 import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import * as os from 'os';
-import { SOURCEBOT_TENANT_MODE } from './environment.js';
-import { SourcebotConfigurationSchema } from "@sourcebot/schemas/v2/index.type"
+import { ConnectionManager } from './connectionManager.js';
 
 const logger = createLogger('main');
 
@@ -58,23 +56,6 @@ const syncGitRepository = async (repo: Repo, ctx: AppContext) => {
     }
 }
 
-async function addConfigsToQueue(db: PrismaClient, queue: Queue, configs: Config[]) {
-    for (const config of configs) {
-        await db.$transaction(async (tx) => {
-            await tx.config.update({
-                where: { id: config.id },
-                data: { syncStatus: ConfigSyncStatus.IN_SYNC_QUEUE },
-            });
-
-            // Add the job to the queue
-            await queue.add('configSyncJob', config);
-            logger.info(`Added job to queue for config ${config.id}`);
-        }).catch((err: unknown) => {
-            logger.error(`Failed to add job to queue for config ${config.id}: ${err}`);
-        });
-    }
-}
-
 async function addReposToQueue(db: PrismaClient, queue: Queue, repos: Repo[]) {
     for (const repo of repos) {
         await db.$transaction(async (tx) => {
@@ -93,79 +74,6 @@ async function addReposToQueue(db: PrismaClient, queue: Queue, repos: Repo[]) {
 }
 
 export const main = async (db: PrismaClient, context: AppContext) => {
-    let abortController = new AbortController();
-    let isSyncing = false;
-    const _syncConfig = async (dbConfig?: Config | undefined) => {
-
-        // Fetch config object and update syncing status
-        let config: SourcebotConfigurationSchema;
-        switch (SOURCEBOT_TENANT_MODE) {
-            case 'single':
-                logger.info(`Syncing configuration file ${context.configPath} ...`);
-
-                if (isSyncing) {
-                    abortController.abort();
-                    abortController = new AbortController();
-                }
-                config = await fetchConfigFromPath(context.configPath, abortController.signal);
-                isSyncing = true;
-                break;
-            case 'multi':
-                if(!dbConfig) {
-                    throw new Error('config object is required in multi tenant mode');
-                }
-                config = dbConfig.data as SourcebotConfigurationSchema
-                db.config.update({
-                    where: {
-                        id: dbConfig.id,
-                    },
-                    data: {
-                        syncStatus: ConfigSyncStatus.SYNCING,
-                    }
-                })
-                break;
-            default:
-                throw new Error(`Invalid SOURCEBOT_TENANT_MODE: ${SOURCEBOT_TENANT_MODE}`);
-        }
-
-        // Attempt to sync the config, handle failure cases
-        try {
-            const { durationMs } = await measure(() => syncConfig(config, db, abortController.signal, context))
-            logger.info(`Synced configuration in ${durationMs / 1000}s`);
-            isSyncing = false;
-        } catch (err: any) {
-            switch(SOURCEBOT_TENANT_MODE) {
-                case 'single':
-                    if (err.name === "AbortError") {
-                        // @note: If we're aborting, we don't want to set isSyncing to false
-                        // since it implies another sync is in progress.
-                    } else {
-                        isSyncing = false;
-                        logger.error(`Failed to sync configuration file with error:`);
-                        console.log(err);
-                    }
-                    break;
-                case 'multi':
-                    if (dbConfig) {
-                        await db.config.update({
-                            where: {
-                                id: dbConfig.id,
-                            },
-                            data: {
-                                syncStatus: ConfigSyncStatus.FAILED,
-                            }
-                        })
-                        logger.error(`Failed to sync configuration ${dbConfig.id} with error: ${err}`);
-                    } else {
-                        logger.error(`DB config undefined. Failed to sync configuration with error: ${err}`);
-                    }
-                    break;
-                default:
-                    throw new Error(`Invalid SOURCEBOT_TENANT_MODE: ${SOURCEBOT_TENANT_MODE}`);
-            }
-        }
-    }
-
     /////////////////////////////
     // Init Redis
     /////////////////////////////
@@ -182,71 +90,18 @@ export const main = async (db: PrismaClient, context: AppContext) => {
         process.exit(1);
     });
 
-    /////////////////////////////
-    // Setup config sync watchers
-    /////////////////////////////
-    switch (SOURCEBOT_TENANT_MODE) {
-        case 'single':
-            // Re-sync on file changes if the config file is local
-            if (!isRemotePath(context.configPath)) {
-                watch(context.configPath, () => {
-                    logger.info(`Config file ${context.configPath} changed. Re-syncing...`);
-                    _syncConfig();
-                });
+    const connectionManager = new ConnectionManager(db, DEFAULT_SETTINGS, redis, context);
+    setInterval(async () => {
+        const configs = await db.connection.findMany({
+            where: {
+                syncStatus: ConnectionSyncStatus.SYNC_NEEDED,
             }
-        
-            // Re-sync at a fixed interval
-            setInterval(() => {
-                _syncConfig();
-            }, DEFAULT_SETTINGS.resyncIntervalMs);
-        
-            // Sync immediately on startup
-            await _syncConfig();
-            break;
-        case 'multi':
-            // Setup config sync queue and workers
-            const configSyncQueue = new Queue('configSyncQueue');
-            const numCores = os.cpus().length;
-            const numWorkers = numCores * DEFAULT_SETTINGS.configSyncConcurrencyMultiple;
-            logger.info(`Detected ${numCores} cores. Setting config sync max concurrency to ${numWorkers}`);
-            const configSyncWorker = new Worker('configSyncQueue', async (job: Job) => {
-                const config = job.data as Config;
-                await _syncConfig(config);
-            }, { connection: redis, concurrency: numWorkers });
-            configSyncWorker.on('completed', async (job: Job) => {
-                logger.info(`Config sync job ${job.id} completed`);
-
-                const config = job.data as Config;
-                await db.config.update({
-                    where: {
-                        id: config.id,
-                    },
-                    data: {
-                        syncStatus: ConfigSyncStatus.SYNCED,
-                        syncedAt: new Date()
-                    }
-                })
-            });
-            configSyncWorker.on('failed', (job: Job | undefined, err: unknown) => {
-                logger.info(`Config sync job failed with error: ${err}`);
-            });
-
-            setInterval(async () => {
-                const configs = await db.config.findMany({
-                    where: {
-                        syncStatus: ConfigSyncStatus.SYNC_NEEDED,
-                    }
-                });
-
-                logger.info(`Found ${configs.length} configs to sync...`);
-                addConfigsToQueue(db, configSyncQueue, configs);
-            }, 1000);
-            break;
-        default:
-            throw new Error(`Invalid SOURCEBOT_TENANT_MODE: ${SOURCEBOT_TENANT_MODE}`);
-    }
-
-
+        });
+        for (const config of configs) {
+            await connectionManager.scheduleConnectionSync(config);
+        }
+    }, DEFAULT_SETTINGS.resyncConnectionPollingIntervalMs);
+    
     /////////////////////////
     // Setup repo indexing
     /////////////////////////
@@ -318,7 +173,6 @@ export const main = async (db: PrismaClient, context: AppContext) => {
                 ]
             }
         });
-        logger.info(`Found ${repos.length} repos to index...`);
         addReposToQueue(db, indexQueue, repos);
 
 
