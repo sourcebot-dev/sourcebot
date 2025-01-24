@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import { GitHubConfig } from "./schemas/v2.js";
+import { GitHubConfig } from "@sourcebot/schemas/v2/index.type"
 import { createLogger } from "./logger.js";
 import { AppContext } from "./types.js";
 import { getTokenFromConfig, measure } from "./utils.js";

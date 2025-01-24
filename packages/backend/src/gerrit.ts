@@ -1,5 +1,5 @@
 import fetch from 'cross-fetch';
-import { GerritConfig } from './schemas/v2.js';
+import { GerritConfig } from "@sourcebot/schemas/v2/index.type"
 import { AppContext, GitRepository } from './types.js';
 import { createLogger } from './logger.js';
 import path from 'path';

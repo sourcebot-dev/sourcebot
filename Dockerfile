@@ -10,13 +10,15 @@ RUN go mod download
 COPY vendor/zoekt ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o /cmd/ ./cmd/...
 
-# ------ Build Database ------
-FROM node-alpine AS database-builder
+# ------ Build shared libraries ------
+FROM node-alpine AS shared-libs-builder
 WORKDIR /app
 
 COPY package.json yarn.lock* ./
 COPY ./packages/db ./packages/db
+COPY ./packages/schemas ./packages/schemas
 RUN yarn workspace @sourcebot/db install --frozen-lockfile
+RUN yarn workspace @sourcebot/schemas install --frozen-lockfile
 
 # ------ Build Web ------
 FROM node-alpine AS web-builder
@@ -25,8 +27,9 @@ WORKDIR /app
 
 COPY package.json yarn.lock* ./
 COPY ./packages/web ./packages/web
-COPY --from=database-builder /app/node_modules ./node_modules
-COPY --from=database-builder /app/packages/db ./packages/db
+COPY --from=shared-libs-builder /app/node_modules ./node_modules
+COPY --from=shared-libs-builder /app/packages/db ./packages/db
+COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 
 # Fixes arm64 timeouts
 RUN yarn config set registry https://registry.npmjs.org/
@@ -54,8 +57,9 @@ WORKDIR /app
 COPY package.json yarn.lock* ./
 COPY ./schemas ./schemas
 COPY ./packages/backend ./packages/backend
-COPY --from=database-builder /app/node_modules ./node_modules
-COPY --from=database-builder /app/packages/db ./packages/db
+COPY --from=shared-libs-builder /app/node_modules ./node_modules
+COPY --from=shared-libs-builder /app/packages/db ./packages/db
+COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 RUN yarn workspace @sourcebot/backend install --frozen-lockfile
 RUN yarn workspace @sourcebot/backend build
     
@@ -114,21 +118,22 @@ COPY --from=zoekt-builder \
 /cmd/zoekt-index \
 /usr/local/bin/
 
-# Configure the webapp
+# Copy all of the things
 COPY --from=web-builder /app/packages/web/public ./packages/web/public
 COPY --from=web-builder /app/packages/web/.next/standalone ./
 COPY --from=web-builder /app/packages/web/.next/static ./packages/web/.next/static
 
-# Configure the backend
 COPY --from=backend-builder /app/node_modules ./node_modules
 COPY --from=backend-builder /app/packages/backend ./packages/backend
+
+COPY --from=shared-libs-builder /app/node_modules ./node_modules
+COPY --from=shared-libs-builder /app/packages/db ./packages/db
+COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 
 # Configure the database
 RUN mkdir -p /run/postgresql && \
     chown -R postgres:postgres /run/postgresql && \
     chmod 775 /run/postgresql
-COPY --from=database-builder /app/node_modules ./node_modules
-COPY --from=database-builder /app/packages/db ./packages/db
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY prefix-output.sh ./prefix-output.sh

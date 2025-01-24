@@ -5,9 +5,9 @@ import { getUser } from "./data/user";
 import { auth } from "./auth";
 import { notAuthenticated, notFound, ServiceError, unexpectedError } from "./lib/serviceError";
 import { prisma } from "@/prisma";
-import { githubSchema } from "./schemas/github.schema";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./lib/errorCodes";
+import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 
 const ajv = new Ajv({
     validateFormats: false,

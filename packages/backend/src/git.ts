@@ -1,7 +1,7 @@
 import { GitRepository, AppContext } from './types.js';
 import { simpleGit, SimpleGitProgressEvent } from 'simple-git';
 import { createLogger } from './logger.js';
-import { GitConfig } from './schemas/v2.js';
+import { GitConfig } from "@sourcebot/schemas/v2/index.type"
 import path from 'path';
 
 const logger = createLogger('git');

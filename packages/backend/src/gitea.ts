@@ -1,5 +1,5 @@
 import { Api, giteaApi, HttpResponse, Repository as GiteaRepository } from 'gitea-js';
-import { GiteaConfig } from './schemas/v2.js';
+import { GiteaConfig } from "@sourcebot/schemas/v2/index.type"
 import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool, measure } from './utils.js';
 import { AppContext, GitRepository } from './types.js';
 import fetch from 'cross-fetch';

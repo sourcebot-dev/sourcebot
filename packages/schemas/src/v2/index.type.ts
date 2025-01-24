@@ -1,6 +1,22 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
+/**
+ * This interface was referenced by `SourcebotConfigurationSchema`'s JSON-Schema
+ * via the `definition` "Repos".
+ */
 export type Repos = GitHubConfig | GitLabConfig | GiteaConfig | GerritConfig | LocalConfig | GitConfig;
+/**
+ * This interface was referenced by `SourcebotConfigurationSchema`'s JSON-Schema
+ * via the `definition` "Token".
+ */
+export type Token =
+  | string
+  | {
+      /**
+       * The name of the environment variable that contains the token.
+       */
+      env: string;
+    };
 
 /**
  * A Sourcebot configuration file outlines which repositories Sourcebot should sync and index.
@@ -15,6 +31,9 @@ export interface SourcebotConfigurationSchema {
 }
 /**
  * Global settings. These settings are applied to all repositories.
+ *
+ * This interface was referenced by `SourcebotConfigurationSchema`'s JSON-Schema
+ * via the `definition` "Settings".
  */
 export interface Settings {
   /**
@@ -34,6 +53,10 @@ export interface Settings {
    */
   resyncInterval?: number;
 }
+/**
+ * This interface was referenced by `SourcebotConfigurationSchema`'s JSON-Schema
+ * via the `definition` "GitHubConfig".
+ */
 export interface GitHubConfig {
   /**
    * GitHub Configuration
@@ -111,6 +134,9 @@ export interface GitHubConfig {
 }
 /**
  * The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed.
+ *
+ * This interface was referenced by `SourcebotConfigurationSchema`'s JSON-Schema
+ * via the `definition` "GitRevisions".
  */
 export interface GitRevisions {
   /**
@@ -122,6 +148,10 @@ export interface GitRevisions {
    */
   tags?: string[];
 }
+/**
+ * This interface was referenced by `SourcebotConfigurationSchema`'s JSON-Schema
+ * via the `definition` "GitLabConfig".
+ */
 export interface GitLabConfig {
   /**
    * GitLab Configuration
@@ -184,6 +214,10 @@ export interface GitLabConfig {
   };
   revisions?: GitRevisions;
 }
+/**
+ * This interface was referenced by `SourcebotConfigurationSchema`'s JSON-Schema
+ * via the `definition` "GiteaConfig".
+ */
 export interface GiteaConfig {
   /**
    * Gitea Configuration
@@ -232,6 +266,10 @@ export interface GiteaConfig {
   };
   revisions?: GitRevisions;
 }
+/**
+ * This interface was referenced by `SourcebotConfigurationSchema`'s JSON-Schema
+ * via the `definition` "GerritConfig".
+ */
 export interface GerritConfig {
   /**
    * Gerrit Configuration
@@ -252,6 +290,10 @@ export interface GerritConfig {
     projects?: string[];
   };
 }
+/**
+ * This interface was referenced by `SourcebotConfigurationSchema`'s JSON-Schema
+ * via the `definition` "LocalConfig".
+ */
 export interface LocalConfig {
   /**
    * Local Configuration
@@ -272,6 +314,10 @@ export interface LocalConfig {
     paths?: string[];
   };
 }
+/**
+ * This interface was referenced by `SourcebotConfigurationSchema`'s JSON-Schema
+ * via the `definition` "GitConfig".
+ */
 export interface GitConfig {
   /**
    * Git Configuration
