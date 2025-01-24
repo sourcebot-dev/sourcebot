@@ -36,6 +36,7 @@ model Repo {
   isArchived Boolean
   metadata   Json
   cloneUrl   String
+  connections RepoToConnection[]
 
   repoIndexingStatus RepoIndexingStatus @default(NEW)
 
@@ -58,12 +59,25 @@ model Connection {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   syncedAt  DateTime?
+  repos RepoToConnection[]
 
   syncStatus ConnectionSyncStatus @default(SYNC_NEEDED)
 
   // The organization that owns this connection
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
+}
+
+model RepoToConnection {
+  addedAt DateTime @default(now())
+
+  connection Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connectionId Int
+
+  repo Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
+
+  @@id([connectionId, repoId])
 }
 
 model Org {
