@@ -98,6 +98,15 @@ export const fileSourceResponseSchema = z.object({
     language: z.string(),
 });
 
+export const secretCreateRequestSchema = z.object({
+    key: z.string(),
+    value: z.string(),
+});
+
+export const secreteDeleteRequestSchema = z.object({
+    key: z.string(),
+});
+
 
 // @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L728
 const repoStatsSchema = z.object({

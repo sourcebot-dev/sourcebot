@@ -75,6 +75,7 @@ model Org {
   members   UserToOrg[]
   configs   Config[]
   repos     Repo[]
+  secrets   Secret[]
 }
 
 enum OrgRole {
@@ -96,6 +97,19 @@ model UserToOrg {
   role OrgRole @default(MEMBER)
 
   @@id([orgId, userId])
+}
+
+model Secret {
+  orgId               Int
+  key                 String
+  encryptedValue      String
+  iv                  String
+
+  createdAt           DateTime @default(now())
+
+  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@id([orgId, key])
 }
 
 // @see : https://authjs.dev/concepts/database-models#user
