@@ -88,3 +88,6 @@ export type Settings = {
 export type DeepPartial<T> = T extends object ? {
     [P in keyof T]?: DeepPartial<T[P]>;
 } : T;
+
+// @see: https://stackoverflow.com/a/69328045
+export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };

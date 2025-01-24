@@ -1,6 +1,6 @@
-import { Connection, ConnectionSyncStatus, PrismaClient } from "@sourcebot/db";
+import { Connection, ConnectionSyncStatus, PrismaClient, Prisma } from "@sourcebot/db";
 import { Job, Queue, Worker } from 'bullmq';
-import { AppContext, Settings } from "./types.js";
+import { AppContext, Settings, WithRequired } from "./types.js";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { createLogger } from "./logger.js";
 import os from 'os';
@@ -66,62 +66,96 @@ export class ConnectionManager implements IConnectionManager {
         // @note: We aren't actually doing anything with this atm.
         const abortController = new AbortController();
 
-        switch (config.type) {
-            case 'github': {
-                const token = config.token ? getTokenFromConfig(config.token, this.context) : undefined;
-                const gitHubRepos = await getGitHubReposFromConfig(config, abortController.signal, this.context);
-                const hostUrl = config.url ?? 'https://github.com';
-                const hostname = config.url ? new URL(config.url).hostname : 'github.com';
-
-                await Promise.all(gitHubRepos.map((repo) => {
-                    const repoName = `${hostname}/${repo.full_name}`;
-                    const cloneUrl = new URL(repo.clone_url!);
-                    if (token) {
-                        cloneUrl.username = token;
-                    }
-
-                    const data = {
-                        external_id: repo.id.toString(),
-                        external_codeHostType: 'github',
-                        external_codeHostUrl: hostUrl,
-                        cloneUrl: cloneUrl.toString(),
-                        name: repoName,
-                        isFork: repo.fork,
-                        isArchived: !!repo.archived,
-                        orgId,
-                        metadata: {
-                            'zoekt.web-url-type': 'github',
-                            'zoekt.web-url': repo.html_url,
-                            'zoekt.name': repoName,
-                            'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
-                            'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
-                            'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
-                            'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
-                            'zoekt.archived': marshalBool(repo.archived),
-                            'zoekt.fork': marshalBool(repo.fork),
-                            'zoekt.public': marshalBool(repo.private === false)
-                        },
-                    };
-
-                    return this.db.repo.upsert({
-                        where: {
-                            external_id_external_codeHostUrl: {
-                                external_id: repo.id.toString(),
-                                external_codeHostUrl: hostUrl,
+        type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
+        const repoData: RepoData[] = await (async () => {
+            switch (config.type) {
+                case 'github': {
+                    const token = config.token ? getTokenFromConfig(config.token, this.context) : undefined;
+                    const gitHubRepos = await getGitHubReposFromConfig(config, abortController.signal, this.context);
+                    const hostUrl = config.url ?? 'https://github.com';
+                    const hostname = config.url ? new URL(config.url).hostname : 'github.com';
+    
+                    return Promise.all(gitHubRepos.map((repo) => {
+                        const repoName = `${hostname}/${repo.full_name}`;
+                        const cloneUrl = new URL(repo.clone_url!);
+                        if (token) {
+                            cloneUrl.username = token;
+                        }
+    
+                        const record: RepoData = {
+                            external_id: repo.id.toString(),
+                            external_codeHostType: 'github',
+                            external_codeHostUrl: hostUrl,
+                            cloneUrl: cloneUrl.toString(),
+                            name: repoName,
+                            isFork: repo.fork,
+                            isArchived: !!repo.archived,
+                            org: {
+                                connect: {
+                                    id: orgId,
+                                },
                             },
-                        },
-                        create: data,
-                        update: data,
-                    })
-                }));
-                break;
+                            connections: {
+                                create: {
+                                    connectionId: job.data.connectionId,
+                                }
+                            },
+                            metadata: {
+                                'zoekt.web-url-type': 'github',
+                                'zoekt.web-url': repo.html_url,
+                                'zoekt.name': repoName,
+                                'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
+                                'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
+                                'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
+                                'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
+                                'zoekt.archived': marshalBool(repo.archived),
+                                'zoekt.fork': marshalBool(repo.fork),
+                                'zoekt.public': marshalBool(repo.private === false)
+                            },
+                        };
+    
+                        return record;
+                    }));
+                }
             }
-        }
+        })();
+
+        // @note: to handle orphaned Repos we delete all RepoToConnection records for this connection,
+        // and then recreate them when we upsert the repos. For example, if a repo is no-longer
+        // captured by the connection's config (e.g., it was deleted, marked archived, etc.), it won't
+        // appear in the repoData array above, and so the RepoToConnection record will be deleted.
+        // Repos that have no RepoToConnection records are considered orphaned and can be deleted.
+        await this.db.$transaction(async (tx) => {
+            await tx.connection.update({
+                where: {
+                    id: job.data.connectionId,
+                },
+                data: {
+                    repos: {
+                        deleteMany: {}
+                    }
+                }
+            });
+
+            await Promise.all(repoData.map((repo) => {
+                return tx.repo.upsert({
+                    where: {
+                        external_id_external_codeHostUrl: {
+                            external_id: repo.external_id,
+                            external_codeHostUrl: repo.external_codeHostUrl,
+                        },
+                    },
+                    create: repo,
+                    update: repo as Prisma.RepoUpdateInput,
+                });
+            }));
+
+        });
     }
 
 
     private async onSyncJobCompleted(job: Job<JobPayload>) {
-        this.logger.info(`Config sync job ${job.id} completed`);
+        this.logger.info(`Connection sync job ${job.id} completed`);
         const { connectionId } = job.data;
 
         await this.db.connection.update({
@@ -136,7 +170,7 @@ export class ConnectionManager implements IConnectionManager {
     }
 
     private async onSyncJobFailed(job: Job | undefined, err: unknown) {
-        this.logger.info(`Config sync job failed with error: ${err}`);
+        this.logger.info(`Connection sync job failed with error: ${err}`);
         if (job) {
             const { connectionId } = job.data;
             await this.db.connection.update({
