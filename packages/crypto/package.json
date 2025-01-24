@@ -1,5 +1,6 @@
 {
-  "name": "crypto",
+  "name": "@sourcebot/crypto",
+  "main": "dist/index.js",
   "version": "0.1.0",
   "scripts": {
     "build": "tsc"
