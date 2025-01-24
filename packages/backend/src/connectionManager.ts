@@ -13,7 +13,7 @@ interface IConnectionManager {
     dispose: () => void;
 }
 
-const QUEUE_NAME = 'configSyncQueue';
+const QUEUE_NAME = 'connectionSyncQueue';
 
 type JobPayload = {
     connectionId: number,
@@ -75,7 +75,7 @@ export class ConnectionManager implements IConnectionManager {
                     const hostUrl = config.url ?? 'https://github.com';
                     const hostname = config.url ? new URL(config.url).hostname : 'github.com';
     
-                    return Promise.all(gitHubRepos.map((repo) => {
+                    return gitHubRepos.map((repo) => {
                         const repoName = `${hostname}/${repo.full_name}`;
                         const cloneUrl = new URL(repo.clone_url!);
                         if (token) {
@@ -115,7 +115,7 @@ export class ConnectionManager implements IConnectionManager {
                         };
     
                         return record;
-                    }));
+                    })
                 }
             }
         })();
@@ -123,7 +123,7 @@ export class ConnectionManager implements IConnectionManager {
         // @note: to handle orphaned Repos we delete all RepoToConnection records for this connection,
         // and then recreate them when we upsert the repos. For example, if a repo is no-longer
         // captured by the connection's config (e.g., it was deleted, marked archived, etc.), it won't
-        // appear in the repoData array above, and so the RepoToConnection record will be deleted.
+        // appear in the repoData array above, and so the RepoToConnection record won't be re-created.
         // Repos that have no RepoToConnection records are considered orphaned and can be deleted.
         await this.db.$transaction(async (tx) => {
             await tx.connection.update({
