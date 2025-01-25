@@ -11,6 +11,7 @@ import { columns, SecretColumnInfo } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
+import { deleteSecret } from "../../actions"
 
 const formSchema = z.object({
     key: z.string().min(2).max(40),
@@ -21,16 +22,16 @@ export const SecretsTable = () => {
     const [secrets, setSecrets] = useState<{ createdAt: Date; key: string; }[]>([]);
     const { toast } = useToast();
 
-    useEffect(() => {
-        const fetchSecretKeys = async () => {
-            const keys = await getSecrets();
-            if ('keys' in keys) {
-                setSecrets(keys);
-            } else {
-                console.error(keys);
-            }
-        };
+    const fetchSecretKeys = async () => {
+        const keys = await getSecrets();
+        if ('keys' in keys) {
+            setSecrets(keys);
+        } else {
+            console.error(keys);
+        }
+    };
 
+    useEffect(() => {
         fetchSecretKeys();
     }, []);
 
@@ -62,6 +63,27 @@ export const SecretsTable = () => {
             form.reset();
             form.resetField("key");
             form.resetField("value");
+        } else {
+            console.error(keys);
+        }
+    };
+
+    const handleDelete = async (key: string) => {
+        const res = await deleteSecret(key);
+        if (isServiceError(res)) {
+            toast({
+                description: `❌ Failed to delete secret`
+            });
+            return;
+        } else {
+            toast({
+                description: `✅ Secret deleted successfully!`
+            });
+        }
+
+        const keys = await getSecrets();
+        if ('keys' in keys) {
+            setSecrets(keys);
         } else {
             console.error(keys);
         }
@@ -111,7 +133,7 @@ export const SecretsTable = () => {
                 </form>
             </Form>
             <DataTable 
-                columns={columns}
+                columns={columns(handleDelete)}
                 data={keys}
                 searchKey="key"
                 searchPlaceholder="Search secrets..."

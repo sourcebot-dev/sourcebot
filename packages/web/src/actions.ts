@@ -102,6 +102,47 @@ export const getSecrets = async (): Promise<{ createdAt: Date; key: string; }[] 
     return secrets;
 }
 
+export const deleteSecret = async (key: string): Promise<{ success: boolean } | ServiceError> => {
+    const session = await auth();
+    if (!session) {
+        return notAuthenticated();
+    }
+
+    const user = await getUser(session.user.id);
+    if (!user) {
+        return unexpectedError("User not found");
+    }
+    const orgId = user.activeOrgId;
+    if (!orgId) {
+        return unexpectedError("User has no active org");
+    }
+
+    const membership = await prisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                userId: session.user.id,
+                orgId,
+            }
+        },
+    });
+    if (!membership) {
+        return notFound();
+    }
+
+    await prisma.secret.delete({
+        where: {
+            orgId_key: {
+                orgId,
+                key,
+            }
+        }
+    });
+
+    return {
+        success: true,
+    }
+}
+
 
 export const createOrg = async (name: string): Promise<{ id: number } | ServiceError> => {
     const session = await auth();
