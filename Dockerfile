@@ -17,8 +17,10 @@ WORKDIR /app
 COPY package.json yarn.lock* ./
 COPY ./packages/db ./packages/db
 COPY ./packages/schemas ./packages/schemas
+COPY ./packages/crypto ./packages/crypto
 RUN yarn workspace @sourcebot/db install --frozen-lockfile
 RUN yarn workspace @sourcebot/schemas install --frozen-lockfile
+RUN yarn workspace @sourcebot/crypto install --frozen-lockfile
 
 # ------ Build Web ------
 FROM node-alpine AS web-builder
@@ -30,6 +32,7 @@ COPY ./packages/web ./packages/web
 COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
+COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 
 # Fixes arm64 timeouts
 RUN yarn config set registry https://registry.npmjs.org/
@@ -60,6 +63,7 @@ COPY ./packages/backend ./packages/backend
 COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
+COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 RUN yarn workspace @sourcebot/backend install --frozen-lockfile
 RUN yarn workspace @sourcebot/backend build
     
@@ -100,7 +104,7 @@ ENV POSTHOG_PAPIK=$POSTHOG_PAPIK
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib openssl
 
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
@@ -129,6 +133,7 @@ COPY --from=backend-builder /app/packages/backend ./packages/backend
 COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
+COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 
 # Configure the database
 RUN mkdir -p /run/postgresql && \
@@ -142,6 +147,8 @@ COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 COPY default-config.json .
+
+ENV SOURCEBOT_ENCRYPTION_KEY=""
 
 EXPOSE 3000
 ENV PORT=3000

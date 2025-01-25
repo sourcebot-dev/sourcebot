@@ -26,6 +26,22 @@ if [ ! -d "$DB_DATA_DIR" ]; then
     su postgres -c "initdb -D $DB_DATA_DIR"
 fi
 
+if [ -z "$SOURCEBOT_ENCRYPTION_KEY" ]; then
+    echo -e "\e[31m[Error] SOURCEBOT_ENCRYPTION_KEY is not set.\e[0m"
+
+    if [ -f "$DATA_CACHE_DIR/.secret" ]; then
+        echo -e "\e[34m[Info] Loading environment variables from $DATA_CACHE_DIR/.secret\e[0m"
+    else
+        echo -e "\e[34m[Info] Generating a new encryption key...\e[0m"
+        SOURCEBOT_ENCRYPTION_KEY=$(openssl rand -base64 24)
+        echo "SOURCEBOT_ENCRYPTION_KEY=\"$SOURCEBOT_ENCRYPTION_KEY\"" >> "$DATA_CACHE_DIR/.secret"
+    fi
+
+    set -a
+    . "$DATA_CACHE_DIR/.secret"
+    set +a
+fi
+
 # In order to detect if this is the first run, we create a `.installed` file in
 # the cache directory.
 FIRST_RUN_FILE="$DATA_CACHE_DIR/.installedv2"
