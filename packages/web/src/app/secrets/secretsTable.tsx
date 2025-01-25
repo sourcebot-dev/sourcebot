@@ -44,6 +44,10 @@ export const SecretsTable = () => {
         const keys = await getSecrets();
         if ('keys' in keys) {
             setSecrets(keys);
+
+            form.reset();
+            form.resetField("key");
+            form.resetField("value");
         } else {
             console.error(keys);
         }
