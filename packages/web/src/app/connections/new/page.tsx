@@ -91,7 +91,9 @@ export default function NewConnectionPage() {
     const router = useRouter();
 
     const onSubmit = useCallback((data: z.infer<typeof formSchema>) => {
-        createConnection(data.config)
+        // @todo: we will need to key into the type of connection here
+        const connectionType = 'github';
+        createConnection(data.name, connectionType, data.config)
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({
@@ -101,7 +103,7 @@ export default function NewConnectionPage() {
                     toast({
                         description: `✅ Connection created successfully!`
                     });
-                    router.push('/');
+                    router.push('/connections');
                 }
             });
     }, [router, toast]);
@@ -119,7 +121,10 @@ export default function NewConnectionPage() {
                                 <FormItem>
                                     <FormLabel>Display Name</FormLabel>
                                     <FormControl>
-                                        <Input {...field} />
+                                        <Input
+                                            {...field}
+                                            autoFocus={true}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

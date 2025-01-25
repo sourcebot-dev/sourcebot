@@ -27,15 +27,15 @@ enum ConnectionSyncStatus {
 }
 
 model Repo {
-  id         Int       @id @default(autoincrement())
-  name       String
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  indexedAt  DateTime?
-  isFork     Boolean
-  isArchived Boolean
-  metadata   Json
-  cloneUrl   String
+  id          Int                @id @default(autoincrement())
+  name        String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  indexedAt   DateTime?
+  isFork      Boolean
+  isArchived  Boolean
+  metadata    Json
+  cloneUrl    String
   connections RepoToConnection[]
 
   repoIndexingStatus RepoIndexingStatus @default(NEW)
@@ -54,14 +54,17 @@ model Repo {
 }
 
 model Connection {
-  id        Int       @id @default(autoincrement())
-  config    Json
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  syncedAt  DateTime?
-  repos RepoToConnection[]
-
+  id         Int                  @id @default(autoincrement())
+  name       String
+  config     Json
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  syncedAt   DateTime?
+  repos      RepoToConnection[]
   syncStatus ConnectionSyncStatus @default(SYNC_NEEDED)
+
+  // The type of connection (e.g., github, gitlab, etc.)
+  connectionType String
 
   // The organization that owns this connection
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -71,10 +74,10 @@ model Connection {
 model RepoToConnection {
   addedAt DateTime @default(now())
 
-  connection Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   connectionId Int
 
-  repo Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
   repoId Int
 
   @@id([connectionId, repoId])

@@ -18,6 +18,7 @@ import {
     VscSymbolVariable
 } from "react-icons/vsc";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
+import { getDisplayTime } from "@/lib/utils";
 
 
 interface Props {
@@ -153,34 +154,5 @@ const getSymbolIcon = (symbol: Symbol) => {
         case "enum":
         case "enumerator":
             return VscSymbolEnum;
-    }
-}
-
-const getDisplayTime = (createdAt: Date) => {
-    const now = new Date();
-    const minutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
-    const hours = minutes / 60;
-    const days = hours / 24;
-    const months = days / 30;
-
-    const formatTime = (value: number, unit: 'minute' | 'hour' | 'day' | 'month') => {
-        const roundedValue = Math.floor(value);
-        if (roundedValue < 2) {
-            return `${roundedValue} ${unit} ago`;
-        } else {
-            return `${roundedValue} ${unit}s ago`;
-        }
-    }
-
-    if (minutes < 1) {
-        return 'just now';
-    } else if (minutes < 60) {
-        return formatTime(minutes, 'minute');
-    } else if (hours < 24) {
-        return formatTime(hours, 'hour');
-    } else if (days < 30) {
-        return formatTime(days, 'day');
-    } else {
-        return formatTime(months, 'month');
     }
 }

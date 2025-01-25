@@ -141,7 +141,7 @@ export const switchActiveOrg = async (orgId: number): Promise<{ id: number } | S
     }
 }
 
-export const createConnection = async (config: string): Promise<{ id: number } | ServiceError> => {
+export const createConnection = async (name: string, type: string, connectionConfig: string): Promise<{ id: number } | ServiceError> => {
     const orgId = await getCurrentUserOrg();
     if (isServiceError(orgId)) {
         return orgId;
@@ -149,7 +149,7 @@ export const createConnection = async (config: string): Promise<{ id: number } |
 
     let parsedConfig;
     try {
-        parsedConfig = JSON.parse(config);
+        parsedConfig = JSON.parse(connectionConfig);
     } catch (e) {
         return {
             statusCode: StatusCodes.BAD_REQUEST,
@@ -170,8 +170,10 @@ export const createConnection = async (config: string): Promise<{ id: number } |
 
     const connection = await prisma.connection.create({
         data: {
-            orgId: orgId,
+            orgId,
+            name,
             config: parsedConfig,
+            connectionType: type,
         }
     });
 
