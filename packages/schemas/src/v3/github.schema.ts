@@ -32,6 +32,19 @@ const schema = {
             "env"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "secret": {
+              "type": "string",
+              "description": "The name of the secret that contains the token."
+            }
+          },
+          "required": [
+            "secret"
+          ],
+          "additionalProperties": false
         }
       ]
     },

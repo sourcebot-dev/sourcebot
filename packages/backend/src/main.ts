@@ -1,20 +1,47 @@
-import { ConnectionSyncStatus, PrismaClient, Repo, RepoIndexingStatus } from '@sourcebot/db';
+import { ConnectionSyncStatus, PrismaClient, Repo, RepoIndexingStatus, RepoToConnection, Connection } from '@sourcebot/db';
 import { existsSync } from 'fs';
 import { cloneRepository, fetchRepository } from "./git.js";
 import { createLogger } from "./logger.js";
 import { captureEvent } from "./posthog.js";
 import { AppContext } from "./types.js";
-import { getRepoPath, measure } from "./utils.js";
+import { getRepoPath, getTokenFromConfig, measure } from "./utils.js";
 import { indexGitRepository } from "./zoekt.js";
 import { DEFAULT_SETTINGS } from './constants.js';
 import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import * as os from 'os';
 import { ConnectionManager } from './connectionManager.js';
+import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 
 const logger = createLogger('main');
 
-const syncGitRepository = async (repo: Repo, ctx: AppContext) => {
+type RepoWithConnections = Repo & { connections: (RepoToConnection & { connection: Connection})[] };
+
+// TODO: do this better? ex: try using the tokens from all the connections 
+// We can no longer use repo.cloneUrl directly since it doesn't contain the token for security reasons. As a result, we need to
+// fetch the token here using the connections from the repo. Multiple connections could be referencing this repo, and each
+// may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
+// may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referrencing.
+const getTokenForRepo = async (repo: RepoWithConnections, db: PrismaClient) => {
+    const repoConnections = repo.connections;
+    if (repoConnections.length === 0) {
+        logger.error(`Repo ${repo.id} has no connections`);
+        return;
+    }
+
+    let token: string | undefined;
+    for (const repoConnection of repoConnections) {
+        const connection = repoConnection.connection;
+        const config = connection.config as unknown as ConnectionConfig;
+        if (config.token) {
+            token = await getTokenFromConfig(config.token, connection.orgId, db);
+        }
+    }
+
+    return token;
+}
+
+const syncGitRepository = async (repo: RepoWithConnections, ctx: AppContext, db: PrismaClient) => {
     let fetchDuration_s: number | undefined = undefined;
     let cloneDuration_s: number | undefined = undefined;
 
@@ -35,7 +62,15 @@ const syncGitRepository = async (repo: Repo, ctx: AppContext) => {
     } else {
         logger.info(`Cloning ${repo.id}...`);
 
-        const { durationMs } = await measure(() => cloneRepository(repo.cloneUrl, repoPath, metadata, ({ method, stage, progress }) => {
+        const token = await getTokenForRepo(repo, db);
+        let cloneUrl = repo.cloneUrl;
+        if (token) {
+            const url = new URL(cloneUrl);
+            url.username = token;
+            cloneUrl = url.toString();
+        }
+
+        const { durationMs } = await measure(() => cloneRepository(cloneUrl, repoPath, metadata, ({ method, stage, progress }) => {
             logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
         }));
         cloneDuration_s = durationMs / 1000;
@@ -92,13 +127,13 @@ export const main = async (db: PrismaClient, context: AppContext) => {
 
     const connectionManager = new ConnectionManager(db, DEFAULT_SETTINGS, redis, context);
     setInterval(async () => {
-        const configs = await db.connection.findMany({
+        const connections = await db.connection.findMany({
             where: {
                 syncStatus: ConnectionSyncStatus.SYNC_NEEDED,
             }
         });
-        for (const config of configs) {
-            await connectionManager.scheduleConnectionSync(config);
+        for (const connection of connections) {
+            await connectionManager.scheduleConnectionSync(connection);
         }
     }, DEFAULT_SETTINGS.resyncConnectionPollingIntervalMs);
     
@@ -111,13 +146,13 @@ export const main = async (db: PrismaClient, context: AppContext) => {
     const numWorkers = numCores * DEFAULT_SETTINGS.indexConcurrencyMultiple;
     logger.info(`Detected ${numCores} cores. Setting repo index max concurrency to ${numWorkers}`);
     const worker = new Worker('indexQueue', async (job: Job) => {
-        const repo = job.data as Repo;
+        const repo = job.data as RepoWithConnections;
 
         let indexDuration_s: number | undefined;
         let fetchDuration_s: number | undefined;
         let cloneDuration_s: number | undefined;
 
-        const stats = await syncGitRepository(repo, context);
+        const stats = await syncGitRepository(repo, context, db);
         indexDuration_s = stats.indexDuration_s;
         fetchDuration_s = stats.fetchDuration_s;
         cloneDuration_s = stats.cloneDuration_s;
@@ -171,6 +206,13 @@ export const main = async (db: PrismaClient, context: AppContext) => {
                     { indexedAt: { lt: thresholdDate } },
                     { repoIndexingStatus: RepoIndexingStatus.NEW }
                 ]
+            },
+            include: {
+                connections: {
+                    include: {
+                        connection: true
+                    }
+                }
             }
         });
         addReposToQueue(db, indexQueue, repos);

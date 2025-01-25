@@ -4,6 +4,7 @@ import { createLogger } from "./logger.js";
 import { AppContext } from "./types.js";
 import { getTokenFromConfig, measure } from "./utils.js";
 import micromatch from "micromatch";
+import { PrismaClient } from "@sourcebot/db";
 
 const logger = createLogger("GitHub");
 
@@ -25,8 +26,8 @@ export type OctokitRepository = {
     size?: number,
 }
 
-export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, signal: AbortSignal, ctx: AppContext) => {
-    const token = config.token ? getTokenFromConfig(config.token, ctx) : undefined;
+export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal) => {
+    const token = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
 
     const octokit = new Octokit({
         auth: token,

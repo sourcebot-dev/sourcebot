@@ -9,8 +9,9 @@ import micromatch from 'micromatch';
 
 const logger = createLogger('Gitea');
 
-export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppContext) => {
-    const token = config.token ? getTokenFromConfig(config.token, ctx) : undefined;
+export const getGiteaReposFromConfig = async (config: GiteaConfig, orgId: number, ctx: AppContext) => {
+    // TODO: pass in DB here to fetch secret properly
+    const token = config.token ? await getTokenFromConfig(config.token, orgId) : undefined;
 
     const api = giteaApi(config.url ?? 'https://gitea.com', {
         token,
