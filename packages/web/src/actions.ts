@@ -43,7 +43,6 @@ export const createSecret = async (key: string, value: string): Promise<{ succes
     }
 
     try {
-
         const encrypted = encrypt(value);
         await prisma.secret.create({
             data: {
@@ -55,9 +54,7 @@ export const createSecret = async (key: string, value: string): Promise<{ succes
         });
     } catch (e) {
         console.error(e);
-        return {
-            success: false,
-        }
+        return unexpectedError(`Failed to create secret: ${e}`);
     }
 
     return {

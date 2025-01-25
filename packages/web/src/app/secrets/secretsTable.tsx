@@ -9,6 +9,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { columns, SecretColumnInfo } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
+import { isServiceError } from "@/lib/utils";
+import { useToast } from "@/components/hooks/use-toast";
 
 const formSchema = z.object({
     key: z.string().min(2).max(40),
@@ -17,6 +19,7 @@ const formSchema = z.object({
 
 export const SecretsTable = () => {
     const [secrets, setSecrets] = useState<{ createdAt: Date; key: string; }[]>([]);
+    const { toast } = useToast();
 
     useEffect(() => {
         const fetchSecretKeys = async () => {
@@ -40,7 +43,18 @@ export const SecretsTable = () => {
     });
 
     const handleCreateSecret = async (values: { key: string, value: string }) => {
-        await createSecret(values.key, values.value);
+        const res = await createSecret(values.key, values.value);
+        if (isServiceError(res)) {
+            toast({
+                description: `❌ Failed to create secret`
+            });
+            return;
+        } else {
+            toast({
+                description: `✅ Secret created successfully!`
+            });
+        }
+
         const keys = await getSecrets();
         if ('keys' in keys) {
             setSecrets(keys);
