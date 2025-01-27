@@ -15,6 +15,12 @@ export interface GithubConnectionConfig {
          * The name of the environment variable that contains the token.
          */
         env: string;
+      }
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
       };
   /**
    * The URL of the GitHub host. Defaults to https://github.com

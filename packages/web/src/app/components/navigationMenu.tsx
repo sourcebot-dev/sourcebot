@@ -56,6 +56,13 @@ export const NavigationMenu = async () => {
                                     </NavigationMenuLink>
                                 </Link>
                             </NavigationMenuItem>
+                            <NavigationMenuItem>
+                                <Link href="/secrets" legacyBehavior passHref>
+                                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                        Secrets 
+                                    </NavigationMenuLink>
+                                </Link>
+                            </NavigationMenuItem>
                         </NavigationMenuList>
                     </NavigationMenuBase>
                 </div>

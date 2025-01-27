@@ -31,6 +31,7 @@
         "lowdb": "^7.0.1",
         "micromatch": "^4.0.8",
         "posthog-node": "^4.2.1",
+        "@sourcebot/crypto": "^0.1.0",
         "@sourcebot/db": "^0.1.0",
         "@sourcebot/schemas": "^0.1.0",
         "simple-git": "^3.27.0",

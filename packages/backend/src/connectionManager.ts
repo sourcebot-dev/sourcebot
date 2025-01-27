@@ -5,7 +5,7 @@ import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { createLogger } from "./logger.js";
 import os from 'os';
 import { Redis } from 'ioredis';
-import { getTokenFromConfig, marshalBool } from "./utils.js";
+import { marshalBool } from "./utils.js";
 import { getGitHubReposFromConfig } from "./github.js";
 
 interface IConnectionManager {
@@ -70,17 +70,13 @@ export class ConnectionManager implements IConnectionManager {
         const repoData: RepoData[] = await (async () => {
             switch (config.type) {
                 case 'github': {
-                    const token = config.token ? getTokenFromConfig(config.token, this.context) : undefined;
-                    const gitHubRepos = await getGitHubReposFromConfig(config, abortController.signal, this.context);
+                    const gitHubRepos = await getGitHubReposFromConfig(config, orgId, this.db, abortController.signal);
                     const hostUrl = config.url ?? 'https://github.com';
                     const hostname = config.url ? new URL(config.url).hostname : 'github.com';
-    
+
                     return gitHubRepos.map((repo) => {
                         const repoName = `${hostname}/${repo.full_name}`;
                         const cloneUrl = new URL(repo.clone_url!);
-                        if (token) {
-                            cloneUrl.username = token;
-                        }
     
                         const record: RepoData = {
                             external_id: repo.id.toString(),

@@ -2,7 +2,9 @@ import { Logger } from "winston";
 import { AppContext, Repository } from "./types.js";
 import path from 'path';
 import micromatch from "micromatch";
-import { Repo } from "@sourcebot/db";
+import { PrismaClient, Repo } from "@sourcebot/db";
+import { decrypt } from "@sourcebot/crypto";
+import { Token } from "@sourcebot/schemas/v3/shared.type";
 
 export const measure = async <T>(cb : () => Promise<T>) => {
     const start = Date.now();
@@ -86,15 +88,39 @@ export const excludeReposByTopic = <T extends Repository>(repos: T[], excludedRe
     });
 }
 
-export const getTokenFromConfig = (token: string | { env: string }, ctx: AppContext) => {
+export const getTokenFromConfig = async (token: Token, orgId: number, db?: PrismaClient) => {
     if (typeof token === 'string') {
         return token;
     }
-    const tokenValue = process.env[token.env];
-    if (!tokenValue) {
-        throw new Error(`The environment variable '${token.env}' was referenced in ${ctx.configPath}, but was not set.`);
+    if ('env' in token) {
+        const tokenValue = process.env[token.env];
+        if (!tokenValue) {
+            throw new Error(`The environment variable '${token.env}' was referenced in the config but was not set.`);
+        }
+        return tokenValue;
+    } else if ('secret' in token) {
+        if (!db) {
+            throw new Error(`Database connection required to retrieve secret`);
+        }
+        
+        const secretKey = token.secret;
+        const secret = await db.secret.findUnique({
+            where: {
+                orgId_key: {
+                    key: secretKey,
+                    orgId
+                }
+            }
+        });
+        
+        if (!secret) {
+            throw new Error(`Secret with key ${secretKey} not found for org ${orgId}`);
+        }
+
+        const decryptedSecret = decrypt(secret.iv, secret.encryptedValue);
+        return decryptedSecret;
     }
-    return tokenValue;
+    throw new Error(`Invalid token configuration in config`);
 }
 
 export const isRemotePath = (path: string) => {

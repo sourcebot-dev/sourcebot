@@ -8,8 +8,9 @@ import { getTokenFromConfig, measure } from "./utils.js";
 const logger = createLogger("GitLab");
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
-export const getGitLabReposFromConfig = async (config: GitLabConfig, ctx: AppContext) => {
-    const token = config.token ? getTokenFromConfig(config.token, ctx) : undefined;
+export const getGitLabReposFromConfig = async (config: GitLabConfig, orgId: number, ctx: AppContext) => {
+    // TODO: pass in DB here to fetch secret properly
+    const token = config.token ? await getTokenFromConfig(config.token, orgId) : undefined;
     const api = new Gitlab({
         ...(config.token ? {
             token,

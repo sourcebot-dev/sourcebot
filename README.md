@@ -374,14 +374,20 @@ docker run <b>-v /path/to/my-repo:/repos/my-repo</b> /* additional args */ ghcr.
 
 5. Create a `config.json` file at the repository root. See [Configuring Sourcebot](#configuring-sourcebot) for more information.
 
-6. Start Sourcebot with the command:
+6. Create `.env.local` files in the `packages/backend` and `packages/web` directories with the following contents:
+    ```sh
+    # You can use https://acte.ltd/utils/randomkeygen to generate a key ("Encryption key 256")
+    SOURCEBOT_ENCRYPTION_KEY="32-byte-secret-key"
+    ```
+
+7. Start Sourcebot with the command:
     ```sh
     yarn dev
     ```
 
     A `.sourcebot` directory will be created and zoekt will begin to index the repositories found given `config.json`.
 
-7. Start searching at `http://localhost:3000`.
+8. Start searching at `http://localhost:3000`.
 
 ## Telemetry
 
