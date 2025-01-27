@@ -31,8 +31,10 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
     return `${path}?${queryString}`;
 }
 
+export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit";
+
 type CodeHostInfo = {
-    type: "github" | "gitlab" | "gitea" | "gerrit";
+    type: CodeHostType;
     displayName: string;
     costHostName: string;
     repoLink: string;
@@ -100,7 +102,7 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
     }
 }
 
-export const getCodeHostIcon = (codeHostType: string): { src: string, className?: string } | null => {
+export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, className?: string } | null => {
     switch (codeHostType) {
         case "github":
             return {

@@ -27,6 +27,7 @@ import { useToast } from "@/components/hooks/use-toast";
 import { isServiceError } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
+import { Header } from "../components/header";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -110,7 +111,9 @@ export default function NewConnectionPage() {
 
     return (
         <div>
-            <h1 className="text-2xl font-bold mb-4">Create a connection</h1>
+            <Header>
+                <h1 className="text-3xl">Create a GitHub connection</h1>
+            </Header>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <div className="flex flex-col gap-4">
