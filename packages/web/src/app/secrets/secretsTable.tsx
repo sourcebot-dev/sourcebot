@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getSecrets, createSecret } from "../../actions"
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -12,14 +12,16 @@ import { DataTable } from "@/components/ui/data-table";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { deleteSecret } from "../../actions"
+import { SecretsTableProps } from "./page";
 
 const formSchema = z.object({
     key: z.string().min(2).max(40),
     value: z.string().min(2).max(40),
 });
 
-export const SecretsTable = () => {
-    const [secrets, setSecrets] = useState<{ createdAt: Date; key: string; }[]>([]);
+
+export const SecretsTable = ({ initialSecrets }: SecretsTableProps) => {
+    const [secrets, setSecrets] = useState<{ createdAt: Date; key: string; }[]>(initialSecrets);
     const { toast } = useToast();
 
     const fetchSecretKeys = async () => {
@@ -57,14 +59,14 @@ export const SecretsTable = () => {
         }
 
         const keys = await getSecrets();
-        if ('keys' in keys) {
+        if (isServiceError(keys)) {
+            console.error("Failed to fetch secrets");
+        } else {
             setSecrets(keys);
-
+            
             form.reset();
             form.resetField("key");
             form.resetField("value");
-        } else {
-            console.error(keys);
         }
     };
 
@@ -90,14 +92,16 @@ export const SecretsTable = () => {
     };
 
 
-    const keys = secrets.map((secret): SecretColumnInfo => {
-        return {
-            key: secret.key,
-            createdAt: secret.createdAt.toISOString(),
-        }
-    }).sort((a, b) => {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    const keys = useMemo(() => {
+        return secrets.map((secret): SecretColumnInfo => {
+            return {
+                key: secret.key,
+                createdAt: secret.createdAt.toISOString(),
+            }
+        }).sort((a, b) => {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+    }, [secrets]);
 
     return (
         <div>

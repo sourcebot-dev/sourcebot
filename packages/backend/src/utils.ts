@@ -4,6 +4,7 @@ import path from 'path';
 import micromatch from "micromatch";
 import { PrismaClient, Repo } from "@sourcebot/db";
 import { decrypt } from "@sourcebot/crypto";
+import { Token } from "@sourcebot/schemas/v3/shared.type";
 
 export const measure = async <T>(cb : () => Promise<T>) => {
     const start = Date.now();
@@ -87,7 +88,7 @@ export const excludeReposByTopic = <T extends Repository>(repos: T[], excludedRe
     });
 }
 
-export const getTokenFromConfig = async (token: string | { env: string } | { secret: string }, orgId: number, db?: PrismaClient) => {
+export const getTokenFromConfig = async (token: Token, orgId: number, db?: PrismaClient) => {
     if (typeof token === 'string') {
         return token;
     }

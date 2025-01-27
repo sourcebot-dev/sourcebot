@@ -53,8 +53,7 @@ export const createSecret = async (key: string, value: string): Promise<{ succes
             }
         });
     } catch (e) {
-        console.error(e);
-        return unexpectedError(`Failed to create secret: ${e}`);
+        return unexpectedError(`Failed to create secret`);
     }
 
     return {
@@ -99,7 +98,10 @@ export const getSecrets = async (): Promise<{ createdAt: Date; key: string; }[] 
         }
     });
 
-    return secrets;
+    return secrets.map((secret) => ({
+        key: secret.key,
+        createdAt: secret.createdAt,
+    }));
 }
 
 export const deleteSecret = async (key: string): Promise<{ success: boolean } | ServiceError> => {

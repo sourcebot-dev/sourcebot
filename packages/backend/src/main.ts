@@ -35,6 +35,9 @@ const getTokenForRepo = async (repo: RepoWithConnections, db: PrismaClient) => {
         const config = connection.config as unknown as ConnectionConfig;
         if (config.token) {
             token = await getTokenFromConfig(config.token, connection.orgId, db);
+            if (token) {
+                break;
+            }
         }
     }
 
