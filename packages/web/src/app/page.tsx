@@ -70,7 +70,7 @@ export default async function Home() {
                                 <Query query="file:README setup"><Highlight>file:</Highlight>README setup</Query> <QueryExplanation>(by filename)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="repo:torvalds/linux test"><Highlight>repo:</Highlight>torvalds/linux test</Query> <QueryExplanation>(by repo)</QueryExplanation>
+                                <Query query="repo:facebook/react test"><Highlight>repo:</Highlight>facebook/react test</Query> <QueryExplanation>(by repo)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
                                 <Query query="lang:typescript"><Highlight>lang:</Highlight>typescript</Query> <QueryExplanation>(by language)</QueryExplanation>
