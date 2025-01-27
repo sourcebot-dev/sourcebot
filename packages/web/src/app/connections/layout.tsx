@@ -10,7 +10,7 @@ export default function Layout({
         <div className="min-h-screen flex flex-col">
             <NavigationMenu />
             <main className="flex-grow flex justify-center p-4 bg-[#fafafa] dark:bg-background relative">
-                <div className="w-full max-w-7xl rounded-lg p-6">{children}</div>
+                <div className="w-full max-w-6xl rounded-lg p-6">{children}</div>
             </main>
         </div>
     )
