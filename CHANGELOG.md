@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.1] - 2025-01-28
+
+### Added
+
+- Added `maxTrigramCount` to the config to control the maximum allowable of trigrams per document. 
+
 ### Fixed
 
 - Fixed issue with version upgrade toast not appearing without a hard refresh. ([#179](https://github.com/sourcebot-dev/sourcebot/pull/179))
