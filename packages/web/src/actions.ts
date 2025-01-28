@@ -8,6 +8,7 @@ import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { isServiceError } from "@/lib/utils";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
+import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { encrypt } from "@sourcebot/crypto"
 
 const ajv = new Ajv({
@@ -158,8 +159,25 @@ export const createConnection = async (name: string, type: string, connectionCon
         } satisfies ServiceError;
     }
 
+    const schema = (() => {
+        switch (type) {
+            case "github":
+                return githubSchema;
+            case "gitlab":
+                return gitlabSchema;
+        }
+    })();
+
+    if (!schema) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: "invalid connection type",
+        } satisfies ServiceError;
+    }
+
     // @todo: we will need to validate the config against different schemas based on the type of connection.
-    const isValidConfig = ajv.validate(githubSchema, parsedConfig);
+    const isValidConfig = ajv.validate(schema, parsedConfig);
     if (!isValidConfig) {
         return {
             statusCode: StatusCodes.BAD_REQUEST,
