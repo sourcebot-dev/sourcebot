@@ -2,7 +2,6 @@
 
 import { GitLabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import CreationForm from "./creationForm";
-import gitlabLogo from "@/public/gitlab.svg";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 
 const defaultConfig: GitLabConnectionConfig = {
@@ -13,7 +12,6 @@ export const GitLabCreationForm = () => {
     return (
         <CreationForm<GitLabConnectionConfig>
             type="gitlab"
-            icon={gitlabLogo}
             title="Create a GitLab connection"
             defaultValues={{
                 config: JSON.stringify(defaultConfig, null, 2),
