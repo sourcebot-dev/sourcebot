@@ -134,7 +134,7 @@ export default function NewConnectionPage() {
                                                 onChange={onChange}
                                                 actions={[
                                                     {
-                                                        fn: (previous) => ({
+                                                        fn: (previous: GithubConnectionConfig) => ({
                                                             ...previous,
                                                             orgs: [
                                                                 ...(previous.orgs ?? []),
@@ -144,11 +144,30 @@ export default function NewConnectionPage() {
                                                         name: "Add an organization",
                                                     },
                                                     {
-                                                        fn: (previous) => ({
+                                                        fn: (previous: GithubConnectionConfig) => ({
                                                             ...previous,
                                                             url: previous.url ?? "",
                                                         }),
                                                         name: "Set a custom url",
+                                                    },
+                                                    {
+                                                        fn: (previous: GithubConnectionConfig) => ({
+                                                            ...previous,
+                                                            repos: [
+                                                                ...(previous.orgs ?? []),
+                                                                ""
+                                                            ]
+                                                        }),
+                                                        name: "Add a repo",
+                                                    },
+                                                    {
+                                                        fn: (previous: GithubConnectionConfig) => ({
+                                                            ...previous,
+                                                            token: previous.token ?? {
+                                                                env: "",
+                                                            },
+                                                        }),
+                                                        name: "Add a secret",
                                                     }
                                                 ]}
                                             />

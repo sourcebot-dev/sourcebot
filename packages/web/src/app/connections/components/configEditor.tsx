@@ -94,7 +94,10 @@ export const ConfigEditor = ({
                             {name}
                         </Button>
                         {index !== actions.length - 1 && (
-                            <Separator orientation="vertical" className="h-4" />
+                            <Separator
+                                key={`separator-${index}`}
+                                orientation="vertical" className="h-4"
+                            />
                         )}
                     </>
                 ))}
