@@ -7,7 +7,7 @@ import { AppContext, Settings } from "./types.js";
 import { captureEvent } from "./posthog.js";
 import { getRepoPath, getTokenFromConfig, measure } from "./utils.js";
 import { cloneRepository, fetchRepository } from "./git.js";
-import { existsSync } from 'fs';
+import { existsSync, rmSync } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import os from 'os';
 
@@ -46,30 +46,7 @@ export class RepoManager implements IRepoManager {
 
     public async blockingPollLoop() {
         while(true) {
-            const thresholdDate = new Date(Date.now() - this.settings.reindexIntervalMs);
-            const repos = await this.db.repo.findMany({
-                where: {
-                    repoIndexingStatus: {
-                        notIn: [RepoIndexingStatus.IN_INDEX_QUEUE, RepoIndexingStatus.FAILED]
-                    },
-                    OR: [
-                        { indexedAt: null },
-                        { indexedAt: { lt: thresholdDate } },
-                        { repoIndexingStatus: RepoIndexingStatus.NEW }
-                    ]
-                },
-                include: {
-                    connections: {
-                        include: {
-                            connection: true
-                        }
-                    }
-                }
-            });
-
-            for (const repo of repos) {
-                await this.scheduleRepoIndexing(repo);
-            }
+            this.fetchAndScheduleRepoIndexing();
 
             await new Promise(resolve => setTimeout(resolve, this.settings.reindexRepoPollingInternvalMs));
         }
@@ -89,6 +66,54 @@ export class RepoManager implements IRepoManager {
         }).catch((err: unknown) => {
             this.logger.error(`Failed to add job to queue for repo ${repo.id}: ${err}`);
         });
+    }
+
+    private async fetchAndScheduleRepoIndexing() {
+        const thresholdDate = new Date(Date.now() - this.settings.reindexIntervalMs);
+        const repos = await this.db.repo.findMany({
+            where: {
+                repoIndexingStatus: {
+                    notIn: [RepoIndexingStatus.IN_INDEX_QUEUE, RepoIndexingStatus.FAILED]
+                },
+                OR: [
+                    { indexedAt: null },
+                    { indexedAt: { lt: thresholdDate } },
+                    { repoIndexingStatus: RepoIndexingStatus.NEW }
+                ]
+            },
+            include: {
+                connections: {
+                    include: {
+                        connection: true
+                    }
+                }
+            }
+        });
+
+        for (const repo of repos) {
+            await this.scheduleRepoIndexing(repo);
+        } 
+    }
+
+    private async garbageCollectRepo() {
+        const reposWithNoConnections = await this.db.repo.findMany({
+            where: {
+                repoIndexingStatus: { notIn: [RepoIndexingStatus.IN_INDEX_QUEUE, RepoIndexingStatus.INDEXING] }, // we let the job finish for now so we don't need to worry about cancelling
+                connections: {
+                    none: {}
+                }
+            }
+        });
+
+        for (const repo of reposWithNoConnections) {
+            this.logger.info(`Garbage collecting repo with no connections: ${repo.id}`);
+
+            const repoPath = getRepoPath(repo, this.ctx);
+            if(existsSync(repoPath)) {
+                this.logger.info(`Deleting repo directory ${repoPath}`);
+                rmSync(repoPath, { recursive: true, force: true });
+            }
+        }
     }
 
     // TODO: do this better? ex: try using the tokens from all the connections 
