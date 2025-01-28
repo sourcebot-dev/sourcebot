@@ -78,7 +78,7 @@ const Card = ({
     return (
         <Link
             className="flex flex-row justify-between items-center cursor-pointer p-2"
-            href={`/connections/new?type=${type}`}
+            href={`/connections/new/${type}`}
         >
             <div className="flex flex-row items-center gap-2">
                 {Icon}
