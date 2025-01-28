@@ -46,9 +46,13 @@ export type AppContext = {
 
 export type Settings = {
     /**
-     * The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be inexed.
+     * The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be indexed.
      */
     maxFileSize: number;
+    /**
+     * The maximum number of trigrams per document. Files that exceed this maximum will not be indexed.
+     */
+    maxTrigramCount: number;
     /**
      * Automatically delete stale repositories from the index. Defaults to true.
      */
