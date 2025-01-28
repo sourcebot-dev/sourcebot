@@ -34,7 +34,7 @@ const aliasPrefixMappings: Record<string, zoektPrefixes> = {
     "revision:": zoektPrefixes.branch,
 }
 
-export const search = async ({ query, maxMatchDisplayCount, whole, tenantId }: SearchRequest): Promise<SearchResponse | ServiceError> => {
+export const search = async ({ query, maxMatchDisplayCount, whole}: SearchRequest, orgId: number): Promise<SearchResponse | ServiceError> => {
     // Replace any alias prefixes with their corresponding zoekt prefixes.
     for (const [prefix, zoektPrefix] of Object.entries(aliasPrefixMappings)) {
         query = query.replaceAll(prefix, zoektPrefix);
@@ -54,11 +54,9 @@ export const search = async ({ query, maxMatchDisplayCount, whole, tenantId }: S
     });
 
     let header: Record<string, string> = {};
-    if (tenantId) {
-        header = {
-            "X-Tenant-ID": tenantId.toString()
-        };
-    }
+    header = {
+        "X-Tenant-ID": orgId.toString()
+    };
 
     const searchResponse = await zoektFetch({
         path: "/api/search",
@@ -92,7 +90,7 @@ export const search = async ({ query, maxMatchDisplayCount, whole, tenantId }: S
 // @todo (bkellam) : We should really be using `git show <hash>:<path>` to fetch file contents here.
 // This will allow us to support permalinks to files at a specific revision that may not be indexed
 // by zoekt.
-export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
+export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest, orgId: number): Promise<FileSourceResponse | ServiceError> => {
     const escapedFileName = escapeStringRegexp(fileName);
     const escapedRepository = escapeStringRegexp(repository);
     
@@ -105,7 +103,7 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
         query,
         maxMatchDisplayCount: 1,
         whole: true,
-    });
+    }, orgId);
 
     if (isServiceError(searchResponse)) {
         return searchResponse;
@@ -126,15 +124,22 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
     }
 }
 
-export const listRepositories = async (): Promise<ListRepositoriesResponse | ServiceError> => {
+export const listRepositories = async (orgId: number): Promise<ListRepositoriesResponse | ServiceError> => {
     const body = JSON.stringify({
         opts: {
             Field: 0,
         }
     });
+
+    let header: Record<string, string> = {};
+    header = {
+        "X-Tenant-ID": orgId.toString()
+    };
+
     const listResponse = await zoektFetch({
         path: "/api/list",
         body,
+        header,
         method: "POST",
         cache: "no-store",
     });

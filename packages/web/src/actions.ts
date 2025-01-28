@@ -1,12 +1,12 @@
 'use server';
 
 import Ajv from "ajv";
-import { getUser } from "./data/user";
-import { auth } from "./auth";
-import { notAuthenticated, notFound, ServiceError, unexpectedError } from "./lib/serviceError";
+import { auth, getCurrentUserOrg } from "./auth";
+import { notAuthenticated, notFound, ServiceError, unexpectedError } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
 import { StatusCodes } from "http-status-codes";
-import { ErrorCode } from "./lib/errorCodes";
+import { ErrorCode } from "@/lib/errorCodes";
+import { isServiceError } from "@/lib/utils";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { encrypt } from "@sourcebot/crypto"
 
@@ -15,31 +15,9 @@ const ajv = new Ajv({
 });
 
 export const createSecret = async (key: string, value: string): Promise<{ success: boolean } | ServiceError> => {
-    const session = await auth();
-    if (!session) {
-        return notAuthenticated();
-    }
-
-    const user = await getUser(session.user.id);
-    if (!user) {
-        return unexpectedError("User not found");
-    }
-    const orgId = user.activeOrgId;
-    if (!orgId) {
-        return unexpectedError("User has no active org");
-    }
-
-    // @todo: refactor this into a shared function
-    const membership = await prisma.userToOrg.findUnique({
-        where: {
-            orgId_userId: {
-                userId: session.user.id,
-                orgId,
-            }
-        },
-    });
-    if (!membership) {
-        return notFound();
+    const orgId = await getCurrentUserOrg();
+    if (isServiceError(orgId)) {
+        return orgId;
     }
 
     try {
@@ -62,30 +40,9 @@ export const createSecret = async (key: string, value: string): Promise<{ succes
 }
 
 export const getSecrets = async (): Promise<{ createdAt: Date; key: string; }[] | ServiceError> => {
-    const session = await auth();
-    if (!session) {
-        return notAuthenticated();
-    }
-
-    const user = await getUser(session.user.id);
-    if (!user) {
-        return unexpectedError("User not found");
-    }
-    const orgId = user.activeOrgId;
-    if (!orgId) {
-        return unexpectedError("User has no active org");
-    }
-
-    const membership = await prisma.userToOrg.findUnique({
-        where: {
-            orgId_userId: {
-                userId: session.user.id,
-                orgId,
-            }
-        },
-    });
-    if (!membership) {
-        return notFound();
+    const orgId = await getCurrentUserOrg();
+    if (isServiceError(orgId)) {
+        return orgId;
     }
 
     const secrets = await prisma.secret.findMany({
@@ -105,30 +62,9 @@ export const getSecrets = async (): Promise<{ createdAt: Date; key: string; }[] 
 }
 
 export const deleteSecret = async (key: string): Promise<{ success: boolean } | ServiceError> => {
-    const session = await auth();
-    if (!session) {
-        return notAuthenticated();
-    }
-
-    const user = await getUser(session.user.id);
-    if (!user) {
-        return unexpectedError("User not found");
-    }
-    const orgId = user.activeOrgId;
-    if (!orgId) {
-        return unexpectedError("User has no active org");
-    }
-
-    const membership = await prisma.userToOrg.findUnique({
-        where: {
-            orgId_userId: {
-                userId: session.user.id,
-                orgId,
-            }
-        },
-    });
-    if (!membership) {
-        return notFound();
+    const orgId = await getCurrentUserOrg();
+    if (isServiceError(orgId)) {
+        return orgId;
     }
 
     await prisma.secret.delete({
@@ -206,31 +142,9 @@ export const switchActiveOrg = async (orgId: number): Promise<{ id: number } | S
 }
 
 export const createConnection = async (config: string): Promise<{ id: number } | ServiceError> => {
-    const session = await auth();
-    if (!session) {
-        return notAuthenticated();
-    }
-
-    const user = await getUser(session.user.id);
-    if (!user) {
-        return unexpectedError("User not found");
-    }
-    const orgId = user.activeOrgId;
-    if (!orgId) {
-        return unexpectedError("User has no active org");
-    }
-
-    // @todo: refactor this into a shared function
-    const membership = await prisma.userToOrg.findUnique({
-        where: {
-            orgId_userId: {
-                userId: session.user.id,
-                orgId,
-            }
-        },
-    });
-    if (!membership) {
-        return notFound();
+    const orgId = await getCurrentUserOrg();
+    if (isServiceError(orgId)) {
+        return orgId;
     }
 
     let parsedConfig;
