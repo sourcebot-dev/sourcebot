@@ -7,6 +7,7 @@ import { CodePreview } from "./codePreview";
 import { PageNotFound } from "@/app/components/pageNotFound";
 import { ErrorCode } from "@/lib/errorCodes";
 import { LuFileX2, LuBookX } from "react-icons/lu";
+import { getCurrentUserOrg } from "@/auth";
 
 interface BrowsePageProps {
     params: {
@@ -44,9 +45,18 @@ export default async function BrowsePage({
         }
     })();
 
+    const orgId = await getCurrentUserOrg();
+    if (isServiceError(orgId)) {
+        return (
+            <>
+                Error: {orgId.message}
+            </>
+        )
+    }
+
     // @todo (bkellam) : We should probably have a endpoint to fetch repository metadata
     // given it's name or id.
-    const reposResponse = await listRepositories();
+    const reposResponse = await listRepositories(orgId);
     if (isServiceError(reposResponse)) {
         // @todo : proper error handling
         return (
@@ -98,6 +108,7 @@ export default async function BrowsePage({
                     path={path}
                     repoName={repoName}
                     revisionName={revisionName ?? 'HEAD'}
+                    orgId={orgId}
                 />
             )}
         </div>
@@ -108,18 +119,21 @@ interface CodePreviewWrapper {
     path: string,
     repoName: string,
     revisionName: string,
+    orgId: number,
 }
 
 const CodePreviewWrapper = async ({
     path,
     repoName,
     revisionName,
+    orgId,
 }: CodePreviewWrapper) => {
     // @todo: this will depend on `pathType`.
     const fileSourceResponse = await getFileSource({
         fileName: path,
         repository: repoName,
         branch: revisionName,
+        orgId,
     });
 
     if (isServiceError(fileSourceResponse)) {

@@ -3,8 +3,8 @@ import { z } from "zod";
 export const searchRequestSchema = z.object({
     query: z.string(),
     maxMatchDisplayCount: z.number(),
+    orgId: z.number(),
     whole: z.boolean().optional(),
-    tenantId: z.number().optional(),
 });
 
 
@@ -90,6 +90,7 @@ export const searchResponseSchema = z.object({
 export const fileSourceRequestSchema = z.object({
     fileName: z.string(),
     repository: z.string(),
+    orgId: z.number(),
     branch: z.string().optional(),
 });
 

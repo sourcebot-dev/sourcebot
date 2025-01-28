@@ -1,6 +1,6 @@
 import { NavigationMenu } from "../components/navigationMenu";
 import { SecretsTable } from "./secretsTable";
-import { getSecrets, createSecret } from "../../actions"
+import { getSecrets } from "../../actions"
 import { isServiceError } from "@/lib/utils";
 
 export interface SecretsTableProps {

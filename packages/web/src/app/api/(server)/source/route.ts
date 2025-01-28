@@ -5,10 +5,19 @@ import { getFileSource } from "@/lib/server/searchService";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
+import { getCurrentUserOrg } from "@/auth";
 
 export const POST = async (request: NextRequest) => {
+    const orgId = await getCurrentUserOrg();
+    if (isServiceError(orgId)) {
+        return orgId;
+    }
+
     const body = await request.json();
-    const parsed = await fileSourceRequestSchema.safeParseAsync(body);
+    const parsed = await fileSourceRequestSchema.safeParseAsync({
+        ...body,
+        ...({orgId: orgId}),
+    });
     if (!parsed.success) {
         return serviceErrorResponse(
             schemaValidationError(parsed.error)
