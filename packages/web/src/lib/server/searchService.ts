@@ -34,7 +34,7 @@ const aliasPrefixMappings: Record<string, zoektPrefixes> = {
     "revision:": zoektPrefixes.branch,
 }
 
-export const search = async ({ query, maxMatchDisplayCount, whole, orgId}: SearchRequest): Promise<SearchResponse | ServiceError> => {
+export const search = async ({ query, maxMatchDisplayCount, whole}: SearchRequest, orgId: number): Promise<SearchResponse | ServiceError> => {
     // Replace any alias prefixes with their corresponding zoekt prefixes.
     for (const [prefix, zoektPrefix] of Object.entries(aliasPrefixMappings)) {
         query = query.replaceAll(prefix, zoektPrefix);
@@ -90,7 +90,7 @@ export const search = async ({ query, maxMatchDisplayCount, whole, orgId}: Searc
 // @todo (bkellam) : We should really be using `git show <hash>:<path>` to fetch file contents here.
 // This will allow us to support permalinks to files at a specific revision that may not be indexed
 // by zoekt.
-export const getFileSource = async ({ fileName, repository, branch, orgId }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
+export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest, orgId: number): Promise<FileSourceResponse | ServiceError> => {
     const escapedFileName = escapeStringRegexp(fileName);
     const escapedRepository = escapeStringRegexp(repository);
     
@@ -103,8 +103,7 @@ export const getFileSource = async ({ fileName, repository, branch, orgId }: Fil
         query,
         maxMatchDisplayCount: 1,
         whole: true,
-        orgId,
-    });
+    }, orgId);
 
     if (isServiceError(searchResponse)) {
         return searchResponse;

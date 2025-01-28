@@ -15,10 +15,7 @@ export const POST = async (request: NextRequest) => {
 
     console.log(`Searching for org ${orgId}`);
     const body = await request.json();
-    const parsed = await searchRequestSchema.safeParseAsync({
-        ...body,
-        ...({orgId: orgId}),
-    });
+    const parsed = await searchRequestSchema.safeParseAsync(body);
     if (!parsed.success) {
         return serviceErrorResponse(
             schemaValidationError(parsed.error)
@@ -26,7 +23,7 @@ export const POST = async (request: NextRequest) => {
     }
 
 
-    const response = await search(parsed.data);
+    const response = await search(parsed.data, orgId);
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }

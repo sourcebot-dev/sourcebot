@@ -14,17 +14,14 @@ export const POST = async (request: NextRequest) => {
     }
 
     const body = await request.json();
-    const parsed = await fileSourceRequestSchema.safeParseAsync({
-        ...body,
-        ...({orgId: orgId}),
-    });
+    const parsed = await fileSourceRequestSchema.safeParseAsync(body);
     if (!parsed.success) {
         return serviceErrorResponse(
             schemaValidationError(parsed.error)
         );
     }
 
-    const response = await getFileSource(parsed.data);
+    const response = await getFileSource(parsed.data, orgId);
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }

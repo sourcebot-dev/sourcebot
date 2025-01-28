@@ -133,8 +133,7 @@ const CodePreviewWrapper = async ({
         fileName: path,
         repository: repoName,
         branch: revisionName,
-        orgId,
-    });
+    }, orgId);
 
     if (isServiceError(fileSourceResponse)) {
         if (fileSourceResponse.errorCode === ErrorCode.FILE_NOT_FOUND) {
