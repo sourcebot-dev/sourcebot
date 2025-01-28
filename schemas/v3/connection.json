@@ -4,6 +4,9 @@
     "oneOf": [
         {
             "$ref": "./github.json"
+        },
+        {
+            "$ref": "./gitlab.json"
         }
     ]
 }

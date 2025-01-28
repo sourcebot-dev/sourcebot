@@ -126,6 +126,10 @@ export class ConnectionManager implements IConnectionManager {
                         return record;
                     })
                 }
+                case 'gitlab': {
+                    // @todo
+                    return [];
+                }
             }
         })();
 
