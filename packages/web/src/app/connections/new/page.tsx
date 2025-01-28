@@ -1,36 +1,22 @@
 
 'use client';
 
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useKeymapExtension } from "@/hooks/useKeymapExtension";
-import { useThemeNormalized } from "@/hooks/useThemeNormalized";
-import { json, jsonLanguage, jsonParseLinter } from "@codemirror/lang-json";
-import { linter } from "@codemirror/lint";
-import { EditorView, hoverTooltip } from "@codemirror/view";
-import { zodResolver } from "@hookform/resolvers/zod";
-import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import Ajv from "ajv";
-import {
-    handleRefresh,
-    jsonCompletion,
-    jsonSchemaHover,
-    jsonSchemaLinter,
-    stateExtensions
-} from "codemirror-json-schema";
-import { useCallback, useRef } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Input } from "@/components/ui/input";
 import { createConnection } from "@/actions";
 import { useToast } from "@/components/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { getCodeHostIcon, isServiceError } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
+import Ajv from "ajv";
 import Image from "next/image";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { useRouter } from "next/navigation";
+import { useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { ConfigEditor } from "../components/configEditor";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -66,20 +52,6 @@ const formSchema = z.object({
         }),
 });
 
-// Add this theme extension to your extensions array
-const customAutocompleteStyle = EditorView.baseTheme({
-    ".cm-tooltip.cm-completionInfo": {
-        padding: "8px",
-        fontSize: "12px",
-        fontFamily: "monospace",
-    },
-    ".cm-tooltip-hover.cm-tooltip": {
-        padding: "8px",
-        fontSize: "12px",
-        fontFamily: "monospace",
-    }
-})
-
 export default function NewConnectionPage() {
 
     const defaultConfig: GithubConnectionConfig = {
@@ -94,9 +66,6 @@ export default function NewConnectionPage() {
         },
     });
 
-    const editorRef = useRef<ReactCodeMirrorRef>(null);
-    const keymapExtension = useKeymapExtension(editorRef.current?.view);
-    const { theme } = useThemeNormalized();
     const { toast } = useToast();
     const router = useRouter();
 
@@ -155,83 +124,34 @@ export default function NewConnectionPage() {
                             control={form.control}
                             name="config"
                             render={({ field: { value, onChange } }) => {
-
-                                const onQuickAction = (e: any, action: (config: GithubConnectionConfig) => GithubConnectionConfig) => {
-                                    e.preventDefault();
-                                    let parsedConfig: GithubConnectionConfig;
-                                    try {
-                                        parsedConfig = JSON.parse(value) as GithubConnectionConfig;
-                                    } catch {
-                                        return;
-                                    }
-
-                                    onChange(JSON.stringify(
-                                        action(parsedConfig),
-                                        null,
-                                        2
-                                    ));
-
-                                    // todo: need to figure out how we can move the codemirror cursor
-                                    // into the correct location.
-                                }
-
                                 return (
                                     <FormItem>
                                         <FormLabel>Configuration</FormLabel>
                                         <FormDescription>Code hosts are configured via a....</FormDescription>
-                                        <div className="flex flex-row items-center gap-x-1 flex-wrap w-full">
-                                            <Button
-                                                className="h-8 rounded-md px-3"
-                                                variant="ghost"
-                                                onClick={(e) => onQuickAction(e, (config) => ({
-                                                    ...config,
-                                                    orgs: [
-                                                        ...(config.orgs ?? []),
-                                                        ""
-                                                    ]
-                                                }))}
-                                            >
-                                                Add an organization
-                                            </Button>
-                                            <Separator orientation="vertical" className="h-4" />
-                                            <Button
-                                                className="h-8 rounded-md px-3"
-                                                variant="ghost"
-                                                onClick={(e) => onQuickAction(e, (config) => ({
-                                                    ...config,
-                                                    url: config.url ?? "",
-                                                }))}
-                                            >
-                                                Set a custom url
-                                            </Button>
-                                        </div>
                                         <FormControl>
-                                            <ScrollArea className="rounded-md border p-1 overflow-auto flex-1 h-64">
-                                                <CodeMirror
-                                                    ref={editorRef}
-                                                    value={value}
-                                                    onChange={onChange}
-                                                    extensions={[
-                                                        keymapExtension,
-                                                        json(),
-                                                        linter(jsonParseLinter(), {
-                                                            delay: 300,
+                                            <ConfigEditor
+                                                value={value}
+                                                onChange={onChange}
+                                                actions={[
+                                                    {
+                                                        fn: (previous) => ({
+                                                            ...previous,
+                                                            orgs: [
+                                                                ...(previous.orgs ?? []),
+                                                                ""
+                                                            ]
                                                         }),
-                                                        linter(jsonSchemaLinter(), {
-                                                            needsRefresh: handleRefresh,
+                                                        name: "Add an organization",
+                                                    },
+                                                    {
+                                                        fn: (previous) => ({
+                                                            ...previous,
+                                                            url: previous.url ?? "",
                                                         }),
-                                                        jsonLanguage.data.of({
-                                                            autocomplete: jsonCompletion(),
-                                                        }),
-                                                        hoverTooltip(jsonSchemaHover()),
-                                                        // @todo: we will need to validate the config against different schemas based on the type of connection.
-                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                        stateExtensions(githubSchema as any),
-                                                        customAutocompleteStyle,
-                                                    ]}
-                                                    theme={theme === "dark" ? "dark" : "light"}
-                                                />
-                                            </ScrollArea>
+                                                        name: "Set a custom url",
+                                                    }
+                                                ]}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
