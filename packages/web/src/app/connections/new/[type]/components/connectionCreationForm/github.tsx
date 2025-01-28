@@ -2,7 +2,6 @@
 
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import CreationForm from "./creationForm";
-import githubLogo from "@/public/github.svg";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 
 const defaultConfig: GithubConnectionConfig = {
@@ -13,7 +12,6 @@ export const GitHubCreationForm = () => {
     return (
         <CreationForm<GithubConnectionConfig>
             type="github"
-            icon={githubLogo}
             title="Create a GitHub connection"
             defaultValues={{
                 config: JSON.stringify(defaultConfig, null, 2),

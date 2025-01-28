@@ -9,12 +9,12 @@ import { Input } from "@/components/ui/input";
 import { isServiceError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Ajv, { Schema } from "ajv";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { ConfigEditor, QuickActionFn } from "../../../../components/configEditor";
+import { ConnectionIcon } from "@/app/connections/components/connectionIcon";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -26,7 +26,6 @@ interface CreationFormProps<T> {
         name: string;
         config: string;
     };
-    icon: string;
     title: string;
     schema: Schema;
     quickActions?: {
@@ -38,7 +37,6 @@ interface CreationFormProps<T> {
 export default function CreationForm<T>({
     type,
     defaultValues,
-    icon,
     title,
     schema,
     quickActions,
@@ -102,9 +100,8 @@ export default function CreationForm<T>({
     return (
         <div className="flex flex-col max-w-3xl mx-auto bg-background border rounded-lg p-6">
             <div className="flex flex-row items-center gap-3 mb-6">
-                <Image
-                    src={icon}
-                    alt={`${type} icon`}
+                <ConnectionIcon
+                    type={type}
                     className="w-7 h-7"
                 />
                 <h1 className="text-3xl">{title}</h1>

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { cn, CodeHostType, getCodeHostIcon, getDisplayTime } from "@/lib/utils";
+import { cn, getDisplayTime } from "@/lib/utils";
 import placeholderLogo from "@/public/placeholder_avatar.png";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { CircleCheckIcon } from "lucide-react";
@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 import { FiLoader } from "react-icons/fi";
+import { ConnectionIcon } from "../connectionIcon";
 
 export type SyncStatus = 'waiting' | 'syncing' | 'synced' | 'failed';
 
@@ -27,27 +28,6 @@ export const ConnectionListItem = ({
     editedAt,
     syncedAt,
 }: ConnectionListItemProps) => {
-    const Icon = useMemo(() => {
-        const iconInfo = getCodeHostIcon(type as CodeHostType);
-        if (iconInfo) {
-            const { src, className } = iconInfo;
-            return (
-                <Image
-                    src={src}
-                    className={cn("rounded-full w-8 h-8", className)}
-                    alt={`${type} logo`}
-                />
-            )
-        }
-
-        return <Image
-            src={placeholderLogo}
-            alt={''}
-            className="rounded-full w-8 h-8"
-        />
-
-    }, [type]);
-
     const statusDisplayName = useMemo(() => {
         switch (status) {
             case 'waiting':
@@ -67,7 +47,10 @@ export const ConnectionListItem = ({
                 className="flex flex-row justify-between items-center border p-4 rounded-lg cursor-pointer bg-background dark:bg-background"
             >
                 <div className="flex flex-row items-center gap-3">
-                    {Icon}
+                    <ConnectionIcon
+                        type={type}
+                        className="w-8 h-8"
+                    />
                     <div className="flex flex-col">
                         <p className="font-medium">{name}</p>
                         <div className="flex flex-row items-center gap-1.5">
