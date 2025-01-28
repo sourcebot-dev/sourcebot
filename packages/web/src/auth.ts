@@ -6,6 +6,8 @@ import { prisma } from "@/prisma";
 import type { Provider } from "next-auth/providers"
 import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_SECRET } from "./lib/environment";
 import { User } from '@sourcebot/db';
+import { notAuthenticated, notFound, unexpectedError } from "@/lib/serviceError";
+import { getUser } from "./data/user";
 
 declare module 'next-auth' {
     interface Session {
@@ -116,3 +118,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         signIn: "/login"
     }
 });
+
+export const getCurrentUserOrg = async () => {
+    const session = await auth();
+    if (!session) {
+        return notAuthenticated();
+    }
+
+    const user = await getUser(session.user.id);
+    if (!user) {
+        return unexpectedError("User not found");
+    }
+    const orgId = user.activeOrgId;
+    if (!orgId) {
+        return unexpectedError("User has no active org");
+    }
+
+    const membership = await prisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                userId: session.user.id,
+                orgId,
+            }
+        },
+    });
+    if (!membership) {
+        return notFound();
+    }
+
+    return orgId;
+}

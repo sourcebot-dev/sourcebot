@@ -5,19 +5,17 @@ import { searchRequestSchema } from "@/lib/schemas";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
+import { getCurrentUserOrg } from "../../../../auth";
 
 export const POST = async (request: NextRequest) => {
+    const orgId = await getCurrentUserOrg();
+    if (isServiceError(orgId)) {
+        return orgId;
+    }
+
+    console.log(`Searching for org ${orgId}`);
     const body = await request.json();
-    const tenantId = request.headers.get("X-Tenant-ID");
-
-    console.log(`Search request received. Tenant ID: ${tenantId}`);
-
-    const parsed = await searchRequestSchema.safeParseAsync({
-        ...body,
-        ...(tenantId ? {
-            tenantId: parseInt(tenantId)
-        } : {}),
-    });
+    const parsed = await searchRequestSchema.safeParseAsync(body);
     if (!parsed.success) {
         return serviceErrorResponse(
             schemaValidationError(parsed.error)
@@ -25,7 +23,7 @@ export const POST = async (request: NextRequest) => {
     }
 
 
-    const response = await search(parsed.data);
+    const response = await search(parsed.data, orgId);
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }

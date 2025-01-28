@@ -11,93 +11,102 @@ import { Separator } from "@/components/ui/separator";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { UpgradeToast } from "./components/upgradeToast";
 import Link from "next/link";
+import { getCurrentUserOrg } from "../auth"
 
 
 export default async function Home() {
+    const orgId = await getCurrentUserOrg();
+
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
             <NavigationMenu />
             <UpgradeToast />
 
-            <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
-                <div className="max-h-44 w-auto">
-                    <Image
-                        src={logoDark}
-                        className="h-18 md:h-40 w-auto hidden dark:block"
-                        alt={"Sourcebot logo"}
-                        priority={true}
-                    />
-                    <Image
-                        src={logoLight}
-                        className="h-18 md:h-40 w-auto block dark:hidden"
-                        alt={"Sourcebot logo"}
-                        priority={true}
-                    />
+            {isServiceError(orgId) ? (
+                <div className="mt-8 text-red-500">
+                    You are not authenticated. Please log in to continue.
                 </div>
-                <SearchBar
-                    autoFocus={true}
-                    className="mt-4 w-full max-w-[800px]"
-                />
-                <div className="mt-8">
-                    <Suspense fallback={<div>...</div>}>
-                        <RepositoryList />
-                    </Suspense>
-                </div>
-                <div className="flex flex-col items-center w-fit gap-6">
-                    <Separator className="mt-5" />
-                    <span className="font-semibold">How to search</span>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <HowToSection
-                            title="Search in files or paths"
-                        >
-                            <QueryExample>
-                                <Query query="test todo">test todo</Query> <QueryExplanation>(both test and todo)</QueryExplanation>
-                            </QueryExample>
-                            <QueryExample>
-                                <Query query="test or todo">test <Highlight>or</Highlight> todo</Query> <QueryExplanation>(either test or todo)</QueryExplanation>
-                            </QueryExample>
-                            <QueryExample>
-                                <Query query={`"exit boot"`}>{`"exit boot"`}</Query> <QueryExplanation>(exact match)</QueryExplanation>
-                            </QueryExample>
-                            <QueryExample>
-                                <Query query="TODO case:yes">TODO <Highlight>case:</Highlight>yes</Query> <QueryExplanation>(case sensitive)</QueryExplanation>
-                            </QueryExample>
-                        </HowToSection>
-                        <HowToSection
-                            title="Filter results"
-                        >
-                            <QueryExample>
-                                <Query query="file:README setup"><Highlight>file:</Highlight>README setup</Query> <QueryExplanation>(by filename)</QueryExplanation>
-                            </QueryExample>
-                            <QueryExample>
-                                <Query query="repo:torvalds/linux test"><Highlight>repo:</Highlight>torvalds/linux test</Query> <QueryExplanation>(by repo)</QueryExplanation>
-                            </QueryExample>
-                            <QueryExample>
-                                <Query query="lang:typescript"><Highlight>lang:</Highlight>typescript</Query> <QueryExplanation>(by language)</QueryExplanation>
-                            </QueryExample>
-                            <QueryExample>
-                                <Query query="rev:HEAD"><Highlight>rev:</Highlight>HEAD</Query> <QueryExplanation>(by branch or tag)</QueryExplanation>
-                            </QueryExample>
-                        </HowToSection>
-                        <HowToSection
-                            title="Advanced"
-                        >
-                            <QueryExample>
-                                <Query query="file:\.py$"><Highlight>file:</Highlight>{`\\.py$`}</Query> <QueryExplanation>{`(files that end in ".py")`}</QueryExplanation>
-                            </QueryExample>
-                            <QueryExample>
-                                <Query query="sym:main"><Highlight>sym:</Highlight>main</Query> <QueryExplanation>{`(symbols named "main")`}</QueryExplanation>
-                            </QueryExample>
-                            <QueryExample>
-                                <Query query="todo -lang:c">todo <Highlight>-lang:c</Highlight></Query> <QueryExplanation>(negate filter)</QueryExplanation>
-                            </QueryExample>
-                            <QueryExample>
-                                <Query query="content:README"><Highlight>content:</Highlight>README</Query> <QueryExplanation>(search content only)</QueryExplanation>
-                            </QueryExample>
-                        </HowToSection>
+            ) : (
+                <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
+                    <div className="max-h-44 w-auto">
+                        <Image
+                            src={logoDark}
+                            className="h-18 md:h-40 w-auto hidden dark:block"
+                            alt={"Sourcebot logo"}
+                            priority={true}
+                        />
+                        <Image
+                            src={logoLight}
+                            className="h-18 md:h-40 w-auto block dark:hidden"
+                            alt={"Sourcebot logo"}
+                            priority={true}
+                        />
+                    </div>
+                    <SearchBar
+                        autoFocus={true}
+                        className="mt-4 w-full max-w-[800px]"
+                    />
+                    <div className="mt-8">
+                        <Suspense fallback={<div>...</div>}>
+                            <RepositoryList orgId={orgId}/>
+                        </Suspense>
+                    </div>
+                    <div className="flex flex-col items-center w-fit gap-6">
+                        <Separator className="mt-5" />
+                        <span className="font-semibold">How to search</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <HowToSection
+                                title="Search in files or paths"
+                            >
+                                <QueryExample>
+                                    <Query query="test todo">test todo</Query> <QueryExplanation>(both test and todo)</QueryExplanation>
+                                </QueryExample>
+                                <QueryExample>
+                                    <Query query="test or todo">test <Highlight>or</Highlight> todo</Query> <QueryExplanation>(either test or todo)</QueryExplanation>
+                                </QueryExample>
+                                <QueryExample>
+                                    <Query query={`"exit boot"`}>{`"exit boot"`}</Query> <QueryExplanation>(exact match)</QueryExplanation>
+                                </QueryExample>
+                                <QueryExample>
+                                    <Query query="TODO case:yes">TODO <Highlight>case:</Highlight>yes</Query> <QueryExplanation>(case sensitive)</QueryExplanation>
+                                </QueryExample>
+                            </HowToSection>
+                            <HowToSection
+                                title="Filter results"
+                            >
+                                <QueryExample>
+                                    <Query query="file:README setup"><Highlight>file:</Highlight>README setup</Query> <QueryExplanation>(by filename)</QueryExplanation>
+                                </QueryExample>
+                                <QueryExample>
+                                    <Query query="repo:torvalds/linux test"><Highlight>repo:</Highlight>torvalds/linux test</Query> <QueryExplanation>(by repo)</QueryExplanation>
+                                </QueryExample>
+                                <QueryExample>
+                                    <Query query="lang:typescript"><Highlight>lang:</Highlight>typescript</Query> <QueryExplanation>(by language)</QueryExplanation>
+                                </QueryExample>
+                                <QueryExample>
+                                    <Query query="rev:HEAD"><Highlight>rev:</Highlight>HEAD</Query> <QueryExplanation>(by branch or tag)</QueryExplanation>
+                                </QueryExample>
+                            </HowToSection>
+                            <HowToSection
+                                title="Advanced"
+                            >
+                                <QueryExample>
+                                    <Query query="file:\.py$"><Highlight>file:</Highlight>{`\\.py$`}</Query> <QueryExplanation>{`(files that end in ".py")`}</QueryExplanation>
+                                </QueryExample>
+                                <QueryExample>
+                                    <Query query="sym:main"><Highlight>sym:</Highlight>main</Query> <QueryExplanation>{`(symbols named "main")`}</QueryExplanation>
+                                </QueryExample>
+                                <QueryExample>
+                                    <Query query="todo -lang:c">todo <Highlight>-lang:c</Highlight></Query> <QueryExplanation>(negate filter)</QueryExplanation>
+                                </QueryExample>
+                                <QueryExample>
+                                    <Query query="content:README"><Highlight>content:</Highlight>README</Query> <QueryExplanation>(search content only)</QueryExplanation>
+                                </QueryExample>
+                            </HowToSection>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             <footer className="w-full mt-auto py-4 flex flex-row justify-center items-center gap-4">
                 <Link href="https://sourcebot.dev" className="text-gray-400 text-sm hover:underline">About</Link>
@@ -110,8 +119,8 @@ export default async function Home() {
     )
 }
 
-const RepositoryList = async () => {
-    const _repos = await listRepositories();
+const RepositoryList = async ({ orgId }: { orgId: number}) => {
+    const _repos = await listRepositories(orgId);
 
     if (isServiceError(_repos)) {
         return null;

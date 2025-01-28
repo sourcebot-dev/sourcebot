@@ -3,8 +3,8 @@ import { columns, RepositoryColumnInfo } from "./columns";
 import { listRepositories } from "@/lib/server/searchService";
 import { isServiceError } from "@/lib/utils";
 
-export const RepositoryTable = async () => {
-    const _repos = await listRepositories();
+export const RepositoryTable = async ({ orgId }: { orgId: number }) => {
+    const _repos = await listRepositories(orgId);
 
     if (isServiceError(_repos)) {
         return <div>Error fetching repositories</div>;
