@@ -1,6 +1,6 @@
 import { Connection, ConnectionSyncStatus, PrismaClient, Prisma } from "@sourcebot/db";
 import { Job, Queue, Worker } from 'bullmq';
-import { AppContext, Settings, WithRequired } from "./types.js";
+import { Settings, WithRequired } from "./types.js";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { createLogger } from "./logger.js";
 import os from 'os';
@@ -10,6 +10,7 @@ import { getGitHubReposFromConfig } from "./github.js";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
+    registerPollingCallback: () => void;
     dispose: () => void;
 }
 
@@ -28,14 +29,13 @@ export class ConnectionManager implements IConnectionManager {
 
     constructor(
         private db: PrismaClient,
-        settings: Settings,
+        private settings: Settings,
         redis: Redis,
-        private context: AppContext,
     ) {
         const numCores = os.cpus().length;
         this.worker = new Worker(QUEUE_NAME, this.runSyncJob.bind(this), {
             connection: redis,
-            concurrency: numCores * settings.configSyncConcurrencyMultiple,
+            concurrency: numCores * this.settings.configSyncConcurrencyMultiple,
         });
         this.worker.on('completed', this.onSyncJobCompleted.bind(this));
         this.worker.on('failed', this.onSyncJobFailed.bind(this));
@@ -59,6 +59,19 @@ export class ConnectionManager implements IConnectionManager {
         }).catch((err: unknown) => {
             this.logger.error(`Failed to add job to queue for connection ${connection.id}: ${err}`);
         });
+    }
+
+    public async registerPollingCallback() {
+        setInterval(async () => {
+            const connections = await this.db.connection.findMany({
+                where: {
+                    syncStatus: ConnectionSyncStatus.SYNC_NEEDED,
+                }
+            });
+            for (const connection of connections) {
+                await this.scheduleConnectionSync(connection);
+            }
+        }, this.settings.resyncConnectionPollingIntervalMs);
     }
 
     private async runSyncJob(job: Job<JobPayload>) {

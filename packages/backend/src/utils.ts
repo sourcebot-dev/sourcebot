@@ -160,3 +160,7 @@ export const arraysEqualShallow = <T>(a?: readonly T[], b?: readonly T[]) => {
 export const getRepoPath = (repo: Repo, ctx: AppContext) => {
     return path.join(ctx.reposPath, repo.id.toString());
 }
+
+export const getShardPrefix = (orgId: number, repoId: number) => {
+    return `${orgId}_${repoId}`;
+}
