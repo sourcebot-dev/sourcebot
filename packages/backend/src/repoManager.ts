@@ -214,6 +214,14 @@ export class RepoManager implements IRepoManager {
 
     private async runIndexJob(job: Job<JobPayload>) {
         const repo = job.data.repo as RepoWithConnections;
+        await this.db.repo.update({
+            where: {
+                id: repo.id,
+            },
+            data: {
+                repoIndexingStatus: RepoIndexingStatus.INDEXING,
+            }
+        });
 
         let indexDuration_s: number | undefined;
         let fetchDuration_s: number | undefined;
