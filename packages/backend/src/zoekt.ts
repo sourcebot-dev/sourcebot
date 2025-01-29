@@ -3,6 +3,7 @@ import { AppContext, LocalRepository, Settings } from "./types.js";
 import { Repo } from "@sourcebot/db";
 import { getRepoPath } from "./utils.js";
 import { DEFAULT_SETTINGS } from "./constants.js";
+import { getShardPrefix } from "./utils.js";
 
 const ALWAYS_EXCLUDED_DIRS = ['.git', '.hg', '.svn'];
 
@@ -11,7 +12,7 @@ export const indexGitRepository = async (repo: Repo, ctx: AppContext) => {
         'HEAD'
     ];
     
-    const shardPrefix = `${repo.orgId}_${repo.id}`;
+    const shardPrefix = getShardPrefix(repo.orgId, repo.id);
     const repoPath = getRepoPath(repo, ctx);
     const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -file_limit ${DEFAULT_SETTINGS.maxFileSize} -branches ${revisions.join(',')} -tenant_id ${repo.orgId} -shard_prefix ${shardPrefix} ${repoPath}`;
 

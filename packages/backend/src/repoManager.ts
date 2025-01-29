@@ -5,9 +5,9 @@ import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus } 
 import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings } from "./types.js";
 import { captureEvent } from "./posthog.js";
-import { getRepoPath, getTokenFromConfig, measure } from "./utils.js";
+import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
 import { cloneRepository, fetchRepository } from "./git.js";
-import { existsSync, rmSync } from 'fs';
+import { existsSync, rmSync, readdirSync } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import os from 'os';
 
@@ -47,6 +47,7 @@ export class RepoManager implements IRepoManager {
     public async blockingPollLoop() {
         while(true) {
             this.fetchAndScheduleRepoIndexing();
+            this.garbageCollectRepo();
 
             await new Promise(resolve => setTimeout(resolve, this.settings.reindexRepoPollingInternvalMs));
         }
@@ -108,12 +109,30 @@ export class RepoManager implements IRepoManager {
         for (const repo of reposWithNoConnections) {
             this.logger.info(`Garbage collecting repo with no connections: ${repo.id}`);
 
+            // delete cloned repo
             const repoPath = getRepoPath(repo, this.ctx);
             if(existsSync(repoPath)) {
                 this.logger.info(`Deleting repo directory ${repoPath}`);
                 rmSync(repoPath, { recursive: true, force: true });
             }
+
+            // delete shards
+            const shardPrefix = getShardPrefix(repo.orgId, repo.id);
+            const files = readdirSync(this.ctx.indexPath).filter(file => file.startsWith(shardPrefix));
+            for (const file of files) {
+                const filePath = `${this.ctx.indexPath}/${file}`;
+                this.logger.info(`Deleting shard file ${filePath}`);
+                rmSync(filePath);
+            }
         }
+
+        await this.db.repo.deleteMany({
+            where: {
+                id: {
+                    in: reposWithNoConnections.map(repo => repo.id)
+                }
+            }
+        });
     }
 
     // TODO: do this better? ex: try using the tokens from all the connections 
