@@ -1,0 +1,27 @@
+
+name: Deploy to Fly (staging)
+
+on:
+  workflow_run:
+    workflows: ["Publish to ghcr (staging)"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    name: Deploy staging app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
+      - name: Use flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to fly.io
+        run: flyctl deploy --local-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        working-directory: ./staging

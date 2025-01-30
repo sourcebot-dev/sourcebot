@@ -150,7 +150,7 @@ export const createConnection = async (config: string): Promise<{ id: number } |
     let parsedConfig;
     try {
         parsedConfig = JSON.parse(config);
-    } catch (e) {
+    } catch {
         return {
             statusCode: StatusCodes.BAD_REQUEST,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
