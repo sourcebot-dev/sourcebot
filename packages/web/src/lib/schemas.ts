@@ -153,3 +153,7 @@ export const listRepositoriesResponseSchema = z.object({
         Stats: repoStatsSchema,
     })
 });
+
+export const getVersionResponseSchema = z.object({
+    version: z.string(),
+});

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.1] - 2025-01-28
+
+### Added
+
+- Added `maxTrigramCount` to the config to control the maximum allowable of trigrams per document. 
+
+### Fixed
+
+- Fixed issue with version upgrade toast not appearing without a hard refresh. ([#179](https://github.com/sourcebot-dev/sourcebot/pull/179))
+
+## [2.8.0] - 2025-01-17
+
+### Added
+
+- Added a syntax reference guide. The guide can be opened using the hotkey "Cmd + /" ("Ctrl + /" on Windows). ([#169](https://github.com/sourcebot-dev/sourcebot/pull/169))
+
+## [2.7.1] - 2025-01-15
+
 ### Fixed
 
 - Fixed issue where we crash on startup if the install / upgrade PostHog event fails to send. ([#159](https://github.com/sourcebot-dev/sourcebot/pull/159))

@@ -22,6 +22,10 @@ export interface Settings {
    */
   maxFileSize?: number;
   /**
+   * The maximum amount of trigrams per document. Documents that exceed this maximum will not be indexed. Defaults to 20000
+   */
+  maxTrigramCount?: number;
+  /**
    * Automatically delete stale repositories from the index. Defaults to true.
    */
   autoDeleteStaleRepos?: boolean;

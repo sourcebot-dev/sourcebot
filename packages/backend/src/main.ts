@@ -210,6 +210,7 @@ const syncConfig = async (configPath: string, db: Database, signal: AbortSignal,
     // Update the settings
     const updatedSettings: Settings = {
         maxFileSize: config.settings?.maxFileSize ?? DEFAULT_SETTINGS.maxFileSize,
+        maxTrigramCount: config.settings?.maxTrigramCount ?? DEFAULT_SETTINGS.maxTrigramCount,
         autoDeleteStaleRepos: config.settings?.autoDeleteStaleRepos ?? DEFAULT_SETTINGS.autoDeleteStaleRepos,
         reindexInterval: config.settings?.reindexInterval ?? DEFAULT_SETTINGS.reindexInterval,
         resyncInterval: config.settings?.resyncInterval ?? DEFAULT_SETTINGS.resyncInterval,

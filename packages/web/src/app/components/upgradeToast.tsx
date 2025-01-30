@@ -2,9 +2,10 @@
 
 import { useToast } from "@/components/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import { NEXT_PUBLIC_SOURCEBOT_VERSION } from "@/lib/environment.client";
 import { useEffect } from "react";
 import { useLocalStorage } from "usehooks-ts";
+import { getVersion } from "../api/(client)/client";
+import { useQuery } from "@tanstack/react-query";
 
 const GITHUB_TAGS_URL = "https://api.github.com/repos/sourcebot-dev/sourcebot/tags";
 const SEMVER_REGEX = /^v(\d+)\.(\d+)\.(\d+)$/;
@@ -23,8 +24,18 @@ export const UpgradeToast = () => {
         new Date(0).toUTCString()
     );
 
+    const { data: versionString } = useQuery({
+        queryKey: ["version"],
+        queryFn: () => getVersion(),
+        select: (data) => data.version,
+    })
+
     useEffect(() => {
-        const currentVersion = getVersionFromString(NEXT_PUBLIC_SOURCEBOT_VERSION);
+        if (!versionString) {
+            return;
+        }
+
+        const currentVersion = getVersionFromString(versionString);
         if (!currentVersion) {
             return;
         }
@@ -71,7 +82,7 @@ export const UpgradeToast = () => {
 
                 setUpgradeToastLastShownDate(new Date().toUTCString());
             });
-    }, [setUpgradeToastLastShownDate, toast, upgradeToastLastShownDate]);
+    }, [setUpgradeToastLastShownDate, toast, upgradeToastLastShownDate, versionString]);
 
     return null;
 }
