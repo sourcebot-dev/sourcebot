@@ -38,12 +38,16 @@ COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 RUN yarn config set registry https://registry.npmjs.org/
 RUN yarn config set network-timeout 1200000
 RUN yarn workspace @sourcebot/web install --frozen-lockfile
-ENV SOURCEBOT_ENCRYPTION_KEY=""
+
 ENV NEXT_TELEMETRY_DISABLED=1
 # @see: https://phase.dev/blog/nextjs-public-runtime-variables/
 ARG NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED
 ARG NEXT_PUBLIC_SOURCEBOT_VERSION=BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION
 ENV NEXT_PUBLIC_POSTHOG_PAPIK=BAKED_NEXT_PUBLIC_POSTHOG_PAPIK
+
+# We declare SOURCEBOT_ENCRYPTION_KEY here since it's read during the build stage, since it's read in a server side component
+ARG SOURCEBOT_ENCRYPTION_KEY
+ENV SOURCEBOT_ENCRYPTION_KEY=$SOURCEBOT_ENCRYPTION_KEY
 
 # @nocheckin: This was interfering with the the `matcher` regex in middleware.ts,
 # causing regular expressions parsing errors when making a request. It's unclear
@@ -84,6 +88,9 @@ ENV DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
 ARG SOURCEBOT_VERSION=unknown
 ENV SOURCEBOT_VERSION=$SOURCEBOT_VERSION
 RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
+
+# Redeclare SOURCEBOT_ENCRYPTION_KEY so that we have it in the runner
+ARG SOURCEBOT_ENCRYPTION_KEY
 
 ENV SOURCEBOT_TENANT_MODE=single
 
