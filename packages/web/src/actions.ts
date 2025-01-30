@@ -2,7 +2,7 @@
 
 import Ajv from "ajv";
 import { auth, getCurrentUserOrg } from "./auth";
-import { notAuthenticated, notFound, ServiceError, unexpectedError, serviceErrorResponse } from "@/lib/serviceError";
+import { notAuthenticated, notFound, ServiceError, unexpectedError } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";

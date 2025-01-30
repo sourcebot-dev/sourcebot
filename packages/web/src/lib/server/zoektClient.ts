@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { ZOEKT_WEBSERVER_URL } from "../environment"
 
 

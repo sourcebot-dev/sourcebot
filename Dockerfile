@@ -38,6 +38,7 @@ COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 RUN yarn config set registry https://registry.npmjs.org/
 RUN yarn config set network-timeout 1200000
 RUN yarn workspace @sourcebot/web install --frozen-lockfile
+ENV SOURCEBOT_ENCRYPTION_KEY=""
 ENV NEXT_TELEMETRY_DISABLED=1
 # @see: https://phase.dev/blog/nextjs-public-runtime-variables/
 ARG NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED
@@ -149,7 +150,6 @@ RUN chmod +x ./entrypoint.sh
 
 COPY default-config.json .
 
-ENV SOURCEBOT_ENCRYPTION_KEY=""
 
 EXPOSE 3000
 ENV PORT=3000
