@@ -10,7 +10,7 @@ import { getCurrentUserOrg } from "@/auth";
 export const POST = async (request: NextRequest) => {
     const orgId = await getCurrentUserOrg();
     if (isServiceError(orgId)) {
-        return orgId;
+        return serviceErrorResponse(orgId);
     }
 
     const body = await request.json();

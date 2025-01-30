@@ -198,7 +198,6 @@ else
 fi
 
 # Run a Database migration
-export DATABASE_URL="postgresql://postgres@localhost:5432/$DB_NAME"
 echo -e "\e[34m[Info] Running database migration...\e[0m"
 yarn workspace @sourcebot/db prisma:migrate:prod
 
