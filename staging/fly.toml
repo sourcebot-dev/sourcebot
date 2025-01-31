@@ -7,7 +7,7 @@ app = 'sourcebot-staging'
 primary_region = 'sea'
 
 [build]
-  image = 'sourcebot:staging'
+  image = 'ghcr.io/sourcebot-dev/sourcebot:staging'
 
 [[mounts]]
   source = 'sourcebot_staging_data'
