@@ -16,12 +16,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'true'
+          ref: v3
 
       - name: Use flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy to fly.io
-        run: flyctl deploy --local-only
+        run: |
+          cd $GITHUB_WORKSPACE/staging
+          flyctl deploy --local-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        working-directory: ./staging
