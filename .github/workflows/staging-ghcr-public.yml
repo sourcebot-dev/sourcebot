@@ -1,5 +1,5 @@
 
-name: staging-publish-container
+name: Publish to ghcr (staging)
 
 on:
   push:

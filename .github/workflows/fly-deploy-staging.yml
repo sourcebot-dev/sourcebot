@@ -1,9 +1,9 @@
 
-name: staging-deploy-container
+name: Fly Deploy (staging)
 
 on:
   workflow_run:
-    workflows: [staging-publish-container]
+    workflows: ["Publish to ghcr (staging)"]
     types:
       - completed
 
