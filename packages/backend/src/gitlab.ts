@@ -1,14 +1,14 @@
 import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
 import micromatch from "micromatch";
 import { createLogger } from "./logger.js";
-import { GitLabConfig } from "@sourcebot/schemas/v2/index.type"
-import { AppContext } from "./types.js";
+import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type"
 import { getTokenFromConfig, measure } from "./utils.js";
+import { PrismaClient } from "@sourcebot/db";
 
 const logger = createLogger("GitLab");
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
-export const getGitLabReposFromConfig = async (config: GitLabConfig, orgId: number, ctx: AppContext) => {
+export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {
     // TODO: pass in DB here to fetch secret properly
     const token = config.token ? await getTokenFromConfig(config.token, orgId) : undefined;
     const api = new Gitlab({

@@ -5,8 +5,7 @@ import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { createLogger } from "./logger.js";
 import os from 'os';
 import { Redis } from 'ioredis';
-import { marshalBool } from "./utils.js";
-import { getGitHubReposFromConfig } from "./github.js";
+import { RepoData, compileGithubConfig } from "./repoCompileUtils.js";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -79,52 +78,13 @@ export class ConnectionManager implements IConnectionManager {
         // @note: We aren't actually doing anything with this atm.
         const abortController = new AbortController();
 
-        type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
         const repoData: RepoData[] = await (async () => {
             switch (config.type) {
                 case 'github': {
-                    const gitHubRepos = await getGitHubReposFromConfig(config, orgId, this.db, abortController.signal);
-                    const hostUrl = config.url ?? 'https://github.com';
-                    const hostname = config.url ? new URL(config.url).hostname : 'github.com';
-
-                    return gitHubRepos.map((repo) => {
-                        const repoName = `${hostname}/${repo.full_name}`;
-                        const cloneUrl = new URL(repo.clone_url!);
-    
-                        const record: RepoData = {
-                            external_id: repo.id.toString(),
-                            external_codeHostType: 'github',
-                            external_codeHostUrl: hostUrl,
-                            cloneUrl: cloneUrl.toString(),
-                            name: repoName,
-                            isFork: repo.fork,
-                            isArchived: !!repo.archived,
-                            org: {
-                                connect: {
-                                    id: orgId,
-                                },
-                            },
-                            connections: {
-                                create: {
-                                    connectionId: job.data.connectionId,
-                                }
-                            },
-                            metadata: {
-                                'zoekt.web-url-type': 'github',
-                                'zoekt.web-url': repo.html_url,
-                                'zoekt.name': repoName,
-                                'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
-                                'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
-                                'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
-                                'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
-                                'zoekt.archived': marshalBool(repo.archived),
-                                'zoekt.fork': marshalBool(repo.fork),
-                                'zoekt.public': marshalBool(repo.private === false)
-                            },
-                        };
-    
-                        return record;
-                    })
+                    return await compileGithubConfig(config, job.data.connectionId, orgId, this.db, abortController);
+                }
+                default: {
+                    return [];
                 }
             }
         })();
