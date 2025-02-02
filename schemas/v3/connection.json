@@ -4,6 +4,21 @@
     "oneOf": [
         {
             "$ref": "./github.json"
+        },
+        {
+            "$ref": "./gitlab.json"
+        },
+        {
+            "$ref": "./gitea.json"
+        },
+        {
+            "$ref": "./gerrit.json"
+        },
+        {
+            "$ref": "./git.json"
+        },
+        {
+            "$ref": "./local.json"
         }
     ]
 }

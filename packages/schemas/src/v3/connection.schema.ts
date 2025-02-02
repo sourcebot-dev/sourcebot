@@ -214,6 +214,371 @@ const schema = {
         "type"
       ],
       "additionalProperties": false
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "title": "GitlabConnectionConfig",
+      "properties": {
+        "type": {
+          "const": "gitlab",
+          "description": "GitLab Configuration"
+        },
+        "token": {
+          "$ref": "#/oneOf/0/properties/token",
+          "description": "A Personal Access Token (PAT).",
+          "examples": [
+            "secret-token",
+            {
+              "env": "ENV_VAR_CONTAINING_TOKEN"
+            }
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "url",
+          "default": "https://gitlab.com",
+          "description": "The URL of the GitLab host. Defaults to https://gitlab.com",
+          "examples": [
+            "https://gitlab.com",
+            "https://gitlab.example.com"
+          ],
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+        },
+        "all": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sync all projects visible to the provided `token` (if any) in the GitLab instance. This option is ignored if `url` is either unset or set to https://gitlab.com ."
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of users to sync with. All projects owned by the user and visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property."
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "my-group"
+            ],
+            [
+              "my-group/sub-group-a",
+              "my-group/sub-group-b"
+            ]
+          ],
+          "description": "List of groups to sync with. All projects in the group (and recursive subgroups) visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`)."
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "my-group/my-project"
+            ],
+            [
+              "my-group/my-sub-group/my-project"
+            ]
+          ],
+          "description": "List of individual projects to sync with. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/"
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "List of project topics to include when syncing. Only projects that match at least one of the provided `topics` will be synced. If not specified, all projects will be synced, unless explicitly defined in the `exclude` property. Glob patterns are supported.",
+          "examples": [
+            [
+              "docs",
+              "core"
+            ]
+          ]
+        },
+        "exclude": {
+          "type": "object",
+          "properties": {
+            "forks": {
+              "type": "boolean",
+              "default": false,
+              "description": "Exclude forked projects from syncing."
+            },
+            "archived": {
+              "type": "boolean",
+              "default": false,
+              "description": "Exclude archived projects from syncing."
+            },
+            "projects": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [],
+              "examples": [
+                [
+                  "my-group/my-project"
+                ]
+              ],
+              "description": "List of projects to exclude from syncing. Glob patterns are supported. The project's namespace must be specified, see: https://docs.gitlab.com/ee/user/namespace/"
+            },
+            "topics": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of project topics to exclude when syncing. Projects that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.",
+              "examples": [
+                [
+                  "tests",
+                  "ci"
+                ]
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "revisions": {
+          "$ref": "#/oneOf/0/properties/revisions"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "title": "GiteaConnectionConfig",
+      "properties": {
+        "type": {
+          "const": "gitea",
+          "description": "Gitea Configuration"
+        },
+        "token": {
+          "$ref": "#/oneOf/0/properties/token",
+          "description": "A Personal Access Token (PAT).",
+          "examples": [
+            "secret-token",
+            {
+              "env": "ENV_VAR_CONTAINING_TOKEN"
+            }
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "url",
+          "default": "https://gitea.com",
+          "description": "The URL of the Gitea host. Defaults to https://gitea.com",
+          "examples": [
+            "https://gitea.com",
+            "https://gitea.example.com"
+          ],
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+        },
+        "orgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "my-org-name"
+            ]
+          ],
+          "description": "List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:organization scope."
+        },
+        "repos": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+          },
+          "description": "List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "username-1",
+              "username-2"
+            ]
+          ],
+          "description": "List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:user scope."
+        },
+        "exclude": {
+          "type": "object",
+          "properties": {
+            "forks": {
+              "type": "boolean",
+              "default": false,
+              "description": "Exclude forked repositories from syncing."
+            },
+            "archived": {
+              "type": "boolean",
+              "default": false,
+              "description": "Exclude archived repositories from syncing."
+            },
+            "repos": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [],
+              "description": "List of individual repositories to exclude from syncing. Glob patterns are supported."
+            }
+          },
+          "additionalProperties": false
+        },
+        "revisions": {
+          "$ref": "#/oneOf/0/properties/revisions"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "title": "GerritConnectionConfig",
+      "properties": {
+        "type": {
+          "const": "gerrit",
+          "description": "Gerrit Configuration"
+        },
+        "url": {
+          "type": "string",
+          "format": "url",
+          "description": "The URL of the Gerrit host.",
+          "examples": [
+            "https://gerrit.example.com"
+          ],
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of specific projects to sync. If not specified, all projects will be synced. Glob patterns are supported",
+          "examples": [
+            [
+              "project1/repo1",
+              "project2/**"
+            ]
+          ]
+        },
+        "exclude": {
+          "type": "object",
+          "properties": {
+            "projects": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "examples": [
+                [
+                  "project1/repo1",
+                  "project2/**"
+                ]
+              ],
+              "description": "List of specific projects to exclude from syncing."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "title": "GitConnectionConfig",
+      "properties": {
+        "type": {
+          "const": "git",
+          "description": "Git Configuration"
+        },
+        "url": {
+          "type": "string",
+          "format": "url",
+          "description": "The URL to the git repository."
+        },
+        "revisions": {
+          "$ref": "#/oneOf/0/properties/revisions"
+        }
+      },
+      "required": [
+        "type",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "title": "GerritConnectionConfig",
+      "properties": {
+        "type": {
+          "const": "local",
+          "description": "Local Configuration"
+        },
+        "path": {
+          "type": "string",
+          "description": "Path to the local directory to sync with. Relative paths are relative to the configuration file's directory.",
+          "pattern": ".+"
+        },
+        "watch": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enables a file watcher that will automatically re-sync when changes are made within `path` (recursively). Defaults to true."
+        },
+        "exclude": {
+          "type": "object",
+          "properties": {
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": ".+"
+              },
+              "description": "List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always exluded.",
+              "default": [],
+              "examples": [
+                [
+                  "node_modules",
+                  "bin",
+                  "dist",
+                  "build",
+                  "out"
+                ]
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "path"
+      ],
+      "additionalProperties": false
     }
   ]
 } as const;
