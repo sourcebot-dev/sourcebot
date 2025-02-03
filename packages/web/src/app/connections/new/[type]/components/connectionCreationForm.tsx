@@ -2,25 +2,22 @@
 'use client';
 
 import { createConnection } from "@/actions";
+import { ConnectionIcon } from "@/app/connections/components/connectionIcon";
+import { createZodConnectionConfigValidator } from "@/app/connections/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { isServiceError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Ajv, { Schema } from "ajv";
+import { Schema } from "ajv";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ConfigEditor, QuickActionFn } from "../../../../components/configEditor";
-import { ConnectionIcon } from "@/app/connections/components/connectionIcon";
+import { ConfigEditor, QuickActionFn } from "../../../components/configEditor";
 
-const ajv = new Ajv({
-    validateFormats: false,
-});
-
-interface CreationFormProps<T> {
+interface ConnectionCreationForm<T> {
     type: 'github' | 'gitlab';
     defaultValues: {
         name: string;
@@ -34,45 +31,21 @@ interface CreationFormProps<T> {
     }[],
 }
 
-export default function CreationForm<T>({
+export default function ConnectionCreationForm<T>({
     type,
     defaultValues,
     title,
     schema,
     quickActions,
-}: CreationFormProps<T>) {
+}: ConnectionCreationForm<T>) {
 
     const { toast } = useToast();
     const router = useRouter();
 
     const formSchema = useMemo(() => {
-        const validate = ajv.compile(schema);
-
         return z.object({
             name: z.string().min(1),
-            config: z
-                .string()
-                .superRefine((data, ctx) => {
-                    const addIssue = (message: string) => {
-                        return ctx.addIssue({
-                            code: "custom",
-                            message: `Schema validation error: ${message}`
-                        });
-                    }
-
-                    let parsed;
-                    try {
-                        parsed = JSON.parse(data);
-                    } catch {
-                        addIssue("Invalid JSON");
-                        return;
-                    }
-
-                    const valid = validate(parsed);
-                    if (!valid) {
-                        addIssue(ajv.errorsText(validate.errors));
-                    }
-                }),
+            config: createZodConnectionConfigValidator(schema),
         });
     }, [schema]);
 
@@ -90,9 +63,10 @@ export default function CreationForm<T>({
                     });
                 } else {
                     toast({
-                        description: `✅ Connection created successfully!`
+                        description: `✅ Connection created successfully.`
                     });
                     router.push('/connections');
+                    router.refresh();
                 }
             });
     }, [router, toast, type]);
@@ -136,7 +110,8 @@ export default function CreationForm<T>({
                                 return (
                                     <FormItem>
                                         <FormLabel>Configuration</FormLabel>
-                                        <FormDescription>Code hosts are configured via a....</FormDescription>
+                                        {/* @todo : refactor this description into a shared file */}
+                                        <FormDescription>Code hosts are configured via a....TODO</FormDescription>
                                         <FormControl>
                                             <ConfigEditor<T>
                                                 value={value}

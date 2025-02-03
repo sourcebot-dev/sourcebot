@@ -20,15 +20,16 @@ import { Separator } from "@/components/ui/separator";
 import { Schema } from "ajv";
 
 export type QuickActionFn<T> = (previous: T) => T;
+export type QuickAction<T> = {
+    name: string;
+    fn: QuickActionFn<T>;
+};
 
 interface ConfigEditorProps<T> {
     value: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onChange: (...event: any[]) => void;
-    actions: {
-        name: string;
-        fn: QuickActionFn<T>;
-    }[],
+    actions: QuickAction<T>[],
     schema: Schema;
 }
 

@@ -13,7 +13,7 @@ export const NewConnectionCard = ({
     className,
 }: NewConnectionCardProps) => {
     return (
-        <div className={cn("flex flex-col border rounded-lg p-4", className)}>
+        <div className={cn("flex flex-col border rounded-lg p-4 h-fit", className)}>
             <BlocksIcon className="mx-auto w-7 h-7" />
             <h2 className="mx-auto mt-4 font-medium text-lg">Connect to a Code Host</h2>
             <p className="mx-auto text-center text-sm text-muted-foreground font-light">Create a connection to import repos from a code host.</p>

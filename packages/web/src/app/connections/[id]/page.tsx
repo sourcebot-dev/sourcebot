@@ -1,5 +1,5 @@
+import { NotFound } from "@/app/components/notFound";
 import { getCurrentUserOrg } from "@/auth";
-import { Header } from "../components/header"
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -7,13 +7,30 @@ import {
     BreadcrumbList,
     BreadcrumbPage,
     BreadcrumbSeparator,
-  } from "@/components/ui/breadcrumb"
-import { isServiceError } from "@/lib/utils";
+} from "@/components/ui/breadcrumb";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { getConnection } from "@/data/connection";
-import { NotFound } from "@/app/components/notFound";
+import { isServiceError } from "@/lib/utils";
 import { ConnectionIcon } from "../components/connectionIcon";
+import { Header } from "../components/header";
+import { DisplayNameSetting } from "./components/displayNameSetting";
+import { ConfigSetting } from "./components/configSetting";
+import { DeleteConnectionSetting } from "./components/deleteConnectionSetting";
+import { TabSwitcher } from "@/components/ui/tab-switcher";
 
-export default async function ConnectionManagementPage({ params }: { params: { id: string } }) {
+interface ConnectionManagementPageProps {
+    params: {
+        id: string;
+    },
+    searchParams: {
+        tab?: string;
+    }
+}
+
+export default async function ConnectionManagementPage({
+    params,
+    searchParams,
+}: ConnectionManagementPageProps) {
     const orgId = await getCurrentUserOrg();
     if (isServiceError(orgId)) {
         return (
@@ -32,7 +49,7 @@ export default async function ConnectionManagementPage({ params }: { params: { i
             />
         )
     }
-    
+
     const connection = await getConnection(Number(params.id), orgId);
     if (!connection) {
         return (
@@ -43,9 +60,17 @@ export default async function ConnectionManagementPage({ params }: { params: { i
         )
     }
 
+    const currentTab = searchParams.tab || "overview";
+
     return (
-        <div>
-            <Header>
+        <Tabs
+            value={currentTab}
+            className="w-full"
+        >
+            <Header
+                className="mb-6"
+                withTopMargin={false}
+            >
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
@@ -63,7 +88,36 @@ export default async function ConnectionManagementPage({ params }: { params: { i
                     />
                     <h1 className="text-lg font-semibold">{connection.name}</h1>
                 </div>
+                <TabSwitcher
+                    className="h-auto p-0 bg-transparent border-b border-border mt-6"
+                    tabs={[
+                        { label: "Overview", value: "overview" },
+                        { label: "Settings", value: "settings" },
+                    ]}
+                    currentTab={currentTab}
+                />
             </Header>
-        </div>
+            <TabsContent value="overview">
+                <p>Todo</p>
+            </TabsContent>
+            <TabsContent
+                value="settings"
+                className="flex flex-col gap-6"
+            >
+                <DisplayNameSetting
+                    connectionId={connection.id}
+                    name={connection.name}
+                />
+                <ConfigSetting
+                    connectionId={connection.id}
+                    type={connection.connectionType}
+                    config={JSON.stringify(connection.config, null, 2)}
+                />
+                <DeleteConnectionSetting
+                    connectionId={connection.id}
+                />
+            </TabsContent>
+        </Tabs>
+
     )
 }
