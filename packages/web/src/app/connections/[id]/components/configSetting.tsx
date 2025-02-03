@@ -87,6 +87,7 @@ function ConfigSettingInternal<T>({
                     toast({
                         description: `✅ Connection config updated successfully.`
                     });
+                    router.push(`?tab=overview`);
                     router.refresh();
                 }
             })

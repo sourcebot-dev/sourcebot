@@ -29,7 +29,6 @@ export const ConnectionList = ({
 
     return (
         <div className={cn("flex flex-col gap-4", className)}>
-
             {connections.length > 0 ? connections
                 .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
                 .map((connection) => (

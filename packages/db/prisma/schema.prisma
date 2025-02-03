@@ -27,17 +27,17 @@ enum ConnectionSyncStatus {
 }
 
 model Repo {
-  id          Int                @id @default(autoincrement())
-  name        String
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  indexedAt   DateTime?
-  isFork      Boolean
-  isArchived  Boolean
-  metadata    Json
-  cloneUrl    String
-  connections RepoToConnection[]
-
+  id                 Int                @id @default(autoincrement())
+  name               String
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  indexedAt          DateTime?
+  isFork             Boolean
+  isArchived         Boolean
+  metadata           Json
+  cloneUrl           String
+  connections        RepoToConnection[]
+  imageUrl           String?
   repoIndexingStatus RepoIndexingStatus @default(NEW)
 
   // The id of the repo in the external service
@@ -116,12 +116,12 @@ model UserToOrg {
 }
 
 model Secret {
-  orgId               Int
-  key                 String
-  encryptedValue      String
-  iv                  String
+  orgId          Int
+  key            String
+  encryptedValue String
+  iv             String
 
-  createdAt           DateTime @default(now())
+  createdAt DateTime @default(now())
 
   org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
 

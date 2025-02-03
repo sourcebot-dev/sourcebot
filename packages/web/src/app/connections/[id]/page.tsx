@@ -9,7 +9,7 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { getConnection } from "@/data/connection";
+import { getConnection, getLinkedRepos } from "@/data/connection";
 import { isServiceError } from "@/lib/utils";
 import { ConnectionIcon } from "../components/connectionIcon";
 import { Header } from "../components/header";
@@ -17,6 +17,7 @@ import { DisplayNameSetting } from "./components/displayNameSetting";
 import { ConfigSetting } from "./components/configSetting";
 import { DeleteConnectionSetting } from "./components/deleteConnectionSetting";
 import { TabSwitcher } from "@/components/ui/tab-switcher";
+import Image from "next/image";
 
 interface ConnectionManagementPageProps {
     params: {
@@ -60,6 +61,8 @@ export default async function ConnectionManagementPage({
         )
     }
 
+    const linkedRepos = await getLinkedRepos(connectionId, orgId);
+
     const currentTab = searchParams.tab || "overview";
 
     return (
@@ -98,7 +101,19 @@ export default async function ConnectionManagementPage({
                 />
             </Header>
             <TabsContent value="overview">
-                <p>Todo</p>
+                <h1 className="font-semibold text-lg">Linked Repositories</h1>
+                {linkedRepos.map(({ repo }, index) => (
+                    <div key={index}>
+                        <Image
+                            src={repo.imageUrl ?? ""}
+                            alt={repo.name}
+                            width={40}
+                            height={40}
+                            className="rounded-full"
+                        />
+                        <p>{repo.name} | {repo.repoIndexingStatus}</p>
+                    </div>
+                ))}
             </TabsContent>
             <TabsContent
                 value="settings"

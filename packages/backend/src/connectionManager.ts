@@ -96,6 +96,7 @@ export class ConnectionManager implements IConnectionManager {
                             external_codeHostType: 'github',
                             external_codeHostUrl: hostUrl,
                             cloneUrl: cloneUrl.toString(),
+                            imageUrl: repo.owner.avatar_url,
                             name: repoName,
                             isFork: repo.fork,
                             isArchived: !!repo.archived,
