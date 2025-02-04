@@ -93,7 +93,15 @@ export class ConnectionManager implements IConnectionManager {
                     return [];
                 }
             }
-        })();
+        )();
+
+        // Filter out any duplicates by external_id and external_codeHostUrl.
+        repoData.filter((repo, index, self) => {
+            return index === self.findIndex(r =>
+                r.external_id === repo.external_id &&
+                r.external_codeHostUrl === repo.external_codeHostUrl
+            );
+        })
 
         // Filter out any duplicates by external_id and external_codeHostUrl.
         repoData.filter((repo, index, self) => {

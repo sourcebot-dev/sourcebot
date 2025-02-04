@@ -104,7 +104,7 @@ export interface GitlabConnectionConfig {
    */
   type: "gitlab";
   /**
-   * A Personal Access Token (PAT).
+   * An authentication token.
    */
   token?:
     | string

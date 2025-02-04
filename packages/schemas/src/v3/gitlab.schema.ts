@@ -9,7 +9,7 @@ const schema = {
       "description": "GitLab Configuration"
     },
     "token": {
-      "description": "A Personal Access Token (PAT).",
+      "description": "An authentication token.",
       "examples": [
         "secret-token",
         {

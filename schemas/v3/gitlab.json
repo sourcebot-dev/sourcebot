@@ -9,7 +9,7 @@
         },
         "token": {
             "$ref": "./shared.json#/definitions/Token",
-            "description": "A Personal Access Token (PAT).",
+            "description": "An authentication token.",
             "examples": [
                 "secret-token",
                 {
@@ -46,7 +46,9 @@
                 "type": "string"
             },
             "examples": [
-                ["my-group"],
+                [
+                    "my-group"
+                ],
                 [
                     "my-group/sub-group-a",
                     "my-group/sub-group-b"
@@ -60,8 +62,12 @@
                 "type": "string"
             },
             "examples": [
-                ["my-group/my-project"],
-                ["my-group/my-sub-group/my-project"]
+                [
+                    "my-group/my-project"
+                ],
+                [
+                    "my-group/my-sub-group/my-project"
+                ]
             ],
             "description": "List of individual projects to sync with. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/"
         },
@@ -73,7 +79,10 @@
             "minItems": 1,
             "description": "List of project topics to include when syncing. Only projects that match at least one of the provided `topics` will be synced. If not specified, all projects will be synced, unless explicitly defined in the `exclude` property. Glob patterns are supported.",
             "examples": [
-                ["docs", "core"]
+                [
+                    "docs",
+                    "core"
+                ]
             ]
         },
         "exclude": {
@@ -109,7 +118,10 @@
                     },
                     "description": "List of project topics to exclude when syncing. Projects that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.",
                     "examples": [
-                        ["tests", "ci"]
+                        [
+                            "tests",
+                            "ci"
+                        ]
                     ]
                 }
             },

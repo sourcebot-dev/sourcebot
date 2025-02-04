@@ -226,7 +226,7 @@ const schema = {
         },
         "token": {
           "$ref": "#/oneOf/0/properties/token",
-          "description": "A Personal Access Token (PAT).",
+          "description": "An authentication token.",
           "examples": [
             "secret-token",
             {
