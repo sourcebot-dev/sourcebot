@@ -31,8 +31,10 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
     return `${path}?${queryString}`;
 }
 
+export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit";
+
 type CodeHostInfo = {
-    type: "github" | "gitlab" | "gitea" | "gerrit";
+    type: CodeHostType;
     displayName: string;
     costHostName: string;
     repoLink: string;
@@ -53,39 +55,74 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
     const url = new URL(repo.URL);
     const displayName = url.pathname.slice(1);
     switch (webUrlType) {
-        case 'github':
+        case 'github': {
+            const { src, className } = getCodeHostIcon('github')!;
             return {
                 type: "github",
                 displayName: displayName,
                 costHostName: "GitHub",
                 repoLink: repo.URL,
-                icon: githubLogo,
-                iconClassName: "dark:invert",
+                icon: src,
+                iconClassName: className,
             }
-        case 'gitlab':
+        }
+        case 'gitlab': {
+            const { src, className } = getCodeHostIcon('gitlab')!;
             return {
                 type: "gitlab",
                 displayName: displayName,
                 costHostName: "GitLab",
                 repoLink: repo.URL,
-                icon: gitlabLogo,
+                icon: src,
+                iconClassName: className,
             }
-        case 'gitea':
+        }
+        case 'gitea': {
+            const { src, className } = getCodeHostIcon('gitea')!;
             return {
                 type: "gitea",
                 displayName: displayName,
                 costHostName: "Gitea",
                 repoLink: repo.URL,
-                icon: giteaLogo,
+                icon: src,
+                iconClassName: className,
             }
-        case 'gitiles':
+        }
+        case 'gitiles': {
+            const { src, className } = getCodeHostIcon('gerrit')!;
             return {
                 type: "gerrit",
                 displayName: displayName,
                 costHostName: "Gerrit",
                 repoLink: repo.URL,
-                icon: gerritLogo,
+                icon: src,
+                iconClassName: className,
             }
+        }
+    }
+}
+
+export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, className?: string } | null => {
+    switch (codeHostType) {
+        case "github":
+            return {
+                src: githubLogo,
+                className: "dark:invert",
+            };
+        case "gitlab":
+            return {
+                src: gitlabLogo,
+            };
+        case "gitea":
+            return {
+                src: giteaLogo,
+            }
+        case "gerrit":
+            return {
+                src: gerritLogo,
+            }
+        default:
+            return null;
     }
 }
 
@@ -121,4 +158,33 @@ export const base64Decode = (base64: string): string => {
 // @see: https://stackoverflow.com/a/65959350/23221295
 export const isDefined = <T>(arg: T | null | undefined): arg is T extends null | undefined ? never : T => {
     return arg !== null && arg !== undefined;
+}
+
+export const getDisplayTime = (date: Date) => {
+    const now = new Date();
+    const minutes = (now.getTime() - date.getTime()) / (1000 * 60);
+    const hours = minutes / 60;
+    const days = hours / 24;
+    const months = days / 30;
+
+    const formatTime = (value: number, unit: 'minute' | 'hour' | 'day' | 'month') => {
+        const roundedValue = Math.floor(value);
+        if (roundedValue < 2) {
+            return `${roundedValue} ${unit} ago`;
+        } else {
+            return `${roundedValue} ${unit}s ago`;
+        }
+    }
+
+    if (minutes < 1) {
+        return 'just now';
+    } else if (minutes < 60) {
+        return formatTime(minutes, 'minute');
+    } else if (hours < 24) {
+        return formatTime(hours, 'hour');
+    } else if (days < 30) {
+        return formatTime(days, 'day');
+    } else {
+        return formatTime(months, 'month');
+    }
 }

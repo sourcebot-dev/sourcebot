@@ -22,6 +22,15 @@ const nextConfig = {
     // This is required to support PostHog trailing slash API requests
     skipTrailingSlashRedirect: true,
 
+    images: {
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'avatars.githubusercontent.com',
+            }
+        ]
+    }
+
     // @nocheckin: This was interfering with the the `matcher` regex in middleware.ts,
     // causing regular expressions parsing errors when making a request. It's unclear
     // why exactly this was happening, but it's likely due to a bad replacement happening
