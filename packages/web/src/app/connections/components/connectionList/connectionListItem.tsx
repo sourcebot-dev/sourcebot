@@ -1,21 +1,31 @@
 import { Button } from "@/components/ui/button";
-import { cn, getDisplayTime } from "@/lib/utils";
-import placeholderLogo from "@/public/placeholder_avatar.png";
-import { Cross2Icon } from "@radix-ui/react-icons";
-import { CircleCheckIcon } from "lucide-react";
-import Image from "next/image";
+import { getDisplayTime } from "@/lib/utils";
 import Link from "next/link";
 import { useMemo } from "react";
-import { FiLoader } from "react-icons/fi";
 import { ConnectionIcon } from "../connectionIcon";
+import { ConnectionSyncStatus } from "@sourcebot/db";
+import { StatusIcon } from "../statusIcon";
 
-export type SyncStatus = 'waiting' | 'syncing' | 'synced' | 'failed';
+
+const convertSyncStatus = (status: ConnectionSyncStatus) => {
+    switch (status) {
+        case ConnectionSyncStatus.SYNC_NEEDED:
+            return 'waiting';
+        case ConnectionSyncStatus.IN_SYNC_QUEUE:
+        case ConnectionSyncStatus.SYNCING:
+            return 'running';
+        case ConnectionSyncStatus.SYNCED:
+            return 'succeeded';
+        case ConnectionSyncStatus.FAILED:
+            return 'failed';
+    }
+}
 
 interface ConnectionListItemProps {
     id: string;
     name: string;
     type: string;
-    status: SyncStatus;
+    status: ConnectionSyncStatus;
     editedAt: Date;
     syncedAt?: Date;
 }
@@ -30,13 +40,14 @@ export const ConnectionListItem = ({
 }: ConnectionListItemProps) => {
     const statusDisplayName = useMemo(() => {
         switch (status) {
-            case 'waiting':
+            case ConnectionSyncStatus.SYNC_NEEDED:
                 return 'Waiting...';
-            case 'syncing':
+            case ConnectionSyncStatus.IN_SYNC_QUEUE:
+            case ConnectionSyncStatus.SYNCING:
                 return 'Syncing...';
-            case 'synced':
+            case ConnectionSyncStatus.SYNCED:
                 return 'Synced';
-            case 'failed':
+            case ConnectionSyncStatus.FAILED:
                 return 'Sync failed';
         }
     }, [status]);
@@ -44,7 +55,7 @@ export const ConnectionListItem = ({
     return (
         <Link href={`/connections/${id}`}>
             <div
-                className="flex flex-row justify-between items-center border p-4 rounded-lg cursor-pointer bg-background dark:bg-background"
+                className="flex flex-row justify-between items-center border p-4 rounded-lg cursor-pointer bg-background"
             >
                 <div className="flex flex-row items-center gap-3">
                     <ConnectionIcon
@@ -53,22 +64,21 @@ export const ConnectionListItem = ({
                     />
                     <div className="flex flex-col">
                         <p className="font-medium">{name}</p>
-                        <div className="flex flex-row items-center gap-1.5">
-                            <span className="text-sm text-muted-foreground">{`Edited ${getDisplayTime(editedAt)}`}</span>
-                            <Image
-                                src={placeholderLogo}
-                                alt={''}
-                                className="rounded-full w-5 h-5"
-                            />
-                        </div>
+                        <span className="text-sm text-muted-foreground">{`Edited ${getDisplayTime(editedAt)}`}</span>
                     </div>
                 </div>
                 <div className="flex flex-row items-center">
-                    <StatusIcon status={status} className="w-4 h-4 mr-1" />
+                    <StatusIcon
+                        status={convertSyncStatus(status)}
+                        className="w-4 h-4 mr-1"
+                    />
                     <p className="text-sm">
                         <span>{statusDisplayName}</span>
                         {
-                            (status === 'synced' || status === 'failed') && syncedAt && (
+                            (
+                                status === ConnectionSyncStatus.SYNCED ||
+                                status === ConnectionSyncStatus.FAILED
+                            ) && syncedAt && (
                                 <span>{` ${getDisplayTime(syncedAt)}`}</span>
                             )
                         }
@@ -84,23 +94,4 @@ export const ConnectionListItem = ({
             </div>
         </Link>
     )
-}
-
-const StatusIcon = ({
-    status,
-    className,
-}: { status: SyncStatus, className?: string }) => {
-    const Icon = useMemo(() => {
-        switch (status) {
-            case 'waiting':
-            case 'syncing':
-                return <FiLoader className={cn('animate-spin-slow', className)} />;
-            case 'synced':
-                return <CircleCheckIcon className={cn('text-green-600', className)} />;
-            case 'failed':
-                return <Cross2Icon className={cn(className)} />;
-        }
-    }, [className, status]);
-
-    return Icon;
 }

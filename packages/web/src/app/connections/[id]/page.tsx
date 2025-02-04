@@ -8,16 +8,17 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { getConnection, getLinkedRepos } from "@/data/connection";
 import { isServiceError } from "@/lib/utils";
 import { ConnectionIcon } from "../components/connectionIcon";
 import { Header } from "../components/header";
-import { DisplayNameSetting } from "./components/displayNameSetting";
 import { ConfigSetting } from "./components/configSetting";
 import { DeleteConnectionSetting } from "./components/deleteConnectionSetting";
-import { TabSwitcher } from "@/components/ui/tab-switcher";
-import Image from "next/image";
+import { DisplayNameSetting } from "./components/displayNameSetting";
+import { RepoListItem } from "./components/repoListItem";
 
 interface ConnectionManagementPageProps {
     params: {
@@ -101,19 +102,50 @@ export default async function ConnectionManagementPage({
                 />
             </Header>
             <TabsContent value="overview">
-                <h1 className="font-semibold text-lg">Linked Repositories</h1>
-                {linkedRepos.map(({ repo }, index) => (
-                    <div key={index}>
-                        <Image
-                            src={repo.imageUrl ?? ""}
-                            alt={repo.name}
-                            width={40}
-                            height={40}
-                            className="rounded-full"
-                        />
-                        <p>{repo.name} | {repo.repoIndexingStatus}</p>
+                <h1 className="font-semibold text-lg">Overview</h1>
+                <div className="mt-4 flex flex-col gap-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="rounded-lg border border-border p-4 bg-background">
+                            <h2 className="text-sm font-medium text-muted-foreground">Connection Type</h2>
+                            <p className="mt-2 text-sm">{connection.connectionType}</p>
+                        </div>
+                        <div className="rounded-lg border border-border p-4 bg-background">
+                            <h2 className="text-sm font-medium text-muted-foreground">Last Synced At</h2>
+                            <p className="mt-2 text-sm">{connection.syncedAt ? new Date(connection.syncedAt).toLocaleDateString() : 'never'}</p>
+                        </div>
+                        <div className="rounded-lg border border-border p-4 bg-background">
+                            <h2 className="text-sm font-medium text-muted-foreground">Linked Repositories</h2>
+                            <p className="mt-2 text-sm">{linkedRepos.length}</p>
+                        </div>
+                        <div className="rounded-lg border border-border p-4 bg-background">
+                            <h2 className="text-sm font-medium text-muted-foreground">Status</h2>
+                            <p className="mt-2 text-sm">{connection.syncStatus}</p>
+                        </div>
                     </div>
-                ))}
+                </div>
+                <h1 className="font-semibold text-lg mt-8">Linked Repositories</h1>
+                <ScrollArea
+                    className="mt-4 max-h-96 overflow-scroll"
+                >
+                    <div className="flex flex-col gap-4">
+                        {linkedRepos
+                            .sort((a, b) => {
+                                const aIndexedAt = a.repo.indexedAt ?? new Date();
+                                const bIndexedAt = b.repo.indexedAt ?? new Date();
+
+                                return bIndexedAt.getTime() - aIndexedAt.getTime();
+                            })
+                            .map(({ repo }) => (
+                                <RepoListItem
+                                    key={repo.id}
+                                    imageUrl={repo.imageUrl ?? undefined}
+                                    name={repo.name}
+                                    indexedAt={repo.indexedAt ?? undefined}
+                                    status={repo.repoIndexingStatus}
+                                />
+                            ))}
+                    </div>
+                </ScrollArea>
             </TabsContent>
             <TabsContent
                 value="settings"

@@ -1,21 +1,8 @@
-import { Connection, ConnectionSyncStatus } from "@sourcebot/db"
-import { ConnectionListItem, SyncStatus } from "./connectionListItem";
+import { Connection } from "@sourcebot/db"
+import { ConnectionListItem } from "./connectionListItem";
 import { cn } from "@/lib/utils";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 
-const convertSyncStatus = (status: ConnectionSyncStatus): SyncStatus => {
-    switch (status) {
-        case ConnectionSyncStatus.SYNC_NEEDED:
-            return 'waiting';
-        case ConnectionSyncStatus.IN_SYNC_QUEUE:
-        case ConnectionSyncStatus.SYNCING:
-            return 'syncing';
-        case ConnectionSyncStatus.SYNCED:
-            return 'synced';
-        case ConnectionSyncStatus.FAILED:
-            return 'failed';
-    }
-}
 
 interface ConnectionListProps {
     connections: Connection[];
@@ -37,7 +24,7 @@ export const ConnectionList = ({
                         id={connection.id.toString()}
                         name={connection.name}
                         type={connection.connectionType}
-                        status={convertSyncStatus(connection.syncStatus)}
+                        status={connection.syncStatus}
                         editedAt={connection.updatedAt}
                         syncedAt={connection.syncedAt ?? undefined}
                     />

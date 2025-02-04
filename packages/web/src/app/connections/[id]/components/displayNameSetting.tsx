@@ -73,7 +73,6 @@ export const DisplayNameSetting = ({
                                     <Input
                                         {...field}
                                         spellCheck={false}
-                                        autoFocus={true}
                                     />
                                 </FormControl>
                                 <FormMessage />

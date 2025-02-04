@@ -80,59 +80,68 @@ export class ConnectionManager implements IConnectionManager {
         const abortController = new AbortController();
 
         type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
-        const repoData: RepoData[] = await (async () => {
-            switch (config.type) {
-                case 'github': {
-                    const gitHubRepos = await getGitHubReposFromConfig(config, orgId, this.db, abortController.signal);
-                    const hostUrl = config.url ?? 'https://github.com';
-                    const hostname = config.url ? new URL(config.url).hostname : 'github.com';
+        const repoData: RepoData[] = (
+            await (async () => {
+                switch (config.type) {
+                    case 'github': {
+                        const gitHubRepos = await getGitHubReposFromConfig(config, orgId, this.db, abortController.signal);
+                        const hostUrl = config.url ?? 'https://github.com';
+                        const hostname = config.url ? new URL(config.url).hostname : 'github.com';
 
-                    return gitHubRepos.map((repo) => {
-                        const repoName = `${hostname}/${repo.full_name}`;
-                        const cloneUrl = new URL(repo.clone_url!);
-    
-                        const record: RepoData = {
-                            external_id: repo.id.toString(),
-                            external_codeHostType: 'github',
-                            external_codeHostUrl: hostUrl,
-                            cloneUrl: cloneUrl.toString(),
-                            imageUrl: repo.owner.avatar_url,
-                            name: repoName,
-                            isFork: repo.fork,
-                            isArchived: !!repo.archived,
-                            org: {
-                                connect: {
-                                    id: orgId,
+                        return gitHubRepos.map((repo) => {
+                            const repoName = `${hostname}/${repo.full_name}`;
+                            const cloneUrl = new URL(repo.clone_url!);
+
+                            const record: RepoData = {
+                                external_id: repo.id.toString(),
+                                external_codeHostType: 'github',
+                                external_codeHostUrl: hostUrl,
+                                cloneUrl: cloneUrl.toString(),
+                                imageUrl: repo.owner.avatar_url,
+                                name: repoName,
+                                isFork: repo.fork,
+                                isArchived: !!repo.archived,
+                                org: {
+                                    connect: {
+                                        id: orgId,
+                                    },
                                 },
-                            },
-                            connections: {
-                                create: {
-                                    connectionId: job.data.connectionId,
-                                }
-                            },
-                            metadata: {
-                                'zoekt.web-url-type': 'github',
-                                'zoekt.web-url': repo.html_url,
-                                'zoekt.name': repoName,
-                                'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
-                                'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
-                                'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
-                                'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
-                                'zoekt.archived': marshalBool(repo.archived),
-                                'zoekt.fork': marshalBool(repo.fork),
-                                'zoekt.public': marshalBool(repo.private === false)
-                            },
-                        };
-    
-                        return record;
-                    })
+                                connections: {
+                                    create: {
+                                        connectionId: job.data.connectionId,
+                                    }
+                                },
+                                metadata: {
+                                    'zoekt.web-url-type': 'github',
+                                    'zoekt.web-url': repo.html_url,
+                                    'zoekt.name': repoName,
+                                    'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
+                                    'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
+                                    'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
+                                    'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
+                                    'zoekt.archived': marshalBool(repo.archived),
+                                    'zoekt.fork': marshalBool(repo.fork),
+                                    'zoekt.public': marshalBool(repo.private === false)
+                                },
+                            };
+
+                            return record;
+                        })
+                    }
+                    case 'gitlab': {
+                        // @todo
+                        return [];
+                    }
                 }
-                case 'gitlab': {
-                    // @todo
-                    return [];
-                }
-            }
-        })();
+            })()
+        )
+        // Filter out any duplicates by external_id and external_codeHostUrl.
+        .filter((repo, index, self) => {
+            return index === self.findIndex(r =>
+                r.external_id === repo.external_id &&
+                r.external_codeHostUrl === repo.external_codeHostUrl
+            );
+        })
 
         // @note: to handle orphaned Repos we delete all RepoToConnection records for this connection,
         // and then recreate them when we upsert the repos. For example, if a repo is no-longer
