@@ -92,6 +92,14 @@ export class ConnectionManager implements IConnectionManager {
             }
         })();
 
+        // Filter out any duplicates by external_id and external_codeHostUrl.
+        repoData.filter((repo, index, self) => {
+            return index === self.findIndex(r =>
+                r.external_id === repo.external_id &&
+                r.external_codeHostUrl === repo.external_codeHostUrl
+            );
+        })
+
         // @note: to handle orphaned Repos we delete all RepoToConnection records for this connection,
         // and then recreate them when we upsert the repos. For example, if a repo is no-longer
         // captured by the connection's config (e.g., it was deleted, marked archived, etc.), it won't

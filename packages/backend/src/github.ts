@@ -24,6 +24,9 @@ export type OctokitRepository = {
     topics?: string[],
     // @note: this is expressed in kilobytes.
     size?: number,
+    owner: {
+        avatar_url: string,
+    }
 }
 
 export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal) => {

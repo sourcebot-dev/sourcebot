@@ -8,7 +8,11 @@ import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { isServiceError } from "@/lib/utils";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
+import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
+import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
+import { getConnection } from "./data/connection";
+import { Prisma } from "@sourcebot/db";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -141,16 +145,127 @@ export const switchActiveOrg = async (orgId: number): Promise<{ id: number } | S
     }
 }
 
-export const createConnection = async (config: string): Promise<{ id: number } | ServiceError> => {
+export const createConnection = async (name: string, type: string, connectionConfig: string): Promise<{ id: number } | ServiceError> => {
     const orgId = await getCurrentUserOrg();
     if (isServiceError(orgId)) {
         return orgId;
     }
 
-    let parsedConfig;
+    const parsedConfig = parseConnectionConfig(type, connectionConfig);
+    if (isServiceError(parsedConfig)) {
+        return parsedConfig;
+    }
+
+    const connection = await prisma.connection.create({
+        data: {
+            orgId,
+            name,
+            config: parsedConfig as unknown as Prisma.InputJsonValue,
+            connectionType: type,
+        }
+    });
+
+    return {
+        id: connection.id,
+    }
+}
+
+export const updateConnectionDisplayName = async (connectionId: number, name: string): Promise<{ success: boolean } | ServiceError> => {
+    const orgId = await getCurrentUserOrg();
+    if (isServiceError(orgId)) {
+        return orgId;
+    }
+
+    const connection = await getConnection(connectionId, orgId);
+    if (!connection) {
+        return notFound();
+    }
+
+    await prisma.connection.update({
+        where: {
+            id: connectionId,
+            orgId,
+        },
+        data: {
+            name,
+        }
+    });
+
+    return {
+        success: true,
+    }
+}
+
+export const updateConnectionConfigAndScheduleSync = async (connectionId: number, config: string): Promise<{ success: boolean } | ServiceError> => {
+    const orgId = await getCurrentUserOrg();
+    if (isServiceError(orgId)) {
+        return orgId;
+    }
+
+    const connection = await getConnection(connectionId, orgId);
+    if (!connection) {
+        return notFound();
+    }
+
+    const parsedConfig = parseConnectionConfig(connection.connectionType, config);
+    if (isServiceError(parsedConfig)) {
+        return parsedConfig;
+    }
+
+    if (connection.syncStatus === "SYNC_NEEDED" ||
+        connection.syncStatus === "IN_SYNC_QUEUE" ||
+        connection.syncStatus === "SYNCING") {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.CONNECTION_SYNC_ALREADY_SCHEDULED,
+            message: "Connection is already syncing. Please wait for the sync to complete before updating the connection.",
+        } satisfies ServiceError;
+    }
+
+    await prisma.connection.update({
+        where: {
+            id: connectionId,
+            orgId,
+        },
+        data: {
+            config: parsedConfig as unknown as Prisma.InputJsonValue,
+            syncStatus: "SYNC_NEEDED",
+        }
+    });
+
+    return {
+        success: true,
+    }
+}
+
+export const deleteConnection = async (connectionId: number): Promise<{ success: boolean } | ServiceError> => {
+    const orgId = await getCurrentUserOrg();
+    if (isServiceError(orgId)) {
+        return orgId;
+    }
+
+    const connection = await getConnection(connectionId, orgId);
+    if (!connection) {
+        return notFound();
+    }
+
+    await prisma.connection.delete({
+        where: {
+            id: connectionId,
+            orgId,
+        }
+    });
+
+    return {
+        success: true,
+    }
+}
+
+const parseConnectionConfig = (connectionType: string, config: string) => {
+    let parsedConfig: ConnectionConfig;
     try {
         parsedConfig = JSON.parse(config);
-    } catch {
+    } catch (_e) {
         return {
             statusCode: StatusCodes.BAD_REQUEST,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
@@ -158,8 +273,24 @@ export const createConnection = async (config: string): Promise<{ id: number } |
         } satisfies ServiceError;
     }
 
-    // @todo: we will need to validate the config against different schemas based on the type of connection.
-    const isValidConfig = ajv.validate(githubSchema, parsedConfig);
+    const schema = (() => {
+        switch (connectionType) {
+            case "github":
+                return githubSchema;
+            case "gitlab":
+                return gitlabSchema;
+        }
+    })();
+
+    if (!schema) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: "invalid connection type",
+        } satisfies ServiceError;
+    }
+
+    const isValidConfig = ajv.validate(schema, parsedConfig);
     if (!isValidConfig) {
         return {
             statusCode: StatusCodes.BAD_REQUEST,
@@ -168,14 +299,5 @@ export const createConnection = async (config: string): Promise<{ id: number } |
         } satisfies ServiceError;
     }
 
-    const connection = await prisma.connection.create({
-        data: {
-            orgId: orgId,
-            config: parsedConfig,
-        }
-    });
-
-    return {
-        id: connection.id,
-    }
+    return parsedConfig;
 }
