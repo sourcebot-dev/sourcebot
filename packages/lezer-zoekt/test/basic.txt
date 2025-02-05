@@ -1,0 +1,24 @@
+# Single word
+
+hello
+
+==>
+
+Query(RegExp)
+
+# Two words
+
+hello world
+
+==>
+
+Query(RegExp,RegExp)
+
+
+# Advanced
+
+repo:MyRepo hello
+
+==>
+
+Query(RepoPrefix(RegExp),RegExp)

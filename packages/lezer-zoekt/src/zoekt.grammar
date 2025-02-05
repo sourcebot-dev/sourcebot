@@ -1,0 +1,33 @@
+@top Query { expression+ }
+
+expression {
+    Negation |
+    prefix |
+    RegExp |
+    Group
+}
+
+expressionList { expression+ }
+
+Negation { '-' expression }
+prefix { RepoPrefix | FilePrefix }
+Group { '(' expressionList ')' }
+
+RepoPrefix { repo ':' RegExp }
+FilePrefix { file ':' RegExp }
+
+@tokens {
+    space { @whitespace+ }
+
+    repo { "repo" }
+    file { "file" }
+    RegExp { $[a-zA-Z0-9]+ }
+
+    @precedence {
+        repo,
+        file,
+        RegExp
+    }
+}
+
+@skip { space } {}

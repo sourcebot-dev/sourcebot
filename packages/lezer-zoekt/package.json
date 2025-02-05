@@ -1,0 +1,16 @@
+{
+    "name": "@sourcebot/lezer-zoekt",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "build": "lezer-generator src/zoekt.grammar -o src/parser",
+        "test": "vitest --config ./vitest.config.ts test/runner.test.ts"
+    },
+    "devDependencies": {
+        "@lezer/generator": "^1.7.2",
+        "vitest": "^3.0.5"
+    },
+    "dependencies": {
+        "@lezer/lr": "^1.4.2"
+    }
+}
