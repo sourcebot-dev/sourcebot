@@ -5,7 +5,7 @@ import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { createLogger } from "./logger.js";
 import os from 'os';
 import { Redis } from 'ioredis';
-import { RepoData, compileGithubConfig } from "./repoCompileUtils.js";
+import { RepoData, compileGithubConfig, compileGitlabConfig } from "./repoCompileUtils.js";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -82,6 +82,9 @@ export class ConnectionManager implements IConnectionManager {
             switch (config.type) {
                 case 'github': {
                     return await compileGithubConfig(config, job.data.connectionId, orgId, this.db, abortController);
+                }
+                case 'gitlab': {
+                    return await compileGitlabConfig(config, job.data.connectionId, orgId, this.db);
                 }
                 default: {
                     return [];

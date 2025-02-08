@@ -9,8 +9,7 @@ const logger = createLogger("GitLab");
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
 export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {
-    // TODO: pass in DB here to fetch secret properly
-    const token = config.token ? await getTokenFromConfig(config.token, orgId) : undefined;
+    const token = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
     const api = new Gitlab({
         ...(config.token ? {
             token,
@@ -37,7 +36,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                 logger.error(`Failed to fetch all projects visible in ${config.url}.`, e);
             }
         } else {
-            logger.warn(`Ignoring option all:true in ${ctx.configPath} : host is ${GITLAB_CLOUD_HOSTNAME}`);
+            logger.warn(`Ignoring option all:true in config : host is ${GITLAB_CLOUD_HOSTNAME}`);
         }
     }
 

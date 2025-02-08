@@ -1,8 +1,10 @@
 import { GithubConnectionConfig } from '@sourcebot/schemas/v3/github.type';
 import { getGitHubReposFromConfig } from "./github.js";
+import { getGitLabReposFromConfig } from "./gitlab.js";
 import { Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
+import { GitlabConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 
@@ -54,4 +56,55 @@ export const compileGithubConfig = async (
 
         return record;
     })
+}
+
+export const compileGitlabConfig = async (
+    config: GitlabConnectionConfig,
+    connectionId: number,
+    orgId: number,
+    db: PrismaClient) => {
+
+    const gitlabRepos = await getGitLabReposFromConfig(config, orgId, db);
+    const hostUrl = config.url ?? 'https://gitlab.com';
+    
+    return gitlabRepos.map((project) => {
+        const projectName = `${config.url}/${project.full_name}`;
+        const projectUrl = `${hostUrl}/${project.path_with_namespace}`;
+        const cloneUrl = new URL(project.clone_url!);
+        const isFork = project.forked_from_project !== undefined;
+
+        const record: RepoData = {
+            external_id: project.id.toString(),
+            external_codeHostType: 'gitlab',
+            external_codeHostUrl: hostUrl,
+            cloneUrl: cloneUrl.toString(),
+            name: project.path_with_namespace,
+            isFork: isFork,
+            isArchived: !!project.archived,
+            org: {
+                connect: {
+                    id: orgId,
+                },
+            },
+            connections: {
+                create: {
+                    connectionId: connectionId,
+                }
+            },
+            metadata: {
+                'zoekt.web-url-type': 'github',
+                'zoekt.web-url': projectUrl,
+                'zoekt.name': projectName,
+                'zoekt.github-stars': (project.stargazers_count ?? 0).toString(),
+                'zoekt.github-watchers': (project.watchers_count ?? 0).toString(),
+                'zoekt.github-subscribers': (project.subscribers_count ?? 0).toString(),
+                'zoekt.github-forks': (project.forks_count ?? 0).toString(),
+                'zoekt.archived': marshalBool(project.archived),
+                'zoekt.fork': marshalBool(isFork),
+                'zoekt.public': marshalBool(project.private === false)
+            },
+        };
+
+        return record;
+    }
 }
