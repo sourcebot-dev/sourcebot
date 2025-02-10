@@ -5,6 +5,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { InviteColumnInfo, inviteTableColumns } from "./inviteTableColumns"
 
 export interface InviteInfo {
+    id: string;
     email: string;
     createdAt: Date;
 }
@@ -19,6 +20,7 @@ export const InviteTable = ({ initialInvites }: InviteTableProps) => {
     const inviteRows: InviteColumnInfo[] = useMemo(() => {
         return invites.map(invite => {
             return {
+                id: invite.id!,
                 email: invite.email!,
                 createdAt: invite.createdAt!,
             }

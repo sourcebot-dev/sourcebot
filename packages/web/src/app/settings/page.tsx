@@ -50,6 +50,7 @@ export default async function SettingsPage() {
         }));
 
         const inviteInfo = invites.map((invite) => ({
+            id: invite.id,
             email: invite.recipientEmail,
             createdAt: invite.createdAt,
         }));
