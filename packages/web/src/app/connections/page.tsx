@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { getUser } from "@/data/user";
 import { prisma } from "@/prisma";
 import { ConnectionList } from "./components/connectionList";
-import { Header } from "./components/header";
+import { Header } from "../components/header";
 import { NewConnectionCard } from "./components/newConnectionCard";
 
 export default async function ConnectionsPage() {

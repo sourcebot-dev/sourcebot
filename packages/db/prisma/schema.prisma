@@ -83,6 +83,27 @@ model RepoToConnection {
   @@id([connectionId, repoId])
 }
 
+model Invite {
+  /// The globally unique invite id
+  id String @id @default(cuid())
+
+  /// Time of invite creation
+  createdAt DateTime @default(now())
+
+  /// The email of the recipient of the invite
+  recipientEmail String
+
+  /// The user that created the invite
+  host       User   @relation(fields: [hostUserId], references: [id], onDelete: Cascade)
+  hostUserId String
+
+  /// The organization the invite is for
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@unique([recipientEmail, orgId])
+}
+
 model Org {
   id          Int          @id @default(autoincrement())
   name        String
@@ -92,6 +113,9 @@ model Org {
   connections Connection[]
   repos       Repo[]
   secrets     Secret[]
+
+  /// List of pending invites to this organization
+  invites Invite[]
 }
 
 enum OrgRole {
@@ -138,6 +162,9 @@ model User {
   accounts      Account[]
   orgs          UserToOrg[]
   activeOrgId   Int?
+
+  /// List of pending invites that the user has created
+  invites Invite[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
