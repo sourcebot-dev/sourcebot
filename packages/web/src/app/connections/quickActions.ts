@@ -1,7 +1,8 @@
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type"
-import { GitLabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
+import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { QuickAction } from "./components/configEditor";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
+import { GerritConnectionConfig } from "@sourcebot/schemas/v3/gerrit.type";
 
 export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
     {
@@ -42,9 +43,9 @@ export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
     }
 ];
 
-export const gitlabQuickActions: QuickAction<GitLabConnectionConfig>[] = [
+export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
     {
-        fn: (previous: GitLabConnectionConfig) => ({
+        fn: (previous: GitlabConnectionConfig) => ({
             ...previous,
             groups: [
                 ...previous.groups ?? [],
@@ -54,14 +55,14 @@ export const gitlabQuickActions: QuickAction<GitLabConnectionConfig>[] = [
         name: "Add a group",
     },
     {
-        fn: (previous: GitLabConnectionConfig) => ({
+        fn: (previous: GitlabConnectionConfig) => ({
             ...previous,
             url: previous.url ?? "",
         }),
         name: "Set a custom url",
     },
     {
-        fn: (previous: GitLabConnectionConfig) => ({
+        fn: (previous: GitlabConnectionConfig) => ({
             ...previous,
             token: previous.token ?? {
                 secret: "",
@@ -70,7 +71,7 @@ export const gitlabQuickActions: QuickAction<GitLabConnectionConfig>[] = [
         name: "Add a secret",
     },
     {
-        fn: (previous: GitLabConnectionConfig) => ({
+        fn: (previous: GitlabConnectionConfig) => ({
             ...previous,
             projects: [
                 ...previous.projects ?? [],
@@ -117,6 +118,26 @@ export const giteaQuickActions: QuickAction<GiteaConnectionConfig>[] = [
             },
         }),
         name: "Add a secret",
+    }
+]
+
+export const gerritQuickActions: QuickAction<GerritConnectionConfig>[] = [
+    {
+        fn: (previous: GerritConnectionConfig) => ({
+            ...previous,
+            projects: [
+                ...(previous.projects ?? []),
+                ""
+            ]
+        }),
+        name: "Add a project",
+    },
+    {
+        fn: (previous: GerritConnectionConfig) => ({
+            ...previous,
+            url: previous.url ?? "",
+        }),
+        name: "Set a custom url",
     }
 ]
 

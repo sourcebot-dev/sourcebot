@@ -18,7 +18,7 @@ import { z } from "zod";
 import { ConfigEditor, QuickActionFn } from "../../../components/configEditor";
 
 interface ConnectionCreationForm<T> {
-    type: 'github' | 'gitlab' | 'gitea';
+    type: 'github' | 'gitlab' | 'gitea' | 'gerrit';
     defaultValues: {
         name: string;
         config: string;

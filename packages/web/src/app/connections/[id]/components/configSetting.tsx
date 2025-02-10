@@ -12,7 +12,8 @@ import { ConfigEditor, QuickAction } from "../../components/configEditor";
 import { createZodConnectionConfigValidator } from "../../utils";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
-import { githubQuickActions, gitlabQuickActions, giteaQuickActions } from "../../quickActions";
+import { GerritConnectionConfig } from "@sourcebot/schemas/v3/gerrit.type";
+import { githubQuickActions, gitlabQuickActions, giteaQuickActions, gerritQuickActions } from "../../quickActions";
 import { Schema } from "ajv";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
@@ -20,6 +21,8 @@ import { updateConnectionConfigAndScheduleSync } from "@/actions";
 import { useToast } from "@/components/hooks/use-toast";
 import { isServiceError } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
+import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 
 
 interface ConfigSettingProps {
@@ -51,7 +54,15 @@ export const ConfigSetting = (props: ConfigSettingProps) => {
         return <ConfigSettingInternal<GiteaConnectionConfig>
             {...props}
             quickActions={giteaQuickActions}
-            schema={githubSchema}
+            schema={giteaSchema}
+        />;
+    }
+
+    if (type === 'gerrit') {
+        return <ConfigSettingInternal<GerritConnectionConfig>
+            {...props}
+            quickActions={gerritQuickActions}
+            schema={gerritSchema}
         />;
     }
 

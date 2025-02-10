@@ -1,12 +1,14 @@
 'use client';
 
-import { giteaQuickActions, githubQuickActions, gitlabQuickActions } from "../../quickActions";
+import { gerritQuickActions, giteaQuickActions, githubQuickActions, gitlabQuickActions } from "../../quickActions";
 import ConnectionCreationForm from "./components/connectionCreationForm";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
+import { GerritConnectionConfig } from "@sourcebot/schemas/v3/gerrit.type";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
+import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { useRouter } from "next/navigation";
 
@@ -26,6 +28,10 @@ export default function NewConnectionPage({
 
     if (type === 'gitea') {
         return <GiteaCreationForm />;
+    }
+
+    if (type === 'gerrit') {
+        return <GerritCreationForm />;
     }
 
     router.push('/connections');
@@ -86,5 +92,24 @@ const GiteaCreationForm = () => {
             quickActions={giteaQuickActions}
         />
     )
+}
 
+const GerritCreationForm = () => {
+    const defaultConfig: GerritConnectionConfig = {
+        type: 'gerrit',
+        url: "https://gerrit.example.com"
+    }
+
+    return (
+        <ConnectionCreationForm<GerritConnectionConfig>
+            type="gerrit"
+            title="Create a Gerrit connection"
+            defaultValues={{
+                config: JSON.stringify(defaultConfig, null, 2),
+                name: 'my-gerrit-connection',
+            }}
+            schema={gerritSchema}
+            quickActions={gerritQuickActions}
+        />
+    )
 }
