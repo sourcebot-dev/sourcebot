@@ -12,7 +12,7 @@ import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
-import { Prisma } from "@sourcebot/db";
+import { Prisma, Invite } from "@sourcebot/db";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -304,7 +304,7 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
 
 export const createInvite = async (email: string, userId: string, orgId: number): Promise<{ success: boolean } | ServiceError> => {
     console.log("Creating invite for", email, userId, orgId);
-    
+
     try {
         await prisma.invite.create({
             data: {
@@ -320,5 +320,39 @@ export const createInvite = async (email: string, userId: string, orgId: number)
 
     return {
         success: true,
+    }
+}
+
+export const redeemInvite = async (invite: Invite, userId: string): Promise<{ orgId: number } | ServiceError> => {
+    try {
+        await prisma.userToOrg.create({
+            data: {
+                userId,
+                orgId: invite.orgId,
+                role: "MEMBER",
+            }
+        });
+
+        await prisma.user.update({
+            where: {
+                id: userId,
+            },
+            data: {
+                activeOrgId: invite.orgId,
+            }
+        });
+
+        await prisma.invite.delete({
+            where: {
+                id: invite.id,
+            }
+        });
+
+        return {
+            orgId: invite.orgId,
+        }
+    } catch (error) {
+        console.error("Failed to redeem invite:", error);
+        return unexpectedError("Failed to redeem invite");
     }
 }
