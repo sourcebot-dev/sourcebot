@@ -72,7 +72,7 @@ interface RedeemPageProps {
                 <div>
                     <NavigationMenu />
                     <div className="flex justify-between items-center h-screen px-6">
-                        <h1 className="text-2xl font-bold">You've been invited to org {orgName.name}</h1>
+                        <h1 className="text-2xl font-bold">You have been invited to org {orgName.name}</h1>
                         <AcceptInviteButton invite={invite} userId={user.id} />
                     </div>
                 </div>

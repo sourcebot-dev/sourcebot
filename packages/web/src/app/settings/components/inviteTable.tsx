@@ -1,6 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from "react";
-import { User } from "@sourcebot/db";
+import { useMemo } from "react";
 import { DataTable } from "@/components/ui/data-table";
 import { InviteColumnInfo, inviteTableColumns } from "./inviteTableColumns"
 
@@ -15,17 +14,15 @@ interface InviteTableProps {
 }
 
 export const InviteTable = ({ initialInvites }: InviteTableProps) => {
-    const [invites, setInvites] = useState<InviteInfo[]>(initialInvites);
-    
     const inviteRows: InviteColumnInfo[] = useMemo(() => {
-        return invites.map(invite => {
+        return initialInvites.map(invite => {
             return {
                 id: invite.id!,
                 email: invite.email!,
                 createdAt: invite.createdAt!,
             }
         })
-    }, [invites]);
+    }, [initialInvites]);
 
     return (
         <div>

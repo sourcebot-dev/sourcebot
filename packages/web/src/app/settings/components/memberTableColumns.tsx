@@ -1,6 +1,6 @@
 'use client'
 
-import { Column, ColumnDef } from "@tanstack/react-table"
+import { ColumnDef } from "@tanstack/react-table"
 
 export type MemberColumnInfo = {
     name: string;
