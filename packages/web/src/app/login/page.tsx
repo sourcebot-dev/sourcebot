@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import logoDark from "@/public/sb_logo_dark_large.png";
 import logoLight from "@/public/sb_logo_light_large.png";
 import githubLogo from "@/public/github.svg";
+import googleLogo from "@/public/google.svg";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
@@ -36,6 +37,13 @@ export default async function Login(props: {
                                 return {
                                     provider,
                                     logo: githubLogo,
+                                }
+                            }
+
+                            if (provider.id === "google") {
+                                return {
+                                    provider,
+                                    logo: googleLogo,
                                 }
                             }
 
