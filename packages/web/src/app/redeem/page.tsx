@@ -1,5 +1,5 @@
 import { prisma } from "@/prisma";
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { NavigationMenu } from "../components/navigationMenu";
 import { auth } from "@/auth";
 import { getUser } from "@/data/user";
@@ -78,15 +78,7 @@ interface RedeemPageProps {
                 </div>
             );
         }
+    } else {
+        redirect(`/login?callbackUrl=${encodeURIComponent(`/redeem?invite_id=${invite_id}`)}`);
     }
-
-
-    return (
-        <div>
-            <NavigationMenu />
-            <h1>Redeem Invite</h1>
-            <p>Invite ID: {invite.id}</p>
-            {/* Add more invite details as needed */}
-        </div>
-    );
 }

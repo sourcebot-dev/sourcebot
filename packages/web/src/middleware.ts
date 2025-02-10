@@ -23,6 +23,12 @@ const apiMiddleware = (req: NextAuthRequest) => {
 }
 
 const defaultMiddleware = (req: NextAuthRequest) => {
+    // if we're trying to redeem an invite while not authed we continue to the redeem page so
+    // that we can pipe the invite_id to the login page
+    if (!req.auth && req.nextUrl.pathname === "/redeem") {
+        return NextResponse.next();
+    }
+
     if (!req.auth && req.nextUrl.pathname !== "/login") {
         const newUrl = new URL("/login", req.nextUrl.origin);
         return NextResponse.redirect(newUrl);
