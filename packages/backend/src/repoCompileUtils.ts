@@ -1,10 +1,11 @@
 import { GithubConnectionConfig } from '@sourcebot/schemas/v3/github.type';
 import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
+import { getGiteaReposFromConfig } from "./gitea.js";
 import { Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
-import { GitlabConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { GiteaConnectionConfig, GitlabConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 
@@ -99,6 +100,51 @@ export const compileGitlabConfig = async (
                 'zoekt.archived': marshalBool(project.archived),
                 'zoekt.fork': marshalBool(isFork),
                 'zoekt.public': marshalBool(project.private === false)
+            },
+        };
+
+        return record;
+    })
+}
+
+export const compileGiteaConfig = async (
+    config: GiteaConnectionConfig,
+    connectionId: number,
+    orgId: number,
+    db: PrismaClient) => {
+
+    const giteaRepos = await getGiteaReposFromConfig(config, orgId, db);
+    const hostUrl = config.url ?? 'https://gitea.com';
+
+    return giteaRepos.map((repo) => {
+        const repoUrl = `${hostUrl}/${repo.full_name}`;
+        const cloneUrl = new URL(repo.clone_url!);
+
+        const record: RepoData = {
+            external_id: repo.id!.toString(),
+            external_codeHostType: 'gitea',
+            external_codeHostUrl: hostUrl,
+            cloneUrl: cloneUrl.toString(),
+            name: repo.full_name!,
+            isFork: repo.fork!,
+            isArchived: !!repo.archived,
+            org: {
+                connect: {
+                    id: orgId,
+                },
+            },
+            connections: {
+                create: {
+                    connectionId: connectionId,
+                }
+            },
+            metadata: {
+                'zoekt.web-url-type': 'gitea',
+                'zoekt.web-url': repo.html_url!,
+                'zoekt.name': repo.full_name!,
+                'zoekt.archived': marshalBool(repo.archived),
+                'zoekt.fork': marshalBool(repo.fork!),
+                'zoekt.public': marshalBool(repo.internal === false && repo.private === false),
             },
         };
 

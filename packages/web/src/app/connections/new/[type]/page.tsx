@@ -1,10 +1,12 @@
 'use client';
 
-import { githubQuickActions, gitlabQuickActions } from "../../quickActions";
+import { giteaQuickActions, githubQuickActions, gitlabQuickActions } from "../../quickActions";
 import ConnectionCreationForm from "./components/connectionCreationForm";
-import { GitLabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
+import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
+import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
+import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { useRouter } from "next/navigation";
 
@@ -22,16 +24,20 @@ export default function NewConnectionPage({
         return <GitLabCreationForm />;
     }
 
+    if (type === 'gitea') {
+        return <GiteaCreationForm />;
+    }
+
     router.push('/connections');
 }
 
 const GitLabCreationForm = () => {
-    const defaultConfig: GitLabConnectionConfig = {
+    const defaultConfig: GitlabConnectionConfig = {
         type: 'gitlab',
     }
 
     return (
-        <ConnectionCreationForm<GitLabConnectionConfig>
+        <ConnectionCreationForm<GitlabConnectionConfig>
             type="gitlab"
             title="Create a GitLab connection"
             defaultValues={{
@@ -61,4 +67,24 @@ const GitHubCreationForm = () => {
             quickActions={githubQuickActions}
         />
     )
+}
+
+const GiteaCreationForm = () => {
+    const defaultConfig: GiteaConnectionConfig = {
+        type: 'gitea',
+    }
+
+    return (
+        <ConnectionCreationForm<GiteaConnectionConfig>
+            type="gitea"
+            title="Create a Gitea connection"
+            defaultValues={{
+                config: JSON.stringify(defaultConfig, null, 2),
+                name: 'my-gitea-connection',
+            }}
+            schema={giteaSchema}
+            quickActions={giteaQuickActions}
+        />
+    )
+
 }

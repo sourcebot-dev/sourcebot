@@ -5,7 +5,7 @@ import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { createLogger } from "./logger.js";
 import os from 'os';
 import { Redis } from 'ioredis';
-import { RepoData, compileGithubConfig, compileGitlabConfig } from "./repoCompileUtils.js";
+import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig } from "./repoCompileUtils.js";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -85,6 +85,9 @@ export class ConnectionManager implements IConnectionManager {
                 }
                 case 'gitlab': {
                     return await compileGitlabConfig(config, job.data.connectionId, orgId, this.db);
+                }
+                case 'gitea': {
+                    return await compileGiteaConfig(config, job.data.connectionId, orgId, this.db);
                 }
                 default: {
                     return [];
