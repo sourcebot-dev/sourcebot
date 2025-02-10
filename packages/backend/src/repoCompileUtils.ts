@@ -70,7 +70,7 @@ export const compileGitlabConfig = async (
     return gitlabRepos.map((project) => {
         const projectName = `${config.url}/${project.full_name}`;
         const projectUrl = `${hostUrl}/${project.path_with_namespace}`;
-        const cloneUrl = new URL(project.clone_url!);
+        const cloneUrl = new URL(project.http_url_to_repo);
         const isFork = project.forked_from_project !== undefined;
 
         const record: RepoData = {
@@ -106,5 +106,5 @@ export const compileGitlabConfig = async (
         };
 
         return record;
-    }
+    })
 }

@@ -118,9 +118,9 @@ export const shouldExcludeProject = ({
 }: {
     project: ProjectSchema,
     include?: {
-        topics?: GitLabConfig['topics'],
+        topics?: GitlabConnectionConfig['topics'],
     },
-    exclude?: GitLabConfig['exclude'],
+    exclude?: GitlabConnectionConfig['exclude'],
 }) => {
     const projectName = project.path_with_namespace;
     let reason = '';
