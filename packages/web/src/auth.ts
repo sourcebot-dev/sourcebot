@@ -1,10 +1,11 @@
 import 'next-auth/jwt';
 import NextAuth, { User as AuthJsUser, DefaultSession } from "next-auth"
 import GitHub from "next-auth/providers/github"
+import Google from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
 import type { Provider } from "next-auth/providers"
-import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_SECRET } from "./lib/environment";
+import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_SECRET } from "./lib/environment";
 import { User } from '@sourcebot/db';
 import { notAuthenticated, notFound, unexpectedError } from "@/lib/serviceError";
 import { getUser } from "./data/user";
@@ -28,6 +29,10 @@ const providers: Provider[] = [
         clientId: AUTH_GITHUB_CLIENT_ID,
         clientSecret: AUTH_GITHUB_CLIENT_SECRET,
     }),
+    Google({
+        clientId: AUTH_GOOGLE_CLIENT_ID!,
+        clientSecret: AUTH_GOOGLE_CLIENT_SECRET!,
+    })
 ];
 
 // @see: https://authjs.dev/guides/pages/signin
