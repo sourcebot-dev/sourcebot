@@ -68,7 +68,6 @@ export const compileGitlabConfig = async (
     const hostUrl = config.url ?? 'https://gitlab.com';
     
     return gitlabRepos.map((project) => {
-        const projectName = `${config.url}/${project.full_name}`;
         const projectUrl = `${hostUrl}/${project.path_with_namespace}`;
         const cloneUrl = new URL(project.http_url_to_repo);
         const isFork = project.forked_from_project !== undefined;
@@ -92,13 +91,11 @@ export const compileGitlabConfig = async (
                 }
             },
             metadata: {
-                'zoekt.web-url-type': 'github',
+                'zoekt.web-url-type': 'gitlab',
                 'zoekt.web-url': projectUrl,
-                'zoekt.name': projectName,
-                'zoekt.github-stars': (project.stargazers_count ?? 0).toString(),
-                'zoekt.github-watchers': (project.watchers_count ?? 0).toString(),
-                'zoekt.github-subscribers': (project.subscribers_count ?? 0).toString(),
-                'zoekt.github-forks': (project.forks_count ?? 0).toString(),
+                'zoekt.name': project.path_with_namespace,
+                'zoekt.gitlab-stars': (project.stargazers_count ?? 0).toString(),
+                'zoekt.gitlab-forks': (project.forks_count ?? 0).toString(),
                 'zoekt.archived': marshalBool(project.archived),
                 'zoekt.fork': marshalBool(isFork),
                 'zoekt.public': marshalBool(project.private === false)
