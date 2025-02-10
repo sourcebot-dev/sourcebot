@@ -301,3 +301,24 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
 
     return parsedConfig;
 }
+
+export const createInvite = async (email: string, userId: string, orgId: number): Promise<{ success: boolean } | ServiceError> => {
+    console.log("Creating invite for", email, userId, orgId);
+    
+    try {
+        await prisma.invite.create({
+            data: {
+                recipientEmail: email,
+                hostUserId: userId,
+                orgId,
+            }
+        });
+    } catch (error) {
+        console.error("Failed to create invite:", error);
+        return unexpectedError("Failed to create invite");
+    }
+
+    return {
+        success: true,
+    }
+}

@@ -9,11 +9,11 @@ export interface MemberInfo {
     role: string;
 }
 
-interface MembersTableProps {
+interface MemberTableProps {
     initialMembers: MemberInfo[];
 }
 
-export const MembersTable = ({ initialMembers }: MembersTableProps) => {
+export const MemberTable = ({ initialMembers }: MemberTableProps) => {
     const [members, setMembers] = useState<MemberInfo[]>(initialMembers);
     
     const memberRows: MemberColumnInfo[] = useMemo(() => {
