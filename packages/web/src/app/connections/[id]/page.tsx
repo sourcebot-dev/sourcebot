@@ -14,7 +14,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { getConnection, getLinkedRepos } from "@/data/connection";
 import { isServiceError } from "@/lib/utils";
 import { ConnectionIcon } from "../components/connectionIcon";
-import { Header } from "../components/header";
+import { Header } from "../../components/header";
 import { ConfigSetting } from "./components/configSetting";
 import { DeleteConnectionSetting } from "./components/deleteConnectionSetting";
 import { DisplayNameSetting } from "./components/displayNameSetting";
