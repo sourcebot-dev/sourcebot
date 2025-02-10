@@ -135,9 +135,15 @@ export const gerritQuickActions: QuickAction<GerritConnectionConfig>[] = [
     {
         fn: (previous: GerritConnectionConfig) => ({
             ...previous,
-            url: previous.url ?? "",
+            exclude: {
+                ...previous.exclude,
+                projects: [
+                    ...(previous.exclude?.projects ?? []),
+                    ""
+                ]
+            }
         }),
-        name: "Set a custom url",
+        name: "Exclude a project",
     }
 ]
 
