@@ -1,6 +1,6 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
-export interface GitLabConnectionConfig {
+export interface GitlabConnectionConfig {
   /**
    * GitLab Configuration
    */

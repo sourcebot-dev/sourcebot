@@ -1,6 +1,12 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
-export type ConnectionConfig = GithubConnectionConfig | GitLabConnectionConfig;
+export type ConnectionConfig =
+  | GithubConnectionConfig
+  | GitlabConnectionConfig
+  | GiteaConnectionConfig
+  | GerritConnectionConfig
+  | GitConnectionConfig
+  | GerritConnectionConfig1;
 
 export interface GithubConnectionConfig {
   /**
@@ -92,7 +98,7 @@ export interface GitRevisions {
    */
   tags?: string[];
 }
-export interface GitLabConnectionConfig {
+export interface GitlabConnectionConfig {
   /**
    * GitLab Configuration
    */
@@ -159,4 +165,109 @@ export interface GitLabConnectionConfig {
     topics?: string[];
   };
   revisions?: GitRevisions;
+}
+export interface GiteaConnectionConfig {
+  /**
+   * Gitea Configuration
+   */
+  type: "gitea";
+  /**
+   * A Personal Access Token (PAT).
+   */
+  token?:
+    | string
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      };
+  /**
+   * The URL of the Gitea host. Defaults to https://gitea.com
+   */
+  url?: string;
+  /**
+   * List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:organization scope.
+   */
+  orgs?: string[];
+  /**
+   * List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'.
+   */
+  repos?: string[];
+  /**
+   * List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:user scope.
+   */
+  users?: string[];
+  exclude?: {
+    /**
+     * Exclude forked repositories from syncing.
+     */
+    forks?: boolean;
+    /**
+     * Exclude archived repositories from syncing.
+     */
+    archived?: boolean;
+    /**
+     * List of individual repositories to exclude from syncing. Glob patterns are supported.
+     */
+    repos?: string[];
+  };
+  revisions?: GitRevisions;
+}
+export interface GerritConnectionConfig {
+  /**
+   * Gerrit Configuration
+   */
+  type: "gerrit";
+  /**
+   * The URL of the Gerrit host.
+   */
+  url: string;
+  /**
+   * List of specific projects to sync. If not specified, all projects will be synced. Glob patterns are supported
+   */
+  projects?: string[];
+  exclude?: {
+    /**
+     * List of specific projects to exclude from syncing.
+     */
+    projects?: string[];
+  };
+}
+export interface GitConnectionConfig {
+  /**
+   * Git Configuration
+   */
+  type: "git";
+  /**
+   * The URL to the git repository.
+   */
+  url: string;
+  revisions?: GitRevisions;
+}
+export interface GerritConnectionConfig1 {
+  /**
+   * Local Configuration
+   */
+  type: "local";
+  /**
+   * Path to the local directory to sync with. Relative paths are relative to the configuration file's directory.
+   */
+  path: string;
+  /**
+   * Enables a file watcher that will automatically re-sync when changes are made within `path` (recursively). Defaults to true.
+   */
+  watch?: boolean;
+  exclude?: {
+    /**
+     * List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always exluded.
+     */
+    paths?: string[];
+  };
 }

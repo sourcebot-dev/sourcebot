@@ -2,7 +2,7 @@ import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createLogger } from "./logger.js";
 import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus } from "@sourcebot/db";
-import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings } from "./types.js";
 import { captureEvent } from "./posthog.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
@@ -74,7 +74,7 @@ export class RepoManager implements IRepoManager {
         const repos = await this.db.repo.findMany({
             where: {
                 repoIndexingStatus: {
-                    notIn: [RepoIndexingStatus.IN_INDEX_QUEUE, RepoIndexingStatus.FAILED]
+                    notIn: [RepoIndexingStatus.IN_INDEX_QUEUE, RepoIndexingStatus.INDEXING, RepoIndexingStatus.FAILED]
                 },
                 OR: [
                     { indexedAt: null },
@@ -147,10 +147,15 @@ export class RepoManager implements IRepoManager {
             return;
         }
 
+        
         let token: string | undefined;
         for (const repoConnection of repoConnections) {
             const connection = repoConnection.connection;
-            const config = connection.config as unknown as ConnectionConfig;
+            if (connection.connectionType !== 'github' && connection.connectionType !== 'gitlab' && connection.connectionType !== 'gitea') {
+                continue;
+            }
+
+            const config = connection.config as unknown as GithubConnectionConfig | GitlabConnectionConfig | GiteaConnectionConfig;
             if (config.token) {
                 token = await getTokenFromConfig(config.token, connection.orgId, db);
                 if (token) {

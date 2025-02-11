@@ -2,14 +2,14 @@
 const schema = {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "title": "GitlabConnectionConfig",
+  "title": "GiteaConnectionConfig",
   "properties": {
     "type": {
-      "const": "gitlab",
-      "description": "GitLab Configuration"
+      "const": "gitea",
+      "description": "Gitea Configuration"
     },
     "token": {
-      "description": "An authentication token.",
+      "description": "A Personal Access Token (PAT).",
       "examples": [
         "secret-token",
         {
@@ -51,70 +51,46 @@ const schema = {
     "url": {
       "type": "string",
       "format": "url",
-      "default": "https://gitlab.com",
-      "description": "The URL of the GitLab host. Defaults to https://gitlab.com",
+      "default": "https://gitea.com",
+      "description": "The URL of the Gitea host. Defaults to https://gitea.com",
       "examples": [
-        "https://gitlab.com",
-        "https://gitlab.example.com"
+        "https://gitea.com",
+        "https://gitea.example.com"
       ],
       "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
     },
-    "all": {
-      "type": "boolean",
-      "default": false,
-      "description": "Sync all projects visible to the provided `token` (if any) in the GitLab instance. This option is ignored if `url` is either unset or set to https://gitlab.com ."
+    "orgs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "examples": [
+        [
+          "my-org-name"
+        ]
+      ],
+      "description": "List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:organization scope."
+    },
+    "repos": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+      },
+      "description": "List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
     },
     "users": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "List of users to sync with. All projects owned by the user and visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property."
-    },
-    "groups": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
       "examples": [
         [
-          "my-group"
-        ],
-        [
-          "my-group/sub-group-a",
-          "my-group/sub-group-b"
+          "username-1",
+          "username-2"
         ]
       ],
-      "description": "List of groups to sync with. All projects in the group (and recursive subgroups) visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`)."
-    },
-    "projects": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "examples": [
-        [
-          "my-group/my-project"
-        ],
-        [
-          "my-group/my-sub-group/my-project"
-        ]
-      ],
-      "description": "List of individual projects to sync with. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/"
-    },
-    "topics": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "minItems": 1,
-      "description": "List of project topics to include when syncing. Only projects that match at least one of the provided `topics` will be synced. If not specified, all projects will be synced, unless explicitly defined in the `exclude` property. Glob patterns are supported.",
-      "examples": [
-        [
-          "docs",
-          "core"
-        ]
-      ]
+      "description": "List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:user scope."
     },
     "exclude": {
       "type": "object",
@@ -122,38 +98,20 @@ const schema = {
         "forks": {
           "type": "boolean",
           "default": false,
-          "description": "Exclude forked projects from syncing."
+          "description": "Exclude forked repositories from syncing."
         },
         "archived": {
           "type": "boolean",
           "default": false,
-          "description": "Exclude archived projects from syncing."
+          "description": "Exclude archived repositories from syncing."
         },
-        "projects": {
+        "repos": {
           "type": "array",
           "items": {
             "type": "string"
           },
           "default": [],
-          "examples": [
-            [
-              "my-group/my-project"
-            ]
-          ],
-          "description": "List of projects to exclude from syncing. Glob patterns are supported. The project's namespace must be specified, see: https://docs.gitlab.com/ee/user/namespace/"
-        },
-        "topics": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "List of project topics to exclude when syncing. Projects that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.",
-          "examples": [
-            [
-              "tests",
-              "ci"
-            ]
-          ]
+          "description": "List of individual repositories to exclude from syncing. Glob patterns are supported."
         }
       },
       "additionalProperties": false
@@ -205,4 +163,4 @@ const schema = {
   ],
   "additionalProperties": false
 } as const;
-export { schema as gitlabSchema };
+export { schema as giteaSchema };

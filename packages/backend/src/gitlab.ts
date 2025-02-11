@@ -1,16 +1,15 @@
 import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
 import micromatch from "micromatch";
 import { createLogger } from "./logger.js";
-import { GitLabConfig } from "@sourcebot/schemas/v2/index.type"
-import { AppContext } from "./types.js";
+import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type"
 import { getTokenFromConfig, measure } from "./utils.js";
+import { PrismaClient } from "@sourcebot/db";
 
 const logger = createLogger("GitLab");
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
-export const getGitLabReposFromConfig = async (config: GitLabConfig, orgId: number, ctx: AppContext) => {
-    // TODO: pass in DB here to fetch secret properly
-    const token = config.token ? await getTokenFromConfig(config.token, orgId) : undefined;
+export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {
+    const token = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
     const api = new Gitlab({
         ...(config.token ? {
             token,
@@ -37,7 +36,7 @@ export const getGitLabReposFromConfig = async (config: GitLabConfig, orgId: numb
                 logger.error(`Failed to fetch all projects visible in ${config.url}.`, e);
             }
         } else {
-            logger.warn(`Ignoring option all:true in ${ctx.configPath} : host is ${GITLAB_CLOUD_HOSTNAME}`);
+            logger.warn(`Ignoring option all:true in config : host is ${GITLAB_CLOUD_HOSTNAME}`);
         }
     }
 
@@ -119,9 +118,9 @@ export const shouldExcludeProject = ({
 }: {
     project: ProjectSchema,
     include?: {
-        topics?: GitLabConfig['topics'],
+        topics?: GitlabConnectionConfig['topics'],
     },
-    exclude?: GitLabConfig['exclude'],
+    exclude?: GitlabConnectionConfig['exclude'],
 }) => {
     const projectName = project.path_with_namespace;
     let reason = '';

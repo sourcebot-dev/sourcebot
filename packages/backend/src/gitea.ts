@@ -1,17 +1,16 @@
 import { Api, giteaApi, HttpResponse, Repository as GiteaRepository } from 'gitea-js';
-import { GiteaConfig } from "@sourcebot/schemas/v2/index.type"
-import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool, measure } from './utils.js';
-import { AppContext, GitRepository } from './types.js';
+import { GiteaConnectionConfig } from '@sourcebot/schemas/v3/gitea.type';
+import { getTokenFromConfig, measure } from './utils.js';
 import fetch from 'cross-fetch';
 import { createLogger } from './logger.js';
-import path from 'path';
 import micromatch from 'micromatch';
+import { PrismaClient } from '@sourcebot/db';
 
 const logger = createLogger('Gitea');
 
-export const getGiteaReposFromConfig = async (config: GiteaConfig, orgId: number, ctx: AppContext) => {
+export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {
     // TODO: pass in DB here to fetch secret properly
-    const token = config.token ? await getTokenFromConfig(config.token, orgId) : undefined;
+    const token = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
 
     const api = giteaApi(config.url ?? 'https://gitea.com', {
         token,
@@ -34,66 +33,26 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, orgId: number
         const _repos = await getReposOwnedByUsers(config.users, api);
         allRepos = allRepos.concat(_repos);
     }
-
-    let repos: GitRepository[] = allRepos
-        .map((repo) => {
-            const hostname = config.url ? new URL(config.url).hostname : 'gitea.com';
-            const repoId = `${hostname}/${repo.full_name!}`;
-            const repoPath = path.resolve(path.join(ctx.reposPath, `${repoId}.git`));
-
-            const cloneUrl = new URL(repo.clone_url!);
-            if (token) {
-                cloneUrl.username = token;
-            }
-
-            return {
-                vcs: 'git',
-                codeHost: 'gitea',
-                name: repo.full_name!,
-                id: repoId,
-                cloneUrl: cloneUrl.toString(),
-                path: repoPath,
-                isStale: false,
-                isFork: repo.fork!,
-                isArchived: !!repo.archived,
-                gitConfigMetadata: {
-                    'zoekt.web-url-type': 'gitea',
-                    'zoekt.web-url': repo.html_url!,
-                    'zoekt.name': repoId,
-                    'zoekt.archived': marshalBool(repo.archived),
-                    'zoekt.fork': marshalBool(repo.fork!),
-                    'zoekt.public': marshalBool(repo.internal === false && repo.private === false),
-                },
-                branches: [],
-                tags: []
-            } satisfies GitRepository;
-        });
     
-    if (config.exclude) {
-        if (!!config.exclude.forks) {
-            repos = excludeForkedRepos(repos, logger);
+    allRepos = allRepos.filter(repo => repo.full_name !== undefined);
+    allRepos = allRepos.filter(repo => {
+        if (repo.full_name === undefined) {
+            logger.warn(`Repository with undefined full_name found: orgId=${orgId}, repoId=${repo.id}`);
+            return false;
         }
+        return true;
+    });
 
-        if (!!config.exclude.archived) {
-            repos = excludeArchivedRepos(repos, logger);
-        }
-
-        if (config.exclude.repos) {
-            repos = excludeReposByName(repos, config.exclude.repos, logger);
-        }
-    }
-
-    logger.debug(`Found ${repos.length} total repositories.`);
-
+    
     if (config.revisions) {
         if (config.revisions.branches) {
             const branchGlobs = config.revisions.branches;
-            repos = await Promise.all(
-                repos.map(async (repo) => {
-                    const [owner, name] = repo.name.split('/');
+            allRepos = await Promise.all(
+                allRepos.map(async (repo) => {
+                    const [owner, name] = repo.full_name!.split('/');
                     let branches = (await getBranchesForRepo(owner, name, api)).map(branch => branch.name!);
                     branches = micromatch.match(branches, branchGlobs);
-
+                    
                     return {
                         ...repo,
                         branches,
@@ -101,25 +60,78 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, orgId: number
                 })
             )
         }
-
+        
         if (config.revisions.tags) {
             const tagGlobs = config.revisions.tags;
-            repos = await Promise.all(
-                repos.map(async (repo) => {
-                    const [owner, name] = repo.name.split('/');
+            allRepos = await Promise.all(
+                allRepos.map(async (allRepos) => {
+                    const [owner, name] = allRepos.name!.split('/');
                     let tags = (await getTagsForRepo(owner, name, api)).map(tag => tag.name!);
                     tags = micromatch.match(tags, tagGlobs);
-
+                    
                     return {
-                        ...repo,
+                        ...allRepos,
                         tags,
                     };
                 })
             )
         }
     }
+
+    let repos = allRepos
+        .filter((repo) => {
+            const isExcluded = shouldExcludeRepo({
+                repo,
+                exclude: config.exclude,
+            });
+
+            return !isExcluded;
+        });
     
+    logger.debug(`Found ${repos.length} total repositories.`);
     return repos;
+}
+
+const shouldExcludeRepo = ({
+    repo,
+    exclude
+} : {
+    repo: GiteaRepository,
+    exclude?: {
+        forks?: boolean,
+        archived?: boolean,
+        repos?: string[],
+    }
+}) => {
+    let reason = '';
+    const repoName = repo.full_name!;
+
+    const shouldExclude = (() => {
+        if (!!exclude?.forks && repo.fork) {
+            reason = `\`exclude.forks\` is true`;
+            return true;
+        }
+    
+        if (!!exclude?.archived && !!repo.archived) {
+            reason = `\`exclude.archived\` is true`;
+            return true;
+        }
+
+        if (exclude?.repos) {
+            if (micromatch.isMatch(repoName, exclude.repos)) {
+                reason = `\`exclude.repos\` contains ${repoName}`;
+                return true;
+            }
+        }
+
+        return false;
+    })();
+
+    if (shouldExclude) {
+        logger.debug(`Excluding repo ${repoName}. Reason: ${reason}`);
+    }
+
+    return shouldExclude;
 }
 
 const getTagsForRepo = async <T>(owner: string, repo: string, api: Api<T>) => {
