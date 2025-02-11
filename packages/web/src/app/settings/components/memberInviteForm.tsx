@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/hooks/use-toast";
 import { createInvite } from "../../../actions"
 import { isServiceError } from "@/lib/utils";
-import { Separator } from "@/components/ui/separator"
 
 const formSchema = z.object({
     email: z.string().min(2).max(40),

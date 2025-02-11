@@ -1,6 +1,7 @@
 'use server';
 
 import Ajv from "ajv";
+import { Stripe } from "stripe";
 import { auth, getCurrentUserOrg } from "./auth";
 import { notAuthenticated, notFound, ServiceError, unexpectedError } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
@@ -355,4 +356,30 @@ export const redeemInvite = async (invite: Invite, userId: string): Promise<{ or
         console.error("Failed to redeem invite:", error);
         return unexpectedError("Failed to redeem invite");
     }
+}
+
+export const createCheckoutSession = async (): Promise<Stripe.Response<Stripe.Checkout.Session> | ServiceError> => {
+    console.log(process.env.STRIPE_SECRET_KEY);
+    const stripe = await new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+    const prices = await stripe.prices.list({
+        lookup_keys: ["Sourcebot-ed04202"],
+        expand: ['data.product'],
+      });
+    const session = await stripe.checkout.sessions.create({
+        billing_address_collection: 'auto',
+        line_items: [
+          {
+            price: prices.data[0].id,
+            // For metered billing, do not pass quantity
+            quantity: 1,
+    
+          },
+        ],
+        mode: 'subscription',
+        success_url: `http://localhost:3000/settings/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `http://localhost:3000/settings/billing?canceled=true`,
+      });
+
+    return session;
 }
