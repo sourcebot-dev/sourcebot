@@ -6,7 +6,7 @@ import { MemberTable } from "./components/memberTable";
 import { MemberInviteForm } from "./components/memberInviteForm";
 import { InviteTable } from "./components/inviteTable";
 
-export default async function SettingsPage() {
+export default async function MembersPage() {
     const fetchData = async () => {
         const session = await auth();
         if (!session) {
@@ -67,14 +67,9 @@ export default async function SettingsPage() {
 
     return (
         <div>
-            <Header>
-                <h1 className="text-3xl">Settings</h1>
-            </Header>
-            <div>
-                <MemberInviteForm orgId={user.activeOrgId!} userId={user.id} />
-                <InviteTable initialInvites={inviteInfo} />
-                <MemberTable initialMembers={memberInfo} />
-            </div>
+            <MemberInviteForm orgId={user.activeOrgId!} userId={user.id} />
+            <InviteTable initialInvites={inviteInfo} />
+            <MemberTable initialMembers={memberInfo} />
         </div>
     )
 }
