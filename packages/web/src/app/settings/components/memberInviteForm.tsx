@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/hooks/use-toast";
 import { createInvite } from "../../../actions"
 import { isServiceError } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator"
 
 const formSchema = z.object({
     email: z.string().min(2).max(40),
@@ -38,7 +39,8 @@ export const MemberInviteForm = ({ orgId, userId }: { orgId: number, userId: str
     }
 
     return (
-        <div>
+        <div className="space-y-2">
+            <h4 className="text-lg font-normal">Invite a member</h4>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleCreateInvite)}>
                     <FormField

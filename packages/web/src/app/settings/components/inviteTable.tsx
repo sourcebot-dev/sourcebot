@@ -25,7 +25,8 @@ export const InviteTable = ({ initialInvites }: InviteTableProps) => {
     }, [initialInvites]);
 
     return (
-        <div>
+        <div className="space-y-2">
+            <h4 className="text-lg font-normal">Invites</h4>
             <DataTable
                 columns={inviteTableColumns()}
                 data={inviteRows}

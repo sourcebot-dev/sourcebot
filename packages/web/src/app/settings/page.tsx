@@ -5,6 +5,7 @@ import { prisma } from "@/prisma";
 import { MemberTable } from "./components/memberTable";
 import { MemberInviteForm } from "./components/memberInviteForm";
 import { InviteTable } from "./components/inviteTable";
+import { Separator } from "@/components/ui/separator"
 
 export default async function MembersPage() {
     const fetchData = async () => {
@@ -66,10 +67,19 @@ export default async function MembersPage() {
 
 
     return (
-        <div>
-            <MemberInviteForm orgId={user.activeOrgId!} userId={user.id} />
-            <InviteTable initialInvites={inviteInfo} />
-            <MemberTable initialMembers={memberInfo} />
+        <div className="space-y-6">
+            <div>
+                <h3 className="text-lg font-medium">Members</h3>
+                <p className="text-sm text-muted-foreground">
+                    Invite and manage members of your organization.
+                </p>
+            </div>
+            <Separator />
+            <div className="space-y-6">
+                <MemberTable initialMembers={memberInfo} />
+                <MemberInviteForm orgId={user.activeOrgId!} userId={user.id} />
+                <InviteTable initialInvites={inviteInfo} />
+            </div>
         </div>
     )
 }

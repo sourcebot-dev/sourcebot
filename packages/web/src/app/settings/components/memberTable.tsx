@@ -23,7 +23,8 @@ export const MemberTable = ({ initialMembers }: MemberTableProps) => {
     }, [initialMembers]);
 
     return (
-        <div>
+        <div className="space-y-2">
+            <h4 className="text-lg font-normal">Members</h4>
             <DataTable
                 columns={memberTableColumns()}
                 data={memberRows}
