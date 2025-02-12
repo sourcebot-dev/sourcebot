@@ -1,15 +1,15 @@
 import 'next-auth/jwt';
-import NextAuth, { User as AuthJsUser, DefaultSession } from "next-auth"
+import NextAuth, { DefaultSession } from "next-auth"
 import GitHub from "next-auth/providers/github"
 import Google from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
-import type { Provider } from "next-auth/providers"
-import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_SECRET } from "./lib/environment";
+import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_SECRET, AUTH_URL } from "./lib/environment";
 import { User } from '@sourcebot/db';
 import { notAuthenticated, notFound, unexpectedError } from "@/lib/serviceError";
 import { getUser } from "./data/user";
 import { LuToggleRight } from 'react-icons/lu';
+import type { Provider } from "next-auth/providers";
 
 declare module 'next-auth' {
     interface Session {
@@ -21,9 +21,9 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
     interface JWT {
-      userId: string
+        userId: string
     }
-  }
+}
 
 const providers: Provider[] = [
     GitHub({
@@ -48,6 +48,9 @@ export const providerMap = providers
     })
     .filter((provider) => provider.id !== "credentials");
 
+
+const useSecureCookies = AUTH_URL.startsWith("https://");
+const hostName = new URL(AUTH_URL).hostname;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     secret: AUTH_SECRET,
@@ -74,6 +77,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 id: token.userId,
             }
             return session;
+        },
+    },
+    cookies: {
+        sessionToken: {
+            name: `${useSecureCookies ? '__Secure-' : ''}authjs.session-token`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: useSecureCookies,
+                domain: `.${hostName}`
+            }
+        },
+        callbackUrl: {
+            name: `${useSecureCookies ? '__Secure-' : ''}authjs.callback-url`,
+            options: {
+                sameSite: 'lax',
+                path: '/',
+                secure: useSecureCookies,
+                domain: `.${hostName}`
+            }
+        },
+        csrfToken: {
+            name: `${useSecureCookies ? '__Host-' : ''}authjs.csrf-token`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: useSecureCookies,
+                domain: `.${hostName}`
+            }
         }
     },
     providers: providers,

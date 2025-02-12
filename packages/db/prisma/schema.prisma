@@ -164,7 +164,6 @@ model User {
   image         String?
   accounts      Account[]
   orgs          UserToOrg[]
-  activeOrgId   Int?
 
   /// List of pending invites that the user has created
   invites Invite[]

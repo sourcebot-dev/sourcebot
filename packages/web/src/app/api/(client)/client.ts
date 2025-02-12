@@ -5,12 +5,13 @@ import { fileSourceResponseSchema, listRepositoriesResponseSchema, searchRespons
 import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
 import assert from "assert";
 
-export const search = async (body: SearchRequest): Promise<SearchResponse> => {
+export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse> => {
     const path = resolveServerPath("/api/search");
     const result = await fetch(path, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            "X-Org-Domain": domain,
         },
         body: JSON.stringify(body),
     }).then(response => response.json());
@@ -18,12 +19,13 @@ export const search = async (body: SearchRequest): Promise<SearchResponse> => {
     return searchResponseSchema.parse(result);
 }
 
-export const fetchFileSource = async (body: FileSourceRequest): Promise<FileSourceResponse> => {
+export const fetchFileSource = async (body: FileSourceRequest, domain: string): Promise<FileSourceResponse> => {
     const path = resolveServerPath("/api/source");
     const result = await fetch(path, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            "X-Org-Domain": domain,
         },
         body: JSON.stringify(body),
     }).then(response => response.json());
@@ -31,12 +33,13 @@ export const fetchFileSource = async (body: FileSourceRequest): Promise<FileSour
     return fileSourceResponseSchema.parse(result);
 }
 
-export const getRepos = async (): Promise<ListRepositoriesResponse> => {
+export const getRepos = async (domain: string): Promise<ListRepositoriesResponse> => {
     const path = resolveServerPath("/api/repos");
     const result = await fetch(path, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
+            "X-Org-Domain": domain,
         },
     }).then(response => response.json());
 

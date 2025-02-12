@@ -41,6 +41,11 @@ export function OrgCreateForm({ setOrgCreateData }: OrgCreateFormProps) {
 
     async function submitOrgInfoForm(data: OnboardingFormValues) {
         const res = await checkIfOrgDomainExists(data.domain);
+        if (isServiceError(res)) {
+            setErrorMessage("An error occurred while checking the domain. Please try clearing your cookies and trying again.");
+            return;
+        }
+
         if (res) {
             setErrorMessage("Organization domain already exists. Please try a different one.");
             return;

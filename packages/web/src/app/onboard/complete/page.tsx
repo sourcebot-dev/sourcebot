@@ -47,11 +47,5 @@ export default async function OnboardComplete({ searchParams }: OnboardCompleteP
         return <ErrorPage />;
     }
 
-    const orgSwitchRes = await switchActiveOrg(res.id);
-    if (isServiceError(orgSwitchRes)) {
-        console.error("Failed to switch active org");
-        return <ErrorPage />;
-    }
-
     redirect("/");
 }

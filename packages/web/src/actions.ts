@@ -12,278 +12,326 @@ import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
-import { Prisma, Invite } from "@sourcebot/db";
+import { ConnectionSyncStatus, Prisma, Invite } from "@sourcebot/db";
 import { headers } from "next/headers"
 import { stripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
+import { Session } from "next-auth";
 
 const ajv = new Ajv({
     validateFormats: false,
 });
 
-export const createSecret = async (key: string, value: string): Promise<{ success: boolean } | ServiceError> => {
-    const orgId = await getCurrentUserOrg();
-    if (isServiceError(orgId)) {
-        return orgId;
+export const withAuth = async <T>(fn: (session: Session) => Promise<T>) => {
+    const session = await auth();
+    if (!session) {
+        return notAuthenticated();
     }
-
-    try {
-        const encrypted = encrypt(value);
-        await prisma.secret.create({
-            data: {
-                orgId,
-                key,
-                encryptedValue: encrypted.encryptedData,
-                iv: encrypted.iv,
-            }
-        });
-    } catch {
-        return unexpectedError(`Failed to create secret`);
-    }
-
-    return {
-        success: true,
-    }
+    return fn(session);
 }
 
-export const getSecrets = async (): Promise<{ createdAt: Date; key: string; }[] | ServiceError> => {
-    const orgId = await getCurrentUserOrg();
-    if (isServiceError(orgId)) {
-        return orgId;
-    }
-
-    const secrets = await prisma.secret.findMany({
-        where: {
-            orgId,
-        },
-        select: {
-            key: true,
-            createdAt: true
-        }
-    });
-
-    return secrets.map((secret) => ({
-        key: secret.key,
-        createdAt: secret.createdAt,
-    }));
-}
-
-export const deleteSecret = async (key: string): Promise<{ success: boolean } | ServiceError> => {
-    const orgId = await getCurrentUserOrg();
-    if (isServiceError(orgId)) {
-        return orgId;
-    }
-
-    await prisma.secret.delete({
-        where: {
-            orgId_key: {
-                orgId,
-                key,
-            }
-        }
-    });
-
-    return {
-        success: true,
-    }
-}
-
-export const checkIfOrgDomainExists = async (domain: string): Promise<boolean> => {
+export const withOrgMembership = async <T>(session: Session, domain: string, fn: (orgId: number) => Promise<T>) => {
     const org = await prisma.org.findUnique({
         where: {
             domain,
-        }
-    });
-
-    return !!org;
-}
-
-export const createOrg = async (name: string, domain: string, stripeCustomerId?: string): Promise<{ id: number } | ServiceError> => {
-    const session = await auth();
-    if (!session) {
-        return notAuthenticated();
-    }
-
-    const existingOrg = await prisma.org.findUnique({
-        where: {
-            domain,
         },
     });
 
-    if (existingOrg) {
-        return orgDomainExists();
+    if (!org) {
+        return notFound();
     }
 
-    // Create the org
-    const org = await prisma.org.create({
-        data: {
-            name,
-            domain,
-            stripeCustomerId,
-            members: {
-                create: {
-                    userId: session.user.id,
-                    role: "OWNER",
-                },
-            },
-        }
-    });
-
-    return {
-        id: org.id,
-    }
-}
-
-export const switchActiveOrg = async (orgId: number): Promise<{ id: number } | ServiceError> => {
-    const session = await auth();
-    if (!session) {
-        return notAuthenticated();
-    }
-
-    // Check to see if the user is a member of the org
-    // @todo: refactor this into a shared function
     const membership = await prisma.userToOrg.findUnique({
         where: {
             orgId_userId: {
                 userId: session.user.id,
-                orgId,
+                orgId: org.id,
             }
         },
     });
+
     if (!membership) {
         return notFound();
     }
 
-    // Update the user's active org
-    await prisma.user.update({
-        where: {
-            id: session.user.id,
-        },
-        data: {
-            activeOrgId: orgId,
-        }
-    });
-
-    return {
-        id: orgId,
-    }
+    return fn(org.id);
 }
 
-export const createConnection = async (name: string, type: string, connectionConfig: string): Promise<{ id: number } | ServiceError> => {
-    const orgId = await getCurrentUserOrg();
-    if (isServiceError(orgId)) {
-        return orgId;
-    }
-
-    const parsedConfig = parseConnectionConfig(type, connectionConfig);
-    if (isServiceError(parsedConfig)) {
-        return parsedConfig;
-    }
-
-    const connection = await prisma.connection.create({
-        data: {
-            orgId,
-            name,
-            config: parsedConfig as unknown as Prisma.InputJsonValue,
-            connectionType: type,
-        }
-    });
-
-    return {
-        id: connection.id,
-    }
+export const isAuthed = async () => {
+    const session = await auth();
+    return session != null;
 }
 
-export const updateConnectionDisplayName = async (connectionId: number, name: string): Promise<{ success: boolean } | ServiceError> => {
-    const orgId = await getCurrentUserOrg();
-    if (isServiceError(orgId)) {
-        return orgId;
-    }
+export const createOrg = (name: string, domain: string, stripeCustomerId?: string): Promise<{ id: number } | ServiceError> =>
+    withAuth(async (session) => {
+        const org = await prisma.org.create({
+            data: {
+                name,
+                domain,
+                stripeCustomerId,
+                members: {
+                    create: {
+                        role: "OWNER",
+                        user: {
+                            connect: {
+                                id: session.user.id,
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
-    const connection = await getConnection(connectionId, orgId);
-    if (!connection) {
-        return notFound();
-    }
-
-    await prisma.connection.update({
-        where: {
-            id: connectionId,
-            orgId,
-        },
-        data: {
-            name,
-        }
-    });
-
-    return {
-        success: true,
-    }
-}
-
-export const updateConnectionConfigAndScheduleSync = async (connectionId: number, config: string): Promise<{ success: boolean } | ServiceError> => {
-    const orgId = await getCurrentUserOrg();
-    if (isServiceError(orgId)) {
-        return orgId;
-    }
-
-    const connection = await getConnection(connectionId, orgId);
-    if (!connection) {
-        return notFound();
-    }
-
-    const parsedConfig = parseConnectionConfig(connection.connectionType, config);
-    if (isServiceError(parsedConfig)) {
-        return parsedConfig;
-    }
-
-    if (connection.syncStatus === "SYNC_NEEDED" ||
-        connection.syncStatus === "IN_SYNC_QUEUE" ||
-        connection.syncStatus === "SYNCING") {
         return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.CONNECTION_SYNC_ALREADY_SCHEDULED,
-            message: "Connection is already syncing. Please wait for the sync to complete before updating the connection.",
-        } satisfies ServiceError;
-    }
-
-    await prisma.connection.update({
-        where: {
-            id: connectionId,
-            orgId,
-        },
-        data: {
-            config: parsedConfig as unknown as Prisma.InputJsonValue,
-            syncStatus: "SYNC_NEEDED",
+            id: org.id,
         }
     });
 
-    return {
-        success: true,
-    }
-}
+export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const secrets = await prisma.secret.findMany({
+                where: {
+                    orgId,
+                },
+                select: {
+                    key: true,
+                    createdAt: true
+                }
+            });
 
-export const deleteConnection = async (connectionId: number): Promise<{ success: boolean } | ServiceError> => {
-    const orgId = await getCurrentUserOrg();
-    if (isServiceError(orgId)) {
-        return orgId;
-    }
+            return secrets.map((secret) => ({
+                key: secret.key,
+                createdAt: secret.createdAt,
+            }));
 
-    const connection = await getConnection(connectionId, orgId);
-    if (!connection) {
-        return notFound();
-    }
+        }));
 
-    await prisma.connection.delete({
-        where: {
-            id: connectionId,
-            orgId,
+export const createSecret = async (key: string, value: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            try {
+                const encrypted = encrypt(value);
+                await prisma.secret.create({
+                    data: {
+                        orgId,
+                        key,
+                        encryptedValue: encrypted.encryptedData,
+                        iv: encrypted.iv,
+                    }
+                });
+            } catch {
+                return unexpectedError(`Failed to create secret`);
+            }
+
+            return {
+                success: true,
+            }
+        }));
+
+export const deleteSecret = async (key: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            await prisma.secret.delete({
+                where: {
+                    orgId_key: {
+                        orgId,
+                        key,
+                    }
+                }
+            });
+
+            return {
+                success: true,
+            }
+        }));
+
+
+export const getConnections = async (domain: string): Promise<
+    {
+        id: number,
+        name: string,
+        syncStatus: ConnectionSyncStatus,
+        connectionType: string,
+        updatedAt: Date,
+        syncedAt?: Date
+    }[] | ServiceError
+> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const connections = await prisma.connection.findMany({
+                where: {
+                    orgId,
+                },
+            });
+
+            return connections.map((connection) => ({
+                id: connection.id,
+                name: connection.name,
+                syncStatus: connection.syncStatus,
+                connectionType: connection.connectionType,
+                updatedAt: connection.updatedAt,
+                syncedAt: connection.syncedAt ?? undefined,
+            }));
+        })
+    );
+
+
+export const createConnection = async (name: string, type: string, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const parsedConfig = parseConnectionConfig(type, connectionConfig);
+            if (isServiceError(parsedConfig)) {
+                return parsedConfig;
+            }
+
+            const connection = await prisma.connection.create({
+                data: {
+                    orgId,
+                    name,
+                    config: parsedConfig as unknown as Prisma.InputJsonValue,
+                    connectionType: type,
+                }
+            });
+
+            return {
+                id: connection.id,
+            }
+        }));
+
+export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const connection = await getConnection(connectionId, orgId);
+            if (!connection) {
+                return notFound();
+            }
+
+            await prisma.connection.update({
+                where: {
+                    id: connectionId,
+                    orgId,
+                },
+                data: {
+                    name,
+                }
+            });
+
+            return {
+                success: true,
+            }
+        }));
+
+export const updateConnectionConfigAndScheduleSync = async (connectionId: number, config: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const connection = await getConnection(connectionId, orgId);
+            if (!connection) {
+                return notFound();
+            }
+
+            const parsedConfig = parseConnectionConfig(connection.connectionType, config);
+            if (isServiceError(parsedConfig)) {
+                return parsedConfig;
+            }
+
+            if (connection.syncStatus === "SYNC_NEEDED" ||
+                connection.syncStatus === "IN_SYNC_QUEUE" ||
+                connection.syncStatus === "SYNCING") {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.CONNECTION_SYNC_ALREADY_SCHEDULED,
+                    message: "Connection is already syncing. Please wait for the sync to complete before updating the connection.",
+                } satisfies ServiceError;
+            }
+
+            await prisma.connection.update({
+                where: {
+                    id: connectionId,
+                    orgId,
+                },
+                data: {
+                    config: parsedConfig as unknown as Prisma.InputJsonValue,
+                    syncStatus: "SYNC_NEEDED",
+                }
+            });
+
+            return {
+                success: true,
+            }
+        }));
+
+export const deleteConnection = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const connection = await getConnection(connectionId, orgId);
+            if (!connection) {
+                return notFound();
+            }
+
+            await prisma.connection.delete({
+                where: {
+                    id: connectionId,
+                    orgId,
+                }
+            });
+
+            return {
+                success: true,
+            }
+        }));
+
+export const createInvite = async (email: string, userId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            console.log("Creating invite for", email, userId, orgId);
+
+            try {
+                await prisma.invite.create({
+                    data: {
+                        recipientEmail: email,
+                        hostUserId: userId,
+                        orgId,
+                    }
+                });
+            } catch (error) {
+                console.error("Failed to create invite:", error);
+                return unexpectedError("Failed to create invite");
+            }
+
+            return {
+                success: true,
+            }
+        })
+    );
+
+export const redeemInvite = async (invite: Invite, userId: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth(async () => {
+        try {
+            await prisma.$transaction(async (tx) => {
+                await tx.userToOrg.create({
+                    data: {
+                        userId,
+                        orgId: invite.orgId,
+                        role: "MEMBER",
+                    }
+                });
+
+                await tx.invite.delete({
+                    where: {
+                        id: invite.id,
+                    }
+                });
+            });
+
+            return {
+                success: true,
+            }
+        } catch (error) {
+            console.error("Failed to redeem invite:", error);
+            return unexpectedError("Failed to redeem invite");
         }
     });
-
-    return {
-        success: true,
-    }
-}
 
 const parseConnectionConfig = (connectionType: string, config: string) => {
     let parsedConfig: ConnectionConfig;
@@ -324,61 +372,6 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
     }
 
     return parsedConfig;
-}
-
-export const createInvite = async (email: string, userId: string, orgId: number): Promise<{ success: boolean } | ServiceError> => {
-    console.log("Creating invite for", email, userId, orgId);
-
-    try {
-        await prisma.invite.create({
-            data: {
-                recipientEmail: email,
-                hostUserId: userId,
-                orgId,
-            }
-        });
-    } catch (error) {
-        console.error("Failed to create invite:", error);
-        return unexpectedError("Failed to create invite");
-    }
-
-    return {
-        success: true,
-    }
-}
-
-export const redeemInvite = async (invite: Invite, userId: string): Promise<{ orgId: number } | ServiceError> => {
-    try {
-        await prisma.userToOrg.create({
-            data: {
-                userId,
-                orgId: invite.orgId,
-                role: "MEMBER",
-            }
-        });
-
-        await prisma.user.update({
-            where: {
-                id: userId,
-            },
-            data: {
-                activeOrgId: invite.orgId,
-            }
-        });
-
-        await prisma.invite.delete({
-            where: {
-                id: invite.id,
-            }
-        });
-
-        return {
-            orgId: invite.orgId,
-        }
-    } catch (error) {
-        console.error("Failed to redeem invite:", error);
-        return unexpectedError("Failed to redeem invite");
-    }
 }
 
 export async function fetchStripeClientSecret(name: string, domain: string) {
@@ -490,30 +483,27 @@ export async function fetchStripeSession(sessionId: string) {
     return stripeSession;
 }
 
-export async function createCustomerPortalSession() {
-    const orgId = await getCurrentUserOrg();
-    if (isServiceError(orgId)) {
-        return orgId;
-    }
+export const getCustomerPortalSessionLink = async (domain: string): Promise<string | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const org = await prisma.org.findUnique({
+                where: {
+                    id: orgId,
+                },
+            });
 
-    const org = await prisma.org.findUnique({
-        where: {
-            id: orgId,
-        },
-    });
+            if (!org || !org.stripeCustomerId) {
+                return notFound();
+            }
 
-    if (!org || !org.stripeCustomerId) {
-        return notFound();
-    }
+            const origin = (await headers()).get('origin')
+            const portalSession = await stripe.billingPortal.sessions.create({
+                customer: org.stripeCustomerId as string,
+                return_url: `${origin}/${domain}/settings/billing`,
+            });
 
-    const origin = (await headers()).get('origin')
-    const portalSession = await stripe.billingPortal.sessions.create({
-        customer: org.stripeCustomerId as string,
-        return_url: `${origin}/settings/billing`,
-    });
-
-    return portalSession;
-}
+            return portalSession.url;
+        }));
 
 export async function fetchSubscription(orgId: number) {
     const org = await prisma.org.findUnique({
@@ -538,3 +528,14 @@ export async function fetchSubscription(orgId: number) {
     }
     return subscriptions.data[0];
 }
+
+export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | ServiceError> =>
+    withAuth(async (session) => {
+        const org = await prisma.org.findFirst({
+            where: {
+                domain,
+            }
+        });
+
+        return !!org;
+    });

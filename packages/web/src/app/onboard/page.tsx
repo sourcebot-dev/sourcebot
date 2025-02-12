@@ -1,11 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import { OrgCreateForm, OnboardingFormValues } from "./components/orgCreateForm";
 import { TrialCard } from "./components/trialInfoCard";
+import { isAuthed } from "@/actions";
+import { useRouter } from "next/navigation";
 
 export default function Onboarding() {
+    const router = useRouter();
     const [orgCreateInfo, setOrgInfo] = useState<OnboardingFormValues | undefined>(undefined);
+
+    useEffect(() => {
+        const redirectIfNotAuthed = async () => {
+            const authed = await isAuthed();
+            if(!authed) {
+                router.push("/login");
+            }
+        }
+
+        redirectIfNotAuthed();
+    }, []);
 
     return (
         <div className="flex flex-col justify-center items-center h-screen">

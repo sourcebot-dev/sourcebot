@@ -5,14 +5,10 @@ import { getFileSource } from "@/lib/server/searchService";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { getCurrentUserOrg } from "@/auth";
+import { withAuth, withOrgMembership } from "@/actions";
+import { FileSourceRequest } from "@/lib/types";
 
 export const POST = async (request: NextRequest) => {
-    const orgId = await getCurrentUserOrg();
-    if (isServiceError(orgId)) {
-        return serviceErrorResponse(orgId);
-    }
-
     const body = await request.json();
     const parsed = await fileSourceRequestSchema.safeParseAsync(body);
     if (!parsed.success) {
@@ -21,10 +17,19 @@ export const POST = async (request: NextRequest) => {
         );
     }
 
-    const response = await getFileSource(parsed.data, orgId);
+
+    const response = await postSource(parsed.data, request.headers.get("X-Org-Domain")!);
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }
 
     return Response.json(response);
 }
+
+
+const postSource = (request: FileSourceRequest, domain: string) =>
+    withAuth(async (session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const response = await getFileSource(request, orgId);
+            return response;
+        }));

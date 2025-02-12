@@ -5,7 +5,7 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
-        "dev:watch": "tsc-watch --preserveWatchOutput --onSuccess \"yarn dev --configPath ../../config.json --cacheDir ../../.sourcebot\"",
+        "dev:watch": "tsc-watch --preserveWatchOutput --onSuccess \"yarn dev --cacheDir ../../.sourcebot\"",
         "dev": "export PATH=\"$PWD/../../bin:$PATH\" && export CTAGS_COMMAND=ctags && node ./dist/index.js",
         "build": "tsc",
         "test": "vitest --config ./vitest.config.ts"

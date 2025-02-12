@@ -1,6 +1,5 @@
 import { prisma } from "@/prisma";
 import { notFound, redirect } from 'next/navigation';
-import { NavigationMenu } from "../components/navigationMenu";
 import { auth } from "@/auth";
 import { getUser } from "@/data/user";
 import { AcceptInviteButton } from "./components/acceptInviteButton"
