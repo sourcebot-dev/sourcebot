@@ -1,12 +1,12 @@
 'use server'
 
-import { CheckoutButton } from "./checkoutButton"
+import { ManageSubscriptionButton } from "./manageSubscriptionButton"
 
 export default async function BillingPage() {
     return (
         <div>
             <h1>Billing</h1>
-            <CheckoutButton />
+            <ManageSubscriptionButton />
         </div>
     );
 }

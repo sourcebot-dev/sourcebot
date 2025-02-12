@@ -98,7 +98,7 @@ export const checkIfOrgDomainExists = async (domain: string): Promise<boolean> =
     return !!org;
 }
 
-export const createOrg = async (name: string, domain: string, subscriptionId?: string): Promise<{ id: number } | ServiceError> => {
+export const createOrg = async (name: string, domain: string, stripeSessionId?: string): Promise<{ id: number } | ServiceError> => {
     const session = await auth();
     if (!session) {
         return notAuthenticated();
@@ -119,7 +119,7 @@ export const createOrg = async (name: string, domain: string, subscriptionId?: s
         data: {
             name,
             domain,
-            subscriptionId,
+            stripeSessionId,
             members: {
                 create: {
                     userId: session.user.id,
@@ -422,4 +422,30 @@ export async function fetchStripeClientSecret(name: string, domain: string) {
 export async function fetchStripeSession(sessionId: string) {
     const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
     return stripeSession;
+}
+
+export async function createCustomerPortalSession() {
+    const orgId = await getCurrentUserOrg();
+    if (isServiceError(orgId)) {
+        return orgId;
+    }
+
+    const org = await prisma.org.findUnique({
+        where: {
+            id: orgId,
+        },
+    });
+
+    if (!org || !org.stripeSessionId) {
+        return notFound();
+    }
+
+    const origin = (await headers()).get('origin')
+    const stripeSession = await fetchStripeSession(org.stripeSessionId);
+    const portalSession = await stripe.billingPortal.sessions.create({
+        customer: stripeSession.customer as string,
+        return_url: `${origin}/settings/billing`,
+    });
+
+    return portalSession;
 }

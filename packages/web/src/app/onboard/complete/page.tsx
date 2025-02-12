@@ -35,14 +35,12 @@ export default async function OnboardComplete({ searchParams }: OnboardCompleteP
     }
 
     const stripeSession = await fetchStripeSession(sessionId);
-    const stripeSubscription = stripeSession.subscription;
-    if(stripeSession.payment_status !== "paid" || !stripeSubscription) {
+    if(stripeSession.payment_status !== "paid") {
         console.error("Invalid stripe session");
         return <ErrorPage />;
     }
 
-    const subscriptionId = stripeSubscription as string;
-    const res = await createOrg(orgName, orgDomain, subscriptionId);
+    const res = await createOrg(orgName, orgDomain, stripeSession.id);
     if (isServiceError(res)) {
         console.error("Failed to create org");
         return <ErrorPage />;
