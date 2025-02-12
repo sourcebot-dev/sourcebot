@@ -13,10 +13,6 @@ const BANNER_COMMENT = '// THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY
     const outDirRoot = path.resolve(`${cwd}/src`);
     const schemas = await glob(`${schemasBasePath}/**/*.json`);
 
-    // Clean output directory first
-    await rm(outDirRoot, { recursive: true, force: true });
-
-
     await Promise.all(schemas.map(async (schemaPath) => {
         const name = path.parse(schemaPath).name;
         const version = path.basename(path.dirname(schemaPath));
