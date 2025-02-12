@@ -147,10 +147,6 @@ const schema = {
             ]
           ]
         },
-        "tenantId": {
-          "type": "number",
-          "description": "@nocheckin"
-        },
         "exclude": {
           "type": "object",
           "properties": {
