@@ -10,7 +10,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-    name: z.string().min(2).max(40),
+    name: z.string().min(3).max(30),
+    domain: z.string().min(2).max(20)
 });
 
 
@@ -68,6 +69,22 @@ export const OrgCreationDialog = ({
                                         <Input {...field} />
                                     </FormControl>
                                     <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="domain"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Organization Domain</FormLabel>
+                                <FormControl>
+                                    <div className="flex items-center">
+                                        <Input placeholder="aperature" {...field} className="w-1/2" />
+                                        <span className="ml-2">.sourcebot.dev</span>
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
                                 </FormItem>
                             )}
                         />

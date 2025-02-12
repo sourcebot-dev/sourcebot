@@ -59,8 +59,8 @@ export const OrgSelectorDropdown = ({
             });
     }, [router, toast]);
 
-    const onCreateOrg = useCallback((name: string) => {
-        createOrg(name)
+    const onCreateOrg = useCallback((name: string, domain: string) => {
+        createOrg(name, domain)
             .then((response) => {
                 if (isServiceError(response)) {
                     throw response;
@@ -165,7 +165,7 @@ export const OrgSelectorDropdown = ({
                         <OrgCreationDialog
                             isOpen={isCreateOrgDialogOpen}
                             onOpenChange={setIsCreateOrgDialogOpen}
-                            onSubmit={({ name }) => onCreateOrg(name)}
+                            onSubmit={({ name, domain }) => onCreateOrg(name, domain)}
                         />
                     </DropdownMenuGroup>
                 )}

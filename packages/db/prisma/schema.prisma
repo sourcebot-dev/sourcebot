@@ -107,6 +107,7 @@ model Invite {
 model Org {
   id          Int          @id @default(autoincrement())
   name        String
+  domain      String       @unique
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   members     UserToOrg[]

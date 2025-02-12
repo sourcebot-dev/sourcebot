@@ -56,7 +56,7 @@ export default async function Login(props: {
                                     "use server"
                                     try {
                                         await signIn(provider.id, {
-                                            redirectTo: props.searchParams?.callbackUrl ?? "",
+                                            redirectTo: props.searchParams?.callbackUrl ?? "/onboard",
                                         })
                                     } catch (error) {
                                         // Signin can fail for a number of reasons, such as the user

@@ -7,11 +7,11 @@ import { AcceptInviteButton } from "./components/acceptInviteButton"
 
 interface RedeemPageProps {
     searchParams?: {
-      invite_id?: string;
+        invite_id?: string;
     };
-  }
+}
   
-  export default async function RedeemPage({ searchParams }: RedeemPageProps) {
+export default async function RedeemPage({ searchParams }: RedeemPageProps) {
     const invite_id = searchParams?.invite_id;
 
     if (!invite_id) {

@@ -84,3 +84,11 @@ export const notFound = (): ServiceError => {
         message: "Not found",
     }
 }
+
+export const orgDomainExists = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.CONFLICT,
+        errorCode: ErrorCode.ORG_DOMAIN_ALREADY_EXISTS,
+        message: "Organization domain already exists, please try a different one.",
+    }
+}

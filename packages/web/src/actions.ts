@@ -3,7 +3,7 @@
 import Ajv from "ajv";
 import { Stripe } from "stripe";
 import { auth, getCurrentUserOrg } from "./auth";
-import { notAuthenticated, notFound, ServiceError, unexpectedError } from "@/lib/serviceError";
+import { notAuthenticated, notFound, ServiceError, unexpectedError, orgDomainExists } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -14,6 +14,9 @@ import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
 import { Prisma, Invite } from "@sourcebot/db";
+import { headers } from "next/headers"
+import { stripe } from "@/lib/stripe"
+import { getUser } from "@/data/user";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -86,17 +89,37 @@ export const deleteSecret = async (key: string): Promise<{ success: boolean } | 
     }
 }
 
+export const checkIfOrgDomainExists = async (domain: string): Promise<boolean> => {
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        }
+    });
 
-export const createOrg = async (name: string): Promise<{ id: number } | ServiceError> => {
+    return !!org;
+}
+
+export const createOrg = async (name: string, domain: string): Promise<{ id: number } | ServiceError> => {
     const session = await auth();
     if (!session) {
         return notAuthenticated();
+    }
+
+    const existingOrg = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (existingOrg) {
+        return orgDomainExists();
     }
 
     // Create the org
     const org = await prisma.org.create({
         data: {
             name,
+            domain,
             members: {
                 create: {
                     userId: session.user.id,
@@ -358,28 +381,45 @@ export const redeemInvite = async (invite: Invite, userId: string): Promise<{ or
     }
 }
 
-export const createCheckoutSession = async (): Promise<Stripe.Response<Stripe.Checkout.Session> | ServiceError> => {
-    console.log(process.env.STRIPE_SECRET_KEY);
-    const stripe = await new Stripe(process.env.STRIPE_SECRET_KEY!);
+export async function fetchStripeClientSecret(name: string, domain: string) {
+    const session = await auth();
+    if (!session) {
+        return "";
+    }
+    const user = await getUser(session.user.id);
+    if (!user) {
+        return "";
+    }
 
+    const origin = (await headers()).get('origin')
+
+    // Create Checkout Sessions from body params.
     const prices = await stripe.prices.list({
-        lookup_keys: ["Sourcebot-ed04202"],
+        product: 'prod_RkeYDKNFsZJROd',
         expand: ['data.product'],
-      });
-    const session = await stripe.checkout.sessions.create({
-        billing_address_collection: 'auto',
+    });
+    const stripeSession = await stripe.checkout.sessions.create({
+        ui_mode: 'embedded',
+
         line_items: [
-          {
-            price: prices.data[0].id,
-            // For metered billing, do not pass quantity
-            quantity: 1,
-    
-          },
+            {
+                price: prices.data[0].id,
+                quantity: 1
+            }
         ],
         mode: 'subscription',
-        success_url: `http://localhost:3000/settings/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `http://localhost:3000/settings/billing?canceled=true`,
-      });
+        subscription_data: {
+            trial_period_days: 14
+        },
+        customer_email: user.email!,
+        payment_method_collection: 'if_required',
+        return_url: `${origin}/onboard/complete?session_id={CHECKOUT_SESSION_ID}&org_name=${name}&org_domain=${domain}`,
+    })
 
-    return session;
+    return stripeSession.client_secret!;
+}
+
+export async function fetchStripeSession(sessionId: string) {
+    const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
+    return stripeSession;
 }
