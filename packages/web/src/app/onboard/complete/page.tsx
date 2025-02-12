@@ -30,21 +30,27 @@ export default async function OnboardComplete({ searchParams }: OnboardCompleteP
     }
 
     if (!sessionId || !orgName || !orgDomain) {
+        console.error("Missing required parameters");
         return <ErrorPage />;
     }
 
     const stripeSession = await fetchStripeSession(sessionId);
-    if(stripeSession.payment_status !== "paid") {
+    const stripeSubscription = stripeSession.subscription;
+    if(stripeSession.payment_status !== "paid" || !stripeSubscription) {
+        console.error("Invalid stripe session");
         return <ErrorPage />;
     }
 
-    const res = await createOrg(orgName, orgDomain);
+    const subscriptionId = stripeSubscription as string;
+    const res = await createOrg(orgName, orgDomain, subscriptionId);
     if (isServiceError(res)) {
+        console.error("Failed to create org");
         return <ErrorPage />;
     }
 
     const orgSwitchRes = await switchActiveOrg(res.id);
     if (isServiceError(orgSwitchRes)) {
+        console.error("Failed to switch active org");
         return <ErrorPage />;
     }
 

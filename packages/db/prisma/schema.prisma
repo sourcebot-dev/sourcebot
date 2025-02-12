@@ -115,6 +115,8 @@ model Org {
   repos       Repo[]
   secrets     Secret[]
 
+  subscriptionId String?
+
   /// List of pending invites to this organization
   invites Invite[]
 }

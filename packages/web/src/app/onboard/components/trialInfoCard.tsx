@@ -61,10 +61,11 @@ export function TrialCard({ orgCreateInfo }: { orgCreateInfo: OnboardingFormValu
           <CardContent className="pt-2">
             <ul className="space-y-4 mb-6">
               {[
-                "Index hundreds of repos from multiple code hosts (GitHub, GitLab, Gerrit, Gitea, etc.)",
-                "Powerful regex and symbol search",
                 "Blazingly fast code search",
+                "Index hundreds of repos from multiple code hosts (GitHub, GitLab, Gerrit, Gitea, etc.). Self-hosted code sources supported.",
+                "Public and private repos supported.",
                 "Create sharable links to code snippets.",
+                "Powerful regex and symbol search",
               ].map((feature, index) => (
                 <li key={index} className="flex items-center">
                   <div className="mr-3 flex-shrink-0">

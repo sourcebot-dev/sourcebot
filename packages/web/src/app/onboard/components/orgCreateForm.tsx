@@ -19,7 +19,9 @@ const onboardingFormSchema = z.object({
         .max(30, { message: "Organization name must be at most 30 characters long." }),
     domain: z.string()
         .min(2, { message: "Organization domain must be at least 3 characters long." })
-        .max(20, { message: "Organization domain must be at most 20 characters long." }),
+        .max(20, { message: "Organization domain must be at most 20 characters long." })
+        .regex(/^[a-zA-Z-]+$/, { message: "Organization domain must contain only letters and hyphens." })
+        .regex(/^[^-].*[^-]$/, { message: "Organization domain must not start or end with a hyphen." }),
 })
 
 export type OnboardingFormValues = z.infer<typeof onboardingFormSchema>

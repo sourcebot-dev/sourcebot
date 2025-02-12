@@ -1,7 +1,6 @@
 'use server';
 
 import Ajv from "ajv";
-import { Stripe } from "stripe";
 import { auth, getCurrentUserOrg } from "./auth";
 import { notAuthenticated, notFound, ServiceError, unexpectedError, orgDomainExists } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
@@ -99,7 +98,7 @@ export const checkIfOrgDomainExists = async (domain: string): Promise<boolean> =
     return !!org;
 }
 
-export const createOrg = async (name: string, domain: string): Promise<{ id: number } | ServiceError> => {
+export const createOrg = async (name: string, domain: string, subscriptionId?: string): Promise<{ id: number } | ServiceError> => {
     const session = await auth();
     if (!session) {
         return notAuthenticated();
@@ -120,6 +119,7 @@ export const createOrg = async (name: string, domain: string): Promise<{ id: num
         data: {
             name,
             domain,
+            subscriptionId,
             members: {
                 create: {
                     userId: session.user.id,
