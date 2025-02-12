@@ -9,6 +9,10 @@ const generateIV = (): Buffer => {
 };
 
 export function encrypt(text: string): { iv: string; encryptedData: string } {
+    if (!SOURCEBOT_ENCRYPTION_KEY) {
+        throw new Error('Encryption key is not set');
+    }
+
     const encryptionKey = Buffer.from(SOURCEBOT_ENCRYPTION_KEY, 'ascii');
 
     const iv = generateIV();
@@ -21,6 +25,10 @@ export function encrypt(text: string): { iv: string; encryptedData: string } {
 }
 
 export function decrypt(iv: string, encryptedText: string): string {
+    if (!SOURCEBOT_ENCRYPTION_KEY) {
+        throw new Error('Encryption key is not set');
+    }
+
     const encryptionKey = Buffer.from(SOURCEBOT_ENCRYPTION_KEY, 'ascii');
 
     const ivBuffer = Buffer.from(iv, 'hex');
