@@ -45,10 +45,6 @@ ARG NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMET
 ARG NEXT_PUBLIC_SOURCEBOT_VERSION=BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION
 ENV NEXT_PUBLIC_POSTHOG_PAPIK=BAKED_NEXT_PUBLIC_POSTHOG_PAPIK
 
-# We declare SOURCEBOT_ENCRYPTION_KEY here since it's read during the build stage, since it's read in a server side component
-ARG SOURCEBOT_ENCRYPTION_KEY
-ENV SOURCEBOT_ENCRYPTION_KEY=$SOURCEBOT_ENCRYPTION_KEY
-
 # @nocheckin: This was interfering with the the `matcher` regex in middleware.ts,
 # causing regular expressions parsing errors when making a request. It's unclear
 # why exactly this was happening, but it's likely due to a bad replacement happening
@@ -79,20 +75,15 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATA_DIR=/data
-ENV CONFIG_PATH=$DATA_DIR/config.json
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
 ENV DB_DATA_DIR=$DATA_CACHE_DIR/db
 ENV DB_NAME=sourcebot
 ENV DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
+ENV SRC_TENANT_ENFORCEMENT_MODE=strict
 
 ARG SOURCEBOT_VERSION=unknown
 ENV SOURCEBOT_VERSION=$SOURCEBOT_VERSION
 RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
-
-# Redeclare SOURCEBOT_ENCRYPTION_KEY so that we have it in the runner
-ARG SOURCEBOT_ENCRYPTION_KEY
-
-ENV SOURCEBOT_TENANT_MODE=single
 
 # Valid values are: debug, info, warn, error
 ENV SOURCEBOT_LOG_LEVEL=info

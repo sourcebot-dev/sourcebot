@@ -95,10 +95,6 @@ export interface GitHubConfig {
    * @minItems 1
    */
   topics?: string[];
-  /**
-   * @nocheckin
-   */
-  tenantId?: number;
   exclude?: {
     /**
      * Exclude forked repositories from syncing.

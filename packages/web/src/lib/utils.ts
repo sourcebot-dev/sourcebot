@@ -1,9 +1,9 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import githubLogo from "../../public/github.svg";
-import gitlabLogo from "../../public/gitlab.svg";
-import giteaLogo from "../../public/gitea.svg";
-import gerritLogo from "../../public/gerrit.svg";
+import githubLogo from "@/public/github.svg";
+import gitlabLogo from "@/public/gitlab.svg";
+import giteaLogo from "@/public/gitea.svg";
+import gerritLogo from "@/public/gerrit.svg";
 import { ServiceError } from "./serviceError";
 import { Repository } from "./types";
 
