@@ -28,8 +28,10 @@ const defaultMiddleware = (req: NextAuthRequest) => {
     // belong to an org. It seems like the easiest way to do this is to check for these paths here and pass in a flag to the root layout using the headers
     // https://github.com/vercel/next.js/discussions/43657#discussioncomment-5981981
     const bypassOrgCheck = req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/redeem" || req.nextUrl.pathname.includes("onboard");
+    const bypassPaywall = req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/redeem" || req.nextUrl.pathname.includes("onboard") || req.nextUrl.pathname.includes("settings");
     const requestheaders = new Headers(req.headers);
     requestheaders.set("x-bypass-org-check", bypassOrgCheck.toString());
+    requestheaders.set("x-bypass-paywall", bypassPaywall.toString());
 
     // if we're trying to redeem an invite while not authed we continue to the redeem page so
     // that we can pipe the invite_id to the login page

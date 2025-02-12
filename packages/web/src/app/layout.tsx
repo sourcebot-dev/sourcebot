@@ -10,8 +10,10 @@ import { getCurrentUserOrg } from "@/auth";
 import { isServiceError } from "@/lib/utils";
 import { NavigationMenu } from "./components/navigationMenu";
 import { NoOrganizationCard } from "./components/noOrganizationCard";
+import { PaywallCard } from "./components/payWall/paywallCard";
 import { Footer } from "./components/footer";
 import { headers } from "next/headers";
+import { fetchSubscription } from "@/actions";
 
 export const metadata: Metadata = {
     title: "Sourcebot",
@@ -24,7 +26,10 @@ export default async function RootLayout({
     children: React.ReactNode;
 }>) {
     const orgId = await getCurrentUserOrg();
+    console.log(`orgId: ${orgId}`);
+    
     const byPassOrgCheck = (await headers()).get("x-bypass-org-check")! == "true";
+    console.log(`bypassOrgCheck: ${byPassOrgCheck}`);
     if (isServiceError(orgId) && !byPassOrgCheck) {
         return (
             <html
@@ -33,17 +38,52 @@ export default async function RootLayout({
                 suppressHydrationWarning
             >
                 <body>
-                <div className="flex flex-col items-center overflow-hidden min-h-screen">
-                    <SessionProvider>
-                        <NavigationMenu />
-                        <NoOrganizationCard />
-                        <Footer />
-                    </SessionProvider>
-                </div>
-                )
+                    <div className="flex flex-col items-center overflow-hidden min-h-screen">
+                        <SessionProvider>
+                            <NavigationMenu />
+                            <NoOrganizationCard />
+                            <Footer />
+                        </SessionProvider>
+                    </div>
+                    )
                 </body>
             </html>
         )
+    }
+
+    const bypassPaywall = (await headers()).get("x-bypass-paywall")! == "true";
+    console.log(bypassPaywall);
+    if (!isServiceError(orgId) && !bypassPaywall) {
+        const subscription = await fetchSubscription(orgId as number);
+        if (isServiceError(subscription)) {
+            // TODO: display something better here
+            return (
+                <div className="mt-8 text-red-500">
+                    Error: {subscription.message}
+                </div>
+            )
+        }
+        console.log(subscription.status);
+
+        if(subscription.status !== "active" && subscription.status !== "trialing") {
+            return (
+                <html
+                lang="en"
+                // @see : https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
+                suppressHydrationWarning
+            >
+                <body>
+                    <div className="flex flex-col items-center overflow-hidden min-h-screen">
+                        <SessionProvider>
+                            <NavigationMenu />
+                            <PaywallCard orgId={orgId}/>
+                            <Footer />
+                        </SessionProvider>
+                    </div>
+                </body>
+                </html>
+            )
+        }
     }
 
     return (

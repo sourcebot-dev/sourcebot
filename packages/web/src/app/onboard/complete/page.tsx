@@ -40,7 +40,8 @@ export default async function OnboardComplete({ searchParams }: OnboardCompleteP
         return <ErrorPage />;
     }
 
-    const res = await createOrg(orgName, orgDomain, stripeSession.id);
+    const stripeCustomerId = stripeSession.customer as string;
+    const res = await createOrg(orgName, orgDomain, stripeCustomerId);
     if (isServiceError(res)) {
         console.error("Failed to create org");
         return <ErrorPage />;
