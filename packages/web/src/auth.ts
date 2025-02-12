@@ -47,8 +47,8 @@ export const providerMap = providers
     .filter((provider) => provider.id !== "credentials");
 
 
-const useSecureCookies = AUTH_URL.startsWith("https://");
-const hostName = new URL(AUTH_URL).hostname;
+const useSecureCookies = AUTH_URL?.startsWith("https://") ?? false;
+const hostName = AUTH_URL ? new URL(AUTH_URL).hostname : "localhost";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     secret: AUTH_SECRET,
