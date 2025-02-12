@@ -23,10 +23,22 @@ const apiMiddleware = (req: NextAuthRequest) => {
 }
 
 const defaultMiddleware = (req: NextAuthRequest) => {
+    // We're not able to check if the user doesn't belong to any orgs in the middleware, since we cannot call prisma. As a result, we do this check
+    // in the root layout. However, there are certain endpoints (ex. login, redeem, onboard) that we want the user to be able to hit even if they don't
+    // belong to an org. It seems like the easiest way to do this is to check for these paths here and pass in a flag to the root layout using the headers
+    // https://github.com/vercel/next.js/discussions/43657#discussioncomment-5981981
+    const bypassOrgCheck = req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/redeem" || req.nextUrl.pathname.includes("onboard");
+    const requestheaders = new Headers(req.headers);
+    requestheaders.set("x-bypass-org-check", bypassOrgCheck.toString());
+
     // if we're trying to redeem an invite while not authed we continue to the redeem page so
     // that we can pipe the invite_id to the login page
     if (!req.auth && req.nextUrl.pathname === "/redeem") {
-        return NextResponse.next();
+        return NextResponse.next({
+            request: {
+                headers: requestheaders,
+            }
+        });
     }
 
     if (!req.auth && req.nextUrl.pathname !== "/login") {
@@ -37,7 +49,11 @@ const defaultMiddleware = (req: NextAuthRequest) => {
         return NextResponse.redirect(newUrl);
     }
 
-    return NextResponse.next();
+    return NextResponse.next({
+        request: {
+            headers: requestheaders,
+        }
+    });
 }
 
 export default auth(async (req) => {

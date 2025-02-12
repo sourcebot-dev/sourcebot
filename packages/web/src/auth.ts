@@ -111,3 +111,13 @@ export const getCurrentUserOrg = async () => {
 
     return orgId;
 }
+
+export const doesUserHaveOrg = async (userId: string) => {
+    const orgs = await prisma.userToOrg.findMany({
+        where: {
+            userId,
+        },
+    });
+
+    return orgs.length > 0;
+}

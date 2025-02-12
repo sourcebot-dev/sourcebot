@@ -1,4 +1,3 @@
-import { Header } from "../components/header";
 import { auth } from "@/auth";
 import { getUser } from "@/data/user";
 import { prisma } from "@/prisma";

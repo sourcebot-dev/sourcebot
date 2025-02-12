@@ -409,7 +409,7 @@ export async function fetchStripeClientSecret(name: string, domain: string) {
         ],
         mode: 'subscription',
         subscription_data: {
-            trial_period_days: 14
+            trial_period_days: 7,
         },
         customer_email: user.email!,
         payment_method_collection: 'if_required',
