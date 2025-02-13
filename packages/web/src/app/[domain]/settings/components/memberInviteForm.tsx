@@ -9,6 +9,7 @@ import { useToast } from "@/components/hooks/use-toast";
 import { createInvite } from "@/actions"
 import { isServiceError } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
+import { ErrorCode } from "@/lib/errorCodes";
 
 const formSchema = z.object({
     email: z.string().min(2).max(40),
@@ -29,7 +30,7 @@ export const MemberInviteForm = ({ userId }: { userId: string }) => {
         const res = await createInvite(values.email, userId, domain);
         if (isServiceError(res)) {
             toast({
-                description: `❌ Failed to create invite`
+                description: res.errorCode == ErrorCode.SELF_INVITE ? res.message :`❌ Failed to create invite`
             });
             return;
         } else {

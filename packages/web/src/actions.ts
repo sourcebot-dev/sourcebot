@@ -287,6 +287,15 @@ export const createInvite = async (email: string, userId: string, domain: string
         withOrgMembership(session, domain, async (orgId) => {
             console.log("Creating invite for", email, userId, orgId);
 
+            if (email === session.user.email) {
+                console.error("User tried to invite themselves");
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.SELF_INVITE,
+                    message: "❌ You can't invite yourself to an org",
+                } satisfies ServiceError;
+            }
+
             try {
                 await prisma.invite.create({
                     data: {
