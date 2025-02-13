@@ -20,8 +20,9 @@ const onboardingFormSchema = z.object({
     domain: z.string()
         .min(2, { message: "Organization domain must be at least 3 characters long." })
         .max(20, { message: "Organization domain must be at most 20 characters long." })
-        .regex(/^[a-zA-Z-]+$/, { message: "Organization domain must contain only letters and hyphens." })
-        .regex(/^[^-].*[^-]$/, { message: "Organization domain must not start or end with a hyphen." }),
+        .regex(/^[a-z-]+$/, {
+            message: "Domain can only contain lowercase letters and dashes.",
+          }),
 })
 
 export type OnboardingFormValues = z.infer<typeof onboardingFormSchema>
@@ -54,6 +55,12 @@ export function OrgCreateForm({ setOrgCreateData }: OrgCreateFormProps) {
         }
     }
 
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const name = e.target.value
+        const domain = name.toLowerCase().replace(/\s+/g, "-")
+        form.setValue("domain", domain)
+      }
+
     return (
         <div className="space-y-6">
             <div className="flex justify-center">
@@ -80,7 +87,14 @@ export function OrgCreateForm({ setOrgCreateData }: OrgCreateFormProps) {
                             <FormItem>
                                 <FormLabel>Organization Name</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Aperture Laboratories Inc." {...field} />
+                                    <Input 
+                                        placeholder="Aperture Labs" 
+                                        {...field} 
+                                        onChange={(e) => {
+                                            field.onChange(e)
+                                            handleNameChange(e)
+                                        }}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -94,7 +108,7 @@ export function OrgCreateForm({ setOrgCreateData }: OrgCreateFormProps) {
                                 <FormLabel>Organization Domain</FormLabel>
                                 <FormControl>
                                     <div className="flex items-center">
-                                        <Input placeholder="aperature" {...field} className="w-1/2" />
+                                        <Input placeholder="aperature-labs" {...field} className="w-1/2" />
                                         <span className="ml-2">.sourcebot.dev</span>
                                     </div>
                                 </FormControl>

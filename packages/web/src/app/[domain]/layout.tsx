@@ -47,9 +47,7 @@ export default async function Layout({
     if (isServiceError(subscription) || (subscription.status !== "active" && subscription.status !== "trialing")) {
         return (
             <div className="flex flex-col items-center overflow-hidden min-h-screen">
-                <NavigationMenu
-                    domain={domain}
-                />
+                <NavigationMenu domain={domain} />
                 <PaywallCard domain={domain} />
                 <Footer />
             </div>

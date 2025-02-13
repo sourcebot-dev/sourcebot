@@ -1,18 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "./auth"
 
-/*
-// We're not able to check if the user doesn't belong to any orgs in the middleware, since we cannot call prisma. As a result, we do this check
-// in the root layout. However, there are certain endpoints (ex. login, redeem, onboard) that we want the user to be able to hit even if they don't
-// belong to an org. It seems like the easiest way to do this is to check for these paths here and pass in a flag to the root layout using the headers
-// https://github.com/vercel/next.js/discussions/43657#discussioncomment-5981981
-const bypassOrgCheck = req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/redeem" || req.nextUrl.pathname.includes("onboard");
-const bypassPaywall = req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/redeem" || req.nextUrl.pathname.includes("onboard") || req.nextUrl.pathname.includes("settings");
-const requestheaders = new Headers(req.headers);
-requestheaders.set("x-bypass-org-check", bypassOrgCheck.toString());
-requestheaders.set("x-bypass-paywall", bypassPaywall.toString());
-*/
-
 export default auth((request) => {
     const host = request.headers.get("host")!;
 

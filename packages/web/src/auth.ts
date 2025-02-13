@@ -6,9 +6,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
 import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_SECRET, AUTH_URL } from "./lib/environment";
 import { User } from '@sourcebot/db';
-import { notAuthenticated, notFound, unexpectedError } from "@/lib/serviceError";
-import { getUser } from "./data/user";
-import { LuToggleRight } from 'react-icons/lu';
+import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
 
 declare module 'next-auth' {
@@ -49,8 +47,8 @@ export const providerMap = providers
     .filter((provider) => provider.id !== "credentials");
 
 
-const useSecureCookies = AUTH_URL.startsWith("https://");
-const hostName = new URL(AUTH_URL).hostname;
+const useSecureCookies = AUTH_URL?.startsWith("https://") ?? false;
+const hostName = AUTH_URL ? new URL(AUTH_URL).hostname : "localhost";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     secret: AUTH_SECRET,
@@ -115,43 +113,3 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         signIn: "/login"
     }
 });
-
-export const getCurrentUserOrg = async () => {
-    const session = await auth();
-    if (!session) {
-        return notAuthenticated();
-    }
-
-    const user = await getUser(session.user.id);
-    if (!user) {
-        return unexpectedError("User not found");
-    }
-    const orgId = user.activeOrgId;
-    if (!orgId) {
-        return unexpectedError("User has no active org");
-    }
-
-    const membership = await prisma.userToOrg.findUnique({
-        where: {
-            orgId_userId: {
-                userId: session.user.id,
-                orgId,
-            }
-        },
-    });
-    if (!membership) {
-        return notFound();
-    }
-
-    return orgId;
-}
-
-export const doesUserHaveOrg = async (userId: string) => {
-    const orgs = await prisma.userToOrg.findMany({
-        where: {
-            userId,
-        },
-    });
-
-    return orgs.length > 0;
-}
