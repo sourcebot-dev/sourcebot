@@ -92,3 +92,11 @@ export const orgDomainExists = (): ServiceError => {
         message: "Organization domain already exists, please try a different one.",
     }
 }
+
+export const orgInvalidSubscription = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.BAD_REQUEST,
+        errorCode: ErrorCode.ORG_INVALID_SUBSCRIPTION,
+        message: "Invalid subscription",
+    }
+}
