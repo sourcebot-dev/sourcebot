@@ -10,12 +10,14 @@ import { createInvite } from "@/actions"
 import { isServiceError } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 import { ErrorCode } from "@/lib/errorCodes";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
     email: z.string().min(2).max(40),
 });
 
 export const MemberInviteForm = ({ userId }: { userId: string }) => {
+    const router = useRouter();
     const { toast } = useToast();
     const domain = useDomain();
 
@@ -37,6 +39,8 @@ export const MemberInviteForm = ({ userId }: { userId: string }) => {
             toast({
                 description: `✅ Invite created successfully!`
             });
+            
+            router.refresh();
         }
     }
 

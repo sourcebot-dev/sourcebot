@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { DataTable } from "@/components/ui/data-table";
 import { InviteColumnInfo, inviteTableColumns } from "./inviteTableColumns"
+import { useToast } from "@/components/hooks/use-toast";
 
 export interface InviteInfo {
     id: string;
@@ -14,6 +15,14 @@ interface InviteTableProps {
 }
 
 export const InviteTable = ({ initialInvites }: InviteTableProps) => {
+    const { toast } = useToast();
+
+    const displayToast = (message: string) => {
+        toast({
+            description: message,
+        });
+    }
+
     const inviteRows: InviteColumnInfo[] = useMemo(() => {
         return initialInvites.map(invite => {
             return {
@@ -28,7 +37,7 @@ export const InviteTable = ({ initialInvites }: InviteTableProps) => {
         <div className="space-y-2">
             <h4 className="text-lg font-normal">Invites</h4>
             <DataTable
-                columns={inviteTableColumns()}
+                columns={inviteTableColumns(displayToast)}
                 data={inviteRows}
                 searchKey="email"
                 searchPlaceholder="Search invites..."
