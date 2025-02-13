@@ -43,7 +43,7 @@ export default async function Layout({
         return <PageNotFound />
     }
 
-    const subscription = await fetchSubscription(org.id);
+    const subscription = await fetchSubscription(domain);
     if (isServiceError(subscription) || (subscription.status !== "active" && subscription.status !== "trialing")) {
         return (
             <div className="flex flex-col items-center overflow-hidden min-h-screen">
