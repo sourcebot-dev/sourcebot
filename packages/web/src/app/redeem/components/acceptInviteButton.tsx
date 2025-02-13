@@ -26,7 +26,7 @@ export function AcceptInviteButton({ invite, userId }: AcceptInviteButtonProps) 
                 console.log("Failed to redeem invite: ", res)
                 toast({
                     title: "Error",
-                    description: "Failed to redeem invite. Please try again.",
+                    description: "Failed to redeem invite. Please ensure the organization has an active subscription.",
                     variant: "destructive",
                 })
             } else {

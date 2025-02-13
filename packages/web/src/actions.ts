@@ -318,7 +318,7 @@ export const createInvite = async (email: string, userId: string, domain: string
 export const redeemInvite = async (invite: Invite, userId: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth(async () => {
         try {
-            await prisma.$transaction(async (tx) => {
+            const res = await prisma.$transaction(async (tx) => {
                 const org = await tx.org.findUnique({
                     where: {
                         id: invite.orgId,
@@ -332,6 +332,7 @@ export const redeemInvite = async (invite: Invite, userId: string): Promise<{ su
                 // Incrememnt the seat count
                 if (org.stripeCustomerId) {
                     const subscription = await fetchSubscription(org.domain);
+                    console.log("subscription", subscription)
                     if (isServiceError(subscription)) {
                         return orgInvalidSubscription();
                     }
@@ -362,6 +363,10 @@ export const redeemInvite = async (invite: Invite, userId: string): Promise<{ su
                     }
                 });
             });
+
+            if (isServiceError(res)) {
+                return res;
+            }
 
             return {
                 success: true,
@@ -422,7 +427,7 @@ export const setupInitialStripeCustomer = async (name: string, domain: string) =
 
         const origin = (await headers()).get('origin')
 
-        @nocheckin
+        // @nocheckin
         const test_clock = await stripe.testHelpers.testClocks.create({
             frozen_time: Math.floor(Date.now() / 1000)
         })
