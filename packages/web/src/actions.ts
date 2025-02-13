@@ -641,3 +641,20 @@ export const removeMember = async (memberId: string, domain: string): Promise<{ 
             }
         })
     );
+
+export const getSubscriptionData = async (domain: string) => 
+    withAuth(async (session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const subscription = await fetchSubscription(orgId);
+            if (isServiceError(subscription)) {
+                return orgInvalidSubscription();
+            }
+
+            return {
+                plan: "Team",
+                seats: subscription.items.data[0].quantity!,
+                perSeatPrice: subscription.items.data[0].price.unit_amount! / 100,
+                nextBillingDate: subscription.current_period_end!,
+            }
+        })
+    );

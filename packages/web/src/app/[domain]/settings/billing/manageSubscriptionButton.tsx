@@ -29,7 +29,7 @@ export function ManageSubscriptionButton() {
     }
 
     return (
-        <Button onClick={redirectToCustomerPortal} disabled={isLoading}>
+        <Button className="w-full" onClick={redirectToCustomerPortal} disabled={isLoading}>
           {isLoading ? "Creating customer portal..." : "Manage Subscription"}
         </Button>
       )
