@@ -9,12 +9,15 @@ import { useToast } from "@/components/hooks/use-toast";
 import { createInvite } from "@/actions"
 import { isServiceError } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
+import { ErrorCode } from "@/lib/errorCodes";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
     email: z.string().min(2).max(40),
 });
 
 export const MemberInviteForm = ({ userId }: { userId: string }) => {
+    const router = useRouter();
     const { toast } = useToast();
     const domain = useDomain();
 
@@ -29,18 +32,21 @@ export const MemberInviteForm = ({ userId }: { userId: string }) => {
         const res = await createInvite(values.email, userId, domain);
         if (isServiceError(res)) {
             toast({
-                description: `❌ Failed to create invite`
+                description: res.errorCode == ErrorCode.SELF_INVITE ? res.message :`❌ Failed to create invite`
             });
             return;
         } else {
             toast({
                 description: `✅ Invite created successfully!`
             });
+            
+            router.refresh();
         }
     }
 
     return (
-        <div>
+        <div className="space-y-2">
+            <h4 className="text-lg font-normal">Invite a member</h4>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleCreateInvite)}>
                     <FormField

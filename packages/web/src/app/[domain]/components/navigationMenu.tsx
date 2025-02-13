@@ -9,7 +9,8 @@ import { SettingsDropdown } from "./settingsDropdown";
 import { GitHubLogoIcon, DiscordLogoIcon } from "@radix-ui/react-icons";
 import { redirect } from "next/navigation";
 import { OrgSelector } from "./orgSelector";
-
+import { getSubscriptionData } from "@/actions";
+import { isServiceError } from "@/lib/utils";
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
 
@@ -20,6 +21,8 @@ interface NavigationMenuProps {
 export const NavigationMenu = async ({
     domain,
 }: NavigationMenuProps) => {
+    const subscription = await getSubscriptionData(domain);
+
     return (
         <div className="flex flex-col w-screen h-fit">
             <div className="flex flex-row justify-between items-center py-1.5 px-3">
@@ -66,14 +69,14 @@ export const NavigationMenu = async ({
                             <NavigationMenuItem>
                                 <Link href={`/${domain}/secrets`} legacyBehavior passHref>
                                     <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                        Secrets 
+                                        Secrets
                                     </NavigationMenuLink>
                                 </Link>
                             </NavigationMenuItem>
                             <NavigationMenuItem>
                                 <Link href={`/${domain}/connections`} legacyBehavior passHref>
                                     <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                        Connections 
+                                        Connections
                                     </NavigationMenuLink>
                                 </Link>
                             </NavigationMenuItem>
@@ -89,6 +92,17 @@ export const NavigationMenu = async ({
                 </div>
 
                 <div className="flex flex-row items-center gap-2">
+                    {!isServiceError(subscription) && subscription.status === "trialing" && (
+                        <Link href={`/${domain}/settings/billing`}>
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-full text-yellow-700 dark:text-yellow-400 text-xs font-medium hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors cursor-pointer">
+                                <span className="inline-block w-2 h-2 bg-yellow-400 dark:bg-yellow-500 rounded-full"></span>
+                                <span>
+                                    {Math.ceil((subscription.nextBillingDate * 1000 - Date.now()) / (1000 * 60 * 60 * 24))} days left in
+                                    trial
+                                </span>
+                            </div>
+                        </Link>
+                    )}
                     <form
                         action={async () => {
                             "use server";

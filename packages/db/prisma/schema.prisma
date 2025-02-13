@@ -105,18 +105,20 @@ model Invite {
 }
 
 model Org {
-  id          Int          @id @default(autoincrement())
-  name        String
-  domain      String       @unique
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  members     UserToOrg[]
-  connections Connection[]
-  repos       Repo[]
-  secrets     Secret[]
+  id                Int          @id @default(autoincrement())
+  name              String
+  domain            String       @unique
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  members           UserToOrg[]
+  connections       Connection[]
+  repos             Repo[]
+  secrets           Secret[]
+
+  stripeCustomerId  String?
 
   /// List of pending invites to this organization
-  invites Invite[]
+  invites           Invite[]
 }
 
 enum OrgRole {

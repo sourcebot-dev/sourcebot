@@ -2,6 +2,11 @@ import { prisma } from "@/prisma";
 import { PageNotFound } from "./components/pageNotFound";
 import { auth } from "@/auth";
 import { getOrgFromDomain } from "@/data/org";
+import { fetchSubscription } from "@/actions";
+import { isServiceError } from "@/lib/utils";
+import { PaywallCard } from "./components/payWall/paywallCard";
+import { NavigationMenu } from "./components/navigationMenu";
+import { Footer } from "./components/footer";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -36,6 +41,17 @@ export default async function Layout({
 
     if (!membership) {
         return <PageNotFound />
+    }
+
+    const subscription = await fetchSubscription(domain);
+    if (isServiceError(subscription) || (subscription.status !== "active" && subscription.status !== "trialing")) {
+        return (
+            <div className="flex flex-col items-center overflow-hidden min-h-screen">
+                <NavigationMenu domain={domain} />
+                <PaywallCard domain={domain} />
+                <Footer />
+            </div>
+        )
     }
 
     return children;
