@@ -332,9 +332,8 @@ export const redeemInvite = async (invite: Invite, userId: string): Promise<{ su
                 // Incrememnt the seat count
                 if (org.stripeCustomerId) {
                     const subscription = await fetchSubscription(org.domain);
-                    console.log("subscription", subscription)
                     if (isServiceError(subscription)) {
-                        return orgInvalidSubscription();
+                        throw orgInvalidSubscription();
                     }
 
                     const existingSeatCount = subscription.items.data[0].quantity;
@@ -548,27 +547,26 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
         }));
 
 export const fetchSubscription = (domain: string): Promise<any | ServiceError> =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async (orgId) => {
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
+    withAuth(async () => {
+        const org = await prisma.org.findUnique({
+            where: {
+                domain,
+            },
+        });
 
-            if (!org || !org.stripeCustomerId) {
-                return notFound();
-            }
+        if (!org || !org.stripeCustomerId) {
+            return notFound();
+        }
 
-            const subscriptions = await stripe.subscriptions.list({
-                customer: org.stripeCustomerId
-            });
+        const subscriptions = await stripe.subscriptions.list({
+            customer: org.stripeCustomerId
+        });
 
-            if (subscriptions.data.length === 0) {
-                return notFound();
-            }
-            return subscriptions.data[0];
-        }));
+        if (subscriptions.data.length === 0) {
+            return notFound();
+        }
+        return subscriptions.data[0];
+    });
 
 export const checkIfUserHasOrg = async (userId: string): Promise<boolean | ServiceError> => {
     const orgs = await prisma.userToOrg.findMany({
@@ -592,7 +590,7 @@ export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | 
     });
 
 export const removeMember = async (memberId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
-    withAuth(async (session) => 
+    withAuth(async (session) =>
         withOrgMembership(session, domain, async (orgId) => {
             const targetMember = await prisma.userToOrg.findUnique({
                 where: {
@@ -616,7 +614,7 @@ export const removeMember = async (memberId: string, domain: string): Promise<{ 
             if (!org) {
                 return notFound();
             }
-            
+
             if (org.stripeCustomerId) {
                 const subscription = await fetchSubscription(domain);
                 if (isServiceError(subscription)) {
@@ -650,7 +648,7 @@ export const removeMember = async (memberId: string, domain: string): Promise<{ 
         })
     );
 
-export const getSubscriptionData = async (domain: string) => 
+export const getSubscriptionData = async (domain: string) =>
     withAuth(async (session) =>
         withOrgMembership(session, domain, async (orgId) => {
             const subscription = await fetchSubscription(domain);
