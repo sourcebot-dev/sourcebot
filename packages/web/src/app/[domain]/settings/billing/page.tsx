@@ -37,7 +37,11 @@ export default async function BillingPage({
         <Card>
           <CardHeader>
             <CardTitle>Subscription Plan</CardTitle>
-            <CardDescription>You are currently on the {subscription.plan} plan.</CardDescription>
+            <CardDescription>
+              {subscription.status === "trialing" 
+                ? "You are currently on a free trial"
+                : `You are currently on the ${subscription.plan} plan.`}
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="flex items-center justify-between">
@@ -53,7 +57,7 @@ export default async function BillingPage({
               <div className="flex items-center space-x-4">
                 <CalendarIcon className="h-5 w-5 text-muted-foreground" />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">Next Billing Date</p>
+                  <p className="text-sm font-medium leading-none">{subscription.status === "trialing" ? "Trial End Date" : "Next Billing Date"}</p>
                   <p className="text-sm text-muted-foreground">{new Date(subscription.nextBillingDate * 1000).toLocaleDateString()}</p>
                 </div>
               </div>

@@ -655,6 +655,7 @@ export const getSubscriptionData = async (domain: string) =>
                 seats: subscription.items.data[0].quantity!,
                 perSeatPrice: subscription.items.data[0].price.unit_amount! / 100,
                 nextBillingDate: subscription.current_period_end!,
+                status: subscription.status,
             }
         })
     );
