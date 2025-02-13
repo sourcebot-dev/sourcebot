@@ -20,8 +20,8 @@ const onboardingFormSchema = z.object({
     domain: z.string()
         .min(2, { message: "Organization domain must be at least 3 characters long." })
         .max(20, { message: "Organization domain must be at most 20 characters long." })
-        .regex(/^[a-z-]+$/, {
-            message: "Domain can only contain lowercase letters and dashes.",
+        .regex(/^[a-z][a-z-]*[a-z]$/, {
+            message: "Domain must start and end with a letter, and can only contain lowercase letters and dashes.",
           }),
 })
 
