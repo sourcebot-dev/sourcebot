@@ -15,3 +15,4 @@ export const AUTH_GOOGLE_CLIENT_SECRET = getEnv(process.env.AUTH_GOOGLE_CLIENT_S
 export const AUTH_URL = getEnv(process.env.AUTH_URL)!;
 
 export const STRIPE_SECRET_KEY = getEnv(process.env.STRIPE_SECRET_KEY);
+export const STRIPE_PRODUCT_ID = getEnv(process.env.STRIPE_PRODUCT_ID);

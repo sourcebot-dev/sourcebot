@@ -17,7 +17,7 @@ import { headers } from "next/headers"
 import { stripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
 import { Session } from "next-auth";
-import Stripe from "stripe";
+import { STRIPE_PRODUCT_ID } from "@/lib/environment";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -413,56 +413,53 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
     return parsedConfig;
 }
 
-export async function fetchStripeClientSecret(name: string, domain: string) {
-    const session = await auth();
-    if (!session) {
-        return "";
-    }
-    const user = await getUser(session.user.id);
-    if (!user) {
-        return "";
-    }
+export const setupInitialStripeCustomer = async (name: string, domain: string) =>
+    withAuth(async (session) => {
+        const user = await getUser(session.user.id);
+        if (!user) {
+            return "";
+        }
 
-    const origin = (await headers()).get('origin')
+        const origin = (await headers()).get('origin')
 
-    const test_clock = await stripe.testHelpers.testClocks.create({
-        frozen_time: Math.floor(Date.now() / 1000)
-    })
+        const test_clock = await stripe.testHelpers.testClocks.create({
+            frozen_time: Math.floor(Date.now() / 1000)
+        })
 
-    const customer = await stripe.customers.create({
-        name: user.name!,
-        email: user.email!,
-        test_clock: test_clock.id
-    })
+        const customer = await stripe.customers.create({
+            name: user.name!,
+            email: user.email!,
+            test_clock: test_clock.id
+        })
 
-    const prices = await stripe.prices.list({
-        product: 'prod_RkeYDKNFsZJROd',
-        expand: ['data.product'],
-    });
-    const stripeSession = await stripe.checkout.sessions.create({
-        ui_mode: 'embedded',
-        customer: customer.id,
-        line_items: [
-            {
-                price: prices.data[0].id,
-                quantity: 1
-            }
-        ],
-        mode: 'subscription',
-        subscription_data: {
-            trial_period_days: 7,
-            trial_settings: {
-                end_behavior: {
-                    missing_payment_method: 'cancel',
+        const prices = await stripe.prices.list({
+            product: STRIPE_PRODUCT_ID,
+            expand: ['data.product'],
+        });
+        const stripeSession = await stripe.checkout.sessions.create({
+            ui_mode: 'embedded',
+            customer: customer.id,
+            line_items: [
+                {
+                    price: prices.data[0].id,
+                    quantity: 1
+                }
+            ],
+            mode: 'subscription',
+            subscription_data: {
+                trial_period_days: 7,
+                trial_settings: {
+                    end_behavior: {
+                        missing_payment_method: 'cancel',
+                    },
                 },
             },
-        },
-        payment_method_collection: 'if_required',
-        return_url: `${origin}/onboard/complete?session_id={CHECKOUT_SESSION_ID}&org_name=${name}&org_domain=${domain}`,
-    })
+            payment_method_collection: 'if_required',
+            return_url: `${origin}/onboard/complete?session_id={CHECKOUT_SESSION_ID}&org_name=${name}&org_domain=${domain}`,
+        })
 
-    return stripeSession.client_secret!;
-}
+        return stripeSession.client_secret!;
+    });
 
 export const getSubscriptionCheckoutRedirect = async (domain: string) =>
     withAuth((session) =>
@@ -489,7 +486,7 @@ export const getSubscriptionCheckoutRedirect = async (domain: string) =>
 
             const origin = (await headers()).get('origin')
             const prices = await stripe.prices.list({
-                product: 'prod_RkeYDKNFsZJROd',
+                product: STRIPE_PRODUCT_ID,
                 expand: ['data.product'],
             });
 

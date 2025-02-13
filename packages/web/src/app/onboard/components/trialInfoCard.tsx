@@ -13,7 +13,7 @@ import logoDark from "@/public/sb_logo_dark_large.png";
 import logoLight from "@/public/sb_logo_light_large.png";
 import Image from "next/image";
 
-import { fetchStripeClientSecret } from "../../../actions"
+import { setupInitialStripeCustomer } from "../../../actions"
 import {
     EmbeddedCheckout,
     EmbeddedCheckoutProvider
@@ -21,6 +21,7 @@ import {
   import { loadStripe } from '@stripe/stripe-js'
 import { useState } from "react";
 import { OnboardingFormValues } from "./orgCreateForm";
+import { isServiceError } from "@/lib/utils";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -33,7 +34,13 @@ export function TrialCard({ orgCreateInfo }: { orgCreateInfo: OnboardingFormValu
         <div id="checkout">
         <EmbeddedCheckoutProvider
           stripe={stripePromise}
-          options={{ fetchClientSecret: () => fetchStripeClientSecret(orgCreateInfo.name, orgCreateInfo.domain) }}
+          options={{ fetchClientSecret: async () => {
+            const clientSecret = await setupInitialStripeCustomer(orgCreateInfo.name, orgCreateInfo.domain);
+            if (isServiceError(clientSecret)) {
+              throw clientSecret;
+            }
+            return clientSecret;
+          } }}
         >
           <EmbeddedCheckout />
         </EmbeddedCheckoutProvider>
