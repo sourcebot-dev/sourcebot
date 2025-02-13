@@ -34,7 +34,7 @@ export const InviteTable = ({ initialInvites }: InviteTableProps) => {
     }, [initialInvites]);
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-2 overflow-x-auto">
             <h4 className="text-lg font-normal">Invites</h4>
             <DataTable
                 columns={inviteTableColumns(displayToast)}

@@ -565,8 +565,18 @@ export async function fetchSubscription(orgId: number) {
     return subscriptions.data[0];
 }
 
+export const checkIfUserHasOrg = async (userId: string): Promise<boolean | ServiceError> => {
+    const orgs = await prisma.userToOrg.findMany({
+        where: {
+            userId,
+        },
+    });
+
+    return orgs.length > 0;
+}
+
 export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | ServiceError> =>
-    withAuth(async (session) => {
+    withAuth(async () => {
         const org = await prisma.org.findFirst({
             where: {
                 domain,
@@ -575,3 +585,62 @@ export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | 
 
         return !!org;
     });
+
+export const removeMember = async (memberId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth(async (session) => 
+        withOrgMembership(session, domain, async (orgId) => {
+            const targetMember = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        orgId,
+                        userId: memberId,
+                    }
+                }
+            });
+
+            if (!targetMember) {
+                return notFound();
+            }
+
+            const org = await prisma.org.findUnique({
+                where: {
+                    id: orgId,
+                },
+            });
+
+            if (!org) {
+                return notFound();
+            }
+            
+            if (org.stripeCustomerId) {
+                const subscription = await fetchSubscription(orgId);
+                if (isServiceError(subscription)) {
+                    return orgInvalidSubscription();
+                }
+
+                const existingSeatCount = subscription.items.data[0].quantity;
+                const newSeatCount = (existingSeatCount || 1) - 1;
+
+                await stripe.subscriptionItems.update(
+                    subscription.items.data[0].id,
+                    {
+                        quantity: newSeatCount,
+                        proration_behavior: 'create_prorations',
+                    }
+                )
+            }
+
+            await prisma.userToOrg.delete({
+                where: {
+                    orgId_userId: {
+                        orgId,
+                        userId: memberId,
+                    }
+                }
+            });
+
+            return {
+                success: true,
+            }
+        })
+    );
