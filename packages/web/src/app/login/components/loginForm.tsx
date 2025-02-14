@@ -12,7 +12,7 @@ import githubLogo from "@/public/github.svg";
 import googleLogo from "@/public/google.svg";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { verifyCredentialsRequestSchema } from "@/lib/schemas";
 
@@ -40,11 +40,25 @@ export const LoginForm = () => {
         signIn(provider, { redirectTo: callbackUrl ?? "/" });
     }, [callbackUrl]);
 
+    const errorMessage = useMemo(() => {
+        if (!error) {
+            return "";
+        }
+        switch (error) {
+            case "CredentialsSignin":
+                return "Invalid email or password. Please try again.";
+            case "OAuthAccountNotLinked":
+                return "This email is already associated with a different sign-in method.";
+            default:
+                return "An error occurred during authentication. Please try again.";
+        }
+    }, [error]);
+
     return (
         <div className="flex flex-col items-center border p-16 rounded-lg gap-6 w-[500px]">
             {error && (
                 <div className="text-sm text-destructive text-center text-wrap border p-2 rounded-md border-destructive">
-                    There was a problem when trying to authenticate. code: {error}
+                    {errorMessage}
                 </div>
             )}
             <div>

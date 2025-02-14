@@ -2,8 +2,8 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { verifyCredentialsRequestSchema } from "@/lib/schemas";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
-import { decrypt, encrypt } from "@sourcebot/crypto";
 import { User as NextAuthUser } from "next-auth";
+import bcrypt from 'bcrypt';
 
 export const runtime = 'nodejs';
 
@@ -40,12 +40,11 @@ async function getOrCreateUser(email: string, password: string): Promise<NextAut
 
     // The user doesn't exist, so create a new one.
     if (!user) {
-        const { encryptedData, iv } = encrypt(password);
+        const hashedPassword = bcrypt.hashSync(password, 10);
         const newUser = await prisma.user.create({
             data: {
                 email,
-                encryptedPassword: encryptedData,
-                iv,
+                hashedPassword,
             }
         });
 
@@ -56,12 +55,11 @@ async function getOrCreateUser(email: string, password: string): Promise<NextAut
 
     // Otherwise, the user exists, so verify the password.
     } else {
-        if (!user.encryptedPassword || !user.iv) {
+        if (!user.hashedPassword) {
             return null;
         }
 
-        const decryptedPassword = decrypt(user.iv, user.encryptedPassword);
-        if (decryptedPassword !== password) {
+        if (!bcrypt.compareSync(password, user.hashedPassword)) {
             return null;
         }
 
