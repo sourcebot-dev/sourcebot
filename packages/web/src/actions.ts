@@ -58,6 +58,37 @@ export const withOrgMembership = async <T>(session: Session, domain: string, fn:
     return fn(org.id);
 }
 
+export const withOwner = async <T>(session: Session, domain: string, fn: (orgId: number) => Promise<T>) => {
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (!org) {
+        return notFound();
+    }
+
+    const userRole = await prisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                orgId: org.id,
+                userId: session.user.id,
+            },
+        },
+    });
+
+    if (!userRole || userRole.role !== OrgRole.OWNER) { 
+        return {
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.MEMBER_NOT_OWNER,
+            message: "Only org owners can perform this action",
+        } satisfies ServiceError;
+    }
+
+    return fn(org.id);
+}
+
 export const isAuthed = async () => {
     const session = await auth();
     return session != null;
@@ -304,7 +335,7 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
 
 export const createInvite = async (email: string, userId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async (orgId) => {
+        withOwner(session, domain, async (orgId) => {
             console.log("Creating invite for", email, userId, orgId);
 
             if (email === session.user.email) {
@@ -399,7 +430,7 @@ export const redeemInvite = async (invite: Invite, userId: string): Promise<{ su
 
 export const makeOwner = async (newOwnerId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async (orgId) => {
+        withOwner(session, domain, async (orgId) => {
             const currentUserId = session.user.id;
             const currentUserRole = await prisma.userToOrg.findUnique({
                 where: {
@@ -409,14 +440,6 @@ export const makeOwner = async (newOwnerId: string, domain: string): Promise<{ s
                     },
                 },
             });
-
-            if (!currentUserRole || currentUserRole.role !== "OWNER") {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "You are not the owner of this org",
-                } satisfies ServiceError;
-            }
 
             if (newOwnerId === currentUserId) {
                 return {
@@ -627,7 +650,7 @@ export async function fetchStripeSession(sessionId: string) {
 
 export const getCustomerPortalSessionLink = async (domain: string): Promise<string | ServiceError> =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async (orgId) => {
+        withOwner(session, domain, async (orgId) => {
             const org = await prisma.org.findUnique({
                 where: {
                     id: orgId,
