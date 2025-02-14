@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { CalendarIcon, CreditCard, DollarSign, Users } from "lucide-react"
+import { CalendarIcon, DollarSign, Users } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"

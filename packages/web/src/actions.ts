@@ -18,7 +18,7 @@ import { stripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
 import { Session } from "next-auth";
 import { STRIPE_PRODUCT_ID } from "@/lib/environment";
-
+import Stripe from "stripe";
 const ajv = new Ajv({
     validateFormats: false,
 });
@@ -546,7 +546,7 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
             return portalSession.url;
         }));
 
-export const fetchSubscription = (domain: string): Promise<any | ServiceError> =>
+export const fetchSubscription = (domain: string): Promise<Stripe.Subscription | ServiceError> =>
     withAuth(async () => {
         const org = await prisma.org.findUnique({
             where: {
@@ -650,7 +650,7 @@ export const removeMember = async (memberId: string, domain: string): Promise<{ 
 
 export const getSubscriptionData = async (domain: string) =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async (orgId) => {
+        withOrgMembership(session, domain, async () => {
             const subscription = await fetchSubscription(domain);
             if (isServiceError(subscription)) {
                 return orgInvalidSubscription();

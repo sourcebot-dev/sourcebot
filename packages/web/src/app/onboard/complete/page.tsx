@@ -1,7 +1,7 @@
 import { ErrorPage } from "../components/errorPage";
 import { auth } from "@/auth";
 import { getUser } from "@/data/user";
-import { createOrg, switchActiveOrg, fetchStripeSession } from "../../../actions";
+import { createOrg, fetchStripeSession } from "../../../actions";
 import { isServiceError } from "@/lib/utils";
 import { redirect } from 'next/navigation';
 

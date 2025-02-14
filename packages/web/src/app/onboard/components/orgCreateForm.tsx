@@ -3,7 +3,7 @@
 import { checkIfOrgDomainExists } from "../../../actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form"
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
 import { isServiceError } from "@/lib/utils"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -77,7 +77,7 @@ export function OrgCreateForm({ setOrgCreateData }: OrgCreateFormProps) {
                     priority={true}
                 />
             </div>
-            <h1 className="text-2xl font-bold">Let's create your organization</h1>
+            <h1 className="text-2xl font-bold">Let&apos;s create your organization</h1>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(submitOrgInfoForm)} className="space-y-8">
                     <FormField

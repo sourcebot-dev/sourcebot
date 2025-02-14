@@ -30,7 +30,7 @@ export const ConnectionIcon = ({
             className={cn("rounded-full w-8 h-8", className)}
         />
 
-    }, [type]);
+    }, [className, type]);
 
     return Icon;
 }

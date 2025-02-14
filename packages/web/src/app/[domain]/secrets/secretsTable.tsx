@@ -41,7 +41,7 @@ export const SecretsTable = ({ initialSecrets }: SecretsTableProps) => {
 
     useEffect(() => {
         fetchSecretKeys();
-    }, []);
+    }, [fetchSecretKeys]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
