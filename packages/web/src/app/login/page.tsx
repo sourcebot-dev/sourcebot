@@ -7,7 +7,6 @@ import githubLogo from "@/public/github.svg";
 import googleLogo from "@/public/google.svg";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { checkIfUserHasOrg } from "@/actions";
 const SIGNIN_ERROR_URL = "/login";
 
 export default async function Login(props: {

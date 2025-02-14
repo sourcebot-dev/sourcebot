@@ -15,6 +15,34 @@ interface RedeemPageProps {
     };
 }
 
+interface ErrorLayoutProps {
+    title: string;
+}
+
+function ErrorLayout({ title }: ErrorLayoutProps) {
+    return (
+        <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
+            <div className="max-h-44 w-auto mb-4">
+                <Image
+                    src={logoDark}
+                    className="h-18 md:h-40 w-auto hidden dark:block"
+                    alt={"Sourcebot logo"}
+                    priority={true}
+                />
+                <Image
+                    src={logoLight}
+                    className="h-18 md:h-40 w-auto block dark:hidden"
+                    alt={"Sourcebot logo"}
+                    priority={true}
+                />
+            </div>
+            <div className="flex justify-center items-center">
+                <h1>{title}</h1>
+            </div>
+        </div>
+    );
+}
+
 export default async function RedeemPage({ searchParams }: RedeemPageProps) {
     const invite_id = searchParams?.invite_id;
 
@@ -28,25 +56,7 @@ export default async function RedeemPage({ searchParams }: RedeemPageProps) {
 
     if (!invite) {
         return (
-            <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
-                <div className="max-h-44 w-auto mb-4">
-                    <Image
-                        src={logoDark}
-                        className="h-18 md:h-40 w-auto hidden dark:block"
-                        alt={"Sourcebot logo"}
-                        priority={true}
-                    />
-                    <Image
-                        src={logoLight}
-                        className="h-18 md:h-40 w-auto block dark:hidden"
-                        alt={"Sourcebot logo"}
-                        priority={true}
-                    />
-                </div>
-                <div className="flex justify-center items-center">
-                    <h1>This invite has either expired or was revoked. Contact your organization owner.</h1>
-                </div>
-            </div>
+            <ErrorLayout title="This invite has either expired or was revoked. Contact your organization owner." />
         );
     }
 
@@ -61,25 +71,7 @@ export default async function RedeemPage({ searchParams }: RedeemPageProps) {
     if (user) {
         if (user.email !== invite.recipientEmail) {
             return (
-                <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
-                    <div className="max-h-44 w-auto mb-4">
-                        <Image
-                            src={logoDark}
-                            className="h-18 md:h-40 w-auto hidden dark:block"
-                            alt={"Sourcebot logo"}
-                            priority={true}
-                        />
-                        <Image
-                            src={logoLight}
-                            className="h-18 md:h-40 w-auto block dark:hidden"
-                            alt={"Sourcebot logo"}
-                            priority={true}
-                        />
-                    </div>
-                    <div className="flex justify-center items-center">
-                        <h1>This invite doesn't belong to you. You're currenly signed in with ${user.email}</h1>
-                    </div>
-                </div>
+                <ErrorLayout title={`This invite doesn't belong to you. You're currenly signed in with ${user.email}`} />
             )
         } else {
             const org = await prisma.org.findUnique({
@@ -88,25 +80,7 @@ export default async function RedeemPage({ searchParams }: RedeemPageProps) {
 
             if (!org) {
                 return (
-                    <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
-                        <div className="max-h-44 w-auto mb-4">
-                            <Image
-                                src={logoDark}
-                                className="h-18 md:h-40 w-auto hidden dark:block"
-                                alt={"Sourcebot logo"}
-                                priority={true}
-                            />
-                            <Image
-                                src={logoLight}
-                                className="h-18 md:h-40 w-auto block dark:hidden"
-                                alt={"Sourcebot logo"}
-                                priority={true}
-                            />
-                        </div>
-                        <div className="flex justify-center items-center">
-                            <h1>This organization wasn't found. Please contact your organization owner.</h1>
-                        </div>
-                    </div>
+                    <ErrorLayout title="This organization wasn't found. Please contact your organization owner." />
                 )
             }
 
@@ -115,25 +89,7 @@ export default async function RedeemPage({ searchParams }: RedeemPageProps) {
                 const subscription = await fetchSubscription(org.domain);
                 if (isServiceError(subscription)) {
                     return (
-                        <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
-                            <div className="max-h-44 w-auto mb-4">
-                                <Image
-                                    src={logoDark}
-                                    className="h-18 md:h-40 w-auto hidden dark:block"
-                                    alt={"Sourcebot logo"}
-                                    priority={true}
-                                />
-                                <Image
-                                    src={logoLight}
-                                    className="h-18 md:h-40 w-auto block dark:hidden"
-                                    alt={"Sourcebot logo"}
-                                    priority={true}
-                                />
-                            </div>
-                            <div className="flex justify-center items-center">
-                                <h1>This organization's subscription has expired. Please renew the subscription and try again.</h1>
-                            </div>
-                        </div>
+                        <ErrorLayout title="This organization's subscription has expired. Please renew the subscription and try again." />
                     )
                 }
             }

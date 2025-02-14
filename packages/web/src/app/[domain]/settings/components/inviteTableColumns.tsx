@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table"
 import { resolveServerPath } from "@/app/api/(client)/client";
 import { createPathWithQueryParams } from "@/lib/utils";
-import { useToast } from "@/components/hooks/use-toast";
 
 export type InviteColumnInfo = {
     id: string;
@@ -39,9 +38,13 @@ export const inviteTableColumns = (displayToast: (message: string) => void): Col
                         onClick={() => {
                             const basePath = `${window.location.origin}${resolveServerPath('/')}`;
                             const url = createPathWithQueryParams(`${basePath}redeem?invite_id=${invite.id}`);
-                            navigator.clipboard.writeText(url);
-
-                            displayToast("✅ Copied invite link");
+                            navigator.clipboard.writeText(url)
+                                .then(() => {
+                                    displayToast("✅ Copied invite link");
+                                })
+                                .catch(() => {
+                                    displayToast("❌ Failed to copy invite link");
+                                })
                         }}
                     >
                         <svg
