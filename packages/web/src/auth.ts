@@ -99,7 +99,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
         },
         csrfToken: {
-            name: `${useSecureCookies ? '__Host-' : ''}authjs.csrf-token`,
+            name: `${useSecureCookies ? '__Secure-' : ''}authjs.csrf-token`,
             options: {
                 httpOnly: true,
                 sameSite: 'lax',
