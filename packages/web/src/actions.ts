@@ -9,6 +9,8 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { isServiceError } from "@/lib/utils";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
+import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
+import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
@@ -515,6 +517,10 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
                 return githubSchema;
             case "gitlab":
                 return gitlabSchema;
+            case 'gitea':
+                return giteaSchema;
+            case 'gerrit':
+                return gerritSchema;
         }
     })();
 

@@ -1,8 +1,7 @@
 import fetch from 'cross-fetch';
 import { GerritConfig } from "@sourcebot/schemas/v2/index.type"
-import { AppContext, GitRepository } from './types.js';
 import { createLogger } from './logger.js';
-import path from 'path';
+import micromatch from "micromatch";
 import { measure, marshalBool, excludeReposByName, includeReposByName } from './utils.js';
 
 // https://gerrit-review.googlesource.com/Documentation/rest-api.html
@@ -16,6 +15,13 @@ interface GerritProjectInfo {
    web_links?: GerritWebLink[];
 }
 
+interface GerritProject {
+   name: string;
+   id: string;
+   state?: string;
+   web_links?: GerritWebLink[];
+}
+
 interface GerritWebLink {
    name: string;
    url: string;
@@ -23,12 +29,12 @@ interface GerritWebLink {
 
 const logger = createLogger('Gerrit');
 
-export const getGerritReposFromConfig = async (config: GerritConfig, ctx: AppContext): Promise<GitRepository[]> => {
+export const getGerritReposFromConfig = async (config: GerritConfig): Promise<GerritProject[]> => {
 
    const url = config.url.endsWith('/') ? config.url : `${config.url}/`;
    const hostname = new URL(config.url).hostname;
 
-   const { durationMs, data: projects } = await measure(async () => {
+   let { durationMs, data: projects } = await measure(async () => {
       try {
          return fetchAllProjects(url)
       } catch (err) {
@@ -42,67 +48,29 @@ export const getGerritReposFromConfig = async (config: GerritConfig, ctx: AppCon
    }
 
    // exclude "All-Projects" and "All-Users" projects
-   delete projects['All-Projects'];
-   delete projects['All-Users'];
-   delete projects['All-Avatars']
-   delete projects['All-Archived-Projects']
-
-   logger.debug(`Fetched ${Object.keys(projects).length} projects in ${durationMs}ms.`);
-
-   let repos: GitRepository[] = Object.keys(projects).map((projectName) => {
-      const project = projects[projectName];
-      let webUrl = "https://www.gerritcodereview.com/";
-      // Gerrit projects can have multiple web links; use the first one
-      if (project.web_links) {
-         const webLink = project.web_links[0];
-         if (webLink) {
-            webUrl = webLink.url;
-         }
-      }
-      const repoId = `${hostname}/${projectName}`;
-      const repoPath = path.resolve(path.join(ctx.reposPath, `${repoId}.git`));
-
-      const cloneUrl = `${url}${encodeURIComponent(projectName)}`;
-
-      return {
-         vcs: 'git',
-         codeHost: 'gerrit',
-         name: projectName,
-         id: repoId,
-         cloneUrl: cloneUrl,
-         path: repoPath,
-         isStale: false, // Gerrit projects are typically not stale
-         isFork: false, // Gerrit doesn't have forks in the same way as GitHub
-         isArchived: false,
-         gitConfigMetadata: {
-            // Gerrit uses Gitiles for web UI. This can sometimes be "browse" type in zoekt
-            'zoekt.web-url-type': 'gitiles',
-            'zoekt.web-url': webUrl,
-            'zoekt.name': repoId,
-            'zoekt.archived': marshalBool(false),
-            'zoekt.fork': marshalBool(false),
-            'zoekt.public': marshalBool(true), // Assuming projects are public; adjust as needed
-         },
-         branches: [],
-         tags: []
-      } satisfies GitRepository;
-   });
-
+   const excludedProjects = ['All-Projects', 'All-Users', 'All-Avatars', 'All-Archived-Projects'];
+   projects = projects.filter(project => !excludedProjects.includes(project.name));
+   
    // include repos by glob if specified in config
    if (config.projects) {
-      repos = includeReposByName(repos, config.projects);
+      projects = projects.filter((project) => {
+         return micromatch.isMatch(project.name, config.projects!);
+      });
    }
-
+   
    if (config.exclude && config.exclude.projects) {
-      repos = excludeReposByName(repos, config.exclude.projects);
+      projects = projects.filter((project) => {
+         return !micromatch.isMatch(project.name, config.exclude!.projects!);
+      });
    }
 
-   return repos;
+   logger.debug(`Fetched ${Object.keys(projects).length} projects in ${durationMs}ms.`);
+   return projects;
 };
 
-const fetchAllProjects = async (url: string): Promise<GerritProjects> => {
+const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
    const projectsEndpoint = `${url}projects/`;
-   let allProjects: GerritProjects = {};
+   let allProjects: GerritProject[] = [];
    let start = 0; // Start offset for pagination
    let hasMoreProjects = true;
 
@@ -119,8 +87,15 @@ const fetchAllProjects = async (url: string): Promise<GerritProjects> => {
       const jsonText = text.replace(")]}'\n", ''); // Remove XSSI protection prefix
       const data: GerritProjects = JSON.parse(jsonText);
 
-      // Merge the current batch of projects with allProjects
-      Object.assign(allProjects, data);
+      // Add fetched projects to allProjects
+      for (const [projectName, projectInfo] of Object.entries(data)) {
+         allProjects.push({
+            name: projectName,
+            id: projectInfo.id,
+            state: projectInfo.state,
+            web_links: projectInfo.web_links
+         })
+      }
 
       // Check if there are more projects to fetch
       hasMoreProjects = Object.values(data).some(

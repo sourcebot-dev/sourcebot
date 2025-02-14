@@ -11,14 +11,18 @@ import { z } from "zod";
 import { ConfigEditor, QuickAction } from "../../components/configEditor";
 import { createZodConnectionConfigValidator } from "../../utils";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
-import { githubQuickActions, gitlabQuickActions } from "../../quickActions";
+import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
+import { GerritConnectionConfig } from "@sourcebot/schemas/v3/gerrit.type";
+import { githubQuickActions, gitlabQuickActions, giteaQuickActions, gerritQuickActions } from "../../quickActions";
 import { Schema } from "ajv";
-import { GitLabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
+import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { updateConnectionConfigAndScheduleSync } from "@/actions";
 import { useToast } from "@/components/hooks/use-toast";
 import { isServiceError } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
+import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { useDomain } from "@/hooks/useDomain";
 
 
@@ -40,10 +44,26 @@ export const ConfigSetting = (props: ConfigSettingProps) => {
     }
 
     if (type === 'gitlab') {
-        return <ConfigSettingInternal<GitLabConnectionConfig>
+        return <ConfigSettingInternal<GitlabConnectionConfig>
             {...props}
             quickActions={gitlabQuickActions}
             schema={gitlabSchema}
+        />;
+    }
+
+    if (type === 'gitea') {
+        return <ConfigSettingInternal<GiteaConnectionConfig>
+            {...props}
+            quickActions={giteaQuickActions}
+            schema={giteaSchema}
+        />;
+    }
+
+    if (type === 'gerrit') {
+        return <ConfigSettingInternal<GerritConnectionConfig>
+            {...props}
+            quickActions={gerritQuickActions}
+            schema={gerritSchema}
         />;
     }
 
