@@ -1,3 +1,5 @@
+"use client";
+
 import { NotFound } from "@/app/[domain]/components/notFound";
 import {
     Breadcrumb,
@@ -10,58 +12,108 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { getConnection, getLinkedRepos } from "@/data/connection";
 import { ConnectionIcon } from "../components/connectionIcon";
 import { Header } from "../../components/header";
 import { ConfigSetting } from "./components/configSetting";
 import { DeleteConnectionSetting } from "./components/deleteConnectionSetting";
 import { DisplayNameSetting } from "./components/displayNameSetting";
 import { RepoListItem } from "./components/repoListItem";
-import { getOrgFromDomain } from "@/data/org";
-import { PageNotFound } from "../../components/pageNotFound";
+import { useParams, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Connection, Repo, Org } from "@sourcebot/db";
+import { getConnectionInfoAction, getOrgFromDomainAction, flagConnectionForSync  } from "@/actions";
+import { isServiceError } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ReloadIcon } from "@radix-ui/react-icons";
+import { useToast } from "@/components/hooks/use-toast";
 
-interface ConnectionManagementPageProps {
-    params: {
-        id: string;
-        domain: string;
-    },
-    searchParams: {
-        tab?: string;
+export default function ConnectionManagementPage() {
+    const params = useParams();
+    const searchParams = useSearchParams();
+    const { toast } = useToast();
+    const [org, setOrg] = useState<Org | null>(null);
+    const [connection, setConnection] = useState<Connection | null>(null);
+    const [linkedRepos, setLinkedRepos] = useState<Repo[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const orgResult = await getOrgFromDomainAction(params.domain as string);
+                if (isServiceError(orgResult)) {
+                    setError(orgResult.message);
+                    setLoading(false);
+                    return;
+                }
+                setOrg(orgResult);
+
+                const connectionId = Number(params.id);
+                if (isNaN(connectionId)) {
+                    setError("Invalid connection ID");
+                    setLoading(false);
+                    return;
+                }
+
+                const connectionInfoResult = await getConnectionInfoAction(connectionId, params.domain as string);
+                if (isServiceError(connectionInfoResult)) {
+                    setError(connectionInfoResult.message);
+                    setLoading(false);
+                    return;
+                }
+
+                connectionInfoResult.linkedRepos.sort((a, b) => {
+                    // Helper function to get priority of indexing status
+                    const getPriority = (status: string) => {
+                        switch (status) {
+                            case 'FAILED': return 0;
+                            case 'IN_INDEX_QUEUE':
+                            case 'INDEXING': return 1;
+                            case 'INDEXED': return 2;
+                            default: return 3;
+                        }
+                    };
+
+                    const priorityA = getPriority(a.repoIndexingStatus);
+                    const priorityB = getPriority(b.repoIndexingStatus);
+
+                    // First sort by priority
+                    if (priorityA !== priorityB) {
+                        return priorityA - priorityB;
+                    }
+
+                    // If same priority, sort by createdAt
+                    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+                });
+
+                setConnection(connectionInfoResult.connection);
+                setLinkedRepos(connectionInfoResult.linkedRepos);
+                setLoading(false);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "An error occurred while loading the connection. If the problem persists, please contact us at team@sourcebot.dev");
+                setLoading(false);
+            }
+        };
+
+        loadData();
+        const intervalId = setInterval(loadData, 1000);
+        return () => clearInterval(intervalId);
+    }, [params.domain, params.id]);
+
+    if (loading) {
+        return <div>Loading...</div>;
     }
-}
 
-export default async function ConnectionManagementPage({
-    params,
-    searchParams,
-}: ConnectionManagementPageProps) {
-    const org = await getOrgFromDomain(params.domain);
-    if (!org) {
-        return <PageNotFound />
-    }
-
-    const connectionId = Number(params.id);
-    if (isNaN(connectionId)) {
+    if (error || !org || !connection) {
         return (
             <NotFound
                 className="flex w-full h-full items-center justify-center"
-                message="Connection not found"
+                message={error || "Not found"}
             />
-        )
+        );
     }
 
-    const connection = await getConnection(Number(params.id), org.id);
-    if (!connection) {
-        return (
-            <NotFound
-                className="flex w-full h-full items-center justify-center"
-                message="Connection not found"
-            />
-        )
-    }
-
-    const linkedRepos = await getLinkedRepos(connectionId, org.id);
-
-    const currentTab = searchParams.tab || "overview";
+    const currentTab = searchParams.get("tab") || "overview";
 
     return (
         <Tabs
@@ -116,7 +168,30 @@ export default async function ConnectionManagementPage({
                         </div>
                         <div className="rounded-lg border border-border p-4 bg-background">
                             <h2 className="text-sm font-medium text-muted-foreground">Status</h2>
-                            <p className="mt-2 text-sm">{connection.syncStatus}</p>
+                            <div className="flex items-center gap-2">
+                                <p className="mt-2 text-sm">{connection.syncStatus}</p>
+                                {connection.syncStatus === "FAILED" && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm" 
+                                        className="mt-2 rounded-full"
+                                        onClick={async () => {
+                                            const result = await flagConnectionForSync(connection.id, params.domain as string);
+                                            if (isServiceError(result)) {
+                                                toast({
+                                                    description: `❌ Failed to flag connection for sync. Reason: ${result.message}`,
+                                                })
+                                            } else {
+                                                toast({
+                                                    description: "✅ Connection flagged for sync.",
+                                                })
+                                            }
+                                        }}
+                                    >
+                                        <ReloadIcon className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -127,12 +202,12 @@ export default async function ConnectionManagementPage({
                     <div className="flex flex-col gap-4">
                         {linkedRepos
                             .sort((a, b) => {
-                                const aIndexedAt = a.repo.indexedAt ?? new Date();
-                                const bIndexedAt = b.repo.indexedAt ?? new Date();
+                                const aIndexedAt = a.indexedAt ?? new Date();
+                                const bIndexedAt = b.indexedAt ?? new Date();
 
                                 return bIndexedAt.getTime() - aIndexedAt.getTime();
                             })
-                            .map(({ repo }) => (
+                            .map((repo) => (
                                 <RepoListItem
                                     key={repo.id}
                                     imageUrl={repo.imageUrl ?? undefined}
@@ -162,6 +237,5 @@ export default async function ConnectionManagementPage({
                 />
             </TabsContent>
         </Tabs>
-
-    )
+    );
 }
