@@ -24,18 +24,14 @@ declare module 'next-auth/jwt' {
 }
 
 const providers: Provider[] = [
-    ...(AUTH_GITHUB_CLIENT_ID && AUTH_GITHUB_CLIENT_SECRET ? [
-        GitHub({
-            clientId: AUTH_GITHUB_CLIENT_ID,
-            clientSecret: AUTH_GITHUB_CLIENT_SECRET,
-        }),
-    ] : []),
-    ...(AUTH_GOOGLE_CLIENT_ID && AUTH_GOOGLE_CLIENT_SECRET ? [
-        Google({
-            clientId: AUTH_GOOGLE_CLIENT_ID,
-            clientSecret: AUTH_GOOGLE_CLIENT_SECRET,
-        }),
-    ] : []),
+    GitHub({
+        clientId: AUTH_GITHUB_CLIENT_ID,
+        clientSecret: AUTH_GITHUB_CLIENT_SECRET,
+    }),
+    Google({
+        clientId: AUTH_GOOGLE_CLIENT_ID,
+        clientSecret: AUTH_GOOGLE_CLIENT_SECRET,
+    }),
 ];
 
 // @see: https://authjs.dev/guides/pages/signin
