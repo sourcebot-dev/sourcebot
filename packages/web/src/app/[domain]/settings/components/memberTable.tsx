@@ -11,11 +11,12 @@ export interface MemberInfo {
 }
 
 interface MemberTableProps {
+    currentUserRole: string;
     currentUserId: string;
     initialMembers: MemberInfo[];
 }
 
-export const MemberTable = ({ currentUserId, initialMembers }: MemberTableProps) => {
+export const MemberTable = ({ currentUserRole, currentUserId, initialMembers }: MemberTableProps) => {
     const memberRows: MemberColumnInfo[] = useMemo(() => {
         return initialMembers.map(member => {
             return {
@@ -31,7 +32,7 @@ export const MemberTable = ({ currentUserId, initialMembers }: MemberTableProps)
         <div className="space-y-2">
             <h4 className="text-lg font-normal">Members</h4>
             <DataTable
-                columns={MemberTableColumns(currentUserId)}
+                columns={MemberTableColumns(currentUserRole, currentUserId)}
                 data={memberRows}
                 searchKey="name"
                 searchPlaceholder="Search members..."

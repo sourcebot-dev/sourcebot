@@ -12,7 +12,7 @@ import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
-import { ConnectionSyncStatus, Prisma, Invite } from "@sourcebot/db";
+import { ConnectionSyncStatus, Prisma, Invite, OrgRole } from "@sourcebot/db";
 import { headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
@@ -53,6 +53,37 @@ export const withOrgMembership = async <T>(session: Session, domain: string, fn:
 
     if (!membership) {
         return notFound();
+    }
+
+    return fn(org.id);
+}
+
+export const withOwner = async <T>(session: Session, domain: string, fn: (orgId: number) => Promise<T>) => {
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (!org) {
+        return notFound();
+    }
+
+    const userRole = await prisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                orgId: org.id,
+                userId: session.user.id,
+            },
+        },
+    });
+
+    if (!userRole || userRole.role !== OrgRole.OWNER) { 
+        return {
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.MEMBER_NOT_OWNER,
+            message: "Only org owners can perform this action",
+        } satisfies ServiceError;
     }
 
     return fn(org.id);
@@ -282,9 +313,29 @@ export const deleteConnection = async (connectionId: number, domain: string): Pr
             }
         }));
 
-export const createInvite = async (email: string, userId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+export const getCurrentUserRole = async (domain: string): Promise<OrgRole | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async (orgId) => {
+            const userRole = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        orgId,
+                        userId: session.user.id,
+                    },
+                },
+            });
+
+            if (!userRole) {
+                return notFound();
+            }
+
+            return userRole.role;
+        })  
+    );
+
+export const createInvite = async (email: string, userId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOwner(session, domain, async (orgId) => {
             console.log("Creating invite for", email, userId, orgId);
 
             if (email === session.user.email) {
@@ -376,6 +427,75 @@ export const redeemInvite = async (invite: Invite, userId: string): Promise<{ su
             return unexpectedError("Failed to redeem invite");
         }
     });
+
+export const makeOwner = async (newOwnerId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOwner(session, domain, async (orgId) => {
+            const currentUserId = session.user.id;
+            const currentUserRole = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        userId: currentUserId,
+                        orgId,
+                    },
+                },
+            });
+
+            if (newOwnerId === currentUserId) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "You're already the owner of this org",
+                } satisfies ServiceError;
+            }
+
+            const newOwner = await prisma.userToOrg.findUnique({
+                where: {    
+                    orgId_userId: {
+                        userId: newOwnerId,
+                        orgId,
+                    },
+                },
+            });
+
+            if (!newOwner) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "The user you're trying to make the owner doesn't exist",
+                } satisfies ServiceError;
+            }
+
+            await prisma.$transaction([
+                prisma.userToOrg.update({
+                    where: {
+                        orgId_userId: {
+                            userId: newOwnerId,
+                            orgId,
+                        },
+                    },
+                    data: {
+                        role: "OWNER",
+                    }
+                }),
+                prisma.userToOrg.update({
+                    where: {
+                        orgId_userId: {
+                            userId: currentUserId,
+                            orgId,
+                        },
+                    },
+                    data: {
+                        role: "MEMBER",
+                    }
+                })
+            ]);
+
+            return {
+                success: true,
+            }
+        })
+    );
 
 const parseConnectionConfig = (connectionType: string, config: string) => {
     let parsedConfig: ConnectionConfig;
@@ -530,7 +650,7 @@ export async function fetchStripeSession(sessionId: string) {
 
 export const getCustomerPortalSessionLink = async (domain: string): Promise<string | ServiceError> =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async (orgId) => {
+        withOwner(session, domain, async (orgId) => {
             const org = await prisma.org.findUnique({
                 where: {
                     id: orgId,
@@ -573,6 +693,69 @@ export const fetchSubscription = (domain: string): Promise<Stripe.Subscription |
         }
         return subscriptions.data[0];
     });
+
+export const getSubscriptionBillingEmail = async (domain: string): Promise<string | ServiceError> =>
+    withAuth(async (session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const org = await prisma.org.findUnique({
+                where: {
+                    id: orgId,
+                },
+            });
+
+            if (!org || !org.stripeCustomerId) {
+                return notFound();
+            }
+
+            const stripe = getStripe();
+            const customer = await stripe.customers.retrieve(org.stripeCustomerId);
+            if (!('email' in customer) || customer.deleted) {
+                return notFound();
+            }
+            return customer.email!;
+        })
+    );
+
+export const changeSubscriptionBillingEmail = async (domain: string, newEmail: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const userRole = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        orgId,
+                        userId: session.user.id,
+                    }
+                }
+            });
+
+            if (!userRole || userRole.role !== "OWNER") {
+                return {
+                    statusCode: StatusCodes.FORBIDDEN,
+                    errorCode: ErrorCode.MEMBER_NOT_OWNER,
+                    message: "Only org owners can change billing email",
+                } satisfies ServiceError;
+            }
+
+            const org = await prisma.org.findUnique({
+                where: {
+                    id: orgId,
+                },
+            });
+
+            if (!org || !org.stripeCustomerId) {
+                return notFound();
+            }
+
+            const stripe = getStripe();
+            await stripe.customers.update(org.stripeCustomerId, {
+                email: newEmail,
+            });
+
+            return {
+                success: true,
+            }
+        })
+    );
 
 export const checkIfUserHasOrg = async (userId: string): Promise<boolean | ServiceError> => {
     const orgs = await prisma.userToOrg.findMany({

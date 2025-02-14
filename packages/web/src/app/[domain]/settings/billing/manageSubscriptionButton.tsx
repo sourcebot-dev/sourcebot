@@ -6,8 +6,9 @@ import { isServiceError } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { getCustomerPortalSessionLink } from "@/actions"
 import { useDomain } from "@/hooks/useDomain";
+import { OrgRole } from "@sourcebot/db";
 
-export function ManageSubscriptionButton() {
+export function ManageSubscriptionButton({ currentUserRole }: { currentUserRole: OrgRole }) {
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
     const domain = useDomain();
@@ -28,9 +29,15 @@ export function ManageSubscriptionButton() {
         }
     }
 
+    const isOwner = currentUserRole === OrgRole.OWNER
     return (
-        <Button className="w-full" onClick={redirectToCustomerPortal} disabled={isLoading}>
-          {isLoading ? "Creating customer portal..." : "Manage Subscription"}
+        <Button 
+            className="w-full" 
+            onClick={redirectToCustomerPortal} 
+            disabled={isLoading || !isOwner}
+            title={!isOwner ? "Only the owner of the org can manage the subscription" : undefined}
+        >
+            {isLoading ? "Creating customer portal..." : "Manage Subscription"}
         </Button>
       )
 }

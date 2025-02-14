@@ -5,6 +5,9 @@ import { MemberTable } from "./components/memberTable"
 import { MemberInviteForm } from "./components/memberInviteForm"
 import { InviteTable } from "./components/inviteTable"
 import { Separator } from "@/components/ui/separator"
+import { getCurrentUserRole } from "@/actions"  
+import { isServiceError } from "@/lib/utils"
+import { OrgRole } from "@sourcebot/db"
 
 interface SettingsPageProps {
     params: {
@@ -73,11 +76,16 @@ export default async function SettingsPage({ params: { domain } }: SettingsPageP
             createdAt: invite.createdAt,
         }))
 
+        const currentUserRole = await getCurrentUserRole(domain)
+        if (isServiceError(currentUserRole)) {
+            return null
+        }
+
         return {
             user,
             memberInfo,
             inviteInfo,
-            activeOrg,
+            userRole: currentUserRole,
         }
     }
 
@@ -85,7 +93,7 @@ export default async function SettingsPage({ params: { domain } }: SettingsPageP
     if (!data) {
         return <div>Error: Unable to fetch data</div>
     }
-    const { user, memberInfo, inviteInfo } = data
+    const { user, memberInfo, inviteInfo, userRole } = data
 
     return (
         <div className="space-y-6">
@@ -95,8 +103,8 @@ export default async function SettingsPage({ params: { domain } }: SettingsPageP
             </div>
             <Separator />
             <div className="space-y-6">
-                <MemberTable currentUserId={user.id} initialMembers={memberInfo} />
-                <MemberInviteForm userId={user.id} />
+                <MemberTable currentUserRole={userRole} currentUserId={user.id} initialMembers={memberInfo} />
+                <MemberInviteForm userId={user.id} currentUserRole={userRole} />
                 <InviteTable initialInvites={inviteInfo} />
             </div>
         </div>
