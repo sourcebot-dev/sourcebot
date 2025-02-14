@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator"
 import { ManageSubscriptionButton } from "./manageSubscriptionButton"
 import { getSubscriptionData, getCurrentUserRole, getSubscriptionBillingEmail } from "@/actions"
 import { isServiceError } from "@/lib/utils"
-import { ChangeBillingEmailCard } from "./changeBillingEmailButton"
+import { ChangeBillingEmailCard } from "./changeBillingEmailCard"
 import { CreditCard } from "lucide-react"
 
 export const metadata: Metadata = {
