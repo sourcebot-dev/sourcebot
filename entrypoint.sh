@@ -27,7 +27,7 @@ if [ ! -d "$DB_DATA_DIR" ]; then
 fi
 
 if [ -z "$SOURCEBOT_ENCRYPTION_KEY" ]; then
-    echo -e "\e[31m[Error] SOURCEBOT_ENCRYPTION_KEY is not set.\e[0m"
+    echo -e "\e[33m[Warning] SOURCEBOT_ENCRYPTION_KEY is not set.\e[0m"
 
     if [ -f "$DATA_CACHE_DIR/.secret" ]; then
         echo -e "\e[34m[Info] Loading environment variables from $DATA_CACHE_DIR/.secret\e[0m"
@@ -39,6 +39,23 @@ if [ -z "$SOURCEBOT_ENCRYPTION_KEY" ]; then
 
     set -a
     . "$DATA_CACHE_DIR/.secret"
+    set +a
+fi
+
+# @see : https://authjs.dev/getting-started/deployment#auth_secret
+if [ -z "$AUTH_SECRET" ]; then
+    echo -e "\e[33m[Warning] AUTH_SECRET is not set.\e[0m"
+
+    if [ -f "$DATA_CACHE_DIR/.authjs-secret" ]; then
+        echo -e "\e[34m[Info] Loading environment variables from $DATA_CACHE_DIR/.authjs-secret\e[0m"
+    else
+        echo -e "\e[34m[Info] Generating a new encryption key...\e[0m"
+        AUTH_SECRET=$(openssl rand -base64 33)
+        echo "AUTH_SECRET=\"$AUTH_SECRET\"" >> "$DATA_CACHE_DIR/.authjs-secret"
+    fi
+
+    set -a
+    . "$DATA_CACHE_DIR/.authjs-secret"
     set +a
 fi
 

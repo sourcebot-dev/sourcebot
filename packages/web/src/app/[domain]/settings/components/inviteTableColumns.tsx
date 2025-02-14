@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table"
 import { resolveServerPath } from "@/app/api/(client)/client";
 import { createPathWithQueryParams } from "@/lib/utils";
+import { useToast } from "@/components/hooks/use-toast";
 
 export type InviteColumnInfo = {
     id: string;

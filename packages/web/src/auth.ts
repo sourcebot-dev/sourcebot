@@ -29,9 +29,9 @@ const providers: Provider[] = [
         clientSecret: AUTH_GITHUB_CLIENT_SECRET,
     }),
     Google({
-        clientId: AUTH_GOOGLE_CLIENT_ID!,
-        clientSecret: AUTH_GOOGLE_CLIENT_SECRET!,
-    })
+        clientId: AUTH_GOOGLE_CLIENT_ID,
+        clientSecret: AUTH_GOOGLE_CLIENT_SECRET,
+    }),
 ];
 
 // @see: https://authjs.dev/guides/pages/signin
@@ -56,6 +56,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session: {
         strategy: "jwt",
     },
+    trustHost: true,
     callbacks: {
         async jwt({ token, user: _user }) {
             const user = _user as User | undefined;
