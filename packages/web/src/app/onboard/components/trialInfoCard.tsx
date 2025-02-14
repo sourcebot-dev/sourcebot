@@ -22,8 +22,9 @@ import {
 import { useState } from "react";
 import { OnboardingFormValues } from "./orgCreateForm";
 import { isServiceError } from "@/lib/utils";
+import { NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY } from "@/lib/environment.client";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+const stripePromise = loadStripe(NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 export function TrialCard({ orgCreateInfo }: { orgCreateInfo: OnboardingFormValues }) {
   const [trialAck, setTrialAck] = useState(false);
