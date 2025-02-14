@@ -14,7 +14,7 @@ import { encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
 import { ConnectionSyncStatus, Prisma, Invite } from "@sourcebot/db";
 import { headers } from "next/headers"
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
 import { Session } from "next-auth";
 import { STRIPE_PRODUCT_ID } from "@/lib/environment";
@@ -339,6 +339,7 @@ export const redeemInvite = async (invite: Invite, userId: string): Promise<{ su
                     const existingSeatCount = subscription.items.data[0].quantity;
                     const newSeatCount = (existingSeatCount || 1) + 1
 
+                    const stripe = getStripe();
                     await stripe.subscriptionItems.update(
                         subscription.items.data[0].id,
                         {
@@ -424,6 +425,7 @@ export const setupInitialStripeCustomer = async (name: string, domain: string) =
             return "";
         }
 
+        const stripe = getStripe();
         const origin = (await headers()).get('origin')
 
         // @nocheckin
@@ -489,6 +491,7 @@ export const getSubscriptionCheckoutRedirect = async (domain: string) =>
             });
             const numOrgMembers = orgMembers.length;
 
+            const stripe = getStripe();
             const origin = (await headers()).get('origin')
             const prices = await stripe.prices.list({
                 product: STRIPE_PRODUCT_ID,
@@ -520,6 +523,7 @@ export const getSubscriptionCheckoutRedirect = async (domain: string) =>
     )
 
 export async function fetchStripeSession(sessionId: string) {
+    const stripe = getStripe();
     const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
     return stripeSession;
 }
@@ -537,6 +541,7 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
                 return notFound();
             }
 
+            const stripe = getStripe();
             const origin = (await headers()).get('origin')
             const portalSession = await stripe.billingPortal.sessions.create({
                 customer: org.stripeCustomerId as string,
@@ -558,6 +563,7 @@ export const fetchSubscription = (domain: string): Promise<Stripe.Subscription |
             return notFound();
         }
 
+        const stripe = getStripe();
         const subscriptions = await stripe.subscriptions.list({
             customer: org.stripeCustomerId
         });
@@ -624,6 +630,7 @@ export const removeMember = async (memberId: string, domain: string): Promise<{ 
                 const existingSeatCount = subscription.items.data[0].quantity;
                 const newSeatCount = (existingSeatCount || 1) - 1;
 
+                const stripe = getStripe();
                 await stripe.subscriptionItems.update(
                     subscription.items.data[0].id,
                     {
