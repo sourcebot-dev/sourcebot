@@ -44,6 +44,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED
 ARG NEXT_PUBLIC_SOURCEBOT_VERSION=BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION
 ENV NEXT_PUBLIC_POSTHOG_PAPIK=BAKED_NEXT_PUBLIC_POSTHOG_PAPIK
+ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=BAKED_NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
 # @nocheckin: This was interfering with the the `matcher` regex in middleware.ts,
 # causing regular expressions parsing errors when making a request. It's unclear
@@ -102,6 +103,8 @@ ENV POSTHOG_PAPIK=$POSTHOG_PAPIK
 
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
+
+ENV STRIPE_PUBLISHABLE_KEY=""
 
 # Configure dependencies
 RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib openssl
