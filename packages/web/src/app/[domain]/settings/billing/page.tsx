@@ -4,8 +4,10 @@ import { CalendarIcon, DollarSign, Users } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ManageSubscriptionButton } from "./manageSubscriptionButton"
-import { getSubscriptionData, getCurrentUserRole } from "@/actions"
+import { getSubscriptionData, getCurrentUserRole, getSubscriptionBillingEmail } from "@/actions"
 import { isServiceError } from "@/lib/utils"
+import { ChangeBillingEmailCard } from "./changeBillingEmailButton"
+import { CreditCard } from "lucide-react"
 
 export const metadata: Metadata = {
     title: "Billing | Settings",
@@ -32,6 +34,11 @@ export default async function BillingPage({
         return <div>Failed to fetch user role. Please contact us at team@sourcebot.dev if this issue persists.</div>
     }
 
+    const billingEmail = await getSubscriptionBillingEmail(domain);
+    if (isServiceError(billingEmail)) {
+        return <div>Failed to fetch billing email. Please contact us at team@sourcebot.dev if this issue persists.</div>
+    }
+
     return (
         <div className="space-y-6">
             <div>
@@ -40,9 +47,14 @@ export default async function BillingPage({
             </div>
             <Separator />
             <div className="grid gap-6">
+                {/* Billing Email Card */}
+                <ChangeBillingEmailCard currentUserRole={currentUserRole} />
                 <Card>
                     <CardHeader>
-                        <CardTitle>Subscription Plan</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <CreditCard className="h-5 w-5" />
+                            Subscription Plan
+                        </CardTitle>
                         <CardDescription>
                             {subscription.status === "trialing"
                                 ? "You are currently on a free trial"
@@ -82,6 +94,7 @@ export default async function BillingPage({
                         <ManageSubscriptionButton currentUserRole={currentUserRole} />
                     </CardFooter>
                 </Card>
+
             </div>
         </div>
     )

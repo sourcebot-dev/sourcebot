@@ -671,6 +671,69 @@ export const fetchSubscription = (domain: string): Promise<Stripe.Subscription |
         return subscriptions.data[0];
     });
 
+export const getSubscriptionBillingEmail = async (domain: string): Promise<string | ServiceError> =>
+    withAuth(async (session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const org = await prisma.org.findUnique({
+                where: {
+                    id: orgId,
+                },
+            });
+
+            if (!org || !org.stripeCustomerId) {
+                return notFound();
+            }
+
+            const stripe = getStripe();
+            const customer = await stripe.customers.retrieve(org.stripeCustomerId);
+            if (!('email' in customer) || customer.deleted) {
+                return notFound();
+            }
+            return customer.email!;
+        })
+    );
+
+export const changeSubscriptionBillingEmail = async (domain: string, newEmail: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const userRole = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        orgId,
+                        userId: session.user.id,
+                    }
+                }
+            });
+
+            if (!userRole || userRole.role !== "OWNER") {
+                return {
+                    statusCode: StatusCodes.FORBIDDEN,
+                    errorCode: ErrorCode.MEMBER_NOT_OWNER,
+                    message: "Only org owners can change billing email",
+                } satisfies ServiceError;
+            }
+
+            const org = await prisma.org.findUnique({
+                where: {
+                    id: orgId,
+                },
+            });
+
+            if (!org || !org.stripeCustomerId) {
+                return notFound();
+            }
+
+            const stripe = getStripe();
+            await stripe.customers.update(org.stripeCustomerId, {
+                email: newEmail,
+            });
+
+            return {
+                success: true,
+            }
+        })
+    );
+
 export const checkIfUserHasOrg = async (userId: string): Promise<boolean | ServiceError> => {
     const orgs = await prisma.userToOrg.findMany({
         where: {

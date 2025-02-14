@@ -53,6 +53,67 @@ export const MemberTableColumns = (currentUserRole: string, currentUserId: strin
             }
         },
         {
+            id: "makeOwner",
+            cell: ({ row }) => {
+                const member = row.original;
+                if (!isOwner || member.id === currentUserId) return null;
+
+                return (
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                Make Owner
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle className="text-lg font-semibold">Make Owner</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="space-y-4">
+                                    <p className="font-medium">Are you sure you want to make this member the owner?</p>
+                                    <div className="rounded-lg bg-muted p-4">
+                                        <p className="text-sm text-muted-foreground">
+                                            This action will make <span className="font-semibold text-foreground">{member.email}</span> the owner of your organization.
+                                            <br/>
+                                            <br/>
+                                            You will be demoted to a regular member.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <DialogFooter className="gap-2">
+                                <DialogClose asChild>
+                                    <Button variant="outline">Cancel</Button>
+                                </DialogClose>
+                                <DialogClose asChild>
+                                    <Button 
+                                        variant="default"
+                                        onClick={async () => {
+                                            const response = await makeOwner(member.id, domain);
+                                            if (isServiceError(response)) {
+                                                toast({
+                                                    description: `❌ Failed to switch ownership. ${response.message}`
+                                                });
+                                            } else {
+                                                toast({
+                                                    description: `✅ Switched ownership successfully.`
+                                                });
+
+                                                router.refresh();
+                                            }   
+                                        }}
+                                    >
+                                        Confirm
+                                    </Button>
+                                </DialogClose>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                );
+            }
+        },
+        {
             id: "remove",
             cell: ({ row }) => {
                 const member = row.original;
@@ -126,67 +187,6 @@ export const MemberTableColumns = (currentUserRole: string, currentUserId: strin
                                         }}
                                     >
                                         Remove Member
-                                    </Button>
-                                </DialogClose>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                );
-            }
-        },
-        {
-            id: "makeOwner",
-            cell: ({ row }) => {
-                const member = row.original;
-                if (!isOwner || member.id === currentUserId) return null;
-
-                return (
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                Make Owner
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle className="text-lg font-semibold">Make Owner</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="space-y-4">
-                                    <p className="font-medium">Are you sure you want to make this member the owner?</p>
-                                    <div className="rounded-lg bg-muted p-4">
-                                        <p className="text-sm text-muted-foreground">
-                                            This action will make <span className="font-semibold text-foreground">{member.email}</span> the owner of your organization.
-                                            <br/>
-                                            <br/>
-                                            You will be demoted to a regular member.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <DialogFooter className="gap-2">
-                                <DialogClose asChild>
-                                    <Button variant="outline">Cancel</Button>
-                                </DialogClose>
-                                <DialogClose asChild>
-                                    <Button 
-                                        variant="default"
-                                        onClick={async () => {
-                                            const response = await makeOwner(member.id, domain);
-                                            if (isServiceError(response)) {
-                                                toast({
-                                                    description: `❌ Failed to switch ownership. ${response.message}`
-                                                });
-                                            } else {
-                                                toast({
-                                                    description: `✅ Switched ownership successfully.`
-                                                });
-
-                                                router.refresh();
-                                            }   
-                                        }}
-                                    >
-                                        Confirm
                                     </Button>
                                 </DialogClose>
                             </DialogFooter>
