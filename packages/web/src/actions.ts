@@ -20,6 +20,7 @@ import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
 import { Session } from "next-auth";
 import { STRIPE_PRODUCT_ID } from "@/lib/environment";
+import { StripeSubscriptionStatus } from "@sourcebot/db";
 import Stripe from "stripe";
 const ajv = new Ajv({
     validateFormats: false,
@@ -103,6 +104,8 @@ export const createOrg = (name: string, domain: string, stripeCustomerId?: strin
                 name,
                 domain,
                 stripeCustomerId,
+                stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
+                stripeLastUpdatedAt: new Date(),
                 members: {
                     create: {
                         role: "OWNER",
