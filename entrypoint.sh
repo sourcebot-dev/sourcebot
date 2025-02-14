@@ -27,7 +27,7 @@ if [ ! -d "$DB_DATA_DIR" ]; then
 fi
 
 if [ -z "$SOURCEBOT_ENCRYPTION_KEY" ]; then
-    echo -e "\e[31m[Error] SOURCEBOT_ENCRYPTION_KEY is not set.\e[0m"
+    echo -e "\e[33m[Warning] SOURCEBOT_ENCRYPTION_KEY is not set.\e[0m"
 
     if [ -f "$DATA_CACHE_DIR/.secret" ]; then
         echo -e "\e[34m[Info] Loading environment variables from $DATA_CACHE_DIR/.secret\e[0m"
@@ -39,6 +39,23 @@ if [ -z "$SOURCEBOT_ENCRYPTION_KEY" ]; then
 
     set -a
     . "$DATA_CACHE_DIR/.secret"
+    set +a
+fi
+
+# @see : https://authjs.dev/getting-started/deployment#auth_secret
+if [ -z "$AUTH_SECRET" ]; then
+    echo -e "\e[33m[Warning] AUTH_SECRET is not set.\e[0m"
+
+    if [ -f "$DATA_CACHE_DIR/.authjs-secret" ]; then
+        echo -e "\e[34m[Info] Loading environment variables from $DATA_CACHE_DIR/.authjs-secret\e[0m"
+    else
+        echo -e "\e[34m[Info] Generating a new encryption key...\e[0m"
+        AUTH_SECRET=$(openssl rand -base64 33)
+        echo "AUTH_SECRET=\"$AUTH_SECRET\"" >> "$DATA_CACHE_DIR/.authjs-secret"
+    fi
+
+    set -a
+    . "$DATA_CACHE_DIR/.authjs-secret"
     set +a
 fi
 
@@ -86,27 +103,6 @@ fi
 
 echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL_ID\"}" > "$FIRST_RUN_FILE"
 
-if [ ! -z "$SOURCEBOT_TENANT_MODE" ]; then
-    echo -e "\e[34m[Info] Sourcebot tenant mode: $SOURCEBOT_TENANT_MODE\e[0m"
-else
-    echo -e "\e[31m[Error] SOURCEBOT_TENANT_MODE is not set.\e[0m"
-    exit 1
-fi
-
-# If we're in single tenant mode, fallback to sample config if a config does not exist
-if [ "$SOURCEBOT_TENANT_MODE" = "single" ]; then
-    if echo "$CONFIG_PATH" | grep -qE '^https?://'; then
-        if ! curl --output /dev/null --silent --head --fail "$CONFIG_PATH"; then
-            echo -e "\e[33m[Warning] Remote config file at '$CONFIG_PATH' not found. Falling back on sample config.\e[0m"
-            CONFIG_PATH="./default-config.json"
-        fi
-    elif [ ! -f "$CONFIG_PATH" ]; then
-        echo -e "\e[33m[Warning] Config file at '$CONFIG_PATH' not found. Falling back on sample config.\e[0m"
-        CONFIG_PATH="./default-config.json"
-    fi
-
-    echo -e "\e[34m[Info] Using config file at: '$CONFIG_PATH'.\e[0m"
-fi
 
 # Update NextJs public env variables w/o requiring a rebuild.
 # @see: https://phase.dev/blog/nextjs-public-runtime-variables/
@@ -124,6 +120,9 @@ fi
     # Always infer NEXT_PUBLIC_POSTHOG_PAPIK
     export NEXT_PUBLIC_POSTHOG_PAPIK="$POSTHOG_PAPIK"
 
+    # Always infer NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    export NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="$STRIPE_PUBLISHABLE_KEY"
+
     # Iterate over all .js files in .next & public, making substitutions for the `BAKED_` sentinal values
     # with their actual desired runtime value.
     find /app/packages/web/public /app/packages/web/.next -type f -name "*.js" |
@@ -131,6 +130,7 @@ fi
         sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED|${NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED}|g" "$file"
         sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION|${NEXT_PUBLIC_SOURCEBOT_VERSION}|g" "$file"
         sed -i "s|BAKED_NEXT_PUBLIC_POSTHOG_PAPIK|${NEXT_PUBLIC_POSTHOG_PAPIK}|g" "$file"
+        sed -i "s|BAKED_NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}|g" "$file"
     done
 }
 

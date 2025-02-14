@@ -6,20 +6,18 @@ import { glob } from "glob";
 
 
 const BANNER_COMMENT = '// THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!\n';
-// const SCHEMAS: string[] = ["github.json", "shared.json"];
 
 (async () => {
     const cwd = process.cwd();
     const schemasBasePath = path.resolve(`${cwd}/../../schemas`);
-    const schemas = await glob(`${schemasBasePath}/**/*.json`)
+    const outDirRoot = path.resolve(`${cwd}/src`);
+    const schemas = await glob(`${schemasBasePath}/**/*.json`);
 
     await Promise.all(schemas.map(async (schemaPath) => {
         const name = path.parse(schemaPath).name;
         const version = path.basename(path.dirname(schemaPath));
-        const outDir = path.join(cwd, `src/${version}`);
+        const outDir = path.join(outDirRoot, version);
 
-        // Clean output directory first
-        await rm(outDir, { recursive: true, force: true });
         await mkdir(outDir, { recursive: true });
 
         // Generate schema

@@ -4,9 +4,9 @@ import { redirect } from "next/navigation"
 import logoDark from "@/public/sb_logo_dark_large.png";
 import logoLight from "@/public/sb_logo_light_large.png";
 import githubLogo from "@/public/github.svg";
+import googleLogo from "@/public/google.svg";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-
 const SIGNIN_ERROR_URL = "/login";
 
 export default async function Login(props: {
@@ -39,6 +39,13 @@ export default async function Login(props: {
                                 }
                             }
 
+                            if (provider.id === "google") {
+                                return {
+                                    provider,
+                                    logo: googleLogo,
+                                }
+                            }
+
                             return { provider }
                         })
                         .map(({ provider, logo }) => (
@@ -48,7 +55,7 @@ export default async function Login(props: {
                                     "use server"
                                     try {
                                         await signIn(provider.id, {
-                                            redirectTo: props.searchParams?.callbackUrl ?? "",
+                                            redirectTo: props.searchParams?.callbackUrl ?? "/"
                                         })
                                     } catch (error) {
                                         // Signin can fail for a number of reasons, such as the user

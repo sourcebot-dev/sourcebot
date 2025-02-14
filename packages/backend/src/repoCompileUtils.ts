@@ -160,7 +160,7 @@ export const compileGerritConfig = async (
 
     const gerritRepos = await getGerritReposFromConfig(config);
     const hostUrl = config.url ?? 'https://gerritcodereview.com';
-    const hostname = config.url ? new URL(config.url).hostname : 'gerritcodereview.com';
+    const hostname = new URL(hostUrl).hostname;
 
     return gerritRepos.map((project) => {
         const repoId = `${hostname}/${project.name}`;

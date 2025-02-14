@@ -1,13 +1,13 @@
 import 'next-auth/jwt';
-import NextAuth, { User as AuthJsUser, DefaultSession } from "next-auth"
+import NextAuth, { DefaultSession } from "next-auth"
 import GitHub from "next-auth/providers/github"
+import Google from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
-import type { Provider } from "next-auth/providers"
-import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_SECRET } from "./lib/environment";
+import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_SECRET, AUTH_URL } from "./lib/environment";
 import { User } from '@sourcebot/db';
-import { notAuthenticated, notFound, unexpectedError } from "@/lib/serviceError";
-import { getUser } from "./data/user";
+import 'next-auth/jwt';
+import type { Provider } from "next-auth/providers";
 
 declare module 'next-auth' {
     interface Session {
@@ -19,14 +19,18 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
     interface JWT {
-      userId: string
+        userId: string
     }
-  }
+}
 
 const providers: Provider[] = [
     GitHub({
         clientId: AUTH_GITHUB_CLIENT_ID,
         clientSecret: AUTH_GITHUB_CLIENT_SECRET,
+    }),
+    Google({
+        clientId: AUTH_GOOGLE_CLIENT_ID,
+        clientSecret: AUTH_GOOGLE_CLIENT_SECRET,
     }),
 ];
 
@@ -42,46 +46,9 @@ export const providerMap = providers
     })
     .filter((provider) => provider.id !== "credentials");
 
-const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
-    if (!user.id) {
-        throw new Error("User ID is required.");
-    }
 
-    const orgName = (() => {
-        if (user.name) {
-            return `${user.name}'s Org`;
-        } else {
-            return `Default Org`;
-        }
-    })();
-
-    await prisma.$transaction((async (tx) => {
-        const org = await tx.org.create({
-            data: {
-                name: orgName,
-                members: {
-                    create: {
-                        role: "OWNER",
-                        user: {
-                            connect: {
-                                id: user.id,
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        await tx.user.update({
-            where: {
-                id: user.id,
-            },
-            data: {
-                activeOrgId: org.id,
-            }
-        });
-    }));
-}
+const useSecureCookies = AUTH_URL?.startsWith("https://") ?? false;
+const hostName = AUTH_URL ? new URL(AUTH_URL).hostname : "localhost";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     secret: AUTH_SECRET,
@@ -89,9 +56,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session: {
         strategy: "jwt",
     },
-    events: {
-        createUser: onCreateUser,
-    },
+    trustHost: true,
     callbacks: {
         async jwt({ token, user: _user }) {
             const user = _user as User | undefined;
@@ -111,6 +76,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 id: token.userId,
             }
             return session;
+        },
+    },
+    cookies: {
+        sessionToken: {
+            name: `${useSecureCookies ? '__Secure-' : ''}authjs.session-token`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: useSecureCookies,
+                domain: `.${hostName}`
+            }
+        },
+        callbackUrl: {
+            name: `${useSecureCookies ? '__Secure-' : ''}authjs.callback-url`,
+            options: {
+                sameSite: 'lax',
+                path: '/',
+                secure: useSecureCookies,
+                domain: `.${hostName}`
+            }
+        },
+        csrfToken: {
+            name: `${useSecureCookies ? '__Host-' : ''}authjs.csrf-token`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: useSecureCookies,
+                domain: `.${hostName}`
+            }
         }
     },
     providers: providers,
@@ -118,33 +114,3 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         signIn: "/login"
     }
 });
-
-export const getCurrentUserOrg = async () => {
-    const session = await auth();
-    if (!session) {
-        return notAuthenticated();
-    }
-
-    const user = await getUser(session.user.id);
-    if (!user) {
-        return unexpectedError("User not found");
-    }
-    const orgId = user.activeOrgId;
-    if (!orgId) {
-        return unexpectedError("User has no active org");
-    }
-
-    const membership = await prisma.userToOrg.findUnique({
-        where: {
-            orgId_userId: {
-                userId: session.user.id,
-                orgId,
-            }
-        },
-    });
-    if (!membership) {
-        return notFound();
-    }
-
-    return orgId;
-}

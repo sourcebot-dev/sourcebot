@@ -6,12 +6,8 @@
     "scripts": {
         "build": "yarn workspaces run build",
         "test": "yarn workspaces run test",
-        "dev": "cross-env SOURCEBOT_TENANT_MODE=single npm-run-all --print-label dev:start",
-        "dev:mt": "cross-env SOURCEBOT_TENANT_MODE=multi npm-run-all --print-label dev:start:mt",
-        "dev:start": "yarn workspace @sourcebot/db prisma:migrate:dev && cross-env npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web",
-        "dev:start:mt": "yarn workspace @sourcebot/db prisma:migrate:dev && cross-env npm-run-all --print-label --parallel dev:zoekt:mt dev:backend dev:web",
-        "dev:zoekt": "export PATH=\"$PWD/bin:$PATH\" && export SRC_TENANT_ENFORCEMENT_MODE=none && zoekt-webserver -index .sourcebot/index -rpc",
-        "dev:zoekt:mt": "export PATH=\"$PWD/bin:$PATH\" && export SRC_TENANT_ENFORCEMENT_MODE=strict && zoekt-webserver -index .sourcebot/index -rpc",
+        "dev": "yarn workspace @sourcebot/db prisma:migrate:dev && cross-env npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web",
+        "dev:zoekt": "export PATH=\"$PWD/bin:$PATH\" && export SRC_TENANT_ENFORCEMENT_MODE=strict && zoekt-webserver -index .sourcebot/index -rpc",
         "dev:backend": "yarn workspace @sourcebot/backend dev:watch",
         "dev:web": "yarn workspace @sourcebot/web dev"
     },
