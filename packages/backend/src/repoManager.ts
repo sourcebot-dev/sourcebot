@@ -49,7 +49,7 @@ export class RepoManager implements IRepoManager {
             this.fetchAndScheduleRepoIndexing();
             this.garbageCollectRepo();
 
-            await new Promise(resolve => setTimeout(resolve, this.settings.reindexRepoPollingInternvalMs));
+            await new Promise(resolve => setTimeout(resolve, this.settings.reindexRepoPollingIntervalMs));
         }
     }
 

@@ -30,6 +30,7 @@ export const compileGithubConfig = async (
             external_codeHostUrl: hostUrl,
             cloneUrl: cloneUrl.toString(),
             name: repoName,
+            imageUrl: repo.owner.avatar_url,
             isFork: repo.fork,
             isArchived: !!repo.archived,
             org: {
@@ -80,6 +81,7 @@ export const compileGitlabConfig = async (
             external_codeHostUrl: hostUrl,
             cloneUrl: cloneUrl.toString(),
             name: project.path_with_namespace,
+            imageUrl: project.avatar_url,
             isFork: isFork,
             isArchived: !!project.archived,
             org: {
@@ -118,7 +120,6 @@ export const compileGiteaConfig = async (
     const hostUrl = config.url ?? 'https://gitea.com';
 
     return giteaRepos.map((repo) => {
-        const repoUrl = `${hostUrl}/${repo.full_name}`;
         const cloneUrl = new URL(repo.clone_url!);
 
         const record: RepoData = {
@@ -127,6 +128,7 @@ export const compileGiteaConfig = async (
             external_codeHostUrl: hostUrl,
             cloneUrl: cloneUrl.toString(),
             name: repo.full_name!,
+            imageUrl: repo.owner?.avatar_url,
             isFork: repo.fork!,
             isArchived: !!repo.archived,
             org: {
