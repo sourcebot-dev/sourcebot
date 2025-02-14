@@ -5,6 +5,9 @@ import { CheckoutButton } from "./checkoutButton"
 import Image from "next/image";
 import logoDark from "@/public/sb_logo_dark_large.png";
 import logoLight from "@/public/sb_logo_light_large.png";
+import { getCurrentUserRole } from "@/actions"
+import { isServiceError } from "@/lib/utils"
+import { OrgRole } from "@sourcebot/db"
 
 const teamFeatures = [
   "Index hundreds of repos from multiple code hosts (GitHub, GitLab, Gerrit, Gitea, etc.). Self-hosted code sources supported",

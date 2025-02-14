@@ -12,7 +12,7 @@ import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
-import { ConnectionSyncStatus, Prisma, Invite } from "@sourcebot/db";
+import { ConnectionSyncStatus, Prisma, Invite, OrgRole } from "@sourcebot/db";
 import { headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
@@ -282,6 +282,26 @@ export const deleteConnection = async (connectionId: number, domain: string): Pr
             }
         }));
 
+export const getCurrentUserRole = async (domain: string): Promise<OrgRole | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const userRole = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        orgId,
+                        userId: session.user.id,
+                    },
+                },
+            });
+
+            if (!userRole) {
+                return notFound();
+            }
+
+            return userRole.role;
+        })  
+    );
+
 export const createInvite = async (email: string, userId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async (orgId) => {
@@ -376,6 +396,83 @@ export const redeemInvite = async (invite: Invite, userId: string): Promise<{ su
             return unexpectedError("Failed to redeem invite");
         }
     });
+
+export const makeOwner = async (newOwnerId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const currentUserId = session.user.id;
+            const currentUserRole = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        userId: currentUserId,
+                        orgId,
+                    },
+                },
+            });
+
+            if (!currentUserRole || currentUserRole.role !== "OWNER") {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "You are not the owner of this org",
+                } satisfies ServiceError;
+            }
+
+            if (newOwnerId === currentUserId) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "You're already the owner of this org",
+                } satisfies ServiceError;
+            }
+
+            const newOwner = await prisma.userToOrg.findUnique({
+                where: {    
+                    orgId_userId: {
+                        userId: newOwnerId,
+                        orgId,
+                    },
+                },
+            });
+
+            if (!newOwner) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "The user you're trying to make the owner doesn't exist",
+                } satisfies ServiceError;
+            }
+
+            await prisma.$transaction([
+                prisma.userToOrg.update({
+                    where: {
+                        orgId_userId: {
+                            userId: newOwnerId,
+                            orgId,
+                        },
+                    },
+                    data: {
+                        role: "OWNER",
+                    }
+                }),
+                prisma.userToOrg.update({
+                    where: {
+                        orgId_userId: {
+                            userId: currentUserId,
+                            orgId,
+                        },
+                    },
+                    data: {
+                        role: "MEMBER",
+                    }
+                })
+            ]);
+
+            return {
+                success: true,
+            }
+        })
+    );
 
 const parseConnectionConfig = (connectionType: string, config: string) => {
     let parsedConfig: ConnectionConfig;
