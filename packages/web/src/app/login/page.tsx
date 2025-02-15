@@ -1,12 +1,16 @@
 import { LoginForm } from "./components/loginForm";
-import { Suspense } from "react";
 
-export default async function Login() {
+interface LoginProps {
+    searchParams: {
+        callbackUrl?: string;
+        error?: string;
+    }
+}
+
+export default async function Login({ searchParams }: LoginProps) {
     return (
         <div className="flex flex-col justify-center items-center h-screen">
-            <Suspense fallback={<div>Loading...</div>}>
-                <LoginForm />
-            </Suspense>
+            <LoginForm callbackUrl={searchParams.callbackUrl} error={searchParams.error} />
         </div>
     )
 }

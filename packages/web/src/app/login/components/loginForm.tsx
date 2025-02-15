@@ -13,13 +13,14 @@ import googleLogo from "@/public/google.svg";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { useCallback, useMemo } from "react";
-import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { verifyCredentialsRequestSchema } from "@/lib/schemas";
 
-export const LoginForm = () => {
-    const callbackUrl = useNonEmptyQueryParam("callbackUrl");
-    const error = useNonEmptyQueryParam("error");
+interface LoginFormProps {
+    callbackUrl?: string;
+    error?: string;
+}
 
+export const LoginForm = ({ callbackUrl, error }: LoginFormProps) => {
     const form = useForm<z.infer<typeof verifyCredentialsRequestSchema>>({
         resolver: zodResolver(verifyCredentialsRequestSchema),
         defaultValues: {
