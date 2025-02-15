@@ -110,22 +110,22 @@ model Invite {
 }
 
 model Org {
-  id                Int          @id @default(autoincrement())
-  name              String
-  domain            String       @unique
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  members           UserToOrg[]
-  connections       Connection[]
-  repos             Repo[]
-  secrets           Secret[]
+  id          Int          @id @default(autoincrement())
+  name        String
+  domain      String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  members     UserToOrg[]
+  connections Connection[]
+  repos       Repo[]
+  secrets     Secret[]
 
   stripeCustomerId          String?
   stripeSubscriptionStatus  StripeSubscriptionStatus?
   stripeLastUpdatedAt       DateTime?
 
   /// List of pending invites to this organization
-  invites           Invite[]
+  invites Invite[]
 }
 
 enum OrgRole {
@@ -164,13 +164,14 @@ model Secret {
 
 // @see : https://authjs.dev/concepts/database-models#user
 model User {
-  id            String      @id @default(cuid())
-  name          String?
-  email         String?     @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  orgs          UserToOrg[]
+  id                String      @id @default(cuid())
+  name              String?
+  email             String?     @unique
+  hashedPassword    String?
+  emailVerified     DateTime?
+  image             String?
+  accounts          Account[]
+  orgs              UserToOrg[]
 
   /// List of pending invites that the user has created
   invites Invite[]

@@ -162,3 +162,16 @@ export const listRepositoriesResponseSchema = z.object({
         Stats: repoStatsSchema,
     })
 });
+
+export const verifyCredentialsRequestSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(8),
+});
+
+
+export const verifyCredentialsResponseSchema = z.object({
+    id: z.string().optional(),
+    name: z.string().optional(),
+    email: z.string().optional(),
+    image: z.string().optional(),
+});
