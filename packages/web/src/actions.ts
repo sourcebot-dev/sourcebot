@@ -13,8 +13,8 @@ import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
-import { getConnection } from "./data/connection";
-import { ConnectionSyncStatus, Prisma, Invite, OrgRole } from "@sourcebot/db";
+import { getConnection, getLinkedRepos } from "./data/connection";
+import { ConnectionSyncStatus, Prisma, Invite, OrgRole, Connection, Repo, Org } from "@sourcebot/db";
 import { headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
@@ -236,6 +236,41 @@ export const createConnection = async (name: string, type: string, connectionCon
             }
         }));
 
+export const getConnectionInfoAction = async (connectionId: number, domain: string): Promise<{ connection: Connection, linkedRepos: Repo[] } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const connection = await getConnection(connectionId, orgId);
+            if (!connection) {
+                return notFound();
+            }
+
+            const linkedRepos = await getLinkedRepos(connectionId, orgId);
+
+            return {
+                connection,
+                linkedRepos: linkedRepos.map((repo) => repo.repo),
+            }
+        })
+    );
+
+export const getOrgFromDomainAction = async (domain: string): Promise<Org | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const org = await prisma.org.findUnique({
+                where: {
+                    id: orgId,
+                },
+            });
+
+            if (!org) {
+                return notFound();
+            }
+
+            return org;
+        })
+    );
+
+
 export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async (orgId) => {
@@ -289,6 +324,36 @@ export const updateConnectionConfigAndScheduleSync = async (connectionId: number
                 },
                 data: {
                     config: parsedConfig as unknown as Prisma.InputJsonValue,
+                    syncStatus: "SYNC_NEEDED",
+                }
+            });
+
+            return {
+                success: true,
+            }
+        }));
+
+export const flagConnectionForSync = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const connection = await getConnection(connectionId, orgId);
+            if (!connection || connection.orgId !== orgId) {
+                return notFound();
+            }
+
+            if (connection.syncStatus !== "FAILED") {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.CONNECTION_NOT_FAILED,
+                    message: "Connection is not in a failed state. Cannot flag for sync.",
+                } satisfies ServiceError;
+            }
+
+            await prisma.connection.update({
+                where: { 
+                    id: connection.id,
+                },
+                data: {
                     syncStatus: "SYNC_NEEDED",
                 }
             });

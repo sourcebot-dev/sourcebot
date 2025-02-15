@@ -18,7 +18,6 @@ export default async function ConnectionsPage({ params: { domain } }: { params: 
             </Header>
             <div className="flex flex-col md:flex-row gap-4">
                 <ConnectionList
-                    connections={connections}
                     className="md:w-3/4"
                 />
                 <NewConnectionCard

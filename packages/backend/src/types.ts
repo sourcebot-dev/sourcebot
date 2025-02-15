@@ -77,7 +77,7 @@ export type Settings = {
     /**
      * The polling rate (in milliseconds) at which the db should be checked for repos that should be re-indexed.
      */
-    reindexRepoPollingInternvalMs: number;
+    reindexRepoPollingIntervalMs: number;
     /**
      * The multiple of the number of CPUs to use for indexing.
      */

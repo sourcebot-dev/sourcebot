@@ -23,6 +23,7 @@ export const RepoListItem = ({
             case RepoIndexingStatus.NEW:
                 return 'Waiting...';
             case RepoIndexingStatus.IN_INDEX_QUEUE:
+                return 'In index queue...';
             case RepoIndexingStatus.INDEXING:
                 return 'Indexing...';
             case RepoIndexingStatus.INDEXED:
