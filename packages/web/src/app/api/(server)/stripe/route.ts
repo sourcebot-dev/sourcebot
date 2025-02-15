@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 import { prisma } from '@/prisma';
 import { STRIPE_WEBHOOK_SECRET } from '@/lib/environment';
 import { getStripe } from '@/lib/stripe';
-import { StripeSubscriptionStatus } from '@sourcebot/db';
+import { ConnectionSyncStatus, StripeSubscriptionStatus } from '@sourcebot/db';
 export async function POST(req: NextRequest) {
     const body = await req.text();
     const signature = headers().get('stripe-signature');
@@ -73,6 +73,16 @@ export async function POST(req: NextRequest) {
                 }
             });
             console.log(`Org ${org.id} subscription status updated to ACTIVE`);
+
+            // mark all of this org's connections for sync, since their repos may have been previously garbage collected
+            await prisma.connection.updateMany({
+                where: {
+                    orgId: org.id
+                },
+                data: {
+                    syncStatus: ConnectionSyncStatus.SYNC_NEEDED
+                }
+            });
 
             return new Response(JSON.stringify({ received: true }), {
                 status: 200
