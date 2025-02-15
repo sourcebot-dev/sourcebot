@@ -1,7 +1,7 @@
 import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createLogger } from "./logger.js";
-import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus } from "@sourcebot/db";
+import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings } from "./types.js";
 import { captureEvent } from "./posthog.js";
@@ -106,8 +106,33 @@ export class RepoManager implements IRepoManager {
             }
         });
 
-        for (const repo of reposWithNoConnections) {
-            this.logger.info(`Garbage collecting repo with no connections: ${repo.id}`);
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const inactiveOrgs = await this.db.org.findMany({
+            where: {
+                stripeSubscriptionStatus: StripeSubscriptionStatus.INACTIVE,
+                stripeLastUpdatedAt: {
+                    lt: sevenDaysAgo
+                }
+            }
+        });
+
+        const inactiveOrgIds = inactiveOrgs.map(org => org.id);
+        
+        const inactiveOrgRepos = await this.db.repo.findMany({
+            where: {
+                orgId: {
+                    in: inactiveOrgIds
+                }
+            }
+        });
+
+        if (inactiveOrgIds.length > 0 && inactiveOrgRepos.length > 0) {
+            console.log(`Garbage collecting ${inactiveOrgs.length} inactive orgs: ${inactiveOrgIds.join(', ')}`);
+        }
+
+        const reposToDelete = [...reposWithNoConnections, ...inactiveOrgRepos];
+        for (const repo of reposToDelete) {
+            this.logger.info(`Garbage collecting repo: ${repo.id}`);
 
             // delete cloned repo
             const repoPath = getRepoPath(repo, this.ctx);
@@ -129,7 +154,7 @@ export class RepoManager implements IRepoManager {
         await this.db.repo.deleteMany({
             where: {
                 id: {
-                    in: reposWithNoConnections.map(repo => repo.id)
+                    in: reposToDelete.map(repo => repo.id)
                 }
             }
         });
