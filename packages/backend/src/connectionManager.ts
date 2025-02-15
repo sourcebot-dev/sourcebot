@@ -5,8 +5,7 @@ import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { createLogger } from "./logger.js";
 import os from 'os';
 import { Redis } from 'ioredis';
-import { marshalBool } from "./utils.js";
-import { getGitHubReposFromConfig } from "./github.js";
+import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig } from "./repoCompileUtils.js";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -79,64 +78,28 @@ export class ConnectionManager implements IConnectionManager {
         // @note: We aren't actually doing anything with this atm.
         const abortController = new AbortController();
 
-        type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
-        const repoData: RepoData[] = (
-            await (async () => {
-                switch (config.type) {
-                    case 'github': {
-                        const gitHubRepos = await getGitHubReposFromConfig(config, orgId, this.db, abortController.signal);
-                        const hostUrl = config.url ?? 'https://github.com';
-                        const hostname = config.url ? new URL(config.url).hostname : 'github.com';
-
-                        return gitHubRepos.map((repo) => {
-                            const repoName = `${hostname}/${repo.full_name}`;
-                            const cloneUrl = new URL(repo.clone_url!);
-
-                            const record: RepoData = {
-                                external_id: repo.id.toString(),
-                                external_codeHostType: 'github',
-                                external_codeHostUrl: hostUrl,
-                                cloneUrl: cloneUrl.toString(),
-                                imageUrl: repo.owner.avatar_url,
-                                name: repoName,
-                                isFork: repo.fork,
-                                isArchived: !!repo.archived,
-                                org: {
-                                    connect: {
-                                        id: orgId,
-                                    },
-                                },
-                                connections: {
-                                    create: {
-                                        connectionId: job.data.connectionId,
-                                    }
-                                },
-                                metadata: {
-                                    'zoekt.web-url-type': 'github',
-                                    'zoekt.web-url': repo.html_url,
-                                    'zoekt.name': repoName,
-                                    'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
-                                    'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
-                                    'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
-                                    'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
-                                    'zoekt.archived': marshalBool(repo.archived),
-                                    'zoekt.fork': marshalBool(repo.fork),
-                                    'zoekt.public': marshalBool(repo.private === false)
-                                },
-                            };
-
-                            return record;
-                        })
-                    }
-                    case 'gitlab': {
-                        // @todo
-                        return [];
-                    }
+        const repoData: RepoData[] = await (async () => {
+            switch (config.type) {
+                case 'github': {
+                    return await compileGithubConfig(config, job.data.connectionId, orgId, this.db, abortController);
                 }
-            })()
-        )
+                case 'gitlab': {
+                    return await compileGitlabConfig(config, job.data.connectionId, orgId, this.db);
+                }
+                case 'gitea': {
+                    return await compileGiteaConfig(config, job.data.connectionId, orgId, this.db);
+                }
+                case 'gerrit': {
+                    return await compileGerritConfig(config, job.data.connectionId, orgId);
+                }
+                default: {
+                    return [];
+                }
+            }
+        })();
+
         // Filter out any duplicates by external_id and external_codeHostUrl.
-        .filter((repo, index, self) => {
+        repoData.filter((repo, index, self) => {
             return index === self.findIndex(r =>
                 r.external_id === repo.external_id &&
                 r.external_codeHostUrl === repo.external_codeHostUrl

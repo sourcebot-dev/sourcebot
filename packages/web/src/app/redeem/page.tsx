@@ -71,7 +71,7 @@ export default async function RedeemPage({ searchParams }: RedeemPageProps) {
     if (user) {
         if (user.email !== invite.recipientEmail) {
             return (
-                <ErrorLayout title={`This invite doesn&apos;t belong to you. You&apos;re currenly signed in with ${user.email}`} />
+                <ErrorLayout title={`This invite doesn't belong to you. You're currently signed in with ${user.email}`} />
             )
         } else {
             const org = await prisma.org.findUnique({
@@ -80,7 +80,7 @@ export default async function RedeemPage({ searchParams }: RedeemPageProps) {
 
             if (!org) {
                 return (
-                    <ErrorLayout title="This organization wasn&apos;t found. Please contact your organization owner." />
+                    <ErrorLayout title="This organization wasn't found. Please contact your organization owner." />
                 )
             }
 
@@ -89,7 +89,7 @@ export default async function RedeemPage({ searchParams }: RedeemPageProps) {
                 const subscription = await fetchSubscription(org.domain);
                 if (isServiceError(subscription)) {
                     return (
-                        <ErrorLayout title="This organization&apos;s subscription has expired. Please renew the subscription and try again." />
+                        <ErrorLayout title="This organization's subscription has expired. Please renew the subscription and try again." />
                     )
                 }
             }

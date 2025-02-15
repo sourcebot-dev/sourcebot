@@ -109,7 +109,7 @@ export function OrgCreateForm({ setOrgCreateData }: OrgCreateFormProps) {
                                 <FormControl>
                                     <div className="flex items-center">
                                         <Input placeholder="aperature-labs" {...field} className="w-1/2" />
-                                        <span className="ml-2">.sourcebot.dev</span>
+                                        <span className="ml-2">.sourcebot.app</span>
                                     </div>
                                 </FormControl>
                                 <FormMessage />

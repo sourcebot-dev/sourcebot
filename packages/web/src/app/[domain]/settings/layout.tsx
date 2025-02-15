@@ -1,9 +1,7 @@
 import { Metadata } from "next"
-
 import { Separator } from "@/components/ui/separator"
 import { SidebarNav } from "./components/sidebar-nav"
 import { NavigationMenu } from "../components/navigationMenu"
-
 export const metadata: Metadata = {
     title: "Settings",
 }

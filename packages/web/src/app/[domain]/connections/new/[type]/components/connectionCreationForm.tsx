@@ -19,7 +19,7 @@ import { ConfigEditor, QuickActionFn } from "../../../components/configEditor";
 import { useDomain } from "@/hooks/useDomain";
 
 interface ConnectionCreationForm<T> {
-    type: 'github' | 'gitlab';
+    type: 'github' | 'gitlab' | 'gitea' | 'gerrit';
     defaultValues: {
         name: string;
         config: string;

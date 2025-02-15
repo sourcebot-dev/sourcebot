@@ -9,12 +9,14 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { isServiceError } from "@/lib/utils";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
+import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
+import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
-import { ConnectionSyncStatus, Prisma, Invite } from "@sourcebot/db";
+import { ConnectionSyncStatus, Prisma, Invite, OrgRole } from "@sourcebot/db";
 import { headers } from "next/headers"
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
 import { Session } from "next-auth";
 import { STRIPE_PRODUCT_ID } from "@/lib/environment";
@@ -53,6 +55,37 @@ export const withOrgMembership = async <T>(session: Session, domain: string, fn:
 
     if (!membership) {
         return notFound();
+    }
+
+    return fn(org.id);
+}
+
+export const withOwner = async <T>(session: Session, domain: string, fn: (orgId: number) => Promise<T>) => {
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (!org) {
+        return notFound();
+    }
+
+    const userRole = await prisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                orgId: org.id,
+                userId: session.user.id,
+            },
+        },
+    });
+
+    if (!userRole || userRole.role !== OrgRole.OWNER) { 
+        return {
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.MEMBER_NOT_OWNER,
+            message: "Only org owners can perform this action",
+        } satisfies ServiceError;
     }
 
     return fn(org.id);
@@ -282,9 +315,29 @@ export const deleteConnection = async (connectionId: number, domain: string): Pr
             }
         }));
 
-export const createInvite = async (email: string, userId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+export const getCurrentUserRole = async (domain: string): Promise<OrgRole | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async (orgId) => {
+            const userRole = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        orgId,
+                        userId: session.user.id,
+                    },
+                },
+            });
+
+            if (!userRole) {
+                return notFound();
+            }
+
+            return userRole.role;
+        })  
+    );
+
+export const createInvite = async (email: string, userId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOwner(session, domain, async (orgId) => {
             console.log("Creating invite for", email, userId, orgId);
 
             if (email === session.user.email) {
@@ -339,6 +392,7 @@ export const redeemInvite = async (invite: Invite, userId: string): Promise<{ su
                     const existingSeatCount = subscription.items.data[0].quantity;
                     const newSeatCount = (existingSeatCount || 1) + 1
 
+                    const stripe = getStripe();
                     await stripe.subscriptionItems.update(
                         subscription.items.data[0].id,
                         {
@@ -376,6 +430,75 @@ export const redeemInvite = async (invite: Invite, userId: string): Promise<{ su
         }
     });
 
+export const makeOwner = async (newOwnerId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOwner(session, domain, async (orgId) => {
+            const currentUserId = session.user.id;
+            const currentUserRole = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        userId: currentUserId,
+                        orgId,
+                    },
+                },
+            });
+
+            if (newOwnerId === currentUserId) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "You're already the owner of this org",
+                } satisfies ServiceError;
+            }
+
+            const newOwner = await prisma.userToOrg.findUnique({
+                where: {    
+                    orgId_userId: {
+                        userId: newOwnerId,
+                        orgId,
+                    },
+                },
+            });
+
+            if (!newOwner) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "The user you're trying to make the owner doesn't exist",
+                } satisfies ServiceError;
+            }
+
+            await prisma.$transaction([
+                prisma.userToOrg.update({
+                    where: {
+                        orgId_userId: {
+                            userId: newOwnerId,
+                            orgId,
+                        },
+                    },
+                    data: {
+                        role: "OWNER",
+                    }
+                }),
+                prisma.userToOrg.update({
+                    where: {
+                        orgId_userId: {
+                            userId: currentUserId,
+                            orgId,
+                        },
+                    },
+                    data: {
+                        role: "MEMBER",
+                    }
+                })
+            ]);
+
+            return {
+                success: true,
+            }
+        })
+    );
+
 const parseConnectionConfig = (connectionType: string, config: string) => {
     let parsedConfig: ConnectionConfig;
     try {
@@ -394,6 +517,10 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
                 return githubSchema;
             case "gitlab":
                 return gitlabSchema;
+            case 'gitea':
+                return giteaSchema;
+            case 'gerrit':
+                return gerritSchema;
         }
     })();
 
@@ -424,6 +551,7 @@ export const setupInitialStripeCustomer = async (name: string, domain: string) =
             return "";
         }
 
+        const stripe = getStripe();
         const origin = (await headers()).get('origin')
 
         // @nocheckin
@@ -489,6 +617,7 @@ export const getSubscriptionCheckoutRedirect = async (domain: string) =>
             });
             const numOrgMembers = orgMembers.length;
 
+            const stripe = getStripe();
             const origin = (await headers()).get('origin')
             const prices = await stripe.prices.list({
                 product: STRIPE_PRODUCT_ID,
@@ -520,13 +649,14 @@ export const getSubscriptionCheckoutRedirect = async (domain: string) =>
     )
 
 export async function fetchStripeSession(sessionId: string) {
+    const stripe = getStripe();
     const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
     return stripeSession;
 }
 
 export const getCustomerPortalSessionLink = async (domain: string): Promise<string | ServiceError> =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async (orgId) => {
+        withOwner(session, domain, async (orgId) => {
             const org = await prisma.org.findUnique({
                 where: {
                     id: orgId,
@@ -537,6 +667,7 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
                 return notFound();
             }
 
+            const stripe = getStripe();
             const origin = (await headers()).get('origin')
             const portalSession = await stripe.billingPortal.sessions.create({
                 customer: org.stripeCustomerId as string,
@@ -558,6 +689,7 @@ export const fetchSubscription = (domain: string): Promise<Stripe.Subscription |
             return notFound();
         }
 
+        const stripe = getStripe();
         const subscriptions = await stripe.subscriptions.list({
             customer: org.stripeCustomerId
         });
@@ -567,6 +699,69 @@ export const fetchSubscription = (domain: string): Promise<Stripe.Subscription |
         }
         return subscriptions.data[0];
     });
+
+export const getSubscriptionBillingEmail = async (domain: string): Promise<string | ServiceError> =>
+    withAuth(async (session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const org = await prisma.org.findUnique({
+                where: {
+                    id: orgId,
+                },
+            });
+
+            if (!org || !org.stripeCustomerId) {
+                return notFound();
+            }
+
+            const stripe = getStripe();
+            const customer = await stripe.customers.retrieve(org.stripeCustomerId);
+            if (!('email' in customer) || customer.deleted) {
+                return notFound();
+            }
+            return customer.email!;
+        })
+    );
+
+export const changeSubscriptionBillingEmail = async (domain: string, newEmail: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const userRole = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        orgId,
+                        userId: session.user.id,
+                    }
+                }
+            });
+
+            if (!userRole || userRole.role !== "OWNER") {
+                return {
+                    statusCode: StatusCodes.FORBIDDEN,
+                    errorCode: ErrorCode.MEMBER_NOT_OWNER,
+                    message: "Only org owners can change billing email",
+                } satisfies ServiceError;
+            }
+
+            const org = await prisma.org.findUnique({
+                where: {
+                    id: orgId,
+                },
+            });
+
+            if (!org || !org.stripeCustomerId) {
+                return notFound();
+            }
+
+            const stripe = getStripe();
+            await stripe.customers.update(org.stripeCustomerId, {
+                email: newEmail,
+            });
+
+            return {
+                success: true,
+            }
+        })
+    );
 
 export const checkIfUserHasOrg = async (userId: string): Promise<boolean | ServiceError> => {
     const orgs = await prisma.userToOrg.findMany({
@@ -624,6 +819,7 @@ export const removeMember = async (memberId: string, domain: string): Promise<{ 
                 const existingSeatCount = subscription.items.data[0].quantity;
                 const newSeatCount = (existingSeatCount || 1) - 1;
 
+                const stripe = getStripe();
                 await stripe.subscriptionItems.update(
                     subscription.items.data[0].id,
                     {

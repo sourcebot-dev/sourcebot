@@ -11,12 +11,13 @@ import { isServiceError } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 import { ErrorCode } from "@/lib/errorCodes";
 import { useRouter } from "next/navigation";
+import { OrgRole } from "@sourcebot/db";
 
 const formSchema = z.object({
     email: z.string().min(2).max(40),
 });
 
-export const MemberInviteForm = ({ userId }: { userId: string }) => {
+export const MemberInviteForm = ({ userId, currentUserRole }: { userId: string, currentUserRole: OrgRole }) => {
     const router = useRouter();
     const { toast } = useToast();
     const domain = useDomain();
@@ -44,25 +45,30 @@ export const MemberInviteForm = ({ userId }: { userId: string }) => {
         }
     }
 
+    const isOwner = currentUserRole === OrgRole.OWNER;
     return (
         <div className="space-y-2">
             <h4 className="text-lg font-normal">Invite a member</h4>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleCreateInvite)}>
-                    <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl>
-                                    <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <Button className="mt-5" type="submit">Submit</Button>
+                    <div title={!isOwner ? "Only the owner of the org can invite new members" : undefined}>
+                        <div className={!isOwner ? "opacity-50 pointer-events-none" : ""}>
+                            <FormField
+                                control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Email</FormLabel>
+                                        <FormControl>
+                                            <Input {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button className="mt-5" type="submit">Submit</Button>
+                        </div>
+                    </div>
                 </form>
             </Form>
         </div>
