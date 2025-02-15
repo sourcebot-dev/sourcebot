@@ -1,21 +1,20 @@
 import { auth } from "@/auth"
 import { getUser } from "@/data/user"
 import { prisma } from "@/prisma"
-import { MemberTable } from "./components/memberTable"
-import { MemberInviteForm } from "./components/memberInviteForm"
-import { InviteTable } from "./components/inviteTable"
+import { MemberTable } from "../components/memberTable"
+import { MemberInviteForm } from "../components/memberInviteForm"
+import { InviteTable } from "../components/inviteTable"
 import { Separator } from "@/components/ui/separator"
 import { getCurrentUserRole } from "@/actions"  
 import { isServiceError } from "@/lib/utils"
-import { OrgRole } from "@sourcebot/db"
 
-interface SettingsPageProps {
+interface GeneralSettingsPageProps {
     params: {
         domain: string
     }
 }
 
-export default async function SettingsPage({ params: { domain } }: SettingsPageProps) {
+export default async function GeneralSettingsPage({ params: { domain } }: GeneralSettingsPageProps) {
     const fetchData = async () => {
         const session = await auth()
         if (!session) {

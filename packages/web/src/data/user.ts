@@ -24,3 +24,16 @@ export const getUserOrgs = async (userId: string) => {
 
     return orgs;
 }
+
+export const getUserRoleInOrg = async (userId: string, orgId: number) => {
+    const userToOrg = await prisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                userId,
+                orgId,
+            }
+        },
+    });
+
+    return userToOrg?.role;
+}
