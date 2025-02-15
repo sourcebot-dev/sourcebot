@@ -11,7 +11,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { removeMember, makeOwner } from "@/actions"
+import { removeMemberFromOrg, transferOwnership } from "@/actions"
 import { useToast } from "@/components/hooks/use-toast"
 import { useDomain } from "@/hooks/useDomain";
 import { isServiceError } from "@/lib/utils";
@@ -90,7 +90,7 @@ export const MemberTableColumns = (currentUserRole: string, currentUserId: strin
                                     <Button 
                                         variant="default"
                                         onClick={async () => {
-                                            const response = await makeOwner(member.id, domain);
+                                            const response = await transferOwnership(member.id, domain);
                                             if (isServiceError(response)) {
                                                 toast({
                                                     description: `❌ Failed to switch ownership. ${response.message}`
@@ -172,7 +172,7 @@ export const MemberTableColumns = (currentUserRole: string, currentUserId: strin
                                         variant="destructive" 
                                         className="hover:bg-destructive/90"
                                         onClick={async () => {
-                                            const response = await removeMember(member.id, domain);
+                                            const response = await removeMemberFromOrg(member.id, domain);
                                             if (isServiceError(response)) {
                                                 toast({
                                                     description: `❌ Failed to remove member. Reason: ${response.message}`
