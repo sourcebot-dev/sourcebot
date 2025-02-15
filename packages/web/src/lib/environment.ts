@@ -17,3 +17,5 @@ export const AUTH_URL = getEnv(process.env.AUTH_URL)!;
 export const STRIPE_SECRET_KEY = getEnv(process.env.STRIPE_SECRET_KEY);
 export const STRIPE_PRODUCT_ID = getEnv(process.env.STRIPE_PRODUCT_ID);
 export const STRIPE_WEBHOOK_SECRET = getEnv(process.env.STRIPE_WEBHOOK_SECRET);
+
+export const CONFIG_MAX_REPOS_NO_TOKEN = getEnvNumber(process.env.CONFIG_MAX_REPOS_NO_TOKEN, 500);

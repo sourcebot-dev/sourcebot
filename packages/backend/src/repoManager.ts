@@ -203,7 +203,7 @@ export class RepoManager implements IRepoManager {
             this.logger.info(`Fetching ${repo.id}...`);
     
             const { durationMs } = await measure(() => fetchRepository(repoPath, ({ method, stage, progress }) => {
-                this.logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+                //this.logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
             }));
             fetchDuration_s = durationMs / 1000;
     
@@ -222,7 +222,7 @@ export class RepoManager implements IRepoManager {
             }
     
             const { durationMs } = await measure(() => cloneRepository(cloneUrl, repoPath, metadata, ({ method, stage, progress }) => {
-                this.logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+                //this.logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
             }));
             cloneDuration_s = durationMs / 1000;
     
@@ -286,7 +286,7 @@ export class RepoManager implements IRepoManager {
     }
 
     private async onIndexJobFailed(job: Job<JobPayload> | undefined, err: unknown) {
-        this.logger.info(`Repo index job failed with error: ${err}`);
+        this.logger.info(`Repo index job failed (id: ${job?.id ?? 'unknown'}) with error: ${err}`);
         if (job) {
             await this.db.repo.update({
                 where: {

@@ -2,24 +2,25 @@ import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
 import micromatch from "micromatch";
 import { createLogger } from "./logger.js";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type"
-import { getTokenFromConfig, measure } from "./utils.js";
+import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
 import { PrismaClient } from "@sourcebot/db";
-
+import { FALLBACK_GITLAB_TOKEN } from "./environment.js";
 const logger = createLogger("GitLab");
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
 export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {
     const token = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
     const api = new Gitlab({
-        ...(config.token ? {
+        ...(token ? {
             token,
-        } : {}),
+        } : {
+            token: FALLBACK_GITLAB_TOKEN,
+        }),
         ...(config.url ? {
             host: config.url,
         } : {}),
     });
     const hostname = config.url ? new URL(config.url).hostname : GITLAB_CLOUD_HOSTNAME;
-
 
     let allProjects: ProjectSchema[] = [];
 
@@ -27,9 +28,12 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
         if (hostname !== GITLAB_CLOUD_HOSTNAME) {
             try {
                 logger.debug(`Fetching all projects visible in ${config.url}...`);
-                const { durationMs, data: _projects } = await measure(() => api.Projects.all({
-                    perPage: 100,
-                }));
+                const { durationMs, data: _projects } = await measure(async () => {
+                    const fetchFn = () => api.Projects.all({
+                        perPage: 100,
+                    });
+                    return fetchWithRetry(fetchFn, `all projects in ${config.url}`, logger);
+                });
                 logger.debug(`Found ${_projects.length} projects in ${durationMs}ms.`);
                 allProjects = allProjects.concat(_projects);
             } catch (e) {
@@ -44,10 +48,13 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
         const _projects = (await Promise.all(config.groups.map(async (group) => {
             try {
                 logger.debug(`Fetching project info for group ${group}...`);
-                const { durationMs, data } = await measure(() => api.Groups.allProjects(group, {
-                    perPage: 100,
-                    includeSubgroups: true
-                }));
+                const { durationMs, data } = await measure(async () => {
+                    const fetchFn = () => api.Groups.allProjects(group, {
+                        perPage: 100,
+                        includeSubgroups: true
+                    });
+                    return fetchWithRetry(fetchFn, `group ${group}`, logger);
+                });
                 logger.debug(`Found ${data.length} projects in group ${group} in ${durationMs}ms.`);
                 return data;
             } catch (e) {
@@ -63,9 +70,12 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
         const _projects = (await Promise.all(config.users.map(async (user) => {
             try {
                 logger.debug(`Fetching project info for user ${user}...`);
-                const { durationMs, data } = await measure(() => api.Users.allProjects(user, {
-                    perPage: 100,
-                }));
+                const { durationMs, data } = await measure(async () => {
+                    const fetchFn = () => api.Users.allProjects(user, {
+                        perPage: 100,
+                    });
+                    return fetchWithRetry(fetchFn, `user ${user}`, logger);
+                });
                 logger.debug(`Found ${data.length} projects owned by user ${user} in ${durationMs}ms.`);
                 return data;
             } catch (e) {
@@ -81,7 +91,10 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
         const _projects = (await Promise.all(config.projects.map(async (project) => {
             try {
                 logger.debug(`Fetching project info for project ${project}...`);
-                const { durationMs, data } = await measure(() => api.Projects.show(project));
+                const { durationMs, data } = await measure(async () => {
+                    const fetchFn = () => api.Projects.show(project);
+                    return fetchWithRetry(fetchFn, `project ${project}`, logger);
+                });
                 logger.debug(`Found project ${project} in ${durationMs}ms.`);
                 return [data];
             } catch (e) {

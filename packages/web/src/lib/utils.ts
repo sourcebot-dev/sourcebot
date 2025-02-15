@@ -139,7 +139,16 @@ export const getEnv = (env: string | undefined, defaultValue?: string) => {
 }
 
 export const getEnvNumber = (env: string | undefined, defaultValue: number = 0) => {
-	return Number(env) ?? defaultValue;
+    if (!env) {
+        return defaultValue;
+    }
+
+    const num = Number(env);
+    if (isNaN(num)) {
+        return defaultValue;
+    }
+
+    return num;
 }
 
 export const getEnvBoolean = (env: string | undefined, defaultValue: boolean) => {

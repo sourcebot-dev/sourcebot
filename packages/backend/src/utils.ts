@@ -164,3 +164,29 @@ export const getRepoPath = (repo: Repo, ctx: AppContext) => {
 export const getShardPrefix = (orgId: number, repoId: number) => {
     return `${orgId}_${repoId}`;
 }
+
+export const fetchWithRetry = async <T>(
+    fetchFn: () => Promise<T>,
+    identifier: string,
+    logger: Logger,
+    maxAttempts: number = 3
+): Promise<T> => {
+    let attempts = 0;
+    
+    while (true) {
+        try {
+            return await fetchFn();
+        } catch (e: any) {
+            attempts++;
+            if ((e.status === 403 || e.status === 429 || e.status === 443) && attempts < maxAttempts) {
+                const resetTime = e.response?.headers?.['x-ratelimit-reset'] ? parseInt(e.response.headers['x-ratelimit-reset']) * 1000 : Date.now() + 3000;
+                const waitTime = resetTime - Date.now();
+                logger.warn(`Rate limit exceeded for ${identifier}. Waiting ${waitTime}ms before retry ${attempts}/${maxAttempts}...`);
+
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+                continue;
+            }
+            throw e;
+        }
+    }
+}

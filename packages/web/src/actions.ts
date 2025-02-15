@@ -11,7 +11,7 @@ import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
-import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
+import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, GerritConnectionConfig, ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection, getLinkedRepos } from "./data/connection";
 import { ConnectionSyncStatus, Prisma, Invite, OrgRole, Connection, Repo, Org } from "@sourcebot/db";
@@ -19,7 +19,7 @@ import { headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
 import { Session } from "next-auth";
-import { STRIPE_PRODUCT_ID } from "@/lib/environment";
+import { STRIPE_PRODUCT_ID, CONFIG_MAX_REPOS_NO_TOKEN } from "@/lib/environment";
 import { StripeSubscriptionStatus } from "@sourcebot/db";
 import Stripe from "stripe";
 const ajv = new Ajv({
@@ -81,7 +81,7 @@ export const withOwner = async <T>(session: Session, domain: string, fn: (orgId:
         },
     });
 
-    if (!userRole || userRole.role !== OrgRole.OWNER) { 
+    if (!userRole || userRole.role !== OrgRole.OWNER) {
         return {
             statusCode: StatusCodes.FORBIDDEN,
             errorCode: ErrorCode.MEMBER_NOT_OWNER,
@@ -350,7 +350,7 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
             }
 
             await prisma.connection.update({
-                where: { 
+                where: {
                     id: connection.id,
                 },
                 data: {
@@ -400,7 +400,7 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
             }
 
             return userRole.role;
-        })  
+        })
     );
 
 export const createInvite = async (email: string, userId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
@@ -520,7 +520,7 @@ export const makeOwner = async (newOwnerId: string, domain: string): Promise<{ s
             }
 
             const newOwner = await prisma.userToOrg.findUnique({
-                where: {    
+                where: {
                     orgId_userId: {
                         userId: newOwnerId,
                         orgId,
@@ -597,6 +597,48 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
             statusCode: StatusCodes.BAD_REQUEST,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
             message: "invalid connection type",
+        } satisfies ServiceError;
+    }
+
+    const { numRepos, hasToken } = (() => {
+        switch (connectionType) {
+            case "github":
+                const githubConfig = parsedConfig as GithubConnectionConfig;
+                return {
+                    numRepos: githubConfig.repos?.length,
+                    hasToken: !!githubConfig.token,
+                }
+            case "gitlab":
+                const gitlabConfig = parsedConfig as GitlabConnectionConfig;
+                return {
+                    numRepos: gitlabConfig.projects?.length,
+                    hasToken: !!gitlabConfig.token,
+                }
+            case "gitea":
+                const giteaConfig = parsedConfig as GiteaConnectionConfig;
+                return {
+                    numRepos: giteaConfig.repos?.length,
+                    hasToken: !!giteaConfig.token,
+                }
+            case "gerrit":
+                const gerritConfig = parsedConfig as GerritConnectionConfig;
+                return {
+                    numRepos: gerritConfig.projects?.length,
+                    hasToken: true, // gerrit doesn't use a token atm
+                }
+            default:
+                return {
+                    numRepos: undefined,
+                    hasToken: true
+                }
+        }
+    })();
+
+    if (!hasToken && numRepos && numRepos > CONFIG_MAX_REPOS_NO_TOKEN) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: `You must provide a token to sync more than ${CONFIG_MAX_REPOS_NO_TOKEN} repositories.`,
         } satisfies ServiceError;
     }
 

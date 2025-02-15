@@ -18,6 +18,9 @@ export const getEnvBoolean = (env: string | undefined, defaultValue: boolean) =>
 dotenv.config({
 	path: './.env',
 });
+dotenv.config({
+	path: './.env.local',
+});
 
 
 export const SOURCEBOT_LOG_LEVEL = getEnv(process.env.SOURCEBOT_LOG_LEVEL, 'info')!;
@@ -26,3 +29,7 @@ export const SOURCEBOT_INSTALL_ID = getEnv(process.env.SOURCEBOT_INSTALL_ID, 'un
 export const SOURCEBOT_VERSION = getEnv(process.env.SOURCEBOT_VERSION, 'unknown')!;
 export const POSTHOG_PAPIK = getEnv(process.env.POSTHOG_PAPIK);
 export const POSTHOG_HOST = getEnv(process.env.POSTHOG_HOST);
+
+export const FALLBACK_GITHUB_TOKEN = getEnv(process.env.FALLBACK_GITHUB_TOKEN);
+export const FALLBACK_GITLAB_TOKEN = getEnv(process.env.FALLBACK_GITLAB_TOKEN);
+export const FALLBACK_GITEA_TOKEN = getEnv(process.env.FALLBACK_GITEA_TOKEN);

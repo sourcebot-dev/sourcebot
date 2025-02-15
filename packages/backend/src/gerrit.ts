@@ -2,7 +2,7 @@ import fetch from 'cross-fetch';
 import { GerritConfig } from "@sourcebot/schemas/v2/index.type"
 import { createLogger } from './logger.js';
 import micromatch from "micromatch";
-import { measure, marshalBool, excludeReposByName, includeReposByName } from './utils.js';
+import { measure, marshalBool, excludeReposByName, includeReposByName, fetchWithRetry } from './utils.js';
 
 // https://gerrit-review.googlesource.com/Documentation/rest-api.html
 interface GerritProjects {
@@ -30,13 +30,13 @@ interface GerritWebLink {
 const logger = createLogger('Gerrit');
 
 export const getGerritReposFromConfig = async (config: GerritConfig): Promise<GerritProject[]> => {
-
    const url = config.url.endsWith('/') ? config.url : `${config.url}/`;
    const hostname = new URL(config.url).hostname;
 
    let { durationMs, data: projects } = await measure(async () => {
       try {
-         return fetchAllProjects(url)
+         const fetchFn = () => fetchAllProjects(url);
+         return fetchWithRetry(fetchFn, `projects from ${url}`, logger);
       } catch (err) {
          logger.error(`Failed to fetch projects from ${url}`, err);
          return null;
