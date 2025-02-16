@@ -38,6 +38,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                 allProjects = allProjects.concat(_projects);
             } catch (e) {
                 logger.error(`Failed to fetch all projects visible in ${config.url}.`, e);
+                throw e;
             }
         } else {
             logger.warn(`Ignoring option all:true in config : host is ${GITLAB_CLOUD_HOSTNAME}`);
@@ -59,7 +60,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                 return data;
             } catch (e) {
                 logger.error(`Failed to fetch project info for group ${group}.`, e);
-                return [];
+                throw e;
             }
         }))).flat();
 
@@ -80,7 +81,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                 return data;
             } catch (e) {
                 logger.error(`Failed to fetch project info for user ${user}.`, e);
-                return [];
+                throw e;
             }
         }))).flat();
 
@@ -99,7 +100,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                 return [data];
             } catch (e) {
                 logger.error(`Failed to fetch project info for project ${project}.`, e);
-                return [];
+                throw e;
             }
         }))).flat();
 

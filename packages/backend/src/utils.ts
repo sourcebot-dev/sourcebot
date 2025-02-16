@@ -179,7 +179,8 @@ export const fetchWithRetry = async <T>(
         } catch (e: any) {
             attempts++;
             if ((e.status === 403 || e.status === 429 || e.status === 443) && attempts < maxAttempts) {
-                const resetTime = e.response?.headers?.['x-ratelimit-reset'] ? parseInt(e.response.headers['x-ratelimit-reset']) * 1000 : Date.now() + 3000;
+                const computedWaitTime = 3000 * Math.pow(2, attempts - 1);
+                const resetTime = e.response?.headers?.['x-ratelimit-reset'] ? parseInt(e.response.headers['x-ratelimit-reset']) * 1000 : Date.now() + computedWaitTime;
                 const waitTime = resetTime - Date.now();
                 logger.warn(`Rate limit exceeded for ${identifier}. Waiting ${waitTime}ms before retry ${attempts}/${maxAttempts}...`);
 

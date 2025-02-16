@@ -165,7 +165,7 @@ const getTagsForRepo = async <T>(owner: string, repo: string, api: Api<T>) => {
         return tags;
     } catch (e) {
         logger.error(`Failed to fetch tags for repo ${owner}/${repo}.`, e);
-        return [];
+        throw e;
     }
 }
 
@@ -181,7 +181,7 @@ const getBranchesForRepo = async <T>(owner: string, repo: string, api: Api<T>) =
         return branches;
     } catch (e) {
         logger.error(`Failed to fetch branches for repo ${owner}/${repo}.`, e);
-        return [];
+        throw e;
     }
 }
 
@@ -200,7 +200,7 @@ const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
             return data;
         } catch (e) {
             logger.error(`Failed to fetch repos for user ${user}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 
@@ -223,7 +223,7 @@ const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
             return data;
         } catch (e) {
             logger.error(`Failed to fetch repos for org ${org}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 }
@@ -243,7 +243,7 @@ const getRepos = async <T>(repos: string[], api: Api<T>) => {
             return [response.data];
         } catch (e) {
             logger.error(`Failed to fetch repository info for ${repo}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 }

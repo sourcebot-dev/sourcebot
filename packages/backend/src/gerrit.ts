@@ -44,7 +44,7 @@ export const getGerritReposFromConfig = async (config: GerritConfig): Promise<Ge
    });
 
    if (!projects) {
-      return [];
+      throw new Error(`Failed to fetch projects from ${url}`);
    }
 
    // exclude "All-Projects" and "All-Users" projects
