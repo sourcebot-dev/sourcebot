@@ -99,7 +99,7 @@ export const getGitRepoFromConfig = async (config: GitConfig, ctx: AppContext) =
                 .filter(Boolean)
                 .map(branch => branch.replace('refs/heads/', ''));
 
-            repo.branches = branches.filter(branch => 
+            repo.branches = branches.filter(branch =>
                 branchGlobs.some(glob => new RegExp(glob).test(branch))
             );
         }
@@ -114,7 +114,7 @@ export const getGitRepoFromConfig = async (config: GitConfig, ctx: AppContext) =
                 .filter(Boolean)
                 .map(tag => tag.replace('refs/tags/', ''));
 
-            repo.tags = tags.filter(tag => 
+            repo.tags = tags.filter(tag =>
                 tagGlobs.some(glob => new RegExp(glob).test(tag))
             );
         }

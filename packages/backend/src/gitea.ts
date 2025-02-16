@@ -1,36 +1,47 @@
 import { Api, giteaApi, HttpResponse, Repository as GiteaRepository } from 'gitea-js';
 import { GiteaConnectionConfig } from '@sourcebot/schemas/v3/gitea.type';
-import { getTokenFromConfig, measure } from './utils.js';
+import { getTokenFromConfig, measure, fetchWithRetry } from './utils.js';
 import fetch from 'cross-fetch';
 import { createLogger } from './logger.js';
 import micromatch from 'micromatch';
 import { PrismaClient } from '@sourcebot/db';
-
+import { FALLBACK_GITEA_TOKEN } from './environment.js';
 const logger = createLogger('Gitea');
 
 export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {
-    // TODO: pass in DB here to fetch secret properly
     const token = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
 
     const api = giteaApi(config.url ?? 'https://gitea.com', {
-        token,
+        token: token ?? FALLBACK_GITEA_TOKEN,
         customFetch: fetch,
     });
 
     let allRepos: GiteaRepository[] = [];
 
     if (config.orgs) {
-        const _repos = await getReposForOrgs(config.orgs, api);
+        const _repos = await fetchWithRetry(
+            () => getReposForOrgs(config.orgs!, api),
+            `orgs ${config.orgs.join(', ')}`,
+            logger
+        );
         allRepos = allRepos.concat(_repos);
     }
 
     if (config.repos) {
-        const _repos = await getRepos(config.repos, api);
+        const _repos = await fetchWithRetry(
+            () => getRepos(config.repos!, api),
+            `repos ${config.repos.join(', ')}`,
+            logger
+        );
         allRepos = allRepos.concat(_repos);
     }
 
     if (config.users) {
-        const _repos = await getReposOwnedByUsers(config.users, api);
+        const _repos = await fetchWithRetry(
+            () => getReposOwnedByUsers(config.users!, api),
+            `users ${config.users.join(', ')}`,
+            logger
+        );
         allRepos = allRepos.concat(_repos);
     }
     
@@ -50,7 +61,11 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, org
             allRepos = await Promise.all(
                 allRepos.map(async (repo) => {
                     const [owner, name] = repo.full_name!.split('/');
-                    let branches = (await getBranchesForRepo(owner, name, api)).map(branch => branch.name!);
+                    let branches = (await fetchWithRetry(
+                        () => getBranchesForRepo(owner, name, api),
+                        `branches for ${owner}/${name}`,
+                        logger
+                    )).map(branch => branch.name!);
                     branches = micromatch.match(branches, branchGlobs);
                     
                     return {
@@ -66,7 +81,11 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, org
             allRepos = await Promise.all(
                 allRepos.map(async (allRepos) => {
                     const [owner, name] = allRepos.name!.split('/');
-                    let tags = (await getTagsForRepo(owner, name, api)).map(tag => tag.name!);
+                    let tags = (await fetchWithRetry(
+                        () => getTagsForRepo(owner, name, api),
+                        `tags for ${owner}/${name}`,
+                        logger
+                    )).map(tag => tag.name!);
                     tags = micromatch.match(tags, tagGlobs);
                     
                     return {
@@ -146,7 +165,7 @@ const getTagsForRepo = async <T>(owner: string, repo: string, api: Api<T>) => {
         return tags;
     } catch (e) {
         logger.error(`Failed to fetch tags for repo ${owner}/${repo}.`, e);
-        return [];
+        throw e;
     }
 }
 
@@ -162,7 +181,7 @@ const getBranchesForRepo = async <T>(owner: string, repo: string, api: Api<T>) =
         return branches;
     } catch (e) {
         logger.error(`Failed to fetch branches for repo ${owner}/${repo}.`, e);
-        return [];
+        throw e;
     }
 }
 
@@ -181,7 +200,7 @@ const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
             return data;
         } catch (e) {
             logger.error(`Failed to fetch repos for user ${user}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 
@@ -204,7 +223,7 @@ const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
             return data;
         } catch (e) {
             logger.error(`Failed to fetch repos for org ${org}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 }
@@ -224,7 +243,7 @@ const getRepos = async <T>(repos: string[], api: Api<T>) => {
             return [response.data];
         } catch (e) {
             logger.error(`Failed to fetch repository info for ${repo}.`, e);
-            return [];
+            throw e;
         }
     }))).flat();
 }

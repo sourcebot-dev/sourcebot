@@ -28,4 +28,9 @@ clean:
 		packages/crypto/dist \
 		.sourcebot
 
+soft-reset:
+	rm -rf .sourcebot
+	redis-cli FLUSHALL
+
+
 .PHONY: bin

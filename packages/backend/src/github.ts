@@ -1,11 +1,10 @@
 import { Octokit } from "@octokit/rest";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { createLogger } from "./logger.js";
-import { AppContext } from "./types.js";
-import { getTokenFromConfig, measure } from "./utils.js";
+import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
 import micromatch from "micromatch";
 import { PrismaClient } from "@sourcebot/db";
-
+import { FALLBACK_GITHUB_TOKEN } from "./environment.js";
 const logger = createLogger("GitHub");
 
 export type OctokitRepository = {
@@ -33,7 +32,7 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
     const token = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
 
     const octokit = new Octokit({
-        auth: token,
+        auth: token ?? FALLBACK_GITHUB_TOKEN,
         ...(config.url ? {
             baseUrl: `${config.url}/api/v3`
         } : {}),
@@ -78,7 +77,7 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
 
 export const getGitHubRepoFromId = async (id: string, hostURL: string, token?: string) => {
     const octokit = new Octokit({
-        auth: token,
+        auth: token ?? FALLBACK_GITHUB_TOKEN,
         ...(hostURL !== 'https://github.com' ? {
             baseUrl: `${hostURL}/api/v3`
         } : {})
@@ -182,31 +181,34 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
             logger.debug(`Fetching repository info for user ${user}...`);
 
             const { durationMs, data } = await measure(async () => {
-                if (isAuthenticated) {
-                    return octokit.paginate(octokit.repos.listForAuthenticatedUser, {
-                        username: user,
-                        visibility: 'all',
-                        affiliation: 'owner',
-                        per_page: 100,
-                        request: {
-                            signal,
-                        },
-                    });
-                } else {
-                    return octokit.paginate(octokit.repos.listForUser, {
-                        username: user,
-                        per_page: 100,
-                        request: {
-                            signal,
-                        },
-                    });
-                }
+                const fetchFn = async () => {
+                    if (isAuthenticated) {
+                        return octokit.paginate(octokit.repos.listForAuthenticatedUser, {
+                            username: user,
+                            visibility: 'all',
+                            affiliation: 'owner',
+                            per_page: 100,
+                            request: {
+                                signal,
+                            },
+                        });
+                    } else {
+                        return octokit.paginate(octokit.repos.listForUser, {
+                            username: user,
+                            per_page: 100,
+                            request: {
+                                signal,
+                            },
+                        });
+                    }
+                };
+
+                return fetchWithRetry(fetchFn, `user ${user}`, logger);
             });
 
             logger.debug(`Found ${data.length} owned by user ${user} in ${durationMs}ms.`);
             return data;
         } catch (e) {
-            // @todo: handle rate limiting errors
             logger.error(`Failed to fetch repository info for user ${user}.`, e);
             throw e;
         }
@@ -218,20 +220,23 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
 const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal) => {
     const repos = (await Promise.all(orgs.map(async (org) => {
         try {
-            logger.debug(`Fetching repository info for org ${org}...`);
+            logger.info(`Fetching repository info for org ${org}...`);
 
-            const { durationMs, data } = await measure(() => octokit.paginate(octokit.repos.listForOrg, {
-                org: org,
-                per_page: 100,
-                request: {
-                    signal
-                }
-            }));
+            const { durationMs, data } = await measure(async () => {
+                const fetchFn = () => octokit.paginate(octokit.repos.listForOrg, {
+                    org: org,
+                    per_page: 100,
+                    request: {
+                        signal
+                    }
+                });
 
-            logger.debug(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
+                return fetchWithRetry(fetchFn, `org ${org}`, logger);
+            });
+
+            logger.info(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
             return data;
         } catch (e) {
-            // @todo: handle rate limiting errors
             logger.error(`Failed to fetch repository info for org ${org}.`, e);
             throw e;
         }
@@ -243,22 +248,25 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
 const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal) => {
     const repos = (await Promise.all(repoList.map(async (repo) => {
         try {
-            logger.debug(`Fetching repository info for ${repo}...`);
-
             const [owner, repoName] = repo.split('/');
-            const { durationMs, data: result } = await measure(() => octokit.repos.get({
-                owner,
-                repo: repoName,
-                request: {
-                    signal
-                }
-            }));
+            logger.info(`Fetching repository info for ${repo}...`);
 
-            logger.debug(`Found info for repository ${repo} in ${durationMs}ms`);
+            const { durationMs, data: result } = await measure(async () => {
+                const fetchFn = () => octokit.repos.get({
+                    owner,
+                    repo: repoName,
+                    request: {
+                        signal
+                    }
+                });
+
+                return fetchWithRetry(fetchFn, repo, logger);
+            });
+
+            logger.info(`Found info for repository ${repo} in ${durationMs}ms`);
 
             return [result.data];
         } catch (e) {
-            // @todo: handle rate limiting errors
             logger.error(`Failed to fetch repository info for ${repo}.`, e);
             throw e;
         }
