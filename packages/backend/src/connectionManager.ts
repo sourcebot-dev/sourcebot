@@ -6,6 +6,7 @@ import { createLogger } from "./logger.js";
 import os from 'os';
 import { Redis } from 'ioredis';
 import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig } from "./repoCompileUtils.js";
+import { CONFIG_REPO_UPSERT_TIMEOUT_MS } from "./environment.js";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -136,7 +137,7 @@ export class ConnectionManager implements IConnectionManager {
                 });
             }));
 
-        });
+        }, { timeout: parseInt(CONFIG_REPO_UPSERT_TIMEOUT_MS) });
     }
 
 
