@@ -13,6 +13,8 @@ export const AUTH_GITHUB_CLIENT_SECRET = getEnv(process.env.AUTH_GITHUB_CLIENT_S
 export const AUTH_GOOGLE_CLIENT_ID = getEnv(process.env.AUTH_GOOGLE_CLIENT_ID);
 export const AUTH_GOOGLE_CLIENT_SECRET = getEnv(process.env.AUTH_GOOGLE_CLIENT_SECRET);
 export const AUTH_URL = getEnv(process.env.AUTH_URL)!;
+export const AUTH_LOOPS_KEY = getEnv(process.env.AUTH_LOOPS_KEY);
+export const AUTH_LOOPS_TRANSACTIONAL_ID = getEnv(process.env.AUTH_LOOPS_TRANSACTIONAL_ID);
 
 export const STRIPE_SECRET_KEY = getEnv(process.env.STRIPE_SECRET_KEY);
 export const STRIPE_PRODUCT_ID = getEnv(process.env.STRIPE_PRODUCT_ID);

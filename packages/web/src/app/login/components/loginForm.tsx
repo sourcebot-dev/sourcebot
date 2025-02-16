@@ -20,12 +20,23 @@ interface LoginFormProps {
     error?: string;
 }
 
+const magicLinkSchema = z.object({
+    email: z.string().email(),
+})
+
 export const LoginForm = ({ callbackUrl, error }: LoginFormProps) => {
-    const form = useForm<z.infer<typeof verifyCredentialsRequestSchema>>({
+    const emailPasswordForm = useForm<z.infer<typeof verifyCredentialsRequestSchema>>({
         resolver: zodResolver(verifyCredentialsRequestSchema),
         defaultValues: {
             email: "",
             password: "",
+        },
+    });
+
+    const magicLinkForm = useForm<z.infer<typeof magicLinkSchema>>({
+        resolver: zodResolver(magicLinkSchema),
+        defaultValues: {
+            email: "",
         },
     });
 
@@ -35,6 +46,10 @@ export const LoginForm = ({ callbackUrl, error }: LoginFormProps) => {
             password: values.password,
             redirectTo: callbackUrl ?? "/"
         });
+    }
+
+    const onSignInWithMagicLink = (values: z.infer<typeof magicLinkSchema>) => {
+        signIn("loops", { email: values.email, redirectTo: callbackUrl ?? "/" });
     }
 
     const onSignInWithOauth = useCallback((provider: string) => {
@@ -96,10 +111,30 @@ export const LoginForm = ({ callbackUrl, error }: LoginFormProps) => {
                 <div className="h-[1px] flex-1 bg-border" />
             </div>
             <div className="flex flex-col w-60">
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSignInWithEmailPassword)}>
+                <Form {...magicLinkForm}>
+                    <form onSubmit={magicLinkForm.handleSubmit(onSignInWithMagicLink)}>
                         <FormField
-                            control={form.control}
+                            control={magicLinkForm.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem className="mb-4">
+                                    <FormLabel>Email</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="email@example.com" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="submit" className="w-full">
+                            Sign in
+                        </Button>
+                    </form>
+                </Form>
+                <Form {...emailPasswordForm}>
+                    <form onSubmit={emailPasswordForm.handleSubmit(onSignInWithEmailPassword)}>
+                        <FormField
+                            control={emailPasswordForm.control}
                             name="email"
                             render={({ field }) => (
                                 <FormItem className="mb-4">
@@ -112,7 +147,7 @@ export const LoginForm = ({ callbackUrl, error }: LoginFormProps) => {
                             )}
                         />
                         <FormField
-                            control={form.control}
+                            control={emailPasswordForm.control}
                             name="password"
                             render={({ field }) => (
                                 <FormItem className="mb-8">
