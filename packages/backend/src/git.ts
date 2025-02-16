@@ -35,7 +35,7 @@ export const fetchRepository = async (path: string, onProgress?: (event: SimpleG
         progress: onProgress,
     });
 
-    const result = await git.cwd({
+    await git.cwd({
         path: path,
     }).fetch(
         "origin",
@@ -44,8 +44,6 @@ export const fetchRepository = async (path: string, onProgress?: (event: SimpleG
             "--progress"
         ]
     );
-
-    return result;
 }
 
 const isValidGitRepo = async (url: string): Promise<boolean> => {
