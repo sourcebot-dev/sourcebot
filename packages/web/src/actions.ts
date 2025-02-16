@@ -380,38 +380,92 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
         })  
     );
 
-export const createInvite = async (email: string, userId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+export const createInvites = async (emails: string[], domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
-            console.log("Creating invite for", email, userId, orgId);
+            // Check for existing invites
+            const existingInvites = await prisma.invite.findMany({
+                where: {
+                    recipientEmail: {
+                        in: emails
+                    },
+                    orgId,
+                }
+            });
 
-            if (email === session.user.email) {
-                console.error("User tried to invite themselves");
+            if (existingInvites.length > 0) {
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.SELF_INVITE,
-                    message: "❌ You can't invite yourself to an org",
+                    errorCode: ErrorCode.INVALID_INVITE,
+                    message: `A pending invite already exists for one or more of the provided emails.`,
                 } satisfies ServiceError;
             }
 
-            try {
-                await prisma.invite.create({
-                    data: {
-                        recipientEmail: email,
-                        hostUserId: userId,
-                        orgId,
-                    }
-                });
-            } catch (error) {
-                console.error("Failed to create invite:", error);
-                return unexpectedError("Failed to create invite");
+            // Check for members that are already in the org
+            const existingMembers = await prisma.userToOrg.findMany({
+                where: {
+                    user: {
+                        email: {
+                            in: emails,
+                        }
+                    },
+                    orgId,
+                },
+            });
+
+            if (existingMembers.length > 0) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_INVITE,
+                    message: `One or more of the provided emails are already members of this org.`,
+                } satisfies ServiceError;
             }
+
+            await prisma.$transaction(async (tx) => {
+                for (const email of emails) {
+                    await tx.invite.create({
+                        data: {
+                            recipientEmail: email,
+                            hostUserId: session.user.id,
+                            orgId,
+                        }
+                    });
+                }
+            });
+           
 
             return {
                 success: true,
             }
         }, /* minRequiredRole = */ OrgRole.OWNER)
     );
+
+export const cancelInvite = async (inviteId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const invite = await prisma.invite.findUnique({
+                where: {
+                    id: inviteId,
+                    orgId,
+                },
+            });
+
+            if (!invite) {
+                return notFound();
+            }
+
+            await prisma.invite.delete({
+                where: {
+                    id: inviteId,
+                },
+            });
+
+            return {
+                success: true,
+            }
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    );
+
 
 export const redeemInvite = async (invite: Invite, userId: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth(async () => {
@@ -1003,6 +1057,24 @@ export const getOrgMembers = async (domain: string) =>
                 avatarUrl: member.user.image ?? undefined,
                 role: member.role,
                 joinedAt: member.joinedAt,
+            }));
+        })
+    );
+
+
+export const getOrgInvites = async (domain: string) =>
+    withAuth(async (session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const invites = await prisma.invite.findMany({
+                where: {
+                    orgId,
+                },
+            });
+
+            return invites.map((invite) => ({
+                id: invite.id,
+                email: invite.recipientEmail,
+                createdAt: invite.createdAt,
             }));
         })
     );
