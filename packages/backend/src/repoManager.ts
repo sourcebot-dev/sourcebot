@@ -243,6 +243,7 @@ export class RepoManager implements IRepoManager {
     }
 
     private async runIndexJob(job: Job<JobPayload>) {
+        this.logger.info(`Running index job (id: ${job.id}) for repo ${job.data.repo.id}`);
         const repo = job.data.repo as RepoWithConnections;
         await this.db.repo.update({
             where: {
@@ -257,10 +258,30 @@ export class RepoManager implements IRepoManager {
         let fetchDuration_s: number | undefined;
         let cloneDuration_s: number | undefined;
 
-        const stats = await this.syncGitRepository(repo);
-        indexDuration_s = stats.indexDuration_s;
-        fetchDuration_s = stats.fetchDuration_s;
-        cloneDuration_s = stats.cloneDuration_s;
+        let stats;
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (attempts < maxAttempts) {
+            try {
+                stats = await this.syncGitRepository(repo);
+                break;
+            } catch (error) {
+                attempts++;
+                if (attempts === maxAttempts) {
+                    this.logger.error(`Failed to sync repository ${repo.id} after ${maxAttempts} attempts. Error: ${error}`);
+                    throw error;
+                }
+
+                const sleepDuration = 5000 * Math.pow(2, attempts - 1);
+                this.logger.error(`Failed to sync repository ${repo.id}, attempt ${attempts}/${maxAttempts}. Sleeping for ${sleepDuration / 1000}s... Error: ${error}`);
+                await new Promise(resolve => setTimeout(resolve, sleepDuration));
+            }
+        }
+
+        indexDuration_s = stats!.indexDuration_s;
+        fetchDuration_s = stats!.fetchDuration_s;
+        cloneDuration_s = stats!.cloneDuration_s;
 
         captureEvent('repo_synced', {
             vcs: 'git',
