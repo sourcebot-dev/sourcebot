@@ -502,14 +502,6 @@ export const makeOwner = async (newOwnerId: string, domain: string): Promise<{ s
     withAuth((session) =>
         withOwner(session, domain, async (orgId) => {
             const currentUserId = session.user.id;
-            const currentUserRole = await prisma.userToOrg.findUnique({
-                where: {
-                    orgId_userId: {
-                        userId: currentUserId,
-                        orgId,
-                    },
-                },
-            });
 
             if (newOwnerId === currentUserId) {
                 return {
@@ -602,30 +594,34 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
 
     const { numRepos, hasToken } = (() => {
         switch (connectionType) {
-            case "github":
+            case "github": {
                 const githubConfig = parsedConfig as GithubConnectionConfig;
                 return {
                     numRepos: githubConfig.repos?.length,
                     hasToken: !!githubConfig.token,
                 }
-            case "gitlab":
+            }
+            case "gitlab": {
                 const gitlabConfig = parsedConfig as GitlabConnectionConfig;
                 return {
                     numRepos: gitlabConfig.projects?.length,
                     hasToken: !!gitlabConfig.token,
                 }
-            case "gitea":
+            }
+            case "gitea": {
                 const giteaConfig = parsedConfig as GiteaConnectionConfig;
                 return {
                     numRepos: giteaConfig.repos?.length,
                     hasToken: !!giteaConfig.token,
                 }
-            case "gerrit":
+            }
+            case "gerrit": {
                 const gerritConfig = parsedConfig as GerritConnectionConfig;
                 return {
                     numRepos: gerritConfig.projects?.length,
                     hasToken: true, // gerrit doesn't use a token atm
                 }
+            }
             default:
                 return {
                     numRepos: undefined,

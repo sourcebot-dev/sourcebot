@@ -5,6 +5,7 @@ import { DEFAULT_SETTINGS } from './constants.js';
 import { Redis } from 'ioredis';
 import { ConnectionManager } from './connectionManager.js';
 import { RepoManager } from './repoManager.js';
+import { INDEX_CONCURRENCY_MULTIPLE } from './environment.js';
 
 const logger = createLogger('main');
 
@@ -22,9 +23,14 @@ export const main = async (db: PrismaClient, context: AppContext) => {
         process.exit(1);
     });
 
-    const connectionManager = new ConnectionManager(db, DEFAULT_SETTINGS, redis);
+    const settings = DEFAULT_SETTINGS;
+    if (INDEX_CONCURRENCY_MULTIPLE) {
+        settings.indexConcurrencyMultiple = parseInt(INDEX_CONCURRENCY_MULTIPLE);
+    }
+
+    const connectionManager = new ConnectionManager(db, settings, redis);
     connectionManager.registerPollingCallback();
 
-    const repoManager = new RepoManager(db, DEFAULT_SETTINGS, redis, context);
+    const repoManager = new RepoManager(db, settings, redis, context);
     await repoManager.blockingPollLoop();
 }
