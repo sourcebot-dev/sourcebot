@@ -25,7 +25,7 @@ type Member = {
     avatarUrl?: string
 }
 
-interface MembersListProps {
+export interface MembersListProps {
     members: Member[],
     currentUserId: string,
     currentUserRole: OrgRole,
@@ -112,8 +112,6 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
     return (
         <div>
             <div className="w-full mx-auto space-y-6">
-                <h2 className="text-lg font-semibold border-b pb-2">Team Members</h2>
-
                 <div className="flex gap-4 flex-col sm:flex-row">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -147,151 +145,165 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                     </Select>
                 </div>
 
-                <div className="border rounded-lg divide-y">
-                    {filteredMembers.length === 0 ? (
-                        <div className="p-4 text-center text-muted-foreground">No members found matching your filters</div>
-                    ) : (
-                        filteredMembers.map((member) => (
-                            <div key={member.id} className="p-4 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Avatar>
-                                        <AvatarImage src={member.avatarUrl ?? placeholderAvatar.src} />
-                                    </Avatar>
-                                    <div>
-                                        <div className="font-medium">{member.name}</div>
-                                        <div className="text-sm text-muted-foreground">{member.email}</div>
+                <div className="border rounded-lg overflow-hidden">
+                    <div className="max-h-[600px] overflow-y-auto divide-y">
+                        {filteredMembers.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-96 p-4">
+                                <p className="font-medium text-sm">No Members Found</p>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    No members found matching your filters.
+                                </p>
+                            </div>
+                        ) : (
+                            filteredMembers.map((member) => (
+                                <div key={member.id} className="p-4 flex items-center justify-between bg-background">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar>
+                                            <AvatarImage src={member.avatarUrl ?? placeholderAvatar.src} />
+                                        </Avatar>
+                                        <div>
+                                            <div className="font-medium">{member.name}</div>
+                                            <div className="text-sm text-muted-foreground">{member.email}</div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <span className="text-sm text-muted-foreground capitalize">{member.role.toLowerCase()}</span>
-                                    <DropdownMenu modal={false}>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem
-                                                className="cursor-pointer"
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(member.email);
-                                                    toast({
-                                                        description: `✅ Email copied to clipboard.`
-                                                    })
-                                                }}
-                                            >
-                                                Copy email
-                                            </DropdownMenuItem>
-                                            {member.id !== currentUserId && currentUserRole === OrgRole.OWNER && (
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-sm text-muted-foreground capitalize">{member.role.toLowerCase()}</span>
+                                        <DropdownMenu modal={false}>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
                                                 <DropdownMenuItem
                                                     className="cursor-pointer"
                                                     onClick={() => {
-                                                        setMemberToTransfer(member);
-                                                        setIsTransferOwnershipDialogOpen(true);
+                                                        navigator.clipboard.writeText(member.email)
+                                                            .then(() => {
+                                                                toast({
+                                                                    description: `✅ Email copied to clipboard.`
+                                                                })
+                                                            })
+                                                            .catch(() => {
+                                                                toast({
+                                                                    description: `❌ Failed to copy email.`
+                                                                })
+                                                            })
                                                     }}
                                                 >
-                                                    Transfer ownership
+                                                    Copy email
                                                 </DropdownMenuItem>
-                                            )}
-                                            {member.id !== currentUserId && currentUserRole === OrgRole.OWNER && (
-                                                <DropdownMenuItem
-                                                    className="cursor-pointer text-destructive"
-                                                    onClick={() => {
-                                                        setMemberToRemove(member);
-                                                        setIsRemoveDialogOpen(true);
-                                                    }}
-                                                >
-                                                    Remove
-                                                </DropdownMenuItem>
-                                            )}
-                                            {member.id === currentUserId && (
-                                                <DropdownMenuItem
-                                                    className="cursor-pointer text-destructive"
-                                                    disabled={currentUserRole === OrgRole.OWNER}
-                                                    onClick={() => {
-                                                        setIsLeaveOrgDialogOpen(true);
-                                                    }}
-                                                >
-                                                    Leave organization
-                                                </DropdownMenuItem>
-                                            )}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                                {member.id !== currentUserId && currentUserRole === OrgRole.OWNER && (
+                                                    <DropdownMenuItem
+                                                        className="cursor-pointer"
+                                                        onClick={() => {
+                                                            setMemberToTransfer(member);
+                                                            setIsTransferOwnershipDialogOpen(true);
+                                                        }}
+                                                    >
+                                                        Transfer ownership
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {member.id !== currentUserId && currentUserRole === OrgRole.OWNER && (
+                                                    <DropdownMenuItem
+                                                        className="cursor-pointer text-destructive"
+                                                        onClick={() => {
+                                                            setMemberToRemove(member);
+                                                            setIsRemoveDialogOpen(true);
+                                                        }}
+                                                    >
+                                                        Remove
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {member.id === currentUserId && (
+                                                    <DropdownMenuItem
+                                                        className="cursor-pointer text-destructive"
+                                                        disabled={currentUserRole === OrgRole.OWNER}
+                                                        onClick={() => {
+                                                            setIsLeaveOrgDialogOpen(true);
+                                                        }}
+                                                    >
+                                                        Leave organization
+                                                    </DropdownMenuItem>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
                                 </div>
-                            </div>
-                        ))
-                    )}
+                            ))
+                        )}
+                    </div>
                 </div>
+                <AlertDialog
+                    open={isRemoveDialogOpen}
+                    onOpenChange={setIsRemoveDialogOpen}
+                >
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Remove Member</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                {`Are you sure you want to remove ${memberToRemove?.name ?? memberToRemove?.email}? Your subscription's seat count will be automatically adjusted.`}
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() => {
+                                    onRemoveMember(memberToRemove?.id ?? "");
+                                }}
+                            >
+                                Remove
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <AlertDialog
+                    open={isTransferOwnershipDialogOpen}
+                    onOpenChange={setIsTransferOwnershipDialogOpen}
+                >
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Transfer Ownership</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                {`Are you sure you want to transfer ownership of ${orgName} to ${memberToTransfer?.name ?? memberToTransfer?.email}?`}
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={() => {
+                                    onTransferOwnership(memberToTransfer?.id ?? "");
+                                }}
+                            >
+                                Transfer
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <AlertDialog
+                    open={isLeaveOrgDialogOpen}
+                    onOpenChange={setIsLeaveOrgDialogOpen}
+                >
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Leave Organization</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                {`Are you sure you want to leave ${orgName}?`}
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={onLeaveOrg}
+                            >
+                                Leave
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
-            <AlertDialog
-                open={isRemoveDialogOpen}
-                onOpenChange={setIsRemoveDialogOpen}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Remove Member</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {`Are you sure you want to remove ${memberToRemove?.name ?? memberToRemove?.email}? Your subscription's seat count will be automatically adjusted.`}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => {
-                                onRemoveMember(memberToRemove?.id ?? "");
-                            }}
-                        >
-                            Remove
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            <AlertDialog
-                open={isTransferOwnershipDialogOpen}
-                onOpenChange={setIsTransferOwnershipDialogOpen}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Transfer Ownership</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {`Are you sure you want to transfer ownership of ${orgName} to ${memberToTransfer?.name ?? memberToTransfer?.email}?`}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={() => {
-                                onTransferOwnership(memberToTransfer?.id ?? "");
-                            }}
-                        >
-                            Transfer
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            <AlertDialog
-                open={isLeaveOrgDialogOpen}
-                onOpenChange={setIsLeaveOrgDialogOpen}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Leave Organization</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {`Are you sure you want to leave ${orgName}?`}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={onLeaveOrg}
-                        >
-                            Leave
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </div>
     )
 }

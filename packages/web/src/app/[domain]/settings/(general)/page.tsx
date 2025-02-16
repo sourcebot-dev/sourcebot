@@ -2,7 +2,6 @@ import { auth } from "@/auth"
 import { getUser } from "@/data/user"
 import { prisma } from "@/prisma"
 import { MemberTable } from "../components/memberTable"
-import { MemberInviteForm } from "../components/memberInviteForm"
 import { InviteTable } from "../components/inviteTable"
 import { Separator } from "@/components/ui/separator"
 import { getCurrentUserRole } from "@/actions"  
@@ -103,7 +102,6 @@ export default async function GeneralSettingsPage({ params: { domain } }: Genera
             <Separator />
             <div className="space-y-6">
                 <MemberTable currentUserRole={userRole} currentUserId={user.id} initialMembers={memberInfo} />
-                <MemberInviteForm userId={user.id} currentUserRole={userRole} />
                 <InviteTable initialInvites={inviteInfo} />
             </div>
         </div>
