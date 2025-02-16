@@ -5,10 +5,10 @@ import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
-import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_SECRET, AUTH_URL } from "./lib/environment";
+import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_LOOPS_KEY, AUTH_LOOPS_TRANSACTIONAL_ID, AUTH_SECRET, AUTH_URL } from "./lib/environment";
 import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
-import type { Provider } from "next-auth/providers";
+import type { EmailConfig, EmailUserConfig, Provider } from "next-auth/providers";
 import { verifyCredentialsRequestSchema, verifyCredentialsResponseSchema } from './lib/schemas';
 
 export const runtime = 'nodejs';
@@ -27,6 +27,37 @@ declare module 'next-auth/jwt' {
     }
 }
 
+function Loops(config: EmailUserConfig & { transactionalId?: string }): EmailConfig {
+    return {
+        id: "loops",
+        type: "email",
+        name: "Loops",
+        from: "noreply@sourcebot.dev",
+        maxAge: 24 * 60 * 60,
+        async sendVerificationRequest(params) {
+            const { identifier: to, provider, url } = params;
+            const res = await fetch("https://app.loops.so/api/v1/transactional", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${provider.apiKey}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    transactionalId: config.transactionalId,
+                    email: to,
+                    dataVariables: {
+                        url: url,
+                    },
+                }),
+            })
+            if (!res.ok) {
+                throw new Error("Loops Send Error: " + JSON.stringify(await res.json()))
+            }
+        },
+        options: config,
+    }
+}
+
 const providers: Provider[] = [
     GitHub({
         clientId: AUTH_GITHUB_CLIENT_ID,
@@ -35,6 +66,10 @@ const providers: Provider[] = [
     Google({
         clientId: AUTH_GOOGLE_CLIENT_ID,
         clientSecret: AUTH_GOOGLE_CLIENT_SECRET,
+    }),
+    Loops({
+        apiKey: AUTH_LOOPS_KEY,
+        transactionalId: AUTH_LOOPS_TRANSACTIONAL_ID,
     }),
     Credentials({
         credentials: {
