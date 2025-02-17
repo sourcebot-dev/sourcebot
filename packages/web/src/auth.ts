@@ -3,12 +3,22 @@ import NextAuth, { DefaultSession } from "next-auth"
 import GitHub from "next-auth/providers/github"
 import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
+import EmailProvider from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
-import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_LOOPS_KEY, AUTH_LOOPS_TRANSACTIONAL_ID, AUTH_SECRET, AUTH_URL } from "./lib/environment";
+import {
+    AUTH_GITHUB_CLIENT_ID,
+    AUTH_GITHUB_CLIENT_SECRET,
+    AUTH_GOOGLE_CLIENT_ID,
+    AUTH_GOOGLE_CLIENT_SECRET,
+    AUTH_SECRET,
+    AUTH_URL,
+    EMAIL_FROM,
+    SMTP_CONNECTION_URL
+} from "./lib/environment";
 import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
-import type { EmailConfig, EmailUserConfig, Provider } from "next-auth/providers";
+import type { Provider } from "next-auth/providers";
 import { verifyCredentialsRequestSchema, verifyCredentialsResponseSchema } from './lib/schemas';
 
 export const runtime = 'nodejs';
@@ -27,37 +37,6 @@ declare module 'next-auth/jwt' {
     }
 }
 
-function Loops(config: EmailUserConfig & { transactionalId?: string }): EmailConfig {
-    return {
-        id: "loops",
-        type: "email",
-        name: "Loops",
-        from: "noreply@sourcebot.dev",
-        maxAge: 24 * 60 * 60,
-        async sendVerificationRequest(params) {
-            const { identifier: to, provider, url } = params;
-            const res = await fetch("https://app.loops.so/api/v1/transactional", {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${provider.apiKey}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    transactionalId: config.transactionalId,
-                    email: to,
-                    dataVariables: {
-                        url: url,
-                    },
-                }),
-            })
-            if (!res.ok) {
-                throw new Error("Loops Send Error: " + JSON.stringify(await res.json()))
-            }
-        },
-        options: config,
-    }
-}
-
 const providers: Provider[] = [
     GitHub({
         clientId: AUTH_GITHUB_CLIENT_ID,
@@ -66,10 +45,6 @@ const providers: Provider[] = [
     Google({
         clientId: AUTH_GOOGLE_CLIENT_ID,
         clientSecret: AUTH_GOOGLE_CLIENT_SECRET,
-    }),
-    Loops({
-        apiKey: AUTH_LOOPS_KEY,
-        transactionalId: AUTH_LOOPS_TRANSACTIONAL_ID,
     }),
     Credentials({
         credentials: {
@@ -103,21 +78,15 @@ const providers: Provider[] = [
                 image: user.image,
             }
         }
-    })
+    }),
+    ...(SMTP_CONNECTION_URL && EMAIL_FROM ? [
+        EmailProvider({
+            server: SMTP_CONNECTION_URL,
+            from: EMAIL_FROM,
+            maxAge: 60 * 10,
+        }),
+    ] : []),
 ];
-
-// @see: https://authjs.dev/guides/pages/signin
-export const providerMap = providers
-    .map((provider) => {
-        if (typeof provider === "function") {
-            const providerData = provider()
-            return { id: providerData.id, name: providerData.name }
-        } else {
-            return { id: provider.id, name: provider.name }
-        }
-    })
-    .filter((provider) => provider.id !== "credentials");
-
 
 const useSecureCookies = AUTH_URL?.startsWith("https://") ?? false;
 const hostName = AUTH_URL ? new URL(AUTH_URL).hostname : "localhost";

@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
-import { auth } from "./auth"
+import { NextRequest, NextResponse } from "next/server";
 
-export default auth((request) => {
+export async function middleware(request: NextRequest) {
     const host = request.headers.get("host")!;
 
     const searchParams = request.nextUrl.searchParams.toString();
@@ -13,15 +12,12 @@ export default auth((request) => {
         host === process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
         host === 'localhost:3000'
     ) {
-        if (request.nextUrl.pathname === "/login" && request.auth) {
-            return NextResponse.redirect(new URL("/", request.url));
-        }
         return NextResponse.next();
     }
 
     const subdomain = host.split(".")[0];
     return NextResponse.rewrite(new URL(`/${subdomain}${path}`, request.url));
-});
+};
 
 
 export const config = {

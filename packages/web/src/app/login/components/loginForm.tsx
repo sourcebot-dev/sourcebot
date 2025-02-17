@@ -49,7 +49,7 @@ export const LoginForm = ({ callbackUrl, error }: LoginFormProps) => {
     }
 
     const onSignInWithMagicLink = (values: z.infer<typeof magicLinkSchema>) => {
-        signIn("loops", { email: values.email, redirectTo: callbackUrl ?? "/" });
+        signIn("nodemailer", { email: values.email, redirectTo: callbackUrl ?? "/" });
     }
 
     const onSignInWithOauth = useCallback((provider: string) => {
