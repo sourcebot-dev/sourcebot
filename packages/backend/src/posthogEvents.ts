@@ -11,6 +11,10 @@ export type PosthogEventMap = {
         fetchDuration_s?: number;
         cloneDuration_s?: number;
         indexDuration_s?: number;
+    },
+    repo_deleted: {
+        vcs: string;
+        codeHost?: string;
     }
 }
 

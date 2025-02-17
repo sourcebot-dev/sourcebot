@@ -1,6 +1,6 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
-export type Repos = GitHubConfig | GitLabConfig | GiteaConfig | GerritConfig | LocalConfig;
+export type Repos = GitHubConfig | GitLabConfig | GiteaConfig | GerritConfig | LocalConfig | GitConfig;
 
 /**
  * A Sourcebot configuration file outlines which repositories Sourcebot should sync and index.
@@ -21,6 +21,22 @@ export interface Settings {
    * The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be inexed. Defaults to 2MB (2097152 bytes).
    */
   maxFileSize?: number;
+  /**
+   * The maximum amount of trigrams per document. Documents that exceed this maximum will not be indexed. Defaults to 20000
+   */
+  maxTrigramCount?: number;
+  /**
+   * Automatically delete stale repositories from the index. Defaults to true.
+   */
+  autoDeleteStaleRepos?: boolean;
+  /**
+   * The interval (in milliseconds) at which the indexer should re-index all repositories. Repositories are always indexed when first added. Defaults to 1 hour (3600000 milliseconds).
+   */
+  reindexInterval?: number;
+  /**
+   * The interval (in milliseconds) at which the configuration file should be re-synced. The configuration file is always synced on startup. Defaults to 24 hours (86400000 milliseconds).
+   */
+  resyncInterval?: number;
 }
 export interface GitHubConfig {
   /**
@@ -77,6 +93,19 @@ export interface GitHubConfig {
      * List of repository topics to exclude when syncing. Repositories that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.
      */
     topics?: string[];
+    /**
+     * Exclude repositories based on their disk usage. Note: the disk usage is calculated by GitHub and may not reflect the actual disk usage when cloned.
+     */
+    size?: {
+      /**
+       * Minimum repository size (in bytes) to sync (inclusive). Repositories less than this size will be excluded from syncing.
+       */
+      min?: number;
+      /**
+       * Maximum repository size (in bytes) to sync (inclusive). Repositories greater than this size will be excluded from syncing.
+       */
+      max?: number;
+    };
   };
   revisions?: GitRevisions;
 }
@@ -242,4 +271,15 @@ export interface LocalConfig {
      */
     paths?: string[];
   };
+}
+export interface GitConfig {
+  /**
+   * Git Configuration
+   */
+  type: "git";
+  /**
+   * The URL to the git repository.
+   */
+  url: string;
+  revisions?: GitRevisions;
 }

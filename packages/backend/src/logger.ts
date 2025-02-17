@@ -5,7 +5,6 @@ const { combine, colorize, timestamp, prettyPrint, errors, printf, label: labelF
 
 const createLogger = (label: string) => {
     return winston.createLogger({
-        // @todo: Make log level configurable
         level: SOURCEBOT_LOG_LEVEL,
         format: combine(
             errors({ stack: true }),

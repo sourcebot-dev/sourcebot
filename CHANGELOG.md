@@ -7,13 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.1] - 2025-01-28
+
+### Added
+
+- Added `maxTrigramCount` to the config to control the maximum allowable of trigrams per document. 
+
+### Fixed
+
+- Fixed issue with version upgrade toast not appearing without a hard refresh. ([#179](https://github.com/sourcebot-dev/sourcebot/pull/179))
+
+## [2.8.0] - 2025-01-17
+
+### Added
+
+- Added a syntax reference guide. The guide can be opened using the hotkey "Cmd + /" ("Ctrl + /" on Windows). ([#169](https://github.com/sourcebot-dev/sourcebot/pull/169))
+
+## [2.7.1] - 2025-01-15
+
+### Fixed
+
+- Fixed issue where we crash on startup if the install / upgrade PostHog event fails to send. ([#159](https://github.com/sourcebot-dev/sourcebot/pull/159))
+- Fixed issue with broken file links. ([#161](https://github.com/sourcebot-dev/sourcebot/pull/161))
+
+## [2.7.0] - 2025-01-10
+
+### Added
+
+- Added support for creating share links to snippets of code. ([#149](https://github.com/sourcebot-dev/sourcebot/pull/149))
+- Added support for indexing raw remote git repository. ([#152](https://github.com/sourcebot-dev/sourcebot/pull/152))
+
+## [2.6.3] - 2024-12-18
+
+### Added
+
+- Added config option `settings.reindexInterval` and `settings.resyncInterval` to control how often the index should be re-indexed and re-synced. ([#134](https://github.com/sourcebot-dev/sourcebot/pull/134))
+- Added `exclude.size` to the GitHub config to allow excluding repositories by size. ([#137](https://github.com/sourcebot-dev/sourcebot/pull/137))
+
+### Fixed
+
+- Fixed issue where config synchronization was failing entirely when a single api call fails. ([#142](https://github.com/sourcebot-dev/sourcebot/pull/142))
+- Fixed 'directory not found' error in certain scenarios when deleting a repository. ([#136](https://github.com/sourcebot-dev/sourcebot/pull/136))
+
+## [2.6.2] - 2024-12-13
+
 ### Added
 
 - Added config support for filtering GitLab & GitHub repositories by topic. ([#121](https://github.com/sourcebot-dev/sourcebot/pull/121))
+- Added additional language syntax support. ([#125](https://github.com/sourcebot-dev/sourcebot/pull/125))
+- Added additional language icon support. ([#129](https://github.com/sourcebot-dev/sourcebot/pull/129))
 
 ### Changed
 
 - Made language suggestions case insensitive. ([#124](https://github.com/sourcebot-dev/sourcebot/pull/124))
+- Stale repositories are now automatically deleted from the index. This can be configured via `settings.autoDeleteStaleRepos` in the config. ([#128](https://github.com/sourcebot-dev/sourcebot/pull/128))
 
 ## [2.6.1] - 2024-12-09
 

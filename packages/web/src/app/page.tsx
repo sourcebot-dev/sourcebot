@@ -11,11 +11,11 @@ import { Separator } from "@/components/ui/separator";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { UpgradeToast } from "./components/upgradeToast";
 import Link from "next/link";
-
+import { KeyboardShortcutHint } from "./components/keyboardShortcutHint";
 
 export default async function Home() {
     return (
-        <div className="flex flex-col items-center overflow-hidden">
+        <div className="flex flex-col items-center overflow-hidden min-h-screen">
             <NavigationMenu />
             <UpgradeToast />
 
@@ -70,7 +70,7 @@ export default async function Home() {
                                 <Query query="file:README setup"><Highlight>file:</Highlight>README setup</Query> <QueryExplanation>(by filename)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="repo:torvalds/linux test"><Highlight>repo:</Highlight>torvalds/linux test</Query> <QueryExplanation>(by repo)</QueryExplanation>
+                                <Query query="repo:facebook/react test"><Highlight>repo:</Highlight>facebook/react test</Query> <QueryExplanation>(by repo)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
                                 <Query query="lang:typescript"><Highlight>lang:</Highlight>typescript</Query> <QueryExplanation>(by language)</QueryExplanation>
@@ -96,8 +96,19 @@ export default async function Home() {
                             </QueryExample>
                         </HowToSection>
                     </div>
+                    <div className="text-sm">
+                        <span className="dark:text-gray-300">Reference guide: </span><KeyboardShortcutHint shortcut="⌘" /> <KeyboardShortcutHint shortcut="/" />
+                    </div>
                 </div>
             </div>
+
+            <footer className="w-full mt-auto py-4 flex flex-row justify-center items-center gap-4">
+                <Link href="https://sourcebot.dev" className="text-gray-400 text-sm hover:underline">About</Link>
+                <Separator orientation="vertical" className="h-4" />
+                <Link href="https://github.com/sourcebot-dev/sourcebot/issues/new" className="text-gray-400 text-sm hover:underline">Support</Link>
+                <Separator orientation="vertical" className="h-4" />
+                <Link href="mailto:team@sourcebot.dev" className="text-gray-400 text-sm hover:underline">Contact Us</Link>
+            </footer>
         </div>
     )
 }

@@ -42,6 +42,7 @@ import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Toggle } from "@/components/ui/toggle";
+import { KeyboardShortcutHint } from "../keyboardShortcutHint";
 
 interface SearchBarProps {
     className?: string;
@@ -71,7 +72,7 @@ const searchBarKeymap: readonly KeyBinding[] = ([
 ] as KeyBinding[]).concat(historyKeymap);
 
 const searchBarContainerVariants = cva(
-    "search-bar-container flex items-center py-0.5 px-1 border rounded-md relative",
+    "search-bar-container flex items-center justify-center py-0.5 px-2 border rounded-md relative",
     {
         variants: {
             size: {
@@ -264,6 +265,7 @@ export const SearchBar = ({
                 indentWithTab={false}
                 autoFocus={autoFocus ?? false}
             />
+            <KeyboardShortcutHint shortcut="/" />
             <SearchSuggestionsBox
                 ref={suggestionBoxRef}
                 query={query}

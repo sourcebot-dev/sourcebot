@@ -94,6 +94,7 @@ export const fileSourceRequestSchema = z.object({
 
 export const fileSourceResponseSchema = z.object({
     source: z.string(),
+    language: z.string(),
 });
 
 
@@ -151,4 +152,8 @@ export const listRepositoriesResponseSchema = z.object({
         })),
         Stats: repoStatsSchema,
     })
+});
+
+export const getVersionResponseSchema = z.object({
+    version: z.string(),
 });
