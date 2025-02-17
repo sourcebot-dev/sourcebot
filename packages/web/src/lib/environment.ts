@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { getEnv, getEnvNumber } from "./utils";
+import { getEnv, getEnvBoolean, getEnvNumber } from "./utils";
 
 export const ZOEKT_WEBSERVER_URL = getEnv(process.env.ZOEKT_WEBSERVER_URL, "http://localhost:6070")!;
 export const SHARD_MAX_MATCH_COUNT = getEnvNumber(process.env.SHARD_MAX_MATCH_COUNT, 10000);
@@ -13,6 +13,7 @@ export const AUTH_GITHUB_CLIENT_SECRET = getEnv(process.env.AUTH_GITHUB_CLIENT_S
 export const AUTH_GOOGLE_CLIENT_ID = getEnv(process.env.AUTH_GOOGLE_CLIENT_ID);
 export const AUTH_GOOGLE_CLIENT_SECRET = getEnv(process.env.AUTH_GOOGLE_CLIENT_SECRET);
 export const AUTH_URL = getEnv(process.env.AUTH_URL)!;
+export const AUTH_CREDENTIALS_LOGIN_ENABLED = getEnvBoolean(process.env.AUTH_CREDENTIALS_LOGIN_ENABLED, true);
 
 export const STRIPE_SECRET_KEY = getEnv(process.env.STRIPE_SECRET_KEY);
 export const STRIPE_PRODUCT_ID = getEnv(process.env.STRIPE_PRODUCT_ID);

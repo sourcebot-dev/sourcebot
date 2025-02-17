@@ -13,6 +13,7 @@ import {
     AUTH_GOOGLE_CLIENT_SECRET,
     AUTH_SECRET,
     AUTH_URL,
+    AUTH_CREDENTIALS_LOGIN_ENABLED,
     EMAIL_FROM,
     SMTP_CONNECTION_URL
 } from "./lib/environment";
@@ -37,56 +38,69 @@ declare module 'next-auth/jwt' {
     }
 }
 
-const providers: Provider[] = [
-    GitHub({
-        clientId: AUTH_GITHUB_CLIENT_ID,
-        clientSecret: AUTH_GITHUB_CLIENT_SECRET,
-    }),
-    Google({
-        clientId: AUTH_GOOGLE_CLIENT_ID,
-        clientSecret: AUTH_GOOGLE_CLIENT_SECRET,
-    }),
-    Credentials({
-        credentials: {
-            email: {},
-            password: {}
-        },
-        type: "credentials",
-        authorize: async (credentials) => {
-            const body = verifyCredentialsRequestSchema.safeParse(credentials);
-            if (!body.success) {
-                return null;
-            }
-            const { email, password } = body.data;
+export const getProviders = () => {
+    const providers: Provider[] = [];
 
-            // authorize runs in the edge runtime (where we cannot make DB calls / access environment variables),
-            // so we need to make a request to the server to verify the credentials.
-            const response = await fetch(new URL('/api/auth/verifyCredentials', AUTH_URL), {
-                method: 'POST',
-                body: JSON.stringify({ email, password }),
-            });
+    if (AUTH_GITHUB_CLIENT_ID && AUTH_GITHUB_CLIENT_SECRET) {
+        providers.push(GitHub({
+            clientId: AUTH_GITHUB_CLIENT_ID,
+            clientSecret: AUTH_GITHUB_CLIENT_SECRET,
+        }));
+    }
 
-            if (!response.ok) {
-                return null;
-            }
+    if (AUTH_GOOGLE_CLIENT_ID && AUTH_GOOGLE_CLIENT_SECRET) {
+        providers.push(Google({
+            clientId: AUTH_GOOGLE_CLIENT_ID,
+            clientSecret: AUTH_GOOGLE_CLIENT_SECRET,
+        }));
+    }
 
-            const user = verifyCredentialsResponseSchema.parse(await response.json());
-            return {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                image: user.image,
-            }
-        }
-    }),
-    ...(SMTP_CONNECTION_URL && EMAIL_FROM ? [
-        EmailProvider({
+    if (SMTP_CONNECTION_URL && EMAIL_FROM) {
+        providers.push(EmailProvider({
             server: SMTP_CONNECTION_URL,
             from: EMAIL_FROM,
             maxAge: 60 * 10,
-        }),
-    ] : []),
-];
+        }));
+    }
+
+    if (AUTH_CREDENTIALS_LOGIN_ENABLED) {
+        providers.push(Credentials({
+            credentials: {
+                email: {},
+                password: {}
+            },
+            type: "credentials",
+            authorize: async (credentials) => {
+                const body = verifyCredentialsRequestSchema.safeParse(credentials);
+                if (!body.success) {
+                    return null;
+                }
+                const { email, password } = body.data;
+    
+                // authorize runs in the edge runtime (where we cannot make DB calls / access environment variables),
+                // so we need to make a request to the server to verify the credentials.
+                const response = await fetch(new URL('/api/auth/verifyCredentials', AUTH_URL), {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password }),
+                });
+    
+                if (!response.ok) {
+                    return null;
+                }
+    
+                const user = verifyCredentialsResponseSchema.parse(await response.json());
+                return {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    image: user.image,
+                }
+            }
+        }));
+    }
+
+    return providers;
+}
 
 const useSecureCookies = AUTH_URL?.startsWith("https://") ?? false;
 const hostName = AUTH_URL ? new URL(AUTH_URL).hostname : "localhost";
@@ -150,8 +164,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
         }
     },
-    providers: providers,
+    providers: getProviders(),
     pages: {
-        signIn: "/login"
+        signIn: "/login",
     }
 });
