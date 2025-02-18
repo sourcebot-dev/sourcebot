@@ -15,6 +15,8 @@ export function DisplayConnectionError({ syncStatusMetadata, onSecretsClick }: {
       return <SecretNotFoundError syncStatusMetadata={syncStatusMetadata} onSecretsClick={onSecretsClick} />
     case BackendError.CONNECTION_SYNC_SYSTEM_ERROR:
       return <SystemError />
+    case BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS:
+      return <FailedToFetchGerritProjects syncStatusMetadata={syncStatusMetadata} />
     default:
       return <UnknownError />
   }
@@ -72,6 +74,26 @@ function SystemError() {
       <p className="text-sm text-muted-foreground">
         An error occurred while syncing this connection. Please try again later.
       </p>
+    </div>
+  )
+}
+
+function FailedToFetchGerritProjects({ syncStatusMetadata }: { syncStatusMetadata: Prisma.JsonValue}) {
+  const status = syncStatusMetadata && typeof syncStatusMetadata === 'object' && 'status' in syncStatusMetadata
+    ? (syncStatusMetadata.status as number)
+    : undefined;
+
+  return (
+    <div className="space-y-1">
+      <h4 className="text-sm font-semibold">Failed to Fetch Gerrit Projects</h4>
+      <p className="text-sm text-muted-foreground">
+        An error occurred while syncing this connection. Please try again later.
+      </p>
+      {status && (
+        <p className="text-sm text-muted-foreground">
+          Status: <span className="text-red-500">{status}</span>
+        </p>
+      )}
     </div>
   )
 }
