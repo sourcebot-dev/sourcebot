@@ -30,18 +30,18 @@ export const SecretsTable = ({ initialSecrets }: SecretsTableProps) => {
     const { toast } = useToast();
     const domain = useDomain();
 
-    const fetchSecretKeys = async () => {
-        const keys = await getSecrets(domain);
-        if ('keys' in keys) {
-            setSecrets(keys);
-        } else {
-            console.error(keys);
-        }
-    };
-
     useEffect(() => {
+        const fetchSecretKeys = async () => {
+            const keys = await getSecrets(domain);
+            if (isServiceError(keys)) {
+                console.error("Failed to fetch secrets:", keys);
+                return;
+            }
+            setSecrets(keys);
+        };
+
         fetchSecretKeys();
-    }, [fetchSecretKeys]);
+    }, [domain]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),

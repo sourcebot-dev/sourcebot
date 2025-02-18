@@ -6,6 +6,7 @@ import { createLogger } from "./logger.js";
 import os from 'os';
 import { Redis } from 'ioredis';
 import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig } from "./repoCompileUtils.js";
+import { BackendException } from "@sourcebot/error";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -266,15 +267,29 @@ export class ConnectionManager implements IConnectionManager {
         this.logger.info(`Connection sync job failed with error: ${err}`);
         if (job) {
             const { connectionId } = job.data;
+
+            let syncStatusMetadata: Prisma.InputJsonValue = {};
+            if (err instanceof BackendException) {
+                syncStatusMetadata = {
+                    error: err.code,
+                    ...err.metadata,
+                }
+            } else {
+                syncStatusMetadata = {
+                    error: 'UNKNOWN',
+                }
+            }
+
             await this.db.connection.update({
                 where: {
                     id: connectionId,
                 },
                 data: {
                     syncStatus: ConnectionSyncStatus.FAILED,
-                    syncedAt: new Date()
+                    syncedAt: new Date(),
+                    syncStatusMetadata
                 }
-            })
+            });
         }
     }
 

@@ -5,6 +5,7 @@ import micromatch from "micromatch";
 import { PrismaClient, Repo } from "@sourcebot/db";
 import { decrypt } from "@sourcebot/crypto";
 import { Token } from "@sourcebot/schemas/v3/shared.type";
+import { BackendException, BackendError } from "@sourcebot/error";
 
 export const measure = async <T>(cb : () => Promise<T>) => {
     const start = Date.now();
@@ -95,12 +96,16 @@ export const getTokenFromConfig = async (token: Token, orgId: number, db?: Prism
     if ('env' in token) {
         const tokenValue = process.env[token.env];
         if (!tokenValue) {
-            throw new Error(`The environment variable '${token.env}' was referenced in the config but was not set.`);
+            throw new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
+                message: `The environment variable '${token.env}' was referenced in the config but was not set.`,
+            });
         }
         return tokenValue;
     } else if ('secret' in token) {
         if (!db) {
-            throw new Error(`Database connection required to retrieve secret`);
+            throw new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
+                message: `No database connection provided.`,
+            });
         }
         
         const secretKey = token.secret;
@@ -114,13 +119,18 @@ export const getTokenFromConfig = async (token: Token, orgId: number, db?: Prism
         });
         
         if (!secret) {
-            throw new Error(`Secret with key ${secretKey} not found for org ${orgId}`);
+            throw new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
+                message: `Secret with key ${secretKey} not found for org ${orgId}`,
+            });
         }
 
         const decryptedSecret = decrypt(secret.iv, secret.encryptedValue);
         return decryptedSecret;
     }
-    throw new Error(`Invalid token configuration in config`);
+
+    throw new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
+        message: `Invalid token configuration in config`,
+    });
 }
 
 export const isRemotePath = (path: string) => {

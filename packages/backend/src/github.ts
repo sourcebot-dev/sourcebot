@@ -5,6 +5,7 @@ import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
 import micromatch from "micromatch";
 import { PrismaClient } from "@sourcebot/db";
 import { FALLBACK_GITHUB_TOKEN } from "./environment.js";
+import { BackendException, BackendError } from "@sourcebot/error";
 const logger = createLogger("GitHub");
 
 export type OctokitRepository = {
@@ -38,41 +39,61 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
         } : {}),
     });
 
+    if (token) {
+        try {
+            await octokit.rest.users.getAuthenticated();
+        } catch (error) {
+            if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+                throw new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN);
+            }
+
+            throw new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
+                message: `Failed to authenticate with GitHub`,
+            });
+        }
+    }
+
     let allRepos: OctokitRepository[] = [];
 
-    if (config.orgs) {
-        const _repos = await getReposForOrgs(config.orgs, octokit, signal);
-        allRepos = allRepos.concat(_repos);
-    }
+    try {
+        if (config.orgs) {
+            const _repos = await getReposForOrgs(config.orgs, octokit, signal);
+            allRepos = allRepos.concat(_repos);
+        }
 
-    if (config.repos) {
-        const _repos = await getRepos(config.repos, octokit, signal);
-        allRepos = allRepos.concat(_repos);
-    }
+        if (config.repos) {
+            const _repos = await getRepos(config.repos, octokit, signal);
+            allRepos = allRepos.concat(_repos);
+        }
 
-    if (config.users) {
-        const isAuthenticated = config.token !== undefined;
-        const _repos = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
-        allRepos = allRepos.concat(_repos);
-    }
+        if (config.users) {
+            const isAuthenticated = config.token !== undefined;
+            const _repos = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
+            allRepos = allRepos.concat(_repos);
+        }
 
-    // Marshall results to our type
-    let repos = allRepos
-        .filter((repo) => {
-            const isExcluded = shouldExcludeRepo({
-                repo,
-                include: {
-                    topics: config.topics,
-                },
-                exclude: config.exclude,
+        let repos = allRepos
+            .filter((repo) => {
+                const isExcluded = shouldExcludeRepo({
+                    repo,
+                    include: {
+                        topics: config.topics,
+                    },
+                    exclude: config.exclude,
+                });
+
+                return !isExcluded;
             });
 
-            return !isExcluded;
+        logger.debug(`Found ${repos.length} total repositories.`);
+    
+        return repos;
+    } catch (error) {
+        throw new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
+            message: `Failed to fetch repositories: ${error}`,
         });
+    }
 
-    logger.debug(`Found ${repos.length} total repositories.`);
-
-    return repos;
 }
 
 export const getGitHubRepoFromId = async (id: string, hostURL: string, token?: string) => {
@@ -266,9 +287,24 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
             logger.info(`Found info for repository ${repo} in ${durationMs}ms`);
 
             return [result.data];
-        } catch (e) {
-            logger.error(`Failed to fetch repository info for ${repo}.`, e);
-            throw e;
+        } catch (error) {
+            if (error && typeof error === 'object' && 'status' in error) {
+                switch (error.status) {
+                    case 404:
+                        logger.error(`Repository ${repo} not found or no access`);
+                        break;
+                    case 401:
+                        logger.error(`Invalid authentication when accessing ${repo}`);
+                        break;
+                    default:
+                        logger.error(`HTTP error ${error.status} when fetching ${repo}`);
+                }
+            } else if (error instanceof Error) {
+                logger.error(`Network or other error for ${repo}: ${error.message}`);
+            } else {
+                logger.error(`Unknown error type for ${repo}: ${error}`);
+            }
+            throw error;
         }
     }))).flat();
 

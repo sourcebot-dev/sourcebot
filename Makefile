@@ -26,6 +26,8 @@ clean:
 		packages/schemas/dist \
 		packages/crypto/node_modules \
 		packages/crypto/dist \
+		packages/error/node_modules \
+		packages/error/dist \
 		.sourcebot
 
 soft-reset:

@@ -63,6 +63,7 @@
     "@shopify/lang-jsonc": "^1.0.0",
     "@sourcebot/crypto": "^0.1.0",
     "@sourcebot/db": "^0.1.0",
+    "@sourcebot/error": "^0.1.0",
     "@sourcebot/schemas": "^0.1.0",
     "@ssddanbrown/codemirror-lang-twig": "^1.0.0",
     "@stripe/react-stripe-js": "^3.1.1",
