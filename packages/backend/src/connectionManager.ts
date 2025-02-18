@@ -145,6 +145,7 @@ export class ConnectionManager implements IConnectionManager {
             const [toCreate, toUpdate] = repoData.reduce<[Prisma.RepoCreateManyInput[], Prisma.RepoUpdateManyMutationInput[]]>(([toCreate, toUpdate], repo) => {
                 const existingRepo = existingRepoData.find((r: RepoData) => r.external_id === repo.external_id && r.external_codeHostUrl === repo.external_codeHostUrl);
                 if (existingRepo) {
+                    // @note: make sure to reflect any changes here in the raw sql update below
                     const updateRepo: Prisma.RepoUpdateManyMutationInput = {
                         name: repo.name,
                         cloneUrl: repo.cloneUrl,
