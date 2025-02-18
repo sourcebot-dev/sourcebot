@@ -8,12 +8,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { signIn } from "next-auth/react";
 import { verifyCredentialsRequestSchema } from "@/lib/schemas";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 interface CredentialsFormProps {
     callbackUrl?: string;
 }
 
 export const CredentialsForm = ({ callbackUrl }: CredentialsFormProps) => {
+    const [isLoading, setIsLoading] = useState(false);
     const form = useForm<z.infer<typeof verifyCredentialsRequestSchema>>({
         resolver: zodResolver(verifyCredentialsRequestSchema),
         defaultValues: {
@@ -23,10 +26,14 @@ export const CredentialsForm = ({ callbackUrl }: CredentialsFormProps) => {
     });
 
     const onSubmit = (values: z.infer<typeof verifyCredentialsRequestSchema>) => {
+        setIsLoading(true);
         signIn("credentials", {
             email: values.email,
             password: values.password,
             redirectTo: callbackUrl ?? "/"
+        })
+        .finally(() => {
+            setIsLoading(false);
         });
     }
 
@@ -66,7 +73,9 @@ export const CredentialsForm = ({ callbackUrl }: CredentialsFormProps) => {
                     type="submit"
                     className="w-full"
                     variant="outline"
+                    disabled={isLoading}
                 >
+                    {isLoading ? <Loader2 className="animate-spin mr-2" /> : ""}
                     Sign in with credentials
                 </Button>
             </form>

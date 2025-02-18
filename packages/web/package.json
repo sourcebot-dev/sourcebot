@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "vitest"
+    "test": "vitest",
+    "dev:emails": "email dev --dir ./src/emails"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
@@ -56,6 +57,8 @@
     "@radix-ui/react-toast": "^1.2.2",
     "@radix-ui/react-toggle": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.4",
+    "@react-email/components": "^0.0.33",
+    "@react-email/render": "^1.0.5",
     "@replit/codemirror-lang-csharp": "^6.2.0",
     "@replit/codemirror-lang-nix": "^6.0.1",
     "@replit/codemirror-lang-solidity": "^6.0.2",
@@ -142,6 +145,7 @@
     "jsdom": "^25.0.1",
     "npm-run-all": "^4.1.5",
     "postcss": "^8",
+    "react-email": "3.0.3",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.19.2",
     "typescript": "^5",

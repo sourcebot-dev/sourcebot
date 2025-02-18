@@ -7,8 +7,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { signIn } from "next-auth/react";
-
-
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 const magicLinkSchema = z.object({
     email: z.string().email(),
 });
@@ -18,6 +18,7 @@ interface MagicLinkFormProps {
 }   
 
 export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
+    const [isLoading, setIsLoading] = useState(false);
     const magicLinkForm = useForm<z.infer<typeof magicLinkSchema>>({
         resolver: zodResolver(magicLinkSchema),
         defaultValues: {
@@ -26,7 +27,11 @@ export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
     });
 
     const onSignIn = (values: z.infer<typeof magicLinkSchema>) => {
-        signIn("nodemailer", { email: values.email, redirectTo: callbackUrl ?? "/" });
+        setIsLoading(true);
+        signIn("nodemailer", { email: values.email, redirectTo: callbackUrl ?? "/" })
+            .finally(() => {
+                setIsLoading(false);
+            });
     }
 
     return (
@@ -54,7 +59,9 @@ export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
                     type="submit"
                     className="w-full"
                     variant="outline"
+                    disabled={isLoading}
                 >
+                    {isLoading ? <Loader2 className="animate-spin mr-2" /> : ""}
                     Sign in with magic link
                 </Button>
             </form>

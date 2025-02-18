@@ -1,8 +1,6 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import logoDark from "@/public/sb_logo_dark_large.png";
-import logoLight from "@/public/sb_logo_light_large.png";
 import googleLogo from "@/public/google.svg";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
@@ -11,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { cn, getCodeHostIcon } from "@/lib/utils";
 import { MagicLinkForm } from "./magicLinkForm";
 import { CredentialsForm } from "./credentialsForm";
+import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 
 interface LoginFormProps {
     callbackUrl?: string;
@@ -45,20 +44,9 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
     return (
         <div className="flex flex-col items-center justify-center">
             <div className="mb-6 flex flex-col items-center">
-                <div>
-                    <Image
-                        src={logoDark}
-                        className="h-16 w-auto hidden dark:block"
-                        alt={"Sourcebot logo"}
-                        priority={true}
-                    />
-                    <Image
-                        src={logoLight}
-                        className="h-16 w-auto block dark:hidden"
-                        alt={"Sourcebot logo"}
-                        priority={true}
-                    />
-                </div>
+                <SourcebotLogo
+                    className="h-16"
+                />
                 <h2 className="text-lg font-bold">Sign in to your account</h2>
             </div>
             <Card className="flex flex-col items-center border p-12 rounded-lg gap-6 w-[500px] bg-background">
@@ -73,6 +61,7 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
                             <>
                                 {enabledMethods.github && (
                                     <ProviderButton
+                                        key="github"
                                         name="GitHub"
                                         logo={getCodeHostIcon("github")!}
                                         onClick={() => {
@@ -82,6 +71,7 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
                                 )}
                                 {enabledMethods.google && (
                                     <ProviderButton
+                                        key="google"
                                         name="Google"
                                         logo={{ src: googleLogo }}
                                         onClick={() => {
@@ -92,10 +82,10 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
                             </>
                         ] : []),
                         ...(enabledMethods.magicLink ? [
-                            <MagicLinkForm callbackUrl={callbackUrl} />
+                            <MagicLinkForm key="magic-link" callbackUrl={callbackUrl} />
                         ] : []),
                         ...(enabledMethods.credentials ? [
-                            <CredentialsForm callbackUrl={callbackUrl} />
+                            <CredentialsForm key="credentials" callbackUrl={callbackUrl} />
                         ] : [])
                     ]}
                 />
@@ -132,7 +122,7 @@ const DividerSet = ({ children }: { children: React.ReactNode[] }) => {
         return (
             <Fragment key={index}>
                 {child}
-                {index < children.length - 1 && <Divider />}
+                {index < children.length - 1 && <Divider key={`divider-${index}`} />}
             </Fragment>
         )
     })

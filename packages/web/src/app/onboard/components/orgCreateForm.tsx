@@ -8,10 +8,8 @@ import { isServiceError } from "@/lib/utils"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import logoDark from "@/public/sb_logo_dark_large.png";
-import logoLight from "@/public/sb_logo_light_large.png";
-import Image from "next/image";
 import { useState } from "react";
+import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 
 const onboardingFormSchema = z.object({
     name: z.string()
@@ -64,17 +62,8 @@ export function OrgCreateForm({ setOrgCreateData }: OrgCreateFormProps) {
     return (
         <div className="space-y-6">
             <div className="flex justify-center">
-                <Image
-                    src={logoDark}
-                    className="h-16 w-auto hidden dark:block"
-                    alt={"Sourcebot logo"}
-                    priority={true}
-                />
-                <Image
-                    src={logoLight}
-                    className="h-16 w-auto block dark:hidden"
-                    alt={"Sourcebot logo"}
-                    priority={true}
+                <SourcebotLogo
+                    className="h-16"
                 />
             </div>
             <h1 className="text-2xl font-bold">Let&apos;s create your organization</h1>

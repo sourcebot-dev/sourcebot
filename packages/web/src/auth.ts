@@ -21,6 +21,9 @@ import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
 import { verifyCredentialsRequestSchema, verifyCredentialsResponseSchema } from './lib/schemas';
+import { createTransport } from 'nodemailer';
+import { render } from '@react-email/render';
+import MagicLinkEmail from './emails/magicLink';
 
 export const runtime = 'nodejs';
 
@@ -60,6 +63,22 @@ export const getProviders = () => {
             server: SMTP_CONNECTION_URL,
             from: EMAIL_FROM,
             maxAge: 60 * 10,
+            sendVerificationRequest: async ({ identifier, url, provider }) => {
+                const transport = createTransport(provider.server);
+                const html = await render(MagicLinkEmail({ magicLink: url, baseUrl: 'https://sourcebot.app' }));
+                const result = await transport.sendMail({
+                    to: identifier,
+                    from: provider.from,
+                    subject: 'Log in to Sourcebot',
+                    html,
+                    text: `Log in to Sourcebot by clicking here: ${url}`
+                });
+
+                const failed = result.rejected.concat(result.pending).filter(Boolean);
+                if (failed.length) {
+                    throw new Error(`Email(s) (${failed.join(", ")}) could not be sent`);
+                }
+            }
         }));
     }
 
@@ -167,5 +186,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: getProviders(),
     pages: {
         signIn: "/login",
+        verifyRequest: "/login/verify",
     }
 });
