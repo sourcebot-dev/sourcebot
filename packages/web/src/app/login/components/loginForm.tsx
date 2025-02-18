@@ -56,7 +56,7 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
                     </div>
                 )}
                 <DividerSet
-                    children={[
+                    elements={[
                         ...(enabledMethods.github || enabledMethods.google ? [
                             <>
                                 {enabledMethods.github && (
@@ -117,12 +117,12 @@ const ProviderButton = ({
     )
 }
 
-const DividerSet = ({ children }: { children: React.ReactNode[] }) => {
-    return children.map((child, index) => {
+const DividerSet = ({ elements }: { elements: React.ReactNode[] }) => {
+    return elements.map((child, index) => {
         return (
             <Fragment key={index}>
                 {child}
-                {index < children.length - 1 && <Divider key={`divider-${index}`} />}
+                {index < elements.length - 1 && <Divider key={`divider-${index}`} />}
             </Fragment>
         )
     })
