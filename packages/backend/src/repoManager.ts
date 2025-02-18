@@ -13,7 +13,7 @@ import os from 'os';
 
 interface IRepoManager {
     blockingPollLoop: () => void;
-    scheduleRepoIndexing: (repo: RepoWithConnections) => Promise<void>;
+    scheduleRepoIndexingBulk: (repos: RepoWithConnections[]) => Promise<void>;
     dispose: () => void;
 }
 
@@ -53,19 +53,41 @@ export class RepoManager implements IRepoManager {
         }
     }
 
-    public async scheduleRepoIndexing(repo: RepoWithConnections) {
+    public async scheduleRepoIndexingBulk(repos: RepoWithConnections[]) {
         await this.db.$transaction(async (tx) => {
-            await tx.repo.update({
-                where: { id: repo.id },
-                data: { repoIndexingStatus: RepoIndexingStatus.IN_INDEX_QUEUE },
+            await tx.repo.updateMany({
+                where: { id: { in: repos.map(repo => repo.id) } },
+                data: { repoIndexingStatus: RepoIndexingStatus.IN_INDEX_QUEUE }
             });
+            
+            const reposByOrg = repos.reduce<Record<number, RepoWithConnections[]>>((acc, repo) => {
+                if (!acc[repo.orgId]) {
+                    acc[repo.orgId] = [];
+                }
+                acc[repo.orgId].push(repo);
+                return acc;
+            }, {});
 
-            await this.queue.add('repoIndexJob', {
-                repo
-            });
-            this.logger.info(`Added job to queue for repo ${repo.id}`);
+            for (const orgId in reposByOrg) {
+                const orgRepos = reposByOrg[orgId];
+                // Set priority based on number of repos (more repos = lower priority)
+                // This helps prevent large orgs from overwhelming the queue
+                const priority = Math.min(Math.ceil(orgRepos.length / 10), 2097152);
+
+                await this.queue.addBulk(orgRepos.map(repo => ({
+                    name: 'repoIndexJob',
+                    data: { repo },
+                    opts: {
+                        priority: priority
+                    }
+                })));
+                
+                this.logger.info(`Added ${orgRepos.length} jobs to queue for org ${orgId} with priority ${priority}`);
+            }
+
+
         }).catch((err: unknown) => {
-            this.logger.error(`Failed to add job to queue for repo ${repo.id}: ${err}`);
+            this.logger.error(`Failed to add jobs to queue for repos ${repos.map(repo => repo.id).join(', ')}: ${err}`);
         });
     }
 
@@ -91,9 +113,9 @@ export class RepoManager implements IRepoManager {
             }
         });
 
-        for (const repo of repos) {
-            await this.scheduleRepoIndexing(repo);
-        } 
+        if (repos.length > 0) {
+            await this.scheduleRepoIndexingBulk(repos);
+        }
     }
 
     private async garbageCollectRepo() {
