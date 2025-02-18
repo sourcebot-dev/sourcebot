@@ -6,7 +6,7 @@ import { createLogger } from "./logger.js";
 import os from 'os';
 import { Redis } from 'ioredis';
 import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig } from "./repoCompileUtils.js";
-import { BackendException } from "@sourcebot/error";
+import { BackendError, BackendException } from "@sourcebot/error";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -82,26 +82,95 @@ export class ConnectionManager implements IConnectionManager {
         // @note: We aren't actually doing anything with this atm.
         const abortController = new AbortController();
 
-        const repoData: RepoData[] = await (async () => {
-            switch (config.type) {
-                case 'github': {
-                    return await compileGithubConfig(config, job.data.connectionId, orgId, this.db, abortController);
-                }
-                case 'gitlab': {
-                    return await compileGitlabConfig(config, job.data.connectionId, orgId, this.db);
-                }
-                case 'gitea': {
-                    return await compileGiteaConfig(config, job.data.connectionId, orgId, this.db);
-                }
-                case 'gerrit': {
-                    return await compileGerritConfig(config, job.data.connectionId, orgId);
-                }
-                default: {
-                    return [];
-                }
-            }
-        })();
+        const connection = await this.db.connection.findUnique({
+            where: {
+                id: job.data.connectionId,
+            },
+        });
 
+        if (!connection) {
+            throw new BackendException(BackendError.CONNECTION_SYNC_CONNECTION_NOT_FOUND, {
+                message: `Connection ${job.data.connectionId} not found`,
+            });
+        }
+        
+        // Reset the syncStatusMetadata to an empty object at the start of the sync job
+        await this.db.connection.update({
+            where: {
+                id: job.data.connectionId,
+            },
+            data: {
+                syncStatusMetadata: {}
+            }
+        })
+        
+
+        let result: {
+            repoData: RepoData[],
+            notFound: {
+                users: string[],
+                orgs: string[],
+                repos: string[],
+            }
+        } = {
+            repoData: [],
+            notFound: {
+                users: [],
+                orgs: [],
+                repos: [],
+            }
+        };
+
+        try {
+            result = await (async () => {
+                switch (config.type) {
+                    case 'github': {
+                        return await compileGithubConfig(config, job.data.connectionId, orgId, this.db, abortController);
+                    }
+                    case 'gitlab': {
+                        return await compileGitlabConfig(config, job.data.connectionId, orgId, this.db);
+                    }
+                    case 'gitea': {
+                        const repoData = await compileGiteaConfig(config, job.data.connectionId, orgId, this.db);
+                        return {repoData, notFound: {users: [], orgs: [], repos: []}};
+                    }
+                    case 'gerrit': {
+                        const repoData = await compileGerritConfig(config, job.data.connectionId, orgId);
+                        return {repoData, notFound: {users: [], orgs: [], repos: []}};
+                    }
+                    default: {
+                        return {repoData: [], notFound: {
+                            users: [],
+                            orgs: [],
+                            repos: [],
+                        }};
+                    }
+                }
+            })();
+        } catch (err) {
+            this.logger.error(`Failed to compile repo data for connection ${job.data.connectionId}: ${err}`);
+            if (err instanceof BackendException) {
+                throw err;
+            } else {
+                throw new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
+                    message: `Failed to compile repo data for connection ${job.data.connectionId}`,
+                });
+            }
+        }
+
+        const { repoData, notFound } = result;
+
+        // Push the information regarding not found users, orgs, and repos to the connection's syncStatusMetadata. Note that 
+        // this won't be overwritten even if the connection job fails
+        await this.db.connection.update({
+            where: {
+                id: job.data.connectionId,
+            },
+            data: {
+                syncStatusMetadata: { notFound }
+            }
+        });
+            
         // Filter out any duplicates by external_id and external_codeHostUrl.
         repoData.filter((repo, index, self) => {
             return index === self.findIndex(r =>
@@ -266,16 +335,23 @@ export class ConnectionManager implements IConnectionManager {
     private async onSyncJobFailed(job: Job | undefined, err: unknown) {
         this.logger.info(`Connection sync job failed with error: ${err}`);
         if (job) {
-            const { connectionId } = job.data;
 
-            let syncStatusMetadata: Prisma.InputJsonValue = {};
+            // We may have pushed some metadata during the execution of the job, so we make sure to not overwrite the metadata here
+            const { connectionId } = job.data;
+            let syncStatusMetadata: Record<string, unknown> = (await this.db.connection.findUnique({
+                where: { id: connectionId },
+                select: { syncStatusMetadata: true }
+            }))?.syncStatusMetadata as Record<string, unknown> ?? {};
+
             if (err instanceof BackendException) {
                 syncStatusMetadata = {
+                    ...syncStatusMetadata,
                     error: err.code,
                     ...err.metadata,
                 }
             } else {
                 syncStatusMetadata = {
+                    ...syncStatusMetadata, 
                     error: 'UNKNOWN',
                 }
             }
@@ -287,7 +363,7 @@ export class ConnectionManager implements IConnectionManager {
                 data: {
                     syncStatus: ConnectionSyncStatus.FAILED,
                     syncedAt: new Date(),
-                    syncStatusMetadata
+                    syncStatusMetadata: syncStatusMetadata as Prisma.InputJsonValue,
                 }
             });
         }

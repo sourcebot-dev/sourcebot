@@ -58,22 +58,34 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
     }
 
     let allRepos: OctokitRepository[] = [];
+    let notFound: {
+        users: string[],
+        orgs: string[],
+        repos: string[],
+    } = {
+        users: [],
+        orgs: [],
+        repos: [],
+    };
 
     try {
         if (config.orgs) {
             const _repos = await getReposForOrgs(config.orgs, octokit, signal);
-            allRepos = allRepos.concat(_repos);
+            allRepos = allRepos.concat(_repos.validRepos);
+            notFound.orgs = _repos.notFoundOrgs;
         }
 
         if (config.repos) {
             const _repos = await getRepos(config.repos, octokit, signal);
-            allRepos = allRepos.concat(_repos);
+            allRepos = allRepos.concat(_repos.validRepos);
+            notFound.repos = _repos.notFoundRepos;
         }
 
         if (config.users) {
             const isAuthenticated = config.token !== undefined;
             const _repos = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
-            allRepos = allRepos.concat(_repos);
+            allRepos = allRepos.concat(_repos.validRepos);
+            notFound.users = _repos.notFoundUsers;
         }
 
         let repos = allRepos
@@ -91,27 +103,16 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
 
         logger.debug(`Found ${repos.length} total repositories.`);
     
-        return repos;
+        return {
+            validRepos: repos,  
+            notFound,
+        };
     } catch (error) {
         throw new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
             message: `Failed to fetch repositories: ${error}`,
         });
     }
 
-}
-
-export const getGitHubRepoFromId = async (id: string, hostURL: string, token?: string) => {
-    const octokit = new Octokit({
-        auth: token ?? FALLBACK_GITHUB_TOKEN,
-        ...(hostURL !== 'https://github.com' ? {
-            baseUrl: `${hostURL}/api/v3`
-        } : {})
-    });
-
-    const repo = await octokit.request('GET /repositories/:id', {
-        id,
-    });
-    return repo;
 }
 
 export const shouldExcludeRepo = ({
@@ -201,7 +202,7 @@ export const shouldExcludeRepo = ({
 }
 
 const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, octokit: Octokit, signal: AbortSignal) => {
-    const repos = (await Promise.all(users.map(async (user) => {
+    const results = await Promise.allSettled(users.map(async (user) => {
         try {
             logger.debug(`Fetching repository info for user ${user}...`);
 
@@ -232,18 +233,47 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
             });
 
             logger.debug(`Found ${data.length} owned by user ${user} in ${durationMs}ms.`);
-            return data;
-        } catch (e) {
-            logger.error(`Failed to fetch repository info for user ${user}.`, e);
-            throw e;
+            return {
+                type: 'valid' as const,
+                data
+            };
+        } catch (error) {
+            if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
+                logger.error(`User ${user} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    user
+                };
+            }
+            throw error;
         }
-    }))).flat();
+    }));
 
-    return repos;
+    const failedResult = results.find(result => result.status === 'rejected');
+    if (failedResult && failedResult.status === 'rejected') {
+        throw failedResult.reason;
+    }
+
+    const validRepos: any[] = [];
+    const notFoundUsers: string[] = [];
+    results.forEach(result => {
+        if (result.status === 'fulfilled') {
+            if (result.value.type === 'valid') {
+                validRepos.push(...result.value.data);
+            } else {
+                notFoundUsers.push(result.value.user);
+            }
+        }
+    });
+
+    return {
+        validRepos,
+        notFoundUsers,
+    };
 }
 
 const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal) => {
-    const repos = (await Promise.all(orgs.map(async (org) => {
+    const results = await Promise.allSettled(orgs.map(async (org) => {
         try {
             logger.info(`Fetching repository info for org ${org}...`);
 
@@ -260,18 +290,47 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
             });
 
             logger.info(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
-            return data;
-        } catch (e) {
-            logger.error(`Failed to fetch repository info for org ${org}.`, e);
-            throw e;
+            return {
+                type: 'valid' as const,
+                data
+            };
+        } catch (error) {
+            if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
+                logger.error(`Organization ${org} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    org
+                };
+            }
+            throw error;
         }
-    }))).flat();
+    }));
 
-    return repos;
+    const failedResult = results.find(result => result.status === 'rejected');
+    if (failedResult && failedResult.status === 'rejected') {
+        throw failedResult.reason;
+    }
+
+    const validRepos: any[] = [];
+    const notFoundOrgs: string[] = [];
+    results.forEach(result => {
+        if (result.status === 'fulfilled') {
+            if (result.value.type === 'valid') {
+                validRepos.push(...result.value.data);
+            } else {
+                notFoundOrgs.push(result.value.org);
+            }
+        }
+    });
+
+    return {
+        validRepos,
+        notFoundOrgs,
+    };
 }
 
 const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal) => {
-    const repos = (await Promise.all(repoList.map(async (repo) => {
+    const results = await Promise.allSettled(repoList.map(async (repo) => {
         try {
             const [owner, repoName] = repo.split('/');
             logger.info(`Fetching repository info for ${repo}...`);
@@ -289,28 +348,43 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
             });
 
             logger.info(`Found info for repository ${repo} in ${durationMs}ms`);
+            return {
+                type: 'valid' as const,
+                data: result.data
+            };
 
-            return [result.data];
         } catch (error) {
-            if (error && typeof error === 'object' && 'status' in error) {
-                switch (error.status) {
-                    case 404:
-                        logger.error(`Repository ${repo} not found or no access`);
-                        break;
-                    case 401:
-                        logger.error(`Invalid authentication when accessing ${repo}`);
-                        break;
-                    default:
-                        logger.error(`HTTP error ${error.status} when fetching ${repo}`);
-                }
-            } else if (error instanceof Error) {
-                logger.error(`Network or other error for ${repo}: ${error.message}`);
-            } else {
-                logger.error(`Unknown error type for ${repo}: ${error}`);
+            if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
+                logger.error(`Repository ${repo} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    repo
+                };
             }
             throw error;
         }
-    }))).flat();
+    }));
 
-    return repos;
+    // For now we'll throw an error (and thus fail the connection sync) if any repos threw an error.
+    const failedResult = results.find(result => result.status === 'rejected');
+    if (failedResult && failedResult.status === 'rejected') {
+        throw failedResult.reason;
+    }
+
+    const validRepos: any[] = [];
+    const notFoundRepos: string[] = [];
+    results.forEach(result => {
+        if (result.status === 'fulfilled') {
+            if (result.value.type === 'valid') {
+                validRepos.push(result.value.data);
+            } else {
+                notFoundRepos.push(result.value.repo);
+            }
+        }
+    });
+
+    return {
+        validRepos,
+        notFoundRepos,
+    };
 }

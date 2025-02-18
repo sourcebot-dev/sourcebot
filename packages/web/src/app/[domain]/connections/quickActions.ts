@@ -79,6 +79,16 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
             ]
         }),
         name: "Add a project",
+    },
+    {
+        fn: (previous: GitlabConnectionConfig) => ({
+            ...previous,
+            users: [
+                ...previous.users ?? [],
+                ""
+            ]
+        }),
+        name: "Add a user",
     }
 ]
 

@@ -21,19 +21,17 @@ import { RepoListItem } from "./components/repoListItem"
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { Connection, Repo, Org } from "@sourcebot/db"
-import { getConnectionInfoAction, getOrgFromDomainAction, flagConnectionForSync } from "@/actions"
+import { getConnectionInfoAction, getOrgFromDomainAction } from "@/actions"
 import { isServiceError } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { ReloadIcon } from "@radix-ui/react-icons"
-import { useToast } from "@/components/hooks/use-toast"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { DisplayConnectionError } from "./components/connectionError"
+import { NotFoundWarning } from "./components/notFoundWarning"
+import { RetrySyncButton } from "./components/retrySyncButton"
 
 export default function ConnectionManagementPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { toast } = useToast()
   const [org, setOrg] = useState<Org | null>(null)
   const [connection, setConnection] = useState<Connection | null>(null)
   const [linkedRepos, setLinkedRepos] = useState<Repo[]>([])
@@ -139,7 +137,7 @@ export default function ConnectionManagementPage() {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <div className="mt-6 flex flex-row items-center gap-4">
+        <div className="mt-6 flex flex-row items-center gap-4 w-full">
           <ConnectionIcon type={connection.connectionType} />
           <h1 className="text-lg font-semibold">{connection.name}</h1>
         </div>
@@ -183,8 +181,8 @@ export default function ConnectionManagementPage() {
                       </div>
                     </HoverCardTrigger>
                     <HoverCardContent className="w-80">
-                      <DisplayConnectionError 
-                        syncStatusMetadata={connection.syncStatusMetadata} 
+                      <DisplayConnectionError
+                        syncStatusMetadata={connection.syncStatusMetadata}
                         onSecretsClick={handleSecretsNavigation}
                       />
                     </HoverCardContent>
@@ -195,30 +193,12 @@ export default function ConnectionManagementPage() {
                   </span>
                 )}
                 {connection.syncStatus === "FAILED" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="ml-2"
-                    onClick={async () => {
-                      const result = await flagConnectionForSync(connection.id, params.domain as string)
-                      if (isServiceError(result)) {
-                        toast({
-                          description: `❌ Failed to flag connection for sync. Reason: ${result.message}`,
-                        })
-                      } else {
-                        toast({
-                          description: "✅ Connection flagged for sync.",
-                        })
-                      }
-                    }}
-                  >
-                    <ReloadIcon className="h-4 w-4 mr-2" />
-                    Retry Sync
-                  </Button>
+                  <RetrySyncButton connectionId={connection.id} domain={params.domain as string} />
                 )}
               </div>
             </div>
           </div>
+          <NotFoundWarning syncStatusMetadata={connection.syncStatusMetadata} onSecretsClick={handleSecretsNavigation} connectionId={connection.id} connectionType={connection.connectionType} domain={params.domain as string} />
         </div>
         <h1 className="font-semibold text-lg mt-8">Linked Repositories</h1>
         <ScrollArea className="mt-4 max-h-96 overflow-scroll">
@@ -254,3 +234,4 @@ export default function ConnectionManagementPage() {
     </Tabs>
   )
 }
+

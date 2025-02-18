@@ -10,22 +10,29 @@ export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
 export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {
     const tokenResult = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
-    const token = tokenResult?.token;
+    const token = tokenResult?.token ?? FALLBACK_GITLAB_TOKEN;
     const secretKey = tokenResult?.secretKey;
     
     const api = new Gitlab({
         ...(token ? {
             token,
-        } : {
-            token: FALLBACK_GITLAB_TOKEN,
-        }),
+        } : {}),
         ...(config.url ? {
             host: config.url,
         } : {}),
     });
     const hostname = config.url ? new URL(config.url).hostname : GITLAB_CLOUD_HOSTNAME;
 
-    let allProjects: ProjectSchema[] = [];
+    let allRepos: ProjectSchema[] = [];
+    let notFound: {
+        orgs: string[],
+        users: string[],
+        repos: string[],
+    } = {
+        orgs: [],
+        users: [],
+        repos: [],
+    };
 
     if (config.all === true) {
         if (hostname !== GITLAB_CLOUD_HOSTNAME) {
@@ -38,7 +45,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                     return fetchWithRetry(fetchFn, `all projects in ${config.url}`, logger);
                 });
                 logger.debug(`Found ${_projects.length} projects in ${durationMs}ms.`);
-                allProjects = allProjects.concat(_projects);
+                allRepos = allRepos.concat(_projects);
             } catch (e) {
                 logger.error(`Failed to fetch all projects visible in ${config.url}.`, e);
                 throw e;
@@ -49,7 +56,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
     }
 
     if (config.groups) {
-        const _projects = (await Promise.all(config.groups.map(async (group) => {
+        const results = await Promise.allSettled(config.groups.map(async (group) => {
             try {
                 logger.debug(`Fetching project info for group ${group}...`);
                 const { durationMs, data } = await measure(async () => {
@@ -60,18 +67,41 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                     return fetchWithRetry(fetchFn, `group ${group}`, logger);
                 });
                 logger.debug(`Found ${data.length} projects in group ${group} in ${durationMs}ms.`);
-                return data;
-            } catch (e) {
-                logger.error(`Failed to fetch project info for group ${group}.`, e);
+                return {
+                    type: 'valid' as const,
+                    data
+                };
+            } catch (e: any) {
+                const status = e?.cause?.response?.status;
+                if (status === 404) {
+                    logger.error(`Group ${group} not found or no access`);
+                    return {
+                        type: 'notFound' as const,
+                        group
+                    };
+                }
                 throw e;
             }
-        }))).flat();
+        }));
 
-        allProjects = allProjects.concat(_projects);
+        const failedResult = results.find(result => result.status === 'rejected');
+        if (failedResult && failedResult.status === 'rejected') {
+            throw failedResult.reason;
+        }
+
+        results.forEach(result => {
+            if (result.status === 'fulfilled') {
+                if (result.value.type === 'valid') {
+                    allRepos = allRepos.concat(result.value.data);
+                } else {
+                    notFound.orgs.push(result.value.group);
+                }
+            }
+        });
     }
 
     if (config.users) {
-        const _projects = (await Promise.all(config.users.map(async (user) => {
+        const results = await Promise.allSettled(config.users.map(async (user) => {
             try {
                 logger.debug(`Fetching project info for user ${user}...`);
                 const { durationMs, data } = await measure(async () => {
@@ -81,18 +111,41 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                     return fetchWithRetry(fetchFn, `user ${user}`, logger);
                 });
                 logger.debug(`Found ${data.length} projects owned by user ${user} in ${durationMs}ms.`);
-                return data;
-            } catch (e) {
-                logger.error(`Failed to fetch project info for user ${user}.`, e);
+                return {
+                    type: 'valid' as const,
+                    data
+                };
+            } catch (e: any) {
+                const status = e?.cause?.response?.status;
+                if (status === 404) {
+                    logger.error(`User ${user} not found or no access`);
+                    return {
+                        type: 'notFound' as const,
+                        user
+                    };
+                }
                 throw e;
             }
-        }))).flat();
+        }));
 
-        allProjects = allProjects.concat(_projects);
+        const failedResult = results.find(result => result.status === 'rejected');
+        if (failedResult && failedResult.status === 'rejected') {
+            throw failedResult.reason;
+        }
+
+        results.forEach(result => {
+            if (result.status === 'fulfilled') {
+                if (result.value.type === 'valid') {
+                    allRepos = allRepos.concat(result.value.data);
+                } else {
+                    notFound.users.push(result.value.user);
+                }
+            }
+        });
     }
 
     if (config.projects) {
-        const _projects = (await Promise.all(config.projects.map(async (project) => {
+        const results = await Promise.allSettled(config.projects.map(async (project) => {
             try {
                 logger.debug(`Fetching project info for project ${project}...`);
                 const { durationMs, data } = await measure(async () => {
@@ -100,17 +153,41 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                     return fetchWithRetry(fetchFn, `project ${project}`, logger);
                 });
                 logger.debug(`Found project ${project} in ${durationMs}ms.`);
-                return [data];
-            } catch (e) {
-                logger.error(`Failed to fetch project info for project ${project}.`, e);
+                return {
+                    type: 'valid' as const,
+                    data: [data]
+                };
+            } catch (e: any) {
+                const status = e?.cause?.response?.status;
+
+                if (status === 404) {
+                    logger.error(`Project ${project} not found or no access`);
+                    return {
+                        type: 'notFound' as const,
+                        project
+                    };
+                }
                 throw e;
             }
-        }))).flat();
+        }));
 
-        allProjects = allProjects.concat(_projects);
+        const failedResult = results.find(result => result.status === 'rejected');
+        if (failedResult && failedResult.status === 'rejected') {
+            throw failedResult.reason;
+        }
+
+        results.forEach(result => {
+            if (result.status === 'fulfilled') {
+                if (result.value.type === 'valid') {
+                    allRepos = allRepos.concat(result.value.data);
+                } else {
+                    notFound.repos.push(result.value.project);
+                }
+            }
+        });
     }
 
-    let repos = allProjects
+    let repos = allRepos
         .filter((project) => {
             const isExcluded = shouldExcludeProject({
                 project,
@@ -125,7 +202,10 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
         
     logger.debug(`Found ${repos.length} total repositories.`);
 
-    return repos;
+    return {
+        validRepos: repos,
+        notFound,
+    };
 }
 
 export const shouldExcludeProject = ({

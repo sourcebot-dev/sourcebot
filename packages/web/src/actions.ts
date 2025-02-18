@@ -341,14 +341,6 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
                 return notFound();
             }
 
-            if (connection.syncStatus !== "FAILED") {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.CONNECTION_NOT_FAILED,
-                    message: "Connection is not in a failed state. Cannot flag for sync.",
-                } satisfies ServiceError;
-            }
-
             await prisma.connection.update({
                 where: {
                     id: connection.id,

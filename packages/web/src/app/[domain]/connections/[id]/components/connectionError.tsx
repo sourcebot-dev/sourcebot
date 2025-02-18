@@ -10,7 +10,7 @@ export function DisplayConnectionError({ syncStatusMetadata, onSecretsClick }: {
 
   switch (errorCode) {
     case BackendError.CONNECTION_SYNC_INVALID_TOKEN:
-      return <InvalidTokenError />
+      return <InvalidTokenError syncStatusMetadata={syncStatusMetadata} onSecretsClick={onSecretsClick} />
     case BackendError.CONNECTION_SYNC_SECRET_DNE:
       return <SecretNotFoundError syncStatusMetadata={syncStatusMetadata} onSecretsClick={onSecretsClick} />
     case BackendError.CONNECTION_SYNC_SYSTEM_ERROR:
@@ -45,13 +45,22 @@ function SecretNotFoundError({ syncStatusMetadata, onSecretsClick }: { syncStatu
   );
 }
 
-function InvalidTokenError() {
+function InvalidTokenError({ syncStatusMetadata, onSecretsClick }: { syncStatusMetadata: Prisma.JsonValue, onSecretsClick: () => void }) {
+  const secretKey = syncStatusMetadata && typeof syncStatusMetadata === 'object' && 'secretKey' in syncStatusMetadata
+    ? (syncStatusMetadata.secretKey as string)
+    : undefined;
+
   return (
     <div className="space-y-1">
       <h4 className="text-sm font-semibold">Invalid Authentication Token</h4>
       <p className="text-sm text-muted-foreground">
         The authentication token provided for this connection is invalid. Please update your config with a valid token and try again.
       </p>
+      {secretKey && (
+        <p className="text-sm text-muted-foreground">
+          Secret Key: <button onClick={onSecretsClick} className="text-red-500 hover:underline">{secretKey}</button>
+        </p>
+      )}
     </div>
   );
 }

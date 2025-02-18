@@ -15,12 +15,22 @@ export const compileGithubConfig = async (
     connectionId: number,
     orgId: number,
     db: PrismaClient,
-    abortController: AbortController): Promise<RepoData[]> => {
-    const gitHubRepos = await getGitHubReposFromConfig(config, orgId, db, abortController.signal);
+    abortController: AbortController): Promise<{
+        repoData: RepoData[],
+        notFound: {
+            users: string[],
+            orgs: string[],
+            repos: string[],
+        }
+    }> => {
+    const gitHubReposResult = await getGitHubReposFromConfig(config, orgId, db, abortController.signal);
+    const gitHubRepos = gitHubReposResult.validRepos;
+    const notFound = gitHubReposResult.notFound;
+
     const hostUrl = config.url ?? 'https://github.com';
     const hostname = config.url ? new URL(config.url).hostname : 'github.com';
 
-    return gitHubRepos.map((repo) => {
+    const repos = gitHubRepos.map((repo) => {
         const repoName = `${hostname}/${repo.full_name}`;
         const cloneUrl = new URL(repo.clone_url!);
 
@@ -59,6 +69,11 @@ export const compileGithubConfig = async (
 
         return record;
     })
+
+    return {
+        repoData: repos,
+        notFound,
+    };
 }
 
 export const compileGitlabConfig = async (
@@ -67,10 +82,13 @@ export const compileGitlabConfig = async (
     orgId: number,
     db: PrismaClient) => {
 
-    const gitlabRepos = await getGitLabReposFromConfig(config, orgId, db);
+    const gitlabReposResult = await getGitLabReposFromConfig(config, orgId, db);
+    const gitlabRepos = gitlabReposResult.validRepos;
+    const notFound = gitlabReposResult.notFound;
+
     const hostUrl = config.url ?? 'https://gitlab.com';
     
-    return gitlabRepos.map((project) => {
+    const repos = gitlabRepos.map((project) => {
         const projectUrl = `${hostUrl}/${project.path_with_namespace}`;
         const cloneUrl = new URL(project.http_url_to_repo);
         const isFork = project.forked_from_project !== undefined;
@@ -108,6 +126,11 @@ export const compileGitlabConfig = async (
 
         return record;
     })
+
+    return {
+        repoData: repos,
+        notFound,
+    };
 }
 
 export const compileGiteaConfig = async (
