@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useCallback, useState } from "react";
 import { z } from "zod";
-import { PlusCircleIcon } from "lucide-react";
+import { PlusCircleIcon, Loader2 } from "lucide-react";
 import { OrgRole } from "@prisma/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { createInvites } from "@/actions";
@@ -33,6 +33,7 @@ interface InviteMemberCardProps {
 
 export const InviteMemberCard = ({ currentUserRole }: InviteMemberCardProps) => {
     const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const domain = useDomain();
     const { toast } = useToast();   
     const router = useRouter();
@@ -50,20 +51,25 @@ export const InviteMemberCard = ({ currentUserRole }: InviteMemberCardProps) => 
     }, [form]);
 
     const onSubmit = useCallback((data: z.infer<typeof formSchema>) => {
-        form.reset();
-        createInvites(data.emails.map(e => e.email), domain).then((res) => {
-            if (isServiceError(res)) {
-                toast({
-                    description: `❌ Failed to invite members. Reason: ${res.message}`
-                });
-            } else {
-                router.push(`?tab=invites`);
-                router.refresh();
-                toast({
-                    description: `✅ Successfully invited ${data.emails.length} members`
-                });
-            }
-        });
+        setIsLoading(true);
+        createInvites(data.emails.map(e => e.email), domain)
+            .then((res) => {
+                if (isServiceError(res)) {
+                    toast({
+                        description: `❌ Failed to invite members. Reason: ${res.message}`
+                    });
+                } else {
+                    form.reset();
+                    router.push(`?tab=invites`);
+                    router.refresh();
+                    toast({
+                        description: `✅ Successfully invited ${data.emails.length} members`
+                    });
+                }
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
     }, [domain, form, toast, router]);
 
     return (
@@ -112,8 +118,9 @@ export const InviteMemberCard = ({ currentUserRole }: InviteMemberCardProps) => 
                             <Button
                                 size="sm"
                                 type="submit"
-                                disabled={currentUserRole !== OrgRole.OWNER}
+                                disabled={currentUserRole !== OrgRole.OWNER || isLoading}
                             >
+                                {isLoading && <Loader2 className="w-4 h-4 mr-0.5 animate-spin" />}
                                 Invite
                             </Button>
                         </CardFooter>
