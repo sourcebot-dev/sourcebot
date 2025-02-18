@@ -22,8 +22,8 @@ type JobPayload = {
 };
 
 export class ConnectionManager implements IConnectionManager {
-    private queue = new Queue<JobPayload>(QUEUE_NAME);
     private worker: Worker;
+    private queue: Queue<JobPayload>;
     private logger = createLogger('ConnectionManager');
 
     constructor(
@@ -31,6 +31,9 @@ export class ConnectionManager implements IConnectionManager {
         private settings: Settings,
         redis: Redis,
     ) {
+        this.queue = new Queue<JobPayload>(QUEUE_NAME, {
+            connection: redis,
+        });
         const numCores = os.cpus().length;
         this.worker = new Worker(QUEUE_NAME, this.runSyncJob.bind(this), {
             connection: redis,

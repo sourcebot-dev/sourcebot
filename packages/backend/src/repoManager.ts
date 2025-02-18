@@ -25,8 +25,8 @@ type JobPayload = {
 }
 
 export class RepoManager implements IRepoManager {
-    private queue = new Queue<JobPayload>(QUEUE_NAME);
     private worker: Worker;
+    private queue: Queue<JobPayload>;
     private logger = createLogger('RepoManager');
 
     constructor(
@@ -35,6 +35,9 @@ export class RepoManager implements IRepoManager {
         redis: Redis,
         private ctx: AppContext,
     ) {
+        this.queue = new Queue<JobPayload>(QUEUE_NAME, {
+            connection: redis,
+        });
         const numCores = os.cpus().length;
         this.worker = new Worker(QUEUE_NAME, this.runIndexJob.bind(this), {
             connection: redis,
@@ -46,8 +49,8 @@ export class RepoManager implements IRepoManager {
 
     public async blockingPollLoop() {
         while(true) {
-            this.fetchAndScheduleRepoIndexing();
-            this.garbageCollectRepo();
+            await this.fetchAndScheduleRepoIndexing();
+            await this.garbageCollectRepo();
 
             await new Promise(resolve => setTimeout(resolve, this.settings.reindexRepoPollingIntervalMs));
         }
@@ -81,7 +84,7 @@ export class RepoManager implements IRepoManager {
                         priority: priority
                     }
                 })));
-                
+
                 this.logger.info(`Added ${orgRepos.length} jobs to queue for org ${orgId} with priority ${priority}`);
             }
 

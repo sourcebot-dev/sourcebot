@@ -80,6 +80,7 @@ ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
 ENV DB_DATA_DIR=$DATA_CACHE_DIR/db
 ENV DB_NAME=sourcebot
 ENV DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
+ENV REDIS_URL="redis://localhost:6379"
 ENV SRC_TENANT_ENFORCEMENT_MODE=strict
 
 ARG SOURCEBOT_VERSION=unknown
