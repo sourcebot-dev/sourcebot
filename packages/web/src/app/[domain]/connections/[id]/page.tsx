@@ -18,7 +18,7 @@ import { ConfigSetting } from "./components/configSetting"
 import { DeleteConnectionSetting } from "./components/deleteConnectionSetting"
 import { DisplayNameSetting } from "./components/displayNameSetting"
 import { RepoListItem } from "./components/repoListItem"
-import { useParams, useSearchParams } from "next/navigation"
+import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { Connection, Repo, Org } from "@sourcebot/db"
 import { getConnectionInfoAction, getOrgFromDomainAction, flagConnectionForSync } from "@/actions"
@@ -27,16 +27,22 @@ import { Button } from "@/components/ui/button"
 import { ReloadIcon } from "@radix-ui/react-icons"
 import { useToast } from "@/components/hooks/use-toast"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { DisplayConnectionError } from "./components/connectionError"
 
 export default function ConnectionManagementPage() {
   const params = useParams()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { toast } = useToast()
   const [org, setOrg] = useState<Org | null>(null)
   const [connection, setConnection] = useState<Connection | null>(null)
   const [linkedRepos, setLinkedRepos] = useState<Repo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const handleSecretsNavigation = () => {
+    router.push(`/${params.domain}/secrets`)
+  }
 
   useEffect(() => {
     const loadData = async () => {
@@ -177,16 +183,10 @@ export default function ConnectionManagementPage() {
                       </div>
                     </HoverCardTrigger>
                     <HoverCardContent className="w-80">
-                      <div className="flex justify-between space-x-4">
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-semibold">Sync Failed</h4>
-                          <p className="text-sm text-muted-foreground">
-                            The connection sync has failed. This could be due to network issues, authentication
-                            problems, or changes in the source system. Try syncing again or check your connection
-                            settings.
-                          </p>
-                        </div>
-                      </div>
+                      <DisplayConnectionError 
+                        syncStatusMetadata={connection.syncStatusMetadata} 
+                        onSecretsClick={handleSecretsNavigation}
+                      />
                     </HoverCardContent>
                   </HoverCard>
                 ) : (
@@ -254,4 +254,3 @@ export default function ConnectionManagementPage() {
     </Tabs>
   )
 }
-

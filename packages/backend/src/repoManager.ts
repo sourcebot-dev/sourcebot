@@ -207,7 +207,8 @@ export class RepoManager implements IRepoManager {
 
             const config = connection.config as unknown as GithubConnectionConfig | GitlabConnectionConfig | GiteaConnectionConfig;
             if (config.token) {
-                token = await getTokenFromConfig(config.token, connection.orgId, db);
+                const tokenResult = await getTokenFromConfig(config.token, connection.orgId, db);
+                token = tokenResult?.token;
                 if (token) {
                     break;
                 }

@@ -9,7 +9,9 @@ import { FALLBACK_GITEA_TOKEN } from './environment.js';
 const logger = createLogger('Gitea');
 
 export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {
-    const token = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
+    const tokenResult = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
+    const token = tokenResult?.token;
+
 
     const api = giteaApi(config.url ?? 'https://gitea.com', {
         token: token ?? FALLBACK_GITEA_TOKEN,

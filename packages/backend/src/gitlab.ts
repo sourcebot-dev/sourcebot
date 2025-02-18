@@ -9,7 +9,10 @@ const logger = createLogger("GitLab");
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
 export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {
-    const token = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
+    const tokenResult = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
+    const token = tokenResult?.token;
+    const secretKey = tokenResult?.secretKey;
+    
     const api = new Gitlab({
         ...(token ? {
             token,

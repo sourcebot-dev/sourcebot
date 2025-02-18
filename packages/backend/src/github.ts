@@ -30,7 +30,9 @@ export type OctokitRepository = {
 }
 
 export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal) => {
-    const token = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
+    const tokenResult = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
+    const token = tokenResult?.token;
+    const secretKey = tokenResult?.secretKey;
 
     const octokit = new Octokit({
         auth: token ?? FALLBACK_GITHUB_TOKEN,
@@ -44,7 +46,9 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
             await octokit.rest.users.getAuthenticated();
         } catch (error) {
             if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
-                throw new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN);
+                throw new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN, {
+                    secretKey,
+                });
             }
 
             throw new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {

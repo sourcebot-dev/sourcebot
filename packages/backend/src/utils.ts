@@ -91,7 +91,7 @@ export const excludeReposByTopic = <T extends Repository>(repos: T[], excludedRe
 
 export const getTokenFromConfig = async (token: Token, orgId: number, db?: PrismaClient) => {
     if (typeof token === 'string') {
-        return token;
+        return { token: token };
     }
     if ('env' in token) {
         const tokenValue = process.env[token.env];
@@ -100,7 +100,7 @@ export const getTokenFromConfig = async (token: Token, orgId: number, db?: Prism
                 message: `The environment variable '${token.env}' was referenced in the config but was not set.`,
             });
         }
-        return tokenValue;
+        return { token: tokenValue };
     } else if ('secret' in token) {
         if (!db) {
             throw new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
@@ -125,7 +125,7 @@ export const getTokenFromConfig = async (token: Token, orgId: number, db?: Prism
         }
 
         const decryptedSecret = decrypt(secret.iv, secret.encryptedValue);
-        return decryptedSecret;
+        return { secretKey, token: decryptedSecret };
     }
 
     throw new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
