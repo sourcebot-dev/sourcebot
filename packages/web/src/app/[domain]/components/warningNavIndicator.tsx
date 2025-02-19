@@ -33,7 +33,15 @@ export const WarningNavIndicator = () => {
                     }
                 }
             }
-            setWarnings(warnings);
+            setWarnings(prevWarnings => {
+                // Only update if the warnings have actually changed
+                const warningsChanged = prevWarnings.length !== warnings.length ||
+                    prevWarnings.some((warning, idx) =>
+                        warning.connectionId !== warnings[idx]?.connectionId ||
+                        warning.connectionName !== warnings[idx]?.connectionName
+                    );
+                return warningsChanged ? warnings : prevWarnings;
+            });
         };
 
         fetchWarnings();
@@ -64,7 +72,7 @@ export const WarningNavIndicator = () => {
                             The following connections have references that could not be found:
                         </p>
                         <div className="flex flex-col gap-2 pl-4">
-                            {warnings.map(warning => (
+                            {warnings.slice(0, 10).map(warning => (
                                 <Link key={warning.connectionName} href={`/${domain}/connections/${warning.connectionId}`}>
                                     <div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 dark:bg-yellow-900/20 
                                                 rounded-md text-sm text-yellow-700 dark:text-yellow-300 
@@ -74,6 +82,11 @@ export const WarningNavIndicator = () => {
                                     </div>
                                 </Link>
                             ))}
+                            {warnings.length > 10 && (
+                                <div className="text-sm text-yellow-600/90 dark:text-yellow-300/90 pl-3 pt-1">
+                                    And {warnings.length - 10} more...
+                                </div>
+                            )}
                         </div>
                     </div>
                 </HoverCardContent>

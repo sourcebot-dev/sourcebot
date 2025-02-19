@@ -47,7 +47,16 @@ export const ErrorNavIndicator = () => {
                     }
                 }
             }
-            setErrors(errors);
+            setErrors(prevErrors => {
+                // Only update if the errors have actually changed
+                const errorsChanged = prevErrors.length !== errors.length ||
+                    prevErrors.some((error, idx) =>
+                        error.connectionId !== errors[idx]?.connectionId ||
+                        error.connectionName !== errors[idx]?.connectionName ||
+                        error.errorType !== errors[idx]?.errorType
+                    );
+                return errorsChanged ? errors : prevErrors;
+            });
         };
 
         fetchErrors();
@@ -78,16 +87,24 @@ export const ErrorNavIndicator = () => {
                                     The following connections have failed to sync:
                                 </p>
                                 <div className="flex flex-col gap-2 pl-4">
-                                    {errors.filter(e => e.errorType === 'SYNC_FAILED').map(error => (
-                                        <Link key={error.connectionName} href={`/${domain}/connections/${error.connectionId}`}>
-                                            <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 
-                                                        rounded-md text-sm text-red-700 dark:text-red-300 
-                                                        border border-red-200/50 dark:border-red-800/50
-                                                        hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-                                                <span className="font-medium">{error.connectionName}</span>
-                                            </div>
-                                        </Link>
-                                    ))}
+                                    {errors
+                                        .filter(e => e.errorType === 'SYNC_FAILED')
+                                        .slice(0, 10)
+                                        .map(error => (
+                                            <Link key={error.connectionName} href={`/${domain}/connections/${error.connectionId}`}>
+                                                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 
+                                                            rounded-md text-sm text-red-700 dark:text-red-300 
+                                                            border border-red-200/50 dark:border-red-800/50
+                                                            hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+                                                    <span className="font-medium">{error.connectionName}</span>
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    {errors.filter(e => e.errorType === 'SYNC_FAILED').length > 10 && (
+                                        <div className="text-sm text-red-600/90 dark:text-red-300/90 pl-3 pt-1">
+                                            And {errors.filter(e => e.errorType === 'SYNC_FAILED').length - 10} more...
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -102,16 +119,24 @@ export const ErrorNavIndicator = () => {
                                     The following connections have repositories that failed to index:
                                 </p>
                                 <div className="flex flex-col gap-2 pl-4">
-                                    {errors.filter(e => e.errorType === 'REPO_INDEXING_FAILED').map(error => (
-                                        <Link key={error.connectionName} href={`/${domain}/connections/${error.connectionId}`}>
-                                            <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 
-                                                        rounded-md text-sm text-red-700 dark:text-red-300
-                                                        border border-red-200/50 dark:border-red-800/50
-                                                        hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-                                                <span className="font-medium">{error.connectionName}</span>
-                                            </div>
-                                        </Link>
-                                    ))}
+                                    {errors
+                                        .filter(e => e.errorType === 'REPO_INDEXING_FAILED')
+                                        .slice(0, 10)
+                                        .map(error => (
+                                            <Link key={error.connectionName} href={`/${domain}/connections/${error.connectionId}`}>
+                                                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 
+                                                            rounded-md text-sm text-red-700 dark:text-red-300
+                                                            border border-red-200/50 dark:border-red-800/50
+                                                            hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+                                                    <span className="font-medium">{error.connectionName}</span>
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    {errors.filter(e => e.errorType === 'REPO_INDEXING_FAILED').length > 10 && (
+                                        <div className="text-sm text-red-600/90 dark:text-red-300/90 pl-3 pt-1">
+                                            And {errors.filter(e => e.errorType === 'REPO_INDEXING_FAILED').length - 10} more...
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

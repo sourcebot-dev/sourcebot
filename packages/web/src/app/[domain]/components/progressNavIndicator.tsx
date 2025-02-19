@@ -22,12 +22,22 @@ export const ProgressNavIndicator = () => {
         const fetchInProgressJobs = async () => {
             const connections = await getConnections(domain);
             if (!isServiceError(connections)) {
+                const allInProgressRepos: InProgress[] = [];
                 for (const connection of connections) {
                     const inProgressRepos = await getConnectionInProgressRepos(connection.id, domain);
                     if (!isServiceError(inProgressRepos)) {
-                        setInProgressJobs(inProgressRepos);
+                        allInProgressRepos.push(...inProgressRepos);
                     }
                 }
+                setInProgressJobs(prevJobs => {
+                    // Only update if the jobs have actually changed
+                    const jobsChanged = prevJobs.length !== allInProgressRepos.length || 
+                        prevJobs.some((job, idx) => 
+                            job.repoId !== allInProgressRepos[idx]?.repoId ||
+                            job.repoName !== allInProgressRepos[idx]?.repoName
+                        );
+                    return jobsChanged ? allInProgressRepos : prevJobs;
+                });
             }
         };
 
@@ -59,7 +69,7 @@ export const ProgressNavIndicator = () => {
                             The following repositories are currently being indexed:
                         </p>
                         <div className="flex flex-col gap-2 pl-4">
-                            {inProgressJobs.map(item => (
+                            {inProgressJobs.slice(0, 10).map(item => (
                                 <Link key={item.repoId} href={`/${domain}/repos/${item.repoId}`}>
                                     <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 
                                                 rounded-md text-sm text-green-700 dark:text-green-300 
@@ -69,6 +79,11 @@ export const ProgressNavIndicator = () => {
                                     </div>
                                 </Link>
                             ))}
+                            {inProgressJobs.length > 10 && (
+                                <div className="text-sm text-green-600/90 dark:text-green-300/90 pl-3 pt-1">
+                                    And {inProgressJobs.length - 10} more...
+                                </div>
+                            )}
                         </div>
                     </div>
                 </HoverCardContent>
