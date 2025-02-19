@@ -839,7 +839,6 @@ export const createStripeCheckoutSession = async (domain: string) =>
             });
 
             const stripeSession = await stripe.checkout.sessions.create({
-                ui_mode: 'embedded',
                 customer: customerId,
                 line_items: [
                     {
@@ -857,11 +856,20 @@ export const createStripeCheckoutSession = async (domain: string) =>
                     },
                 },
                 payment_method_collection: 'if_required',
-                return_url: `${origin}/${domain}/onboard?step=${OnboardingSteps.Complete}&stripe_session_id={CHECKOUT_SESSION_ID}`,
+                success_url: `${origin}/${domain}/onboard?step=${OnboardingSteps.Complete}&stripe_session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${origin}/${domain}/onboard?step=${OnboardingSteps.Checkout}`,
             });
 
+            if (!stripeSession.url) {
+                return {
+                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
+                    message: "Failed to create checkout session",
+                } satisfies ServiceError;
+            }
+
             return {
-                clientSecret: stripeSession.client_secret!
+                url: stripeSession.url,
             }
         }, /* minRequiredRole = */ OrgRole.OWNER)
     );
