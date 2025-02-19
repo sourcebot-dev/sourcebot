@@ -1,7 +1,7 @@
 import { Metadata } from "next"
-import { Separator } from "@/components/ui/separator"
 import { SidebarNav } from "./components/sidebar-nav"
 import { NavigationMenu } from "../components/navigationMenu"
+import { Header } from "./components/header";
 export const metadata: Metadata = {
     title: "Settings",
 }
@@ -15,31 +15,33 @@ export default function SettingsLayout({
 }>) {
     const sidebarNavItems = [
         {
-            title: "Members",
+            title: "General",
             href: `/${domain}/settings`,
         },
         {
             title: "Billing",
             href: `/${domain}/settings/billing`,
+        },
+        {
+            title: "Members",
+            href: `/${domain}/settings/members`,
         }
     ]
 
     return (
-        <div>
+        <div className="min-h-screen flex flex-col">
             <NavigationMenu domain={domain} />
-            <div className="hidden space-y-6 p-10 pb-16 md:block">
-                <div className="space-y-0.5">
-                    <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
-                    <p className="text-muted-foreground">
-                        Manage your organization settings.
-                    </p>
-                </div>
-                <Separator className="my-6" />
-                <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-8 lg:space-y-0">
-                    <aside className="-mx-4 lg:w-48">
-                        <SidebarNav items={sidebarNavItems} />
-                    </aside>
-                    <div className="flex-1">{children}</div>
+            <div className="flex-grow flex justify-center p-4 bg-[#fafafa] dark:bg-background relative">
+                <div className="w-full max-w-6xl">
+                    <Header className="w-full">
+                        <h1 className="text-3xl">Settings</h1>
+                    </Header>
+                    <div className="flex flex-row gap-10 mt-20">
+                        <aside className="lg:w-48">
+                            <SidebarNav items={sidebarNavItems} />
+                        </aside>
+                        <div className="w-full rounded-lg">{children}</div>
+                    </div>
                 </div>
             </div>
         </div>

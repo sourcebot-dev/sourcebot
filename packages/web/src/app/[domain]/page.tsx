@@ -1,9 +1,6 @@
 import { listRepositories } from "@/lib/server/searchService";
 import { isServiceError } from "@/lib/utils";
-import Image from "next/image";
 import { Suspense } from "react";
-import logoDark from "@/public/sb_logo_dark_large.png";
-import logoLight from "@/public/sb_logo_light_large.png";
 import { NavigationMenu } from "./components/navigationMenu";
 import { RepositoryCarousel } from "./components/repositoryCarousel";
 import { SearchBar } from "./components/searchBar";
@@ -14,6 +11,7 @@ import Link from "next/link";
 import { getOrgFromDomain } from "@/data/org";
 import { PageNotFound } from "./components/pageNotFound";
 import { Footer } from "./components/footer";
+import { SourcebotLogo } from "../components/sourcebotLogo";
 
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
@@ -30,17 +28,8 @@ export default async function Home({ params: { domain } }: { params: { domain: s
             <UpgradeToast />
             <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
                 <div className="max-h-44 w-auto">
-                    <Image
-                        src={logoDark}
-                        className="h-18 md:h-40 w-auto hidden dark:block"
-                        alt={"Sourcebot logo"}
-                        priority={true}
-                    />
-                    <Image
-                        src={logoLight}
-                        className="h-18 md:h-40 w-auto block dark:hidden"
-                        alt={"Sourcebot logo"}
-                        priority={true}
+                    <SourcebotLogo
+                        className="h-18 md:h-40 w-auto"
                     />
                 </div>
                 <SearchBar

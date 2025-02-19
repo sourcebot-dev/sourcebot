@@ -27,7 +27,7 @@ export const POST = async (request: NextRequest) => {
 
 const postSearch = (request: SearchRequest, domain: string) =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async (orgId) => {
+        withOrgMembership(session, domain, async ({ orgId }) => {
             const response = await search(request, orgId);
             return response;
         }))

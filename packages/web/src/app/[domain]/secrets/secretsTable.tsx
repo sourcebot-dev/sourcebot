@@ -17,7 +17,7 @@ import { useDomain } from "@/hooks/useDomain";
 
 const formSchema = z.object({
     key: z.string().min(2).max(40),
-    value: z.string().min(2).max(40),
+    value: z.string().min(2),
 });
 
 interface SecretsTableProps {

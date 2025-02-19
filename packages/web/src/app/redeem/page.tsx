@@ -3,11 +3,9 @@ import { notFound, redirect } from 'next/navigation';
 import { auth } from "@/auth";
 import { getUser } from "@/data/user";
 import { AcceptInviteButton } from "./components/acceptInviteButton"
-import Image from "next/image";
-import logoDark from "@/public/sb_logo_dark_large.png";
-import logoLight from "@/public/sb_logo_light_large.png";
 import { fetchSubscription } from "@/actions";
 import { isServiceError } from "@/lib/utils";
+import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 
 interface RedeemPageProps {
     searchParams?: {
@@ -23,17 +21,9 @@ function ErrorLayout({ title }: ErrorLayoutProps) {
     return (
         <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
             <div className="max-h-44 w-auto mb-4">
-                <Image
-                    src={logoDark}
-                    className="h-18 md:h-40 w-auto hidden dark:block"
-                    alt={"Sourcebot logo"}
-                    priority={true}
-                />
-                <Image
-                    src={logoLight}
-                    className="h-18 md:h-40 w-auto block dark:hidden"
-                    alt={"Sourcebot logo"}
-                    priority={true}
+                <SourcebotLogo
+                    className="h-18 md:h-40"
+                    size="large"
                 />
             </div>
             <div className="flex justify-center items-center">
@@ -97,17 +87,9 @@ export default async function RedeemPage({ searchParams }: RedeemPageProps) {
             return (
                 <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
                     <div className="max-h-44 w-auto mb-4">
-                        <Image
-                            src={logoDark}
-                            className="h-18 md:h-40 w-auto hidden dark:block"
-                            alt={"Sourcebot logo"}
-                            priority={true}
-                        />
-                        <Image
-                            src={logoLight}
-                            className="h-18 md:h-40 w-auto block dark:hidden"
-                            alt={"Sourcebot logo"}
-                            priority={true}
+                        <SourcebotLogo
+                            className="h-18 md:h-40"
+                            size="large"
                         />
                     </div>
                     <div className="flex justify-between items-center w-full max-w-2xl">

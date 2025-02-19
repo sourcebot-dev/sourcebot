@@ -29,7 +29,7 @@ export const POST = async (request: NextRequest) => {
 
 const postSource = (request: FileSourceRequest, domain: string) =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async (orgId) => {
+        withOrgMembership(session, domain, async ({ orgId }) => {
             const response = await getFileSource(request, orgId);
             return response;
         }));
