@@ -7,6 +7,7 @@ import { isServiceError } from "@/lib/utils";
 import { PaywallCard } from "./components/payWall/paywallCard";
 import { NavigationMenu } from "./components/navigationMenu";
 import { Footer } from "./components/footer";
+import { OnboardGuard } from "./components/onboardGuard";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -43,16 +44,23 @@ export default async function Layout({
         return <PageNotFound />
     }
 
-    const subscription = await fetchSubscription(domain);
-    if (isServiceError(subscription) || (subscription.status !== "active" && subscription.status !== "trialing")) {
-        return (
-            <div className="flex flex-col items-center overflow-hidden min-h-screen">
-                <NavigationMenu domain={domain} />
-                <PaywallCard domain={domain} />
-                <Footer />
-            </div>
-        )
-    }
+    // // @todo: In this case, we will want to redirect to /upgrade instead?
+    // const subscription = await fetchSubscription(domain);
+    // if (isServiceError(subscription) || (subscription.status !== "active" && subscription.status !== "trialing")) {
+    //     return (
+    //         <div className="flex flex-col items-center overflow-hidden min-h-screen">
+    //             <NavigationMenu domain={domain} />
+    //             <PaywallCard domain={domain} />
+    //             <Footer />
+    //         </div>
+    //     )
+    // }
 
-    return children;
+    return (
+        <OnboardGuard
+            isOnboarded={org.isOnboarded}
+        >
+            {children}
+        </OnboardGuard>
+    )
 }

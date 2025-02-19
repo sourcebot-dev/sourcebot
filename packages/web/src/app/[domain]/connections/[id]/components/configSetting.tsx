@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ConfigEditor, QuickAction } from "../../components/configEditor";
+import { ConfigEditor, QuickAction } from "../../../components/configEditor";
 import { createZodConnectionConfigValidator } from "../../utils";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";

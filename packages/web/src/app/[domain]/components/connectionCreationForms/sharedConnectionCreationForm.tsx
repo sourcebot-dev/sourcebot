@@ -9,16 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { isServiceError } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Schema } from "ajv";
-import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ConfigEditor, QuickActionFn } from "../../../components/configEditor";
+import { ConfigEditor, QuickActionFn } from "../configEditor";
 import { useDomain } from "@/hooks/useDomain";
+import { Loader2 } from "lucide-react";
 
-interface ConnectionCreationForm<T> {
+interface SharedConnectionCreationFormProps<T> {
     type: 'github' | 'gitlab' | 'gitea' | 'gerrit';
     defaultValues: {
         name: string;
@@ -30,18 +31,21 @@ interface ConnectionCreationForm<T> {
         name: string;
         fn: QuickActionFn<T>;
     }[],
+    className?: string;
+    onCreated?: (id: number) => void;
 }
 
-export default function ConnectionCreationForm<T>({
+export default function SharedConnectionCreationForm<T>({
     type,
     defaultValues,
     title,
     schema,
     quickActions,
-}: ConnectionCreationForm<T>) {
+    className,
+    onCreated,
+}: SharedConnectionCreationFormProps<T>) {
 
     const { toast } = useToast();
-    const router = useRouter();
     const domain = useDomain();
 
     const formSchema = useMemo(() => {
@@ -55,26 +59,24 @@ export default function ConnectionCreationForm<T>({
         resolver: zodResolver(formSchema),
         defaultValues: defaultValues,
     });
+    const { isSubmitting } = form.formState;
 
-    const onSubmit = useCallback((data: z.infer<typeof formSchema>) => {
-        createConnection(data.name, type, data.config, domain)
-            .then((response) => {
-                if (isServiceError(response)) {
-                    toast({
-                        description: `❌ Failed to create connection. Reason: ${response.message}`
-                    });
-                } else {
-                    toast({
-                        description: `✅ Connection created successfully.`
-                    });
-                    router.push(`/${domain}/connections`);
-                    router.refresh();
-                }
+    const onSubmit = useCallback(async (data: z.infer<typeof formSchema>) => {
+        const response = await createConnection(data.name, type, data.config, domain);
+        if (isServiceError(response)) {
+            toast({
+                description: `❌ Failed to create connection. Reason: ${response.message}`
             });
-    }, [domain, router, toast, type]);
+        } else {
+            toast({
+                description: `✅ Connection created successfully.`
+            });
+            onCreated?.(response.id);
+        }
+    }, [domain, toast, type, onCreated]);
 
     return (
-        <div className="flex flex-col max-w-3xl mx-auto bg-background border rounded-lg p-6">
+        <div className={cn("flex flex-col max-w-3xl mx-auto bg-background border rounded-lg p-6", className)}>
             <div className="flex flex-row items-center gap-3 mb-6">
                 <ConnectionIcon
                     type={type}
@@ -128,7 +130,14 @@ export default function ConnectionCreationForm<T>({
                             }}
                         />
                     </div>
-                    <Button className="mt-5" type="submit">Submit</Button>
+                    <Button
+                        className="mt-5"
+                        type="submit"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting && <Loader2 className="w-4 h-4 mr-2" />}
+                        Submit
+                    </Button>
                 </form>
             </Form>
         </div>
