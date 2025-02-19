@@ -3,7 +3,7 @@ import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 export default function VerifyPage() {
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen">
+        <div className="flex flex-col items-center p-12 h-screen">
             <SourcebotLogo
                 className="mb-2 h-16"
                 size="small"
