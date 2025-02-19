@@ -102,7 +102,16 @@ export const ConnectionListItem = ({
                                         {failedRepos.length} {failedRepos.length === 1 ? 'repository' : 'repositories'} failed to index. This is likely due to temporary server load.
                                     </p>
                                     <div className="space-y-2 text-sm bg-red-50 dark:bg-red-900/20 rounded-md p-3 border border-red-200/50 dark:border-red-800/50">
-                                        <span className="text-red-700 dark:text-red-300">{failedRepos.map(repo => repo.repoName).join(', ')}</span>
+                                        <div className="flex flex-col gap-1.5">
+                                            {failedRepos.slice(0, 10).map(repo => (
+                                                <span key={repo.repoId} className="text-red-700 dark:text-red-300">{repo.repoName}</span>
+                                            ))}
+                                            {failedRepos.length > 10 && (
+                                                <span className="text-red-600/75 dark:text-red-400/75 text-xs pt-1">
+                                                    And {failedRepos.length - 10} more...
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <p className="text-xs">
                                         Navigate to the connection for more details and to retry indexing.
