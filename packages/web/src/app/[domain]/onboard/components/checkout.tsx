@@ -1,47 +1,86 @@
 'use client';
 
 import { createStripeCheckoutSession } from "@/actions";
-import { useDomain } from "@/hooks/useDomain";
-import { NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY } from "@/lib/environment.client";
-import { isServiceError } from "@/lib/utils";
-import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
-import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
-import { useEffect } from "react";
+import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { useToast } from "@/components/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { useDomain } from "@/hooks/useDomain";
+import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { ErrorCode } from "@/lib/errorCodes";
-
-const stripePromise = loadStripe(NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+import { isServiceError } from "@/lib/utils";
+import { Check, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export const Checkout = () => {
     const domain = useDomain();
     const { toast } = useToast();
     const errorCode = useNonEmptyQueryParam('errorCode');
     const errorMessage = useNonEmptyQueryParam('errorMessage');
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         if (errorCode === ErrorCode.STRIPE_CHECKOUT_ERROR && errorMessage) {
             toast({
                 description: `⚠️ Stripe checkout failed with error: ${errorMessage}`,
                 variant: "destructive",
-             });
+            });
         }
     }, [errorCode, errorMessage]);
 
-    return (
-        <EmbeddedCheckoutProvider
-            stripe={stripePromise}
-            options={{
-                fetchClientSecret: async () => {
-                    const response = await createStripeCheckoutSession(domain);
-                    if (isServiceError(response)) {
-                        throw response;
-                    }
-                    return response.clientSecret;
+    const onCheckout = useCallback(() => {
+        setIsLoading(true);
+        createStripeCheckoutSession(domain)
+            .then((response) => {
+                if (isServiceError(response)) {
+                    toast({
+                        description: `❌ Stripe checkout failed with error: ${response.message}`,
+                        variant: "destructive",
+                    })
+                } else {
+                    router.push(response.url);
                 }
-            }}
-        >
-            <EmbeddedCheckout />
-        </EmbeddedCheckoutProvider>
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
+    }, []);
+
+    return (
+        <div className="flex flex-col items-center justify-center max-w-md my-auto">
+            <SourcebotLogo
+                className="h-16"
+                size="small"
+            />
+            <h1 className="text-2xl font-semibold">Start your 7 day free trial</h1>
+            <p className="text-muted-foreground mt-2">Cancel anytime. No credit card required.</p>
+            <ul className="space-y-4 mb-6 mt-10">
+                {[
+                    "Blazingly fast code search",
+                    "Index hundreds of repos from multiple code hosts (GitHub, GitLab, Gerrit, Gitea, etc.). Self-hosted code hosts supported.",
+                    "Public and private repos supported.",
+                    "Create sharable links to code snippets.",
+                    "Powerful regex and symbol search",
+                ].map((feature, index) => (
+                    <li key={index} className="flex items-center">
+                        <div className="mr-3 flex-shrink-0">
+                            <Check className="h-5 w-5 text-sky-500" />
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-300">{feature}</p>
+                    </li>
+                ))}
+            </ul>
+            <div className="w-full px-16 mt-8">
+                <Button
+                    className="w-full"
+                    onClick={onCheckout}
+                    disabled={isLoading}
+                >
+                    {isLoading && <Loader2 className="w-4 h-4 mr-2" />}
+                    Start free trial
+                </Button>
+            </div>
+        </div>
     )
 }

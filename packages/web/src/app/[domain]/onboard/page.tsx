@@ -74,11 +74,6 @@ export default async function Onboard({ params, searchParams }: OnboardProps) {
             )}
             {step === OnboardingSteps.Checkout && (
                 <>
-                    <OnboardHeader
-                        title="Checkout"
-                        description="Checkout to complete onboarding."
-                        step={step as OnboardingSteps}
-                    />
                     <Checkout />
                 </>
             )}
