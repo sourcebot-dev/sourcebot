@@ -35,6 +35,5 @@ export const FALLBACK_GITHUB_TOKEN = getEnv(process.env.FALLBACK_GITHUB_TOKEN);
 export const FALLBACK_GITLAB_TOKEN = getEnv(process.env.FALLBACK_GITLAB_TOKEN);
 export const FALLBACK_GITEA_TOKEN = getEnv(process.env.FALLBACK_GITEA_TOKEN);
 
-export const CONFIG_REPO_UPSERT_TIMEOUT_MS = getEnv(process.env.CONFIG_REPO_UPSERT_TIMEOUT_MS, '15000')!;
-
 export const INDEX_CONCURRENCY_MULTIPLE = getEnv(process.env.INDEX_CONCURRENCY_MULTIPLE);
+export const REDIS_URL = getEnv(process.env.REDIS_URL, 'redis://localhost:6379')!;

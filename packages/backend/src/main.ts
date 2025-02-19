@@ -5,14 +5,12 @@ import { DEFAULT_SETTINGS } from './constants.js';
 import { Redis } from 'ioredis';
 import { ConnectionManager } from './connectionManager.js';
 import { RepoManager } from './repoManager.js';
-import { INDEX_CONCURRENCY_MULTIPLE } from './environment.js';
+import { INDEX_CONCURRENCY_MULTIPLE, REDIS_URL } from './environment.js';
 
 const logger = createLogger('main');
 
 export const main = async (db: PrismaClient, context: AppContext) => {
-    const redis = new Redis({
-        host: 'localhost',
-        port: 6379,
+    const redis = new Redis(REDIS_URL, {
         maxRetriesPerRequest: null
     });
     redis.ping().then(() => {
