@@ -6,7 +6,7 @@ import { PrismaClient, Repo } from "@sourcebot/db";
 import { decrypt } from "@sourcebot/crypto";
 import { Token } from "@sourcebot/schemas/v3/shared.type";
 
-export const measure = async <T>(cb : () => Promise<T>) => {
+export const measure = async <T>(cb: () => Promise<T>) => {
     const start = Date.now();
     const data = await cb();
     const durationMs = Date.now() - start;
@@ -89,38 +89,26 @@ export const excludeReposByTopic = <T extends Repository>(repos: T[], excludedRe
 }
 
 export const getTokenFromConfig = async (token: Token, orgId: number, db?: PrismaClient) => {
-    if (typeof token === 'string') {
-        return token;
+    if (!db) {
+        throw new Error(`Database connection required to retrieve secret`);
     }
-    if ('env' in token) {
-        const tokenValue = process.env[token.env];
-        if (!tokenValue) {
-            throw new Error(`The environment variable '${token.env}' was referenced in the config but was not set.`);
-        }
-        return tokenValue;
-    } else if ('secret' in token) {
-        if (!db) {
-            throw new Error(`Database connection required to retrieve secret`);
-        }
-        
-        const secretKey = token.secret;
-        const secret = await db.secret.findUnique({
-            where: {
-                orgId_key: {
-                    key: secretKey,
-                    orgId
-                }
-            }
-        });
-        
-        if (!secret) {
-            throw new Error(`Secret with key ${secretKey} not found for org ${orgId}`);
-        }
 
-        const decryptedSecret = decrypt(secret.iv, secret.encryptedValue);
-        return decryptedSecret;
+    const secretKey = token.secret;
+    const secret = await db.secret.findUnique({
+        where: {
+            orgId_key: {
+                key: secretKey,
+                orgId
+            }
+        }
+    });
+
+    if (!secret) {
+        throw new Error(`Secret with key ${secretKey} not found for org ${orgId}`);
     }
-    throw new Error(`Invalid token configuration in config`);
+
+    const decryptedSecret = decrypt(secret.iv, secret.encryptedValue);
+    return decryptedSecret;
 }
 
 export const isRemotePath = (path: string) => {
@@ -172,7 +160,7 @@ export const fetchWithRetry = async <T>(
     maxAttempts: number = 3
 ): Promise<T> => {
     let attempts = 0;
-    
+
     while (true) {
         try {
             return await fetchFn();
