@@ -9,6 +9,7 @@ import { getConnectionInProgressRepos, getConnections } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 
 interface InProgress {
+    connectionId: number;
     repoId: number;
     repoName: string;
 }
@@ -26,7 +27,10 @@ export const ProgressNavIndicator = () => {
                 for (const connection of connections) {
                     const inProgressRepos = await getConnectionInProgressRepos(connection.id, domain);
                     if (!isServiceError(inProgressRepos)) {
-                        allInProgressRepos.push(...inProgressRepos);
+                        allInProgressRepos.push(...inProgressRepos.map(repo => ({
+                            connectionId: connection.id,
+                            ...repo
+                        })));
                     }
                 }
                 setInProgressJobs(prevJobs => {
@@ -70,7 +74,7 @@ export const ProgressNavIndicator = () => {
                         </p>
                         <div className="flex flex-col gap-2 pl-4">
                             {inProgressJobs.slice(0, 10).map(item => (
-                                <Link key={item.repoId} href={`/${domain}/repos/${item.repoId}`}>
+                                <Link key={item.repoId} href={`/${domain}/connections/${item.connectionId}`}>
                                     <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 
                                                 rounded-md text-sm text-green-700 dark:text-green-300 
                                                 border border-green-200/50 dark:border-green-800/50

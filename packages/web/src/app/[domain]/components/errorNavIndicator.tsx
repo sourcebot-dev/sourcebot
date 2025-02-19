@@ -17,6 +17,7 @@ interface Error {
     connectionId?: number;
     connectionName?: string;
     errorType: ConnectionErrorType;
+    numRepos?: number;
 }
 
 export const ErrorNavIndicator = () => {
@@ -42,6 +43,7 @@ export const ErrorNavIndicator = () => {
                         errors.push({
                             connectionId: connection.id,
                             connectionName: connection.name,
+                            numRepos: failedRepos.length,
                             errorType: ConnectionErrorType.REPO_INDEXING_FAILED
                         });
                     }
@@ -72,7 +74,7 @@ export const ErrorNavIndicator = () => {
                 <HoverCardTrigger asChild>
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-full text-red-700 dark:text-red-400 text-xs font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors cursor-pointer">
                         <CircleXIcon className="h-4 w-4" />
-                        <span>{errors.length}</span>
+                        <span>{errors.reduce((acc, error) => acc + (error.numRepos || 0), 0)}</span>
                     </div>
                 </HoverCardTrigger>
                 <HoverCardContent className="w-80 border border-red-200 dark:border-red-800 rounded-lg">
@@ -124,11 +126,19 @@ export const ErrorNavIndicator = () => {
                                         .slice(0, 10)
                                         .map(error => (
                                             <Link key={error.connectionName} href={`/${domain}/connections/${error.connectionId}`}>
-                                                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 
-                                                            rounded-md text-sm text-red-700 dark:text-red-300
+                                                <div className="flex items-center justify-between px-3 py-2 
+                                                            bg-red-50 dark:bg-red-900/20 rounded-md
                                                             border border-red-200/50 dark:border-red-800/50
-                                                            hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-                                                    <span className="font-medium">{error.connectionName}</span>
+                                                            hover:bg-red-100 dark:hover:bg-red-900/30 
+                                                            transition-colors">
+                                                    <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                                                        {error.connectionName}
+                                                    </span>
+                                                    <span className="text-xs font-medium px-2.5 py-1 rounded-full
+                                                                bg-red-100/80 dark:bg-red-800/60
+                                                                text-red-600 dark:text-red-300">
+                                                        {error.numRepos}
+                                                    </span>
                                                 </div>
                                             </Link>
                                         ))}

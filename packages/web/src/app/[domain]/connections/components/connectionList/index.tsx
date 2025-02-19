@@ -49,7 +49,6 @@ export const ConnectionList = ({
                             });
                         }
                     }
-                    console.log(connectionsWithFailedRepos);
                     setConnections(connectionsWithFailedRepos);
                 }
                 setLoading(false);

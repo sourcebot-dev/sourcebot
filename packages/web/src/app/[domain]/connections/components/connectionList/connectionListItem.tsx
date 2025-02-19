@@ -70,8 +70,6 @@ export const ConnectionListItem = ({
         return { notFoundData, displayNotFoundWarning: notFoundData.users.length > 0 || notFoundData.orgs.length > 0 || notFoundData.repos.length > 0 };
     }, [syncStatusMetadata]);
 
-    console.log(`Connection ${name} has ${failedRepos?.length} failed repos`);
-
     return (
         <div
             className="flex flex-row justify-between items-center border p-4 rounded-lg bg-background"
