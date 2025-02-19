@@ -232,6 +232,23 @@ export const getConnectionFailedRepos = async (connectionId: number, domain: str
         })
     );
 
+export const getConnectionInProgressRepos = async (connectionId: number, domain: string): Promise<{ repoId: number, repoName: string }[] | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const connection = await getConnection(connectionId, orgId);
+            if (!connection) {
+                return notFound();
+            }
+
+            const linkedRepos = await getLinkedRepos(connectionId, orgId);
+
+            return linkedRepos.filter((repo) => repo.repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE || repo.repo.repoIndexingStatus === RepoIndexingStatus.INDEXING).map((repo) => ({
+                repoId: repo.repo.id,
+                repoName: repo.repo.name,
+            }));
+        })
+    );
+
 
 export const createConnection = async (name: string, type: string, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> =>
     withAuth((session) =>

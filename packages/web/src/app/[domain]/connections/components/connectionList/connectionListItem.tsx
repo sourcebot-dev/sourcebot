@@ -89,22 +89,22 @@ export const ConnectionListItem = ({
                     <HoverCard openDelay={50}>
                         <HoverCardTrigger asChild>
                             <CircleX 
-                                className="h-5 w-5 text-destructive cursor-help hover:text-destructive/80 transition-colors" 
+                                className="h-5 w-5 text-red-700 dark:text-red-400 cursor-help hover:text-red-600 dark:hover:text-red-300 transition-colors" 
                                 onClick={() => window.location.href = `connections/${id}`}
                             />
                         </HoverCardTrigger>
-                        <HoverCardContent className="w-80 border-2 border-destructive/20">
+                        <HoverCardContent className="w-80 border border-red-200 dark:border-red-800 rounded-lg">
                             <div className="flex flex-col space-y-3">
-                                <div className="flex items-center gap-2 pb-2 border-b border-destructive/10">
-                                    <CircleX className="h-4 w-4 text-destructive" />
-                                    <h3 className="text-sm font-semibold">Failed to Index Repositories</h3>
+                                <div className="flex items-center gap-2 pb-2 border-b border-red-200 dark:border-red-800">
+                                    <CircleX className="h-4 w-4 text-red-700 dark:text-red-400" />
+                                    <h3 className="text-sm font-semibold text-red-700 dark:text-red-400">Failed to Index Repositories</h3>
                                 </div>
-                                <div className="text-sm text-muted-foreground space-y-3">
+                                <div className="text-sm text-red-600/90 dark:text-red-300/90 space-y-3">
                                     <p>
                                         {failedRepos.length} {failedRepos.length === 1 ? 'repository' : 'repositories'} failed to index. This is likely due to temporary server load.
                                     </p>
-                                    <div className="space-y-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
-                                        <span className="text-red-300">{failedRepos.map(repo => repo.repoName).join(', ')}</span>
+                                    <div className="space-y-2 text-sm bg-red-50 dark:bg-red-900/20 rounded-md p-3 border border-red-200/50 dark:border-red-800/50">
+                                        <span className="text-red-700 dark:text-red-300">{failedRepos.map(repo => repo.repoName).join(', ')}</span>
                                     </div>
                                     <p className="text-xs">
                                         Navigate to the connection for more details and to retry indexing.
@@ -118,43 +118,43 @@ export const ConnectionListItem = ({
                     <HoverCard openDelay={50}>
                         <HoverCardTrigger asChild>
                             <AlertTriangle 
-                                className="w-5 h-5 text-yellow-500 cursor-help" 
+                                className="h-5 w-5 text-yellow-700 dark:text-yellow-400 cursor-help hover:text-yellow-600 dark:hover:text-yellow-300 transition-colors" 
                                 onClick={() => window.location.href = `connections/${id}`}
                             />
                         </HoverCardTrigger>
-                        <HoverCardContent className="w-80 border-2 border-yellow-500/20">
+                        <HoverCardContent className="w-80 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                             <div className="flex flex-col space-y-3">
-                                <div className="flex items-center gap-2">
-                                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                    <h3 className="text-sm font-semibold">Unable to fetch all references</h3>
+                                <div className="flex items-center gap-2 pb-2 border-b border-yellow-200 dark:border-yellow-800">
+                                    <AlertTriangle className="h-4 w-4 text-yellow-700 dark:text-yellow-400" />
+                                    <h3 className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">Unable to fetch all references</h3>
                                 </div>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-yellow-600/90 dark:text-yellow-300/90">
                                     Some requested references couldn&apos;t be found. Verify the details below and ensure your connection is using a {" "}
                                     <button 
                                         onClick={() => window.location.href = `secrets`} 
-                                        className="font-medium text-yellow-500 hover:text-yellow-600 transition-colors"
+                                        className="font-medium text-yellow-700 dark:text-yellow-400 hover:text-yellow-600 dark:hover:text-yellow-300 transition-colors"
                                     >
                                         valid access token
                                     </button>{" "}
                                     that has access to any private references.
                                 </p>
-                                <ul className="space-y-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
+                                <ul className="space-y-2 text-sm bg-yellow-50 dark:bg-yellow-900/20 rounded-md p-3 border border-yellow-200/50 dark:border-yellow-800/50">
                                     {notFoundData.users.length > 0 && (
                                         <li className="flex items-center gap-2">
-                                            <span className="font-medium">Users:</span>
-                                            <span className="text-yellow-600">{notFoundData.users.join(', ')}</span>
+                                            <span className="font-medium text-yellow-700 dark:text-yellow-400">Users:</span>
+                                            <span className="text-yellow-700 dark:text-yellow-300">{notFoundData.users.join(', ')}</span>
                                         </li>
                                     )}
                                     {notFoundData.orgs.length > 0 && (
                                         <li className="flex items-center gap-2">
-                                            <span className="font-medium">{type === "gitlab" ? "Groups" : "Organizations"}:</span>
-                                            <span className="text-yellow-600">{notFoundData.orgs.join(', ')}</span>
+                                            <span className="font-medium text-yellow-700 dark:text-yellow-400">{type === "gitlab" ? "Groups" : "Organizations"}:</span>
+                                            <span className="text-yellow-700 dark:text-yellow-300">{notFoundData.orgs.join(', ')}</span>
                                         </li>
                                     )}
                                     {notFoundData.repos.length > 0 && (
                                         <li className="flex items-center gap-2">
-                                            <span className="font-medium">{type === "gitlab" ? "Projects" : "Repositories"}:</span>
-                                            <span className="text-yellow-600">{notFoundData.repos.join(', ')}</span>
+                                            <span className="font-medium text-yellow-700 dark:text-yellow-400">{type === "gitlab" ? "Projects" : "Repositories"}:</span>
+                                            <span className="text-yellow-700 dark:text-yellow-300">{notFoundData.repos.join(', ')}</span>
                                         </li>
                                     )}
                                 </ul>
