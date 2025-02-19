@@ -92,7 +92,7 @@ export default function ConnectionManagementPage() {
           }
 
           // If same priority, sort by createdAt
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          return new Date(a.indexedAt ?? new Date()).getTime() - new Date(b.indexedAt ?? new Date()).getTime()
         })
 
         setConnection(connectionInfoResult.connection)
@@ -203,19 +203,12 @@ export default function ConnectionManagementPage() {
         <h1 className="font-semibold text-lg mt-8">Linked Repositories</h1>
         <ScrollArea className="mt-4 max-h-96 overflow-scroll">
           <div className="flex flex-col gap-4">
-            {linkedRepos
-              .sort((a, b) => {
-                const aIndexedAt = a.indexedAt ?? new Date()
-                const bIndexedAt = b.indexedAt ?? new Date()
-
-                return bIndexedAt.getTime() - aIndexedAt.getTime()
-              })
-              .map((repo) => (
-                <RepoListItem
-                  key={repo.id}
-                  imageUrl={repo.imageUrl ?? undefined}
-                  name={repo.name}
-                  indexedAt={repo.indexedAt ?? undefined}
+            {linkedRepos.map((repo) => (
+              <RepoListItem
+                key={repo.id}
+                imageUrl={repo.imageUrl ?? undefined}
+                name={repo.name}
+                indexedAt={repo.indexedAt ?? undefined}
                   status={repo.repoIndexingStatus}
                 />
               ))}

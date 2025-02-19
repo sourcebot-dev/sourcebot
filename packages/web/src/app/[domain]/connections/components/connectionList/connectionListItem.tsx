@@ -4,9 +4,8 @@ import { useMemo } from "react";
 import { ConnectionIcon } from "../connectionIcon";
 import { ConnectionSyncStatus, Prisma } from "@sourcebot/db";
 import { StatusIcon } from "../statusIcon";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CircleX} from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { notFound } from "next/navigation";
 
 const convertSyncStatus = (status: ConnectionSyncStatus) => {
     switch (status) {
@@ -30,6 +29,7 @@ interface ConnectionListItemProps {
     syncStatusMetadata: Prisma.JsonValue;
     editedAt: Date;
     syncedAt?: Date;
+    failedRepos?: { repoId: number, repoName: string }[];
 }
 
 export const ConnectionListItem = ({
@@ -40,6 +40,7 @@ export const ConnectionListItem = ({
     syncStatusMetadata,
     editedAt,
     syncedAt,
+    failedRepos,
 }: ConnectionListItemProps) => {
     const statusDisplayName = useMemo(() => {
         switch (status) {
@@ -69,6 +70,8 @@ export const ConnectionListItem = ({
         return { notFoundData, displayNotFoundWarning: notFoundData.users.length > 0 || notFoundData.orgs.length > 0 || notFoundData.repos.length > 0 };
     }, [syncStatusMetadata]);
 
+    console.log(`Connection ${name} has ${failedRepos?.length} failed repos`);
+
     return (
         <div
             className="flex flex-row justify-between items-center border p-4 rounded-lg bg-background"
@@ -82,11 +85,40 @@ export const ConnectionListItem = ({
                     <p className="font-medium">{name}</p>
                     <span className="text-sm text-muted-foreground">{`Edited ${getDisplayTime(editedAt)}`}</span>
                 </div>
+                {failedRepos && failedRepos.length > 0 && (
+                    <HoverCard openDelay={50}>
+                        <HoverCardTrigger asChild>
+                            <CircleX 
+                                className="h-5 w-5 text-destructive cursor-help hover:text-destructive/80 transition-colors" 
+                                onClick={() => window.location.href = `connections/${id}`}
+                            />
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80 border-2 border-destructive/20">
+                            <div className="flex flex-col space-y-3">
+                                <div className="flex items-center gap-2 pb-2 border-b border-destructive/10">
+                                    <CircleX className="h-4 w-4 text-destructive" />
+                                    <h3 className="text-sm font-semibold">Failed to Index Repositories</h3>
+                                </div>
+                                <div className="text-sm text-muted-foreground space-y-3">
+                                    <p>
+                                        {failedRepos.length} {failedRepos.length === 1 ? 'repository' : 'repositories'} failed to index. This is likely due to temporary server load.
+                                    </p>
+                                    <div className="space-y-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
+                                        <span className="text-red-300">{failedRepos.map(repo => repo.repoName).join(', ')}</span>
+                                    </div>
+                                    <p className="text-xs">
+                                        Navigate to the connection for more details and to retry indexing.
+                                    </p>
+                                </div>
+                            </div>
+                        </HoverCardContent>
+                    </HoverCard>
+                )}
                 {(notFoundData && displayNotFoundWarning) && (
                     <HoverCard openDelay={50}>
                         <HoverCardTrigger asChild>
                             <AlertTriangle 
-                                className="w-6 h-6 text-yellow-500 cursor-pointer" 
+                                className="w-5 h-5 text-yellow-500 cursor-help" 
                                 onClick={() => window.location.href = `connections/${id}`}
                             />
                         </HoverCardTrigger>
@@ -94,7 +126,7 @@ export const ConnectionListItem = ({
                             <div className="flex flex-col space-y-3">
                                 <div className="flex items-center gap-2">
                                     <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                    <h3 className="text-sm font-semibold text-yellow-700">Unable to fetch all references</h3>
+                                    <h3 className="text-sm font-semibold">Unable to fetch all references</h3>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
                                     Some requested references couldn&apos;t be found. Verify the details below and ensure your connection is using a {" "}

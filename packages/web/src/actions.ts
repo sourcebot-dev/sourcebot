@@ -14,7 +14,7 @@ import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, GerritConnectionConfig, ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection, getLinkedRepos } from "./data/connection";
-import { ConnectionSyncStatus, Prisma, Invite, OrgRole, Connection, Repo, Org } from "@sourcebot/db";
+import { ConnectionSyncStatus, Prisma, Invite, OrgRole, Connection, Repo, Org, RepoIndexingStatus } from "@sourcebot/db";
 import { headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
@@ -211,6 +211,23 @@ export const getConnections = async (domain: string): Promise<
                 connectionType: connection.connectionType,
                 updatedAt: connection.updatedAt,
                 syncedAt: connection.syncedAt ?? undefined,
+            }));
+        })
+    );
+
+export const getConnectionFailedRepos = async (connectionId: number, domain: string): Promise<{ repoId: number, repoName: string }[] | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async (orgId) => {
+            const connection = await getConnection(connectionId, orgId);
+            if (!connection) {
+                return notFound();
+            }
+
+            const linkedRepos = await getLinkedRepos(connectionId, orgId);
+
+            return linkedRepos.filter((repo) => repo.repo.repoIndexingStatus === RepoIndexingStatus.FAILED).map((repo) => ({
+                repoId: repo.repo.id,
+                repoName: repo.repo.name,
             }));
         })
     );
