@@ -97,7 +97,7 @@ export const ConnectionListItem = ({
                                     <h3 className="text-sm font-semibold text-yellow-700">Unable to fetch all references</h3>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                    Some requested information couldn&apos;t be found. Verify the details below and ensure your connection is using a {" "}
+                                    Some requested references couldn&apos;t be found. Verify the details below and ensure your connection is using a {" "}
                                     <button 
                                         onClick={() => window.location.href = `secrets`} 
                                         className="font-medium text-yellow-500 hover:text-yellow-600 transition-colors"

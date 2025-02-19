@@ -27,32 +27,38 @@ export const NotFoundWarning = ({ syncStatusMetadata, onSecretsClick, connection
 
   return (
     <div className="flex flex-col items-start gap-3 border-2 border-yellow-500 bg-yellow-500/10 px-4 py-3 text-yellow-700">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <AlertTriangle className="h-6 w-6 flex-shrink-0" />
-        <p className="text-sm font-medium">
-          This connection was unable to find some of the information you requested. Please ensure you&apos;ve provided the information listed below correctly, and that you&apos;ve provided a{" "}
-          <button onClick={onSecretsClick} className="text-yellow-400 font-bold hover:underline">valid token</button>{" "}
-          to access them if they&apos;re private.
-        </p>
+        <h3 className="font-semibold">Unable to fetch all references</h3>
       </div>
-      <ul className="mt-2 text-sm text-yellow-700">
+      <p className="text-sm font-medium">
+        Some requested references couldn&apos;t be found. Please ensure you&apos;ve provided the information listed below correctly, and that you&apos;ve provided a{" "}
+        <button onClick={onSecretsClick} className="text-yellow-400 font-bold hover:underline">valid token</button>{" "}
+        to access them if they&apos;re private.
+      </p>
+      <ul className="space-y-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-3 mx-auto">
         {notFound.users.length > 0 && (
-          <li>
-            <strong>Users:</strong> {notFound.users.join(', ')}
+          <li className="flex items-center gap-2">
+            <span className="font-medium">Users:</span>
+            <span className="text-yellow-600">{notFound.users.join(', ')}</span>
           </li>
         )}
         {notFound.orgs.length > 0 && (
-          <li>
-            <strong>{connectionType === "gitlab" ? "Groups" : "Organizations"}:</strong> {notFound.orgs.join(', ')}
+          <li className="flex items-center gap-2">
+            <span className="font-medium">{connectionType === "gitlab" ? "Groups" : "Organizations"}:</span>
+            <span className="text-yellow-600">{notFound.orgs.join(', ')}</span>
           </li>
         )}
         {notFound.repos.length > 0 && (
-          <li>
-            <strong>{connectionType === "gitlab" ? "Projects" : "Repositories"}:</strong> {notFound.repos.join(', ')}
+          <li className="flex items-center gap-2">
+            <span className="font-medium">{connectionType === "gitlab" ? "Projects" : "Repositories"}:</span>
+            <span className="text-yellow-600">{notFound.repos.join(', ')}</span>
           </li>
         )}
       </ul>
-      <RetrySyncButton connectionId={connectionId} domain={domain} />
+      <div className="mx-auto">
+        <RetrySyncButton connectionId={connectionId} domain={domain} />
+      </div>
     </div>
   )
 }
