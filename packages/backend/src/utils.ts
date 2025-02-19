@@ -113,7 +113,10 @@ export const getTokenFromConfig = async (token: Token, orgId: number, db?: Prism
     }
 
     const decryptedSecret = decrypt(secret.iv, secret.encryptedValue);
-    return decryptedSecret;
+    return {
+        token: decryptedSecret,
+        secretKey,
+    };
 }
 
 export const isRemotePath = (path: string) => {
