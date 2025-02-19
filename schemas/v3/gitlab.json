@@ -11,9 +11,8 @@
             "$ref": "./shared.json#/definitions/Token",
             "description": "An authentication token.",
             "examples": [
-                "secret-token",
                 {
-                    "env": "ENV_VAR_CONTAINING_TOKEN"
+                    "secret": "SECRET_KEY"
                 }
             ]
         },

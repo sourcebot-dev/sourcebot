@@ -15,9 +15,8 @@ const schema = {
         "token": {
           "description": "A Personal Access Token (PAT).",
           "examples": [
-            "secret-token",
             {
-              "env": "ENV_VAR_CONTAINING_TOKEN"
+              "secret": "SECRET_KEY"
             }
           ],
           "type": "object",
@@ -208,9 +207,8 @@ const schema = {
           "$ref": "#/oneOf/0/properties/token",
           "description": "An authentication token.",
           "examples": [
-            "secret-token",
             {
-              "env": "ENV_VAR_CONTAINING_TOKEN"
+              "secret": "SECRET_KEY"
             }
           ]
         },
@@ -346,9 +344,8 @@ const schema = {
           "$ref": "#/oneOf/0/properties/token",
           "description": "A Personal Access Token (PAT).",
           "examples": [
-            "secret-token",
             {
-              "env": "ENV_VAR_CONTAINING_TOKEN"
+              "secret": "SECRET_KEY"
             }
           ]
         },

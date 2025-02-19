@@ -11,9 +11,8 @@ const schema = {
     "token": {
       "description": "A Personal Access Token (PAT).",
       "examples": [
-        "secret-token",
         {
-          "env": "ENV_VAR_CONTAINING_TOKEN"
+          "secret": "SECRET_KEY"
         }
       ],
       "type": "object",
