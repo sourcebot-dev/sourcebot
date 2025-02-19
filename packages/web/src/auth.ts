@@ -3,13 +3,27 @@ import NextAuth, { DefaultSession } from "next-auth"
 import GitHub from "next-auth/providers/github"
 import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
+import EmailProvider from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
-import { AUTH_GITHUB_CLIENT_ID, AUTH_GITHUB_CLIENT_SECRET, AUTH_GOOGLE_CLIENT_ID, AUTH_GOOGLE_CLIENT_SECRET, AUTH_SECRET, AUTH_URL } from "./lib/environment";
+import {
+    AUTH_GITHUB_CLIENT_ID,
+    AUTH_GITHUB_CLIENT_SECRET,
+    AUTH_GOOGLE_CLIENT_ID,
+    AUTH_GOOGLE_CLIENT_SECRET,
+    AUTH_SECRET,
+    AUTH_URL,
+    AUTH_CREDENTIALS_LOGIN_ENABLED,
+    EMAIL_FROM,
+    SMTP_CONNECTION_URL
+} from "./lib/environment";
 import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
 import { verifyCredentialsRequestSchema, verifyCredentialsResponseSchema } from './lib/schemas';
+import { createTransport } from 'nodemailer';
+import { render } from '@react-email/render';
+import MagicLinkEmail from './emails/magicLink';
 
 export const runtime = 'nodejs';
 
@@ -27,62 +41,85 @@ declare module 'next-auth/jwt' {
     }
 }
 
-const providers: Provider[] = [
-    GitHub({
-        clientId: AUTH_GITHUB_CLIENT_ID,
-        clientSecret: AUTH_GITHUB_CLIENT_SECRET,
-    }),
-    Google({
-        clientId: AUTH_GOOGLE_CLIENT_ID,
-        clientSecret: AUTH_GOOGLE_CLIENT_SECRET,
-    }),
-    Credentials({
-        credentials: {
-            email: {},
-            password: {}
-        },
-        type: "credentials",
-        authorize: async (credentials) => {
-            const body = verifyCredentialsRequestSchema.safeParse(credentials);
-            if (!body.success) {
-                return null;
+export const getProviders = () => {
+    const providers: Provider[] = [];
+
+    if (AUTH_GITHUB_CLIENT_ID && AUTH_GITHUB_CLIENT_SECRET) {
+        providers.push(GitHub({
+            clientId: AUTH_GITHUB_CLIENT_ID,
+            clientSecret: AUTH_GITHUB_CLIENT_SECRET,
+        }));
+    }
+
+    if (AUTH_GOOGLE_CLIENT_ID && AUTH_GOOGLE_CLIENT_SECRET) {
+        providers.push(Google({
+            clientId: AUTH_GOOGLE_CLIENT_ID,
+            clientSecret: AUTH_GOOGLE_CLIENT_SECRET,
+        }));
+    }
+
+    if (SMTP_CONNECTION_URL && EMAIL_FROM) {
+        providers.push(EmailProvider({
+            server: SMTP_CONNECTION_URL,
+            from: EMAIL_FROM,
+            maxAge: 60 * 10,
+            sendVerificationRequest: async ({ identifier, url, provider }) => {
+                const transport = createTransport(provider.server);
+                const html = await render(MagicLinkEmail({ magicLink: url, baseUrl: 'https://sourcebot.app' }));
+                const result = await transport.sendMail({
+                    to: identifier,
+                    from: provider.from,
+                    subject: 'Log in to Sourcebot',
+                    html,
+                    text: `Log in to Sourcebot by clicking here: ${url}`
+                });
+
+                const failed = result.rejected.concat(result.pending).filter(Boolean);
+                if (failed.length) {
+                    throw new Error(`Email(s) (${failed.join(", ")}) could not be sent`);
+                }
             }
-            const { email, password } = body.data;
+        }));
+    }
 
-            // authorize runs in the edge runtime (where we cannot make DB calls / access environment variables),
-            // so we need to make a request to the server to verify the credentials.
-            const response = await fetch(new URL('/api/auth/verifyCredentials', AUTH_URL), {
-                method: 'POST',
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                return null;
+    if (AUTH_CREDENTIALS_LOGIN_ENABLED) {
+        providers.push(Credentials({
+            credentials: {
+                email: {},
+                password: {}
+            },
+            type: "credentials",
+            authorize: async (credentials) => {
+                const body = verifyCredentialsRequestSchema.safeParse(credentials);
+                if (!body.success) {
+                    return null;
+                }
+                const { email, password } = body.data;
+    
+                // authorize runs in the edge runtime (where we cannot make DB calls / access environment variables),
+                // so we need to make a request to the server to verify the credentials.
+                const response = await fetch(new URL('/api/auth/verifyCredentials', AUTH_URL), {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password }),
+                });
+    
+                if (!response.ok) {
+                    return null;
+                }
+    
+                const user = verifyCredentialsResponseSchema.parse(await response.json());
+                return {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    image: user.image,
+                }
             }
+        }));
+    }
 
-            const user = verifyCredentialsResponseSchema.parse(await response.json());
-            return {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                image: user.image,
-            }
-        }
-    })
-];
-
-// @see: https://authjs.dev/guides/pages/signin
-export const providerMap = providers
-    .map((provider) => {
-        if (typeof provider === "function") {
-            const providerData = provider()
-            return { id: providerData.id, name: providerData.name }
-        } else {
-            return { id: provider.id, name: provider.name }
-        }
-    })
-    .filter((provider) => provider.id !== "credentials");
-
+    return providers;
+}
 
 const useSecureCookies = AUTH_URL?.startsWith("https://") ?? false;
 const hostName = AUTH_URL ? new URL(AUTH_URL).hostname : "localhost";
@@ -146,8 +183,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
         }
     },
-    providers: providers,
+    providers: getProviders(),
     pages: {
-        signIn: "/login"
+        signIn: "/login",
+        verifyRequest: "/login/verify",
     }
 });

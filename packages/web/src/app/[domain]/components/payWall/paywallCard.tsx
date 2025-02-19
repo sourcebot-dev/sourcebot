@@ -2,9 +2,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check } from "lucide-react"
 import { EnterpriseContactUsButton } from "./enterpriseContactUsButton"
 import { CheckoutButton } from "./checkoutButton"
-import Image from "next/image";
-import logoDark from "@/public/sb_logo_dark_large.png";
-import logoLight from "@/public/sb_logo_light_large.png";
+import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 
 const teamFeatures = [
   "Index hundreds of repos from multiple code hosts (GitHub, GitLab, Gerrit, Gitea, etc.). Self-hosted code sources supported",
@@ -24,17 +22,9 @@ export async function PaywallCard({ domain }: { domain: string }) {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="max-h-44 w-auto mb-4 flex justify-center">
-        <Image
-          src={logoDark}
-          className="h-18 md:h-40 w-auto hidden dark:block"
-          alt={"Sourcebot logo"}
-          priority={true}
-        />
-        <Image
-          src={logoLight}
-          className="h-18 md:h-40 w-auto block dark:hidden"
-          alt={"Sourcebot logo"}
-          priority={true}
+        <SourcebotLogo
+          className="h-18 md:h-40"
+          size="large"
         />
       </div>
       <h2 className="text-3xl font-bold text-center mb-8 text-primary">

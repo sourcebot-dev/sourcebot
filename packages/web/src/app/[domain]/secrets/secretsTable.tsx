@@ -17,7 +17,7 @@ import { useDomain } from "@/hooks/useDomain";
 
 const formSchema = z.object({
     key: z.string().min(2).max(40),
-    value: z.string().min(2).max(40),
+    value: z.string().min(2),
 });
 
 interface SecretsTableProps {
@@ -30,18 +30,15 @@ export const SecretsTable = ({ initialSecrets }: SecretsTableProps) => {
     const { toast } = useToast();
     const domain = useDomain();
 
-    const fetchSecretKeys = async () => {
-        const keys = await getSecrets(domain);
-        if ('keys' in keys) {
-            setSecrets(keys);
-        } else {
-            console.error(keys);
-        }
-    };
-
     useEffect(() => {
-        fetchSecretKeys();
-    }, [fetchSecretKeys]);
+        getSecrets(domain).then((keys) => {
+            if ('keys' in keys) {
+                setSecrets(keys);
+            } else {
+                console.error(keys);
+            }
+        })
+    }, []);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),

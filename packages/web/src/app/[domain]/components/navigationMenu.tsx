@@ -2,15 +2,14 @@ import { Button } from "@/components/ui/button";
 import { NavigationMenu as NavigationMenuBase, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
-import Image from "next/image";
-import logoDark from "@/public/sb_logo_dark_small.png";
-import logoLight from "@/public/sb_logo_light_small.png";
 import { SettingsDropdown } from "./settingsDropdown";
 import { GitHubLogoIcon, DiscordLogoIcon } from "@radix-ui/react-icons";
 import { redirect } from "next/navigation";
 import { OrgSelector } from "./orgSelector";
 import { getSubscriptionData } from "@/actions";
 import { isServiceError } from "@/lib/utils";
+import { SourcebotLogo } from "@/app/components/sourcebotLogo";
+
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
 
@@ -31,17 +30,9 @@ export const NavigationMenu = async ({
                         href={`/${domain}`}
                         className="mr-3 cursor-pointer"
                     >
-                        <Image
-                            src={logoDark}
-                            className="h-11 w-auto hidden dark:block"
-                            alt={"Sourcebot logo"}
-                            priority={true}
-                        />
-                        <Image
-                            src={logoLight}
-                            className="h-11 w-auto block dark:hidden"
-                            alt={"Sourcebot logo"}
-                            priority={true}
+                        <SourcebotLogo
+                            className="h-11"
+                            size="small"
                         />
                     </Link>
 

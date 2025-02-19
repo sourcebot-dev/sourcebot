@@ -19,7 +19,7 @@ export const GET = async (request: NextRequest) => {
 
 const getRepos = (domain: string) =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async (orgId) => {
+        withOrgMembership(session, domain, async ({ orgId }) => {
             const response = await listRepositories(orgId);
             return response;
         })

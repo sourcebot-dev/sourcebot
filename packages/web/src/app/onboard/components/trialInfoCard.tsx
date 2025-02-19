@@ -9,9 +9,6 @@ import {
 } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoDark from "@/public/sb_logo_dark_large.png";
-import logoLight from "@/public/sb_logo_light_large.png";
-import Image from "next/image";
 
 import { setupInitialStripeCustomer } from "../../../actions"
 import {
@@ -23,6 +20,7 @@ import { useState } from "react";
 import { OnboardingFormValues } from "./orgCreateForm";
 import { isServiceError } from "@/lib/utils";
 import { NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY } from "@/lib/environment.client";
+import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 
 const stripePromise = loadStripe(NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -50,17 +48,8 @@ export function TrialCard({ orgCreateInfo }: { orgCreateInfo: OnboardingFormValu
       <Card className="w-full max-w-md mx-auto">
           <CardHeader>
             <div className="flex justify-center mb-4">
-              <Image
-                src={logoDark || "/placeholder.svg"}
-                className="h-16 w-auto hidden dark:block"
-                alt="Sourcebot logo"
-                priority={true}
-              />
-              <Image
-                src={logoLight || "/placeholder.svg"}
-                className="h-16 w-auto block dark:hidden"
-                alt="Sourcebot logo"
-                priority={true}
+              <SourcebotLogo
+                className="h-16"
               />
             </div>
             <CardTitle className="text-center text-2xl font-bold">7 day free trial</CardTitle>
