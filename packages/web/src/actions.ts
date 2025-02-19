@@ -189,6 +189,7 @@ export const getConnections = async (domain: string): Promise<
         id: number,
         name: string,
         syncStatus: ConnectionSyncStatus,
+        syncStatusMetadata: Prisma.JsonValue,
         connectionType: string,
         updatedAt: Date,
         syncedAt?: Date
@@ -206,6 +207,7 @@ export const getConnections = async (domain: string): Promise<
                 id: connection.id,
                 name: connection.name,
                 syncStatus: connection.syncStatus,
+                syncStatusMetadata: connection.syncStatusMetadata,
                 connectionType: connection.connectionType,
                 updatedAt: connection.updatedAt,
                 syncedAt: connection.syncedAt ?? undefined,
@@ -745,6 +747,39 @@ export const getSubscriptionCheckoutRedirect = async (domain: string) =>
             return newSubscriptionUrl;
         })
     )
+
+export const getConnectionNotFoundData = async (domain: string,connectionId: number): Promise<{
+    users: string[],
+    orgs: string[],
+    repos: string[],
+} | null | ServiceError> =>
+    withAuth(async (session) => 
+        withOrgMembership(session, domain, async () => {
+            const connection = await prisma.connection.findUnique({
+                where: {
+                    id: connectionId,
+                },
+            });
+
+            if (!connection) {
+                return notFound();
+            }
+
+            const syncStatusMetadata = connection.syncStatusMetadata;
+            if (!syncStatusMetadata || typeof syncStatusMetadata !== 'object' || !('notFound' in syncStatusMetadata)) {
+                return null;
+            }
+
+            const notFoundData = syncStatusMetadata.notFound as {
+                users: string[],
+                orgs: string[],
+                repos: string[],
+            }
+
+            return notFoundData;
+        })
+    );
+
 
 export async function fetchStripeSession(sessionId: string) {
     const stripe = getStripe();

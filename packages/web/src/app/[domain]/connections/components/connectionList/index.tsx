@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
-import { ConnectionSyncStatus } from "@sourcebot/db";
+import { ConnectionSyncStatus, Prisma } from "@sourcebot/db";
 import { getConnections } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ export const ConnectionList = ({
         name: string;
         connectionType: string;
         syncStatus: ConnectionSyncStatus;
+        syncStatusMetadata: Prisma.JsonValue;
         updatedAt: Date;
         syncedAt?: Date;
     }[]>([]);
@@ -69,6 +70,7 @@ export const ConnectionList = ({
                             name={connection.name}
                             type={connection.connectionType}
                             status={connection.syncStatus}
+                            syncStatusMetadata={connection.syncStatusMetadata}
                             editedAt={connection.updatedAt}
                             syncedAt={connection.syncedAt ?? undefined}
                         />
