@@ -5,23 +5,7 @@ export interface GithubConnectionConfig {
    * GitHub Configuration
    */
   type: "github";
-  /**
-   * A Personal Access Token (PAT).
-   */
-  token?:
-    | string
-    | {
-        /**
-         * The name of the environment variable that contains the token.
-         */
-        env: string;
-      }
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      };
+  token?: Token;
   /**
    * The URL of the GitHub host. Defaults to https://github.com
    */
@@ -76,6 +60,15 @@ export interface GithubConnectionConfig {
     };
   };
   revisions?: GitRevisions;
+}
+/**
+ * A Personal Access Token (PAT).
+ */
+export interface Token {
+  /**
+   * The name of the secret that contains the token.
+   */
+  secret: string;
 }
 /**
  * The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed.

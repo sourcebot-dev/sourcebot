@@ -15,42 +15,21 @@ const schema = {
         "token": {
           "description": "A Personal Access Token (PAT).",
           "examples": [
-            "secret-token",
             {
-              "env": "ENV_VAR_CONTAINING_TOKEN"
+              "secret": "SECRET_KEY"
             }
           ],
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "env": {
-                  "type": "string",
-                  "description": "The name of the environment variable that contains the token."
-                }
-              },
-              "required": [
-                "env"
-              ],
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "secret": {
-                  "type": "string",
-                  "description": "The name of the secret that contains the token."
-                }
-              },
-              "required": [
-                "secret"
-              ],
-              "additionalProperties": false
+          "type": "object",
+          "properties": {
+            "secret": {
+              "type": "string",
+              "description": "The name of the secret that contains the token."
             }
-          ]
+          },
+          "required": [
+            "secret"
+          ],
+          "additionalProperties": false
         },
         "url": {
           "type": "string",
@@ -228,9 +207,8 @@ const schema = {
           "$ref": "#/oneOf/0/properties/token",
           "description": "An authentication token.",
           "examples": [
-            "secret-token",
             {
-              "env": "ENV_VAR_CONTAINING_TOKEN"
+              "secret": "SECRET_KEY"
             }
           ]
         },
@@ -366,9 +344,8 @@ const schema = {
           "$ref": "#/oneOf/0/properties/token",
           "description": "A Personal Access Token (PAT).",
           "examples": [
-            "secret-token",
             {
-              "env": "ENV_VAR_CONTAINING_TOKEN"
+              "secret": "SECRET_KEY"
             }
           ]
         },

@@ -5,23 +5,7 @@ export interface GitlabConnectionConfig {
    * GitLab Configuration
    */
   type: "gitlab";
-  /**
-   * An authentication token.
-   */
-  token?:
-    | string
-    | {
-        /**
-         * The name of the environment variable that contains the token.
-         */
-        env: string;
-      }
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      };
+  token?: Token;
   /**
    * The URL of the GitLab host. Defaults to https://gitlab.com
    */
@@ -67,6 +51,15 @@ export interface GitlabConnectionConfig {
     topics?: string[];
   };
   revisions?: GitRevisions;
+}
+/**
+ * An authentication token.
+ */
+export interface Token {
+  /**
+   * The name of the secret that contains the token.
+   */
+  secret: string;
 }
 /**
  * The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed.
