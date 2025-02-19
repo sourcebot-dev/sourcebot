@@ -27,6 +27,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { DisplayConnectionError } from "./components/connectionError"
 import { NotFoundWarning } from "./components/notFoundWarning"
 import { RetrySyncButton } from "./components/retrySyncButton"
+import { RetryAllFailedReposButton } from "./components/retryAllFailedReposButton"
 
 export default function ConnectionManagementPage() {
   const params = useParams()
@@ -200,7 +201,10 @@ export default function ConnectionManagementPage() {
           </div>
           <NotFoundWarning syncStatusMetadata={connection.syncStatusMetadata} onSecretsClick={handleSecretsNavigation} connectionId={connection.id} connectionType={connection.connectionType} domain={params.domain as string} />
         </div>
-        <h1 className="font-semibold text-lg mt-8">Linked Repositories</h1>
+        <div className="flex justify-between items-center mt-8">
+          <h1 className="font-semibold text-lg">Linked Repositories</h1>
+          <RetryAllFailedReposButton connectionId={connection.id} domain={params.domain as string} />
+        </div>
         <ScrollArea className="mt-4 max-h-96 overflow-scroll">
           <div className="flex flex-col gap-4">
             {linkedRepos.map((repo) => (
@@ -209,9 +213,11 @@ export default function ConnectionManagementPage() {
                 imageUrl={repo.imageUrl ?? undefined}
                 name={repo.name}
                 indexedAt={repo.indexedAt ?? undefined}
-                  status={repo.repoIndexingStatus}
-                />
-              ))}
+                status={repo.repoIndexingStatus}
+                repoId={repo.id}
+                domain={params.domain as string}
+              />
+            ))}
           </div>
         </ScrollArea>
       </TabsContent>

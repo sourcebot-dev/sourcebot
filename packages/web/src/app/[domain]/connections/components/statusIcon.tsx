@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Cross2Icon } from "@radix-ui/react-icons";
-import { CircleCheckIcon } from "lucide-react";
+import { CircleCheckIcon, CircleXIcon } from "lucide-react";
 import { useMemo } from "react";
 import { FiLoader } from "react-icons/fi";
 
@@ -18,7 +17,7 @@ export const StatusIcon = ({
             case 'succeeded':
                 return <CircleCheckIcon className={cn('text-green-600', className)} />;
             case 'failed':
-                return <Cross2Icon className={cn(className)} />;
+                return <CircleXIcon className={cn('text-destructive', className)} />;
 
         }
     }, [className, status]);

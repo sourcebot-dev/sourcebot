@@ -374,6 +374,36 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
             }
         }));
 
+export const flagRepoForIndex = async (repoId: number, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async () => {
+            const repo = await prisma.repo.findUnique({
+                where: {
+                    id: repoId,
+                },
+            });
+
+            if (!repo) {
+                return notFound();
+            }
+
+            await prisma.repo.update({
+                where: {
+                    id: repoId, 
+                },
+                data: {
+                    repoIndexingStatus: RepoIndexingStatus.NEW,
+                }
+            });
+
+            return {
+                success: true,
+            }
+        })
+    );
+
+
+
 export const deleteConnection = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async (orgId) => {
