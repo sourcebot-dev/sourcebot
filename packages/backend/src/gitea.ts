@@ -10,41 +10,40 @@ const logger = createLogger('Gitea');
 
 export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {
     const tokenResult = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
-    const token = tokenResult?.token;
-
+    const token = tokenResult?.token ?? FALLBACK_GITEA_TOKEN;
 
     const api = giteaApi(config.url ?? 'https://gitea.com', {
-        token: token ?? FALLBACK_GITEA_TOKEN,
+        token: token,
         customFetch: fetch,
     });
 
     let allRepos: GiteaRepository[] = [];
+    let notFound: {
+        users: string[],
+        orgs: string[],
+        repos: string[],
+    } = {
+        users: [],
+        orgs: [],
+        repos: [],
+    };
 
     if (config.orgs) {
-        const _repos = await fetchWithRetry(
-            () => getReposForOrgs(config.orgs!, api),
-            `orgs ${config.orgs.join(', ')}`,
-            logger
-        );
-        allRepos = allRepos.concat(_repos);
+        const _repos = await getReposForOrgs(config.orgs, api);
+        allRepos = allRepos.concat(_repos.validRepos);
+        notFound.orgs = _repos.notFoundOrgs;
     }
 
     if (config.repos) {
-        const _repos = await fetchWithRetry(
-            () => getRepos(config.repos!, api),
-            `repos ${config.repos.join(', ')}`,
-            logger
-        );
-        allRepos = allRepos.concat(_repos);
+        const _repos = await getRepos(config.repos, api);
+        allRepos = allRepos.concat(_repos.validRepos);
+        notFound.repos = _repos.notFoundRepos;
     }
 
     if (config.users) {
-        const _repos = await fetchWithRetry(
-            () => getReposOwnedByUsers(config.users!, api),
-            `users ${config.users.join(', ')}`,
-            logger
-        );
-        allRepos = allRepos.concat(_repos);
+        const _repos = await getReposOwnedByUsers(config.users, api);
+        allRepos = allRepos.concat(_repos.validRepos);
+        notFound.users = _repos.notFoundUsers;
     }
     
     allRepos = allRepos.filter(repo => repo.full_name !== undefined);
@@ -110,7 +109,10 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, org
         });
     
     logger.debug(`Found ${repos.length} total repositories.`);
-    return repos;
+    return {
+        validRepos: repos,
+        notFound,
+    };
 }
 
 const shouldExcludeRepo = ({
@@ -188,7 +190,7 @@ const getBranchesForRepo = async <T>(owner: string, repo: string, api: Api<T>) =
 }
 
 const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
-    const repos = (await Promise.all(users.map(async (user) => {
+    const results = await Promise.allSettled(users.map(async (user) => {
         try {
             logger.debug(`Fetching repos for user ${user}...`);
 
@@ -199,18 +201,47 @@ const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
             );
 
             logger.debug(`Found ${data.length} repos owned by user ${user} in ${durationMs}ms.`);
-            return data;
-        } catch (e) {
-            logger.error(`Failed to fetch repos for user ${user}.`, e);
+            return {
+                type: 'valid' as const,
+                data
+            };
+        } catch (e: any) {
+            if (e?.status === 404) {
+                logger.error(`User ${user} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    user
+                };
+            }
             throw e;
         }
-    }))).flat();
+    }));
 
-    return repos;
+    const failedResult = results.find(result => result.status === 'rejected');
+    if (failedResult && failedResult.status === 'rejected') {
+        throw failedResult.reason;
+    }
+
+    const validRepos: any[] = [];
+    const notFoundUsers: string[] = [];
+    results.forEach(result => {
+        if (result.status === 'fulfilled') {
+            if (result.value.type === 'valid') {
+                validRepos.push(...result.value.data);
+            } else {
+                notFoundUsers.push(result.value.user);
+            }
+        }
+    });
+
+    return {
+        validRepos,
+        notFoundUsers,
+    };
 }
 
 const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
-    return (await Promise.all(orgs.map(async (org) => {
+    const results = await Promise.allSettled(orgs.map(async (org) => {
         try {
             logger.debug(`Fetching repos for org ${org}...`);
 
@@ -222,16 +253,47 @@ const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
             );
 
             logger.debug(`Found ${data.length} repos for org ${org} in ${durationMs}ms.`);
-            return data;
-        } catch (e) {
-            logger.error(`Failed to fetch repos for org ${org}.`, e);
+            return {
+                type: 'valid' as const,
+                data
+            };
+        } catch (e: any) {
+            if (e?.status === 404) {
+                logger.error(`Organization ${org} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    org
+                };
+            }
             throw e;
         }
-    }))).flat();
+    }));
+
+    const failedResult = results.find(result => result.status === 'rejected');
+    if (failedResult && failedResult.status === 'rejected') {
+        throw failedResult.reason;
+    }
+
+    const validRepos: any[] = [];
+    const notFoundOrgs: string[] = [];
+    results.forEach(result => {
+        if (result.status === 'fulfilled') {
+            if (result.value.type === 'valid') {
+                validRepos.push(...result.value.data);
+            } else {
+                notFoundOrgs.push(result.value.org);
+            }
+        }
+    });
+
+    return {
+        validRepos,
+        notFoundOrgs,
+    };
 }
 
 const getRepos = async <T>(repos: string[], api: Api<T>) => {
-    return (await Promise.all(repos.map(async (repo) => {
+    const results = await Promise.allSettled(repos.map(async (repo) => {
         try {
             logger.debug(`Fetching repository info for ${repo}...`);
 
@@ -241,13 +303,43 @@ const getRepos = async <T>(repos: string[], api: Api<T>) => {
             );
 
             logger.debug(`Found repo ${repo} in ${durationMs}ms.`);
-
-            return [response.data];
-        } catch (e) {
-            logger.error(`Failed to fetch repository info for ${repo}.`, e);
+            return {
+                type: 'valid' as const,
+                data: response.data
+            };
+        } catch (e: any) {
+            if (e?.status === 404) {
+                logger.error(`Repository ${repo} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    repo
+                };
+            }
             throw e;
         }
-    }))).flat();
+    }));
+
+    const failedResult = results.find(result => result.status === 'rejected');
+    if (failedResult && failedResult.status === 'rejected') {
+        throw failedResult.reason;
+    }
+
+    const validRepos: any[] = [];
+    const notFoundRepos: string[] = [];
+    results.forEach(result => {
+        if (result.status === 'fulfilled') {
+            if (result.value.type === 'valid') {
+                validRepos.push(result.value.data);
+            } else {
+                notFoundRepos.push(result.value.repo);
+            }
+        }
+    });
+
+    return {
+        validRepos,
+        notFoundRepos,
+    };
 }
 
 // @see : https://docs.gitea.com/development/api-usage#pagination

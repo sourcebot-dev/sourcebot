@@ -131,12 +131,10 @@ export class ConnectionManager implements IConnectionManager {
                         return await compileGitlabConfig(config, job.data.connectionId, orgId, this.db);
                     }
                     case 'gitea': {
-                        const repoData = await compileGiteaConfig(config, job.data.connectionId, orgId, this.db);
-                        return {repoData, notFound: {users: [], orgs: [], repos: []}};
+                        return await compileGiteaConfig(config, job.data.connectionId, orgId, this.db);
                     }
                     case 'gerrit': {
-                        const repoData = await compileGerritConfig(config, job.data.connectionId, orgId);
-                        return {repoData, notFound: {users: [], orgs: [], repos: []}};
+                        return await compileGerritConfig(config, job.data.connectionId, orgId);
                     }
                     default: {
                         return {repoData: [], notFound: {
