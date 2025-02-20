@@ -13,6 +13,7 @@ export default function SettingsLayout({
     children: React.ReactNode;
     params: { domain: string };
 }>) {
+
     const sidebarNavItems = [
         {
             title: "General",
