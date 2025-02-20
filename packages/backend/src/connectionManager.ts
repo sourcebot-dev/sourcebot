@@ -197,8 +197,9 @@ export class ConnectionManager implements IConnectionManager {
             const deleteDuration = performance.now() - deleteStart;
             this.logger.info(`Deleted all RepoToConnection records for connection ${job.data.connectionId} in ${deleteDuration}ms`);
 
-            const upsertStart = performance.now();
+            const totalUpsertStart = performance.now();
             for (const repo of repoData) {
+                const upsertStart = performance.now();
                 await tx.repo.upsert({
                     where: {
                         external_id_external_codeHostUrl_orgId: {
@@ -210,9 +211,11 @@ export class ConnectionManager implements IConnectionManager {
                     update: repo,
                     create: repo,
                 })
+                const upsertDuration = performance.now() - upsertStart;
+                this.logger.info(`Upserted repo ${repo.external_id} in ${upsertDuration}ms`);
             }
-            const upsertDuration = performance.now() - upsertStart;
-            this.logger.info(`Upserted ${repoData.length} repos in ${upsertDuration}ms`);
+            const totalUpsertDuration = performance.now() - totalUpsertStart;
+            this.logger.info(`Upserted ${repoData.length} repos in ${totalUpsertDuration}ms`);
         });
     }
 
