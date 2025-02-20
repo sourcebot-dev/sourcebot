@@ -399,14 +399,6 @@ export const main = async (context: AppContext) => {
                     const stats = await syncLocalRepository(repo, db.data.settings, context);
                     indexDuration_s = stats.indexDuration_s;
                 }
-
-                captureEvent('repo_synced', {
-                    vcs: repo.vcs,
-                    codeHost: repo.codeHost,
-                    indexDuration_s,
-                    fetchDuration_s,
-                    cloneDuration_s,
-                });
             } catch (err: any) {
                 // @todo : better error handling here..
                 logger.error(err);
