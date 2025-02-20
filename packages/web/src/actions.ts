@@ -570,65 +570,108 @@ export const cancelInvite = async (inviteId: string, domain: string): Promise<{ 
     );
 
 
-export const redeemInvite = async (invite: Invite, userId: string): Promise<{ success: boolean } | ServiceError> =>
-    withAuth(async () => {
-        try {
-            const res = await prisma.$transaction(async (tx) => {
-                const org = await tx.org.findUnique({
-                    where: {
-                        id: invite.orgId,
-                    }
-                });
+export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth(async (session) => {
+        const invite = await prisma.invite.findUnique({
+            where: {
+                id: inviteId,
+            },
+            include: {
+                org: true,
+            }
+        });
 
-                if (!org) {
-                    return notFound();
+        if (!invite) {
+            return notFound();
+        }
+
+        const user = await getUser(session.user.id);
+        if (!user) {
+            return notFound();
+        }
+
+        // Check if the user is the recipient of the invite
+        if (user.email !== invite.recipientEmail) {
+            return notFound();
+        }
+
+        const res = await prisma.$transaction(async (tx) => {
+            // @note: we need to use the internal subscription fetch here since we would otherwise fail the `withOrgMembership` check.
+            const subscription = await _fetchSubscriptionForOrg(invite.orgId, tx);
+            if (subscription) {
+                if (isServiceError(subscription)) {
+                    return subscription;
                 }
-                
-                // @note: we need to use the internal subscription fetch here since we would otherwise fail the `withOrgMembership` check.
-                const subscription = await _fetchSubscriptionForOrg(org.id, tx);
-                if (subscription) {
-                    if (isServiceError(subscription)) {
-                        return subscription;
+
+                const existingSeatCount = subscription.items.data[0].quantity;
+                const newSeatCount = (existingSeatCount || 1) + 1
+
+                const stripe = getStripe();
+                await stripe.subscriptionItems.update(
+                    subscription.items.data[0].id,
+                    {
+                        quantity: newSeatCount,
+                        proration_behavior: 'create_prorations',
                     }
+                )
+            }
 
-                    const existingSeatCount = subscription.items.data[0].quantity;
-                    const newSeatCount = (existingSeatCount || 1) + 1
-
-                    const stripe = getStripe();
-                    await stripe.subscriptionItems.update(
-                        subscription.items.data[0].id,
-                        {
-                            quantity: newSeatCount,
-                            proration_behavior: 'create_prorations',
-                        }
-                    )
+            await tx.userToOrg.create({
+                data: {
+                    userId: user.id,
+                    orgId: invite.orgId,
+                    role: "MEMBER",
                 }
-
-                await tx.userToOrg.create({
-                    data: {
-                        userId,
-                        orgId: invite.orgId,
-                        role: "MEMBER",
-                    }
-                });
-
-                await tx.invite.delete({
-                    where: {
-                        id: invite.id,
-                    }
-                });
             });
 
-            if (isServiceError(res)) {
-                return res;
-            }
+            await tx.invite.delete({
+                where: {
+                    id: invite.id,
+                }
+            });
+        });
 
-            return {
-                success: true,
+        if (isServiceError(res)) {
+            return res;
+        }
+
+        return {
+            success: true,
+        }
+    });
+
+export const getInviteInfo = async (inviteId: string) =>
+    withAuth(async (session) => {
+        const user = await getUser(session.user.id);
+        if (!user) {
+            return notFound();
+        }
+
+        const invite = await prisma.invite.findUnique({
+            where: {
+                id: inviteId,
+            },
+            include: {
+                org: true,
+                host: true,
             }
-        } catch (error) {
-            console.error("Failed to redeem invite:", error);
-            return unexpectedError("Failed to redeem invite");
+        });
+
+        if (!invite) {
+            return notFound();
+        }
+
+        if (invite.recipientEmail !== user.email) {
+            return notFound();
+        }
+
+        return {
+            id: invite.id,
+            orgName: invite.org.name,
+            invitedBy: {
+                name: invite.host.name,
+                email: invite.host.email!,
+            }
         }
     });
 
