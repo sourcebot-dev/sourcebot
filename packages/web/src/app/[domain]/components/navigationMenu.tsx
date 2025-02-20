@@ -83,8 +83,8 @@ export const NavigationMenu = async ({
                 </div>
 
                 <div className="flex flex-row items-center gap-2">
-                    {!isServiceError(subscription) && subscription.status === "trialing" && (
-                        <Link href={`/${domain}/settings/billing`}>
+                    {!isServiceError(subscription) && subscription && subscription.status === "trialing" && (
+                        <Link href={`/${domain}/upgrade`}>
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-full text-yellow-700 dark:text-yellow-400 text-xs font-medium hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors cursor-pointer">
                                 <span className="inline-block w-2 h-2 bg-yellow-400 dark:bg-yellow-500 rounded-full"></span>
                                 <span>

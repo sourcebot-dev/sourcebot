@@ -5,19 +5,19 @@ import { useDomain } from "@/hooks/useDomain";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 
-interface OnboardGuardProps {
+interface UpgradeGuardProps {
     children: React.ReactNode;
 }
 
-export const OnboardGuard = ({ children }: OnboardGuardProps) => {
+export const UpgradeGuard = ({ children }: UpgradeGuardProps) => {
     const domain = useDomain();
     const pathname = usePathname();
 
     const content = useMemo(() => {
-        if (!pathname.endsWith('/onboard')) {
+        if (!pathname.endsWith('/upgrade')) {
             return (
                 <Redirect
-                    to={`/${domain}/onboard`}
+                    to={`/${domain}/upgrade`}
                 />
             )
         } else {

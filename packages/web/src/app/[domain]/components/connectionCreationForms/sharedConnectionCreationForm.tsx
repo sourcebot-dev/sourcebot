@@ -135,7 +135,7 @@ export default function SharedConnectionCreationForm<T>({
                         type="submit"
                         disabled={isSubmitting}
                     >
-                        {isSubmitting && <Loader2 className="w-4 h-4 mr-2" />}
+                        {isSubmitting && <Loader2 className="animate-spin w-4 h-4 mr-2" />}
                         Submit
                     </Button>
                 </form>

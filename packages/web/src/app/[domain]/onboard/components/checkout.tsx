@@ -1,6 +1,6 @@
 'use client';
 
-import { createStripeCheckoutSession } from "@/actions";
+import { createOnboardingStripeCheckoutSession } from "@/actions";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { isServiceError } from "@/lib/utils";
 import { Check, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { TEAM_FEATURES } from "@/lib/constants";
 
 export const Checkout = () => {
     const domain = useDomain();
@@ -27,11 +28,11 @@ export const Checkout = () => {
                 variant: "destructive",
             });
         }
-    }, [errorCode, errorMessage]);
+    }, [errorCode, errorMessage, toast]);
 
     const onCheckout = useCallback(() => {
         setIsLoading(true);
-        createStripeCheckoutSession(domain)
+        createOnboardingStripeCheckoutSession(domain)
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({
@@ -45,7 +46,7 @@ export const Checkout = () => {
             .finally(() => {
                 setIsLoading(false);
             });
-    }, []);
+    }, [domain, router, toast]);
 
     return (
         <div className="flex flex-col items-center justify-center max-w-md my-auto">
@@ -56,13 +57,7 @@ export const Checkout = () => {
             <h1 className="text-2xl font-semibold">Start your 7 day free trial</h1>
             <p className="text-muted-foreground mt-2">Cancel anytime. No credit card required.</p>
             <ul className="space-y-4 mb-6 mt-10">
-                {[
-                    "Blazingly fast code search",
-                    "Index hundreds of repos from multiple code hosts (GitHub, GitLab, Gerrit, Gitea, etc.). Self-hosted code hosts supported.",
-                    "Public and private repos supported.",
-                    "Create sharable links to code snippets.",
-                    "Powerful regex and symbol search",
-                ].map((feature, index) => (
+                {TEAM_FEATURES.map((feature, index) => (
                     <li key={index} className="flex items-center">
                         <div className="mr-3 flex-shrink-0">
                             <Check className="h-5 w-5 text-sky-500" />
@@ -77,7 +72,7 @@ export const Checkout = () => {
                     onClick={onCheckout}
                     disabled={isLoading}
                 >
-                    {isLoading && <Loader2 className="w-4 h-4 mr-2" />}
+                    {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     Start free trial
                 </Button>
             </div>

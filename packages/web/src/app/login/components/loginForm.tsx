@@ -10,6 +10,7 @@ import { cn, getCodeHostIcon } from "@/lib/utils";
 import { MagicLinkForm } from "./magicLinkForm";
 import { CredentialsForm } from "./credentialsForm";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
+import { TextSeparator } from "@/app/components/textSeparator";
 
 interface LoginFormProps {
     callbackUrl?: string;
@@ -122,18 +123,8 @@ const DividerSet = ({ elements }: { elements: React.ReactNode[] }) => {
         return (
             <Fragment key={index}>
                 {child}
-                {index < elements.length - 1 && <Divider key={`divider-${index}`} />}
+                {index < elements.length - 1 && <TextSeparator key={`divider-${index}`} />}
             </Fragment>
         )
     })
-}
-
-const Divider = ({ className }: { className?: string }) => {
-    return (
-        <div className={cn("flex items-center w-full gap-4", className)}>
-            <div className="h-[1px] flex-1 bg-border" />
-            <span className="text-muted-foreground text-sm">or</span>
-            <div className="h-[1px] flex-1 bg-border" />
-        </div>
-    )
 }
