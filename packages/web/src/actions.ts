@@ -668,9 +668,16 @@ export const getInviteInfo = async (inviteId: string) =>
         return {
             id: invite.id,
             orgName: invite.org.name,
-            invitedBy: {
-                name: invite.host.name,
+            orgImageUrl: invite.org.imageUrl ?? undefined,
+            orgDomain: invite.org.domain,
+            host: {
+                name: invite.host.name ?? undefined,
                 email: invite.host.email!,
+                avatarUrl: invite.host.image ?? undefined,
+            },
+            recipient: {
+                name: user.name ?? undefined,
+                email: user.email!,
             }
         }
     });

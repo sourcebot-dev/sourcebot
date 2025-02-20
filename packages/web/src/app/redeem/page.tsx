@@ -1,32 +1,15 @@
 import { notFound, redirect } from 'next/navigation';
 import { auth } from "@/auth";
-import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { getInviteInfo } from "@/actions";
 import { isServiceError } from "@/lib/utils";
+import { AcceptInviteCard } from './components/acceptInviteCard';
+import { LogoutEscapeHatch } from '../components/logoutEscapeHatch';
+import { InviteNotFoundCard } from './components/inviteNotFoundCard';
+
 interface RedeemPageProps {
     searchParams: {
         invite_id?: string;
     };
-}
-
-interface ErrorLayoutProps {
-    title: string;
-}
-
-function ErrorLayout({ title }: ErrorLayoutProps) {
-    return (
-        <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
-            <div className="max-h-44 w-auto mb-4">
-                <SourcebotLogo
-                    className="h-18 md:h-40"
-                    size="large"
-                />
-            </div>
-            <div className="flex justify-center items-center">
-                <h1>{title}</h1>
-            </div>
-        </div>
-    );
 }
 
 export default async function RedeemPage({ searchParams }: RedeemPageProps) {
@@ -41,15 +24,22 @@ export default async function RedeemPage({ searchParams }: RedeemPageProps) {
     }
 
     const inviteInfo = await getInviteInfo(inviteId);
-    if (isServiceError(inviteInfo)) {
-        return (
-            <p>Invite not found</p>
-        );
-    }
 
     return (
-        <p>
-            hello
-        </p>
+        <div className="flex flex-col items-center min-h-screen py-24 bg-backgroundSecondary relative">
+            <LogoutEscapeHatch className="absolute top-0 right-0 p-12" />
+            {isServiceError(inviteInfo) ? (
+                <InviteNotFoundCard />
+            ) : (
+                <AcceptInviteCard
+                    inviteId={inviteId}
+                    orgName={inviteInfo.orgName}
+                    orgDomain={inviteInfo.orgDomain}
+                    host={inviteInfo.host}
+                    recipient={inviteInfo.recipient}
+                    orgImageUrl={inviteInfo.orgImageUrl}
+                />
+            )}
+        </div>
     );
 }
