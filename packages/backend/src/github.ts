@@ -6,6 +6,7 @@ import micromatch from "micromatch";
 import { PrismaClient } from "@sourcebot/db";
 import { FALLBACK_GITHUB_TOKEN } from "./environment.js";
 import { BackendException, BackendError } from "@sourcebot/error";
+import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 const logger = createLogger("GitHub");
 
 export type OctokitRepository = {
@@ -70,22 +71,22 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
 
     try {
         if (config.orgs) {
-            const _repos = await getReposForOrgs(config.orgs, octokit, signal);
-            allRepos = allRepos.concat(_repos.validRepos);
-            notFound.orgs = _repos.notFoundOrgs;
+            const { validRepos, notFoundOrgs } = await getReposForOrgs(config.orgs, octokit, signal);
+            allRepos = allRepos.concat(validRepos);
+            notFound.orgs = notFoundOrgs;
         }
 
         if (config.repos) {
-            const _repos = await getRepos(config.repos, octokit, signal);
-            allRepos = allRepos.concat(_repos.validRepos);
-            notFound.repos = _repos.notFoundRepos;
+            const { validRepos, notFoundRepos } = await getRepos(config.repos, octokit, signal);
+            allRepos = allRepos.concat(validRepos);
+            notFound.repos = notFoundRepos;
         }
 
         if (config.users) {
             const isAuthenticated = config.token !== undefined;
-            const _repos = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
-            allRepos = allRepos.concat(_repos.validRepos);
-            notFound.users = _repos.notFoundUsers;
+            const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
+            allRepos = allRepos.concat(validRepos);
+            notFound.users = notFoundUsers;
         }
 
         let repos = allRepos
@@ -242,29 +243,15 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
                 logger.error(`User ${user} not found or no access`);
                 return {
                     type: 'notFound' as const,
-                    user
+                    value: user
                 };
             }
             throw error;
         }
     }));
 
-    const failedResult = results.find(result => result.status === 'rejected');
-    if (failedResult && failedResult.status === 'rejected') {
-        throw failedResult.reason;
-    }
-
-    const validRepos: any[] = [];
-    const notFoundUsers: string[] = [];
-    results.forEach(result => {
-        if (result.status === 'fulfilled') {
-            if (result.value.type === 'valid') {
-                validRepos.push(...result.value.data);
-            } else {
-                notFoundUsers.push(result.value.user);
-            }
-        }
-    });
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundUsers } = processPromiseResults<OctokitRepository>(results);
 
     return {
         validRepos,
@@ -299,29 +286,15 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
                 logger.error(`Organization ${org} not found or no access`);
                 return {
                     type: 'notFound' as const,
-                    org
+                    value: org
                 };
             }
             throw error;
         }
     }));
 
-    const failedResult = results.find(result => result.status === 'rejected');
-    if (failedResult && failedResult.status === 'rejected') {
-        throw failedResult.reason;
-    }
-
-    const validRepos: any[] = [];
-    const notFoundOrgs: string[] = [];
-    results.forEach(result => {
-        if (result.status === 'fulfilled') {
-            if (result.value.type === 'valid') {
-                validRepos.push(...result.value.data);
-            } else {
-                notFoundOrgs.push(result.value.org);
-            }
-        }
-    });
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundOrgs } = processPromiseResults<OctokitRepository>(results);
 
     return {
         validRepos,
@@ -350,7 +323,7 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
             logger.info(`Found info for repository ${repo} in ${durationMs}ms`);
             return {
                 type: 'valid' as const,
-                data: result.data
+                data: [result.data]
             };
 
         } catch (error) {
@@ -358,30 +331,15 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
                 logger.error(`Repository ${repo} not found or no access`);
                 return {
                     type: 'notFound' as const,
-                    repo
+                    value: repo
                 };
             }
             throw error;
         }
     }));
 
-    // For now we'll throw an error (and thus fail the connection sync) if any repos threw an error.
-    const failedResult = results.find(result => result.status === 'rejected');
-    if (failedResult && failedResult.status === 'rejected') {
-        throw failedResult.reason;
-    }
-
-    const validRepos: any[] = [];
-    const notFoundRepos: string[] = [];
-    results.forEach(result => {
-        if (result.status === 'fulfilled') {
-            if (result.value.type === 'valid') {
-                validRepos.push(result.value.data);
-            } else {
-                notFoundRepos.push(result.value.repo);
-            }
-        }
-    });
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults<OctokitRepository>(results);
 
     return {
         validRepos,

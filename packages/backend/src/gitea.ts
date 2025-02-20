@@ -6,6 +6,7 @@ import { createLogger } from './logger.js';
 import micromatch from 'micromatch';
 import { PrismaClient } from '@sourcebot/db';
 import { FALLBACK_GITEA_TOKEN } from './environment.js';
+import { processPromiseResults, throwIfAnyFailed } from './connectionUtils.js';
 const logger = createLogger('Gitea');
 
 export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {
@@ -29,21 +30,21 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, org
     };
 
     if (config.orgs) {
-        const _repos = await getReposForOrgs(config.orgs, api);
-        allRepos = allRepos.concat(_repos.validRepos);
-        notFound.orgs = _repos.notFoundOrgs;
+        const { validRepos, notFoundOrgs } = await getReposForOrgs(config.orgs, api);
+        allRepos = allRepos.concat(validRepos);
+        notFound.orgs = notFoundOrgs;
     }
 
     if (config.repos) {
-        const _repos = await getRepos(config.repos, api);
-        allRepos = allRepos.concat(_repos.validRepos);
-        notFound.repos = _repos.notFoundRepos;
+        const { validRepos, notFoundRepos } = await getRepos(config.repos, api);
+        allRepos = allRepos.concat(validRepos);
+        notFound.repos = notFoundRepos;
     }
 
     if (config.users) {
-        const _repos = await getReposOwnedByUsers(config.users, api);
-        allRepos = allRepos.concat(_repos.validRepos);
-        notFound.users = _repos.notFoundUsers;
+        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, api);
+        allRepos = allRepos.concat(validRepos);
+        notFound.users = notFoundUsers;
     }
     
     allRepos = allRepos.filter(repo => repo.full_name !== undefined);
@@ -210,29 +211,15 @@ const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
                 logger.error(`User ${user} not found or no access`);
                 return {
                     type: 'notFound' as const,
-                    user
+                    value: user
                 };
             }
             throw e;
         }
     }));
 
-    const failedResult = results.find(result => result.status === 'rejected');
-    if (failedResult && failedResult.status === 'rejected') {
-        throw failedResult.reason;
-    }
-
-    const validRepos: any[] = [];
-    const notFoundUsers: string[] = [];
-    results.forEach(result => {
-        if (result.status === 'fulfilled') {
-            if (result.value.type === 'valid') {
-                validRepos.push(...result.value.data);
-            } else {
-                notFoundUsers.push(result.value.user);
-            }
-        }
-    });
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundUsers } = processPromiseResults<GiteaRepository>(results);
 
     return {
         validRepos,
@@ -262,29 +249,15 @@ const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
                 logger.error(`Organization ${org} not found or no access`);
                 return {
                     type: 'notFound' as const,
-                    org
+                    value: org
                 };
             }
             throw e;
         }
     }));
 
-    const failedResult = results.find(result => result.status === 'rejected');
-    if (failedResult && failedResult.status === 'rejected') {
-        throw failedResult.reason;
-    }
-
-    const validRepos: any[] = [];
-    const notFoundOrgs: string[] = [];
-    results.forEach(result => {
-        if (result.status === 'fulfilled') {
-            if (result.value.type === 'valid') {
-                validRepos.push(...result.value.data);
-            } else {
-                notFoundOrgs.push(result.value.org);
-            }
-        }
-    });
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundOrgs } = processPromiseResults<GiteaRepository>(results);
 
     return {
         validRepos,
@@ -305,36 +278,22 @@ const getRepos = async <T>(repos: string[], api: Api<T>) => {
             logger.debug(`Found repo ${repo} in ${durationMs}ms.`);
             return {
                 type: 'valid' as const,
-                data: response.data
+                data: [response.data]
             };
         } catch (e: any) {
             if (e?.status === 404) {
                 logger.error(`Repository ${repo} not found or no access`);
                 return {
                     type: 'notFound' as const,
-                    repo
+                    value: repo
                 };
             }
             throw e;
         }
     }));
 
-    const failedResult = results.find(result => result.status === 'rejected');
-    if (failedResult && failedResult.status === 'rejected') {
-        throw failedResult.reason;
-    }
-
-    const validRepos: any[] = [];
-    const notFoundRepos: string[] = [];
-    results.forEach(result => {
-        if (result.status === 'fulfilled') {
-            if (result.value.type === 'valid') {
-                validRepos.push(result.value.data);
-            } else {
-                notFoundRepos.push(result.value.repo);
-            }
-        }
-    });
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults<GiteaRepository>(results);
 
     return {
         validRepos,

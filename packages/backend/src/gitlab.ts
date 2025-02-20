@@ -5,6 +5,7 @@ import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type"
 import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
 import { PrismaClient } from "@sourcebot/db";
 import { FALLBACK_GITLAB_TOKEN } from "./environment.js";
+import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 const logger = createLogger("GitLab");
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
@@ -77,27 +78,17 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                     logger.error(`Group ${group} not found or no access`);
                     return {
                         type: 'notFound' as const,
-                        group
+                        value: group
                     };
                 }
                 throw e;
             }
         }));
 
-        const failedResult = results.find(result => result.status === 'rejected');
-        if (failedResult && failedResult.status === 'rejected') {
-            throw failedResult.reason;
-        }
-
-        results.forEach(result => {
-            if (result.status === 'fulfilled') {
-                if (result.value.type === 'valid') {
-                    allRepos = allRepos.concat(result.value.data);
-                } else {
-                    notFound.orgs.push(result.value.group);
-                }
-            }
-        });
+        throwIfAnyFailed(results);
+        const { validItems: validRepos, notFoundItems: notFoundOrgs } = processPromiseResults(results);
+        allRepos = allRepos.concat(validRepos);
+        notFound.orgs = notFoundOrgs;
     }
 
     if (config.users) {
@@ -121,27 +112,17 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                     logger.error(`User ${user} not found or no access`);
                     return {
                         type: 'notFound' as const,
-                        user
+                        value: user
                     };
                 }
                 throw e;
             }
         }));
 
-        const failedResult = results.find(result => result.status === 'rejected');
-        if (failedResult && failedResult.status === 'rejected') {
-            throw failedResult.reason;
-        }
-
-        results.forEach(result => {
-            if (result.status === 'fulfilled') {
-                if (result.value.type === 'valid') {
-                    allRepos = allRepos.concat(result.value.data);
-                } else {
-                    notFound.users.push(result.value.user);
-                }
-            }
-        });
+        throwIfAnyFailed(results);
+        const { validItems: validRepos, notFoundItems: notFoundUsers } = processPromiseResults(results);
+        allRepos = allRepos.concat(validRepos);
+        notFound.users = notFoundUsers;
     }
 
     if (config.projects) {
@@ -164,27 +145,17 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                     logger.error(`Project ${project} not found or no access`);
                     return {
                         type: 'notFound' as const,
-                        project
+                        value: project
                     };
                 }
                 throw e;
             }
         }));
 
-        const failedResult = results.find(result => result.status === 'rejected');
-        if (failedResult && failedResult.status === 'rejected') {
-            throw failedResult.reason;
-        }
-
-        results.forEach(result => {
-            if (result.status === 'fulfilled') {
-                if (result.value.type === 'valid') {
-                    allRepos = allRepos.concat(result.value.data);
-                } else {
-                    notFound.repos.push(result.value.project);
-                }
-            }
-        });
+        throwIfAnyFailed(results);
+        const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults(results);
+        allRepos = allRepos.concat(validRepos);
+        notFound.repos = notFoundRepos;
     }
 
     let repos = allRepos
