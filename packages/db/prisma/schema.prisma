@@ -55,7 +55,7 @@ model Repo {
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
-  @@unique([external_id, external_codeHostUrl])
+  @@unique([external_id, external_codeHostUrl, orgId])
 }
 
 model Connection {
