@@ -207,7 +207,7 @@ export const getConnections = async (domain: string): Promise<
 
 export const getConnectionFailedRepos = async (connectionId: number, domain: string): Promise<{ repoId: number, repoName: string }[] | ServiceError> =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async (orgId) => {
+        withOrgMembership(session, domain, async ({ orgId }) => {
             const connection = await getConnection(connectionId, orgId);
             if (!connection) {
                 return notFound();
@@ -224,7 +224,7 @@ export const getConnectionFailedRepos = async (connectionId: number, domain: str
 
 export const getConnectionInProgressRepos = async (connectionId: number, domain: string): Promise<{ repoId: number, repoName: string }[] | ServiceError> =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async (orgId) => {
+        withOrgMembership(session, domain, async ({ orgId }) => {
             const connection = await getConnection(connectionId, orgId);
             if (!connection) {
                 return notFound();
