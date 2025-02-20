@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { isServiceError } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@radix-ui/react-icons";
+import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 
 export default async function Upgrade({ params: { domain } }: { params: { domain: string } }) {
 
@@ -31,6 +32,7 @@ export default async function Upgrade({ params: { domain } }: { params: { domain
                     </div>
                 </Link>
             )}
+            <LogoutEscapeHatch className="absolute top-0 right-0 p-12" />
             <div className="flex flex-col items-center">
                 <SourcebotLogo
                     className="h-16 mb-2"
