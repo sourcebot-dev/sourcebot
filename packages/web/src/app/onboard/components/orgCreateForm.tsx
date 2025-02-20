@@ -50,7 +50,7 @@ export function OrgCreateForm() {
                 description: `❌ Failed to create organization. Reason: ${response.message}`
             })
         } else {
-            router.push(`/${data.domain}`);
+            router.push(`/${data.domain}/onboard`);
         }
     }, [router, toast]);
 
@@ -74,6 +74,7 @@ export function OrgCreateForm() {
                                     <Input
                                         placeholder="Aperture Labs"
                                         {...field}
+                                        autoFocus
                                         onChange={(e) => {
                                             field.onChange(e)
                                             handleNameChange(e)

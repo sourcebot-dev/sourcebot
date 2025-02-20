@@ -14,14 +14,13 @@ import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, GerritConnectionConfig, ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection, getLinkedRepos } from "./data/connection";
-import { ConnectionSyncStatus, Prisma, Invite, OrgRole, Connection, Repo, Org, RepoIndexingStatus } from "@sourcebot/db";
+import { ConnectionSyncStatus, Prisma, Invite, OrgRole, Connection, Repo, Org, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
 import { Session } from "next-auth";
 import { STRIPE_PRODUCT_ID, CONFIG_MAX_REPOS_NO_TOKEN } from "@/lib/environment";
 import Stripe from "stripe";
-import { SyncStatusMetadataSchema, type NotFoundData } from "@/lib/syncStatusMetadataSchema";
 import { OnboardingSteps } from "./lib/constants";
 
 const ajv = new Ajv({
@@ -147,7 +146,11 @@ export const completeOnboarding = async (stripeCheckoutSessionId: string, domain
 
             await prisma.org.update({
                 where: { id: orgId },
-                data: { isOnboarded: true }
+                data: {
+                    isOnboarded: true,
+                    stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
+                    stripeLastUpdatedAt: new Date(),
+                }
             });
 
             return {
