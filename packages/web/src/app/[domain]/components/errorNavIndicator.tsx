@@ -74,7 +74,9 @@ export const ErrorNavIndicator = () => {
                 <HoverCardTrigger asChild>
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-full text-red-700 dark:text-red-400 text-xs font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors cursor-pointer">
                         <CircleXIcon className="h-4 w-4" />
-                        <span>{errors.reduce((acc, error) => acc + (error.numRepos || 0), 0)}</span>
+                        {errors.reduce((acc, error) => acc + (error.numRepos || 0), 0) > 0 && (
+                            <span>{errors.reduce((acc, error) => acc + (error.numRepos || 0), 0)}</span>
+                        )}
                     </div>
                 </HoverCardTrigger>
                 <HoverCardContent className="w-80 border border-red-200 dark:border-red-800 rounded-lg">

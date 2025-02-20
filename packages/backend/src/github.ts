@@ -30,6 +30,13 @@ export type OctokitRepository = {
     }
 }
 
+const isHttpError = (error: unknown, status: number): boolean => {
+    return error !== null 
+        && typeof error === 'object'
+        && 'status' in error 
+        && error.status === status;
+}
+
 export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal) => {
     const tokenResult = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
     const token = tokenResult?.token;
@@ -46,7 +53,7 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
         try {
             await octokit.rest.users.getAuthenticated();
         } catch (error) {
-            if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+            if (isHttpError(error, 401)) {
                 throw new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN, {
                     secretKey,
                 });
@@ -69,51 +76,44 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
         repos: [],
     };
 
-    try {
-        if (config.orgs) {
-            const { validRepos, notFoundOrgs } = await getReposForOrgs(config.orgs, octokit, signal);
-            allRepos = allRepos.concat(validRepos);
-            notFound.orgs = notFoundOrgs;
-        }
-
-        if (config.repos) {
-            const { validRepos, notFoundRepos } = await getRepos(config.repos, octokit, signal);
-            allRepos = allRepos.concat(validRepos);
-            notFound.repos = notFoundRepos;
-        }
-
-        if (config.users) {
-            const isAuthenticated = config.token !== undefined;
-            const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
-            allRepos = allRepos.concat(validRepos);
-            notFound.users = notFoundUsers;
-        }
-
-        let repos = allRepos
-            .filter((repo) => {
-                const isExcluded = shouldExcludeRepo({
-                    repo,
-                    include: {
-                        topics: config.topics,
-                    },
-                    exclude: config.exclude,
-                });
-
-                return !isExcluded;
-            });
-
-        logger.debug(`Found ${repos.length} total repositories.`);
-    
-        return {
-            validRepos: repos,  
-            notFound,
-        };
-    } catch (error) {
-        throw new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
-            message: `Failed to fetch repositories: ${error}`,
-        });
+    if (config.orgs) {
+        const { validRepos, notFoundOrgs } = await getReposForOrgs(config.orgs, octokit, signal);
+        allRepos = allRepos.concat(validRepos);
+        notFound.orgs = notFoundOrgs;
     }
 
+    if (config.repos) {
+        const { validRepos, notFoundRepos } = await getRepos(config.repos, octokit, signal);
+        allRepos = allRepos.concat(validRepos);
+        notFound.repos = notFoundRepos;
+    }
+
+    if (config.users) {
+        const isAuthenticated = config.token !== undefined;
+        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
+        allRepos = allRepos.concat(validRepos);
+        notFound.users = notFoundUsers;
+    }
+
+    let repos = allRepos
+        .filter((repo) => {
+            const isExcluded = shouldExcludeRepo({
+                repo,
+                include: {
+                    topics: config.topics,
+                },
+                exclude: config.exclude,
+            });
+
+            return !isExcluded;
+        });
+
+    logger.debug(`Found ${repos.length} total repositories.`);
+
+    return {
+        validRepos: repos,  
+        notFound,
+    };
 }
 
 export const shouldExcludeRepo = ({
@@ -239,7 +239,7 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
                 data
             };
         } catch (error) {
-            if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
+            if (isHttpError(error, 404)) {
                 logger.error(`User ${user} not found or no access`);
                 return {
                     type: 'notFound' as const,
@@ -282,7 +282,7 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
                 data
             };
         } catch (error) {
-            if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
+            if (isHttpError(error, 404)) {
                 logger.error(`Organization ${org} not found or no access`);
                 return {
                     type: 'notFound' as const,
@@ -327,7 +327,7 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
             };
 
         } catch (error) {
-            if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
+            if (isHttpError(error, 404)) {
                 logger.error(`Repository ${repo} not found or no access`);
                 return {
                     type: 'notFound' as const,

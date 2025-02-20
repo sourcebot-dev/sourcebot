@@ -8,6 +8,7 @@ import { getConnections } from "@/actions";
 import { useState } from "react";
 import { useEffect } from "react";
 import { isServiceError } from "@/lib/utils";
+import { SyncStatusMetadataSchema } from "@/lib/syncStatusMetadataSchema";
 
 interface Warning {
     connectionId?: number;
@@ -24,9 +25,9 @@ export const WarningNavIndicator = () => {
             const warnings: Warning[] = [];
             if (!isServiceError(connections)) {
                 for (const connection of connections) {
-                    const syncStatusMetadata = connection.syncStatusMetadata;
-                    if (syncStatusMetadata && typeof syncStatusMetadata === 'object' && ('notFound' in syncStatusMetadata)) {
-                        const notFound = syncStatusMetadata.notFound as { users: string[], orgs: string[], repos: string[] };
+                    const parseResult = SyncStatusMetadataSchema.safeParse(connection.syncStatusMetadata);
+                    if (parseResult.success && parseResult.data.notFound) {
+                        const { notFound } = parseResult.data;
                         if (notFound.users.length > 0 || notFound.orgs.length > 0 || notFound.repos.length > 0) {
                             warnings.push({ connectionId: connection.id, connectionName: connection.name });
                         }

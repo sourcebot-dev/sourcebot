@@ -1,6 +1,7 @@
 import { AlertTriangle } from "lucide-react"
 import { Prisma } from "@sourcebot/db"
 import { RetrySyncButton } from "./retrySyncButton"
+import { SyncStatusMetadataSchema } from "@/lib/syncStatusMetadataSchema"
 
 interface NotFoundWarningProps {
   syncStatusMetadata: Prisma.JsonValue
@@ -11,18 +12,15 @@ interface NotFoundWarningProps {
 }
 
 export const NotFoundWarning = ({ syncStatusMetadata, onSecretsClick, connectionId, domain, connectionType }: NotFoundWarningProps) => {
-  if (!syncStatusMetadata || typeof syncStatusMetadata !== 'object' || !('notFound' in syncStatusMetadata)) {
-    return null
+  const parseResult = SyncStatusMetadataSchema.safeParse(syncStatusMetadata);
+  if (!parseResult.success || !parseResult.data.notFound) {
+    return null;
   }
 
-  const notFound = syncStatusMetadata.notFound as {
-    users: string[]
-    orgs: string[]
-    repos: string[]
-  }
+  const { notFound } = parseResult.data;
 
   if (notFound.users.length === 0 && notFound.orgs.length === 0 && notFound.repos.length === 0) {
-    return null
+    return null;
   }
 
   return (

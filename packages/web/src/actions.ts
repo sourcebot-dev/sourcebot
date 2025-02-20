@@ -22,6 +22,7 @@ import { Session } from "next-auth";
 import { STRIPE_PRODUCT_ID, CONFIG_MAX_REPOS_NO_TOKEN } from "@/lib/environment";
 import { StripeSubscriptionStatus } from "@sourcebot/db";
 import Stripe from "stripe";
+import { SyncStatusMetadataSchema, type NotFoundData } from "@/lib/syncStatusMetadataSchema";
 const ajv = new Ajv({
     validateFormats: false,
 });
@@ -842,39 +843,6 @@ export const getSubscriptionCheckoutRedirect = async (domain: string) =>
             return newSubscriptionUrl;
         })
     )
-
-export const getConnectionNotFoundData = async (domain: string,connectionId: number): Promise<{
-    users: string[],
-    orgs: string[],
-    repos: string[],
-} | null | ServiceError> =>
-    withAuth(async (session) => 
-        withOrgMembership(session, domain, async () => {
-            const connection = await prisma.connection.findUnique({
-                where: {
-                    id: connectionId,
-                },
-            });
-
-            if (!connection) {
-                return notFound();
-            }
-
-            const syncStatusMetadata = connection.syncStatusMetadata;
-            if (!syncStatusMetadata || typeof syncStatusMetadata !== 'object' || !('notFound' in syncStatusMetadata)) {
-                return null;
-            }
-
-            const notFoundData = syncStatusMetadata.notFound as {
-                users: string[],
-                orgs: string[],
-                repos: string[],
-            }
-
-            return notFoundData;
-        })
-    );
-
 
 export async function fetchStripeSession(sessionId: string) {
     const stripe = getStripe();
