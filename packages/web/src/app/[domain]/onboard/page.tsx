@@ -7,6 +7,7 @@ import { InviteTeam } from "./components/inviteTeam";
 import Link from "next/link";
 import { CompleteOnboarding } from "./components/completeOnboarding";
 import { Checkout } from "./components/checkout";
+import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 
 interface OnboardProps {
     params: {
@@ -41,7 +42,8 @@ export default async function Onboard({ params, searchParams }: OnboardProps) {
     const lastRequiredStep = OnboardingSteps.Checkout;
 
     return (
-        <div className="flex flex-col items-center p-12 min-h-screen bg-backgroundSecondary">
+        <div className="flex flex-col items-center p-12 min-h-screen bg-backgroundSecondary relative">
+            <LogoutEscapeHatch className="absolute top-0 right-0 p-12" />
             {step === OnboardingSteps.ConnectCodeHost && (
                 <>
                     <OnboardHeader
