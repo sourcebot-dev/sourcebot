@@ -197,120 +197,22 @@ export class ConnectionManager implements IConnectionManager {
             const deleteDuration = performance.now() - deleteStart;
             this.logger.info(`Deleted all RepoToConnection records for connection ${job.data.connectionId} in ${deleteDuration}ms`);
 
-            const existingRepos: Repo[] = await tx.repo.findMany({
-                where: {
-                    external_id: {
-                        in: repoData.map(repo => repo.external_id),
+            const upsertStart = performance.now();
+            for (const repo of repoData) {
+                await tx.repo.upsert({
+                    where: {
+                        external_id_external_codeHostUrl_orgId: {
+                            external_id: repo.external_id,
+                            external_codeHostUrl: repo.external_codeHostUrl,
+                            orgId: orgId,
+                        }
                     },
-                    external_codeHostUrl: {
-                        in: repoData.map(repo => repo.external_codeHostUrl),
-                    },
-                },
-            });
-            const existingRepoKeys = existingRepos.map(repo => `${repo.external_id}-${repo.external_codeHostUrl}`);
-
-            const existingRepoData = repoData.filter(repo => existingRepoKeys.includes(`${repo.external_id}-${repo.external_codeHostUrl}`));
-            const [toCreate, toUpdate] = repoData.reduce<[Prisma.RepoCreateManyInput[], Prisma.RepoUpdateManyMutationInput[]]>(([toCreate, toUpdate], repo) => {
-                const existingRepo = existingRepoData.find((r: RepoData) => r.external_id === repo.external_id && r.external_codeHostUrl === repo.external_codeHostUrl);
-                if (existingRepo) {
-                    // @note: make sure to reflect any changes here in the raw sql update below
-                    const updateRepo: Prisma.RepoUpdateManyMutationInput = {
-                        name: repo.name,
-                        cloneUrl: repo.cloneUrl,
-                        imageUrl: repo.imageUrl,
-                        isFork: repo.isFork,
-                        isArchived: repo.isArchived,
-                        metadata: repo.metadata,
-                        external_id: repo.external_id,
-                        external_codeHostType: repo.external_codeHostType,
-                        external_codeHostUrl: repo.external_codeHostUrl,
-                    }
-                    toUpdate.push(updateRepo);
-                } else {
-                    const createRepo: Prisma.RepoCreateManyInput = {
-                        name: repo.name,
-                        cloneUrl: repo.cloneUrl,
-                        imageUrl: repo.imageUrl,
-                        isFork: repo.isFork,
-                        isArchived: repo.isArchived,
-                        metadata: repo.metadata,
-                        orgId: job.data.orgId,
-                        external_id: repo.external_id,
-                        external_codeHostType: repo.external_codeHostType,
-                        external_codeHostUrl: repo.external_codeHostUrl,
-                    }
-                    toCreate.push(createRepo);
-                }
-                return [toCreate, toUpdate];
-            }, [[], []]);
-
-            if (toCreate.length > 0) {
-                const createStart = performance.now();
-                const createdRepos = await tx.repo.createManyAndReturn({
-                    data: toCreate,
-                });
-
-                await tx.repoToConnection.createMany({
-                    data: createdRepos.map(repo => ({
-                        repoId: repo.id,
-                        connectionId: job.data.connectionId,
-                    })),
-                });
-
-                const createDuration = performance.now() - createStart;
-                this.logger.info(`Created ${toCreate.length} repos in ${createDuration}ms`);
+                    update: repo,
+                    create: repo,
+                })
             }
-
-            if (toUpdate.length > 0) {
-                const updateStart = performance.now();
-
-                // Build values string for update query
-                const updateValues = toUpdate.map(repo => `(
-                    '${repo.name}',
-                    '${repo.cloneUrl}', 
-                    ${repo.imageUrl ? `'${repo.imageUrl}'` : 'NULL'},
-                    ${repo.isFork},
-                    ${repo.isArchived},
-                    '${JSON.stringify(repo.metadata)}'::jsonb,
-                    '${repo.external_id}',
-                    '${repo.external_codeHostType}',
-                    '${repo.external_codeHostUrl}'
-                )`).join(',');
-
-                // Update repos and get their IDs in one quercy
-                const updateSql = `
-                    WITH updated AS (
-                        UPDATE "Repo" r
-                        SET
-                            name = v.name,
-                            "cloneUrl" = v.clone_url,
-                            "imageUrl" = v.image_url,
-                            "isFork" = v.is_fork,
-                            "isArchived" = v.is_archived,
-                            metadata = v.metadata,
-                            "updatedAt" = NOW()
-                        FROM (
-                            VALUES ${updateValues}
-                        ) AS v(name, clone_url, image_url, is_fork, is_archived, metadata, external_id, external_code_host_type, external_code_host_url)
-                        WHERE r.external_id = v.external_id 
-                        AND r."external_codeHostUrl" = v.external_code_host_url
-                        RETURNING r.id
-                    )
-                    SELECT id FROM updated
-                `;
-                const updatedRepoIds = await tx.$queryRawUnsafe<{id: number}[]>(updateSql);
-
-                // Insert repo-connection mappings
-                const createConnectionSql = `
-                    INSERT INTO "RepoToConnection" ("repoId", "connectionId", "addedAt")
-                    SELECT id, ${job.data.connectionId}, NOW()
-                    FROM unnest(ARRAY[${updatedRepoIds.map(r => r.id).join(',')}]) AS id
-                `;
-                await tx.$executeRawUnsafe(createConnectionSql);
-
-                const updateDuration = performance.now() - updateStart;
-                this.logger.info(`Updated ${toUpdate.length} repos in ${updateDuration}ms`);
-            }
+            const upsertDuration = performance.now() - upsertStart;
+            this.logger.info(`Upserted ${repoData.length} repos in ${upsertDuration}ms`);
         });
     }
 
