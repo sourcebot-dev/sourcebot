@@ -29,6 +29,10 @@ export default async function BillingPage({
         return <div>Failed to fetch subscription data. Please contact us at team@sourcebot.dev if this issue persists.</div>
     }
 
+    if (!subscription) {
+        return <div>todo</div>
+    }
+
     const currentUserRole = await getCurrentUserRole(domain)
     if (isServiceError(currentUserRole)) {
         return <div>Failed to fetch user role. Please contact us at team@sourcebot.dev if this issue persists.</div>

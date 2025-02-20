@@ -1,6 +1,6 @@
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type"
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
-import { QuickAction } from "./components/configEditor";
+import { QuickAction } from "../components/configEditor";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { GerritConnectionConfig } from "@sourcebot/schemas/v3/gerrit.type";
 

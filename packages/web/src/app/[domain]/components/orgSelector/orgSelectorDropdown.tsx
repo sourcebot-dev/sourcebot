@@ -1,9 +1,10 @@
 'use client';
+
 import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { CaretSortIcon, CheckIcon, PlusCircledIcon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { OrgIcon } from "./orgIcon";
@@ -108,6 +109,20 @@ export const OrgSelectorDropdown = ({
                         </CommandList>
                     </Command>
                 </DropdownMenuGroup>
+                {searchFilter.length === 0 && (
+                    <DropdownMenuGroup>
+                        <DropdownMenuSeparator />
+                        <Button
+                            variant="ghost"
+                            size="default"
+                            className="w-full justify-start gap-1.5 p-2"
+                            onClick={() => router.push("/onboard")}
+                        >
+                            <PlusCircledIcon className="h-5 w-5 text-muted-foreground" />
+                            Create new organization
+                        </Button>
+                    </DropdownMenuGroup>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );

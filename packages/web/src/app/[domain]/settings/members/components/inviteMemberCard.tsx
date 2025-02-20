@@ -17,7 +17,7 @@ import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
-const formSchema = z.object({
+export const inviteMemberFormSchema = z.object({
     emails: z.array(z.object({
         email: z.string().email()
     }))
@@ -38,8 +38,8 @@ export const InviteMemberCard = ({ currentUserRole }: InviteMemberCardProps) => 
     const { toast } = useToast();   
     const router = useRouter();
 
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
+    const form = useForm<z.infer<typeof inviteMemberFormSchema>>({
+        resolver: zodResolver(inviteMemberFormSchema),
         defaultValues: {
             emails: [{ email: "" }]
         },
@@ -50,7 +50,7 @@ export const InviteMemberCard = ({ currentUserRole }: InviteMemberCardProps) => 
         form.setValue('emails', [...emails, { email: "" }]);
     }, [form]);
 
-    const onSubmit = useCallback((data: z.infer<typeof formSchema>) => {
+    const onSubmit = useCallback((data: z.infer<typeof inviteMemberFormSchema>) => {
         setIsLoading(true);
         createInvites(data.emails.map(e => e.email), domain)
             .then((res) => {

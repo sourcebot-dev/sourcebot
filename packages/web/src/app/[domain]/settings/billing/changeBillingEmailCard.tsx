@@ -83,8 +83,8 @@ export function ChangeBillingEmailCard({ currentUserRole }: ChangeBillingEmailCa
                 <FormItem>
                   <FormLabel>Email address</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder={billingEmail} 
+                    <Input
+                      placeholder={billingEmail}
                       {...field}
                       disabled={currentUserRole !== OrgRole.OWNER}
                       title={currentUserRole !== OrgRole.OWNER ? "Only organization owners can change the billing email" : undefined}
@@ -94,14 +94,15 @@ export function ChangeBillingEmailCard({ currentUserRole }: ChangeBillingEmailCa
                 </FormItem>
               )}
             />
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading || currentUserRole !== OrgRole.OWNER}
-              title={currentUserRole !== OrgRole.OWNER ? "Only organization owners can change the billing email" : undefined}
-            >
-              {isLoading ? "Updating..." : "Update Billing Email"}
-            </Button>
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                disabled={isLoading || currentUserRole !== OrgRole.OWNER}
+                title={currentUserRole !== OrgRole.OWNER ? "Only organization owners can change the billing email" : undefined}
+              >
+                {isLoading ? "Updating..." : "Update Billing Email"}
+              </Button>
+            </div>
           </form>
         </Form>
       </CardContent>

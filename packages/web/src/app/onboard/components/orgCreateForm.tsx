@@ -1,15 +1,19 @@
 "use client"
 
-import { checkIfOrgDomainExists } from "../../../actions"
+import { checkIfOrgDomainExists, createOrg } from "../../../actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
-import { isServiceError } from "@/lib/utils"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useState } from "react";
+import { useCallback } from "react";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
+import { isServiceError } from "@/lib/utils"
+import { Loader2 } from "lucide-react"
+import { useToast } from "@/components/hooks/use-toast"
+import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card"
 
 const onboardingFormSchema = z.object({
     name: z.string()
@@ -20,55 +24,46 @@ const onboardingFormSchema = z.object({
         .max(20, { message: "Organization domain must be at most 20 characters long." })
         .regex(/^[a-z][a-z-]*[a-z]$/, {
             message: "Domain must start and end with a letter, and can only contain lowercase letters and dashes.",
-          }),
+        })
+        .refine(async (domain) => {
+            const doesDomainExist = await checkIfOrgDomainExists(domain);
+            return isServiceError(doesDomainExist) || !doesDomainExist;
+        }, "This domain is already taken."),
 })
 
-export type OnboardingFormValues = z.infer<typeof onboardingFormSchema>
-
-const defaultValues: Partial<OnboardingFormValues> = {
-    name: "",
-    domain: "",
-}
-
-interface OrgCreateFormProps {
-    setOrgCreateData: (data: OnboardingFormValues) => void;
-}
-
-export function OrgCreateForm({ setOrgCreateData }: OrgCreateFormProps) {
-    const form = useForm<OnboardingFormValues>({ resolver: zodResolver(onboardingFormSchema), defaultValues })
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-    async function submitOrgInfoForm(data: OnboardingFormValues) {
-        const res = await checkIfOrgDomainExists(data.domain);
-        if (isServiceError(res)) {
-            setErrorMessage("An error occurred while checking the domain. Please try clearing your cookies and trying again.");
-            return;
+export function OrgCreateForm() {
+    const { toast } = useToast();
+    const router = useRouter();
+    const form = useForm<z.infer<typeof onboardingFormSchema>>({
+        resolver: zodResolver(onboardingFormSchema),
+        defaultValues: {
+            name: "",
+            domain: "",
         }
+    });
+    const { isSubmitting } = form.formState;
 
-        if (res) {
-            setErrorMessage("Organization domain already exists. Please try a different one.");
-            return;
+    const onSubmit = useCallback(async (data: z.infer<typeof onboardingFormSchema>) => {
+        const response = await createOrg(data.name, data.domain);
+        if (isServiceError(response)) {
+            toast({
+                description: `❌ Failed to create organization. Reason: ${response.message}`
+            })
         } else {
-            setOrgCreateData(data);
+            router.push(`/${data.domain}`);
         }
-    }
+    }, [router, toast]);
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value
         const domain = name.toLowerCase().replace(/\s+/g, "-")
         form.setValue("domain", domain)
-      }
+    }
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-center">
-                <SourcebotLogo
-                    className="h-16"
-                />
-            </div>
-            <h1 className="text-2xl font-bold">Let&apos;s create your organization</h1>
+        <Card className="flex flex-col border p-12 space-y-6 bg-background w-96">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(submitOrgInfoForm)} className="space-y-8">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     <FormField
                         control={form.control}
                         name="name"
@@ -76,9 +71,9 @@ export function OrgCreateForm({ setOrgCreateData }: OrgCreateFormProps) {
                             <FormItem>
                                 <FormLabel>Organization Name</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        placeholder="Aperture Labs" 
-                                        {...field} 
+                                    <Input
+                                        placeholder="Aperture Labs"
+                                        {...field}
                                         onChange={(e) => {
                                             field.onChange(e)
                                             handleNameChange(e)
@@ -105,12 +100,17 @@ export function OrgCreateForm({ setOrgCreateData }: OrgCreateFormProps) {
                             </FormItem>
                         )}
                     />
-                    {errorMessage && <p className="text-red-500">{errorMessage}</p>}
-                    <div className="flex justify-center">
-                        <Button type="submit">Create</Button>
-                    </div>
+                    <Button
+                        variant="default"
+                        className="w-full"
+                        type="submit"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        Create
+                    </Button>
                 </form>
             </Form>
-        </div>
+        </Card>
     )
 }
