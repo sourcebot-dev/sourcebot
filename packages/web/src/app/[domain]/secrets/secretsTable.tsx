@@ -31,14 +31,17 @@ export const SecretsTable = ({ initialSecrets }: SecretsTableProps) => {
     const domain = useDomain();
 
     useEffect(() => {
-        getSecrets(domain).then((keys) => {
-            if ('keys' in keys) {
-                setSecrets(keys);
-            } else {
-                console.error(keys);
+        const fetchSecretKeys = async () => {
+            const keys = await getSecrets(domain);
+            if (isServiceError(keys)) {
+                console.error("Failed to fetch secrets:", keys);
+                return;
             }
-        })
-    }, []);
+            setSecrets(keys);
+        };
+
+        fetchSecretKeys();
+    }, [domain]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),

@@ -5,6 +5,8 @@ import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
 import micromatch from "micromatch";
 import { PrismaClient } from "@sourcebot/db";
 import { FALLBACK_GITHUB_TOKEN } from "./environment.js";
+import { BackendException, BackendError } from "@sourcebot/error";
+import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 const logger = createLogger("GitHub");
 
 export type OctokitRepository = {
@@ -28,8 +30,17 @@ export type OctokitRepository = {
     }
 }
 
+const isHttpError = (error: unknown, status: number): boolean => {
+    return error !== null 
+        && typeof error === 'object'
+        && 'status' in error 
+        && error.status === status;
+}
+
 export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal) => {
-    const token = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
+    const tokenResult = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
+    const token = tokenResult?.token;
+    const secretKey = tokenResult?.secretKey;
 
     const octokit = new Octokit({
         auth: token ?? FALLBACK_GITHUB_TOKEN,
@@ -38,25 +49,52 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
         } : {}),
     });
 
+    if (token) {
+        try {
+            await octokit.rest.users.getAuthenticated();
+        } catch (error) {
+            if (isHttpError(error, 401)) {
+                throw new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN, {
+                    secretKey,
+                });
+            }
+
+            throw new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
+                message: `Failed to authenticate with GitHub`,
+            });
+        }
+    }
+
     let allRepos: OctokitRepository[] = [];
+    let notFound: {
+        users: string[],
+        orgs: string[],
+        repos: string[],
+    } = {
+        users: [],
+        orgs: [],
+        repos: [],
+    };
 
     if (config.orgs) {
-        const _repos = await getReposForOrgs(config.orgs, octokit, signal);
-        allRepos = allRepos.concat(_repos);
+        const { validRepos, notFoundOrgs } = await getReposForOrgs(config.orgs, octokit, signal);
+        allRepos = allRepos.concat(validRepos);
+        notFound.orgs = notFoundOrgs;
     }
 
     if (config.repos) {
-        const _repos = await getRepos(config.repos, octokit, signal);
-        allRepos = allRepos.concat(_repos);
+        const { validRepos, notFoundRepos } = await getRepos(config.repos, octokit, signal);
+        allRepos = allRepos.concat(validRepos);
+        notFound.repos = notFoundRepos;
     }
 
     if (config.users) {
         const isAuthenticated = config.token !== undefined;
-        const _repos = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
-        allRepos = allRepos.concat(_repos);
+        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
+        allRepos = allRepos.concat(validRepos);
+        notFound.users = notFoundUsers;
     }
 
-    // Marshall results to our type
     let repos = allRepos
         .filter((repo) => {
             const isExcluded = shouldExcludeRepo({
@@ -72,21 +110,10 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
 
     logger.debug(`Found ${repos.length} total repositories.`);
 
-    return repos;
-}
-
-export const getGitHubRepoFromId = async (id: string, hostURL: string, token?: string) => {
-    const octokit = new Octokit({
-        auth: token ?? FALLBACK_GITHUB_TOKEN,
-        ...(hostURL !== 'https://github.com' ? {
-            baseUrl: `${hostURL}/api/v3`
-        } : {})
-    });
-
-    const repo = await octokit.request('GET /repositories/:id', {
-        id,
-    });
-    return repo;
+    return {
+        validRepos: repos,  
+        notFound,
+    };
 }
 
 export const shouldExcludeRepo = ({
@@ -176,7 +203,7 @@ export const shouldExcludeRepo = ({
 }
 
 const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, octokit: Octokit, signal: AbortSignal) => {
-    const repos = (await Promise.all(users.map(async (user) => {
+    const results = await Promise.allSettled(users.map(async (user) => {
         try {
             logger.debug(`Fetching repository info for user ${user}...`);
 
@@ -207,18 +234,33 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
             });
 
             logger.debug(`Found ${data.length} owned by user ${user} in ${durationMs}ms.`);
-            return data;
-        } catch (e) {
-            logger.error(`Failed to fetch repository info for user ${user}.`, e);
-            throw e;
+            return {
+                type: 'valid' as const,
+                data
+            };
+        } catch (error) {
+            if (isHttpError(error, 404)) {
+                logger.error(`User ${user} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    value: user
+                };
+            }
+            throw error;
         }
-    }))).flat();
+    }));
 
-    return repos;
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundUsers } = processPromiseResults<OctokitRepository>(results);
+
+    return {
+        validRepos,
+        notFoundUsers,
+    };
 }
 
 const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal) => {
-    const repos = (await Promise.all(orgs.map(async (org) => {
+    const results = await Promise.allSettled(orgs.map(async (org) => {
         try {
             logger.info(`Fetching repository info for org ${org}...`);
 
@@ -235,18 +277,33 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
             });
 
             logger.info(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
-            return data;
-        } catch (e) {
-            logger.error(`Failed to fetch repository info for org ${org}.`, e);
-            throw e;
+            return {
+                type: 'valid' as const,
+                data
+            };
+        } catch (error) {
+            if (isHttpError(error, 404)) {
+                logger.error(`Organization ${org} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    value: org
+                };
+            }
+            throw error;
         }
-    }))).flat();
+    }));
 
-    return repos;
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundOrgs } = processPromiseResults<OctokitRepository>(results);
+
+    return {
+        validRepos,
+        notFoundOrgs,
+    };
 }
 
 const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal) => {
-    const repos = (await Promise.all(repoList.map(async (repo) => {
+    const results = await Promise.allSettled(repoList.map(async (repo) => {
         try {
             const [owner, repoName] = repo.split('/');
             logger.info(`Fetching repository info for ${repo}...`);
@@ -264,13 +321,28 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
             });
 
             logger.info(`Found info for repository ${repo} in ${durationMs}ms`);
+            return {
+                type: 'valid' as const,
+                data: [result.data]
+            };
 
-            return [result.data];
-        } catch (e) {
-            logger.error(`Failed to fetch repository info for ${repo}.`, e);
-            throw e;
+        } catch (error) {
+            if (isHttpError(error, 404)) {
+                logger.error(`Repository ${repo} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    value: repo
+                };
+            }
+            throw error;
         }
-    }))).flat();
+    }));
 
-    return repos;
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults<OctokitRepository>(results);
+
+    return {
+        validRepos,
+        notFoundRepos,
+    };
 }

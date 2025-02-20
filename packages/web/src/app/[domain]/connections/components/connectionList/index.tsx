@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
-import { ConnectionSyncStatus } from "@sourcebot/db";
-import { getConnections } from "@/actions";
+import { ConnectionSyncStatus, Prisma } from "@sourcebot/db";
+import { getConnectionFailedRepos, getConnections } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 
 interface ConnectionListProps {
@@ -22,8 +22,10 @@ export const ConnectionList = ({
         name: string;
         connectionType: string;
         syncStatus: ConnectionSyncStatus;
+        syncStatusMetadata: Prisma.JsonValue;
         updatedAt: Date;
         syncedAt?: Date;
+        failedRepos?: { repoId: number, repoName: string }[];
     }[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -35,7 +37,19 @@ export const ConnectionList = ({
                 if (isServiceError(result)) {
                     setError(result.message);
                 } else {
-                    setConnections(result);
+                    const connectionsWithFailedRepos = [];
+                    for (const connection of result) {
+                        const failedRepos = await getConnectionFailedRepos(connection.id, domain);
+                        if (isServiceError(failedRepos)) {
+                            setError(`An error occured while fetching the failed repositories for connection ${connection.name}. If the problem persists, please contact us at team@sourcebot.dev`);
+                        } else {
+                            connectionsWithFailedRepos.push({
+                                ...connection,
+                                failedRepos,
+                            });
+                        }
+                    }
+                    setConnections(connectionsWithFailedRepos);
                 }
                 setLoading(false);
             } catch (err) {
@@ -69,8 +83,10 @@ export const ConnectionList = ({
                             name={connection.name}
                             type={connection.connectionType}
                             status={connection.syncStatus}
+                            syncStatusMetadata={connection.syncStatusMetadata}
                             editedAt={connection.updatedAt}
                             syncedAt={connection.syncedAt ?? undefined}
+                            failedRepos={connection.failedRepos}
                         />
                     ))
             ) : (

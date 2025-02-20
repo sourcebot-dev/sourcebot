@@ -14,7 +14,7 @@ import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, GerritConnectionConfig, ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection, getLinkedRepos } from "./data/connection";
-import { ConnectionSyncStatus, Prisma, Invite, OrgRole, Connection, Repo, Org } from "@sourcebot/db";
+import { ConnectionSyncStatus, Prisma, Invite, OrgRole, Connection, Repo, Org, RepoIndexingStatus } from "@sourcebot/db";
 import { headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
@@ -22,6 +22,7 @@ import { Session } from "next-auth";
 import { STRIPE_PRODUCT_ID, CONFIG_MAX_REPOS_NO_TOKEN } from "@/lib/environment";
 import { StripeSubscriptionStatus } from "@sourcebot/db";
 import Stripe from "stripe";
+import { SyncStatusMetadataSchema, type NotFoundData } from "@/lib/syncStatusMetadataSchema";
 const ajv = new Ajv({
     validateFormats: false,
 });
@@ -179,6 +180,7 @@ export const getConnections = async (domain: string): Promise<
         id: number,
         name: string,
         syncStatus: ConnectionSyncStatus,
+        syncStatusMetadata: Prisma.JsonValue,
         connectionType: string,
         updatedAt: Date,
         syncedAt?: Date
@@ -196,9 +198,44 @@ export const getConnections = async (domain: string): Promise<
                 id: connection.id,
                 name: connection.name,
                 syncStatus: connection.syncStatus,
+                syncStatusMetadata: connection.syncStatusMetadata,
                 connectionType: connection.connectionType,
                 updatedAt: connection.updatedAt,
                 syncedAt: connection.syncedAt ?? undefined,
+            }));
+        })
+    );
+
+export const getConnectionFailedRepos = async (connectionId: number, domain: string): Promise<{ repoId: number, repoName: string }[] | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const connection = await getConnection(connectionId, orgId);
+            if (!connection) {
+                return notFound();
+            }
+
+            const linkedRepos = await getLinkedRepos(connectionId, orgId);
+
+            return linkedRepos.filter((repo) => repo.repo.repoIndexingStatus === RepoIndexingStatus.FAILED).map((repo) => ({
+                repoId: repo.repo.id,
+                repoName: repo.repo.name,
+            }));
+        })
+    );
+
+export const getConnectionInProgressRepos = async (connectionId: number, domain: string): Promise<{ repoId: number, repoName: string }[] | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const connection = await getConnection(connectionId, orgId);
+            if (!connection) {
+                return notFound();
+            }
+
+            const linkedRepos = await getLinkedRepos(connectionId, orgId);
+
+            return linkedRepos.filter((repo) => repo.repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE || repo.repo.repoIndexingStatus === RepoIndexingStatus.INDEXING).map((repo) => ({
+                repoId: repo.repo.id,
+                repoName: repo.repo.name,
             }));
         })
     );
@@ -331,14 +368,6 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
                 return notFound();
             }
 
-            if (connection.syncStatus !== "FAILED") {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.CONNECTION_NOT_FAILED,
-                    message: "Connection is not in a failed state. Cannot flag for sync.",
-                } satisfies ServiceError;
-            }
-
             await prisma.connection.update({
                 where: {
                     id: connection.id,
@@ -352,6 +381,36 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
                 success: true,
             }
         }));
+
+export const flagRepoForIndex = async (repoId: number, domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async () => {
+            const repo = await prisma.repo.findUnique({
+                where: {
+                    id: repoId,
+                },
+            });
+
+            if (!repo) {
+                return notFound();
+            }
+
+            await prisma.repo.update({
+                where: {
+                    id: repoId, 
+                },
+                data: {
+                    repoIndexingStatus: RepoIndexingStatus.NEW,
+                }
+            });
+
+            return {
+                success: true,
+            }
+        })
+    );
+
+
 
 export const deleteConnection = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>

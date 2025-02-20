@@ -3,6 +3,7 @@ import Image from "next/image";
 import { StatusIcon } from "../../components/statusIcon";
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { useMemo } from "react";
+import { RetryRepoIndexButton } from "./repoRetryIndexButton";
 
 
 interface RepoListItemProps {
@@ -10,6 +11,8 @@ interface RepoListItemProps {
     status: RepoIndexingStatus;
     imageUrl?: string;
     indexedAt?: Date;
+    repoId: number;
+    domain: string;
 }
 
 export const RepoListItem = ({
@@ -17,6 +20,8 @@ export const RepoListItem = ({
     name,
     indexedAt,
     status,
+    repoId,
+    domain,
 }: RepoListItemProps) => {
     const statusDisplayName = useMemo(() => {
         switch (status) {
@@ -47,22 +52,27 @@ export const RepoListItem = ({
                 />
                 <p className="font-medium">{name}</p>
             </div>
-            <div className="flex flex-row items-center">
-                <StatusIcon
-                    status={convertIndexingStatus(status)}
-                    className="w-4 h-4 mr-1"
-                />
-                <p className="text-sm">
-                    <span>{statusDisplayName}</span>
-                    {
-                        (
-                            status === RepoIndexingStatus.INDEXED ||
-                            status === RepoIndexingStatus.FAILED
-                        ) && indexedAt && (
-                            <span>{` ${getDisplayTime(indexedAt)}`}</span>
-                        )
-                    }
-                </p>
+            <div className="flex flex-row items-center gap-4">
+                {status === RepoIndexingStatus.FAILED && (
+                    <RetryRepoIndexButton repoId={repoId} domain={domain} />
+                )}
+                <div className="flex flex-row items-center gap-0">
+                    <StatusIcon
+                        status={convertIndexingStatus(status)}
+                        className="w-4 h-4 mr-1"
+                    />
+                    <p className="text-sm">
+                        <span>{statusDisplayName}</span>
+                        {
+                            (
+                                status === RepoIndexingStatus.INDEXED ||
+                                status === RepoIndexingStatus.FAILED
+                            ) && indexedAt && (
+                                <span>{` ${getDisplayTime(indexedAt)}`}</span>
+                            )
+                        }
+                    </p>
+                </div>
             </div>
         </div>
     )

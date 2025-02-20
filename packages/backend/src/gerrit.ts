@@ -3,6 +3,8 @@ import { GerritConfig } from "@sourcebot/schemas/v2/index.type"
 import { createLogger } from './logger.js';
 import micromatch from "micromatch";
 import { measure, marshalBool, excludeReposByName, includeReposByName, fetchWithRetry } from './utils.js';
+import { BackendError } from '@sourcebot/error';
+import { BackendException } from '@sourcebot/error';
 
 // https://gerrit-review.googlesource.com/Documentation/rest-api.html
 interface GerritProjects {
@@ -38,6 +40,10 @@ export const getGerritReposFromConfig = async (config: GerritConfig): Promise<Ge
          const fetchFn = () => fetchAllProjects(url);
          return fetchWithRetry(fetchFn, `projects from ${url}`, logger);
       } catch (err) {
+         if (err instanceof BackendException) {
+            throw err;
+         }
+
          logger.error(`Failed to fetch projects from ${url}`, err);
          return null;
       }
@@ -78,9 +84,25 @@ const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
       const endpointWithParams = `${projectsEndpoint}?S=${start}`;
       logger.debug(`Fetching projects from Gerrit at ${endpointWithParams}`);
 
-      const response = await fetch(endpointWithParams);
-      if (!response.ok) {
-         throw new Error(`Failed to fetch projects from Gerrit: ${response.statusText}`);
+      let response: Response;
+      try {
+         response = await fetch(endpointWithParams);
+         if (!response.ok) {
+            console.log(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${response.status}`);
+            throw new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
+               status: response.status,
+            });
+         }
+      } catch (err) {
+         if (err instanceof BackendException) {
+            throw err;
+         }
+
+         const status = (err as any).code;
+         console.log(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${status}`);
+         throw new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
+            status: status,
+         });
       }
 
       const text = await response.text();

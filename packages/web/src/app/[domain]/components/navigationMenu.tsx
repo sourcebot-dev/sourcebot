@@ -8,6 +8,9 @@ import { redirect } from "next/navigation";
 import { OrgSelector } from "./orgSelector";
 import { getSubscriptionData } from "@/actions";
 import { isServiceError } from "@/lib/utils";
+import { ErrorNavIndicator } from "./errorNavIndicator";
+import { WarningNavIndicator } from "./warningNavIndicator";
+import { ProgressNavIndicator } from "./progressNavIndicator";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
@@ -83,10 +86,13 @@ export const NavigationMenu = async ({
                 </div>
 
                 <div className="flex flex-row items-center gap-2">
+                    <ProgressNavIndicator />
+                    <WarningNavIndicator />
+                    <ErrorNavIndicator />
                     {!isServiceError(subscription) && subscription.status === "trialing" && (
                         <Link href={`/${domain}/settings/billing`}>
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-full text-yellow-700 dark:text-yellow-400 text-xs font-medium hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors cursor-pointer">
-                                <span className="inline-block w-2 h-2 bg-yellow-400 dark:bg-yellow-500 rounded-full"></span>
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full text-blue-700 dark:text-blue-400 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors cursor-pointer">
+                                <span className="inline-block w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-full"></span>
                                 <span>
                                     {Math.ceil((subscription.nextBillingDate * 1000 - Date.now()) / (1000 * 60 * 60 * 24))} days left in
                                     trial

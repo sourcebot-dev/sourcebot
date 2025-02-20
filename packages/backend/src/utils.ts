@@ -5,6 +5,7 @@ import micromatch from "micromatch";
 import { PrismaClient, Repo } from "@sourcebot/db";
 import { decrypt } from "@sourcebot/crypto";
 import { Token } from "@sourcebot/schemas/v3/shared.type";
+import { BackendException, BackendError } from "@sourcebot/error";
 
 export const measure = async <T>(cb: () => Promise<T>) => {
     const start = Date.now();
@@ -90,7 +91,9 @@ export const excludeReposByTopic = <T extends Repository>(repos: T[], excludedRe
 
 export const getTokenFromConfig = async (token: Token, orgId: number, db?: PrismaClient) => {
     if (!db) {
-        throw new Error(`Database connection required to retrieve secret`);
+        throw new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
+            message: `No database connection provided.`,
+        });
     }
 
     const secretKey = token.secret;
@@ -104,11 +107,16 @@ export const getTokenFromConfig = async (token: Token, orgId: number, db?: Prism
     });
 
     if (!secret) {
-        throw new Error(`Secret with key ${secretKey} not found for org ${orgId}`);
+        throw new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
+            message: `Secret with key ${secretKey} not found for org ${orgId}`,
+        });
     }
 
     const decryptedSecret = decrypt(secret.iv, secret.encryptedValue);
-    return decryptedSecret;
+    return {
+        token: decryptedSecret,
+        secretKey,
+    };
 }
 
 export const isRemotePath = (path: string) => {

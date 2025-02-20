@@ -18,9 +18,11 @@ COPY package.json yarn.lock* ./
 COPY ./packages/db ./packages/db
 COPY ./packages/schemas ./packages/schemas
 COPY ./packages/crypto ./packages/crypto
+COPY ./packages/error ./packages/error
 RUN yarn workspace @sourcebot/db install --frozen-lockfile
 RUN yarn workspace @sourcebot/schemas install --frozen-lockfile
 RUN yarn workspace @sourcebot/crypto install --frozen-lockfile
+RUN yarn workspace @sourcebot/error install --frozen-lockfile
 
 # ------ Build Web ------
 FROM node-alpine AS web-builder
@@ -33,6 +35,7 @@ COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
+COPY --from=shared-libs-builder /app/packages/error ./packages/error
 
 # Fixes arm64 timeouts
 RUN yarn config set registry https://registry.npmjs.org/
@@ -66,6 +69,7 @@ COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
+COPY --from=shared-libs-builder /app/packages/error ./packages/error
 RUN yarn workspace @sourcebot/backend install --frozen-lockfile
 RUN yarn workspace @sourcebot/backend build
     
@@ -138,6 +142,7 @@ COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
+COPY --from=shared-libs-builder /app/packages/error ./packages/error
 
 # Configure the database
 RUN mkdir -p /run/postgresql && \
