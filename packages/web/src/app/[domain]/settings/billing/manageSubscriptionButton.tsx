@@ -31,13 +31,14 @@ export function ManageSubscriptionButton({ currentUserRole }: { currentUserRole:
 
     const isOwner = currentUserRole === OrgRole.OWNER
     return (
-        <Button 
-            className="w-full" 
-            onClick={redirectToCustomerPortal} 
-            disabled={isLoading || !isOwner}
-            title={!isOwner ? "Only the owner of the org can manage the subscription" : undefined}
-        >
-            {isLoading ? "Creating customer portal..." : "Manage Subscription"}
-        </Button>
-      )
+        <div className="flex w-full justify-end">
+            <Button
+                onClick={redirectToCustomerPortal}
+                disabled={isLoading || !isOwner}
+                title={!isOwner ? "Only the owner of the org can manage the subscription" : undefined}
+            >
+                {isLoading ? "Creating customer portal..." : "Manage Subscription"}
+            </Button>
+        </div>
+    )
 }
