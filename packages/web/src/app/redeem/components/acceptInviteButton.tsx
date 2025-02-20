@@ -21,7 +21,7 @@ export function AcceptInviteButton({ invite, userId }: AcceptInviteButtonProps) 
     const handleAcceptInvite = async () => {
         setIsLoading(true)
         try {
-            const res = await redeemInvite(invite, userId)
+            const res = await redeemInvite(invite)
             if (isServiceError(res)) {
                 console.log("Failed to redeem invite: ", res)
                 toast({
