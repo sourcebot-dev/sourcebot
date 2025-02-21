@@ -89,7 +89,7 @@ export const NavigationMenu = async ({
                     <ProgressNavIndicator />
                     <WarningNavIndicator />
                     <ErrorNavIndicator />
-                    {!isServiceError(subscription) && subscription.status === "trialing" && (
+                    {!isServiceError(subscription) && subscription && subscription.status === "trialing" && (
                         <Link href={`/${domain}/settings/billing`}>
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full text-blue-700 dark:text-blue-400 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors cursor-pointer">
                                 <span className="inline-block w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-full"></span>

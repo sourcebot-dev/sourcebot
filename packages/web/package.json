@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
-    "dev:emails": "email dev --dir ./src/emails"
+    "dev:emails": "email dev --dir ./src/emails",
+    "stripe:listen": "stripe listen --forward-to http://localhost:3000/api/stripe"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",

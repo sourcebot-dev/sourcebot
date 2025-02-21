@@ -5,6 +5,7 @@ import { prisma } from '@/prisma';
 import { STRIPE_WEBHOOK_SECRET } from '@/lib/environment';
 import { getStripe } from '@/lib/stripe';
 import { ConnectionSyncStatus, StripeSubscriptionStatus } from '@sourcebot/db';
+
 export async function POST(req: NextRequest) {
     const body = await req.text();
     const signature = headers().get('stripe-signature');
