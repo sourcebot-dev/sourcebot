@@ -8,15 +8,18 @@ import {
     GerritConnectionCreationForm
 } from "@/app/[domain]/components/connectionCreationForms";
 import { useCallback } from "react";
+import { useDomain } from "@/hooks/useDomain";
+
 export default function NewConnectionPage({
     params
 }: { params: { type: string } }) {
     const { type } = params;
+    const domain = useDomain();
     const router = useRouter();
 
     const onCreated = useCallback(() => {
-        router.push('/connections');
-    }, [router]);
+        router.push(`/${domain}/connections`);
+    }, [domain, router]);
 
     if (type === 'github') {
         return <GitHubConnectionCreationForm onCreated={onCreated} />;
@@ -34,5 +37,5 @@ export default function NewConnectionPage({
         return <GerritConnectionCreationForm onCreated={onCreated} />;
     }
 
-    router.push('/connections');
+    router.push(`/${domain}/connections`);
 }
