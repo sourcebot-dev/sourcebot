@@ -46,8 +46,6 @@ export const ProgressNavIndicator = () => {
         };
 
         fetchInProgressJobs();
-        const intervalId = setInterval(fetchInProgressJobs, 1000);
-        return () => clearInterval(intervalId);
     }, [domain]);
 
     if (inProgressJobs.length === 0) {
