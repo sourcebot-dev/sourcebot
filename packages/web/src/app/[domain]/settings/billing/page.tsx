@@ -49,7 +49,6 @@ export default async function BillingPage({
                 <h3 className="text-lg font-medium">Billing</h3>
                 <p className="text-sm text-muted-foreground">Manage your subscription and billing information</p>
             </div>
-            <Separator />
             <div className="grid gap-6">
                 {/* Billing Email Card */}
                 <ChangeBillingEmailCard currentUserRole={currentUserRole} />

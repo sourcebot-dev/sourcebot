@@ -12,7 +12,7 @@ export default async function Onboarding() {
     }
 
     return (
-        <div className="flex flex-col items-center min-h-screen p-12 bg-backgroundSecondary fade-in-20 relative">
+        <div className="flex flex-col items-center min-h-screen p-12 bg-backgroundSecondary relative">
             <OnboardHeader
                 title="Setup your organization"
                 description="Create a organization for your team to search and share code across your repositories."

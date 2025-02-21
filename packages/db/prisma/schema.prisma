@@ -59,22 +59,22 @@ model Repo {
 }
 
 model Connection {
-  id                  Int                  @id @default(autoincrement())
-  name                String
-  config              Json
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  syncedAt            DateTime?
-  repos               RepoToConnection[]
-  syncStatus          ConnectionSyncStatus @default(SYNC_NEEDED)
-  syncStatusMetadata  Json?
+  id                 Int                  @id @default(autoincrement())
+  name               String
+  config             Json
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  syncedAt           DateTime?
+  repos              RepoToConnection[]
+  syncStatus         ConnectionSyncStatus @default(SYNC_NEEDED)
+  syncStatusMetadata Json?
 
   // The type of connection (e.g., github, gitlab, etc.)
-  connectionType      String
+  connectionType String
 
   // The organization that owns this connection
-  org                 Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  orgId               Int
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
 }
 
 model RepoToConnection {
@@ -121,6 +121,7 @@ model Org {
   repos       Repo[]
   secrets     Secret[]
   isOnboarded Boolean      @default(false)
+  imageUrl    String?
 
   stripeCustomerId         String?
   stripeSubscriptionStatus StripeSubscriptionStatus?
