@@ -12,7 +12,7 @@ export const InviteNotFoundCard = async () => {
         <Card className="flex flex-col items-center justify-center max-w-md text-center p-12">
             <SourcebotLogo
                 className="h-16 w-auto mx-auto mb-2"
-                size="small"
+                size="large"
             />
             <h2 className="text-2xl font-bold">Invite not found</h2>
             <p className="mt-5">

@@ -60,9 +60,9 @@ export const AcceptInviteCard = ({ inviteId, orgName, orgDomain, orgImageUrl, ho
             <CardHeader className="text-center">
                 <SourcebotLogo
                     className="h-16 w-auto mx-auto mb-2"
-                    size="small"
+                    size="large"
                 />
-                <CardTitle className="font-medium">
+                <CardTitle className="font-medium text-2xl">
                     Join <strong>{orgName}</strong>
                 </CardTitle>
             </CardHeader>
