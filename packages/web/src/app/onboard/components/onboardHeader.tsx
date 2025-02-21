@@ -14,7 +14,7 @@ export const OnboardHeader = ({ title, description, step: currentStep }: Onboard
         <div className="flex flex-col items-center text-center mb-10">
             <SourcebotLogo
                 className="h-16 mb-2"
-                size="small"
+                size="large"
             />
             <h1 className="text-3xl font-bold mb-3">
                 {title}

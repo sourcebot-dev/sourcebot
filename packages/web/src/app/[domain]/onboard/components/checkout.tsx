@@ -52,7 +52,7 @@ export const Checkout = () => {
         <div className="flex flex-col items-center justify-center max-w-md my-auto">
             <SourcebotLogo
                 className="h-16"
-                size="small"
+                size="large"
             />
             <h1 className="text-2xl font-semibold">Start your 7 day free trial</h1>
             <p className="text-muted-foreground mt-2">Cancel anytime. No credit card required.</p>
