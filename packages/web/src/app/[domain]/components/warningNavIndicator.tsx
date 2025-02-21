@@ -46,8 +46,6 @@ export const WarningNavIndicator = () => {
         };
 
         fetchWarnings();
-        const intervalId = setInterval(fetchWarnings, 1000);
-        return () => clearInterval(intervalId);
     }, [domain]);
 
     if (warnings.length === 0) {

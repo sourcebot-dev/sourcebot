@@ -110,8 +110,6 @@ export default function ConnectionManagementPage() {
         }
 
         loadData()
-        const intervalId = setInterval(loadData, 1000)
-        return () => clearInterval(intervalId)
     }, [params.domain, params.id])
 
     if (loading) {

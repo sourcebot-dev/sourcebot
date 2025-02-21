@@ -62,8 +62,6 @@ export const ErrorNavIndicator = () => {
         };
 
         fetchErrors();
-        const intervalId = setInterval(fetchErrors, 1000);
-        return () => clearInterval(intervalId);
     }, [domain]);
 
     if (errors.length === 0) return null;
