@@ -21,10 +21,10 @@ jobs:
 
       - name: Deploy to GCP
         run: |
-          ssh -i ~/.ssh/private.key {{ secrets.GCP_STAGING_USERNAME }}@${{ secrets.GCP_STAGING_HOST }} << 'EOF'
+          ssh -i ~/.ssh/private.key ${{ secrets.GCP_STAGING_USERNAME }}@${{ secrets.GCP_STAGING_HOST }} << 'EOF'
             # Stop existing container (if running)
             staging_stop || true
             
             # Start new container
             staging_start
-          EOF 
+          EOF
