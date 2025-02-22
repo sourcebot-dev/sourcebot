@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/command"
 import { Button } from "@/components/ui/button";
 import { cn, isServiceError } from "@/lib/utils";
-import { ChevronsUpDown, Check, PlusCircleIcon, Loader2, Eye, EyeOff } from "lucide-react";
+import { ChevronsUpDown, Check, PlusCircleIcon, Loader2, Eye, EyeOff, TriangleAlert } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { useQuery } from "@tanstack/react-query";
@@ -28,6 +28,8 @@ import { useToast } from "@/components/hooks/use-toast";
 import Image from "next/image";
 import githubPatCreation from "@/public/github_pat_creation.png"
 import { CodeHostType } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { isDefined } from '@/lib/utils'
 
 interface SecretComboBoxProps {
     isDisabled: boolean;
@@ -56,21 +58,49 @@ export const SecretCombobox = ({
         refetch();
     }, [onSecretChange, refetch]);
 
+    const isSecretNotFoundWarningVisible = useMemo(() => {
+        if (!isDefined(secretKey)) {
+            return false;
+        }
+        if (isServiceError(secrets)) {
+            return false;
+        }
+        return !secrets?.some(({ key }) => key === secretKey);
+    }, [secretKey, secrets]);
+
     return (
         <>
             <Popover>
                 <PopoverTrigger asChild>
+
                     <Button
                         variant="outline"
                         role="combobox"
                         className={cn(
-                            "w-[300px] justify-between overflow-hidden",
+                            "w-[300px] overflow-hidden",
                             !secretKey && "text-muted-foreground"
                         )}
                         disabled={isDisabled}
                     >
-                        <span className="truncate">{secretKey ? secretKey : "Select secret"}</span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        {isSecretNotFoundWarningVisible && (
+                            <TooltipProvider>
+
+                                <Tooltip
+                                    delayDuration={100}
+                                >
+                                    <TooltipTrigger
+                                        onClick={(e) => e.preventDefault()}
+                                    >
+                                        <TriangleAlert className="h-4 w-4 text-yellow-700 dark:text-yellow-400" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>The secret you selected does not exist.</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                        <span className="truncate">{isDefined(secretKey) ? secretKey : "Select secret"}</span>
+                        <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="p-0.5">

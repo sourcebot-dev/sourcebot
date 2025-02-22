@@ -1,7 +1,7 @@
 
 'use client';
 
-import { createConnection } from "@/actions";
+import { checkIfSecretExists, createConnection } from "@/actions";
 import { ConnectionIcon } from "@/app/[domain]/connections/components/connectionIcon";
 import { createZodConnectionConfigValidator } from "@/app/[domain]/connections/utils";
 import { useToast } from "@/components/hooks/use-toast";
@@ -56,6 +56,13 @@ export default function SharedConnectionCreationForm<T>({
         return z.object({
             name: z.string().min(1),
             config: createZodConnectionConfigValidator(schema),
+            secretKey: z.string().optional().refine(async (secretKey) => {
+                if (!secretKey) {
+                    return true;
+                }
+
+                return checkIfSecretExists(secretKey, domain);
+            }, { message: "Secret not found" }),
         });
     }, [schema]);
 
@@ -86,19 +93,19 @@ export default function SharedConnectionCreationForm<T>({
         if (isValid) {
             const configJson = JSON.parse(value);
             if (configJson.token?.secret !== undefined) {
-                setSecretKey(configJson.token.secret);
+                form.setValue("secretKey", configJson.token.secret);
             } else {
-                setSecretKey(undefined);
+                form.setValue("secretKey", undefined);
             }
         }
     }, [form]);
 
+    // Run onConfigChange on mount to set the initial secret key
     useEffect(() => {
         onConfigChange(defaultValues.config);
     }, [defaultValues, onConfigChange]);
 
     const [isSecretsDisabled, setIsSecretsDisabled] = useState(false);
-    const [secretKey, setSecretKey] = useState<string | undefined>(undefined);
 
     return (
         <div className={cn("flex flex-col max-w-3xl mx-auto bg-background border rounded-lg p-6", className)}>
@@ -133,38 +140,47 @@ export default function SharedConnectionCreationForm<T>({
                             )}
                         />
                         {isAuthSupportedForCodeHost(type) && (
-                            <div className="flex flex-col gap-2">
-                                <FormLabel>Secret (optional)</FormLabel>
-                                <FormDescription>{strings.createSecretDescription}</FormDescription>
-                                <SecretCombobox
-                                    isDisabled={isSecretsDisabled}
-                                    secretKey={secretKey}
-                                    codeHostType={type}
-                                    onSecretChange={(secretKey) => {
-                                        const view = editorRef.current?.view;
-                                        if (!view) {
-                                            return;
-                                        }
-
-                                        onQuickAction(
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            (previous: any) => {
-                                                return {
-                                                    ...previous,
-                                                    token: {
-                                                        secret: secretKey,
+                            <FormField
+                                control={form.control}
+                                name="secretKey"
+                                render={({ field: { value } }) => (
+                                    <FormItem>
+                                        <FormLabel>Secret (optional)</FormLabel>
+                                        <FormDescription>{strings.createSecretDescription}</FormDescription>
+                                        <FormControl>
+                                            <SecretCombobox
+                                                isDisabled={isSecretsDisabled}
+                                                secretKey={value}
+                                                codeHostType={type}
+                                                onSecretChange={(secretKey) => {
+                                                    const view = editorRef.current?.view;
+                                                    if (!view) {
+                                                        return;
                                                     }
-                                                }
-                                            },
-                                            form.getValues("config"),
-                                            view,
-                                            {
-                                                focusEditor: false
-                                            }
-                                        );
-                                    }}
-                                />
-                            </div>
+
+                                                    onQuickAction(
+                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                        (previous: any) => {
+                                                            return {
+                                                                ...previous,
+                                                                token: {
+                                                                    secret: secretKey,
+                                                                }
+                                                            }
+                                                        },
+                                                        form.getValues("config"),
+                                                        view,
+                                                        {
+                                                            focusEditor: false
+                                                        }
+                                                    );
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         )}
                         <FormField
                             control={form.control}
