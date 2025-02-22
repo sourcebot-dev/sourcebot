@@ -181,25 +181,52 @@ echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL
 
 
 # Start the database and wait for it to be ready before starting any other service
-su postgres -c "postgres -D $DB_DATA_DIR" &
-until pg_isready -h localhost -p 5432 -U postgres; do
-    echo -e "\e[34m[Info] Waiting for the database to be ready...\e[0m"
-    sleep 1
-done
+if [ "$DATABASE_URL" = "postgresql://postgres@localhost:5432/sourcebot" ]; then
+    su postgres -c "postgres -D $DB_DATA_DIR" &
+    until pg_isready -h localhost -p 5432 -U postgres; do
+        echo -e "\e[34m[Info] Waiting for the database to be ready...\e[0m"
+        sleep 1
+    done
 
-# Check if the database already exists, and create it if it dne
-EXISTING_DB=$(psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'")
+    # Check if the database already exists, and create it if it dne
+    EXISTING_DB=$(psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'")
 
-if [ "$EXISTING_DB" = "1" ]; then
-  echo "Database '$DB_NAME' already exists; skipping creation."
-else
-  echo "Creating database '$DB_NAME'..."
-  psql -U postgres -c "CREATE DATABASE \"$DB_NAME\""
+    if [ "$EXISTING_DB" = "1" ]; then
+        echo "Database '$DB_NAME' already exists; skipping creation."
+    else
+        echo "Creating database '$DB_NAME'..."
+        psql -U postgres -c "CREATE DATABASE \"$DB_NAME\""
+    fi
 fi
 
 # Run a Database migration
 echo -e "\e[34m[Info] Running database migration...\e[0m"
 yarn workspace @sourcebot/db prisma:migrate:prod
+
+# Get total CPU cores
+TOTAL_CORES=$(nproc)
+echo -e "\e[34m[Info] Total CPU cores available: $TOTAL_CORES\e[0m"
+
+# Default to 50/50 split if BACKEND_CORES_FACTOR not set
+BACKEND_CORES_FACTOR=${BACKEND_CORES_FACTOR:-0.5}
+
+# Calculate number of cores for backend (rounded down)
+BACKEND_CORES=$(printf "%.0f" $(echo "$TOTAL_CORES * $BACKEND_CORES_FACTOR" | bc))
+
+# Ensure at least 1 core for each
+if [ $BACKEND_CORES -lt 1 ]; then
+    BACKEND_CORES=1
+fi
+if [ $BACKEND_CORES -ge $TOTAL_CORES ]; then
+    BACKEND_CORES=$(($TOTAL_CORES - 1))
+fi
+
+# Generate CPU lists
+export BACKEND_CPU_LIST=$(seq -s, 0 $(($BACKEND_CORES - 1)))
+export FRONTEND_CPU_LIST=$(seq -s, $BACKEND_CORES $(($TOTAL_CORES - 1)))
+
+echo -e "\e[34m[Info] Backend will use CPUs: $BACKEND_CPU_LIST\e[0m"
+echo -e "\e[34m[Info] Frontend will use CPUs: $FRONTEND_CPU_LIST\e[0m"
 
 # Run supervisord
 exec supervisord -c /etc/supervisor/conf.d/supervisord.conf
