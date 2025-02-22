@@ -216,8 +216,8 @@ const ImportSecretDialog = ({ open, onOpenChange, onSecretCreated, codeHostType 
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-semibold">Import a secret</DialogTitle>
                     <DialogDescription>
-                        Secrets are used to authenticate with a code host. They are encrypted at rest using <Link href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard" className="underline">AES-256-CBC</Link>.
-                        Checkout our <Link href="https://sourcebot.dev/security" className="underline">security docs</Link> for more information.
+                        Secrets are used to authenticate with a code host. They are encrypted at rest using <Link href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank" className="underline">AES-256-CBC</Link>.
+                        Checkout our <Link href="https://sourcebot.dev/security" target="_blank" className="underline">security docs</Link> for more information.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -322,7 +322,7 @@ const GitHubPATCreationStep = ({ step }: { step: number }) => {
         <SecretCreationStep
             step={step}
             title="Create a Personal Access Token"
-            description=<span>Navigate to <Link href="https://github.com/settings/tokens/new" className="underline">here on github.com</Link> (or your enterprise instance) and create a new personal access token. Sourcebot needs the <strong>repo</strong> scope in order to access private repositories:</span>
+            description=<span>Navigate to <Link href="https://github.com/settings/tokens/new" target="_blank" className="underline">here on github.com</Link> (or your enterprise instance) and create a new personal access token. Sourcebot needs the <strong>repo</strong> scope in order to access private repositories:</span>
         >
             <Image
                 className="mx-auto"
