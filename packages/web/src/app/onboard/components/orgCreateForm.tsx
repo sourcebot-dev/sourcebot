@@ -8,7 +8,6 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useCallback } from "react";
-import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { isServiceError } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/hooks/use-toast"

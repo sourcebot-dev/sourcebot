@@ -126,6 +126,17 @@ export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, clas
     }
 }
 
+export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean => {
+    switch (codeHostType) {
+        case "github":
+        case "gitlab":
+        case "gitea":
+            return true;
+        case "gerrit":
+            return false;
+    }
+}
+
 export const isServiceError = (data: unknown): data is ServiceError => {
     return typeof data === 'object' &&
         data !== null &&
