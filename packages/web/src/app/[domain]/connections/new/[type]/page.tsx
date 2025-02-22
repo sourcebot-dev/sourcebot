@@ -14,8 +14,8 @@ export default function NewConnectionPage({
     params
 }: { params: { type: string } }) {
     const { type } = params;
-    const domain = useDomain();
     const router = useRouter();
+    const domain = useDomain();
 
     const onCreated = useCallback(() => {
         router.push(`/${domain}/connections`);

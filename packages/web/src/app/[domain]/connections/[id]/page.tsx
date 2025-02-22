@@ -149,7 +149,9 @@ export default function ConnectionManagementPage() {
                     currentTab={currentTab}
                 />
             </Header>
-            <TabsContent value="overview">
+            <TabsContent
+                value="overview"
+            >
                 <h1 className="font-semibold text-lg">Overview</h1>
                 <div className="mt-4 flex flex-col gap-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -219,7 +221,15 @@ export default function ConnectionManagementPage() {
                     </div>
                 </ScrollArea>
             </TabsContent>
-            <TabsContent value="settings" className="flex flex-col gap-6">
+            <TabsContent
+                value="settings"
+                // @note: There was some bugginess with the ConfigEditor ref not being set again
+                // after the parent component was unmounted and remounted. This workarouns makes it
+                // s.t., hide the settings tab when it is inactive, instead of unmounting it.
+                // @see: https://github.com/radix-ui/primitives/issues/2359#issuecomment-2481321719
+                className="flex flex-col gap-6 data-[state=inactive]:hidden"
+                forceMount={true}
+            >
                 <DisplayNameSetting connectionId={connection.id} name={connection.name} />
                 <ConfigSetting
                     connectionId={connection.id}

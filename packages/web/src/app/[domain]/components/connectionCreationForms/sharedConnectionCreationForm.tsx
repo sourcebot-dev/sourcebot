@@ -8,19 +8,21 @@ import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { isServiceError } from "@/lib/utils";
+import { CodeHostType, isServiceError, isAuthSupportedForCodeHost } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Schema } from "ajv";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ConfigEditor, QuickActionFn } from "../configEditor";
+import ConfigEditor, { isConfigValidJson, onQuickAction, QuickActionFn } from "../configEditor";
 import { useDomain } from "@/hooks/useDomain";
 import { Loader2 } from "lucide-react";
+import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import { SecretCombobox } from "./secretCombobox";
 
 interface SharedConnectionCreationFormProps<T> {
-    type: 'github' | 'gitlab' | 'gitea' | 'gerrit';
+    type: CodeHostType;
     defaultValues: {
         name: string;
         config: string;
@@ -35,6 +37,7 @@ interface SharedConnectionCreationFormProps<T> {
     onCreated?: (id: number) => void;
 }
 
+
 export default function SharedConnectionCreationForm<T>({
     type,
     defaultValues,
@@ -44,9 +47,9 @@ export default function SharedConnectionCreationForm<T>({
     className,
     onCreated,
 }: SharedConnectionCreationFormProps<T>) {
-
     const { toast } = useToast();
     const domain = useDomain();
+    const editorRef = useRef<ReactCodeMirrorRef>(null);
 
     const formSchema = useMemo(() => {
         return z.object({
@@ -75,6 +78,27 @@ export default function SharedConnectionCreationForm<T>({
         }
     }, [domain, toast, type, onCreated]);
 
+    const onConfigChange = useCallback((value: string) => {
+        form.setValue("config", value);
+        const isValid = isConfigValidJson(value);
+        setIsSecretsDisabled(!isValid);
+        if (isValid) {
+            const configJson = JSON.parse(value);
+            if (configJson.token?.secret !== undefined) {
+                setSecretKey(configJson.token.secret);
+            } else {
+                setSecretKey(undefined);
+            }
+        }
+    }, [form]);
+
+    useEffect(() => {
+        onConfigChange(defaultValues.config);
+    }, [defaultValues, onConfigChange]);
+
+    const [isSecretsDisabled, setIsSecretsDisabled] = useState(false);
+    const [secretKey, setSecretKey] = useState<string | undefined>(undefined);
+
     return (
         <div className={cn("flex flex-col max-w-3xl mx-auto bg-background border rounded-lg p-6", className)}>
             <div className="flex flex-row items-center gap-3 mb-6">
@@ -88,7 +112,7 @@ export default function SharedConnectionCreationForm<T>({
                 {...form}
             >
                 <form onSubmit={form.handleSubmit(onSubmit)}>
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-6">
                         <FormField
                             control={form.control}
                             name="name"
@@ -107,19 +131,53 @@ export default function SharedConnectionCreationForm<T>({
                                 </FormItem>
                             )}
                         />
+                        {isAuthSupportedForCodeHost(type) && (
+                            <div className="flex flex-col gap-2">
+                                <FormLabel>Secret (optional)</FormLabel>
+                                <FormDescription>If you want to use a secret, you can select one from the list below.</FormDescription>
+                                <SecretCombobox
+                                    isDisabled={isSecretsDisabled}
+                                    secretKey={secretKey}
+                                    onSecretChange={(secretKey) => {
+                                        const view = editorRef.current?.view;
+                                        if (!view) {
+                                            return;
+                                        }
+
+                                        onQuickAction(
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                            (previous: any) => {
+                                                return {
+                                                    ...previous,
+                                                    token: {
+                                                        secret: secretKey,
+                                                    }
+                                                }
+                                            },
+                                            form.getValues("config"),
+                                            view,
+                                            {
+                                                focusEditor: false
+                                            }
+                                        );
+                                    }}
+                                />
+                            </div>
+                        )}
                         <FormField
                             control={form.control}
                             name="config"
-                            render={({ field: { value, onChange } }) => {
+                            render={({ field: { value } }) => {
                                 return (
                                     <FormItem>
                                         <FormLabel>Configuration</FormLabel>
                                         {/* @todo : refactor this description into a shared file */}
-                                        <FormDescription>Code hosts are configured via a....TODO</FormDescription>
+                                        <FormDescription>Configure what repositories, organizations, users, etc. you want to sync with Sourcebot. Use the quick actions below to help you configure your connection.</FormDescription>
                                         <FormControl>
                                             <ConfigEditor<T>
+                                                ref={editorRef}
                                                 value={value}
-                                                onChange={onChange}
+                                                onChange={onConfigChange}
                                                 actions={quickActions ?? []}
                                                 schema={schema}
                                             />
@@ -130,14 +188,16 @@ export default function SharedConnectionCreationForm<T>({
                             }}
                         />
                     </div>
-                    <Button
-                        className="mt-5"
-                        type="submit"
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting && <Loader2 className="animate-spin w-4 h-4 mr-2" />}
-                        Submit
-                    </Button>
+                    <div className="flex flex-row justify-end">
+                        <Button
+                            className="mt-5"
+                            type="submit"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting && <Loader2 className="animate-spin w-4 h-4 mr-2" />}
+                            Submit
+                        </Button>
+                    </div>
                 </form>
             </Form>
         </div>

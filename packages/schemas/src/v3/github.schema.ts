@@ -58,6 +58,7 @@ const schema = {
         "type": "string",
         "pattern": "^[\\w.-]+$"
       },
+      "default": [],
       "examples": [
         [
           "my-org-name"
