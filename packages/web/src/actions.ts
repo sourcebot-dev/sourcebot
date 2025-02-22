@@ -201,6 +201,22 @@ export const createSecret = async (key: string, value: string, domain: string): 
             }
         }));
 
+export const checkIfSecretExists = async (key: string, domain: string): Promise<boolean | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const secret = await prisma.secret.findUnique({
+                where: {
+                    orgId_key: {
+                        orgId,
+                        key,
+                    }
+                }
+            });
+
+            return !!secret;
+        })
+    );
+
 export const deleteSecret = async (key: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
@@ -441,7 +457,7 @@ export const flagRepoForIndex = async (repoId: number, domain: string): Promise<
 
             await prisma.repo.update({
                 where: {
-                    id: repoId, 
+                    id: repoId,
                 },
                 data: {
                     repoIndexingStatus: RepoIndexingStatus.NEW,

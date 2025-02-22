@@ -26,7 +26,7 @@ import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { useDomain } from "@/hooks/useDomain";
 import { SecretCombobox } from "@/app/[domain]/components/connectionCreationForms/secretCombobox";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
-
+import strings from "@/lib/strings";
 
 interface ConfigSettingProps {
     connectionId: number;
@@ -168,10 +168,11 @@ function ConfigSettingInternal<T>({
                     {isAuthSupportedForCodeHost(type) && (
                         <div className="flex flex-col gap-2">
                             <FormLabel>Secret (optional)</FormLabel>
-                            <FormDescription>If you want to use a secret, you can select one from the list below.</FormDescription>
+                            <FormDescription>{strings.createSecretDescription}</FormDescription>
                             <SecretCombobox
                                 isDisabled={isSecretsDisabled}
                                 secretKey={secretKey}
+                                codeHostType={type}
                                 onSecretChange={(secretKey) => {
                                     const view = editorRef.current?.view;
                                     console.log(editorRef.current);
@@ -208,8 +209,7 @@ function ConfigSettingInternal<T>({
                                     {isAuthSupportedForCodeHost(type) && (
                                         <FormLabel>Configuration</FormLabel>
                                     )}
-                                    {/* @todo : refactor this description into a shared file */}
-                                    <FormDescription>Code hosts are configured via a....TODO</FormDescription>
+                                    <FormDescription>{strings.connectionConfigDescription}</FormDescription>
                                     <FormControl>
                                         <ConfigEditor<T>
                                             ref={editorRef}

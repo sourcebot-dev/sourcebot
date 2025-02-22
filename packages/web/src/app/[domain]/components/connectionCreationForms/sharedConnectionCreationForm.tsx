@@ -20,6 +20,7 @@ import { useDomain } from "@/hooks/useDomain";
 import { Loader2 } from "lucide-react";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { SecretCombobox } from "./secretCombobox";
+import strings from "@/lib/strings";
 
 interface SharedConnectionCreationFormProps<T> {
     type: CodeHostType;
@@ -119,7 +120,7 @@ export default function SharedConnectionCreationForm<T>({
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Display Name</FormLabel>
-                                    <FormDescription>This is the {`connection's`} display name within Sourcebot. Examples: <b>public-github</b>, <b>self-hosted-gitlab</b>, <b>gerrit-other</b>, etc.</FormDescription>
+                                    <FormDescription>This is the {`connection's`} display name within Sourcebot.</FormDescription>
                                     <FormControl>
                                         <Input
                                             {...field}
@@ -134,10 +135,11 @@ export default function SharedConnectionCreationForm<T>({
                         {isAuthSupportedForCodeHost(type) && (
                             <div className="flex flex-col gap-2">
                                 <FormLabel>Secret (optional)</FormLabel>
-                                <FormDescription>If you want to use a secret, you can select one from the list below.</FormDescription>
+                                <FormDescription>{strings.createSecretDescription}</FormDescription>
                                 <SecretCombobox
                                     isDisabled={isSecretsDisabled}
                                     secretKey={secretKey}
+                                    codeHostType={type}
                                     onSecretChange={(secretKey) => {
                                         const view = editorRef.current?.view;
                                         if (!view) {
@@ -171,8 +173,7 @@ export default function SharedConnectionCreationForm<T>({
                                 return (
                                     <FormItem>
                                         <FormLabel>Configuration</FormLabel>
-                                        {/* @todo : refactor this description into a shared file */}
-                                        <FormDescription>Configure what repositories, organizations, users, etc. you want to sync with Sourcebot. Use the quick actions below to help you configure your connection.</FormDescription>
+                                        <FormDescription>{strings.connectionConfigDescription}</FormDescription>
                                         <FormControl>
                                             <ConfigEditor<T>
                                                 ref={editorRef}
