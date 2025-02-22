@@ -1,0 +1,30 @@
+name: GCP Deploy (staging)
+
+on:
+  workflow_run:
+    workflows: ["Publish to ghcr (staging)"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    name: Deploy staging app to GCP
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.GCP_STAGING_SSH_PRIVATE_KEY }}" > ~/.ssh/private.key
+          chmod 600 ~/.ssh/private.key
+          echo "${{ secrets.GCP_STAGING_SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy to GCP
+        run: |
+          ssh -i ~/.ssh/private.key {{secrets.GCP_STAGING_USERNAME}}@${{ secrets.GCP_STAGING_HOST }} << 'EOF'
+            # Stop existing container (if running)
+            staging_stop || true
+            
+            # Start new container
+            staging_start
+          EOF 
