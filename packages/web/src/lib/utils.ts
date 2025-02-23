@@ -208,3 +208,39 @@ export const getDisplayTime = (date: Date) => {
         return formatTime(months, 'month');
     }
 }
+
+export const measureSync = <T>(cb: () => T, measureName: string) => {
+    const startMark = `${measureName}.start`;
+    const endMark = `${measureName}.end`;
+
+    performance.mark(startMark);
+    const data = cb();
+    performance.mark(endMark);
+
+    const measure = performance.measure(measureName, startMark, endMark);
+    const durationMs = measure.duration;
+    console.debug(`[${measureName}] took ${durationMs}ms`);
+
+    return {
+        data,
+        durationMs
+    }
+}
+
+export const measure = async <T>(cb: () => Promise<T>, measureName: string) => {
+    const startMark = `${measureName}.start`;
+    const endMark = `${measureName}.end`;
+
+    performance.mark(startMark);
+    const data = await cb();
+    performance.mark(endMark);
+
+    const measure = performance.measure(measureName, startMark, endMark);
+    const durationMs = measure.duration;
+    console.debug(`[${measureName}] took ${durationMs}ms`);
+
+    return {
+        data,
+        durationMs
+    }
+}

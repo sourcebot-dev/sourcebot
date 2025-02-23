@@ -10,7 +10,7 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { Repository, SearchQueryParams, SearchResultFile } from "@/lib/types";
-import { createPathWithQueryParams } from "@/lib/utils";
+import { createPathWithQueryParams, measureSync } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -139,16 +139,19 @@ const SearchPageInternal = () => {
 
         // We only want to show matches for the default branch when
         // the user isn't explicitly filtering by branch.
-        if (!isBranchFilteringEnabled) {
-            fileMatches = fileMatches.filter(match => {
-                // @note : this case handles local repos that don't have any branches.
-                if (!match.Branches) {
-                    return true;
-                }
 
-                return match.Branches.includes("HEAD");
-            });
-        }
+        measureSync(() => {
+            if (!isBranchFilteringEnabled) {
+                fileMatches = fileMatches.filter(match => {
+                    // @note : this case handles local repos that don't have any branches.
+                    if (!match.Branches) {
+                        return true;
+                    }
+
+                    return match.Branches.includes("HEAD");
+                });
+            }
+        }, "search.branchFiltering");
 
         return {
             fileMatches,

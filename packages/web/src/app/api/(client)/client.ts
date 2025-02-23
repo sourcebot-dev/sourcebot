@@ -3,18 +3,19 @@
 import { NEXT_PUBLIC_DOMAIN_SUB_PATH } from "@/lib/environment.client";
 import { fileSourceResponseSchema, listRepositoriesResponseSchema, searchResponseSchema } from "@/lib/schemas";
 import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
+import { measure } from "@/lib/utils";
 import assert from "assert";
 
 export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse> => {
     const path = resolveServerPath("/api/search");
-    const result = await fetch(path, {
+    const { data: result } = await measure(() => fetch(path, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "X-Org-Domain": domain,
         },
         body: JSON.stringify(body),
-    }).then(response => response.json());
+    }).then(response => response.json()), "client.search");
 
     return searchResponseSchema.parse(result);
 }
