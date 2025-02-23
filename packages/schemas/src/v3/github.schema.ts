@@ -44,6 +44,7 @@ const schema = {
         "type": "string",
         "pattern": "^[\\w.-]+$"
       },
+      "default": [],
       "examples": [
         [
           "torvalds",
@@ -76,6 +77,7 @@ const schema = {
         "type": "string",
         "pattern": "^[\\w.-]+\\/[\\w.-]+$"
       },
+      "default": [],
       "description": "List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
     },
     "topics": {
@@ -84,6 +86,7 @@ const schema = {
         "type": "string"
       },
       "minItems": 1,
+      "default": [],
       "description": "List of repository topics to include when syncing. Only repositories that match at least one of the provided `topics` will be synced. If not specified, all repositories will be synced, unless explicitly defined in the `exclude` property. Glob patterns are supported.",
       "examples": [
         [
@@ -118,6 +121,7 @@ const schema = {
           "items": {
             "type": "string"
           },
+          "default": [],
           "description": "List of repository topics to exclude when syncing. Repositories that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.",
           "examples": [
             [

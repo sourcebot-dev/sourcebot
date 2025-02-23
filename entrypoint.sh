@@ -203,30 +203,5 @@ fi
 echo -e "\e[34m[Info] Running database migration...\e[0m"
 yarn workspace @sourcebot/db prisma:migrate:prod
 
-# Get total CPU cores
-TOTAL_CORES=$(nproc)
-echo -e "\e[34m[Info] Total CPU cores available: $TOTAL_CORES\e[0m"
-
-# Default to 50/50 split if BACKEND_CORES_FACTOR not set
-BACKEND_CORES_FACTOR=${BACKEND_CORES_FACTOR:-0.5}
-
-# Calculate number of cores for backend (rounded down)
-BACKEND_CORES=$(printf "%.0f" $(echo "$TOTAL_CORES * $BACKEND_CORES_FACTOR" | bc))
-
-# Ensure at least 1 core for each
-if [ $BACKEND_CORES -lt 1 ]; then
-    BACKEND_CORES=1
-fi
-if [ $BACKEND_CORES -ge $TOTAL_CORES ]; then
-    BACKEND_CORES=$(($TOTAL_CORES - 1))
-fi
-
-# Generate CPU lists
-export BACKEND_CPU_LIST=$(seq -s, 0 $(($BACKEND_CORES - 1)))
-export FRONTEND_CPU_LIST=$(seq -s, $BACKEND_CORES $(($TOTAL_CORES - 1)))
-
-echo -e "\e[34m[Info] Backend will use CPUs: $BACKEND_CPU_LIST\e[0m"
-echo -e "\e[34m[Info] Frontend will use CPUs: $FRONTEND_CPU_LIST\e[0m"
-
 # Run supervisord
 exec supervisord -c /etc/supervisor/conf.d/supervisord.conf

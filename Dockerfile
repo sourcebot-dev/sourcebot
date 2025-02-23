@@ -87,9 +87,6 @@ ENV DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
 ENV REDIS_URL="redis://localhost:6379"
 ENV SRC_TENANT_ENFORCEMENT_MODE=strict
 
-# @nocheckin: we likely want to have a better solution for the self host case
-ENV BACKEND_CORES_FACTOR="0.5" 
-
 ARG SOURCEBOT_VERSION=unknown
 ENV SOURCEBOT_VERSION=$SOURCEBOT_VERSION
 RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
