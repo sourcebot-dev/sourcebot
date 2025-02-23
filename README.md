@@ -410,3 +410,4 @@ NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=1
 Sourcebot makes use of the following libraries:
 
 - [@vscode/codicons](https://github.com/microsoft/vscode-codicons) under the [CC BY 4.0 License](https://github.com/microsoft/vscode-codicons/blob/main/LICENSE).
+
