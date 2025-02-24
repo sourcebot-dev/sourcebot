@@ -14,7 +14,9 @@ import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { deleteSecret } from "../../../actions"
 import { useDomain } from "@/hooks/useDomain";
-
+import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { PosthogEvent } from "@/lib/posthogEvents";
+import { ErrorCode } from "@/lib/errorCodes";
 const formSchema = z.object({
     key: z.string().min(2).max(40),
     value: z.string().min(2),
@@ -29,6 +31,7 @@ export const SecretsTable = ({ initialSecrets }: SecretsTableProps) => {
     const [secrets, setSecrets] = useState<{ createdAt: Date; key: string; }[]>(initialSecrets);
     const { toast } = useToast();
     const domain = useDomain();
+    const captureEvent = useCaptureEvent();
 
     useEffect(() => {
         const fetchSecretKeys = async () => {
@@ -54,19 +57,35 @@ export const SecretsTable = ({ initialSecrets }: SecretsTableProps) => {
     const handleCreateSecret = async (values: { key: string, value: string }) => {
         const res = await createSecret(values.key, values.value, domain);
         if (isServiceError(res)) {
-            toast({
-                description: `❌ Failed to create secret`
+            if (res.errorCode === ErrorCode.SECRET_ALREADY_EXISTS) {
+                toast({
+                    description: `❌ Secret with key ${values.key} already exists`
+                });
+            } else {
+                toast({
+                    description: `❌ Failed to create secret`
+                });
+            }
+            captureEvent('wa_secret_created_fail', {
+                key: values.key,
+                error: res.errorCode,
             });
             return;
         } else {
             toast({
                 description: `✅ Secret created successfully!`
             });
+            captureEvent('wa_secret_created_success', {
+                key: values.key,
+            });
         }
 
         const keys = await getSecrets(domain);
         if (isServiceError(keys)) {
             console.error("Failed to fetch secrets");
+            captureEvent('wa_secret_fetch_fail', {
+                error: keys.errorCode,
+            });
         } else {
             setSecrets(keys);
             
@@ -82,10 +101,17 @@ export const SecretsTable = ({ initialSecrets }: SecretsTableProps) => {
             toast({
                 description: `❌ Failed to delete secret`
             });
+            captureEvent('wa_secret_deleted_fail', {
+                key: key,
+                error: res.errorCode,
+            });
             return;
         } else {
             toast({
                 description: `✅ Secret deleted successfully!`
+            });
+            captureEvent('wa_secret_deleted_success', {
+                key: key,
             });
         }
 

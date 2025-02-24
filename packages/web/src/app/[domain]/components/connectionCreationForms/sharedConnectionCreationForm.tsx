@@ -21,6 +21,7 @@ import { Loader2 } from "lucide-react";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { SecretCombobox } from "./secretCombobox";
 import strings from "@/lib/strings";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface SharedConnectionCreationFormProps<T> {
     type: CodeHostType;
@@ -51,7 +52,7 @@ export default function SharedConnectionCreationForm<T>({
     const { toast } = useToast();
     const domain = useDomain();
     const editorRef = useRef<ReactCodeMirrorRef>(null);
-
+    const captureEvent = useCaptureEvent();
     const formSchema = useMemo(() => {
         return z.object({
             name: z.string().min(1),
@@ -64,7 +65,7 @@ export default function SharedConnectionCreationForm<T>({
                 return checkIfSecretExists(secretKey, domain);
             }, { message: "Secret not found" }),
         });
-    }, [schema]);
+    }, [schema, domain]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -78,13 +79,20 @@ export default function SharedConnectionCreationForm<T>({
             toast({
                 description: `❌ Failed to create connection. Reason: ${response.message}`
             });
+            captureEvent('wa_create_connection_fail', {
+                type: type,
+                error: response.message,
+            });
         } else {
             toast({
                 description: `✅ Connection created successfully.`
             });
+            captureEvent('wa_create_connection_success', {
+                type: type,
+            });
             onCreated?.(response.id);
         }
-    }, [domain, toast, type, onCreated]);
+    }, [domain, toast, type, onCreated, captureEvent]);
 
     const onConfigChange = useCallback((value: string) => {
         form.setValue("config", value);
@@ -168,6 +176,9 @@ export default function SharedConnectionCreationForm<T>({
                                                                 }
                                                             }
                                                         },
+                                                        captureEvent,
+                                                        "set-secret",
+                                                        type,
                                                         form.getValues("config"),
                                                         view,
                                                         {
@@ -193,6 +204,7 @@ export default function SharedConnectionCreationForm<T>({
                                         <FormControl>
                                             <ConfigEditor<T>
                                                 ref={editorRef}
+                                                type={type}
                                                 value={value}
                                                 onChange={onConfigChange}
                                                 actions={quickActions ?? []}

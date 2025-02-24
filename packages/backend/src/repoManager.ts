@@ -10,6 +10,7 @@ import { cloneRepository, fetchRepository } from "./git.js";
 import { existsSync, rmSync, readdirSync } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import os from 'os';
+import { BackendException } from "@sourcebot/error";
 
 interface IRepoManager {
     blockingPollLoop: () => void;
@@ -308,14 +309,6 @@ export class RepoManager implements IRepoManager {
         indexDuration_s = stats!.indexDuration_s;
         fetchDuration_s = stats!.fetchDuration_s;
         cloneDuration_s = stats!.cloneDuration_s;
-
-        captureEvent('repo_synced', {
-            vcs: 'git',
-            codeHost: repo.external_codeHostType,
-            indexDuration_s,
-            fetchDuration_s,
-            cloneDuration_s,
-        });
     }
     
     private async onIndexJobCompleted(job: Job<JobPayload>) {

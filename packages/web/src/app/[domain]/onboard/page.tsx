@@ -4,11 +4,10 @@ import { OnboardingSteps } from "@/lib/constants";
 import { notFound, redirect } from "next/navigation";
 import { ConnectCodeHost } from "./components/connectCodeHost";
 import { InviteTeam } from "./components/inviteTeam";
-import Link from "next/link";
 import { CompleteOnboarding } from "./components/completeOnboarding";
 import { Checkout } from "./components/checkout";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
-
+import { SkipOnboardingButton } from "./components/skipOnboardingButton";
 interface OnboardProps {
     params: {
         domain: string
@@ -21,6 +20,7 @@ interface OnboardProps {
 
 export default async function Onboard({ params, searchParams }: OnboardProps) {
     const org = await getOrgFromDomain(params.domain);
+    
     if (!org) {
         notFound();
     }
@@ -54,12 +54,9 @@ export default async function Onboard({ params, searchParams }: OnboardProps) {
                     <ConnectCodeHost
                         nextStep={OnboardingSteps.InviteTeam}
                     />
-                    <Link
-                        className="text-sm text-muted-foreground underline cursor-pointer mt-12"
-                        href={`?step=${lastRequiredStep}`}
-                    >
-                        Skip onboarding
-                    </Link>
+                    <SkipOnboardingButton
+                        currentStep={step as OnboardingSteps}
+                    />
                 </>
             )}
             {step === OnboardingSteps.InviteTeam && (

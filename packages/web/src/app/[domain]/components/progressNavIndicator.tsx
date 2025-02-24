@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { useDomain } from "@/hooks/useDomain";
 import { getConnectionInProgressRepos, getConnections } from "@/actions";
 import { isServiceError } from "@/lib/utils";
-
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 interface InProgress {
     connectionId: number;
     repoId: number;
@@ -18,6 +18,7 @@ interface InProgress {
 export const ProgressNavIndicator = () => {
     const domain = useDomain();
     const [inProgressJobs, setInProgressJobs] = useState<InProgress[]>([]);
+    const captureEvent = useCaptureEvent();
 
     useEffect(() => {
         const fetchInProgressJobs = async () => {
@@ -31,6 +32,10 @@ export const ProgressNavIndicator = () => {
                             connectionId: connection.id,
                             ...repo
                         })));
+                    } else {
+                        captureEvent('wa_progress_nav_job_fetch_fail', {
+                            error: inProgressRepos.errorCode,
+                        });
                     }
                 }
                 setInProgressJobs(prevJobs => {
@@ -42,20 +47,24 @@ export const ProgressNavIndicator = () => {
                         );
                     return jobsChanged ? allInProgressRepos : prevJobs;
                 });
+            } else {
+                captureEvent('wa_progress_nav_connection_fetch_fail', {
+                    error: connections.errorCode,
+                });
             }
         };
 
         fetchInProgressJobs();
-    }, [domain]);
+    }, [domain, captureEvent]);
 
     if (inProgressJobs.length === 0) {
         return null;
     }
 
     return (
-        <Link href={`/${domain}/connections`}>
-            <HoverCard>
-                <HoverCardTrigger asChild>
+        <Link href={`/${domain}/connections`} onClick={() => captureEvent('wa_progress_nav_pressed', {})}>
+            <HoverCard openDelay={50}>
+                <HoverCardTrigger asChild onMouseEnter={() => captureEvent('wa_progress_nav_hover', {})}>
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-full text-green-700 dark:text-green-400 text-xs font-medium hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors cursor-pointer">
                         <Loader2Icon className="h-4 w-4 animate-spin" />
                         <span>{inProgressJobs.length}</span>
@@ -72,7 +81,7 @@ export const ProgressNavIndicator = () => {
                         </p>
                         <div className="flex flex-col gap-2 pl-4">
                             {inProgressJobs.slice(0, 10).map(item => (
-                                <Link key={item.repoId} href={`/${domain}/connections/${item.connectionId}`}>
+                                <Link key={item.repoId} href={`/${domain}/connections/${item.connectionId}`} onClick={() => captureEvent('wa_progress_nav_job_pressed', {})}>
                                     <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 
                                                 rounded-md text-sm text-green-700 dark:text-green-300 
                                                 border border-green-200/50 dark:border-green-800/50

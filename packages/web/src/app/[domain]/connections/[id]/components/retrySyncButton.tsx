@@ -5,6 +5,7 @@ import { ReloadIcon } from "@radix-ui/react-icons"
 import { toast } from "@/components/hooks/use-toast";
 import { flagConnectionForSync } from "@/actions";
 import { isServiceError } from "@/lib/utils";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface RetrySyncButtonProps {
   connectionId: number;
@@ -12,6 +13,8 @@ interface RetrySyncButtonProps {
 }
 
 export const RetrySyncButton = ({ connectionId, domain }: RetrySyncButtonProps) => {
+  const captureEvent = useCaptureEvent();
+
   return (
     <Button
       variant="outline"
@@ -23,10 +26,14 @@ export const RetrySyncButton = ({ connectionId, domain }: RetrySyncButtonProps) 
           toast({
             description: `❌ Failed to flag connection for sync.`,
           });
+          captureEvent('wa_connection_retry_sync_fail', {
+            error: result.errorCode,
+          });
         } else {
           toast({
             description: "✅ Connection flagged for sync.",
           });
+          captureEvent('wa_connection_retry_sync_success', {});
         }
       }}
     >

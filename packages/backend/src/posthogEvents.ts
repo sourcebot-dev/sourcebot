@@ -5,17 +5,20 @@ export type PosthogEventMap = {
         vcs: string;
         codeHost?: string;
     },
-    repo_synced: {
-        vcs: string;
-        codeHost?: string;
-        fetchDuration_s?: number;
-        cloneDuration_s?: number;
-        indexDuration_s?: number;
-    },
     repo_deleted: {
         vcs: string;
         codeHost?: string;
-    }
+    },
+    //////////////////////////////////////////////////////////////////
+    backend_connection_sync_job_failed: {
+        connectionId: number,
+        error: string,
+    },
+    backend_connection_sync_job_completed: {
+        connectionId: number,
+        repoCount: number,
+    },
+    //////////////////////////////////////////////////////////////////
 }
 
 export type PosthogEvent = keyof PosthogEventMap;

@@ -15,6 +15,7 @@ import { transferOwnership, removeMemberFromOrg, leaveOrg } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 type Member = {
     id: string
@@ -44,6 +45,7 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
     const [isTransferOwnershipDialogOpen, setIsTransferOwnershipDialogOpen] = useState(false)
     const [isLeaveOrgDialogOpen, setIsLeaveOrgDialogOpen] = useState(false)
     const router = useRouter();
+    const captureEvent = useCaptureEvent();
 
     const filteredMembers = useMemo(() => {
         return members
@@ -68,10 +70,14 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                     toast({
                         description: `❌ Failed to remove member. Reason: ${response.message}`
                     })
+                    captureEvent('wa_members_list_remove_member_fail', {
+                        error: response.errorCode,
+                    })
                 } else {
                     toast({
                         description: `✅ Member removed successfully.`
                     })
+                    captureEvent('wa_members_list_remove_member_success', {})
                     router.refresh();
                 }
             });
@@ -84,14 +90,18 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                     toast({
                         description: `❌ Failed to transfer ownership. Reason: ${response.message}`
                     })
+                    captureEvent('wa_members_list_transfer_ownership_fail', {
+                        error: response.errorCode,
+                    })
                 } else {
                     toast({
                         description: `✅ Ownership transferred successfully.`
                     })
+                    captureEvent('wa_members_list_transfer_ownership_success', {})
                     router.refresh();
                 }
             });
-    }, [domain, toast, router]);
+    }, [domain, toast, router, captureEvent]);
 
     const onLeaveOrg = useCallback(() => {
         leaveOrg(domain)
@@ -100,10 +110,14 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                     toast({
                         description: `❌ Failed to leave organization. Reason: ${response.message}`
                     })
+                    captureEvent('wa_members_list_leave_org_fail', {
+                        error: response.errorCode,
+                    })
                 } else {
                     toast({
                         description: `✅ You have left the organization.`
                     })
+                    captureEvent('wa_members_list_leave_org_success', {})
                     router.push("/");
                 }
             });

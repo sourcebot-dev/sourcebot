@@ -7,6 +7,7 @@ import os from 'os';
 import { Redis } from 'ioredis';
 import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig } from "./repoCompileUtils.js";
 import { BackendError, BackendException } from "@sourcebot/error";
+import { captureEvent } from "./posthog.js";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -21,6 +22,10 @@ type JobPayload = {
     orgId: number,
     config: ConnectionConfig,
 };
+
+type JobResult = {
+    repoCount: number
+}
 
 export class ConnectionManager implements IConnectionManager {
     private worker: Worker;
@@ -217,10 +222,14 @@ export class ConnectionManager implements IConnectionManager {
             const totalUpsertDuration = performance.now() - totalUpsertStart;
             this.logger.info(`Upserted ${repoData.length} repos in ${totalUpsertDuration}ms`);
         });
+
+        return {
+            repoCount: repoData.length,
+        };
     }
 
 
-    private async onSyncJobCompleted(job: Job<JobPayload>) {
+    private async onSyncJobCompleted(job: Job<JobPayload>, result: JobResult) {
         this.logger.info(`Connection sync job ${job.id} completed`);
         const { connectionId } = job.data;
 
@@ -233,14 +242,24 @@ export class ConnectionManager implements IConnectionManager {
                 syncedAt: new Date()
             }
         })
+
+        captureEvent('backend_connection_sync_job_completed', {
+            connectionId: connectionId,
+            repoCount: result.repoCount,
+        });
     }
 
     private async onSyncJobFailed(job: Job | undefined, err: unknown) {
         this.logger.info(`Connection sync job failed with error: ${err}`);
         if (job) {
+            const { connectionId } = job.data;
+
+            captureEvent('backend_connection_sync_job_failed', {
+                connectionId: connectionId,
+                error: err instanceof BackendException ? err.code : 'UNKNOWN',
+            });
 
             // We may have pushed some metadata during the execution of the job, so we make sure to not overwrite the metadata here
-            const { connectionId } = job.data;
             let syncStatusMetadata: Record<string, unknown> = (await this.db.connection.findUnique({
                 where: { id: connectionId },
                 select: { syncStatusMetadata: true }

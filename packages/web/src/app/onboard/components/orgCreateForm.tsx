@@ -13,26 +13,35 @@ import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/hooks/use-toast"
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card"
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
-const onboardingFormSchema = z.object({
-    name: z.string()
-        .min(2, { message: "Organization name must be at least 3 characters long." })
-        .max(30, { message: "Organization name must be at most 30 characters long." }),
-    domain: z.string()
-        .min(2, { message: "Organization domain must be at least 3 characters long." })
-        .max(20, { message: "Organization domain must be at most 20 characters long." })
-        .regex(/^[a-z][a-z-]*[a-z]$/, {
-            message: "Domain must start and end with a letter, and can only contain lowercase letters and dashes.",
-        })
-        .refine(async (domain) => {
-            const doesDomainExist = await checkIfOrgDomainExists(domain);
-            return isServiceError(doesDomainExist) || !doesDomainExist;
-        }, "This domain is already taken."),
-})
 
 export function OrgCreateForm() {
     const { toast } = useToast();
     const router = useRouter();
+    const captureEvent = useCaptureEvent();
+    
+    const onboardingFormSchema = z.object({
+        name: z.string()
+            .min(2, { message: "Organization name must be at least 3 characters long." })
+            .max(30, { message: "Organization name must be at most 30 characters long." }),
+        domain: z.string()
+            .min(2, { message: "Organization domain must be at least 3 characters long." })
+            .max(20, { message: "Organization domain must be at most 20 characters long." })
+            .regex(/^[a-z][a-z-]*[a-z]$/, {
+                message: "Domain must start and end with a letter, and can only contain lowercase letters and dashes.",
+            })
+            .refine(async (domain) => {
+                const doesDomainExist = await checkIfOrgDomainExists(domain);
+                if (!isServiceError(doesDomainExist)) {
+                    captureEvent('wa_onboard_org_create_fail', {
+                        error: "Domain already exists",
+                    })
+                }
+                return isServiceError(doesDomainExist) || !doesDomainExist;
+            }, "This domain is already taken."),
+    })
+
     const form = useForm<z.infer<typeof onboardingFormSchema>>({
         resolver: zodResolver(onboardingFormSchema),
         defaultValues: {
@@ -48,8 +57,12 @@ export function OrgCreateForm() {
             toast({
                 description: `❌ Failed to create organization. Reason: ${response.message}`
             })
+            captureEvent('wa_onboard_org_create_fail', {
+                error: response.errorCode,
+            })
         } else {
             router.push(`/${data.domain}/onboard`);
+            captureEvent('wa_onboard_org_create_success', {})
         }
     }, [router, toast]);
 

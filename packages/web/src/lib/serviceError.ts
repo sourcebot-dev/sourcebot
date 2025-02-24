@@ -100,3 +100,11 @@ export const orgInvalidSubscription = (): ServiceError => {
         message: "Invalid subscription",
     }
 }
+
+export const secretAlreadyExists = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.CONFLICT,
+        errorCode: ErrorCode.SECRET_ALREADY_EXISTS,
+        message: "Secret already exists",
+    }
+}

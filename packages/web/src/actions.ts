@@ -2,7 +2,7 @@
 
 import Ajv from "ajv";
 import { auth } from "./auth";
-import { notAuthenticated, notFound, ServiceError, unexpectedError, orgInvalidSubscription } from "@/lib/serviceError";
+import { notAuthenticated, notFound, ServiceError, unexpectedError, orgInvalidSubscription, secretAlreadyExists } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -184,6 +184,19 @@ export const createSecret = async (key: string, value: string, domain: string): 
         withOrgMembership(session, domain, async ({ orgId }) => {
             try {
                 const encrypted = encrypt(value);
+                const existingSecret = await prisma.secret.findUnique({
+                    where: {
+                        orgId_key: {
+                            orgId,
+                            key,
+                        }
+                    }
+                });
+
+                if (existingSecret) {
+                    return secretAlreadyExists();
+                }
+
                 await prisma.secret.create({
                     data: {
                         orgId,
