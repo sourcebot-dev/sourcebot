@@ -63,10 +63,6 @@ export type Settings = {
      */
     maxFileSize: number;
     /**
-     * Automatically delete stale repositories from the index. Defaults to true.
-     */
-    autoDeleteStaleRepos: boolean;
-    /**
      * The interval (in milliseconds) at which the indexer should re-index all repositories.
      */
     reindexIntervalMs: number;
@@ -90,6 +86,10 @@ export type Settings = {
      * The multiple of the number of CPUs to use for garbage collection.
      */
     gcConcurrencyMultiple: number;
+    /**
+     * The grace period (in milliseconds) for garbage collection. Used to prevent deleting shards while they're being loaded
+     */
+    gcGracePeriodMs: number;
 }
 
 // @see : https://stackoverflow.com/a/61132308
