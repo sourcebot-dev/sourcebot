@@ -105,8 +105,8 @@ export function OrgCreateForm() {
                                 <FormLabel>Organization Domain</FormLabel>
                                 <FormControl>
                                     <div className="flex items-center">
+                                        <span className="ml-2">staging.sourcebot.dev/</span>
                                         <Input placeholder="aperature-labs" {...field} className="w-1/2" />
-                                        <span className="ml-2">.sourcebot.app</span>
                                     </div>
                                 </FormControl>
                                 <FormMessage />
