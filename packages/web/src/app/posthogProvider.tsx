@@ -6,7 +6,7 @@ import { PostHogProvider as PHProvider } from 'posthog-js/react'
 import { resolveServerPath } from './api/(client)/client'
 import { isDefined } from '@/lib/utils'
 import { usePathname, useSearchParams } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, Suspense } from "react"
 
 const POSTHOG_ENABLED = isDefined(NEXT_PUBLIC_POSTHOG_PAPIK) && !NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED;
 
@@ -28,6 +28,12 @@ function PostHogPageView() {
     }, [pathname, searchParams, posthog])
 
     return null
+}
+
+export default function SuspendedPostHogPageView() {
+    return <Suspense fallback={null}>
+        <PostHogPageView />
+    </Suspense>
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
@@ -64,7 +70,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <PHProvider client={posthog}>
-            <PostHogPageView />
+            <SuspendedPostHogPageView />
             {children}
         </PHProvider>
     )
