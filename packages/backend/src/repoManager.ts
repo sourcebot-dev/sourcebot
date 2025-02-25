@@ -4,13 +4,12 @@ import { createLogger } from "./logger.js";
 import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings } from "./types.js";
-import { captureEvent } from "./posthog.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { existsSync, rmSync, readdirSync } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import os from 'os';
-import { BackendException } from "@sourcebot/error";
+import { PromClient } from './promClient.js';
 
 interface IRepoManager {
     blockingPollLoop: () => void;
@@ -34,6 +33,7 @@ export class RepoManager implements IRepoManager {
         private db: PrismaClient,
         private settings: Settings,
         redis: Redis,
+        private promClient: PromClient,
         private ctx: AppContext,
     ) {
         this.queue = new Queue<JobPayload>(QUEUE_NAME, {
@@ -280,6 +280,7 @@ export class RepoManager implements IRepoManager {
                 repoIndexingStatus: RepoIndexingStatus.INDEXING,
             }
         });
+        this.promClient.activeRepoIndexingJobs.inc();
 
         let indexDuration_s: number | undefined;
         let fetchDuration_s: number | undefined;
@@ -295,6 +296,7 @@ export class RepoManager implements IRepoManager {
                 break;
             } catch (error) {
                 attempts++;
+                this.promClient.repoIndexingErrors.inc();
                 if (attempts === maxAttempts) {
                     this.logger.error(`Failed to sync repository ${repo.id} after ${maxAttempts} attempts. Error: ${error}`);
                     throw error;
@@ -313,7 +315,9 @@ export class RepoManager implements IRepoManager {
     
     private async onIndexJobCompleted(job: Job<JobPayload>) {
         this.logger.info(`Repo index job ${job.id} completed`);
-    
+        this.promClient.activeRepoIndexingJobs.dec();
+        this.promClient.repoIndexingSuccesses.inc();
+        
         await this.db.repo.update({
             where: {
                 id: job.data.repo.id,
@@ -328,6 +332,9 @@ export class RepoManager implements IRepoManager {
     private async onIndexJobFailed(job: Job<JobPayload> | undefined, err: unknown) {
         this.logger.info(`Repo index job failed (id: ${job?.id ?? 'unknown'}) with error: ${err}`);
         if (job) {
+            this.promClient.activeRepoIndexingJobs.dec();
+            this.promClient.repoIndexingFails.inc();
+
             await this.db.repo.update({
                 where: {
                     id: job.data.repo.id,

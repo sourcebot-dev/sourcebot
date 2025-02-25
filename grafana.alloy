@@ -3,6 +3,9 @@ prometheus.scrape "local_app" {
     {
       __address__ = "localhost:6070",
     },
+    {
+      __address__ = "localhost:3060",
+    },
   ]
 
   metrics_path = "/metrics"
