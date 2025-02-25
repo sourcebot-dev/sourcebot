@@ -20,7 +20,7 @@ export function OrgCreateForm() {
     const { toast } = useToast();
     const router = useRouter();
     const captureEvent = useCaptureEvent();
-    
+
     const onboardingFormSchema = z.object({
         name: z.string()
             .min(2, { message: "Organization name must be at least 3 characters long." })
@@ -73,9 +73,9 @@ export function OrgCreateForm() {
     }
 
     return (
-        <Card className="flex flex-col border p-12 space-y-6 bg-background w-96">
+        <Card className="flex flex-col border p-8 bg-background w-full max-w-md">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <FormField
                         control={form.control}
                         name="name"
@@ -104,21 +104,16 @@ export function OrgCreateForm() {
                             <FormItem>
                                 <FormLabel>Organization Domain</FormLabel>
                                 <FormControl>
-                                    <div className="flex items-center">
-                                        <span className="ml-2">staging.sourcebot.dev/</span>
-                                        <Input placeholder="aperature-labs" {...field} className="w-1/2" />
+                                    <div className="flex items-center space-x-2 w-full">
+                                        <div className="flex-shrink-0 text-sm text-muted-foreground">staging.sourcebot.dev/</div>
+                                        <Input placeholder="aperture-labs" {...field} className="flex-1" />
                                     </div>
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <Button
-                        variant="default"
-                        className="w-full"
-                        type="submit"
-                        disabled={isSubmitting}
-                    >
+                    <Button variant="default" className="w-full" type="submit" disabled={isSubmitting}>
                         {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         Create
                     </Button>
