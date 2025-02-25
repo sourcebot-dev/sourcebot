@@ -19,9 +19,12 @@ import { headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
 import { Session } from "next-auth";
-import { STRIPE_PRODUCT_ID, CONFIG_MAX_REPOS_NO_TOKEN } from "@/lib/environment";
+import { STRIPE_PRODUCT_ID, CONFIG_MAX_REPOS_NO_TOKEN, EMAIL_FROM, SMTP_CONNECTION_URL } from "@/lib/environment";
 import Stripe from "stripe";
 import { OnboardingSteps } from "./lib/constants";
+import { render } from "@react-email/components";
+import InviteUserEmail from "./emails/inviteUserEmail";
+import { createTransport } from "nodemailer";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -553,18 +556,71 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                 } satisfies ServiceError;
             }
 
-            await prisma.$transaction(async (tx) => {
-                for (const email of emails) {
-                    await tx.invite.create({
-                        data: {
-                            recipientEmail: email,
-                            hostUserId: session.user.id,
-                            orgId,
-                        }
-                    });
-                }
+            await prisma.invite.createMany({
+                data: emails.map((email) => ({
+                    recipientEmail: email,
+                    hostUserId: session.user.id,
+                    orgId,
+                })),
+                skipDuplicates: true,
             });
 
+            // Send invites to recipients
+            if (SMTP_CONNECTION_URL && EMAIL_FROM) {
+                const origin = (await headers()).get('origin')!;
+                await Promise.all(emails.map(async (email) => {
+                    const invite = await prisma.invite.findUnique({
+                        where: {
+                            recipientEmail_orgId: {
+                                recipientEmail: email,
+                                orgId,
+                            },
+                        },
+                        include: {
+                            org: true,
+                        }
+                    });
+
+                    if (!invite) {
+                        return;
+                    }
+
+                    const recipient = await prisma.user.findUnique({
+                        where: {
+                            email,
+                        },
+                    });
+                    const inviteLink = `${origin}/redeem?invite_id=${invite.id}`;
+                    const transport = createTransport(SMTP_CONNECTION_URL);
+                    const html = await render(InviteUserEmail({
+                        baseUrl: 'https://sourcebot.app',
+                        host: {
+                            name: session.user.name ?? undefined,
+                            email: session.user.email!,
+                            avatarUrl: session.user.image ?? undefined,
+                        },
+                        recipient: {
+                            name: recipient?.name ?? undefined,
+                        },
+                        orgName: invite.org.name,
+                        orgImageUrl: invite.org.imageUrl ?? undefined,
+                        inviteLink,
+                    }));
+
+                    const result = await transport.sendMail({
+                        to: email,
+                        from: EMAIL_FROM,
+                        subject: `Join ${invite.org.name} on Sourcebot`,
+                        html,
+                        text: `Join ${invite.org.name} on Sourcebot by clicking here: ${inviteLink}`,
+                    });
+
+                    const failed = result.rejected.concat(result.pending).filter(Boolean);
+                    if (failed.length > 0) {
+                        console.error(`Failed to send invite email to ${email}: ${failed}`);
+                    }
+                }));
+            }
 
             return {
                 success: true,

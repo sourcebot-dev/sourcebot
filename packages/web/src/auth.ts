@@ -23,7 +23,7 @@ import type { Provider } from "next-auth/providers";
 import { verifyCredentialsRequestSchema, verifyCredentialsResponseSchema } from './lib/schemas';
 import { createTransport } from 'nodemailer';
 import { render } from '@react-email/render';
-import MagicLinkEmail from './emails/magicLink';
+import MagicLinkEmail from './emails/magicLinkEmail';
 
 export const runtime = 'nodejs';
 
