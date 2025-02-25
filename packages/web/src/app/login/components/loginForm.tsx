@@ -11,6 +11,7 @@ import { MagicLinkForm } from "./magicLinkForm";
 import { CredentialsForm } from "./credentialsForm";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { TextSeparator } from "@/app/components/textSeparator";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface LoginFormProps {
     callbackUrl?: string;
@@ -24,6 +25,7 @@ interface LoginFormProps {
 }
 
 export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps) => {
+    const captureEvent = useCaptureEvent();
     const onSignInWithOauth = useCallback((provider: string) => {
         signIn(provider, { redirectTo: callbackUrl ?? "/" });
     }, [callbackUrl]);
@@ -66,6 +68,7 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
                                         name="GitHub"
                                         logo={getCodeHostIcon("github")!}
                                         onClick={() => {
+                                            captureEvent("wa_login_with_github", {});
                                             onSignInWithOauth("github")
                                         }}
                                     />
@@ -76,6 +79,7 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
                                         name="Google"
                                         logo={{ src: googleLogo }}
                                         onClick={() => {
+                                            captureEvent("wa_login_with_google", {});
                                             onSignInWithOauth("google")
                                         }}
                                     />

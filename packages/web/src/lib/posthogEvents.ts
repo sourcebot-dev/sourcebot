@@ -219,6 +219,11 @@ export type PosthogEventMap = {
         error: string,
     },
     //////////////////////////////////////////////////////////////////
+    wa_login_with_github: {},
+    wa_login_with_google: {},
+    wa_login_with_magic_link: {},
+    wa_login_with_credentials: {},
+    //////////////////////////////////////////////////////////////////
 } 
 
 export type PosthogEvent = keyof PosthogEventMap;

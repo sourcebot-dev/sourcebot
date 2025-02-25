@@ -9,6 +9,8 @@ import { z } from "zod";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
+
 const magicLinkSchema = z.object({
     email: z.string().email(),
 });
@@ -18,6 +20,7 @@ interface MagicLinkFormProps {
 }   
 
 export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
+    const captureEvent = useCaptureEvent();
     const [isLoading, setIsLoading] = useState(false);
     const magicLinkForm = useForm<z.infer<typeof magicLinkSchema>>({
         resolver: zodResolver(magicLinkSchema),
@@ -28,6 +31,7 @@ export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
 
     const onSignIn = (values: z.infer<typeof magicLinkSchema>) => {
         setIsLoading(true);
+        captureEvent("wa_login_with_magic_link", {});
         signIn("nodemailer", { email: values.email, redirectTo: callbackUrl ?? "/" })
             .finally(() => {
                 setIsLoading(false);
