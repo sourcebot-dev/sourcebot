@@ -64,7 +64,7 @@ export function OrgCreateForm() {
             router.push(`/${data.domain}/onboard`);
             captureEvent('wa_onboard_org_create_success', {})
         }
-    }, [router, toast]);
+    }, [router, toast, captureEvent]);
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value

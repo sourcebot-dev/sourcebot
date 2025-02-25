@@ -1,6 +1,5 @@
 import { LogOutIcon } from "lucide-react";
 import { signOut } from "@/auth";
-import { cn } from "@/lib/utils";
 interface LogoutEscapeHatchProps {
     className?: string;
 }

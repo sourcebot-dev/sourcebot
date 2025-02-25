@@ -81,7 +81,7 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                     router.refresh();
                 }
             });
-    }, [domain, toast, router]);
+    }, [domain, toast, router, captureEvent]);
 
     const onTransferOwnership = useCallback((memberId: string) => {
         transferOwnership(memberId, domain)
@@ -121,7 +121,7 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                     router.push("/");
                 }
             });
-    }, [domain, toast, router]);
+    }, [domain, toast, router, captureEvent]);
 
     return (
         <div>

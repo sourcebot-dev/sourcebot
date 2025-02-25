@@ -59,7 +59,7 @@ export const DeleteConnectionSetting = ({
             .finally(() => {
                 setIsLoading(false);
             });
-    }, [connectionId, domain, router, toast]);
+    }, [connectionId, domain, router, toast, captureEvent]);
 
     return (
         <div className="flex flex-col w-full bg-background border rounded-lg p-6">

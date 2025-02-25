@@ -7,7 +7,6 @@ import { GitHubLogoIcon, DiscordLogoIcon } from "@radix-ui/react-icons";
 import { redirect } from "next/navigation";
 import { OrgSelector } from "./orgSelector";
 import { getSubscriptionData } from "@/actions";
-import { isServiceError } from "@/lib/utils";
 import { ErrorNavIndicator } from "./errorNavIndicator";
 import { WarningNavIndicator } from "./warningNavIndicator";
 import { ProgressNavIndicator } from "./progressNavIndicator";

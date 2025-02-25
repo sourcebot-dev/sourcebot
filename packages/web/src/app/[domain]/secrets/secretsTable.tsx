@@ -15,7 +15,6 @@ import { useToast } from "@/components/hooks/use-toast";
 import { deleteSecret } from "../../../actions"
 import { useDomain } from "@/hooks/useDomain";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { PosthogEvent } from "@/lib/posthogEvents";
 import { ErrorCode } from "@/lib/errorCodes";
 const formSchema = z.object({
     key: z.string().min(2).max(40),

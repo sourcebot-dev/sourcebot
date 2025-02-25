@@ -6,7 +6,7 @@ import { PostHogProvider as PHProvider } from 'posthog-js/react'
 import { resolveServerPath } from './api/(client)/client'
 import { isDefined } from '@/lib/utils'
 import { usePathname, useSearchParams } from "next/navigation"
-import { useEffect, Suspense } from "react"
+import { useEffect } from "react"
 
 const POSTHOG_ENABLED = isDefined(NEXT_PUBLIC_POSTHOG_PAPIK) && !NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED;
 

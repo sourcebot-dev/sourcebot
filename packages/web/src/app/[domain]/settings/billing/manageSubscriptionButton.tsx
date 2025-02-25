@@ -25,7 +25,7 @@ export function ManageSubscriptionButton({ currentUserRole }: { currentUserRole:
                 router.push(session)
                 captureEvent('wa_manage_subscription_button_create_portal_session_success', {})
             }
-        } catch (error) {
+        } catch (_error) {
             captureEvent('wa_manage_subscription_button_create_portal_session_fail', {
                 error: "Unknown error",
             })

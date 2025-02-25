@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import { CalendarIcon, DollarSign, Users } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { ManageSubscriptionButton } from "./manageSubscriptionButton"
 import { getSubscriptionData, getCurrentUserRole, getSubscriptionBillingEmail } from "@/actions"
 import { isServiceError } from "@/lib/utils"

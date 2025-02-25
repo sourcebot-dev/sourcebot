@@ -105,7 +105,7 @@ function ConfigSettingInternal<T>({
                 return checkIfSecretExists(secretKey, domain);
             }, { message: "Secret not found" })
         });
-    }, [schema]);
+    }, [schema, domain]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -227,6 +227,7 @@ function ConfigSettingInternal<T>({
                                     <FormControl>
                                         <ConfigEditor<T>
                                             ref={editorRef}
+                                            type={type}
                                             value={value}
                                             onChange={onConfigChange}
                                             schema={schema}

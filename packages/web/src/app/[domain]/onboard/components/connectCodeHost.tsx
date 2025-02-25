@@ -22,7 +22,6 @@ interface ConnectCodeHostProps {
 export const ConnectCodeHost = ({ nextStep }: ConnectCodeHostProps) => {
     const [selectedCodeHost, setSelectedCodeHost] = useState<CodeHostType | null>(null);
     const router = useRouter();
-    const captureEvent = useCaptureEvent();
     const onCreated = useCallback(() => {
         router.push(`?step=${nextStep}`);
     }, [nextStep, router]);
