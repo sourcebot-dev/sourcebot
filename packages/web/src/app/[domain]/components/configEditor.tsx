@@ -53,9 +53,6 @@ const customAutocompleteStyle = EditorView.baseTheme({
 
 export function onQuickAction<T>(
     action: QuickActionFn<T>,
-    captureEvent: <E extends PosthogEvent>(event: E, properties: PosthogEventMap[E]) => void,
-    name: string,
-    type: CodeHostType,
     config: string,
     view: EditorView,
     options?: {
@@ -96,11 +93,6 @@ export function onQuickAction<T>(
             selection: { anchor: cursorPos, head: cursorPos }
         });
     }
-
-    captureEvent('wa_config_editor_quick_action_pressed', {
-        name,
-        type,
-    });
 }
 
 export const isConfigValidJson = (config: string) => {
@@ -170,8 +162,12 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
                                         disabled={!isConfigValidJson(value)}
                                         onClick={(e) => {
                                             e.preventDefault();
+                                            captureEvent('wa_config_editor_quick_action_pressed', {
+                                                name,
+                                                type,
+                                            });
                                             if (editorRef.current?.view) {
-                                                onQuickAction(fn, captureEvent, name, type, value, editorRef.current.view, {
+                                                onQuickAction(fn, value, editorRef.current.view, {
                                                     focusEditor: true,
                                                 });
                                             }

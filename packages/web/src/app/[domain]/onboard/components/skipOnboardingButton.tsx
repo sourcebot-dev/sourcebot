@@ -6,15 +6,15 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface SkipOnboardingButtonProps {
     currentStep: OnboardingSteps;
+    lastRequiredStep: OnboardingSteps;
 }
 
-export const SkipOnboardingButton = ({ currentStep }: SkipOnboardingButtonProps) => {
+export const SkipOnboardingButton = ({ currentStep, lastRequiredStep }: SkipOnboardingButtonProps) => {
     const captureEvent = useCaptureEvent();
-    const lastRequiredStep = OnboardingSteps.Checkout;
 
     const handleClick = () => {
         captureEvent('wa_onboard_skip_onboarding', {
-            step: currentStep,
+            step: currentStep
         });
     };
 

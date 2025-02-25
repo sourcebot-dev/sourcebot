@@ -56,6 +56,7 @@ export default async function Onboard({ params, searchParams }: OnboardProps) {
                     />
                     <SkipOnboardingButton
                         currentStep={step as OnboardingSteps}
+                        lastRequiredStep={lastRequiredStep}
                     />
                 </>
             )}

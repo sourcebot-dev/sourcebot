@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { useRouter } from "next/navigation";
+import { useDomain } from "@/hooks/useDomain";
 
 interface ConnectionListItemManageButtonProps {
     id: string;
@@ -11,6 +13,8 @@ export const ConnectionListItemManageButton = ({
     id
 }: ConnectionListItemManageButtonProps) => {
     const captureEvent = useCaptureEvent()
+    const router = useRouter();
+    const domain = useDomain();
 
     return (
         <Button
@@ -19,7 +23,7 @@ export const ConnectionListItemManageButton = ({
             className="ml-4"
             onClick={() => {
                 captureEvent('wa_connection_list_item_manage_pressed', {})
-                window.location.href = `connections/${id}`
+                router.push(`/${domain}/connections/${id}`)
             }}
         >
             Manage

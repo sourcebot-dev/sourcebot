@@ -30,12 +30,6 @@ function PostHogPageView() {
     return null
 }
 
-export default function SuspendedPostHogPageView() {
-    return <Suspense fallback={null}>
-        <PostHogPageView />
-    </Suspense>
-}
-
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (POSTHOG_ENABLED) {
