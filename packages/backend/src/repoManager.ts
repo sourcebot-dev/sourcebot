@@ -352,27 +352,19 @@ export class RepoManager implements IRepoManager {
         // Get inactive org repos
         ////////////////////////////////////
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        const inactiveOrgs = await this.db.org.findMany({
-            where: {
-                stripeSubscriptionStatus: StripeSubscriptionStatus.INACTIVE,
-                stripeLastUpdatedAt: {
-                    lt: sevenDaysAgo
-                }
-            }
-        });
-    
-        const inactiveOrgIds = inactiveOrgs.map(org => org.id);
-        
         const inactiveOrgRepos = await this.db.repo.findMany({
             where: {
-                orgId: {
-                    in: inactiveOrgIds
+                org: {
+                    stripeSubscriptionStatus: StripeSubscriptionStatus.INACTIVE,
+                    stripeLastUpdatedAt: {
+                        lt: sevenDaysAgo
+                    }
                 }
             }
         });
     
-        if (inactiveOrgIds.length > 0 && inactiveOrgRepos.length > 0) {
-            this.logger.info(`Garbage collecting ${inactiveOrgs.length} inactive orgs: ${inactiveOrgIds.join(', ')}`);
+        if (inactiveOrgRepos.length > 0) {
+            this.logger.info(`Garbage collecting ${inactiveOrgRepos.length} inactive org repos: ${inactiveOrgRepos.map(repo => repo.id).join(', ')}`);
         }
     
         const reposToDelete = [...reposWithNoConnections, ...inactiveOrgRepos];
