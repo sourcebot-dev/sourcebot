@@ -6,7 +6,7 @@ import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig }
 import { AppContext, Settings } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
 import { cloneRepository, fetchRepository } from "./git.js";
-import { existsSync, rmSync, readdirSync } from 'fs';
+import { existsSync, rmSync, readdirSync, rm } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import os from 'os';
 import { PromClient } from './promClient.js';
@@ -399,7 +399,12 @@ export class RepoManager implements IRepoManager {
         const repoPath = getRepoPath(repo, this.ctx);
         if(existsSync(repoPath)) {
             this.logger.info(`Deleting repo directory ${repoPath}`);
-            rmSync(repoPath, { recursive: true, force: true });
+            await rm(repoPath, { recursive: true, force: true }, (err) => {
+                if (err) {
+                    this.logger.error(`Failed to delete repo directory ${repoPath}: ${err}`);
+                    throw err;
+                }
+            });
         }
 
         // delete shards
@@ -408,7 +413,12 @@ export class RepoManager implements IRepoManager {
         for (const file of files) {
             const filePath = `${this.ctx.indexPath}/${file}`;
             this.logger.info(`Deleting shard file ${filePath}`);
-            rmSync(filePath);
+            await rm(filePath, { force: true }, (err) => {
+                if (err) {
+                    this.logger.error(`Failed to delete shard file ${filePath}: ${err}`);
+                    throw err;
+                }
+            });
         }
     }
     

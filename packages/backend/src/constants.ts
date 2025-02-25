@@ -11,5 +11,5 @@ export const DEFAULT_SETTINGS: Settings = {
     reindexRepoPollingIntervalMs: 1000,
     indexConcurrencyMultiple: 3,
     configSyncConcurrencyMultiple: 3,
-    gcConcurrencyMultiple: 3,
+    gcConcurrencyMultiple: 1,
 }
