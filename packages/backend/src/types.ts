@@ -86,6 +86,10 @@ export type Settings = {
      * The multiple of the number of CPUs to use for syncing the configuration.
      */
     configSyncConcurrencyMultiple: number;
+    /**
+     * The multiple of the number of CPUs to use for garbage collection.
+     */
+    gcConcurrencyMultiple: number;
 }
 
 // @see : https://stackoverflow.com/a/61132308
