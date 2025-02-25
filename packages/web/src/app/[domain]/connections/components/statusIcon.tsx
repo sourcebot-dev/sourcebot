@@ -3,7 +3,7 @@ import { CircleCheckIcon, CircleXIcon } from "lucide-react";
 import { useMemo } from "react";
 import { FiLoader } from "react-icons/fi";
 
-export type Status = 'waiting' | 'running' | 'succeeded' | 'failed';
+export type Status = 'waiting' | 'running' | 'succeeded' | 'failed' | 'garbage-collecting';
 
 export const StatusIcon = ({
     status,
@@ -12,6 +12,7 @@ export const StatusIcon = ({
     const Icon = useMemo(() => {
         switch (status) {
             case 'waiting':
+            case 'garbage-collecting':
             case 'running':
                 return <FiLoader className={cn('animate-spin-slow', className)} />;
             case 'succeeded':
