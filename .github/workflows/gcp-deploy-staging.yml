@@ -29,6 +29,7 @@ jobs:
             # Run new container
             docker run -d \
               -p 80:3000 \
+              --rm \
               --pull always \
               --env-file .env.staging \
               -v /mnt/data:/data \
