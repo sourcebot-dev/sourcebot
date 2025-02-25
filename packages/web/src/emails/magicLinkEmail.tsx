@@ -1,7 +1,6 @@
 import {
     Body,
     Container,
-    Hr,
     Img,
     Link,
     Preview,
@@ -9,7 +8,7 @@ import {
     Tailwind,
     Text,
 } from '@react-email/components';
-
+import { EmailFooter } from './emailFooter';
 
 interface MagicLinkEmailProps {
     magicLink: string,
@@ -23,7 +22,7 @@ export const MagicLinkEmail = ({
     <Tailwind>
         <Preview>Log in to Sourcebot</Preview>
         <Body className="bg-white my-auto mx-auto font-sans px-2">
-            <Container className="my-[40px] mx-auto p-[20px] max-w-[465px]">
+        <Container className="border border-solid border-[#eaeaea] rounded my-[40px] mx-auto p-[20px] max-w-[465px]">
                 <Section className="mt-[32px]">
                     <Img
                         src={`${baseUrl}/sb_logo_light_large.png`}
@@ -34,7 +33,7 @@ export const MagicLinkEmail = ({
                     />
                 </Section>
                 <Text className="text-black text-[14px] leading-[24px]">
-                    Hey there,
+                    Hello,
                 </Text>
                 <Text className="text-black text-[14px] leading-[24px]">
                     You can log in to your Sourcebot account by clicking the link below.
@@ -53,13 +52,7 @@ export const MagicLinkEmail = ({
                 <Text className="text-black text-[14px] leading-[24px]">
                     If you didn&apos;t try to login, you can safely ignore this email.
                 </Text>
-                <Hr className="border border-solid border-[#eaeaea] my-[10px] mx-0 w-full" />
-                <Text className="text-[#666666] text-[12px] leading-[24px]">
-                    <Link href="https://sourcebot.dev" className="underline text-[#666666]" target="_blank">
-                        Sourcebot.dev,
-                    </Link>
-                    &nbsp;blazingly fast code search.
-                </Text>
+                <EmailFooter />
             </Container>
         </Body>
     </Tailwind>
