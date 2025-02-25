@@ -65,7 +65,7 @@ export const getProviders = () => {
             maxAge: 60 * 10,
             sendVerificationRequest: async ({ identifier, url, provider }) => {
                 const transport = createTransport(provider.server);
-                const html = await render(MagicLinkEmail({ magicLink: url, baseUrl: 'https://sourcebot.app' }));
+                const html = await render(MagicLinkEmail({ magicLink: url, baseUrl: AUTH_URL }));
                 const result = await transport.sendMail({
                     to: identifier,
                     from: provider.from,

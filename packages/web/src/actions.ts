@@ -19,7 +19,7 @@ import { headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
 import { Session } from "next-auth";
-import { STRIPE_PRODUCT_ID, CONFIG_MAX_REPOS_NO_TOKEN, EMAIL_FROM, SMTP_CONNECTION_URL } from "@/lib/environment";
+import { STRIPE_PRODUCT_ID, CONFIG_MAX_REPOS_NO_TOKEN, EMAIL_FROM, SMTP_CONNECTION_URL, AUTH_URL } from "@/lib/environment";
 import Stripe from "stripe";
 import { OnboardingSteps } from "./lib/constants";
 import { render } from "@react-email/components";
@@ -593,7 +593,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                     const inviteLink = `${origin}/redeem?invite_id=${invite.id}`;
                     const transport = createTransport(SMTP_CONNECTION_URL);
                     const html = await render(InviteUserEmail({
-                        baseUrl: 'https://sourcebot.app',
+                        baseUrl: AUTH_URL,
                         host: {
                             name: session.user.name ?? undefined,
                             email: session.user.email!,
