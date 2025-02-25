@@ -68,7 +68,7 @@ export function OrgCreateForm() {
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value
-        const domain = name.toLowerCase().replace(/\s+/g, "-")
+        const domain = name.toLowerCase().replace(/[^a-zA-Z\s]/g, "").replace(/\s+/g, "-")
         form.setValue("domain", domain)
     }
 
