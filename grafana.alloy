@@ -1,0 +1,30 @@
+prometheus.scrape "local_app" {
+  targets = [
+    {
+      __address__ = "localhost:6070",
+    },
+    {
+      __address__ = "localhost:3060",
+    },
+  ]
+
+  metrics_path = "/metrics"
+  scrape_interval = "10s"
+
+  job_name = sys.env("GRAFANA_ENVIRONMENT")
+  
+  forward_to = [
+    prometheus.remote_write.grafana_cloud.receiver,
+  ]
+}
+
+prometheus.remote_write "grafana_cloud" {
+   endpoint {
+      url  = sys.env("GRAFANA_ENDPOINT")
+  
+      basic_auth {
+        username = sys.env("GRAFANA_USERNAME")
+        password = sys.env("GRAFANA_PASSWORD")
+      }
+   }
+}

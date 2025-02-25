@@ -111,9 +111,6 @@ ENV POSTHOG_PAPIK=$POSTHOG_PAPIK
 
 ENV STRIPE_PUBLISHABLE_KEY=""
 
-# Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib openssl util-linux 
-
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
 RUN ./install-ctags-alpine.sh && rm install-ctags-alpine.sh
@@ -144,6 +141,19 @@ COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 
+# Configure dependencies
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib openssl util-linux unzip
+
+# Install grafana alloy. libc6-compat is required because alloy dynamically links against glibc which doesn't exist in alpine by default
+# @nochekin: figure out how to handle this for self hosted case (especially the config)
+RUN apk add --no-cache libc6-compat 
+RUN wget https://github.com/grafana/alloy/releases/download/v1.7.0/alloy-linux-amd64.zip \
+    && unzip alloy-linux-amd64.zip \
+    && mv alloy-linux-amd64 /usr/local/bin/alloy \
+    && chmod +x /usr/local/bin/alloy \
+    && rm alloy-linux-amd64.zip
+COPY grafana.alloy .
+
 # Configure the database
 RUN mkdir -p /run/postgresql && \
     chown -R postgres:postgres /run/postgresql && \
@@ -156,7 +166,6 @@ COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 COPY default-config.json .
-
 
 EXPOSE 3000
 ENV PORT=3000

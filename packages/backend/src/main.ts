@@ -6,6 +6,7 @@ import { Redis } from 'ioredis';
 import { ConnectionManager } from './connectionManager.js';
 import { RepoManager } from './repoManager.js';
 import { INDEX_CONCURRENCY_MULTIPLE, REDIS_URL } from './environment.js';
+import { PromClient } from './promClient.js';
 
 const logger = createLogger('main');
 
@@ -26,9 +27,11 @@ export const main = async (db: PrismaClient, context: AppContext) => {
         settings.indexConcurrencyMultiple = parseInt(INDEX_CONCURRENCY_MULTIPLE);
     }
 
+    const promClient = new PromClient();
+
     const connectionManager = new ConnectionManager(db, settings, redis);
     connectionManager.registerPollingCallback();
 
-    const repoManager = new RepoManager(db, settings, redis, context);
+    const repoManager = new RepoManager(db, settings, redis, promClient, context);
     await repoManager.blockingPollLoop();
 }
