@@ -176,9 +176,6 @@ export default function SharedConnectionCreationForm<T>({
                                                                 }
                                                             }
                                                         },
-                                                        captureEvent,
-                                                        "set-secret",
-                                                        type,
                                                         form.getValues("config"),
                                                         view,
                                                         {
