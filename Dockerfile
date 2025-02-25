@@ -145,6 +145,7 @@ COPY --from=shared-libs-builder /app/packages/error ./packages/error
 RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib openssl util-linux unzip
 
 # Install grafana alloy. libc6-compat is required because alloy dynamically links against glibc which doesn't exist in alpine by default
+# @nochekin: figure out how to handle this for self hosted case (especially the config)
 RUN apk add --no-cache libc6-compat 
 RUN wget https://github.com/grafana/alloy/releases/download/v1.7.0/alloy-linux-amd64.zip \
     && unzip alloy-linux-amd64.zip \
@@ -155,8 +156,8 @@ COPY grafana.alloy .
 
 # Configure the database
 RUN mkdir -p /run/postgresql && \
-chown -R postgres:postgres /run/postgresql && \
-chmod 775 /run/postgresql
+    chown -R postgres:postgres /run/postgresql && \
+    chmod 775 /run/postgresql
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY prefix-output.sh ./prefix-output.sh
