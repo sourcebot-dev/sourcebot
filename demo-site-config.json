@@ -1,7 +1,6 @@
 {
     "$schema": "./schemas/v2/index.json",
     "settings": {
-        "autoDeleteStaleRepos": true,
         "reindexInterval": 86400000, // 24 hours
         "resyncInterval": 86400000 // 24 hours
     },

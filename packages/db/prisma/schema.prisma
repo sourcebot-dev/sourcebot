@@ -16,6 +16,9 @@ enum RepoIndexingStatus {
   INDEXING
   INDEXED
   FAILED
+  IN_GC_QUEUE
+  GARBAGE_COLLECTING
+  GARBAGE_COLLECTION_FAILED
 }
 
 enum ConnectionSyncStatus {

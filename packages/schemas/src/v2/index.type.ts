@@ -41,10 +41,6 @@ export interface Settings {
    */
   maxFileSize?: number;
   /**
-   * Automatically delete stale repositories from the index. Defaults to true.
-   */
-  autoDeleteStaleRepos?: boolean;
-  /**
    * The interval (in milliseconds) at which the indexer should re-index all repositories. Repositories are always indexed when first added. Defaults to 1 hour (3600000 milliseconds).
    */
   reindexInterval?: number;

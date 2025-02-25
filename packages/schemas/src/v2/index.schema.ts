@@ -595,11 +595,6 @@ const schema = {
           "default": 2097152,
           "minimum": 1
         },
-        "autoDeleteStaleRepos": {
-          "type": "boolean",
-          "description": "Automatically delete stale repositories from the index. Defaults to true.",
-          "default": true
-        },
         "reindexInterval": {
           "type": "integer",
           "description": "The interval (in milliseconds) at which the indexer should re-index all repositories. Repositories are always indexed when first added. Defaults to 1 hour (3600000 milliseconds).",

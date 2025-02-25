@@ -35,6 +35,12 @@ export const RepoListItem = ({
                 return 'Indexed';
             case RepoIndexingStatus.FAILED:
                 return 'Index failed';
+            case RepoIndexingStatus.IN_GC_QUEUE:
+                return 'In garbage collection queue...';
+            case RepoIndexingStatus.GARBAGE_COLLECTING:
+                return 'Garbage collecting...';
+            case RepoIndexingStatus.GARBAGE_COLLECTION_FAILED:
+                return 'Garbage collection failed';
         }
     }, [status]);
 
@@ -85,8 +91,12 @@ const convertIndexingStatus = (status: RepoIndexingStatus) => {
         case RepoIndexingStatus.IN_INDEX_QUEUE:
         case RepoIndexingStatus.INDEXING:
             return 'running';
+        case RepoIndexingStatus.IN_GC_QUEUE:
+        case RepoIndexingStatus.GARBAGE_COLLECTING:
+            return "garbage-collecting"
         case RepoIndexingStatus.INDEXED:
             return 'succeeded';
+        case RepoIndexingStatus.GARBAGE_COLLECTION_FAILED:
         case RepoIndexingStatus.FAILED:
             return 'failed';
     }
