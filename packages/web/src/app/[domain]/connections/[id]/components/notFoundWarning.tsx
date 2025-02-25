@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react"
 import { Prisma } from "@sourcebot/db"
 import { RetrySyncButton } from "./retrySyncButton"
 import { SyncStatusMetadataSchema } from "@/lib/syncStatusMetadataSchema"
-
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 interface NotFoundWarningProps {
   syncStatusMetadata: Prisma.JsonValue
   onSecretsClick: () => void
@@ -12,6 +12,8 @@ interface NotFoundWarningProps {
 }
 
 export const NotFoundWarning = ({ syncStatusMetadata, onSecretsClick, connectionId, domain, connectionType }: NotFoundWarningProps) => {
+  const captureEvent = useCaptureEvent();
+
   const parseResult = SyncStatusMetadataSchema.safeParse(syncStatusMetadata);
   if (!parseResult.success || !parseResult.data.notFound) {
     return null;
@@ -21,6 +23,8 @@ export const NotFoundWarning = ({ syncStatusMetadata, onSecretsClick, connection
 
   if (notFound.users.length === 0 && notFound.orgs.length === 0 && notFound.repos.length === 0) {
     return null;
+  } else {
+    captureEvent('wa_connection_not_found_warning_displayed', {});
   }
 
   return (

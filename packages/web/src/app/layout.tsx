@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { QueryClientProvider } from "./queryClientProvider";
-import { PHProvider } from "./posthogProvider";
+import { PostHogProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "next-auth/react";
@@ -26,7 +26,7 @@ export default function RootLayout({
             <body>
                 <Toaster />
                 <SessionProvider>
-                    <PHProvider>
+                    <PostHogProvider>
                         <ThemeProvider
                             attribute="class"
                             defaultTheme="system"
@@ -39,7 +39,7 @@ export default function RootLayout({
                                 </TooltipProvider>
                             </QueryClientProvider>
                         </ThemeProvider>
-                    </PHProvider>
+                    </PostHogProvider>
                 </SessionProvider>
             </body>
         </html>

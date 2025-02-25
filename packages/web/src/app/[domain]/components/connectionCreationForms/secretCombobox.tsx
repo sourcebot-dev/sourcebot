@@ -30,7 +30,7 @@ import githubPatCreation from "@/public/github_pat_creation.png"
 import { CodeHostType } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { isDefined } from '@/lib/utils'
-
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 interface SecretComboBoxProps {
     isDisabled: boolean;
     codeHostType: CodeHostType;
@@ -47,6 +47,7 @@ export const SecretCombobox = ({
     const [searchFilter, setSearchFilter] = useState("");
     const domain = useDomain();
     const [isCreateSecretDialogOpen, setIsCreateSecretDialogOpen] = useState(false);
+    const captureEvent = useCaptureEvent();
 
     const { data: secrets, isLoading, refetch } = useQuery({
         queryKey: ["secrets"],
@@ -154,7 +155,12 @@ export const SecretCombobox = ({
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setIsCreateSecretDialogOpen(true)}
+                        onClick={() => {
+                            setIsCreateSecretDialogOpen(true);
+                            captureEvent('wa_secret_combobox_import_secret_pressed', {
+                                type: codeHostType,
+                            });
+                        }}
                         className={cn(
                             "w-full justify-start gap-1.5 p-2",
                             secrets && !isServiceError(secrets) && secrets.length > 0 && "my-2"
@@ -187,10 +193,17 @@ const ImportSecretDialog = ({ open, onOpenChange, onSecretCreated, codeHostType 
     const [showValue, setShowValue] = useState(false);
     const domain = useDomain();
     const { toast } = useToast();
+    const captureEvent = useCaptureEvent();
 
     const formSchema = z.object({
         key: z.string().min(1).refine(async (key) => {
             const doesSecretExist = await checkIfSecretExists(key, domain);
+            if(!isServiceError(doesSecretExist)) {
+                captureEvent('wa_secret_combobox_import_secret_fail', {
+                    type: codeHostType,
+                    error: "A secret with this key already exists.",
+                });
+            }
             return isServiceError(doesSecretExist) || !doesSecretExist;
         }, "A secret with this key already exists."),
         value: z.string().min(1),
@@ -211,15 +224,22 @@ const ImportSecretDialog = ({ open, onOpenChange, onSecretCreated, codeHostType 
             toast({
                 description: `❌ Failed to create secret`
             });
+            captureEvent('wa_secret_combobox_import_secret_fail', {
+                type: codeHostType,
+                error: response.message,
+            });
         } else {
             toast({
                 description: `✅ Secret created successfully!`
+            });
+            captureEvent('wa_secret_combobox_import_secret_success', {
+                type: codeHostType,
             });
             form.reset();
             onOpenChange(false);
             onSecretCreated(data.key);
         }
-    }, [domain, toast, onOpenChange, onSecretCreated, form]);
+    }, [domain, toast, onOpenChange, onSecretCreated, form, codeHostType, captureEvent]);
 
     const codeHostSpecificStep = useMemo(() => {
         switch (codeHostType) {

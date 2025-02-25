@@ -28,6 +28,7 @@ import { DisplayConnectionError } from "./components/connectionError"
 import { NotFoundWarning } from "./components/notFoundWarning"
 import { RetrySyncButton } from "./components/retrySyncButton"
 import { RetryAllFailedReposButton } from "./components/retryAllFailedReposButton"
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 export default function ConnectionManagementPage() {
     const params = useParams()
@@ -38,8 +39,10 @@ export default function ConnectionManagementPage() {
     const [linkedRepos, setLinkedRepos] = useState<Repo[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const captureEvent = useCaptureEvent();
 
     const handleSecretsNavigation = () => {
+        captureEvent('wa_connection_secrets_navigation_pressed', {});
         router.push(`/${params.domain}/secrets`)
     }
 
@@ -174,7 +177,7 @@ export default function ConnectionManagementPage() {
                             <div className="flex items-center gap-2 mt-2">
                                 {connection.syncStatus === "FAILED" ? (
                                     <HoverCard openDelay={50}>
-                                        <HoverCardTrigger asChild>
+                                        <HoverCardTrigger asChild onMouseEnter={() => captureEvent('wa_connection_failed_status_hover', {})}>
                                             <div className="flex items-center">
                                                 <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-600/20 cursor-help hover:text-red-600 hover:bg-red-100 transition-colors duration-200">
                                                     {connection.syncStatus}

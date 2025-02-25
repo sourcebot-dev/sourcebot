@@ -16,7 +16,7 @@ import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import { OnboardingSteps } from "@/lib/constants";
 import { useRouter } from "next/navigation";
-
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 interface InviteTeamProps {
     nextStep: OnboardingSteps;
 }
@@ -25,6 +25,7 @@ export const InviteTeam = ({ nextStep }: InviteTeamProps) => {
     const domain = useDomain();
     const { toast } = useToast();
     const router = useRouter();
+    const captureEvent = useCaptureEvent();
 
     const form = useForm<z.infer<typeof inviteMemberFormSchema>>({
         resolver: zodResolver(inviteMemberFormSchema),
@@ -48,17 +49,27 @@ export const InviteTeam = ({ nextStep }: InviteTeamProps) => {
             toast({
                 description: `❌ Failed to invite members. Reason: ${response.message}`
             });
+            captureEvent('wa_onboard_invite_team_invite_fail', {
+                error: response.errorCode,
+                num_emails: data.emails.length,
+            });
         } else {
             toast({
                 description: `✅ Successfully invited ${data.emails.length} members`
             });
+            captureEvent('wa_onboard_invite_team_invite_success', {
+                num_emails: data.emails.length,
+            });
             onComplete();
         }
-    }, [domain, toast, onComplete]);
+    }, [domain, toast, onComplete, captureEvent]);
 
     const onSkip = useCallback(() => {
+        captureEvent('wa_onboard_invite_team_skip', {
+            num_emails: form.getValues().emails.length,
+        });
         onComplete();
-    }, [onComplete]);
+    }, [onComplete, form, captureEvent]);
 
     return (
         <Card className="p-12 w-[500px]">

@@ -14,7 +14,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useToast } from "@/components/hooks/use-toast";
-
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 })
@@ -28,6 +28,7 @@ export function ChangeBillingEmailCard({ currentUserRole }: ChangeBillingEmailCa
   const [billingEmail, setBillingEmail] = useState<string>("")
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const captureEvent = useCaptureEvent();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -41,10 +42,14 @@ export function ChangeBillingEmailCard({ currentUserRole }: ChangeBillingEmailCa
       const email = await getSubscriptionBillingEmail(domain)
       if (!isServiceError(email)) {
         setBillingEmail(email)
+      } else {
+        captureEvent('wa_billing_email_fetch_fail', {
+          error: email.errorCode,
+        })
       }
     }
     fetchBillingEmail()
-  }, [domain])
+  }, [domain, captureEvent])
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true)
@@ -56,9 +61,13 @@ export function ChangeBillingEmailCard({ currentUserRole }: ChangeBillingEmailCa
       toast({
         description: "✅ Billing email updated successfully!",
       })
+      captureEvent('wa_billing_email_updated_success', {})
     } else {
       toast({
         description: "❌ Failed to update billing email. Please try again.",
+      })
+      captureEvent('wa_billing_email_updated_fail', {
+        error: result.message,
       })
     }
     setIsLoading(false)

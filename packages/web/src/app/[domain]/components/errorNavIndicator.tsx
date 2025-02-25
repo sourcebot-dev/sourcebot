@@ -7,6 +7,7 @@ import { useDomain } from "@/hooks/useDomain";
 import { getConnectionFailedRepos, getConnections } from "@/actions";
 import { useState, useEffect } from "react";
 import { isServiceError } from "@/lib/utils";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 enum ConnectionErrorType {
     SYNC_FAILED = "SYNC_FAILED",
@@ -23,6 +24,7 @@ interface Error {
 export const ErrorNavIndicator = () => {
     const domain = useDomain();
     const [errors, setErrors] = useState<Error[]>([]);
+    const captureEvent = useCaptureEvent();
 
     useEffect(() => {
         const fetchErrors = async () => {
@@ -39,15 +41,25 @@ export const ErrorNavIndicator = () => {
                     }
 
                     const failedRepos = await getConnectionFailedRepos(connection.id, domain);
-                    if (!isServiceError(failedRepos) && failedRepos.length > 0) {
-                        errors.push({
-                            connectionId: connection.id,
-                            connectionName: connection.name,
-                            numRepos: failedRepos.length,
-                            errorType: ConnectionErrorType.REPO_INDEXING_FAILED
+                    if (!isServiceError(failedRepos)) {
+                        if (failedRepos.length > 0) {
+                            errors.push({
+                                connectionId: connection.id,
+                                connectionName: connection.name,
+                                numRepos: failedRepos.length,
+                                errorType: ConnectionErrorType.REPO_INDEXING_FAILED
+                            });
+                        }
+                    } else {
+                        captureEvent('wa_error_nav_job_fetch_fail', {
+                            error: failedRepos.errorCode,
                         });
                     }
                 }
+            } else {
+                captureEvent('wa_error_nav_connection_fetch_fail', {
+                    error: connections.errorCode,
+                });
             }
             setErrors(prevErrors => {
                 // Only update if the errors have actually changed
@@ -62,14 +74,14 @@ export const ErrorNavIndicator = () => {
         };
 
         fetchErrors();
-    }, [domain]);
+    }, [domain, captureEvent]);
 
     if (errors.length === 0) return null;
 
     return (
-        <Link href={`/${domain}/connections`}>
-            <HoverCard>
-                <HoverCardTrigger asChild>
+        <Link href={`/${domain}/connections`} onClick={() => captureEvent('wa_error_nav_pressed', {})}>
+            <HoverCard openDelay={50}>
+                <HoverCardTrigger asChild onMouseEnter={() => captureEvent('wa_error_nav_hover', {})}>
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-full text-red-700 dark:text-red-400 text-xs font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors cursor-pointer">
                         <CircleXIcon className="h-4 w-4" />
                         {errors.reduce((acc, error) => acc + (error.numRepos || 0), 0) > 0 && (
@@ -93,7 +105,7 @@ export const ErrorNavIndicator = () => {
                                         .filter(e => e.errorType === 'SYNC_FAILED')
                                         .slice(0, 10)
                                         .map(error => (
-                                            <Link key={error.connectionName} href={`/${domain}/connections/${error.connectionId}`}>
+                                            <Link key={error.connectionName} href={`/${domain}/connections/${error.connectionId}`} onClick={() => captureEvent('wa_error_nav_job_pressed', {})}>
                                                 <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 
                                                             rounded-md text-sm text-red-700 dark:text-red-300 
                                                             border border-red-200/50 dark:border-red-800/50
@@ -125,7 +137,7 @@ export const ErrorNavIndicator = () => {
                                         .filter(e => e.errorType === 'REPO_INDEXING_FAILED')
                                         .slice(0, 10)
                                         .map(error => (
-                                            <Link key={error.connectionName} href={`/${domain}/connections/${error.connectionId}`}>
+                                            <Link key={error.connectionName} href={`/${domain}/connections/${error.connectionId}`} onClick={() => captureEvent('wa_error_nav_job_pressed', {})}>
                                                 <div className="flex items-center justify-between px-3 py-2 
                                                             bg-red-50 dark:bg-red-900/20 rounded-md
                                                             border border-red-200/50 dark:border-red-800/50

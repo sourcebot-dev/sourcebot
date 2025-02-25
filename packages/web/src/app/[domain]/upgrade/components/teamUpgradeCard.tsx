@@ -8,6 +8,7 @@ import { isServiceError } from "@/lib/utils";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TEAM_FEATURES } from "@/lib/constants";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface TeamUpgradeCardProps {
     buttonText: string;
@@ -18,8 +19,10 @@ export const TeamUpgradeCard = ({ buttonText }: TeamUpgradeCardProps) => {
     const { toast } = useToast();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const captureEvent = useCaptureEvent();
 
     const onClick = useCallback(() => {
+        captureEvent('wa_team_upgrade_card_pressed', {});
         setIsLoading(true);
         createStripeCheckoutSession(domain)
             .then((response) => {
@@ -28,14 +31,18 @@ export const TeamUpgradeCard = ({ buttonText }: TeamUpgradeCardProps) => {
                         description: `❌ Stripe checkout failed with error: ${response.message}`,
                         variant: "destructive",
                     });
+                    captureEvent('wa_team_upgrade_checkout_fail', {
+                        error: response.errorCode,
+                    });
                 } else {
                     router.push(response.url);
+                    captureEvent('wa_team_upgrade_checkout_success', {});
                 }
             })
             .finally(() => {
                 setIsLoading(false);
             });
-    }, [domain, router, toast]);
+    }, [domain, router, toast, captureEvent]);
 
     return (
         <UpgradeCard

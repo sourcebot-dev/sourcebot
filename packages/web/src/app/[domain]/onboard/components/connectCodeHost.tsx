@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { OnboardingSteps } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 interface ConnectCodeHostProps {
     nextStep: OnboardingSteps;
 }
@@ -22,6 +22,7 @@ interface ConnectCodeHostProps {
 export const ConnectCodeHost = ({ nextStep }: ConnectCodeHostProps) => {
     const [selectedCodeHost, setSelectedCodeHost] = useState<CodeHostType | null>(null);
     const router = useRouter();
+    const captureEvent = useCaptureEvent();
     const onCreated = useCallback(() => {
         router.push(`?step=${nextStep}`);
     }, [nextStep, router]);
@@ -101,11 +102,17 @@ const CodeHostButton = ({
     logo,
     onClick,
 }: CodeHostButtonProps) => {
+    const captureEvent = useCaptureEvent();
     return (
         <Button
             className="flex flex-col items-center justify-center p-4 w-24 h-24 cursor-pointer gap-2"
             variant="outline"
-            onClick={onClick}
+            onClick={() => {
+                captureEvent('wa_connect_code_host_button_pressed', {
+                    name,
+                })
+                onClick();
+            }}
         >
             <Image src={logo.src} alt={name} className={cn("w-8 h-8", logo.className)} />
             <p className="text-sm font-medium">{name}</p>

@@ -19,7 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Schema } from "ajv";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
+import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { PosthogEvent, PosthogEventMap } from "@/lib/posthogEvents";
+import { CodeHostType } from "@/lib/utils";
 export type QuickActionFn<T> = (previous: T) => T;
 export type QuickAction<T> = {
     name: string;
@@ -29,6 +31,7 @@ export type QuickAction<T> = {
 
 interface ConfigEditorProps<T> {
     value: string;
+    type: CodeHostType;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onChange: (...event: any[]) => void;
     actions: QuickAction<T>[],
@@ -102,8 +105,8 @@ export const isConfigValidJson = (config: string) => {
 }
 
 const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCodeMirrorRef>) => {
-    const { value, onChange, actions, schema } = props;
-
+    const { value, type, onChange, actions, schema } = props;
+    const captureEvent = useCaptureEvent();
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     useImperativeHandle(
         forwardedRef,
@@ -159,6 +162,10 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
                                         disabled={!isConfigValidJson(value)}
                                         onClick={(e) => {
                                             e.preventDefault();
+                                            captureEvent('wa_config_editor_quick_action_pressed', {
+                                                name,
+                                                type,
+                                            });
                                             if (editorRef.current?.view) {
                                                 onQuickAction(fn, value, editorRef.current.view, {
                                                     focusEditor: true,

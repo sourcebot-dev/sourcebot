@@ -12,6 +12,7 @@ import { Check, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TEAM_FEATURES } from "@/lib/constants";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 export const Checkout = () => {
     const domain = useDomain();
@@ -20,6 +21,7 @@ export const Checkout = () => {
     const errorMessage = useNonEmptyQueryParam('errorMessage');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const captureEvent = useCaptureEvent();
 
     useEffect(() => {
         if (errorCode === ErrorCode.STRIPE_CHECKOUT_ERROR && errorMessage) {
@@ -27,8 +29,11 @@ export const Checkout = () => {
                 description: `⚠️ Stripe checkout failed with error: ${errorMessage}`,
                 variant: "destructive",
             });
+            captureEvent('wa_onboard_checkout_fail', {
+                error: errorMessage,
+            });
         }
-    }, [errorCode, errorMessage, toast]);
+    }, [errorCode, errorMessage, toast, captureEvent]);
 
     const onCheckout = useCallback(() => {
         setIsLoading(true);
@@ -39,14 +44,18 @@ export const Checkout = () => {
                         description: `❌ Stripe checkout failed with error: ${response.message}`,
                         variant: "destructive",
                     })
+                    captureEvent('wa_onboard_checkout_fail', {
+                        error: response.errorCode,
+                    });
                 } else {
                     router.push(response.url);
+                    captureEvent('wa_onboard_checkout_success', {});
                 }
             })
             .finally(() => {
                 setIsLoading(false);
             });
-    }, [domain, router, toast]);
+    }, [domain, router, toast, captureEvent]);
 
     return (
         <div className="flex flex-col items-center justify-center max-w-md my-auto">
