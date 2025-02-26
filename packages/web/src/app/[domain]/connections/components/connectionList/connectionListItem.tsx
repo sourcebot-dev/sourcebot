@@ -16,6 +16,8 @@ const convertSyncStatus = (status: ConnectionSyncStatus) => {
             return 'running';
         case ConnectionSyncStatus.SYNCED:
             return 'succeeded';
+        case ConnectionSyncStatus.SYNCED_WITH_WARNINGS:
+            return 'succeeded-with-warnings';
         case ConnectionSyncStatus.FAILED:
             return 'failed';
     }
@@ -53,6 +55,8 @@ export const ConnectionListItem = ({
                 return 'Synced';
             case ConnectionSyncStatus.FAILED:
                 return 'Sync failed';
+            case ConnectionSyncStatus.SYNCED_WITH_WARNINGS:
+                return null;
         }
     }, [status]);
 

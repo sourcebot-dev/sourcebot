@@ -13,8 +13,8 @@ import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, GerritConnectionConfig, ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
-import { getConnection, getLinkedRepos } from "./data/connection";
-import { ConnectionSyncStatus, Prisma, OrgRole, Connection, Repo, Org, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
+import { getConnection } from "./data/connection";
+import { ConnectionSyncStatus, Prisma, OrgRole, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
@@ -251,23 +251,23 @@ export const deleteSecret = async (key: string, domain: string): Promise<{ succe
         }));
 
 
-export const getConnections = async (domain: string): Promise<
-    {
-        id: number,
-        name: string,
-        syncStatus: ConnectionSyncStatus,
-        syncStatusMetadata: Prisma.JsonValue,
-        connectionType: string,
-        updatedAt: Date,
-        syncedAt?: Date
-    }[] | ServiceError
-> =>
+export const getConnections = async (domain: string, filter: { status?: ConnectionSyncStatus[] } = {}) =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const connections = await prisma.connection.findMany({
                 where: {
                     orgId,
+                    ...(filter.status ? {
+                        syncStatus: { in: filter.status }
+                    } : {}),
                 },
+                include: {
+                    repos: {
+                        include: {
+                            repo: true,
+                        }
+                    }
+                }
             });
 
             return connections.map((connection) => ({
@@ -278,44 +278,77 @@ export const getConnections = async (domain: string): Promise<
                 connectionType: connection.connectionType,
                 updatedAt: connection.updatedAt,
                 syncedAt: connection.syncedAt ?? undefined,
+                linkedRepos: connection.repos.map(({ repo }) => ({
+                    id: repo.id,
+                    name: repo.name,
+                    repoIndexingStatus: repo.repoIndexingStatus,
+                })),
             }));
         })
     );
 
-export const getConnectionFailedRepos = async (connectionId: number, domain: string): Promise<{ repoId: number, repoName: string }[] | ServiceError> =>
+export const getConnectionInfo = async (connectionId: number, domain: string) =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
+            const connection = await prisma.connection.findUnique({
+                where: {
+                    id: connectionId,
+                    orgId,
+                },
+                include: {
+                    repos: true,
+                }
+            });
+
             if (!connection) {
                 return notFound();
             }
 
-            const linkedRepos = await getLinkedRepos(connectionId, orgId);
-
-            return linkedRepos.filter((repo) => repo.repo.repoIndexingStatus === RepoIndexingStatus.FAILED).map((repo) => ({
-                repoId: repo.repo.id,
-                repoName: repo.repo.name,
-            }));
+            return {
+                id: connection.id,
+                name: connection.name,
+                syncStatus: connection.syncStatus,
+                syncStatusMetadata: connection.syncStatusMetadata,
+                connectionType: connection.connectionType,
+                updatedAt: connection.updatedAt,
+                syncedAt: connection.syncedAt ?? undefined,
+                numLinkedRepos: connection.repos.length,
+            }
         })
-    );
+    )
 
-export const getConnectionInProgressRepos = async (connectionId: number, domain: string): Promise<{ repoId: number, repoName: string }[] | ServiceError> =>
+export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
-            if (!connection) {
-                return notFound();
-            }
+            const repos = await prisma.repo.findMany({
+                where: {
+                    orgId,
+                    ...(filter.status ? {
+                        repoIndexingStatus: { in: filter.status }
+                    } : {}),
+                    ...(filter.connectionId ? {
+                        connections: {
+                            some: {
+                                connectionId: filter.connectionId
+                            }
+                        }
+                    } : {}),
+                },
+                include: {
+                    connections: true,
+                }
+            });
 
-            const linkedRepos = await getLinkedRepos(connectionId, orgId);
-
-            return linkedRepos.filter((repo) => repo.repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE || repo.repo.repoIndexingStatus === RepoIndexingStatus.INDEXING).map((repo) => ({
-                repoId: repo.repo.id,
-                repoName: repo.repo.name,
+            return repos.map((repo) => ({
+                repoId: repo.id,
+                repoName: repo.name,
+                linkedConnections: repo.connections.map((connection) => connection.connectionId),
+                imageUrl: repo.imageUrl ?? undefined,
+                indexedAt: repo.indexedAt ?? undefined,
+                repoIndexingStatus: repo.repoIndexingStatus,
             }));
         })
     );
-
 
 export const createConnection = async (name: string, type: string, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> =>
     withAuth((session) =>
@@ -338,41 +371,6 @@ export const createConnection = async (name: string, type: string, connectionCon
                 id: connection.id,
             }
         }));
-
-export const getConnectionInfoAction = async (connectionId: number, domain: string): Promise<{ connection: Connection, linkedRepos: Repo[] } | ServiceError> =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
-            if (!connection) {
-                return notFound();
-            }
-
-            const linkedRepos = await getLinkedRepos(connectionId, orgId);
-
-            return {
-                connection,
-                linkedRepos: linkedRepos.map((repo) => repo.repo),
-            }
-        })
-    );
-
-export const getOrgFromDomainAction = async (domain: string): Promise<Org | ServiceError> =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
-
-            if (!org) {
-                return notFound();
-            }
-
-            return org;
-        })
-    );
-
 
 export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
@@ -458,22 +456,13 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
             }
         }));
 
-export const flagRepoForIndex = async (repoId: number, domain: string): Promise<{ success: boolean } | ServiceError> =>
+export const flagReposForIndex = async (repoIds: number[], domain: string) =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async () => {
-            const repo = await prisma.repo.findUnique({
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            await prisma.repo.updateMany({
                 where: {
-                    id: repoId,
-                },
-            });
-
-            if (!repo) {
-                return notFound();
-            }
-
-            await prisma.repo.update({
-                where: {
-                    id: repoId,
+                    id: { in: repoIds },
+                    orgId,
                 },
                 data: {
                     repoIndexingStatus: RepoIndexingStatus.NEW,
@@ -485,8 +474,6 @@ export const flagRepoForIndex = async (repoId: number, domain: string): Promise<
             }
         })
     );
-
-
 
 export const deleteConnection = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
@@ -653,7 +640,6 @@ export const cancelInvite = async (inviteId: string, domain: string): Promise<{ 
             }
         }, /* minRequiredRole = */ OrgRole.OWNER)
     );
-
 
 export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth(async (session) => {
@@ -828,97 +814,6 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
         }, /* minRequiredRole = */ OrgRole.OWNER)
     );
 
-const parseConnectionConfig = (connectionType: string, config: string) => {
-    let parsedConfig: ConnectionConfig;
-    try {
-        parsedConfig = JSON.parse(config);
-    } catch (_e) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: "config must be a valid JSON object."
-        } satisfies ServiceError;
-    }
-
-    const schema = (() => {
-        switch (connectionType) {
-            case "github":
-                return githubSchema;
-            case "gitlab":
-                return gitlabSchema;
-            case 'gitea':
-                return giteaSchema;
-            case 'gerrit':
-                return gerritSchema;
-        }
-    })();
-
-    if (!schema) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: "invalid connection type",
-        } satisfies ServiceError;
-    }
-
-    const { numRepos, hasToken } = (() => {
-        switch (connectionType) {
-            case "github": {
-                const githubConfig = parsedConfig as GithubConnectionConfig;
-                return {
-                    numRepos: githubConfig.repos?.length,
-                    hasToken: !!githubConfig.token,
-                }
-            }
-            case "gitlab": {
-                const gitlabConfig = parsedConfig as GitlabConnectionConfig;
-                return {
-                    numRepos: gitlabConfig.projects?.length,
-                    hasToken: !!gitlabConfig.token,
-                }
-            }
-            case "gitea": {
-                const giteaConfig = parsedConfig as GiteaConnectionConfig;
-                return {
-                    numRepos: giteaConfig.repos?.length,
-                    hasToken: !!giteaConfig.token,
-                }
-            }
-            case "gerrit": {
-                const gerritConfig = parsedConfig as GerritConnectionConfig;
-                return {
-                    numRepos: gerritConfig.projects?.length,
-                    hasToken: true, // gerrit doesn't use a token atm
-                }
-            }
-            default:
-                return {
-                    numRepos: undefined,
-                    hasToken: true
-                }
-        }
-    })();
-
-    if (!hasToken && numRepos && numRepos > CONFIG_MAX_REPOS_NO_TOKEN) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: `You must provide a token to sync more than ${CONFIG_MAX_REPOS_NO_TOKEN} repositories.`,
-        } satisfies ServiceError;
-    }
-
-    const isValidConfig = ajv.validate(schema, parsedConfig);
-    if (!isValidConfig) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: `config schema validation failed with errors: ${ajv.errorsText(ajv.errors)}`,
-        } satisfies ServiceError;
-    }
-
-    return parsedConfig;
-}
-
 export const createOnboardingStripeCheckoutSession = async (domain: string) =>
     withAuth(async (session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
@@ -1071,8 +966,6 @@ export const createStripeCheckoutSession = async (domain: string) =>
         })
     )
 
-
-
 export const getCustomerPortalSessionLink = async (domain: string): Promise<string | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
@@ -1103,32 +996,6 @@ export const fetchSubscription = (domain: string): Promise<Stripe.Subscription |
             return _fetchSubscriptionForOrg(orgId, prisma);
         })
     );
-
-const _fetchSubscriptionForOrg = async (orgId: number, prisma: Prisma.TransactionClient): Promise<Stripe.Subscription | null | ServiceError> => {
-    const org = await prisma.org.findUnique({
-        where: {
-            id: orgId,
-        },
-    });
-
-    if (!org) {
-        return notFound();
-    }
-
-    if (!org.stripeCustomerId) {
-        return null;
-    }
-
-    const stripe = getStripe();
-    const subscriptions = await stripe.subscriptions.list({
-        customer: org.stripeCustomerId
-    });
-
-    if (subscriptions.data.length === 0) {
-        return orgInvalidSubscription();
-    }
-    return subscriptions.data[0];
-}
 
 export const getSubscriptionBillingEmail = async (domain: string): Promise<string | ServiceError> =>
     withAuth(async (session) =>
@@ -1175,16 +1042,6 @@ export const changeSubscriptionBillingEmail = async (domain: string, newEmail: s
             }
         }, /* minRequiredRole = */ OrgRole.OWNER)
     );
-
-export const checkIfUserHasOrg = async (userId: string): Promise<boolean | ServiceError> => {
-    const orgs = await prisma.userToOrg.findMany({
-        where: {
-            userId,
-        },
-    });
-
-    return orgs.length > 0;
-}
 
 export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | ServiceError> =>
     withAuth(async () => {
@@ -1357,7 +1214,6 @@ export const getOrgMembers = async (domain: string) =>
         })
     );
 
-
 export const getOrgInvites = async (domain: string) =>
     withAuth(async (session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
@@ -1374,3 +1230,123 @@ export const getOrgInvites = async (domain: string) =>
             }));
         })
     );
+
+
+////// Helpers ///////
+
+const _fetchSubscriptionForOrg = async (orgId: number, prisma: Prisma.TransactionClient): Promise<Stripe.Subscription | null | ServiceError> => {
+    const org = await prisma.org.findUnique({
+        where: {
+            id: orgId,
+        },
+    });
+
+    if (!org) {
+        return notFound();
+    }
+
+    if (!org.stripeCustomerId) {
+        return null;
+    }
+
+    const stripe = getStripe();
+    const subscriptions = await stripe.subscriptions.list({
+        customer: org.stripeCustomerId
+    });
+
+    if (subscriptions.data.length === 0) {
+        return orgInvalidSubscription();
+    }
+    return subscriptions.data[0];
+}
+
+const parseConnectionConfig = (connectionType: string, config: string) => {
+    let parsedConfig: ConnectionConfig;
+    try {
+        parsedConfig = JSON.parse(config);
+    } catch (_e) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: "config must be a valid JSON object."
+        } satisfies ServiceError;
+    }
+
+    const schema = (() => {
+        switch (connectionType) {
+            case "github":
+                return githubSchema;
+            case "gitlab":
+                return gitlabSchema;
+            case 'gitea':
+                return giteaSchema;
+            case 'gerrit':
+                return gerritSchema;
+        }
+    })();
+
+    if (!schema) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: "invalid connection type",
+        } satisfies ServiceError;
+    }
+
+    const { numRepos, hasToken } = (() => {
+        switch (connectionType) {
+            case "github": {
+                const githubConfig = parsedConfig as GithubConnectionConfig;
+                return {
+                    numRepos: githubConfig.repos?.length,
+                    hasToken: !!githubConfig.token,
+                }
+            }
+            case "gitlab": {
+                const gitlabConfig = parsedConfig as GitlabConnectionConfig;
+                return {
+                    numRepos: gitlabConfig.projects?.length,
+                    hasToken: !!gitlabConfig.token,
+                }
+            }
+            case "gitea": {
+                const giteaConfig = parsedConfig as GiteaConnectionConfig;
+                return {
+                    numRepos: giteaConfig.repos?.length,
+                    hasToken: !!giteaConfig.token,
+                }
+            }
+            case "gerrit": {
+                const gerritConfig = parsedConfig as GerritConnectionConfig;
+                return {
+                    numRepos: gerritConfig.projects?.length,
+                    hasToken: true, // gerrit doesn't use a token atm
+                }
+            }
+            default:
+                return {
+                    numRepos: undefined,
+                    hasToken: true
+                }
+        }
+    })();
+
+    if (!hasToken && numRepos && numRepos > CONFIG_MAX_REPOS_NO_TOKEN) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: `You must provide a token to sync more than ${CONFIG_MAX_REPOS_NO_TOKEN} repositories.`,
+        } satisfies ServiceError;
+    }
+
+    const isValidConfig = ajv.validate(schema, parsedConfig);
+    if (!isValidConfig) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: `config schema validation failed with errors: ${ajv.errorsText(ajv.errors)}`,
+        } satisfies ServiceError;
+    }
+
+    return parsedConfig;
+}

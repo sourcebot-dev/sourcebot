@@ -5,56 +5,24 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/h
 import { AlertTriangleIcon } from "lucide-react";
 import { useDomain } from "@/hooks/useDomain";
 import { getConnections } from "@/actions";
-import { useState } from "react";
-import { useEffect } from "react";
-import { isServiceError } from "@/lib/utils";
-import { SyncStatusMetadataSchema } from "@/lib/syncStatusMetadataSchema";
+import { unwrapServiceError } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-interface Warning {
-    connectionId?: number;
-    connectionName?: string;
-}
+import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
+import { useQuery } from "@tanstack/react-query";
+import { ConnectionSyncStatus } from "@prisma/client";
 
 export const WarningNavIndicator = () => {
     const domain = useDomain();
-    const [warnings, setWarnings] = useState<Warning[]>([]);
     const captureEvent = useCaptureEvent();
 
-    useEffect(() => {
-        const fetchWarnings = async () => {
-            const connections = await getConnections(domain);
-            const warnings: Warning[] = [];
-            if (!isServiceError(connections)) {
-                for (const connection of connections) {
-                    const parseResult = SyncStatusMetadataSchema.safeParse(connection.syncStatusMetadata);
-                    if (parseResult.success && parseResult.data.notFound) {
-                        const { notFound } = parseResult.data;
-                        if (notFound.users.length > 0 || notFound.orgs.length > 0 || notFound.repos.length > 0) {
-                            warnings.push({ connectionId: connection.id, connectionName: connection.name });
-                        }
-                    }
-                }
-            } else {
-                captureEvent('wa_warning_nav_connection_fetch_fail', {
-                    error: connections.errorCode,
-                });
-            }
+    const { data: connections, isPending, isError } = useQuery({
+        queryKey: ['connections', domain],
+        queryFn: () => unwrapServiceError(getConnections(domain)),
+        select: (data) => data.filter(connection => connection.syncStatus === ConnectionSyncStatus.SYNCED_WITH_WARNINGS),
+        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+    });
 
-            setWarnings(prevWarnings => {
-                // Only update if the warnings have actually changed
-                const warningsChanged = prevWarnings.length !== warnings.length ||
-                    prevWarnings.some((warning, idx) =>
-                        warning.connectionId !== warnings[idx]?.connectionId ||
-                        warning.connectionName !== warnings[idx]?.connectionName
-                    );
-                return warningsChanged ? warnings : prevWarnings;
-            });
-        };
-
-        fetchWarnings();
-    }, [domain, captureEvent]);
-
-    if (warnings.length === 0) {
+    if (isPending || isError || connections.length === 0) {
         return null;
     }   
 
@@ -64,7 +32,7 @@ export const WarningNavIndicator = () => {
                 <HoverCardTrigger asChild onMouseEnter={() => captureEvent('wa_warning_nav_hover', {})}>
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-full text-yellow-700 dark:text-yellow-400 text-xs font-medium hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors cursor-pointer">
                         <AlertTriangleIcon className="h-4 w-4" />
-                        <span>{warnings.length}</span>
+                        <span>{connections.length}</span>
                     </div>
                 </HoverCardTrigger>
                 <HoverCardContent className="w-80 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -77,19 +45,19 @@ export const WarningNavIndicator = () => {
                             The following connections have references that could not be found:
                         </p>
                         <div className="flex flex-col gap-2 pl-4">
-                            {warnings.slice(0, 10).map(warning => (
-                                <Link key={warning.connectionName} href={`/${domain}/connections/${warning.connectionId}`} onClick={() => captureEvent('wa_warning_nav_connection_pressed', {})}>
+                            {connections.slice(0, 10).map(connection => (
+                                <Link key={connection.name} href={`/${domain}/connections/${connection.id}`} onClick={() => captureEvent('wa_warning_nav_connection_pressed', {})}>
                                     <div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 dark:bg-yellow-900/20 
                                                 rounded-md text-sm text-yellow-700 dark:text-yellow-300 
                                                 border border-yellow-200/50 dark:border-yellow-800/50
                                                 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors">
-                                        <span className="font-medium">{warning.connectionName}</span>
+                                        <span className="font-medium">{connection.name}</span>
                                     </div>
                                 </Link>
                             ))}
-                            {warnings.length > 10 && (
+                            {connections.length > 10 && (
                                 <div className="text-sm text-yellow-600/90 dark:text-yellow-300/90 pl-3 pt-1">
-                                    And {warnings.length - 10} more...
+                                    And {connections.length - 10} more...
                                 </div>
                             )}
                         </div>

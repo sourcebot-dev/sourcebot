@@ -244,3 +244,20 @@ export const measure = async <T>(cb: () => Promise<T>, measureName: string) => {
         durationMs
     }
 }
+
+/**
+ * Unwraps a promise that could return a ServiceError, throwing an error if it does.
+ * This is useful for calling server actions in a useQuery hook since it allows us
+ * to take advantage of error handling behavior built into react-query.
+ * 
+ * @param promise The promise to unwrap.
+ * @returns The data from the promise.
+ */
+export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>): Promise<T> => {    
+    const data = await promise;
+    if (isServiceError(data)) {
+        throw new Error(data.message);
+    }
+
+    return data;
+}

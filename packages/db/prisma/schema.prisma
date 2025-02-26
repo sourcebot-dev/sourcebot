@@ -26,6 +26,7 @@ enum ConnectionSyncStatus {
   IN_SYNC_QUEUE
   SYNCING
   SYNCED
+  SYNCED_WITH_WARNINGS
   FAILED
 }
 

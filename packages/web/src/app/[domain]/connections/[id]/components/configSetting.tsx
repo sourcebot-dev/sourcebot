@@ -154,13 +154,6 @@ function ConfigSettingInternal<T>({
         onConfigChange(config);
     }, [config, onConfigChange]);
 
-    useEffect(() => {
-        console.log("mount");
-        return () => {
-            console.log("unmount");
-        }
-    }, []);
-
     return (
         <div className="flex flex-col w-full bg-background border rounded-lg p-6">
             <h3 className="text-lg font-semibold mb-2">Configuration</h3>

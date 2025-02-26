@@ -12,7 +12,6 @@ export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {
     const tokenResult = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
     const token = tokenResult?.token ?? FALLBACK_GITLAB_TOKEN;
-    const secretKey = tokenResult?.secretKey;
     
     const api = new Gitlab({
         ...(token ? {
