@@ -19,6 +19,6 @@ export const TEAM_FEATURES = [
     "Blazingly fast code search",
     "Index hundreds of repos from multiple code hosts (GitHub, GitLab, Gerrit, Gitea, etc.). Self-hosted code hosts supported.",
     "Public and private repos supported.",
-    "Create sharable links to code snippets.",
+    "Create shareable links to code snippets.",
     "Powerful regex and symbol search",
 ]
