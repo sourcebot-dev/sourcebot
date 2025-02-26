@@ -17,10 +17,11 @@ export const StatusIcon = ({
                 return <FiLoader className={cn('animate-spin-slow', className)} />;
             case 'succeeded':
                 return <CircleCheckIcon className={cn('text-green-600', className)} />;
-            case 'succeeded-with-warnings':
-                return <TriangleAlertIcon className={cn('text-yellow-600', className)} />;
             case 'failed':
                 return <CircleXIcon className={cn('text-destructive', className)} />;
+            case 'succeeded-with-warnings':
+            default:
+                return null;
 
         }
     }, [className, status]);

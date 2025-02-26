@@ -55,6 +55,8 @@ export const ConnectionListItem = ({
                 return 'Synced';
             case ConnectionSyncStatus.FAILED:
                 return 'Sync failed';
+            case ConnectionSyncStatus.SYNCED_WITH_WARNINGS:
+                return null;
         }
     }, [status]);
 
