@@ -1,7 +1,7 @@
 "use client";
 import { useDomain } from "@/hooks/useDomain";
 import { ConnectionListItem } from "./connectionListItem";
-import { cn, isServiceError } from "@/lib/utils";
+import { cn, isServiceError, unwrapServiceError } from "@/lib/utils";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { getConnections } from "@/actions";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,17 +40,13 @@ export const ConnectionList = ({
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
 
-    const { data: unfilteredConnections, isLoading } = useQuery({
+    const { data: unfilteredConnections, isPending, error } = useQuery({
         queryKey: ['connections', domain],
-        queryFn: () => getConnections(domain),
+        queryFn: () => unwrapServiceError(getConnections(domain)),
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
     const connections = useMemo(() => {
-        if (isServiceError(unfilteredConnections)) {
-            return unfilteredConnections;
-        }
-
         return unfilteredConnections
             ?.filter((connection) => connection.name.toLowerCase().includes(searchQuery.toLowerCase()))
             .filter((connection) => {
@@ -63,9 +59,9 @@ export const ConnectionList = ({
             .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()) ?? [];
     }, [unfilteredConnections, searchQuery, selectedStatuses]);
 
-    if (isServiceError(connections)) {
+    if (error) {
         return <div className="flex flex-col items-center justify-center border rounded-md p-4 h-full">
-            <p>Error loading connections: {connections.message}</p>
+            <p>Error loading connections: {error.message}</p>
         </div>
     }
 
@@ -75,7 +71,7 @@ export const ConnectionList = ({
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder={`Filter ${isLoading ? "n" : connections?.length} ${connections?.length === 1 ? "connection" : "connections"} by name`}
+                        placeholder={`Filter ${isPending ? "n" : connections.length} ${connections.length === 1 ? "connection" : "connections"} by name`}
                         className="pl-9"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -100,7 +96,7 @@ export const ConnectionList = ({
 
             </div>
 
-            {isLoading ? (
+            {isPending ? (
                 // Skeleton for loading state
                 <div className="flex flex-col gap-4">
                     {Array.from({ length: 3 }).map((_, i) => (
@@ -114,7 +110,7 @@ export const ConnectionList = ({
                         </div>
                     ))}
                 </div>
-            ) : connections && connections.length > 0 ? (
+            ) : connections.length > 0 ? (
                 connections
                     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
                     .map((connection) => (

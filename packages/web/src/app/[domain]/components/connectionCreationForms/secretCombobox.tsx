@@ -10,7 +10,7 @@ import {
     CommandList,
 } from "@/components/ui/command"
 import { Button } from "@/components/ui/button";
-import { cn, isServiceError } from "@/lib/utils";
+import { cn, isServiceError, unwrapServiceError } from "@/lib/utils";
 import { ChevronsUpDown, Check, PlusCircleIcon, Loader2, Eye, EyeOff, TriangleAlert } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Separator } from "@/components/ui/separator";
@@ -49,25 +49,15 @@ export const SecretCombobox = ({
     const [isCreateSecretDialogOpen, setIsCreateSecretDialogOpen] = useState(false);
     const captureEvent = useCaptureEvent();
 
-    const { data: secrets, isLoading, refetch } = useQuery({
+    const { data: secrets, isPending, isError, refetch } = useQuery({
         queryKey: ["secrets"],
-        queryFn: () => getSecrets(domain),
+        queryFn: () => unwrapServiceError(getSecrets(domain)),
     });
 
     const onSecretCreated = useCallback((key: string) => {
         onSecretChange(key);
         refetch();
     }, [onSecretChange, refetch]);
-
-    const isSecretNotFoundWarningVisible = useMemo(() => {
-        if (!isDefined(secretKey)) {
-            return false;
-        }
-        if (isServiceError(secrets)) {
-            return false;
-        }
-        return !secrets?.some(({ key }) => key === secretKey);
-    }, [secretKey, secrets]);
 
     return (
         <>
@@ -83,7 +73,7 @@ export const SecretCombobox = ({
                         )}
                         disabled={isDisabled}
                     >
-                        {isSecretNotFoundWarningVisible && (
+                        {!(isPending || isError) && isDefined(secretKey) && !secrets.some(({ key }) => key === secretKey) && (
                             <TooltipProvider>
 
                                 <Tooltip
@@ -105,12 +95,13 @@ export const SecretCombobox = ({
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="p-0.5">
-                    {isLoading && (
+                    {isPending ? (
                         <div className="flex items-center justify-center p-8">
                             <Loader2 className="h-4 w-4 animate-spin" />
                         </div>
-                    )}
-                    {secrets && !isServiceError(secrets) && secrets.length > 0 && (
+                    ) : isError ? (
+                        <p className="p-2 text-sm text-destructive">Failed to load secrets</p>
+                    ) : secrets.length > 0 && (
                         <>
                             <Command className="mb-2">
                                 <CommandInput

@@ -5,7 +5,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useDomain } from "@/hooks/useDomain";
 import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
-import { isServiceError } from "@/lib/utils";
+import { unwrapServiceError } from "@/lib/utils";
 import { RepoIndexingStatus } from "@prisma/client";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2Icon } from "lucide-react";
@@ -15,20 +15,14 @@ export const ProgressNavIndicator = () => {
     const domain = useDomain();
     const captureEvent = useCaptureEvent();
 
-    const { data: inProgressRepos } = useQuery({
+    const { data: inProgressRepos, isPending, isError } = useQuery({
         queryKey: ['repos', domain],
-        queryFn: () => getRepos(domain),
-        select: (data) => {
-            if (isServiceError(data)) {
-                return data;
-            }
-            return data.filter(repo => repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE || repo.repoIndexingStatus === RepoIndexingStatus.INDEXING);
-        },
+        queryFn: () => unwrapServiceError(getRepos(domain)),
+        select: (data) => data.filter(repo => repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE || repo.repoIndexingStatus === RepoIndexingStatus.INDEXING),
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
-        initialData: [],
     });
 
-    if (isServiceError(inProgressRepos) || inProgressRepos.length === 0) {
+    if (isPending || isError || inProgressRepos.length === 0) {
         return null;
     }
 

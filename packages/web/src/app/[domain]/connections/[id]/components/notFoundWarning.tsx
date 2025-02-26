@@ -2,20 +2,20 @@
 
 import { AlertTriangle } from "lucide-react"
 import { Prisma, ConnectionSyncStatus } from "@sourcebot/db"
-import { RetrySyncButton } from "./retrySyncButton"
 import { SyncStatusMetadataSchema } from "@/lib/syncStatusMetadataSchema"
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { ReloadIcon } from "@radix-ui/react-icons";
+import { Button } from "@/components/ui/button";
 
 interface NotFoundWarningProps {
     syncStatus: ConnectionSyncStatus
     syncStatusMetadata: Prisma.JsonValue
     onSecretsClick: () => void
-    connectionId: number
-    domain: string
     connectionType: string
+    onRetrySync: () => void
 }
 
-export const NotFoundWarning = ({ syncStatus, syncStatusMetadata, onSecretsClick, connectionId, domain, connectionType }: NotFoundWarningProps) => {
+export const NotFoundWarning = ({ syncStatus, syncStatusMetadata, onSecretsClick, connectionType, onRetrySync }: NotFoundWarningProps) => {
     const captureEvent = useCaptureEvent();
 
     const parseResult = SyncStatusMetadataSchema.safeParse(syncStatusMetadata);
@@ -65,7 +65,15 @@ export const NotFoundWarning = ({ syncStatus, syncStatusMetadata, onSecretsClick
                 )}
             </ul>
             <div className="w-full flex justify-center">
-                <RetrySyncButton connectionId={connectionId} domain={domain} />
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-2"
+                    onClick={onRetrySync}
+                >
+                    <ReloadIcon className="h-4 w-4 mr-2" />
+                    Retry Sync
+                </Button>
             </div>
         </div>
     )

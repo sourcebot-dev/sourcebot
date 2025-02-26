@@ -4,7 +4,7 @@ import { useDomain } from "@/hooks/useDomain";
 import { useQuery } from "@tanstack/react-query";
 import { flagReposForIndex, getConnectionInfo, getRepos } from "@/actions";
 import { RepoListItem } from "./repoListItem";
-import { isServiceError } from "@/lib/utils";
+import { isServiceError, unwrapServiceError } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConnectionSyncStatus, RepoIndexingStatus } from "@sourcebot/db";
 import { Search, Loader2 } from "lucide-react";
@@ -61,14 +61,10 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
     const captureEvent = useCaptureEvent();
     const [isRetryAllFailedReposLoading, setIsRetryAllFailedReposLoading] = useState(false);
 
-    const { data: unfilteredRepos, isLoading, refetch } = useQuery({
+    const { data: unfilteredRepos, isPending: isReposPending, error: reposError, refetch: refetchRepos } = useQuery({
         queryKey: ['repos', domain, connectionId],
         queryFn: async () => {
-            const repos = await getRepos(domain, { connectionId });
-            if (isServiceError(repos)) {
-                return repos;
-            }
-
+            const repos = await unwrapServiceError(getRepos(domain, { connectionId }));
             return repos.sort((a, b) => {
                 const priorityA = getPriority(a.repoIndexingStatus);
                 const priorityB = getPriority(b.repoIndexingStatus);
@@ -85,17 +81,13 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
-    const { data: connection } = useQuery({
+    const { data: connection, isPending: isConnectionPending, error: isConnectionError } = useQuery({
         queryKey: ['connection', domain, connectionId],
-        queryFn: () => getConnectionInfo(connectionId, domain),
+        queryFn: () => unwrapServiceError(getConnectionInfo(connectionId, domain)),
     })
 
 
     const failedRepos = useMemo(() => {
-        if (isServiceError(unfilteredRepos)) {
-            return [];
-        }
-
         return unfilteredRepos?.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.FAILED) ?? [];
     }, [unfilteredRepos]);
 
@@ -120,11 +112,11 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
                     });
                 }
             })
-            .then(() => { refetch() })
+            .then(() => { refetchRepos() })
             .finally(() => {
                 setIsRetryAllFailedReposLoading(false);
             });
-    }, [captureEvent, domain, failedRepos, refetch, toast]);
+    }, [captureEvent, domain, failedRepos, refetchRepos, toast]);
 
     const filteredRepos = useMemo(() => {
         if (isServiceError(unfilteredRepos)) {
@@ -143,9 +135,9 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
             });
     }, [unfilteredRepos, searchQuery, selectedStatuses]);
 
-    if (isServiceError(filteredRepos)) {
+    if (reposError) {
         return <div className="text-destructive">
-            {`Error loading repositories. Reason: ${filteredRepos.message}`}
+            {`Error loading repositories. Reason: ${reposError.message}`}
         </div>
     }
 
@@ -155,7 +147,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder={`Filter ${isLoading ? "n" : filteredRepos?.length} ${filteredRepos?.length === 1 ? "repository" : "repositories"} by name`}
+                        placeholder={`Filter ${isReposPending ? "n" : filteredRepos?.length} ${filteredRepos?.length === 1 ? "repository" : "repositories"} by name`}
                         className="pl-9"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -189,7 +181,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
                 )}
             </div>
             <ScrollArea className="mt-4 max-h-96 overflow-scroll">
-                {isLoading ? (
+                {isReposPending ? (
                     <div className="flex flex-col gap-4">
                         {Array.from({ length: 3 }).map((_, i) => (
                             <RepoListItemSkeleton key={i} />
@@ -202,7 +194,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
                             {
                                 searchQuery.length > 0 ? (
                                     <span>No repositories found matching your filters.</span>
-                                ) : (!isServiceError(connection) && (connection?.syncStatus === ConnectionSyncStatus.IN_SYNC_QUEUE || connection?.syncStatus === ConnectionSyncStatus.SYNCING || connection?.syncStatus === ConnectionSyncStatus.SYNC_NEEDED)) ? (
+                                ) : (!isConnectionError && !isConnectionPending && (connection.syncStatus === ConnectionSyncStatus.IN_SYNC_QUEUE || connection.syncStatus === ConnectionSyncStatus.SYNCING || connection.syncStatus === ConnectionSyncStatus.SYNC_NEEDED)) ? (
                                     <span>Repositories are being synced. Please check back soon.</span>
                                 ) : (
                                 <Button

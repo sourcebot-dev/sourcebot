@@ -5,7 +5,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/h
 import { AlertTriangleIcon } from "lucide-react";
 import { useDomain } from "@/hooks/useDomain";
 import { getConnections } from "@/actions";
-import { isServiceError } from "@/lib/utils";
+import { unwrapServiceError } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
 import { useQuery } from "@tanstack/react-query";
@@ -15,20 +15,14 @@ export const WarningNavIndicator = () => {
     const domain = useDomain();
     const captureEvent = useCaptureEvent();
 
-    const { data: connections } = useQuery({
+    const { data: connections, isPending, isError } = useQuery({
         queryKey: ['connections', domain],
-        queryFn: () => getConnections(domain),
-        select: (data) => {
-            if (isServiceError(data)) {
-                return data;
-            }
-            return data.filter(connection => connection.syncStatus === ConnectionSyncStatus.SYNCED_WITH_WARNINGS);
-        },
+        queryFn: () => unwrapServiceError(getConnections(domain)),
+        select: (data) => data.filter(connection => connection.syncStatus === ConnectionSyncStatus.SYNCED_WITH_WARNINGS),
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
-        initialData: [],
     });
 
-    if (isServiceError(connections) || connections.length === 0) {
+    if (isPending || isError || connections.length === 0) {
         return null;
     }   
 

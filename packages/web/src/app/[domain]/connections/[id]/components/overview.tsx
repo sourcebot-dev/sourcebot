@@ -3,19 +3,21 @@
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { DisplayConnectionError } from "./connectionError"
-import { RetrySyncButton } from "./retrySyncButton"
 import { NotFoundWarning } from "./notFoundWarning"
 import { useDomain } from "@/hooks/useDomain";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getConnectionInfo } from "@/actions";
-import { isServiceError } from "@/lib/utils";
+import { flagConnectionForSync, getConnectionInfo } from "@/actions";
+import { isServiceError, unwrapServiceError } from "@/lib/utils";
 import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
 import { ConnectionSyncStatus } from "@sourcebot/db";
 import { FiLoader } from "react-icons/fi";
 import { CircleCheckIcon, AlertTriangle, CircleXIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ReloadIcon } from "@radix-ui/react-icons";
+import { toast } from "@/components/hooks/use-toast";
 
 interface OverviewProps {
     connectionId: number;
@@ -26,24 +28,43 @@ export const Overview = ({ connectionId }: OverviewProps) => {
     const domain = useDomain();
     const router = useRouter();
 
+    const { data: connection, isPending, error, refetch } = useQuery({
+        queryKey: ['connection', domain, connectionId],
+        queryFn: () => unwrapServiceError(getConnectionInfo(connectionId, domain)),
+        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+    });
+
     const handleSecretsNavigation = useCallback(() => {
         captureEvent('wa_connection_secrets_navigation_pressed', {});
         router.push(`/${domain}/secrets`);
     }, [captureEvent, domain, router]);
 
-    const { data: connection, isLoading } = useQuery({
-        queryKey: ['connection', domain, connectionId],
-        queryFn: () => getConnectionInfo(connectionId, domain),
-        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
-    });
+    const onRetrySync = useCallback(async () => {
+        const result = await flagConnectionForSync(connectionId, domain);
+        if (isServiceError(result)) {
+            toast({
+                description: `❌ Failed to flag connection for sync.`,
+            });
+            captureEvent('wa_connection_retry_sync_fail', {
+                error: result.errorCode,
+            });
+        } else {
+            toast({
+                description: "✅ Connection flagged for sync.",
+            });
+            captureEvent('wa_connection_retry_sync_success', {});
+            refetch();
+        }
+    }, [connectionId, domain, toast, captureEvent, refetch]);
+    
 
-    if (isServiceError(connection)) {
+    if (error) {
         return <div className="text-destructive">
-            {`Error loading connection. Reason: ${connection.message}`}
+            {`Error loading connection. Reason: ${error.message}`}
         </div>
     }
 
-    if (!connection || isLoading) {
+    if (isPending) {
         return (
             <div className="grid grid-cols-2 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -92,7 +113,15 @@ export const Overview = ({ connectionId }: OverviewProps) => {
                             <SyncStatusBadge status={connection.syncStatus} />
                         )}
                         {connection.syncStatus === "FAILED" && (
-                            <RetrySyncButton connectionId={connection.id} domain={domain} />
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-2"
+                                onClick={onRetrySync}
+                            >
+                                <ReloadIcon className="h-4 w-4 mr-2" />
+                                Retry Sync
+                            </Button>
                         )}
                     </div>
                 </div>
@@ -101,9 +130,8 @@ export const Overview = ({ connectionId }: OverviewProps) => {
                 syncStatus={connection.syncStatus}
                 syncStatusMetadata={connection.syncStatusMetadata}
                 onSecretsClick={handleSecretsNavigation}
-                connectionId={connection.id}
                 connectionType={connection.connectionType}
-                domain={domain}
+                onRetrySync={onRetrySync}
             />
         </div>
     )

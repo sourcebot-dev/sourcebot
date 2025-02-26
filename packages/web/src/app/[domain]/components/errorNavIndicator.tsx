@@ -4,7 +4,7 @@ import Link from "next/link";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { CircleXIcon } from "lucide-react";
 import { useDomain } from "@/hooks/useDomain";
-import { isServiceError } from "@/lib/utils";
+import { unwrapServiceError } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
 import { useQuery } from "@tanstack/react-query";
@@ -16,33 +16,27 @@ export const ErrorNavIndicator = () => {
     const domain = useDomain();
     const captureEvent = useCaptureEvent();
 
-    const { data: failedRepos } = useQuery({
+    const { data: repos, isPending: isPendingRepos, isError: isErrorRepos } = useQuery({
         queryKey: ['repos', domain],
-        queryFn: () => getRepos(domain),
-        select: (data) => {
-            if (isServiceError(data)) {
-                return data;
-            }
-            return data.filter(repo => repo.repoIndexingStatus === RepoIndexingStatus.FAILED);
-        },
+        queryFn: () => unwrapServiceError(getRepos(domain)),
+        select: (data) => data.filter(repo => repo.repoIndexingStatus === RepoIndexingStatus.FAILED),
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
-        initialData: [],
     });
 
-    const { data: failedConnections } = useQuery({
+    const { data: connections, isPending: isPendingConnections, isError: isErrorConnections } = useQuery({
         queryKey: ['connections', domain],
-        queryFn: () => getConnections(domain),
-        select: (data) => {
-            if (isServiceError(data)) {
-                return data;
-            }
-            return data.filter(connection => connection.syncStatus === ConnectionSyncStatus.FAILED)
-        },
+        queryFn: () => unwrapServiceError(getConnections(domain)),
+        select: (data) => data.filter(connection => connection.syncStatus === ConnectionSyncStatus.FAILED),
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
-        initialData: [],
     });
 
-    if (isServiceError(failedRepos) || isServiceError(failedConnections) || (failedRepos.length === 0 && failedConnections.length === 0)) return null;
+    if (isPendingRepos || isErrorRepos || isPendingConnections || isErrorConnections) {
+        return null;
+    }
+
+    if (repos.length === 0 && connections.length === 0) {
+        return null;
+    }
 
     return (
         <HoverCard openDelay={50}>
@@ -50,15 +44,15 @@ export const ErrorNavIndicator = () => {
                 <Link href={`/${domain}/connections`} onClick={() => captureEvent('wa_error_nav_pressed', {})}>
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-full text-red-700 dark:text-red-400 text-xs font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors cursor-pointer">
                         <CircleXIcon className="h-4 w-4" />
-                        {failedRepos.length + failedConnections.length > 0 && (
-                            <span>{failedRepos.length + failedConnections.length}</span>
+                        {repos.length + connections.length > 0 && (
+                            <span>{repos.length + connections.length}</span>
                         )}
                     </div>
                 </Link>
             </HoverCardTrigger>
             <HoverCardContent className="w-80 border border-red-200 dark:border-red-800 rounded-lg">
                 <div className="flex flex-col gap-6 p-5">
-                    {failedConnections.length > 0 && (
+                    {connections.length > 0 && (
                         <div className="flex flex-col gap-4 pb-6">
                             <div className="flex items-center gap-2">
                                 <div className="h-2 w-2 rounded-full bg-red-500"></div>
@@ -68,7 +62,7 @@ export const ErrorNavIndicator = () => {
                                 The following connections have failed to sync:
                             </p>
                             <div className="flex flex-col gap-2">
-                                {failedConnections
+                                {connections
                                     .slice(0, 10)
                                     .map(connection => (
                                         <Link key={connection.name} href={`/${domain}/connections/${connection.id}`} onClick={() => captureEvent('wa_error_nav_job_pressed', {})}>
@@ -80,16 +74,16 @@ export const ErrorNavIndicator = () => {
                                             </div>
                                         </Link>
                                     ))}
-                                {failedConnections.length > 10 && (
+                                {connections.length > 10 && (
                                     <div className="text-sm text-red-600/90 dark:text-red-300/90 pl-3 pt-1">
-                                        And {failedConnections.length - 10} more...
+                                        And {connections.length - 10} more...
                                     </div>
                                 )}
                             </div>
                         </div>
                     )}
 
-                    {failedRepos.length > 0 && (
+                    {repos.length > 0 && (
                         <div className="flex flex-col gap-4">
                             <div className="flex items-center gap-2">
                                 <div className="h-2 w-2 rounded-full bg-red-500"></div>
@@ -99,7 +93,7 @@ export const ErrorNavIndicator = () => {
                                 The following repositories failed to index:
                             </p>
                             <div className="flex flex-col gap-2">
-                                {failedRepos
+                                {repos
                                     .slice(0, 10)
                                     .map(repo => (
                                         // Link to the first connection for the repo
@@ -115,9 +109,9 @@ export const ErrorNavIndicator = () => {
                                             </div>
                                         </Link>
                                     ))}
-                                {failedRepos.length > 10 && (
+                                {repos.length > 10 && (
                                     <div className="text-sm text-red-600/90 dark:text-red-300/90 pl-3 pt-1">
-                                        And {failedRepos.length - 10} more...
+                                        And {repos.length - 10} more...
                                     </div>
                                 )}
                             </div>
