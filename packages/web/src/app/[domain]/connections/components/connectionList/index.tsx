@@ -40,7 +40,7 @@ export const ConnectionList = ({
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
 
-    const { data: unfilteredConnections, isLoading, error } = useQuery({
+    const { data: unfilteredConnections, isLoading } = useQuery({
         queryKey: ['connections', domain],
         queryFn: () => getConnections(domain),
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
@@ -113,10 +113,6 @@ export const ConnectionList = ({
                             <Skeleton className="w-24 h-8" />
                         </div>
                     ))}
-                </div>
-            ) : error ? (
-                <div className="flex flex-col items-center justify-center border rounded-md p-4 h-full">
-                    <p>Error loading connections: {error instanceof Error ? error.message : 'An unknown error occurred'}</p>
                 </div>
             ) : connections && connections.length > 0 ? (
                 connections

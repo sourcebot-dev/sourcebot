@@ -33,10 +33,7 @@ export const Overview = ({ connectionId }: OverviewProps) => {
 
     const { data: connection, isLoading } = useQuery({
         queryKey: ['connection', domain, connectionId],
-        queryFn: async () => {
-            const connection = await getConnectionInfo(connectionId, domain);
-            return connection;
-        },
+        queryFn: () => getConnectionInfo(connectionId, domain),
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
