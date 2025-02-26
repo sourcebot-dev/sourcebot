@@ -251,17 +251,7 @@ export const deleteSecret = async (key: string, domain: string): Promise<{ succe
         }));
 
 
-export const getConnections = async (domain: string, filter: { status?: ConnectionSyncStatus[] } = {}): Promise<
-    {
-        id: number,
-        name: string,
-        syncStatus: ConnectionSyncStatus,
-        syncStatusMetadata: Prisma.JsonValue,
-        connectionType: string,
-        updatedAt: Date,
-        syncedAt?: Date
-    }[] | ServiceError
-> =>
+export const getConnections = async (domain: string, filter: { status?: ConnectionSyncStatus[] } = {}) =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const connections = await prisma.connection.findMany({
@@ -271,6 +261,13 @@ export const getConnections = async (domain: string, filter: { status?: Connecti
                         syncStatus: { in: filter.status }
                     } : {}),
                 },
+                include: {
+                    repos: {
+                        include: {
+                            repo: true,
+                        }
+                    }
+                }
             });
 
             return connections.map((connection) => ({
@@ -281,6 +278,11 @@ export const getConnections = async (domain: string, filter: { status?: Connecti
                 connectionType: connection.connectionType,
                 updatedAt: connection.updatedAt,
                 syncedAt: connection.syncedAt ?? undefined,
+                linkedRepos: connection.repos.map(( { repo }) => ({
+                    id: repo.id,
+                    name: repo.name,
+                    repoIndexingStatus: repo.repoIndexingStatus,
+                })),
             }));
         })
     );

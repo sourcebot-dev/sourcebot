@@ -1,13 +1,13 @@
 "use client";
 import { useDomain } from "@/hooks/useDomain";
 import { ConnectionListItem } from "./connectionListItem";
-import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import { cn, isServiceError } from "@/lib/utils";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
-import { useState } from "react";
-import { ConnectionSyncStatus, Prisma } from "@sourcebot/db";
-import { getConnectionFailedRepos, getConnections } from "@/actions";
-import { isServiceError } from "@/lib/utils";
+import { getConnections } from "@/actions";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
+import { RepoIndexingStatus } from "@sourcebot/db";
 
 interface ConnectionListProps {
     className?: string;
@@ -17,63 +17,39 @@ export const ConnectionList = ({
     className,
 }: ConnectionListProps) => {
     const domain = useDomain();
-    const [connections, setConnections] = useState<{
-        id: number;
-        name: string;
-        connectionType: string;
-        syncStatus: ConnectionSyncStatus;
-        syncStatusMetadata: Prisma.JsonValue;
-        updatedAt: Date;
-        syncedAt?: Date;
-        failedRepos?: { repoId: number, repoName: string }[];
-    }[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {   
-        const fetchConnections = async () => {
-            try {
-                const result = await getConnections(domain);
-                if (isServiceError(result)) {
-                    setError(result.message);
-                } else {
-                    const connectionsWithFailedRepos = [];
-                    for (const connection of result) {
-                        const failedRepos = await getConnectionFailedRepos(connection.id, domain);
-                        if (isServiceError(failedRepos)) {
-                            setError(`An error occured while fetching the failed repositories for connection ${connection.name}. If the problem persists, please contact us at team@sourcebot.dev`);
-                        } else {
-                            connectionsWithFailedRepos.push({
-                                ...connection,
-                                failedRepos,
-                            });
-                        }
-                    }
-                    setConnections(connectionsWithFailedRepos);
-                }
-                setLoading(false);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'An error occured while fetching connections. If the problem persists, please contact us at team@sourcebot.dev');
-                setLoading(false);
-            }
-        };
+    const { data: connections, isLoading, error } = useQuery({
+        queryKey: ['connections', domain],
+        queryFn: () => getConnections(domain),
+        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+    });
 
-        fetchConnections();
-        const interval = setInterval(fetchConnections, 10000);
-        return () => clearInterval(interval);
-    }, [domain]);
+    if (isServiceError(connections)) {
+        return <div className="flex flex-col items-center justify-center border rounded-md p-4 h-full">
+            <p>Error loading connections: {connections.message}</p>
+        </div>
+    }
 
     return (
         <div className={cn("flex flex-col gap-4", className)}>
-            {loading ? (
-                <div className="flex flex-col items-center justify-center border rounded-md p-4 h-full">
-                    <p>Loading connections...</p>
+            {isLoading ? (
+                <div className="flex flex-col gap-4">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center gap-4 border rounded-md p-4">
+                            <Skeleton className="w-8 h-8 rounded-full" />
+                            <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-1/4" />
+                                <Skeleton className="h-3 w-1/3" />
+                            </div>
+                            <Skeleton className="w-24 h-8" />
+                        </div>
+                    ))}
                 </div>
             ) : error ? (
                 <div className="flex flex-col items-center justify-center border rounded-md p-4 h-full">
-                    <p>Error loading connections: {error}</p>
+                    <p>Error loading connections: {error instanceof Error ? error.message : 'An unknown error occurred'}</p>
                 </div>
-            ) : connections.length > 0 ? (
+            ) : connections && connections.length > 0 ? (
                 connections
                     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
                     .map((connection) => (
@@ -86,7 +62,10 @@ export const ConnectionList = ({
                             syncStatusMetadata={connection.syncStatusMetadata}
                             editedAt={connection.updatedAt}
                             syncedAt={connection.syncedAt ?? undefined}
-                            failedRepos={connection.failedRepos}
+                            failedRepos={connection.linkedRepos.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.FAILED).map((repo) => ({
+                                repoId: repo.id,
+                                repoName: repo.name,
+                            }))}
                         />
                     ))
             ) : (
@@ -96,5 +75,5 @@ export const ConnectionList = ({
                 </div>
             )}
         </div>
-    )
+    );
 }
