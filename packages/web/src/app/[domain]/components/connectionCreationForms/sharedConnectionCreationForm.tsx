@@ -37,6 +37,7 @@ interface SharedConnectionCreationFormProps<T> {
     }[],
     className?: string;
     onCreated?: (id: number) => void;
+    additionalConfigValidation?: (config: T) => { message: string, isValid: boolean };
 }
 
 
@@ -48,6 +49,7 @@ export default function SharedConnectionCreationForm<T>({
     quickActions,
     className,
     onCreated,
+    additionalConfigValidation
 }: SharedConnectionCreationFormProps<T>) {
     const { toast } = useToast();
     const domain = useDomain();
@@ -56,7 +58,7 @@ export default function SharedConnectionCreationForm<T>({
     const formSchema = useMemo(() => {
         return z.object({
             name: z.string().min(1),
-            config: createZodConnectionConfigValidator(schema),
+            config: createZodConnectionConfigValidator(schema, additionalConfigValidation),
             secretKey: z.string().optional().refine(async (secretKey) => {
                 if (!secretKey) {
                     return true;

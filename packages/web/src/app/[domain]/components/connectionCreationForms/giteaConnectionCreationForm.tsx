@@ -9,6 +9,24 @@ interface GiteaConnectionCreationFormProps {
     onCreated?: (id: number) => void;
 }
 
+const additionalConfigValidation = (config: GiteaConnectionConfig): { message: string, isValid: boolean } => {
+    const hasOrgs = config.orgs && config.orgs.length > 0;
+    const hasUsers = config.users && config.users.length > 0;
+    const hasRepos = config.repos && config.repos.length > 0;
+
+    if (!hasOrgs && !hasUsers && !hasRepos) {
+        return {
+            message: "At least one organization, user, or repository must be specified",
+            isValid: false,
+        }
+    }
+
+    return {
+        message: "Valid",
+        isValid: true,
+    }
+}
+
 export const GiteaConnectionCreationForm = ({ onCreated }: GiteaConnectionCreationFormProps) => {
     const defaultConfig: GiteaConnectionConfig = {
         type: 'gitea',
@@ -23,6 +41,7 @@ export const GiteaConnectionCreationForm = ({ onCreated }: GiteaConnectionCreati
             }}
             schema={giteaSchema}
             quickActions={giteaQuickActions}
+            additionalConfigValidation={additionalConfigValidation}
             onCreated={onCreated}
         />
     )

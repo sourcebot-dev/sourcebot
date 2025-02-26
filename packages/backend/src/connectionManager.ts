@@ -1,6 +1,6 @@
 import { Connection, ConnectionSyncStatus, PrismaClient, Prisma, Repo } from "@sourcebot/db";
 import { Job, Queue, Worker } from 'bullmq';
-import { Settings, WithRequired } from "./types.js";
+import { Settings } from "./types.js";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { createLogger } from "./logger.js";
 import os from 'os';

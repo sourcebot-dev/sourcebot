@@ -9,6 +9,22 @@ interface GerritConnectionCreationFormProps {
     onCreated?: (id: number) => void;
 }
 
+const additionalConfigValidation = (config: GerritConnectionConfig): { message: string, isValid: boolean } => {
+    const hasProjects = config.projects && config.projects.length > 0;
+
+    if (!hasProjects) {
+        return {
+            message: "At least one project must be specified",
+            isValid: false,
+        }
+    }
+
+    return {
+        message: "Valid",
+        isValid: true,
+    }
+}
+
 export const GerritConnectionCreationForm = ({ onCreated }: GerritConnectionCreationFormProps) => {
     const defaultConfig: GerritConnectionConfig = {
         type: 'gerrit',
@@ -24,6 +40,7 @@ export const GerritConnectionCreationForm = ({ onCreated }: GerritConnectionCrea
             }}
             schema={gerritSchema}
             quickActions={gerritQuickActions}
+            additionalConfigValidation={additionalConfigValidation}
             onCreated={onCreated}
         />
     )
