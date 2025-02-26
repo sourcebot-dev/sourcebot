@@ -12,18 +12,15 @@ export const getConnection = async (connectionId: number, orgId: number) => {
     return connection;
 }
 
-export const getLinkedRepos = async (connectionId: number, orgId: number) => {
-    const linkedRepos = await prisma.repoToConnection.findMany({
+export const getConnectionByDomain = async (connectionId: number, domain: string) => {
+    const connection = await prisma.connection.findUnique({
         where: {
-            connection: {
-                id: connectionId,
-                orgId: orgId,
+            id: connectionId,
+            org: {
+                domain: domain,
             }
         },
-        include: {
-            repo: true,
-        }
     });
 
-    return linkedRepos;
+    return connection;
 }

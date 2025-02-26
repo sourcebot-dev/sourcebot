@@ -82,7 +82,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, org
             const tagGlobs = config.revisions.tags;
             allRepos = await Promise.all(
                 allRepos.map(async (allRepos) => {
-                    const [owner, name] = allRepos.name!.split('/');
+                    const [owner, name] = allRepos.full_name!.split('/');
                     let tags = (await fetchWithRetry(
                         () => getTagsForRepo(owner, name, api),
                         `tags for ${owner}/${name}`,
