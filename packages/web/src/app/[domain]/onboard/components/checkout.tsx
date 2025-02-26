@@ -1,6 +1,6 @@
 'use client';
 
-import { createOnboardingStripeCheckoutSession } from "@/actions";
+import { createOnboardingSubscription } from "@/actions";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { isServiceError } from "@/lib/utils";
 import { Check, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TEAM_FEATURES } from "@/lib/constants";
+import { OnboardingSteps, TEAM_FEATURES } from "@/lib/constants";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 export const Checkout = () => {
@@ -37,7 +37,7 @@ export const Checkout = () => {
 
     const onCheckout = useCallback(() => {
         setIsLoading(true);
-        createOnboardingStripeCheckoutSession(domain)
+        createOnboardingSubscription(domain)
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({
@@ -48,8 +48,10 @@ export const Checkout = () => {
                         error: response.errorCode,
                     });
                 } else {
-                    router.push(response.url);
+                    console.log(`[Onboard] Completed onboarding for domain ${domain}, redirecting to /${domain}`);
                     captureEvent('wa_onboard_checkout_success', {});
+                    router.push(`/${domain}/onboard?step=${OnboardingSteps.Complete}`);
+                    router.refresh();
                 }
             })
             .finally(() => {
@@ -63,7 +65,7 @@ export const Checkout = () => {
                 className="h-16"
                 size="large"
             />
-            <h1 className="text-2xl font-semibold">Start your 7 day free trial</h1>
+            <h1 className="text-2xl font-semibold">Start your 14 day free trial</h1>
             <p className="text-muted-foreground mt-2">Cancel anytime. No credit card required.</p>
             <ul className="space-y-4 mb-6 mt-10">
                 {TEAM_FEATURES.map((feature, index) => (

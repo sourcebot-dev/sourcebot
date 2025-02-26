@@ -115,53 +115,53 @@ export const createOrg = (name: string, domain: string): Promise<{ id: number } 
         }
     });
 
-export const completeOnboarding = async (stripeCheckoutSessionId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const org = await prisma.org.findUnique({
-                where: { id: orgId },
-            });
-
-            if (!org) {
-                return notFound();
-            }
-
-            const stripe = getStripe();
-            const stripeSession = await stripe.checkout.sessions.retrieve(stripeCheckoutSessionId);
-            const stripeCustomerId = stripeSession.customer as string;
-
-            // Catch the case where the customer ID doesn't match the org's customer ID
-            if (org.stripeCustomerId !== stripeCustomerId) {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
-                    message: "Invalid Stripe customer ID",
-                } satisfies ServiceError;
-            }
-
-            if (stripeSession.payment_status !== 'paid') {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
-                    message: "Payment failed",
-                } satisfies ServiceError;
-            }
-
-            await prisma.org.update({
-                where: { id: orgId },
-                data: {
-                    isOnboarded: true,
-                    stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
-                    stripeLastUpdatedAt: new Date(),
+    export const completeOnboarding = async (stripeCheckoutSessionId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+        withAuth((session) =>
+            withOrgMembership(session, domain, async ({ orgId }) => {
+                const org = await prisma.org.findUnique({
+                    where: { id: orgId },
+                });
+    
+                if (!org) {
+                    return notFound();
                 }
-            });
-
-            return {
-                success: true,
-            }
-        })
-    );
-
+    
+                const stripe = getStripe();
+                const stripeSession = await stripe.checkout.sessions.retrieve(stripeCheckoutSessionId);
+                const stripeCustomerId = stripeSession.customer as string;
+    
+                // Catch the case where the customer ID doesn't match the org's customer ID
+                if (org.stripeCustomerId !== stripeCustomerId) {
+                    return {
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
+                        message: "Invalid Stripe customer ID",
+                    } satisfies ServiceError;
+                }
+    
+                if (stripeSession.payment_status !== 'paid') {
+                    return {
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
+                        message: "Payment failed",
+                    } satisfies ServiceError;
+                }
+    
+                await prisma.org.update({
+                    where: { id: orgId },
+                    data: {
+                        isOnboarded: true,
+                        stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
+                        stripeLastUpdatedAt: new Date(),
+                    }
+                });
+    
+                return {
+                    success: true,
+                }
+            })
+        );
+        
 export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
@@ -919,7 +919,7 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
     return parsedConfig;
 }
 
-export const createOnboardingStripeCheckoutSession = async (domain: string) =>
+export const createOnboardingSubscription = async (domain: string) =>
     withAuth(async (session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const org = await prisma.org.findUnique({
@@ -976,39 +976,53 @@ export const createOnboardingStripeCheckoutSession = async (domain: string) =>
                 expand: ['data.product'],
             });
 
-            const stripeSession = await stripe.checkout.sessions.create({
-                customer: customerId,
-                line_items: [
-                    {
+            try {
+                const subscription = await stripe.subscriptions.create({
+                    customer: customerId,
+                    items: [{
                         price: prices.data[0].id,
-                        quantity: 1
-                    }
-                ],
-                mode: 'subscription',
-                subscription_data: {
-                    trial_period_days: 7,
+                    }],
+                    trial_period_days: 14,
                     trial_settings: {
                         end_behavior: {
                             missing_payment_method: 'cancel',
                         },
                     },
-                },
-                payment_method_collection: 'if_required',
-                success_url: `${origin}/${domain}/onboard?step=${OnboardingSteps.Complete}&stripe_session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${origin}/${domain}/onboard?step=${OnboardingSteps.Checkout}`,
-            });
+                    payment_settings: {
+                        save_default_payment_method: 'on_subscription',
+                    },
+                });
+                
+                if (!subscription) {
+                    return {
+                        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                        errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
+                        message: "Failed to create subscription",
+                    } satisfies ServiceError;
+                }
 
-            if (!stripeSession.url) {
+                await prisma.org.update({
+                    where: { id: orgId },
+                    data: {
+                        isOnboarded: true,
+                        stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
+                        stripeLastUpdatedAt: new Date(),
+                    }
+                });
+
+                return {
+                    subscriptionId: subscription.id,
+                }
+            } catch (e) {
+                console.error(e);
                 return {
                     statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
                     errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
-                    message: "Failed to create checkout session",
+                    message: "Failed to create subscription",
                 } satisfies ServiceError;
             }
 
-            return {
-                url: stripeSession.url,
-            }
+
         }, /* minRequiredRole = */ OrgRole.OWNER)
     );
 
