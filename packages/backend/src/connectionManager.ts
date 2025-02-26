@@ -1,6 +1,6 @@
-import { Connection, ConnectionSyncStatus, PrismaClient, Prisma, Repo } from "@sourcebot/db";
+import { Connection, ConnectionSyncStatus, PrismaClient, Prisma } from "@sourcebot/db";
 import { Job, Queue, Worker } from 'bullmq';
-import { Settings, WithRequired } from "./types.js";
+import { Settings } from "./types.js";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { createLogger } from "./logger.js";
 import os from 'os';
@@ -24,7 +24,7 @@ type JobPayload = {
 };
 
 type JobResult = {
-    repoCount: number
+    repoCount: number,
 }
 
 export class ConnectionManager implements IConnectionManager {
@@ -82,7 +82,7 @@ export class ConnectionManager implements IConnectionManager {
         }, this.settings.resyncConnectionPollingIntervalMs);
     }
 
-    private async runSyncJob(job: Job<JobPayload>) {
+    private async runSyncJob(job: Job<JobPayload>): Promise<JobResult> {
         const { config, orgId } = job.data;
         // @note: We aren't actually doing anything with this atm.
         const abortController = new AbortController();
@@ -233,12 +233,25 @@ export class ConnectionManager implements IConnectionManager {
         this.logger.info(`Connection sync job ${job.id} completed`);
         const { connectionId } = job.data;
 
+        let syncStatusMetadata: Record<string, unknown> = (await this.db.connection.findUnique({
+            where: { id: connectionId },
+            select: { syncStatusMetadata: true }
+        }))?.syncStatusMetadata as Record<string, unknown> ?? {};
+        const { notFound } = syncStatusMetadata as { notFound: {
+            users: string[],
+            orgs: string[],
+            repos: string[],
+        }};
+
         await this.db.connection.update({
             where: {
                 id: connectionId,
             },
             data: {
-                syncStatus: ConnectionSyncStatus.SYNCED,
+                syncStatus:
+                    notFound.users.length > 0 ||
+                    notFound.orgs.length > 0 ||
+                    notFound.repos.length > 0 ? ConnectionSyncStatus.SYNCED_WITH_WARNINGS : ConnectionSyncStatus.SYNCED,
                 syncedAt: new Date()
             }
         })

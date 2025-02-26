@@ -64,7 +64,7 @@ export type PosthogEventMap = {
     wa_progress_nav_connection_fetch_fail: {
         error: string,
     },
-    wa_progress_nav_job_fetch_fail: {
+    wa_progress_nav_repo_fetch_fail: {
         error: string,
     },
     wa_progress_nav_hover: {},
@@ -205,13 +205,8 @@ export type PosthogEventMap = {
     wa_connection_retry_all_failed_repos_fetch_fail: {  
         error: string,
     },
-    wa_connection_retry_all_failed_repos_fail: {
-        successCount: number,
-        failureCount: number,
-    },
-    wa_connection_retry_all_failed_repos_success: {
-        successCount: number,
-    },
+    wa_connection_retry_all_failed_repos_fail: {},
+    wa_connection_retry_all_failed_repos_success: {},
     wa_connection_retry_all_failed_no_repos: {},
     //////////////////////////////////////////////////////////////////
     wa_repo_retry_index_success: {},

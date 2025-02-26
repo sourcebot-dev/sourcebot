@@ -14,7 +14,7 @@ import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, GerritConnectionConfig, ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection, getLinkedRepos } from "./data/connection";
-import { ConnectionSyncStatus, Prisma, OrgRole, Connection, Repo, Org, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
+import { ConnectionSyncStatus, Prisma, OrgRole, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
@@ -251,7 +251,7 @@ export const deleteSecret = async (key: string, domain: string): Promise<{ succe
         }));
 
 
-export const getConnections = async (domain: string): Promise<
+export const getConnections = async (domain: string, filter: { status?: ConnectionSyncStatus[] } = {}): Promise<
     {
         id: number,
         name: string,
@@ -267,6 +267,9 @@ export const getConnections = async (domain: string): Promise<
             const connections = await prisma.connection.findMany({
                 where: {
                     orgId,
+                    ...(filter.status ? {
+                        syncStatus: { in: filter.status }
+                    } : {}),
                 },
             });
 
@@ -281,6 +284,16 @@ export const getConnections = async (domain: string): Promise<
             }));
         })
     );
+
+export const getConnectionInfo = async (connectionId: number, domain: string) =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const connection = await getConnection(connectionId, orgId);
+            if (!connection) {
+                return notFound();
+            }
+        })
+    )
 
 export const getConnectionFailedRepos = async (connectionId: number, domain: string): Promise<{ repoId: number, repoName: string }[] | ServiceError> =>
     withAuth((session) =>
@@ -299,19 +312,35 @@ export const getConnectionFailedRepos = async (connectionId: number, domain: str
         })
     );
 
-export const getConnectionInProgressRepos = async (connectionId: number, domain: string): Promise<{ repoId: number, repoName: string }[] | ServiceError> =>
+export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
-            if (!connection) {
-                return notFound();
-            }
+            const repos = await prisma.repo.findMany({
+                where: {
+                    orgId,
+                    ...(filter.status ? {
+                        repoIndexingStatus: { in: filter.status }
+                    } : {}),
+                    ...(filter.connectionId ? {
+                        connections: {
+                            some: {
+                                connectionId: filter.connectionId
+                            }
+                        }
+                    } : {}),
+                },
+                include: {
+                    connections: true,
+                }
+            });
 
-            const linkedRepos = await getLinkedRepos(connectionId, orgId);
-
-            return linkedRepos.filter((repo) => repo.repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE || repo.repo.repoIndexingStatus === RepoIndexingStatus.INDEXING).map((repo) => ({
-                repoId: repo.repo.id,
-                repoName: repo.repo.name,
+            return repos.map((repo) => ({
+                repoId: repo.id,
+                repoName: repo.name,
+                linkedConnections: repo.connections.map((connection) => connection.connectionId),
+                imageUrl: repo.imageUrl ?? undefined,
+                indexedAt: repo.indexedAt ?? undefined,
+                repoIndexingStatus: repo.repoIndexingStatus,
             }));
         })
     );
@@ -338,41 +367,6 @@ export const createConnection = async (name: string, type: string, connectionCon
                 id: connection.id,
             }
         }));
-
-export const getConnectionInfoAction = async (connectionId: number, domain: string): Promise<{ connection: Connection, linkedRepos: Repo[] } | ServiceError> =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
-            if (!connection) {
-                return notFound();
-            }
-
-            const linkedRepos = await getLinkedRepos(connectionId, orgId);
-
-            return {
-                connection,
-                linkedRepos: linkedRepos.map((repo) => repo.repo),
-            }
-        })
-    );
-
-export const getOrgFromDomainAction = async (domain: string): Promise<Org | ServiceError> =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
-
-            if (!org) {
-                return notFound();
-            }
-
-            return org;
-        })
-    );
-
 
 export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
@@ -457,6 +451,25 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
                 success: true,
             }
         }));
+
+export const flagReposForIndex = async (repoIds: number[], domain: string) =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            await prisma.repo.updateMany({
+                where: {
+                    id: { in: repoIds },
+                    orgId,
+                },
+                data: {
+                    repoIndexingStatus: RepoIndexingStatus.NEW,
+                }
+            });
+
+            return {
+                success: true,
+            }
+        })
+    );
 
 export const flagRepoForIndex = async (repoId: number, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>

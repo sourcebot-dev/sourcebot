@@ -59,6 +59,8 @@ export const ConnectionList = ({
         };
 
         fetchConnections();
+        const interval = setInterval(fetchConnections, 10000);
+        return () => clearInterval(interval);
     }, [domain]);
 
     return (
