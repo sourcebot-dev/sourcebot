@@ -82,7 +82,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
                 return new Date(a.indexedAt ?? new Date()).getTime() - new Date(b.indexedAt ?? new Date()).getTime();
             });
         },
-        refetchInterval: (query) => query.state.error ? false : NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
     const failedRepos = useMemo(() => {
@@ -149,7 +149,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Filter by name"
+                        placeholder={`Filter ${filteredRepos?.length} repositories by name`}
                         className="pl-9"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}

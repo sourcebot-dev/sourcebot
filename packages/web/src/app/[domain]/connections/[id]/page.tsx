@@ -16,7 +16,7 @@ import { DeleteConnectionSetting } from "./components/deleteConnectionSetting"
 import { DisplayNameSetting } from "./components/displayNameSetting"
 import { RepoList } from "./components/repoList"
 import { auth } from "@/auth"
-import { getConnectionByDomain, getLinkedRepos } from "@/data/connection"
+import { getConnectionByDomain } from "@/data/connection"
 import { Overview } from "./components/overview"
 
 interface ConnectionManagementPageProps {
@@ -39,8 +39,6 @@ export default async function ConnectionManagementPage({ params, searchParams }:
     if (!connection) {
         return <NotFound className="flex w-full h-full items-center justify-center" message="Connection not found" />
     }
-
-    const linkedRepos = await getLinkedRepos(connection.id, connection.orgId);
 
     const currentTab = searchParams.tab || "overview";
 
@@ -77,7 +75,7 @@ export default async function ConnectionManagementPage({ params, searchParams }:
             >
                 <div>
                     <h1 className="font-semibold text-lg mb-4">Overview</h1>
-                    <Overview connection={connection} numLinkedRepos={linkedRepos.length} />
+                    <Overview connectionId={connection.id} />
                 </div>
 
                 <div>

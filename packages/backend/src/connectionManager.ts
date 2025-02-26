@@ -105,6 +105,7 @@ export class ConnectionManager implements IConnectionManager {
                 id: job.data.connectionId,
             },
             data: {
+                syncStatus: ConnectionSyncStatus.SYNCING,
                 syncStatusMetadata: {}
             }
         })

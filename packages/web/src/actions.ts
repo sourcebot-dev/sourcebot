@@ -288,9 +288,29 @@ export const getConnections = async (domain: string, filter: { status?: Connecti
 export const getConnectionInfo = async (connectionId: number, domain: string) =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
+            const connection = await prisma.connection.findUnique({
+                where: {
+                    id: connectionId,
+                    orgId,
+                },
+                include: {
+                    repos: true,
+                }
+            });
+
             if (!connection) {
                 return notFound();
+            }
+
+            return {
+                id: connection.id,
+                name: connection.name,
+                syncStatus: connection.syncStatus,
+                syncStatusMetadata: connection.syncStatusMetadata,
+                connectionType: connection.connectionType,
+                updatedAt: connection.updatedAt,
+                syncedAt: connection.syncedAt ?? undefined,
+                numLinkedRepos: connection.repos.length,
             }
         })
     )
