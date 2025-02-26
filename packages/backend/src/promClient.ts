@@ -5,13 +5,11 @@ export class PromClient {
     private registry: Registry;
     private app: express.Application;
     public activeRepoIndexingJobs: Gauge<string>;
-    public repoIndexingDuration: Histogram<string>;
-    public repoIndexingErrorTotal: Counter<string>;
+    public repoIndexingReattemptsTotal: Counter<string>;
     public repoIndexingFailTotal: Counter<string>;
     public repoIndexingSuccessTotal: Counter<string>;
 
     public activeRepoGarbageCollectionJobs: Gauge<string>;
-    public repoGarbageCollectionDuration: Histogram<string>;
     public repoGarbageCollectionErrorTotal: Counter<string>;
     public repoGarbageCollectionFailTotal: Counter<string>;
     public repoGarbageCollectionSuccessTotal: Counter<string>;
@@ -28,19 +26,12 @@ export class PromClient {
         });
         this.registry.registerMetric(this.activeRepoIndexingJobs);
 
-        this.repoIndexingDuration = new Histogram({
-            name: 'repo_indexing_duration',
-            help: 'The duration of repo indexing jobs', 
+        this.repoIndexingReattemptsTotal = new Counter({
+            name: 'repo_indexing_reattempts',
+            help: 'The number of repo indexing reattempts',
             labelNames: ['repo'],
         });
-        this.registry.registerMetric(this.repoIndexingDuration);
-
-        this.repoIndexingErrorTotal = new Counter({
-            name: 'repo_indexing_errors',
-            help: 'The number of repo indexing errors',
-            labelNames: ['repo'],
-        });
-        this.registry.registerMetric(this.repoIndexingErrorTotal);
+        this.registry.registerMetric(this.repoIndexingReattemptsTotal);
 
         this.repoIndexingFailTotal = new Counter({
             name: 'repo_indexing_fails',
@@ -62,13 +53,6 @@ export class PromClient {
             labelNames: ['repo'],
         });
         this.registry.registerMetric(this.activeRepoGarbageCollectionJobs);
-
-        this.repoGarbageCollectionDuration = new Histogram({
-            name: 'repo_garbage_collection_duration',
-            help: 'The duration of repo garbage collection jobs',
-            labelNames: ['repo'],
-        });
-        this.registry.registerMetric(this.repoGarbageCollectionDuration);
 
         this.repoGarbageCollectionErrorTotal = new Counter({
             name: 'repo_garbage_collection_errors',

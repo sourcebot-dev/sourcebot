@@ -259,7 +259,7 @@ export class RepoManager implements IRepoManager {
                 break;
             } catch (error) {
                 attempts++;
-                this.promClient.repoIndexingErrorTotal.inc();
+                this.promClient.repoIndexingReattemptsTotal.inc();
                 if (attempts === maxAttempts) {
                     this.logger.error(`Failed to sync repository ${repo.id} after ${maxAttempts} attempts. Error: ${error}`);
                     throw error;
