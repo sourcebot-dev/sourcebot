@@ -1,7 +1,7 @@
 "use client";
 import { useDomain } from "@/hooks/useDomain";
 import { ConnectionListItem } from "./connectionListItem";
-import { cn, isServiceError, unwrapServiceError } from "@/lib/utils";
+import { cn, unwrapServiceError } from "@/lib/utils";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { getConnections } from "@/actions";
 import { Skeleton } from "@/components/ui/skeleton";

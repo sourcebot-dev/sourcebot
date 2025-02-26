@@ -22,7 +22,6 @@ export const StatusIcon = ({
             case 'succeeded-with-warnings':
             default:
                 return null;
-
         }
     }, [className, status]);
 
