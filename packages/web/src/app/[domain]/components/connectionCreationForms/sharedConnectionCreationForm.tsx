@@ -17,7 +17,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import ConfigEditor, { isConfigValidJson, onQuickAction, QuickActionFn } from "../configEditor";
 import { useDomain } from "@/hooks/useDomain";
-import { Loader2 } from "lucide-react";
+import { InfoIcon, Loader2 } from "lucide-react";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { SecretCombobox } from "./secretCombobox";
 import strings from "@/lib/strings";
@@ -26,7 +26,7 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 interface SharedConnectionCreationFormProps<T> {
     type: CodeHostType;
     defaultValues: {
-        name: string;
+        name?: string;
         config: string;
     };
     title: string;
@@ -117,12 +117,17 @@ export default function SharedConnectionCreationForm<T>({
 
     return (
         <div className={cn("flex flex-col max-w-3xl mx-auto bg-background border rounded-lg p-6", className)}>
-            <div className="flex flex-row items-center gap-3 mb-6">
-                <ConnectionIcon
-                    type={type}
-                    className="w-7 h-7"
-                />
-                <h1 className="text-3xl">{title}</h1>
+            <div className="flex flex-col gap-4 mb-8">
+                <div className="flex flex-row items-center gap-3">
+                    <ConnectionIcon
+                        type={type}
+                        className="w-7 h-7"
+                    />
+                    <h1 className="text-3xl">{title}</h1>
+                </div>
+                <span className="flex flex-row items-center">
+                    <InfoIcon className="w-4 h-4 mr-2" />Connections are used to specify what repositories you want Sourcebot to sync.
+                </span>
             </div>
             <Form
                 {...form}
@@ -141,6 +146,7 @@ export default function SharedConnectionCreationForm<T>({
                                             {...field}
                                             spellCheck={false}
                                             autoFocus={true}
+                                            placeholder="my-connection"
                                         />
                                     </FormControl>
                                     <FormMessage />

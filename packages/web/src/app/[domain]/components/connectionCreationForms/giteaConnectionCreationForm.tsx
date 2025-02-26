@@ -20,7 +20,6 @@ export const GiteaConnectionCreationForm = ({ onCreated }: GiteaConnectionCreati
             title="Create a Gitea connection"
             defaultValues={{
                 config: JSON.stringify(defaultConfig, null, 2),
-                name: 'my-gitea-connection',
             }}
             schema={giteaSchema}
             quickActions={giteaQuickActions}

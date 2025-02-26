@@ -20,7 +20,6 @@ export const GitHubConnectionCreationForm = ({ onCreated }: GitHubConnectionCrea
             title="Create a GitHub connection"
             defaultValues={{
                 config: JSON.stringify(defaultConfig, null, 2),
-                name: 'my-github-connection',
             }}
             schema={githubSchema}
             quickActions={githubQuickActions}

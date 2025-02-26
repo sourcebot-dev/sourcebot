@@ -20,7 +20,6 @@ export const GitLabConnectionCreationForm = ({ onCreated }: GitLabConnectionCrea
             title="Create a GitLab connection"
             defaultValues={{
                 config: JSON.stringify(defaultConfig, null, 2),
-                name: 'my-gitlab-connection',
             }}
             schema={gitlabSchema}
             quickActions={gitlabQuickActions}

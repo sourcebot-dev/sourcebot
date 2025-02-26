@@ -21,7 +21,6 @@ export const GerritConnectionCreationForm = ({ onCreated }: GerritConnectionCrea
             title="Create a Gerrit connection"
             defaultValues={{
                 config: JSON.stringify(defaultConfig, null, 2),
-                name: 'my-gerrit-connection',
             }}
             schema={gerritSchema}
             quickActions={gerritQuickActions}
