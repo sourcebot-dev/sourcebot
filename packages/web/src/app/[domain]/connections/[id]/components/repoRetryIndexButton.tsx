@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ReloadIcon } from "@radix-ui/react-icons"
 import { toast } from "@/components/hooks/use-toast";
-import { flagRepoForIndex } from "@/actions";
+import { flagReposForIndex } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 
@@ -21,7 +21,7 @@ export const RetryRepoIndexButton = ({ repoId, domain }: RetryRepoIndexButtonPro
             size="sm"
             className="ml-2"
             onClick={async () => {
-                const result = await flagRepoForIndex(repoId, domain);
+                const result = await flagReposForIndex([repoId], domain);
                 if (isServiceError(result)) {
                     toast({
                         description: `❌ Failed to flag repository for indexing.`,

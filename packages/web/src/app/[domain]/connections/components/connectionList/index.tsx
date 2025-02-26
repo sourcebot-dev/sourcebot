@@ -7,22 +7,61 @@ import { getConnections } from "@/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
-import { RepoIndexingStatus } from "@sourcebot/db";
-
+import { RepoIndexingStatus, ConnectionSyncStatus } from "@sourcebot/db";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useMemo, useState } from "react";
+import { MultiSelect } from "@/components/ui/multi-select";
 interface ConnectionListProps {
     className?: string;
+}
+
+const convertSyncStatus = (status: ConnectionSyncStatus) => {
+    switch (status) {
+        case ConnectionSyncStatus.SYNC_NEEDED:
+            return 'waiting';
+        case ConnectionSyncStatus.SYNCING:
+            return 'running';
+        case ConnectionSyncStatus.SYNCED:
+            return 'succeeded';
+        case ConnectionSyncStatus.SYNCED_WITH_WARNINGS:
+            return 'synced-with-warnings';
+        case ConnectionSyncStatus.FAILED:
+            return 'failed';
+        default:
+            return 'unknown';
+    }
 }
 
 export const ConnectionList = ({
     className,
 }: ConnectionListProps) => {
     const domain = useDomain();
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
 
-    const { data: connections, isLoading, error } = useQuery({
+    const { data: unfilteredConnections, isLoading, error } = useQuery({
         queryKey: ['connections', domain],
         queryFn: () => getConnections(domain),
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
+
+    const connections = useMemo(() => {
+        if (isServiceError(unfilteredConnections)) {
+            return unfilteredConnections;
+        }
+
+        return unfilteredConnections
+            ?.filter((connection) => connection.name.toLowerCase().includes(searchQuery.toLowerCase()))
+            .filter((connection) => {
+                if (selectedStatuses.length === 0) {
+                    return true;
+                }
+
+                return selectedStatuses.includes(convertSyncStatus(connection.syncStatus));
+            })
+            .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()) ?? [];
+    }, [unfilteredConnections, searchQuery, selectedStatuses]);
 
     if (isServiceError(connections)) {
         return <div className="flex flex-col items-center justify-center border rounded-md p-4 h-full">
@@ -32,9 +71,39 @@ export const ConnectionList = ({
 
     return (
         <div className={cn("flex flex-col gap-4", className)}>
+            <div className="flex gap-4 flex-col sm:flex-row">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder={`Filter ${isLoading ? "n" : connections?.length} ${connections?.length === 1 ? "connection" : "connections"} by name`}
+                        className="pl-9"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+
+                <MultiSelect
+                    className="bg-background hover:bg-background w-56"
+                    options={[
+                        { value: 'waiting', label: 'Waiting' },
+                        { value: 'running', label: 'Syncing' },
+                        { value: 'succeeded', label: 'Synced' },
+                        { value: 'synced-with-warnings', label: 'Warnings' },
+                        { value: 'failed', label: 'Failed' },
+                    ]}
+                    onValueChange={(value) => setSelectedStatuses(value)}
+                    defaultValue={[]}
+                    placeholder="Filter by status"
+                    maxCount={2}
+                    animation={0}
+                />
+
+            </div>
+
             {isLoading ? (
+                // Skeleton for loading state
                 <div className="flex flex-col gap-4">
-                    {[1, 2, 3].map((i) => (
+                    {Array.from({ length: 3 }).map((_, i) => (
                         <div key={i} className="flex items-center gap-4 border rounded-md p-4">
                             <Skeleton className="w-8 h-8 rounded-full" />
                             <div className="flex-1 space-y-2">

@@ -16,8 +16,14 @@ export const WarningNavIndicator = () => {
     const captureEvent = useCaptureEvent();
 
     const { data: connections } = useQuery({
-        queryKey: ['warning-connections', domain],
-        queryFn: () => getConnections(domain, { status: [ConnectionSyncStatus.SYNCED_WITH_WARNINGS] }),
+        queryKey: ['connections', domain],
+        queryFn: () => getConnections(domain),
+        select: (data) => {
+            if (isServiceError(data)) {
+                return data;
+            }
+            return data.filter(connection => connection.syncStatus === ConnectionSyncStatus.SYNCED_WITH_WARNINGS);
+        },
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
         initialData: [],
     });

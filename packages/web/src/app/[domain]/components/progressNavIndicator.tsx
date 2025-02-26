@@ -16,10 +16,14 @@ export const ProgressNavIndicator = () => {
     const captureEvent = useCaptureEvent();
 
     const { data: inProgressRepos } = useQuery({
-        queryKey: ['in-progress-repos', domain],
-        queryFn: () => getRepos(domain, {
-            status: [RepoIndexingStatus.IN_INDEX_QUEUE, RepoIndexingStatus.INDEXING],
-        }),
+        queryKey: ['repos', domain],
+        queryFn: () => getRepos(domain),
+        select: (data) => {
+            if (isServiceError(data)) {
+                return data;
+            }
+            return data.filter(repo => repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE || repo.repoIndexingStatus === RepoIndexingStatus.INDEXING);
+        },
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
         initialData: [],
     });

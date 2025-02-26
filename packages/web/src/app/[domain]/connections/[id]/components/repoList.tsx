@@ -2,11 +2,11 @@
 
 import { useDomain } from "@/hooks/useDomain";
 import { useQuery } from "@tanstack/react-query";
-import { flagReposForIndex, getRepos } from "@/actions";
+import { flagReposForIndex, getConnectionInfo, getRepos } from "@/actions";
 import { RepoListItem } from "./repoListItem";
 import { isServiceError } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { RepoIndexingStatus } from "@sourcebot/db";
+import { ConnectionSyncStatus, RepoIndexingStatus } from "@sourcebot/db";
 import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCallback, useMemo, useState } from "react";
@@ -62,7 +62,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
     const [isRetryAllFailedReposLoading, setIsRetryAllFailedReposLoading] = useState(false);
 
     const { data: unfilteredRepos, isLoading, refetch } = useQuery({
-        queryKey: ['repos', connectionId],
+        queryKey: ['repos', domain, connectionId],
         queryFn: async () => {
             const repos = await getRepos(domain, { connectionId });
             if (isServiceError(repos)) {
@@ -84,6 +84,12 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
         },
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
+
+    const { data: connection } = useQuery({
+        queryKey: ['connection', domain, connectionId],
+        queryFn: () => getConnectionInfo(connectionId, domain),
+    })
+
 
     const failedRepos = useMemo(() => {
         if (isServiceError(unfilteredRepos)) {
@@ -149,7 +155,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder={`Filter ${filteredRepos?.length} repositories by name`}
+                        placeholder={`Filter ${isLoading ? "n" : filteredRepos?.length} ${filteredRepos?.length === 1 ? "repository" : "repositories"} by name`}
                         className="pl-9"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -193,7 +199,12 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
                     <div className="flex flex-col items-center justify-center h-96 p-4 border rounded-lg">
                         <p className="font-medium text-sm">No Repositories Found</p>
                         <p className="text-sm text-muted-foreground mt-2">
-                            {filteredRepos?.length === 0 && searchQuery.length > 0 ? "No repositories found matching your filters." : (
+                            {
+                                searchQuery.length > 0 ? (
+                                    <span>No repositories found matching your filters.</span>
+                                ) : (!isServiceError(connection) && (connection?.syncStatus === ConnectionSyncStatus.IN_SYNC_QUEUE || connection?.syncStatus === ConnectionSyncStatus.SYNCING || connection?.syncStatus === ConnectionSyncStatus.SYNC_NEEDED)) ? (
+                                    <span>Repositories are being synced. Please check back soon.</span>
+                                ) : (
                                 <Button
                                     onClick={() => {
                                         router.push(`?tab=settings`)

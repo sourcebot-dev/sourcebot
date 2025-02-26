@@ -21,22 +21,6 @@ interface OverviewProps {
     connectionId: number;
 }
 
-const getStatusDisplayName = (status: ConnectionSyncStatus) => {
-    switch (status) {
-        case ConnectionSyncStatus.SYNC_NEEDED:
-        case ConnectionSyncStatus.IN_SYNC_QUEUE:
-            return "Sync queued"
-        case ConnectionSyncStatus.SYNCING:
-            return "Syncing"
-        case ConnectionSyncStatus.SYNCED:
-            return "Synced"
-        case ConnectionSyncStatus.SYNCED_WITH_WARNINGS:
-            return "Synced with warnings"
-        case ConnectionSyncStatus.FAILED:
-            return "Sync failed"
-    }
-}
-
 export const Overview = ({ connectionId }: OverviewProps) => {
     const captureEvent = useCaptureEvent();
     const domain = useDomain();
@@ -116,7 +100,14 @@ export const Overview = ({ connectionId }: OverviewProps) => {
                     </div>
                 </div>
             </div>
-            <NotFoundWarning syncStatusMetadata={connection.syncStatusMetadata} onSecretsClick={handleSecretsNavigation} connectionId={connection.id} connectionType={connection.connectionType} domain={domain} />
+            <NotFoundWarning
+                syncStatus={connection.syncStatus}
+                syncStatusMetadata={connection.syncStatusMetadata}
+                onSecretsClick={handleSecretsNavigation}
+                connectionId={connection.id}
+                connectionType={connection.connectionType}
+                domain={domain}
+            />
         </div>
     )
 }

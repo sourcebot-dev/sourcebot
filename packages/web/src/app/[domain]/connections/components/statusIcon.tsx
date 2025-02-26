@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CircleCheckIcon, CircleXIcon, TriangleAlertIcon } from "lucide-react";
+import { CircleCheckIcon, CircleXIcon } from "lucide-react";
 import { useMemo } from "react";
 import { FiLoader } from "react-icons/fi";
 
