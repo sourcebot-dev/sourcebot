@@ -182,12 +182,24 @@ export class RepoManager implements IRepoManager {
         return token;
     }
 
-    private async syncGitRepository(repo: RepoWithConnections) {
+    private async syncGitRepository(repo: RepoWithConnections, repoAlreadyInIndexingState: boolean) {
         let fetchDuration_s: number | undefined = undefined;
         let cloneDuration_s: number | undefined = undefined;
 
         const repoPath = getRepoPath(repo, this.ctx);
         const metadata = repo.metadata as Record<string, string>;
+
+        // If the repo was already in the indexing state, this job was likely killed and picked up again. As a result,
+        // to ensure the repo state is valid, we delete the repo if it exists so we get a fresh clone 
+        if (repoAlreadyInIndexingState && existsSync(repoPath)) {
+            this.logger.info(`Deleting repo directory ${repoPath} during sync because it was already in the indexing state`);
+            await rm(repoPath, { recursive: true, force: true }, (err) => {
+                if (err) {
+                    this.logger.error(`Failed to delete repo directory ${repoPath}: ${err}`);
+                    throw err;
+                }
+            });      
+        }
 
         if (existsSync(repoPath)) {
             this.logger.info(`Fetching ${repo.id}...`);
@@ -235,6 +247,21 @@ export class RepoManager implements IRepoManager {
     private async runIndexJob(job: Job<RepoIndexingPayload>) {
         this.logger.info(`Running index job (id: ${job.id}) for repo ${job.data.repo.id}`);
         const repo = job.data.repo as RepoWithConnections;
+
+        // We have to use the existing repo object to get the repoIndexingStatus because the repo object
+        // inside the job is unchanged from when it was added to the queue.
+        const existingRepo = await this.db.repo.findUnique({
+            where: {
+                id: repo.id,
+            },
+        });
+        if (!existingRepo) {
+            this.logger.error(`Repo ${repo.id} not found`);
+            throw new Error(`Repo ${repo.id} not found`);
+        }
+        const repoAlreadyInIndexingState = existingRepo.repoIndexingStatus === RepoIndexingStatus.INDEXING;
+
+
         await this.db.repo.update({
             where: {
                 id: repo.id,
@@ -255,7 +282,7 @@ export class RepoManager implements IRepoManager {
 
         while (attempts < maxAttempts) {
             try {
-                stats = await this.syncGitRepository(repo);
+                stats = await this.syncGitRepository(repo, repoAlreadyInIndexingState);
                 break;
             } catch (error) {
                 attempts++;
