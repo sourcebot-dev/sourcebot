@@ -127,6 +127,11 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
                 return notFound();
             }
 
+            const subscription = await fetchSubscription(domain);
+            if (isServiceError(subscription)) {
+                return subscription;
+            }
+
             await prisma.org.update({
                 where: { id: orgId },
                 data: {
@@ -845,6 +850,15 @@ export const createOnboardingSubscription = async (domain: string) =>
 
                 return customer.id;
             })();
+
+            const existingSubscription = await fetchSubscription(domain);
+            if (existingSubscription && !isServiceError(existingSubscription)) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.SUBSCRIPTION_ALREADY_EXISTS,
+                    message: "Attemped to create a trial subscription for an organization that already has an active subscription",
+                } satisfies ServiceError;
+            }
 
 
             const prices = await stripe.prices.list({

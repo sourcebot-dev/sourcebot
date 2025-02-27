@@ -48,10 +48,8 @@ export const Checkout = () => {
                         error: response.errorCode,
                     });
                 } else {
-                    console.log(`[Onboard] Completed onboarding for domain ${domain}, redirecting to /${domain}`);
                     captureEvent('wa_onboard_checkout_success', {});
                     router.push(`/${domain}/onboard?step=${OnboardingSteps.Complete}`);
-                    router.refresh();
                 }
             })
             .finally(() => {

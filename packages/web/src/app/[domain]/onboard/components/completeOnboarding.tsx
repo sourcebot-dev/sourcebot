@@ -1,22 +1,30 @@
+'use client';
+
 import { completeOnboarding } from "@/actions";
 import { OnboardingSteps } from "@/lib/constants";
 import { isServiceError } from "@/lib/utils";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useDomain } from "@/hooks/useDomain";
 
-interface CompleteOnboardingProps {
-    searchParams: {
-        stripe_session_id?: string;
-    }
-    params: {
-        domain: string;
-    }
-}
+export const CompleteOnboarding = () => {
+    const router = useRouter();
+    const domain = useDomain();
 
-export const CompleteOnboarding = async ({ searchParams, params: { domain } }: CompleteOnboardingProps) => {
-    const response = await completeOnboarding(domain);
-    if (isServiceError(response)) {
-        return redirect(`/${domain}/onboard?step=${OnboardingSteps.Checkout}&errorCode=${response.errorCode}&errorMessage=${response.message}`);
-    }
+    useEffect(() => {
+        const complete = async () => {
+            const response = await completeOnboarding(domain);
+            if (isServiceError(response)) {
+                router.push(`/${domain}/onboard?step=${OnboardingSteps.Checkout}&errorCode=${response.errorCode}&errorMessage=${response.message}`);
+                return;
+            }
 
-    return redirect(`/${domain}`);
+            router.push(`/${domain}`);
+            router.refresh();
+        };
+
+        complete();
+    }, [domain, router]);
+
+    return null;
 }
