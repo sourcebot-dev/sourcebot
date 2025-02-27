@@ -822,9 +822,9 @@ export const createOnboardingSubscription = async (domain: string) =>
             const stripe = getStripe();
 
             // @nocheckin
-            const test_clock = await stripe.testHelpers.testClocks.create({
+            const test_clock = AUTH_URL !== "https://app.sourcebot.dev" ? await stripe.testHelpers.testClocks.create({
                 frozen_time: Math.floor(Date.now() / 1000)
-            });
+            }) : null;
 
             // Use the existing customer if it exists, otherwise create a new one.
             const customerId = await (async () => {
@@ -835,7 +835,7 @@ export const createOnboardingSubscription = async (domain: string) =>
                 const customer = await stripe.customers.create({
                     name: org.name,
                     email: user.email ?? undefined,
-                    test_clock: test_clock.id,
+                    test_clock: test_clock?.id,
                     description: `Created by ${user.email} on ${domain} (id: ${org.id})`,
                 });
 

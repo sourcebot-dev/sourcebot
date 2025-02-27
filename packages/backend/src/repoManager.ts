@@ -6,7 +6,7 @@ import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig }
 import { AppContext, Settings, RepoMetadata } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
 import { cloneRepository, fetchRepository } from "./git.js";
-import { existsSync, rmSync, readdirSync, rm } from 'fs';
+import { existsSync, readdirSync, promises } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import os from 'os';
 import { PromClient } from './promClient.js';
@@ -189,16 +189,12 @@ export class RepoManager implements IRepoManager {
         const repoPath = getRepoPath(repo, this.ctx);
         const metadata = repo.metadata as RepoMetadata;
 
+        
         // If the repo was already in the indexing state, this job was likely killed and picked up again. As a result,
         // to ensure the repo state is valid, we delete the repo if it exists so we get a fresh clone 
         if (repoAlreadyInIndexingState && existsSync(repoPath)) {
             this.logger.info(`Deleting repo directory ${repoPath} during sync because it was already in the indexing state`);
-            await rm(repoPath, { recursive: true, force: true }, (err) => {
-                if (err) {
-                    this.logger.error(`Failed to delete repo directory ${repoPath}: ${err}`);
-                    throw err;
-                }
-            });      
+            await promises.rm(repoPath, { recursive: true, force: true });      
         }
 
         if (existsSync(repoPath)) {
@@ -431,12 +427,7 @@ export class RepoManager implements IRepoManager {
         const repoPath = getRepoPath(repo, this.ctx);
         if (existsSync(repoPath)) {
             this.logger.info(`Deleting repo directory ${repoPath}`);
-            await rm(repoPath, { recursive: true, force: true }, (err) => {
-                if (err) {
-                    this.logger.error(`Failed to delete repo directory ${repoPath}: ${err}`);
-                    throw err;
-                }
-            });
+            await promises.rm(repoPath, { recursive: true, force: true });      
         }
 
         // delete shards
@@ -445,12 +436,7 @@ export class RepoManager implements IRepoManager {
         for (const file of files) {
             const filePath = `${this.ctx.indexPath}/${file}`;
             this.logger.info(`Deleting shard file ${filePath}`);
-            await rm(filePath, { force: true }, (err) => {
-                if (err) {
-                    this.logger.error(`Failed to delete shard file ${filePath}: ${err}`);
-                    throw err;
-                }
-            });
+            await promises.rm(filePath, { force: true });
         }
     }
 
