@@ -18,7 +18,10 @@ export type PosthogEventMap = {
         connectionId: number,
         repoCount: number,
     },
-    revisions_truncated: {},
+    backend_revisions_truncated: {
+        repoId: number,
+        revisionCount: number,
+    },
     //////////////////////////////////////////////////////////////////
 }
 
