@@ -6,14 +6,14 @@ import {
     CarouselItem,
 } from "@/components/ui/carousel";
 import Autoscroll from "embla-carousel-auto-scroll";
-import { getRepoCodeHostInfo } from "@/lib/utils";
+import { getRepoQueryCodeHostInfo } from "@/lib/utils";
 import Image from "next/image";
 import { FileIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
-import { Repository } from "@/lib/types";
+import { RepositoryQuery } from "@/lib/types";
 
 interface RepositoryCarouselProps {
-    repos: Repository[];
+    repos: RepositoryQuery[];
 }
 
 export const RepositoryCarousel = ({
@@ -50,14 +50,14 @@ export const RepositoryCarousel = ({
 };
 
 interface RepositoryBadgeProps {
-    repo: Repository;
+    repo: RepositoryQuery;
 }
 
 const RepositoryBadge = ({
     repo
 }: RepositoryBadgeProps) => {
     const { repoIcon, displayName, repoLink } = (() => {
-        const info = getRepoCodeHostInfo(repo);
+        const info = getRepoQueryCodeHostInfo(repo);
 
         if (info) {
             return {
@@ -73,7 +73,7 @@ const RepositoryBadge = ({
 
         return {
             repoIcon: <FileIcon className="w-4 h-4" />,
-            displayName: repo.Name,
+            displayName: repo.repoName.split('/').slice(-2).join('/'),
             repoLink: undefined,
         }
     })();

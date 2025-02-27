@@ -1,5 +1,5 @@
+import { RepoIndexingStatus } from "@sourcebot/db";
 import { z } from "zod";
-
 export const searchRequestSchema = z.object({
     query: z.string(),
     maxMatchDisplayCount: z.number(),
@@ -161,6 +161,16 @@ export const listRepositoriesResponseSchema = z.object({
         })),
         Stats: repoStatsSchema,
     })
+});
+export const repositoryQuerySchema = z.object({
+    codeHostType: z.string(),
+    repoId: z.number(),
+    repoName: z.string(),
+    repoCloneUrl: z.string(),
+    linkedConnections: z.array(z.number()),
+    imageUrl: z.string().optional(),
+    indexedAt: z.date().optional(),
+    repoIndexingStatus: z.nativeEnum(RepoIndexingStatus),
 });
 
 export const verifyCredentialsRequestSchema = z.object({

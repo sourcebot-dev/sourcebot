@@ -21,10 +21,11 @@ import { getUser } from "@/data/user";
 import { Session } from "next-auth";
 import { STRIPE_PRODUCT_ID, CONFIG_MAX_REPOS_NO_TOKEN, EMAIL_FROM, SMTP_CONNECTION_URL, AUTH_URL } from "@/lib/environment";
 import Stripe from "stripe";
-import { OnboardingSteps } from "./lib/constants";
 import { render } from "@react-email/components";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import { createTransport } from "nodemailer";
+import { repositoryQuerySchema } from "./lib/schemas";
+import { RepositoryQuery } from "./lib/types";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -296,7 +297,7 @@ export const getConnectionInfo = async (connectionId: number, domain: string) =>
         })
     )
 
-export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) =>
+export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}): Promise<RepositoryQuery[] | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const repos = await prisma.repo.findMany({
@@ -318,9 +319,11 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                 }
             });
 
-            return repos.map((repo) => ({
+            return repos.map((repo) => repositoryQuerySchema.parse({
+                codeHostType: repo.external_codeHostType,
                 repoId: repo.id,
                 repoName: repo.name,
+                repoCloneUrl: repo.cloneUrl,
                 linkedConnections: repo.connections.map((connection) => connection.connectionId),
                 imageUrl: repo.imageUrl ?? undefined,
                 indexedAt: repo.indexedAt ?? undefined,

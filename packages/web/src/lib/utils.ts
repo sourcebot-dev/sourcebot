@@ -5,7 +5,7 @@ import gitlabLogo from "@/public/gitlab.svg";
 import giteaLogo from "@/public/gitea.svg";
 import gerritLogo from "@/public/gerrit.svg";
 import { ServiceError } from "./serviceError";
-import { Repository } from "./types";
+import { Repository, RepositoryQuery } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -95,6 +95,60 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
                 displayName: displayName,
                 costHostName: "Gerrit",
                 repoLink: repo.URL,
+                icon: src,
+                iconClassName: className,
+            }
+        }
+    }
+}
+
+export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo | undefined => {
+    if (!repo) {
+        return undefined;
+    }
+
+    const displayName = repo.repoName.split('/').slice(-2).join('/');
+    switch (repo.codeHostType) {
+        case 'github': {
+            const { src, className } = getCodeHostIcon('github')!;
+            return {
+                type: "github",
+                displayName: displayName,
+                costHostName: "GitHub",
+                repoLink: repo.repoCloneUrl,
+                icon: src,
+                iconClassName: className,
+            }
+        }
+        case 'gitlab': {
+            const { src, className } = getCodeHostIcon('gitlab')!;
+            return {
+                type: "gitlab",
+                displayName: displayName,
+                costHostName: "GitLab",
+                repoLink: repo.repoCloneUrl,
+                icon: src,
+                iconClassName: className,
+            }
+        }
+        case 'gitea': {
+            const { src, className } = getCodeHostIcon('gitea')!;
+            return {
+                type: "gitea",
+                displayName: displayName,
+                costHostName: "Gitea",
+                repoLink: repo.repoCloneUrl,
+                icon: src,
+                iconClassName: className,
+            }
+        }
+        case 'gitiles': {
+            const { src, className } = getCodeHostIcon('gerrit')!;
+            return {
+                type: "gerrit",
+                displayName: displayName,
+                costHostName: "Gerrit",
+                repoLink: repo.repoCloneUrl,
                 icon: src,
                 iconClassName: className,
             }

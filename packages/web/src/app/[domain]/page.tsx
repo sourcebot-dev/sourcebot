@@ -12,7 +12,7 @@ import { getOrgFromDomain } from "@/data/org";
 import { PageNotFound } from "./components/pageNotFound";
 import { Footer } from "./components/footer";
 import { SourcebotLogo } from "../components/sourcebotLogo";
-
+import { RepositorySnapshot } from "./components/repositorySnapshot";
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -38,10 +38,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                 />
                 <div className="mt-8">
                     <Suspense fallback={<div>...</div>}>
-                        <RepositoryList
-                            orgId={org.id}
-                            domain={domain}
-                        />
+                        <RepositorySnapshot />
                     </Suspense>
                 </div>
                 <div className="flex flex-col items-center w-fit gap-6">
@@ -100,40 +97,6 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                 </div>
             </div>
             <Footer />
-        </div>
-    )
-}
-
-const RepositoryList = async ({ orgId, domain }: { orgId: number, domain: string }) => {
-    const _repos = await listRepositories(orgId);
-
-    if (isServiceError(_repos)) {
-        return null;
-    }
-
-    const repos = _repos.List.Repos.map((repo) => repo.Repository);
-
-    if (repos.length === 0) {
-        return (
-            <div className="flex flex-row items-center gap-3">
-                <SymbolIcon className="h-4 w-4 animate-spin" />
-                <span className="text-sm">indexing in progress...</span>
-            </div>
-        )
-    }
-
-    return (
-        <div className="flex flex-col items-center gap-3">
-            <span className="text-sm">
-                {`Search ${repos.length} `}
-                <Link
-                    href={`${domain}/repos`}
-                    className="text-blue-500"
-                >
-                    {repos.length > 1 ? 'repositories' : 'repository'}
-                </Link>
-            </span>
-            <RepositoryCarousel repos={repos} />
         </div>
     )
 }
