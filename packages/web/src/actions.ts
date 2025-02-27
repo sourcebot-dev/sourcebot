@@ -1246,7 +1246,7 @@ const _fetchSubscriptionForOrg = async (orgId: number, prisma: Prisma.Transactio
     }
 
     if (!org.stripeCustomerId) {
-        return null;
+        return notFound();
     }
 
     const stripe = getStripe();
