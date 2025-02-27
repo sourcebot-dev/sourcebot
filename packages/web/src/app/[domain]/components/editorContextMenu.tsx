@@ -8,7 +8,7 @@ import { autoPlacement, computePosition, offset, shift, VirtualElement } from "@
 import { Link2Icon } from "@radix-ui/react-icons";
 import { EditorView, SelectionRange } from "@uiw/react-codemirror";
 import { useCallback, useEffect, useRef } from "react";
-import { resolveServerPath } from "../../api/(client)/client";
+import { useDomain } from "@/hooks/useDomain";
 
 interface ContextMenuProps {
     view: EditorView;
@@ -28,6 +28,7 @@ export const EditorContextMenu = ({
     const ref = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
     const captureEvent = useCaptureEvent();
+    const domain = useDomain();
 
     useEffect(() => {
         if (selection.empty) {
@@ -104,9 +105,7 @@ export const EditorContextMenu = ({
         const from = toLineAndColumn(selection.from);
         const to = toLineAndColumn(selection.to);
 
-        // @note: we need to resolve the server path for /browse since
-        // we aren't using <Link /> (which normally does this for us).
-        const basePath = `${window.location.origin}${resolveServerPath('/browse')}`;
+        const basePath = `${window.location.origin}/${domain}/browse`;
         const url = createPathWithQueryParams(`${basePath}/${repoName}@${revisionName}/-/blob/${path}`,
             ['highlightRange', `${from?.line}:${from?.column},${to?.line}:${to?.column}`],
         );
