@@ -2,7 +2,7 @@ import fetch from 'cross-fetch';
 import { GerritConfig } from "@sourcebot/schemas/v2/index.type"
 import { createLogger } from './logger.js';
 import micromatch from "micromatch";
-import { measure, marshalBool, excludeReposByName, includeReposByName, fetchWithRetry } from './utils.js';
+import { measure, fetchWithRetry } from './utils.js';
 import { BackendError } from '@sourcebot/error';
 import { BackendException } from '@sourcebot/error';
 

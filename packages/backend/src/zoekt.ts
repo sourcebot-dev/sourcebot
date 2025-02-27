@@ -1,11 +1,9 @@
 import { exec } from "child_process";
-import { AppContext, LocalRepository, Settings } from "./types.js";
+import { AppContext } from "./types.js";
 import { Repo } from "@sourcebot/db";
 import { getRepoPath } from "./utils.js";
 import { DEFAULT_SETTINGS } from "./constants.js";
 import { getShardPrefix } from "./utils.js";
-
-const ALWAYS_EXCLUDED_DIRS = ['.git', '.hg', '.svn'];
 
 export const indexGitRepository = async (repo: Repo, ctx: AppContext) => {
     const revisions = [
@@ -18,24 +16,6 @@ export const indexGitRepository = async (repo: Repo, ctx: AppContext) => {
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-                return;
-            }
-            resolve({
-                stdout,
-                stderr
-            });
-        })
-    });
-}
-
-export const indexLocalRepository = async (repo: LocalRepository, settings: Settings, ctx: AppContext, signal?: AbortSignal) => {
-    const excludedDirs = [...ALWAYS_EXCLUDED_DIRS, repo.excludedPaths];
-    const command = `zoekt-index -index ${ctx.indexPath} -file_limit ${settings.maxFileSize} -ignore_dirs ${excludedDirs.join(',')} ${repo.path}`;
-
-    return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
-        exec(command, { signal }, (error, stdout, stderr) => {
             if (error) {
                 reject(error);
                 return;

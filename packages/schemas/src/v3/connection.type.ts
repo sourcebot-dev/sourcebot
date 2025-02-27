@@ -4,9 +4,7 @@ export type ConnectionConfig =
   | GithubConnectionConfig
   | GitlabConnectionConfig
   | GiteaConnectionConfig
-  | GerritConnectionConfig
-  | GitConnectionConfig
-  | GerritConnectionConfig1;
+  | GerritConnectionConfig;
 
 export interface GithubConnectionConfig {
   /**
@@ -217,36 +215,5 @@ export interface GerritConnectionConfig {
      * List of specific projects to exclude from syncing.
      */
     projects?: string[];
-  };
-}
-export interface GitConnectionConfig {
-  /**
-   * Git Configuration
-   */
-  type: "git";
-  /**
-   * The URL to the git repository.
-   */
-  url: string;
-  revisions?: GitRevisions;
-}
-export interface GerritConnectionConfig1 {
-  /**
-   * Local Configuration
-   */
-  type: "local";
-  /**
-   * Path to the local directory to sync with. Relative paths are relative to the configuration file's directory.
-   */
-  path: string;
-  /**
-   * Enables a file watcher that will automatically re-sync when changes are made within `path` (recursively). Defaults to true.
-   */
-  watch?: boolean;
-  exclude?: {
-    /**
-     * List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always exluded.
-     */
-    paths?: string[];
   };
 }
