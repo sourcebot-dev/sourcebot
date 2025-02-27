@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import client, { Registry, Counter, Gauge, Histogram } from 'prom-client';
+import client, { Registry, Counter, Gauge } from 'prom-client';
 
 export class PromClient {
     private registry: Registry;

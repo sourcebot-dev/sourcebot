@@ -39,3 +39,20 @@ export const fetchRepository = async (path: string, onProgress?: (event: SimpleG
         ]
     );
 }
+
+export const getBranches = async (path: string) => {
+    const git = simpleGit();
+    const branches = await git.cwd({
+        path,
+    }).branch();
+
+    return branches.all;
+}
+
+export const getTags = async (path: string) => {
+    const git = simpleGit();
+    const tags = await git.cwd({
+        path,
+    }).tags();
+    return tags.all;
+}
