@@ -1,3 +1,4 @@
+import "./instrument.js";
 import { ArgumentParser } from "argparse";
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
