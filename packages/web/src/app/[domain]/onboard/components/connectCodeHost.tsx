@@ -15,6 +15,8 @@ import { useCallback } from "react";
 import { OnboardingSteps } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { BackButton } from "./onboardBackButton";
+
 interface ConnectCodeHostProps {
     nextStep: OnboardingSteps;
 }
@@ -26,6 +28,10 @@ export const ConnectCodeHost = ({ nextStep }: ConnectCodeHostProps) => {
         router.push(`?step=${nextStep}`);
     }, [nextStep, router]);
 
+    const onBack = useCallback(() => {
+        setSelectedCodeHost(null);
+    }, []);
+
     if (!selectedCodeHost) {
         return (
             <CodeHostSelection onSelect={setSelectedCodeHost} />
@@ -34,25 +40,37 @@ export const ConnectCodeHost = ({ nextStep }: ConnectCodeHostProps) => {
 
     if (selectedCodeHost === "github") {
         return (
-            <GitHubConnectionCreationForm onCreated={onCreated} />
+            <>
+                <BackButton onClick={onBack} />
+                <GitHubConnectionCreationForm onCreated={onCreated} />
+            </>
         )
     }
 
     if (selectedCodeHost === "gitlab") {
         return (
-            <GitLabConnectionCreationForm onCreated={onCreated} />
+            <>
+                <BackButton onClick={onBack} />
+                <GitLabConnectionCreationForm onCreated={onCreated} />
+            </>
         )
     }
 
     if (selectedCodeHost === "gitea") {
         return (
-            <GiteaConnectionCreationForm onCreated={onCreated} />
+            <>
+                <BackButton onClick={onBack} />
+                <GiteaConnectionCreationForm onCreated={onCreated} />
+            </>
         )
     }
 
     if (selectedCodeHost === "gerrit") {
         return (
-            <GerritConnectionCreationForm onCreated={onCreated} />
+            <>
+                <BackButton onClick={onBack} />
+                <GerritConnectionCreationForm onCreated={onCreated} />
+            </>
         )
     }
 
