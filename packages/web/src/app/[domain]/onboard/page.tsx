@@ -73,10 +73,7 @@ export default async function Onboard({ params, searchParams }: OnboardProps) {
                 </>
             )}
             {step === OnboardingSteps.Complete && (
-                <CompleteOnboarding
-                    searchParams={searchParams}
-                    params={params}
-                />
+                <CompleteOnboarding />
             )}
         </div>
     )
