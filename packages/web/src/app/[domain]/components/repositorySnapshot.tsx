@@ -87,7 +87,8 @@ export function RepositorySnapshot() {
         )
     }
 
-    if (repos.length === 0) {
+    const indexedRepos = repos.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.INDEXED);
+    if (repos.length === 0 || indexedRepos.length === 0) {
         return (
             <EmptyRepoState domain={domain} />
         )
@@ -104,7 +105,6 @@ export function RepositorySnapshot() {
         )
     }
 
-    const indexedRepos = repos.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.INDEXED);
     return (
         <div className="flex flex-col items-center gap-3">
             <span className="text-sm">
