@@ -40,6 +40,17 @@ export const search = async ({ query, maxMatchDisplayCount, whole}: SearchReques
         query = query.replaceAll(prefix, zoektPrefix);
     }
 
+    const isBranchFilteringEnabled = (
+        query.includes(zoektPrefixes.branch) ||
+        query.includes(zoektPrefixes.branchShort)
+    );
+
+    // We only want to show matches for the default branch when
+    // the user isn't explicitly filtering by branch.
+    if (!isBranchFilteringEnabled) {
+        query = query.concat(` branch:HEAD`);
+    }
+
     const body = JSON.stringify({
         q: query,
         // @see: https://github.com/sourcebot-dev/zoekt/blob/main/api.go#L892
@@ -75,11 +86,6 @@ export const search = async ({ query, maxMatchDisplayCount, whole}: SearchReques
         console.error(`Failed to parse zoekt response. Error: ${parsedSearchResponse.error}`);
         return unexpectedError(`Something went wrong while parsing the response from zoekt`);
     }
-
-    const isBranchFilteringEnabled = (
-        query.includes(zoektPrefixes.branch) ||
-        query.includes(zoektPrefixes.branchShort)
-    )
 
     return {
         ...parsedSearchResponse.data,

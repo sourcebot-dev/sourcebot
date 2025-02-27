@@ -18,6 +18,7 @@ export type PosthogEventMap = {
         connectionId: number,
         repoCount: number,
     },
+    revisions_truncated: {},
     //////////////////////////////////////////////////////////////////
 }
 

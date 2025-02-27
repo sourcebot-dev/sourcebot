@@ -1,6 +1,6 @@
 import { Api, giteaApi, HttpResponse, Repository as GiteaRepository } from 'gitea-js';
 import { GiteaConnectionConfig } from '@sourcebot/schemas/v3/gitea.type';
-import { getTokenFromConfig, measure, fetchWithRetry } from './utils.js';
+import { getTokenFromConfig, measure } from './utils.js';
 import fetch from 'cross-fetch';
 import { createLogger } from './logger.js';
 import micromatch from 'micromatch';
@@ -55,49 +55,6 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, org
         }
         return true;
     });
-
-    
-    if (config.revisions) {
-        if (config.revisions.branches) {
-            const branchGlobs = config.revisions.branches;
-            allRepos = await Promise.all(
-                allRepos.map(async (repo) => {
-                    const [owner, name] = repo.full_name!.split('/');
-                    let branches = (await fetchWithRetry(
-                        () => getBranchesForRepo(owner, name, api),
-                        `branches for ${owner}/${name}`,
-                        logger
-                    )).map(branch => branch.name!);
-                    branches = micromatch.match(branches, branchGlobs);
-                    
-                    return {
-                        ...repo,
-                        branches,
-                    };
-                })
-            )
-        }
-        
-        if (config.revisions.tags) {
-            const tagGlobs = config.revisions.tags;
-            allRepos = await Promise.all(
-                allRepos.map(async (allRepos) => {
-                    const [owner, name] = allRepos.full_name!.split('/');
-                    let tags = (await fetchWithRetry(
-                        () => getTagsForRepo(owner, name, api),
-                        `tags for ${owner}/${name}`,
-                        logger
-                    )).map(tag => tag.name!);
-                    tags = micromatch.match(tags, tagGlobs);
-                    
-                    return {
-                        ...allRepos,
-                        tags,
-                    };
-                })
-            )
-        }
-    }
 
     let repos = allRepos
         .filter((repo) => {
@@ -156,38 +113,6 @@ const shouldExcludeRepo = ({
     }
 
     return shouldExclude;
-}
-
-const getTagsForRepo = async <T>(owner: string, repo: string, api: Api<T>) => {
-    try {
-        logger.debug(`Fetching tags for repo ${owner}/${repo}...`);
-        const { durationMs, data: tags } = await measure(() =>
-            paginate((page) => api.repos.repoListTags(owner, repo, {
-                page
-            }))
-        );
-        logger.debug(`Found ${tags.length} tags in repo ${owner}/${repo} in ${durationMs}ms.`);
-        return tags;
-    } catch (e) {
-        logger.error(`Failed to fetch tags for repo ${owner}/${repo}.`, e);
-        throw e;
-    }
-}
-
-const getBranchesForRepo = async <T>(owner: string, repo: string, api: Api<T>) => {
-    try {
-        logger.debug(`Fetching branches for repo ${owner}/${repo}...`);
-        const { durationMs, data: branches } = await measure(() => 
-            paginate((page) => api.repos.repoListBranches(owner, repo, {
-                page
-            }))
-        );
-        logger.debug(`Found ${branches.length} branches in repo ${owner}/${repo} in ${durationMs}ms.`);
-        return branches;
-    } catch (e) {
-        logger.error(`Failed to fetch branches for repo ${owner}/${repo}.`, e);
-        throw e;
-    }
 }
 
 const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {

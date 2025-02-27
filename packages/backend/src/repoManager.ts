@@ -3,7 +3,7 @@ import { Redis } from 'ioredis';
 import { createLogger } from "./logger.js";
 import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
-import { AppContext, Settings } from "./types.js";
+import { AppContext, Settings, RepoMetadata } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
 import { cloneRepository, fetchRepository } from "./git.js";
 import { existsSync, rmSync, readdirSync, rm } from 'fs';
@@ -187,7 +187,7 @@ export class RepoManager implements IRepoManager {
         let cloneDuration_s: number | undefined = undefined;
 
         const repoPath = getRepoPath(repo, this.ctx);
-        const metadata = repo.metadata as Record<string, string>;
+        const metadata = repo.metadata as RepoMetadata;
 
         // If the repo was already in the indexing state, this job was likely killed and picked up again. As a result,
         // to ensure the repo state is valid, we delete the repo if it exists so we get a fresh clone 
@@ -223,7 +223,7 @@ export class RepoManager implements IRepoManager {
                 cloneUrl = url.toString();
             }
 
-            const { durationMs } = await measure(() => cloneRepository(cloneUrl, repoPath, metadata, ({ method, stage, progress }) => {
+            const { durationMs } = await measure(() => cloneRepository(cloneUrl, repoPath, metadata.gitConfig, ({ method, stage, progress }) => {
                 //this.logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
             }));
             cloneDuration_s = durationMs / 1000;

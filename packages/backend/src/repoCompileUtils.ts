@@ -7,6 +7,7 @@ import { Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
 import { GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { RepoMetadata } from './types.js';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 
@@ -54,17 +55,21 @@ export const compileGithubConfig = async (
                 }
             },
             metadata: {
-                'zoekt.web-url-type': 'github',
-                'zoekt.web-url': repo.html_url,
-                'zoekt.name': repoName,
-                'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
-                'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
-                'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
-                'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
-                'zoekt.archived': marshalBool(repo.archived),
-                'zoekt.fork': marshalBool(repo.fork),
-                'zoekt.public': marshalBool(repo.private === false)
-            },
+                gitConfig: {
+                    'zoekt.web-url-type': 'github',
+                    'zoekt.web-url': repo.html_url,
+                    'zoekt.name': repoName,
+                    'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
+                    'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
+                    'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
+                    'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
+                    'zoekt.archived': marshalBool(repo.archived),
+                    'zoekt.fork': marshalBool(repo.fork),
+                    'zoekt.public': marshalBool(repo.private === false),
+                },
+                branches: config.revisions?.branches ?? undefined,
+                tags: config.revisions?.tags ?? undefined,
+            } satisfies RepoMetadata,
         };
 
         return record;
@@ -113,15 +118,19 @@ export const compileGitlabConfig = async (
                 }
             },
             metadata: {
-                'zoekt.web-url-type': 'gitlab',
-                'zoekt.web-url': projectUrl,
-                'zoekt.name': project.path_with_namespace,
-                'zoekt.gitlab-stars': (project.stargazers_count ?? 0).toString(),
-                'zoekt.gitlab-forks': (project.forks_count ?? 0).toString(),
-                'zoekt.archived': marshalBool(project.archived),
-                'zoekt.fork': marshalBool(isFork),
-                'zoekt.public': marshalBool(project.private === false)
-            },
+                gitConfig: {
+                    'zoekt.web-url-type': 'gitlab',
+                    'zoekt.web-url': projectUrl,
+                    'zoekt.name': project.path_with_namespace,
+                    'zoekt.gitlab-stars': (project.stargazers_count ?? 0).toString(),
+                    'zoekt.gitlab-forks': (project.forks_count ?? 0).toString(),
+                    'zoekt.archived': marshalBool(project.archived),
+                    'zoekt.fork': marshalBool(isFork),
+                    'zoekt.public': marshalBool(project.private === false)
+                },
+                branches: config.revisions?.branches ?? undefined,
+                tags: config.revisions?.tags ?? undefined,
+            } satisfies RepoMetadata,
         };
 
         return record;
@@ -168,13 +177,17 @@ export const compileGiteaConfig = async (
                 }
             },
             metadata: {
-                'zoekt.web-url-type': 'gitea',
-                'zoekt.web-url': repo.html_url!,
-                'zoekt.name': repo.full_name!,
-                'zoekt.archived': marshalBool(repo.archived),
-                'zoekt.fork': marshalBool(repo.fork!),
-                'zoekt.public': marshalBool(repo.internal === false && repo.private === false),
-            },
+                gitConfig: {
+                    'zoekt.web-url-type': 'gitea',
+                    'zoekt.web-url': repo.html_url!,
+                    'zoekt.name': repo.full_name!,
+                    'zoekt.archived': marshalBool(repo.archived),
+                    'zoekt.fork': marshalBool(repo.fork!),
+                    'zoekt.public': marshalBool(repo.internal === false && repo.private === false),
+                },
+                branches: config.revisions?.branches ?? undefined,
+                tags: config.revisions?.tags ?? undefined,
+            } satisfies RepoMetadata,
         };
 
         return record;
@@ -227,13 +240,15 @@ export const compileGerritConfig = async (
                 }
             },
             metadata: {
-                'zoekt.web-url-type': 'gitiles',
-                'zoekt.web-url': webUrl,
-                'zoekt.name': repoId,
-                'zoekt.archived': marshalBool(false),
-                'zoekt.fork': marshalBool(false),
-                'zoekt.public': marshalBool(true),
-            },
+                gitConfig: {
+                    'zoekt.web-url-type': 'gitiles',
+                    'zoekt.web-url': webUrl,
+                    'zoekt.name': repoId,
+                    'zoekt.archived': marshalBool(false),
+                    'zoekt.fork': marshalBool(false),
+                    'zoekt.public': marshalBool(true),
+                },
+            } satisfies RepoMetadata,
         };
 
         return record;
