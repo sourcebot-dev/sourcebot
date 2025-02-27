@@ -134,30 +134,11 @@ const SearchPageInternal = () => {
             };
         }
 
-        const isBranchFilteringEnabled = searchResponse.isBranchFilteringEnabled;
-        let fileMatches = searchResponse.Result.Files ?? [];
-
-        // We only want to show matches for the default branch when
-        // the user isn't explicitly filtering by branch.
-
-        measureSync(() => {
-            if (!isBranchFilteringEnabled) {
-                fileMatches = fileMatches.filter(match => {
-                    // @note : this case handles local repos that don't have any branches.
-                    if (!match.Branches) {
-                        return true;
-                    }
-
-                    return match.Branches.includes("HEAD");
-                });
-            }
-        }, "search.branchFiltering");
-
         return {
-            fileMatches,
+            fileMatches: searchResponse.Result.Files ?? [],
             searchDurationMs: Math.round(searchResponse.Result.Duration / 1000000),
             totalMatchCount: searchResponse.Result.MatchCount,
-            isBranchFilteringEnabled,
+            isBranchFilteringEnabled: searchResponse.isBranchFilteringEnabled,
             repoUrlTemplates: searchResponse.Result.RepoURLs,
         }
     }, [searchResponse]);
