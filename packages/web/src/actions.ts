@@ -115,31 +115,31 @@ export const createOrg = (name: string, domain: string): Promise<{ id: number } 
         }
     });
 
-    export const completeOnboarding = async (stripeCheckoutSessionId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
-        withAuth((session) =>
-            withOrgMembership(session, domain, async ({ orgId }) => {
-                const org = await prisma.org.findUnique({
-                    where: { id: orgId },
-                });
-    
-                if (!org) {
-                    return notFound();
+export const completeOnboarding = async (domain: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const org = await prisma.org.findUnique({
+                where: { id: orgId },
+            });
+
+            if (!org) {
+                return notFound();
+            }
+
+            await prisma.org.update({
+                where: { id: orgId },
+                data: {
+                    isOnboarded: true,
+                    stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
+                    stripeLastUpdatedAt: new Date(),
                 }
-    
-                await prisma.org.update({
-                    where: { id: orgId },
-                    data: {
-                        isOnboarded: true,
-                        stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
-                        stripeLastUpdatedAt: new Date(),
-                    }
-                });
-    
-                return {
-                    success: true,
-                }
-            })
-        );
+            });
+
+            return {
+                success: true,
+            }
+        })
+    );
         
 export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> =>
     withAuth((session) =>
@@ -812,7 +812,6 @@ export const createOnboardingSubscription = async (domain: string) =>
             }
 
             const stripe = getStripe();
-            const origin = (await headers()).get('origin');
 
             // @nocheckin
             const test_clock = await stripe.testHelpers.testClocks.create({

@@ -13,12 +13,7 @@ interface CompleteOnboardingProps {
 }
 
 export const CompleteOnboarding = async ({ searchParams, params: { domain } }: CompleteOnboardingProps) => {
-    if (!searchParams.stripe_session_id) {
-        return redirect(`/${domain}/onboard?step=${OnboardingSteps.Checkout}`);
-    }
-    const { stripe_session_id } = searchParams;
-
-    const response = await completeOnboarding(stripe_session_id, domain);
+    const response = await completeOnboarding(domain);
     if (isServiceError(response)) {
         return redirect(`/${domain}/onboard?step=${OnboardingSteps.Checkout}&errorCode=${response.errorCode}&errorMessage=${response.message}`);
     }
