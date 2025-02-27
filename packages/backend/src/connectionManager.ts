@@ -142,13 +142,6 @@ export class ConnectionManager implements IConnectionManager {
                     case 'gerrit': {
                         return await compileGerritConfig(config, job.data.connectionId, orgId);
                     }
-                    default: {
-                        return {repoData: [], notFound: {
-                            users: [],
-                            orgs: [],
-                            repos: [],
-                        }};
-                    }
                 }
             })();
         } catch (err) {

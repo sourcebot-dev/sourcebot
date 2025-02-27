@@ -13,12 +13,6 @@
         },
         {
             "$ref": "./gerrit.json"
-        },
-        {
-            "$ref": "./git.json"
-        },
-        {
-            "$ref": "./local.json"
         }
     ]
 }
