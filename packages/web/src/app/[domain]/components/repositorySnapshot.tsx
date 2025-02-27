@@ -13,62 +13,8 @@ import {
     CarouselContent,
     CarouselItem,
 } from "@/components/ui/carousel";
-import { Plus } from "lucide-react";
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { SymbolIcon } from "@radix-ui/react-icons";
-
-export function EmptyRepoState({ domain }: { domain: string }) {
-    return (
-      <div className="flex flex-col items-center gap-3">
-        <span className="text-sm">No repositories found</span>
-  
-        <div className="w-full max-w-lg">
-          <div className="flex flex-row items-center gap-2 border rounded-md p-4 justify-center">
-            <span className="text-sm text-muted-foreground">
-              Create a{" "}
-              <Link href={`/${domain}/connections`} className="text-blue-500 hover:underline inline-flex items-center gap-1">
-                connection
-              </Link>{" "}
-              to start indexing repositories
-            </span>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-export default function RepoSkeleton() {
-    return (
-      <div className="flex flex-col items-center gap-3">
-        {/* Skeleton for "Search X repositories" text */}
-        <div className="flex items-center gap-1 text-sm">
-          <Skeleton className="h-4 w-14" /> {/* "Search X" */}
-          <Skeleton className="h-4 w-24" /> {/* "repositories" */}
-        </div>
-  
-        {/* Skeleton for repository carousel */}
-        <Carousel
-          opts={{
-            align: "start",
-            loop: true,
-          }}
-          className="w-full max-w-lg"
-        >
-          <CarouselContent>
-            {[1, 2, 3].map((_, index) => (
-              <CarouselItem key={index} className="basis-auto">
-                <div className="flex flex-row items-center gap-2 border rounded-md p-2">
-                  <Skeleton className="h-4 w-4 rounded-sm" /> {/* Icon */}
-                  <Skeleton className="h-4 w-32" /> {/* Repository name */}
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
-      </div>
-    )
-  }
-
 
 export function RepositorySnapshot() {
     const domain = useDomain();
@@ -88,7 +34,7 @@ export function RepositorySnapshot() {
     }
 
     const indexedRepos = repos.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.INDEXED);
-    if (repos.length === 0 || indexedRepos.length === 0) {
+    if (repos.length === 0) {
         return (
             <EmptyRepoState domain={domain} />
         )
@@ -117,6 +63,58 @@ export function RepositorySnapshot() {
                 </Link>
             </span>
             <RepositoryCarousel repos={indexedRepos} />
+        </div>
+    )
+}
+
+function EmptyRepoState({ domain }: { domain: string }) {
+    return (
+        <div className="flex flex-col items-center gap-3">
+            <span className="text-sm">No repositories found</span>
+
+            <div className="w-full max-w-lg">
+                <div className="flex flex-row items-center gap-2 border rounded-md p-4 justify-center">
+                    <span className="text-sm text-muted-foreground">
+                        Create a{" "}
+                        <Link href={`/${domain}/connections`} className="text-blue-500 hover:underline inline-flex items-center gap-1">
+                            connection
+                        </Link>{" "}
+                        to start indexing repositories
+                    </span>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function RepoSkeleton() {
+    return (
+        <div className="flex flex-col items-center gap-3">
+            {/* Skeleton for "Search X repositories" text */}
+            <div className="flex items-center gap-1 text-sm">
+                <Skeleton className="h-4 w-14" /> {/* "Search X" */}
+                <Skeleton className="h-4 w-24" /> {/* "repositories" */}
+            </div>
+
+            {/* Skeleton for repository carousel */}
+            <Carousel
+                opts={{
+                    align: "start",
+                    loop: true,
+                }}
+                className="w-full max-w-lg"
+            >
+                <CarouselContent>
+                    {[1, 2, 3].map((_, index) => (
+                        <CarouselItem key={index} className="basis-auto">
+                            <div className="flex flex-row items-center gap-2 border rounded-md p-2">
+                                <Skeleton className="h-4 w-4 rounded-sm" /> {/* Icon */}
+                                <Skeleton className="h-4 w-32" /> {/* Repository name */}
+                            </div>
+                        </CarouselItem>
+                    ))}
+                </CarouselContent>
+            </Carousel>
         </div>
     )
 }

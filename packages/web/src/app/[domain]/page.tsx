@@ -1,11 +1,6 @@
-import { listRepositories } from "@/lib/server/searchService";
-import { isServiceError } from "@/lib/utils";
-import { Suspense } from "react";
 import { NavigationMenu } from "./components/navigationMenu";
-import { RepositoryCarousel } from "./components/repositoryCarousel";
 import { SearchBar } from "./components/searchBar";
 import { Separator } from "@/components/ui/separator";
-import { SymbolIcon } from "@radix-ui/react-icons";
 import { UpgradeToast } from "./components/upgradeToast";
 import Link from "next/link";
 import { getOrgFromDomain } from "@/data/org";
@@ -37,9 +32,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                     className="mt-4 w-full max-w-[800px]"
                 />
                 <div className="mt-8">
-                    <Suspense fallback={<div>...</div>}>
-                        <RepositorySnapshot />
-                    </Suspense>
+                    <RepositorySnapshot />
                 </div>
                 <div className="flex flex-col items-center w-fit gap-6">
                     <Separator className="mt-5" />
