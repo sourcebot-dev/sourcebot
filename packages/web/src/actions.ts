@@ -21,10 +21,11 @@ import { getUser } from "@/data/user";
 import { Session } from "next-auth";
 import { STRIPE_PRODUCT_ID, CONFIG_MAX_REPOS_NO_TOKEN, EMAIL_FROM, SMTP_CONNECTION_URL, AUTH_URL } from "@/lib/environment";
 import Stripe from "stripe";
-import { OnboardingSteps } from "./lib/constants";
 import { render } from "@react-email/components";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import { createTransport } from "nodemailer";
+import { repositoryQuerySchema } from "./lib/schemas";
+import { RepositoryQuery } from "./lib/types";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -115,7 +116,7 @@ export const createOrg = (name: string, domain: string): Promise<{ id: number } 
         }
     });
 
-export const completeOnboarding = async (stripeCheckoutSessionId: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
+export const completeOnboarding = async (domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const org = await prisma.org.findUnique({
@@ -126,25 +127,9 @@ export const completeOnboarding = async (stripeCheckoutSessionId: string, domain
                 return notFound();
             }
 
-            const stripe = getStripe();
-            const stripeSession = await stripe.checkout.sessions.retrieve(stripeCheckoutSessionId);
-            const stripeCustomerId = stripeSession.customer as string;
-
-            // Catch the case where the customer ID doesn't match the org's customer ID
-            if (org.stripeCustomerId !== stripeCustomerId) {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
-                    message: "Invalid Stripe customer ID",
-                } satisfies ServiceError;
-            }
-
-            if (stripeSession.payment_status !== 'paid') {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
-                    message: "Payment failed",
-                } satisfies ServiceError;
+            const subscription = await fetchSubscription(domain);
+            if (isServiceError(subscription)) {
+                return subscription;
             }
 
             await prisma.org.update({
@@ -161,7 +146,7 @@ export const completeOnboarding = async (stripeCheckoutSessionId: string, domain
             }
         })
     );
-
+        
 export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
@@ -317,7 +302,7 @@ export const getConnectionInfo = async (connectionId: number, domain: string) =>
         })
     )
 
-export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) =>
+export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}): Promise<RepositoryQuery[] | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const repos = await prisma.repo.findMany({
@@ -339,9 +324,11 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                 }
             });
 
-            return repos.map((repo) => ({
+            return repos.map((repo) => repositoryQuerySchema.parse({
+                codeHostType: repo.external_codeHostType,
                 repoId: repo.id,
                 repoName: repo.name,
+                repoCloneUrl: repo.cloneUrl,
                 linkedConnections: repo.connections.map((connection) => connection.connectionId),
                 imageUrl: repo.imageUrl ?? undefined,
                 indexedAt: repo.indexedAt ?? undefined,
@@ -814,7 +801,7 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
         }, /* minRequiredRole = */ OrgRole.OWNER)
     );
 
-export const createOnboardingStripeCheckoutSession = async (domain: string) =>
+export const createOnboardingSubscription = async (domain: string) =>
     withAuth(async (session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const org = await prisma.org.findUnique({
@@ -833,7 +820,6 @@ export const createOnboardingStripeCheckoutSession = async (domain: string) =>
             }
 
             const stripe = getStripe();
-            const origin = (await headers()).get('origin');
 
             // @nocheckin
             const test_clock = await stripe.testHelpers.testClocks.create({
@@ -865,45 +851,59 @@ export const createOnboardingStripeCheckoutSession = async (domain: string) =>
                 return customer.id;
             })();
 
+            const existingSubscription = await fetchSubscription(domain);
+            if (existingSubscription && !isServiceError(existingSubscription)) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.SUBSCRIPTION_ALREADY_EXISTS,
+                    message: "Attemped to create a trial subscription for an organization that already has an active subscription",
+                } satisfies ServiceError;
+            }
+
 
             const prices = await stripe.prices.list({
                 product: STRIPE_PRODUCT_ID,
                 expand: ['data.product'],
             });
 
-            const stripeSession = await stripe.checkout.sessions.create({
-                customer: customerId,
-                line_items: [
-                    {
+            try {
+                const subscription = await stripe.subscriptions.create({
+                    customer: customerId,
+                    items: [{
                         price: prices.data[0].id,
-                        quantity: 1
-                    }
-                ],
-                mode: 'subscription',
-                subscription_data: {
-                    trial_period_days: 7,
+                    }],
+                    trial_period_days: 14,
                     trial_settings: {
                         end_behavior: {
                             missing_payment_method: 'cancel',
                         },
                     },
-                },
-                payment_method_collection: 'if_required',
-                success_url: `${origin}/${domain}/onboard?step=${OnboardingSteps.Complete}&stripe_session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${origin}/${domain}/onboard?step=${OnboardingSteps.Checkout}`,
-            });
+                    payment_settings: {
+                        save_default_payment_method: 'on_subscription',
+                    },
+                });
+                
+                if (!subscription) {
+                    return {
+                        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                        errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
+                        message: "Failed to create subscription",
+                    } satisfies ServiceError;
+                }
 
-            if (!stripeSession.url) {
+                return {
+                    subscriptionId: subscription.id,
+                }
+            } catch (e) {
+                console.error(e);
                 return {
                     statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
                     errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
-                    message: "Failed to create checkout session",
+                    message: "Failed to create subscription",
                 } satisfies ServiceError;
             }
 
-            return {
-                url: stripeSession.url,
-            }
+
         }, /* minRequiredRole = */ OrgRole.OWNER)
     );
 

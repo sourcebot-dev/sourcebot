@@ -7,7 +7,6 @@ import { InviteTeam } from "./components/inviteTeam";
 import { CompleteOnboarding } from "./components/completeOnboarding";
 import { Checkout } from "./components/checkout";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
-import { SkipOnboardingButton } from "./components/skipOnboardingButton";
 interface OnboardProps {
     params: {
         domain: string
@@ -53,10 +52,6 @@ export default async function Onboard({ params, searchParams }: OnboardProps) {
                     />
                     <ConnectCodeHost
                         nextStep={OnboardingSteps.InviteTeam}
-                    />
-                    <SkipOnboardingButton
-                        currentStep={step as OnboardingSteps}
-                        lastRequiredStep={lastRequiredStep}
                     />
                 </>
             )}

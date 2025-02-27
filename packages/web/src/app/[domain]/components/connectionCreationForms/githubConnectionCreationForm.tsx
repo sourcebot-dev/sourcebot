@@ -9,6 +9,24 @@ interface GitHubConnectionCreationFormProps {
     onCreated?: (id: number) => void;
 }
 
+const additionalConfigValidation = (config: GithubConnectionConfig): { message: string, isValid: boolean } => {
+    const hasRepos = config.repos && config.repos.length > 0 && config.repos.some(r => r.trim().length > 0);
+    const hasOrgs = config.orgs && config.orgs.length > 0 && config.orgs.some(o => o.trim().length > 0);
+    const hasUsers = config.users && config.users.length > 0 && config.users.some(u => u.trim().length > 0);
+
+    if (!hasRepos && !hasOrgs && !hasUsers) {
+        return {
+            message: "At least one repository, organization, or user must be specified",
+            isValid: false,
+        }
+    }
+
+    return {
+        message: "Valid",
+        isValid: true,
+    }
+};
+
 export const GitHubConnectionCreationForm = ({ onCreated }: GitHubConnectionCreationFormProps) => {
     const defaultConfig: GithubConnectionConfig = {
         type: 'github',
@@ -22,6 +40,7 @@ export const GitHubConnectionCreationForm = ({ onCreated }: GitHubConnectionCrea
                 config: JSON.stringify(defaultConfig, null, 2),
             }}
             schema={githubSchema}
+            additionalConfigValidation={additionalConfigValidation}
             quickActions={githubQuickActions}
             onCreated={onCreated}
         />

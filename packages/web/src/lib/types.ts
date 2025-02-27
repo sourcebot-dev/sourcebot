@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { fileSourceRequestSchema, fileSourceResponseSchema, listRepositoriesResponseSchema, locationSchema, rangeSchema, repositorySchema, searchRequestSchema, searchResponseSchema, symbolSchema } from "./schemas";
+import { fileSourceRequestSchema, fileSourceResponseSchema, listRepositoriesResponseSchema, locationSchema, rangeSchema, repositorySchema, repositoryQuerySchema, searchRequestSchema, searchResponseSchema, symbolSchema } from "./schemas";
 
 export type KeymapType = "default" | "vim";
 
@@ -17,7 +17,7 @@ export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
 
 export type ListRepositoriesResponse = z.infer<typeof listRepositoriesResponseSchema>;
 export type Repository = z.infer<typeof repositorySchema>;
-
+export type RepositoryQuery = z.infer<typeof repositoryQuerySchema>;
 export type Symbol = z.infer<typeof symbolSchema>;
 
 export enum SearchQueryParams {
