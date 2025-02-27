@@ -83,7 +83,7 @@ interface CodeHostSelectionProps {
 
 const CodeHostSelection = ({ onSelect }: CodeHostSelectionProps) => {
     return (
-        <div className="flex flex-row gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <CodeHostButton
                 name="GitHub"
                 logo={getCodeHostIcon("github")!}

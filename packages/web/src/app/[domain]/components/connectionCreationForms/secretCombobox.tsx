@@ -252,7 +252,7 @@ const ImportSecretDialog = ({ open, onOpenChange, onSecretCreated, codeHostType 
             onOpenChange={onOpenChange}
         >
             <DialogContent
-                className="p-16 max-w-2xl max-h-[80vh] overflow-scroll"
+                className="p-16 max-w-[90vw] sm:max-w-2xl max-h-[80vh] overflow-scroll rounded-lg"
             >
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-semibold">Import a secret</DialogTitle>

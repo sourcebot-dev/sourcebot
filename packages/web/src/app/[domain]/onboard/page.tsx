@@ -41,8 +41,8 @@ export default async function Onboard({ params, searchParams }: OnboardProps) {
     const lastRequiredStep = OnboardingSteps.Checkout;
 
     return (
-        <div className="flex flex-col items-center p-12 min-h-screen bg-backgroundSecondary relative">
-            <LogoutEscapeHatch className="absolute top-0 right-0 p-12" />
+        <div className="flex flex-col items-center py-12 px-4 sm:px-12 min-h-screen bg-backgroundSecondary relative">
+            <LogoutEscapeHatch className="absolute top-0 right-0 p-4 sm:p-12" />
             {step === OnboardingSteps.ConnectCodeHost && (
                 <>
                     <OnboardHeader

@@ -7,7 +7,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { isServiceError } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/hooks/use-toast"
@@ -20,6 +20,7 @@ export function OrgCreateForm() {
     const { toast } = useToast();
     const router = useRouter();
     const captureEvent = useCaptureEvent();
+    const [isLoading, setIsLoading] = useState(false);
 
     const onboardingFormSchema = z.object({
         name: z.string()
@@ -49,9 +50,9 @@ export function OrgCreateForm() {
             domain: "",
         }
     });
-    const { isSubmitting } = form.formState;
 
     const onSubmit = useCallback(async (data: z.infer<typeof onboardingFormSchema>) => {
+        setIsLoading(true);
         const response = await createOrg(data.name, data.domain);
         if (isServiceError(response)) {
             toast({
@@ -60,9 +61,12 @@ export function OrgCreateForm() {
             captureEvent('wa_onboard_org_create_fail', {
                 error: response.errorCode,
             })
+            setIsLoading(false);
         } else {
             router.push(`/${data.domain}/onboard`);
-            captureEvent('wa_onboard_org_create_success', {})
+            captureEvent('wa_onboard_org_create_success', {});
+            // @note: we don't want to set isLoading to false here since we want to show the loading
+            // spinner until the page is redirected.
         }
     }, [router, toast, captureEvent]);
 
@@ -113,8 +117,8 @@ export function OrgCreateForm() {
                             </FormItem>
                         )}
                     />
-                    <Button variant="default" className="w-full" type="submit" disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    <Button variant="default" className="w-full" type="submit" disabled={isLoading}>
+                        {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         Create
                     </Button>
                 </form>

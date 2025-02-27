@@ -72,7 +72,7 @@ export const InviteTeam = ({ nextStep }: InviteTeamProps) => {
     }, [onComplete, form, captureEvent]);
 
     return (
-        <Card className="p-12 w-[500px]">
+        <Card className="p-12 w-full sm:max-w-[500px]">
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardContent className="space-y-4">

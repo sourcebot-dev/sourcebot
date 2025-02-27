@@ -45,14 +45,14 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
     }, [error]);
 
     return (
-        <div className="flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center justify-center w-full">
             <div className="mb-6 flex flex-col items-center">
                 <SourcebotLogo
-                    className="h-16"
+                    className="h-12 sm:h-16"
                 />
-                <h2 className="text-lg font-bold">Sign in to your account</h2>
+                <h2 className="text-lg font-bold text-center">Sign in to your account</h2>
             </div>
-            <Card className="flex flex-col items-center border p-12 rounded-lg gap-6 w-[500px] bg-background">
+            <Card className="flex flex-col items-center border p-6 sm:p-12 rounded-lg gap-4 sm:gap-6 w-full sm:w-[500px] max-w-[500px] bg-background">
                 {error && (
                     <div className="text-sm text-destructive text-center text-wrap border p-2 rounded-md border-destructive">
                         {errorMessage}
