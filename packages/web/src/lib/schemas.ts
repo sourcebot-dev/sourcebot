@@ -1,5 +1,7 @@
+import { checkIfOrgDomainExists } from "@/actions";
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { z } from "zod";
+import { isServiceError } from "./utils";
 export const searchRequestSchema = z.object({
     query: z.string(),
     maxMatchDisplayCount: z.number(),
@@ -188,3 +190,34 @@ export const verifyCredentialsResponseSchema = z.object({
     email: z.string().optional(),
     image: z.string().optional(),
 });
+
+export const orgNameSchema = z.string().min(2, { message: "Organization name must be at least 3 characters long." });
+
+export const orgDomainSchema = z.string()
+    .min(2, { message: "Url must be at least 3 characters long." })
+    .max(50, { message: "Url must be at most 50 characters long." })
+    .regex(/^[a-z][a-z-]*[a-z]$/, {
+        message: "Url must start and end with a letter, and can only contain lowercase letters and dashes.",
+    })
+    .refine((domain) => {
+        const reserved = [
+            'api',
+            'login',
+            'signup',
+            'onboard',
+            'redeem',
+            'account',
+            'settings',
+            'staging',
+            'support',
+            'docs',
+            'blog',
+            'contact',
+            'status'
+        ];
+        return !reserved.includes(domain);
+    }, "This url is reserved for internal use.")
+    .refine(async (domain) => {
+        const doesDomainExist = await checkIfOrgDomainExists(domain);
+        return isServiceError(doesDomainExist) || !doesDomainExist;
+    }, "This url is already taken.");

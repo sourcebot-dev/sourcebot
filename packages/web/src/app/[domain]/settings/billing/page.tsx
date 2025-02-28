@@ -1,12 +1,10 @@
 import type { Metadata } from "next"
 import { CalendarIcon, DollarSign, Users } from "lucide-react"
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ManageSubscriptionButton } from "./manageSubscriptionButton"
 import { getSubscriptionData, getCurrentUserRole, getSubscriptionBillingEmail } from "@/actions"
 import { isServiceError } from "@/lib/utils"
 import { ChangeBillingEmailCard } from "./changeBillingEmailCard"
-import { CreditCard } from "lucide-react"
 
 export const metadata: Metadata = {
     title: "Billing | Settings",
@@ -50,11 +48,10 @@ export default async function BillingPage({
             </div>
             <div className="grid gap-6">
                 {/* Billing Email Card */}
-                <ChangeBillingEmailCard currentUserRole={currentUserRole} />
+                <ChangeBillingEmailCard billingEmail={billingEmail} currentUserRole={currentUserRole} />
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <CreditCard className="h-5 w-5" />
                             Subscription Plan
                         </CardTitle>
                         <CardDescription>
