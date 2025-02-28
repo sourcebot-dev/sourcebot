@@ -26,6 +26,10 @@ export default function SettingsLayout({
         {
             title: "Members",
             href: `/${domain}/settings/members`,
+        },
+        {
+            title: "Secrets",
+            href: `/${domain}/settings/secrets`,
         }
     ]
 
