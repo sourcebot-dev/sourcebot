@@ -253,7 +253,7 @@ export const SearchBar = ({
             <CodeMirror
                 ref={editorRef}
                 className="overflow-x-auto scrollbar-hide w-full"
-                placeholder={isHistorySearchEnabled ? "Filter history..." : "Search..."}
+                placeholder={isHistorySearchEnabled ? "Filter history..." : "Search (/) through repos..."}
                 value={query}
                 onChange={(value) => {
                     setQuery(value);
@@ -267,7 +267,6 @@ export const SearchBar = ({
                 indentWithTab={false}
                 autoFocus={autoFocus ?? false}
             />
-            <KeyboardShortcutHint shortcut="/" />
             <SearchSuggestionsBox
                 ref={suggestionBoxRef}
                 query={query}
