@@ -1,9 +1,9 @@
 "use client"
 
-import { checkIfOrgDomainExists, createOrg } from "../../../actions"
+import { createOrg } from "../../../actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card"
 import { NEXT_PUBLIC_ROOT_DOMAIN } from "@/lib/environment.client";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { orgNameSchema, orgDomainSchema } from "@/lib/schemas"
 
 
 export function OrgCreateForm() {
@@ -24,24 +25,8 @@ export function OrgCreateForm() {
     const [isLoading, setIsLoading] = useState(false);
 
     const onboardingFormSchema = z.object({
-        name: z.string()
-            .min(2, { message: "Organization name must be at least 3 characters long." })
-            .max(30, { message: "Organization name must be at most 30 characters long." }),
-        domain: z.string()
-            .min(2, { message: "Organization domain must be at least 3 characters long." })
-            .max(20, { message: "Organization domain must be at most 20 characters long." })
-            .regex(/^[a-z][a-z-]*[a-z]$/, {
-                message: "Domain must start and end with a letter, and can only contain lowercase letters and dashes.",
-            })
-            .refine(async (domain) => {
-                const doesDomainExist = await checkIfOrgDomainExists(domain);
-                if (!isServiceError(doesDomainExist)) {
-                    captureEvent('wa_onboard_org_create_fail', {
-                        error: "Domain already exists",
-                    })
-                }
-                return isServiceError(doesDomainExist) || !doesDomainExist;
-            }, "This domain is already taken."),
+        name: orgNameSchema,
+        domain: orgDomainSchema,
     })
 
     const form = useForm<z.infer<typeof onboardingFormSchema>>({
@@ -80,13 +65,14 @@ export function OrgCreateForm() {
     return (
         <Card className="flex flex-col border p-8 bg-background w-full max-w-md">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
                     <FormField
                         control={form.control}
                         name="name"
                         render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="flex flex-col gap-2">
                                 <FormLabel>Organization Name</FormLabel>
+                                <FormDescription>{`Your organization's visible name within Sourcebot. For example, the name of your company or department.`}</FormDescription>
                                 <FormControl>
                                     <Input
                                         placeholder="Aperture Labs"
@@ -106,12 +92,17 @@ export function OrgCreateForm() {
                         control={form.control}
                         name="domain"
                         render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Organization Domain</FormLabel>
+                            <FormItem className="flex flex-col gap-2">
+                                <FormLabel>Organization URL</FormLabel>
+                                <FormDescription>{`Your organization's URL namespace. This is where your organization's Sourcebot instance will be accessible.`}</FormDescription>
                                 <FormControl>
-                                    <div className="flex items-center space-x-2 w-full">
-                                        <div className="flex-shrink-0 text-sm text-muted-foreground">{NEXT_PUBLIC_ROOT_DOMAIN}/</div>
-                                        <Input placeholder="aperture-labs" {...field} className="flex-1" />
+                                    <div className="flex items-center w-full">
+                                        <div className="flex-shrink-0 text-sm text-muted-foreground bg-backgroundSecondary rounded-md rounded-r-none border border-r-0 px-3 py-[9px]">{NEXT_PUBLIC_ROOT_DOMAIN}/</div>
+                                        <Input
+                                            placeholder="aperture-labs"
+                                            {...field}
+                                            className="flex-1 rounded-l-none"
+                                        />
                                     </div>
                                 </FormControl>
                                 <FormMessage />
