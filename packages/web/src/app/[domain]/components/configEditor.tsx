@@ -119,6 +119,7 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
     const captureEvent = useCaptureEvent();
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     const [isViewMoreActionsEnabled, setIsViewMoreActionsEnabled] = useState(false);
+    const [height, setHeight] = useState(224);
 
     useImperativeHandle(
         forwardedRef,
@@ -202,7 +203,7 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
             </div>
             <Separator />
 
-            <ScrollArea className="p-1 overflow-auto flex-1 h-56">
+            <ScrollArea className="p-1 overflow-auto flex-1" style={{ height }}>
                 <CodeMirror
                     ref={editorRef}
                     value={value}
@@ -227,7 +228,27 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
                     theme={theme === "dark" ? "dark" : "light"}
                 />
             </ScrollArea>
-            
+            <div
+                className="h-1 cursor-ns-resize bg-border rounded-md hover:bg-primary/50 transition-colors"
+                onMouseDown={(e) => {
+                    e.preventDefault();
+                    const startY = e.clientY;
+                    const startHeight = height;
+
+                    function onMouseMove(e: MouseEvent) {
+                        const delta = e.clientY - startY;
+                        setHeight(Math.max(112, startHeight + delta));
+                    }
+
+                    function onMouseUp() {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    }
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                }}
+            />
         </div>
     )
 };
