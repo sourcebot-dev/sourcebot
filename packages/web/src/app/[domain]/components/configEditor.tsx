@@ -14,18 +14,20 @@ import {
     jsonSchemaLinter,
     stateExtensions
 } from "codemirror-json-schema";
-import { useRef, forwardRef, useImperativeHandle, Ref, ReactNode } from "react";
+import { useRef, forwardRef, useImperativeHandle, Ref, ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Schema } from "ajv";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { CodeHostType } from "@/lib/utils";
+
 export type QuickActionFn<T> = (previous: T) => T;
 export type QuickAction<T> = {
     name: string;
     fn: QuickActionFn<T>;
     description?: string | ReactNode;
+    selectionText?: string;
 };
 
 interface ConfigEditorProps<T> {
@@ -57,11 +59,13 @@ export function onQuickAction<T>(
     options?: {
         focusEditor?: boolean;
         moveCursor?: boolean;
+        selectionText?: string;
     }
 ) {
     const {
         focusEditor = false,
         moveCursor = true,
+        selectionText = `""`,
     } = options ?? {};
 
     let previousConfig: T;
@@ -78,7 +82,6 @@ export function onQuickAction<T>(
         view.focus();
     }
 
-    const cursorPos = next.lastIndexOf(`""`) + 1;
     view.dispatch({
         changes: {
             from: 0,
@@ -87,10 +90,16 @@ export function onQuickAction<T>(
         }
     });
 
-    if (moveCursor) {
-        view.dispatch({
-            selection: { anchor: cursorPos, head: cursorPos }
-        });
+    if (moveCursor && selectionText) {
+        const cursorPos = next.lastIndexOf(selectionText);
+        if (cursorPos >= 0) {
+            view.dispatch({
+                selection: { 
+                    anchor: cursorPos,
+                    head: cursorPos + selectionText.length
+                }
+            });
+        }
     }
 }
 
@@ -103,10 +112,15 @@ export const isConfigValidJson = (config: string) => {
     }
 }
 
+const DEFAULT_ACTIONS_VISIBLE = 4;
+
 const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCodeMirrorRef>) => {
     const { value, type, onChange, actions, schema } = props;
     const captureEvent = useCaptureEvent();
     const editorRef = useRef<ReactCodeMirrorRef>(null);
+    const [isViewMoreActionsEnabled, setIsViewMoreActionsEnabled] = useState(false);
+    const [height, setHeight] = useState(224);
+
     useImperativeHandle(
         forwardedRef,
         () => editorRef.current as ReactCodeMirrorRef
@@ -117,7 +131,79 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
 
     return (
         <div className="border rounded-md">
-            <ScrollArea className="p-1 overflow-auto flex-1 h-56">
+            <div className="flex flex-row items-center flex-wrap p-1">
+                <TooltipProvider>
+                    {actions
+                        .slice(0, isViewMoreActionsEnabled ? actions.length : DEFAULT_ACTIONS_VISIBLE)
+                        .map(({ name, fn, description, selectionText }, index, truncatedActions) => (
+                            <div
+                                key={index}
+                                className="flex flex-row items-center"
+                            >
+                                <Tooltip
+                                    delayDuration={100}
+                                >
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            className="disabled:opacity-100 disabled:pointer-events-auto disabled:cursor-not-allowed text-sm font-mono tracking-tight"
+                                            size="sm"
+                                            disabled={!isConfigValidJson(value)}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                captureEvent('wa_config_editor_quick_action_pressed', {
+                                                    name,
+                                                    type,
+                                                });
+                                                if (editorRef.current?.view) {
+                                                    onQuickAction(fn, value, editorRef.current.view, {
+                                                        focusEditor: true,
+                                                        selectionText,
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            {name}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                        hidden={!description}
+                                        className="max-w-xs"
+                                    >
+                                        {description}
+                                    </TooltipContent>
+                                </Tooltip>
+                                {index !== truncatedActions.length - 1 && (
+                                    <Separator
+                                        orientation="vertical" className="h-4 mx-1"
+                                    />
+                                )}
+                                {index === truncatedActions.length - 1 && truncatedActions.length < actions.length && (
+                                    <>
+                                        <Separator
+                                            orientation="vertical" className="h-4 mx-1"
+                                        />
+                                        <Button
+                                            variant="link"
+                                            size="sm"
+                                            className="text-xs text-muted-foreground"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setIsViewMoreActionsEnabled(!isViewMoreActionsEnabled);
+                                            }}
+                                        >
+                                            +{actions.length - truncatedActions.length} more
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        ))}
+
+                </TooltipProvider>
+            </div>
+            <Separator />
+
+            <ScrollArea className="p-1 overflow-auto flex-1" style={{ height }}>
                 <CodeMirror
                     ref={editorRef}
                     value={value}
@@ -142,55 +228,27 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
                     theme={theme === "dark" ? "dark" : "light"}
                 />
             </ScrollArea>
-            <Separator />
-            <div className="flex flex-row items-center flex-wrap w-full p-1">
-                <TooltipProvider>
-                    {actions.map(({ name, fn, description }, index) => (
-                        <div
-                            key={index}
-                            className="flex flex-row items-center"
-                        >
-                            <Tooltip
-                                delayDuration={100}
-                            >
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        className="disabled:opacity-100 disabled:pointer-events-auto disabled:cursor-not-allowed text-sm font-mono tracking-tight"
-                                        size="sm"
-                                        disabled={!isConfigValidJson(value)}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            captureEvent('wa_config_editor_quick_action_pressed', {
-                                                name,
-                                                type,
-                                            });
-                                            if (editorRef.current?.view) {
-                                                onQuickAction(fn, value, editorRef.current.view, {
-                                                    focusEditor: true,
-                                                });
-                                            }
-                                        }}
-                                    >
-                                        {name}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                    hidden={!description}
-                                    className="max-w-xs"
-                                >
-                                    {description}
-                                </TooltipContent>
-                            </Tooltip>
-                            {index !== actions.length - 1 && (
-                                <Separator
-                                    orientation="vertical" className="h-4 mx-1"
-                                />
-                            )}
-                        </div>
-                    ))}
-                </TooltipProvider>
-            </div>
+            <div
+                className="h-1 cursor-ns-resize bg-border rounded-md hover:bg-primary/50 transition-colors"
+                onMouseDown={(e) => {
+                    e.preventDefault();
+                    const startY = e.clientY;
+                    const startHeight = height;
+
+                    function onMouseMove(e: MouseEvent) {
+                        const delta = e.clientY - startY;
+                        setHeight(Math.max(112, startHeight + delta));
+                    }
+
+                    function onMouseUp() {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    }
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                }}
+            />
         </div>
     )
 };
