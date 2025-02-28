@@ -33,13 +33,6 @@ export function RepositorySnapshot() {
         )
     }
 
-    const indexedRepos = repos.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.INDEXED);
-    if (repos.length === 0) {
-        return (
-            <EmptyRepoState domain={domain} />
-        )
-    }
-
     const numIndexedRepos = repos.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.INDEXED).length;
     const numIndexingRepos = repos.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.INDEXING || repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE).length;
     if (numIndexedRepos === 0 && numIndexingRepos > 0) {
@@ -49,8 +42,13 @@ export function RepositorySnapshot() {
                 <span className="text-sm">indexing in progress...</span>
             </div>
         )
+    } else if (numIndexedRepos == 0) {
+        return (
+            <EmptyRepoState domain={domain} />
+        )
     }
-
+ 
+    const indexedRepos = repos.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.INDEXED);
     return (
         <div className="flex flex-col items-center gap-3">
             <span className="text-sm">
