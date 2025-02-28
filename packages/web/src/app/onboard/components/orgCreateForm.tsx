@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/hooks/use-toast"
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card"
+import { NEXT_PUBLIC_ROOT_DOMAIN } from "@/lib/environment.client";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 
@@ -109,7 +110,7 @@ export function OrgCreateForm() {
                                 <FormLabel>Organization Domain</FormLabel>
                                 <FormControl>
                                     <div className="flex items-center space-x-2 w-full">
-                                        <div className="flex-shrink-0 text-sm text-muted-foreground">staging.sourcebot.dev/</div>
+                                        <div className="flex-shrink-0 text-sm text-muted-foreground">{NEXT_PUBLIC_ROOT_DOMAIN}/</div>
                                         <Input placeholder="aperture-labs" {...field} className="flex-1" />
                                     </div>
                                 </FormControl>
