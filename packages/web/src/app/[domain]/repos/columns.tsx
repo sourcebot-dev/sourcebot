@@ -1,141 +1,250 @@
-'use client';
+"use client"
 
-import { Button } from "@/components/ui/button";
-import { Column, ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown } from "lucide-react"
-import prettyBytes from "pretty-bytes";
+import { Button } from "@/components/ui/button"
+import type { ColumnDef } from "@tanstack/react-table"
+import { ArrowUpDown, ExternalLink, Clock, Loader2, CheckCircle2, XCircle, Trash2, Check, ListFilter } from "lucide-react"
+import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
+import { RepoIndexingStatus } from "@sourcebot/db";
+import { useDomain } from "@/hooks/useDomain"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 export type RepositoryColumnInfo = {
-    name: string;
-    branches: {
-        name: string,
-        version: string,
-    }[];
-    repoSizeBytes: number;
-    indexedFiles: number;
-    indexSizeBytes: number;
-    shardCount: number;
-    lastIndexed: string;
-    latestCommit: string;
-    commitUrlTemplate: string;
-    url: string;
+    name: string
+    imageUrl?: string
+    connections: {
+        id: number
+        name: string
+    }[]
+    repoIndexingStatus: RepoIndexingStatus
+    lastIndexed: string
+    url: string
+}
+
+const statusLabels = {
+    [RepoIndexingStatus.NEW]: "Queued",
+    [RepoIndexingStatus.IN_INDEX_QUEUE]: "Queued",
+    [RepoIndexingStatus.INDEXING]: "Indexing",
+    [RepoIndexingStatus.INDEXED]: "Indexed",
+    [RepoIndexingStatus.FAILED]: "Failed",
+    [RepoIndexingStatus.IN_GC_QUEUE]: "Deleting",
+    [RepoIndexingStatus.GARBAGE_COLLECTING]: "Deleting",
+    [RepoIndexingStatus.GARBAGE_COLLECTION_FAILED]: "Deletion Failed"
+};
+
+const StatusIndicator = ({ status }: { status: RepoIndexingStatus }) => {
+    let icon = null
+    let description = ""
+    let className = ""
+
+    switch (status) {
+        case RepoIndexingStatus.NEW:
+        case RepoIndexingStatus.IN_INDEX_QUEUE:
+            icon = <Clock className="h-3.5 w-3.5" />
+            description = "Repository is queued for indexing"
+            className = "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400"
+            break
+        case RepoIndexingStatus.INDEXING:
+            icon = <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            description = "Repository is being indexed"
+            className = "text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400"
+            break
+        case RepoIndexingStatus.INDEXED:
+            icon = <CheckCircle2 className="h-3.5 w-3.5" />
+            description = "Repository has been successfully indexed"
+            className = "text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400"
+            break
+        case RepoIndexingStatus.FAILED:
+            icon = <XCircle className="h-3.5 w-3.5" />
+            description = "Repository indexing failed"
+            className = "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
+            break
+        case RepoIndexingStatus.IN_GC_QUEUE:
+        case RepoIndexingStatus.GARBAGE_COLLECTING:
+            icon = <Trash2 className="h-3.5 w-3.5" />
+            description = "Repository is being deleted"
+            className = "text-gray-600 bg-gray-50 dark:bg-gray-900/20 dark:text-gray-400"
+            break
+        case RepoIndexingStatus.GARBAGE_COLLECTION_FAILED:
+            icon = <XCircle className="h-3.5 w-3.5" />
+            description = "Repository deletion failed"
+            className = "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
+            break
+    }
+
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div
+                        className={cn("flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full w-fit", className)}
+                    >
+                        {icon}
+                        {statusLabels[status]}
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p className="text-sm">{description}</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    )
 }
 
 export const columns: ColumnDef<RepositoryColumnInfo>[] = [
     {
         accessorKey: "name",
-        header: "Name",
+        header: () => <div className="w-[400px]">Repository</div>,
         cell: ({ row }) => {
-            const repo = row.original;
-            const url = repo.url;
-            // local repositories will have a url of 0 length
-            const isRemoteRepo = url.length === 0;
-            return (
-                <div className="flex flex-row items-center gap-2">
-                    <span
-                        className={!isRemoteRepo ? "cursor-pointer text-blue-500 hover:underline": ""}
-                        onClick={() => {
-                            if (!isRemoteRepo) {
-                                window.open(url, "_blank");
-                            }
-                        }}
-                    >
-                        {repo.name}
-                    </span>
-                </div>
-            );
-        }
-    },
-    {
-        accessorKey: "branches",
-        header: "Branches",
-        cell: ({ row }) => {
-            const branches = row.original.branches;
-
-            if (branches.length === 0) {
-                return <div>N/A</div>;
-            }
+            const repo = row.original
+            const url = repo.url
+            const isRemoteRepo = url.length > 0
 
             return (
-                <div className="flex flex-col gap-2 max-h-32 overflow-scroll scrollbar-hide">
-                    {branches.map(({ name, version }, index) => {
-                        const shortVersion = version.substring(0, 8);
-                        return (
-                            <span key={index}>
-                                {name}
-                                @
-                                <span
-                                    className="cursor-pointer text-blue-500 hover:underline"
-                                    onClick={() => {
-                                        const url = row.original.commitUrlTemplate.replace("{{.Version}}", version);
-                                        window.open(url, "_blank");
-                                    }}
-                                >
-                                    {shortVersion}
-                                </span>
-                            </span>
-                        )
-                    })}
+                <div className="flex flex-row items-center gap-3 py-2">
+                    <div className="relative h-8 w-8 overflow-hidden rounded-md border bg-muted">
+                        {repo.imageUrl ? (
+                            <Image
+                                src={repo.imageUrl || "/placeholder.svg"}
+                                alt={`${repo.name} logo`}
+                                width={32}
+                                height={32}
+                                className="object-cover"
+                            />
+                        ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-muted text-xs font-medium uppercase text-muted-foreground">
+                                {repo.name.charAt(0)}
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span
+                            className={isRemoteRepo ? "font-medium text-primary hover:underline cursor-pointer" : "font-medium"}
+                            onClick={() => {
+                                if (isRemoteRepo) {
+                                    window.open(url, "_blank")
+                                }
+                            }}
+                        >
+                            {repo.name}
+                        </span>
+                        {isRemoteRepo && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </div>
                 </div>
-            );
+            )
         },
     },
     {
-        accessorKey: "shardCount",
-        header: ({ column }) => createSortHeader("Shard Count", column),
-        cell: ({ row }) => (
-            <div className="text-right">{row.original.shardCount}</div>
-        )
-    },
-    {
-        accessorKey: "indexedFiles",
-        header: ({ column }) => createSortHeader("Indexed Files", column),
-        cell: ({ row }) => (
-            <div className="text-right">{row.original.indexedFiles}</div>
-        )
-    },
-    {
-        accessorKey: "indexSizeBytes",
-        header: ({ column }) => createSortHeader("Index Size", column),
+        accessorKey: "connections",
+        header: () => <div className="w-[200px]">Connections</div>,
         cell: ({ row }) => {
-            const size = prettyBytes(row.original.indexSizeBytes);
-            return <div className="text-right">{size}</div>;
-        }
+            const connections = row.original.connections
+            const domain = useDomain();
+            
+            if (!connections || connections.length === 0) {
+                return <div className="text-muted-foreground text-sm">—</div>
+            }
+
+            return (
+                <div className="flex flex-wrap gap-1.5">
+                    {connections.map((connection) => (
+                        <Badge
+                            key={connection.id}
+                            variant="outline"
+                            className="text-xs px-2 py-0.5 hover:bg-muted cursor-pointer group flex items-center gap-1"
+                            onClick={() => {
+                                window.location.href = `/${domain}/connections/${connection.id}`
+                            }}
+                        >
+                            {connection.name}
+                            <ExternalLink className="h-3 w-3 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
+                        </Badge>
+                    ))}
+                </div>
+            )
+        },
     },
     {
-        accessorKey: "repoSizeBytes",
-        header: ({ column }) => createSortHeader("Repository Size", column),
+        accessorKey: "repoIndexingStatus",
+        header: ({ column }) => {
+            const uniqueLabels = Array.from(new Set(Object.values(statusLabels)));
+
+            return (
+                <div className="w-[150px]">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="font-medium">
+                                Status
+                                <ListFilter className="ml-2 h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                            <DropdownMenuItem onClick={() => column.setFilterValue(undefined)}>
+                                <Check className={cn("mr-2 h-4 w-4", !column.getFilterValue() ? "opacity-100" : "opacity-0")} />
+                                All
+                            </DropdownMenuItem>
+                            {uniqueLabels.map((label) => (
+                                <DropdownMenuItem key={label} onClick={() => column.setFilterValue(label)}>
+                                    <Check className={cn("mr-2 h-4 w-4", column.getFilterValue() === label ? "opacity-100" : "opacity-0")} />
+                                    {label}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            )
+        },
         cell: ({ row }) => {
-            const size = prettyBytes(row.original.repoSizeBytes);
-            return <div className="text-right">{size}</div>;
-        }
+            return <StatusIndicator status={row.original.repoIndexingStatus} />
+        },
+        filterFn: (row, id, value) => {
+            if (value === undefined) return true;
+            
+            const status = row.getValue(id) as RepoIndexingStatus;
+            return statusLabels[status] === value;
+        },
     },
     {
         accessorKey: "lastIndexed",
-        header: ({ column }) => createSortHeader("Last Indexed", column),
+        header: ({ column }) => (
+            <div className="w-[150px]">
+                <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    className="font-medium"
+                >
+                    Last Indexed
+                    <ArrowUpDown className="ml-2 h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+            </div>
+        ),
         cell: ({ row }) => {
-            const date = new Date(row.original.lastIndexed);
-            return date.toISOString();
-        }
+            if (!row.original.lastIndexed) {
+                return <div>-</div>;
+            }
+            const date = new Date(row.original.lastIndexed)
+            return (
+                <div>
+                    <div className="font-medium">
+                        {date.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                        })}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                        {date
+                            .toLocaleTimeString("en-US", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                            })
+                            .toLowerCase()}
+                    </div>
+                </div>
+            )
+        },
     },
-    {
-        accessorKey: "latestCommit",
-        header: ({ column }) => createSortHeader("Latest Commit", column),
-        cell: ({ row }) => {
-            const date = new Date(row.original.latestCommit);
-            return date.toISOString();
-        }
-    }
 ]
-
-const createSortHeader = (name: string, column: Column<RepositoryColumnInfo, unknown>) => {
-    return (
-        <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-            {name}
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-    )
-}

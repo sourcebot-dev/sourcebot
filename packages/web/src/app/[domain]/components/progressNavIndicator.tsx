@@ -50,7 +50,7 @@ export const ProgressNavIndicator = () => {
                         <div className="flex flex-col gap-2 pl-4">
                             {inProgressRepos.slice(0, 10).map(item => (
                                 // Link to the first connection for the repo
-                                <Link key={item.repoId} href={`/${domain}/connections/${item.linkedConnections[0]}`} onClick={() => captureEvent('wa_progress_nav_job_pressed', {})}>
+                                <Link key={item.repoId} href={`/${domain}/connections/${item.linkedConnections[0].id}`} onClick={() => captureEvent('wa_progress_nav_job_pressed', {})}>
                                     <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 
                                                 rounded-md text-sm text-green-700 dark:text-green-300 
                                                 border border-green-200/50 dark:border-green-800/50

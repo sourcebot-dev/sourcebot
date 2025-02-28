@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { NavigationMenu } from "../components/navigationMenu";
 import { RepositoryTable } from "./repositoryTable";
 import { getOrgFromDomain } from "@/data/org";
@@ -13,11 +12,9 @@ export default async function ReposPage({ params: { domain } }: { params: { doma
     return (
         <div className="h-screen flex flex-col items-center">
             <NavigationMenu domain={domain} />
-            <Suspense fallback={<div>Loading...</div>}>
-                <div className="max-w-[90%]">
-                    <RepositoryTable orgId={ org.id }/>
-                </div>
-            </Suspense>
+            <div className="w-[75%]">
+                <RepositoryTable />
+            </div>
         </div>
     )
 }

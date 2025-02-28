@@ -325,12 +325,25 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                 }
             });
 
+            const connectionData = await prisma.connection.findMany({
+                where: {
+                    id: { in: repos.flatMap((repo) => repo.connections.map((connection) => connection.connectionId)) },
+                },
+                select: {
+                    id: true,
+                    name: true,
+                },
+            });
+
             return repos.map((repo) => repositoryQuerySchema.parse({
                 codeHostType: repo.external_codeHostType,
                 repoId: repo.id,
                 repoName: repo.name,
                 repoCloneUrl: repo.cloneUrl,
-                linkedConnections: repo.connections.map((connection) => connection.connectionId),
+                linkedConnections: repo.connections.map((connection) => ({
+                    id: connection.connectionId,
+                    name: connectionData.find((c) => c.id === connection.connectionId)?.name ?? "",
+                })),
                 imageUrl: repo.imageUrl ?? undefined,
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,

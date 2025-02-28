@@ -2,80 +2,86 @@
 
 import { DataTable } from "@/components/ui/data-table";
 import { columns, RepositoryColumnInfo } from "./columns";
-import { listRepositories } from "@/lib/server/searchService";
-import { isServiceError, unwrapServiceError } from "@/lib/utils";
+import { unwrapServiceError } from "@/lib/utils";
 import { getRepos } from "@/actions";
 import { useQuery } from "@tanstack/react-query";
 import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
-import { useEffect, useState } from "react";
 import { useDomain } from "@/hooks/useDomain";
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { useMemo } from "react";
-import { ListRepositoriesResponse } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export const RepositoryTable = async ({ orgId }: { orgId: number }) => {
-    const [rawRepos, setRawRepos] = useState<ListRepositoriesResponse>([]);
-
+export const RepositoryTable = () => {
     const domain = useDomain();
-    const { data: dbRepos, isPending: isReposPending, error: reposError } = useQuery({
+    const { data: repos, isLoading: reposLoading, error: reposError } = useQuery({
         queryKey: ['repos', domain],
         queryFn: async () => {
-            return await unwrapServiceError(getRepos(domain, { status: [RepoIndexingStatus.INDEXED] }));
+            return await unwrapServiceError(getRepos(domain));
         },
         refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        refetchIntervalInBackground: true,
     });
 
-    useEffect(() => {
-        const fetchRawRepos = async () => {
-            const rawRepos = await listRepositories(orgId);
-            if (isServiceError(rawRepos)) {
-                console.error(rawRepos);
-            } else {
-                setRawRepos(rawRepos);
-            }
-        }
+    const tableRepos = useMemo(() => {
+        if (reposLoading) return Array(4).fill(null).map(() => ({
+            name: "",
+            connections: [],
+            repoIndexingStatus: RepoIndexingStatus.NEW,
+            lastIndexed: "",
+            url: "",
+            imageUrl: "",
+        }));
 
-        fetchRawRepos();
-    }, [orgId]);
-
-    const augmentedRepos = useMemo(() => {
-        if (isReposPending || reposError) {
-            return [];
-        }
-
-        return rawRepos.List.Repos.map((repo) => {
-            return {
-                ...repo,
-            }
+        if (!repos) return [];
+        return repos.map((repo): RepositoryColumnInfo => ({
+            name: repo.repoName.split('/').length > 2 ? repo.repoName.split('/').slice(-2).join('/') : repo.repoName,
+            imageUrl: repo.imageUrl,
+            connections: repo.linkedConnections,
+            repoIndexingStatus: repo.repoIndexingStatus as RepoIndexingStatus,
+            lastIndexed: repo.indexedAt?.toISOString() ?? "",
+            url: repo.repoCloneUrl,
+        })).sort((a, b) => {
+            return new Date(b.lastIndexed).getTime() - new Date(a.lastIndexed).getTime();
         });
-    }, [rawRepos, dbRepos, isReposPending, reposError]);
+    }, [repos, reposLoading]);
 
-
-    const tableRepos = rawRepos?.List.Repos.map((repo): RepositoryColumnInfo => {
-        return {
-            name: repo.Repository.Name,
-            branches: (repo.Repository.Branches ?? []).map((branch) => {
-                return {
-                    name: branch.Name,
-                    version: branch.Version,
+    const tableColumns = useMemo(() => {
+        if (reposLoading) {
+            return columns.map((column) => {
+                if ('accessorKey' in column && column.accessorKey === "name") {
+                  return {
+                    ...column,
+                    cell: () => (
+                      <div className="flex flex-row items-center gap-3 py-2">
+                        <Skeleton className="h-8 w-8 rounded-md" /> {/* Avatar skeleton */}
+                        <Skeleton className="h-4 w-48" /> {/* Repository name skeleton */}
+                      </div>
+                    ),
+                  }
                 }
-            }),
-            repoSizeBytes: repo.Stats.ContentBytes,
-            indexSizeBytes: repo.Stats.IndexBytes,
-            shardCount: repo.Stats.Shards,
-            lastIndexed: repo.IndexMetadata.IndexTime,
-            latestCommit: repo.Repository.LatestCommitDate,
-            indexedFiles: repo.Stats.Documents,
-            commitUrlTemplate: repo.Repository.CommitURLTemplate,
-            url: repo.Repository.URL,
+        
+                return {
+                  ...column,
+                  cell: () => (
+                    <div className="flex flex-wrap gap-1.5">
+                      <Skeleton className="h-5 w-24 rounded-full" />
+                    </div>
+                  ),
+                }
+              })
         }
-    }).sort((a, b) => {
-        return new Date(b.lastIndexed).getTime() -  new Date(a.lastIndexed).getTime();
-    });
+
+        return columns;
+    }, [reposLoading, repos]);
+
+
+    if (reposError) {
+        return <div>Error loading repositories</div>;
+    }
 
     return (
         <DataTable
-            columns={columns}
+            columns={tableColumns}
             data={tableRepos}
             searchKey="name"
             searchPlaceholder="Search repositories..."
