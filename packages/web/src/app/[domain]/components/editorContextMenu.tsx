@@ -126,7 +126,7 @@ export const EditorContextMenu = ({
                 }     
             }
         )
-    }, [captureEvent, path, repoName, selection.from, selection.to, toast, view, revisionName]);
+    }, [selection.from, selection.to, domain, repoName, revisionName, path, toast, captureEvent, view]);
 
     return (
         <div

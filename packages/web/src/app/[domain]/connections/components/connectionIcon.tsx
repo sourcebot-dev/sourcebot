@@ -1,3 +1,5 @@
+'use client';
+
 import { cn, CodeHostType, getCodeHostIcon } from "@/lib/utils";
 import { useMemo } from "react";
 import Image from "next/image";

@@ -10,7 +10,7 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { Repository, SearchQueryParams, SearchResultFile } from "@/lib/types";
-import { createPathWithQueryParams, measureSync } from "@/lib/utils";
+import { createPathWithQueryParams } from "@/lib/utils";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";

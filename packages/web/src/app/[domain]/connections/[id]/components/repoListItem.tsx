@@ -1,3 +1,5 @@
+'use client';
+
 import { getDisplayTime } from "@/lib/utils";
 import Image from "next/image";
 import { StatusIcon } from "../../components/statusIcon";

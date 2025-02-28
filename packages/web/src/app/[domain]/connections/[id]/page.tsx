@@ -42,6 +42,7 @@ export default async function ConnectionManagementPage({ params, searchParams }:
 
     const currentTab = searchParams.tab || "overview";
 
+
     return (
         <Tabs value={currentTab} className="w-full">
             <Header className="mb-6" withTopMargin={false}>
@@ -85,12 +86,7 @@ export default async function ConnectionManagementPage({ params, searchParams }:
             </TabsContent>
             <TabsContent
                 value="settings"
-                // @note: There was some bugginess with the ConfigEditor ref not being set again
-                // after the parent component was unmounted and remounted. This workarouns makes it
-                // s.t., hide the settings tab when it is inactive, instead of unmounting it.
-                // @see: https://github.com/radix-ui/primitives/issues/2359#issuecomment-2481321719
-                className="flex flex-col gap-6 data-[state=inactive]:hidden"
-                forceMount={true}
+                className="flex flex-col gap-6"
             >
                 <DisplayNameSetting connectionId={connection.id} name={connection.name} />
                 <ConfigSetting

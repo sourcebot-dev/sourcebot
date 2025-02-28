@@ -6,15 +6,8 @@ import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 import { json, jsonLanguage, jsonParseLinter } from "@codemirror/lang-json";
 import { linter } from "@codemirror/lint";
 import { EditorView, hoverTooltip } from "@codemirror/view";
-import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import {
-    handleRefresh,
-    jsonCompletion,
-    jsonSchemaHover,
-    jsonSchemaLinter,
-    stateExtensions
-} from "codemirror-json-schema";
-import { useRef, forwardRef, useImperativeHandle, Ref, ReactNode, useState } from "react";
+import CodeMirror, { Extension, ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import { useRef, forwardRef, useImperativeHandle, Ref, ReactNode, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Schema } from "ajv";
@@ -94,7 +87,7 @@ export function onQuickAction<T>(
         const cursorPos = next.lastIndexOf(selectionText);
         if (cursorPos >= 0) {
             view.dispatch({
-                selection: { 
+                selection: {
                     anchor: cursorPos,
                     head: cursorPos + selectionText.length
                 }
@@ -120,7 +113,6 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     const [isViewMoreActionsEnabled, setIsViewMoreActionsEnabled] = useState(false);
     const [height, setHeight] = useState(224);
-
     useImperativeHandle(
         forwardedRef,
         () => editorRef.current as ReactCodeMirrorRef
@@ -128,6 +120,51 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
 
     const keymapExtension = useKeymapExtension(editorRef.current?.view);
     const { theme } = useThemeNormalized();
+
+    // ⚠️ DISGUSTING HACK AHEAD ⚠️
+    // Background: When navigating to the /connections/:id?tab=settings page, we were hitting a 500 error with the following
+    // message server side:
+    //      
+    //   >   Internal error: Error: Element type is invalid: expected a string (for built-in components) or a class/function
+    //   >   (for composite components) but got: undefined. You likely forgot to export your component from the file it's
+    //   >   defined in, or you might have mixed up default and named imports.
+    //
+    // Why was this happening? We have no idea, but we isolated it to the extensions exported by the `codemirror-json-schema`
+    // package. The solution that worked was to dynamically import the package inside of the useEffect and load the extensions
+    // async.
+    //
+    // So, yeah. - Brendan
+    const [jsonSchemaExtensions, setJsonSchemaExtensions] = useState<Extension[]>([]);
+    useEffect(() => {
+        const loadExtensions = async () => {
+            const {
+                handleRefresh,
+                jsonCompletion,
+                jsonSchemaHover,
+                jsonSchemaLinter,
+                stateExtensions
+            } = await import('codemirror-json-schema');
+            return [
+                linter(jsonParseLinter(), {
+                    delay: 300,
+                }),
+                linter(jsonSchemaLinter(), {
+                    needsRefresh: handleRefresh,
+                }),
+                jsonLanguage.data.of({
+                    autocomplete: jsonCompletion(),
+                }),
+                hoverTooltip(jsonSchemaHover()),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                stateExtensions(schema as any),
+            ]
+        }
+
+        loadExtensions().then((extensions) => {
+            console.debug('Loaded json schema extensions');
+            setJsonSchemaExtensions(extensions);
+        });
+    }, [schema]);
 
     return (
         <div className="border rounded-md">
@@ -211,19 +248,8 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
                     extensions={[
                         keymapExtension,
                         json(),
-                        linter(jsonParseLinter(), {
-                            delay: 300,
-                        }),
-                        linter(jsonSchemaLinter(), {
-                            needsRefresh: handleRefresh,
-                        }),
-                        jsonLanguage.data.of({
-                            autocomplete: jsonCompletion(),
-                        }),
-                        hoverTooltip(jsonSchemaHover()),
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        stateExtensions(schema as any),
                         customAutocompleteStyle,
+                        ...jsonSchemaExtensions,
                     ]}
                     theme={theme === "dark" ? "dark" : "light"}
                 />
