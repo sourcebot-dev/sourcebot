@@ -170,14 +170,24 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
         accessorKey: "repoIndexingStatus",
         header: ({ column }) => {
             const uniqueLabels = Array.from(new Set(Object.values(statusLabels)));
+            const currentFilter = column.getFilterValue() as string | undefined;
 
             return (
                 <div className="w-[150px]">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="font-medium">
+                            <Button 
+                                variant={currentFilter ? "secondary" : "ghost"}
+                                className="font-medium"
+                            >
                                 Status
-                                <ListFilter className="ml-2 h-3.5 w-3.5 text-muted-foreground" />
+                                <ListFilter className={cn(
+                                    "ml-2 h-3.5 w-3.5",
+                                    currentFilter ? "text-primary" : "text-muted-foreground"
+                                )} />
+                                {currentFilter && (
+                                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                                )}
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start">
