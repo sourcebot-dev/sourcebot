@@ -24,15 +24,15 @@ export default async function Upgrade({ params: { domain } }: { params: { domain
     const isTrialing = !isServiceError(subscription) ? subscription.status === "trialing" : false;
 
     return (
-        <div className="flex flex-col items-center pt-12 min-h-screen bg-backgroundSecondary relative">
+        <div className="flex flex-col items-center pt-12 px-4 sm:px-12 min-h-screen bg-backgroundSecondary relative">
             {isTrialing && (
-                <Link href={`/${domain}`} className="text-sm text-muted-foreground mb-5 absolute top-0 left-0 p-12">
+                <Link href={`/${domain}`} className="text-sm text-muted-foreground mb-5 absolute top-0 left-0 p-4 sm:p-12">
                     <div className="flex flex-row items-center gap-2">
                         <ArrowLeftIcon className="w-4 h-4" /> Return to dashboard
                     </div>
                 </Link>
             )}
-            <LogoutEscapeHatch className="absolute top-0 right-0 p-12" />
+            <LogoutEscapeHatch className="absolute top-0 right-0 p-4 sm:p-12" />
             <div className="flex flex-col items-center">
                 <SourcebotLogo
                     className="h-16 mb-2"

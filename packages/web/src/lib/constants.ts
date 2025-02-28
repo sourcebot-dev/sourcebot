@@ -22,3 +22,5 @@ export const TEAM_FEATURES = [
     "Create shareable links to code snippets.",
     "Powerful regex and symbol search",
 ]
+
+export const MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME = 'sb.mobile-unsupported-splash-screen-dismissed';

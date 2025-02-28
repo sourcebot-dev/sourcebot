@@ -15,7 +15,7 @@ import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, 
 import { encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
 import { ConnectionSyncStatus, Prisma, OrgRole, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
-import { headers } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
 import { Session } from "next-auth";
@@ -26,6 +26,7 @@ import InviteUserEmail from "./emails/inviteUserEmail";
 import { createTransport } from "nodemailer";
 import { repositoryQuerySchema } from "./lib/schemas";
 import { RepositoryQuery } from "./lib/types";
+import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "./lib/constants";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -1230,6 +1231,10 @@ export const getOrgInvites = async (domain: string) =>
             }));
         })
     );
+
+export const dismissMobileUnsupportedSplashScreen = async () => {
+    await cookies().set(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, 'true');
+}
 
 
 ////// Helpers ///////

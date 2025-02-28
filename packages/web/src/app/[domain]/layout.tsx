@@ -6,6 +6,10 @@ import { isServiceError } from "@/lib/utils";
 import { OnboardGuard } from "./components/onboardGuard";
 import { fetchSubscription } from "@/actions";
 import { UpgradeGuard } from "./components/upgradeGuard";
+import { cookies, headers } from "next/headers";
+import { getSelectorsByUserAgent } from "react-device-detect";
+import { MobileUnsupportedSplashScreen } from "./components/mobileUnsupportedSplashScreen";
+import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "@/lib/constants";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -65,5 +69,15 @@ export default async function Layout({
         )
     }
 
+    const headersList = await headers();
+    const cookieStore = await cookies()
+    const userAgent = headersList.get('user-agent');
+    const { isMobile } = getSelectorsByUserAgent(userAgent ?? '');
+
+    if (isMobile && !cookieStore.has(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME)) {
+        return (
+            <MobileUnsupportedSplashScreen />
+        )
+    }
     return children;
 }

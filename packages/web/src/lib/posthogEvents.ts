@@ -219,6 +219,8 @@ export type PosthogEventMap = {
     wa_login_with_magic_link: {},
     wa_login_with_credentials: {},
     //////////////////////////////////////////////////////////////////
+    wa_mobile_unsupported_splash_screen_dismissed: {},
+    wa_mobile_unsupported_splash_screen_displayed: {},
 } 
 
 export type PosthogEvent = keyof PosthogEventMap;
