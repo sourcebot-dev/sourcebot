@@ -49,13 +49,19 @@ export const RepoListItem = ({
             className="flex flex-row items-center p-4 border rounded-lg bg-background justify-between"
         >
             <div className="flex flex-row items-center gap-2">
-                <Image
-                    src={imageUrl ?? ""}
-                    alt={name}
-                    width={40}
-                    height={40}
-                    className="rounded-full"
-                />
+                {imageUrl ? (
+                    <Image
+                        src={imageUrl}
+                        alt={name}
+                        width={32}
+                        height={32}
+                        className="object-cover"
+                    />
+                ) : (
+                    <div className="h-8 w-8 flex items-center justify-center bg-muted text-xs font-medium uppercase text-muted-foreground rounded-md">
+                        {name.charAt(0)}
+                    </div>
+                )}
                 <p className="font-medium">{name}</p>
             </div>
             <div className="flex flex-row items-center gap-4">

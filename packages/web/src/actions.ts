@@ -147,7 +147,7 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
             }
         })
     );
-        
+
 export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
@@ -321,7 +321,11 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                     } : {}),
                 },
                 include: {
-                    connections: true,
+                    connections: {
+                        include: {
+                            connection: true,
+                        }
+                    }
                 }
             });
 
@@ -330,7 +334,10 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                 repoId: repo.id,
                 repoName: repo.name,
                 repoCloneUrl: repo.cloneUrl,
-                linkedConnections: repo.connections.map((connection) => connection.connectionId),
+                linkedConnections: repo.connections.map(({ connection }) => ({
+                    id: connection.id,
+                    name: connection.name,
+                })),
                 imageUrl: repo.imageUrl ?? undefined,
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,
@@ -883,7 +890,7 @@ export const createOnboardingSubscription = async (domain: string) =>
                         save_default_payment_method: 'on_subscription',
                     },
                 });
-                
+
                 if (!subscription) {
                     return {
                         statusCode: StatusCodes.INTERNAL_SERVER_ERROR,

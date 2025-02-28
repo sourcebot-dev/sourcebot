@@ -97,7 +97,7 @@ export const ErrorNavIndicator = () => {
                                     .slice(0, 10)
                                     .map(repo => (
                                         // Link to the first connection for the repo
-                                        <Link key={repo.repoId} href={`/${domain}/connections/${repo.linkedConnections[0]}`} onClick={() => captureEvent('wa_error_nav_job_pressed', {})}>
+                                        <Link key={repo.repoId} href={`/${domain}/connections/${repo.linkedConnections[0].id}`} onClick={() => captureEvent('wa_error_nav_job_pressed', {})}>
                                             <div className="flex items-center justify-between px-3 py-2 
                                                             bg-red-50 dark:bg-red-900/20 rounded-md
                                                             border border-red-200/50 dark:border-red-800/50

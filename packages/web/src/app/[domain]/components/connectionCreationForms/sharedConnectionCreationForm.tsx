@@ -67,7 +67,7 @@ export default function SharedConnectionCreationForm<T>({
                 return checkIfSecretExists(secretKey, domain);
             }, { message: "Secret not found" }),
         });
-    }, [schema, domain]);
+    }, [schema, domain, additionalConfigValidation]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
