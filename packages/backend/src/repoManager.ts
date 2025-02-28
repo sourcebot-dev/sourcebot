@@ -316,7 +316,7 @@ export class RepoManager implements IRepoManager {
     }
 
     private async onIndexJobFailed(job: Job<RepoIndexingPayload> | undefined, err: unknown) {
-        this.logger.info(`Repo index job failed (id: ${job?.id ?? 'unknown'}) with error: ${err}`);
+        this.logger.info(`Repo index job failed (id: ${job?.id ?? 'unknown'})`);
         if (job) {
             this.promClient.activeRepoIndexingJobs.dec();
             this.promClient.repoIndexingFailTotal.inc();
@@ -327,6 +327,7 @@ export class RepoManager implements IRepoManager {
                 },
                 data: {
                     repoIndexingStatus: RepoIndexingStatus.FAILED,
+                    indexedAt: new Date(),
                 }
             })
         }
