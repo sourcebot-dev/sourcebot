@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { useDomain } from "@/hooks/useDomain"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { AddRepoButton } from "./addRepoButton"
 
 export type RepositoryColumnInfo = {
     name: string
@@ -93,10 +94,15 @@ const StatusIndicator = ({ status }: { status: RepoIndexingStatus }) => {
     )
 }
 
-export const columns: ColumnDef<RepositoryColumnInfo>[] = [
+export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
     {
         accessorKey: "name",
-        header: () => <div className="w-[400px]">Repository</div>,
+        header: () => (
+            <div className="flex items-center w-[400px]">
+                <span>Repository</span>
+                <AddRepoButton />
+            </div>
+        ),
         cell: ({ row }) => {
             const repo = row.original
             const url = repo.url
@@ -141,7 +147,6 @@ export const columns: ColumnDef<RepositoryColumnInfo>[] = [
         header: () => <div className="w-[200px]">Connections</div>,
         cell: ({ row }) => {
             const connections = row.original.connections
-            const domain = useDomain();
             
             if (!connections || connections.length === 0) {
                 return <div className="text-muted-foreground text-sm">—</div>

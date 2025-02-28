@@ -47,7 +47,7 @@ export const RepositoryTable = () => {
 
     const tableColumns = useMemo(() => {
         if (reposLoading) {
-            return columns.map((column) => {
+            return columns(domain).map((column) => {
                 if ('accessorKey' in column && column.accessorKey === "name") {
                   return {
                     ...column,
@@ -71,8 +71,8 @@ export const RepositoryTable = () => {
               })
         }
 
-        return columns;
-    }, [reposLoading, repos]);
+        return columns(domain);
+    }, [reposLoading, domain]);
 
 
     if (reposError) {
