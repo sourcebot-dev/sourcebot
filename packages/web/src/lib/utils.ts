@@ -36,7 +36,7 @@ export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit";
 type CodeHostInfo = {
     type: CodeHostType;
     displayName: string;
-    costHostName: string;
+    codeHostName: string;
     repoLink: string;
     icon: string;
     iconClassName?: string;
@@ -54,52 +54,7 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
 
     const url = new URL(repo.URL);
     const displayName = url.pathname.slice(1);
-    switch (webUrlType) {
-        case 'github': {
-            const { src, className } = getCodeHostIcon('github')!;
-            return {
-                type: "github",
-                displayName: displayName,
-                costHostName: "GitHub",
-                repoLink: repo.URL,
-                icon: src,
-                iconClassName: className,
-            }
-        }
-        case 'gitlab': {
-            const { src, className } = getCodeHostIcon('gitlab')!;
-            return {
-                type: "gitlab",
-                displayName: displayName,
-                costHostName: "GitLab",
-                repoLink: repo.URL,
-                icon: src,
-                iconClassName: className,
-            }
-        }
-        case 'gitea': {
-            const { src, className } = getCodeHostIcon('gitea')!;
-            return {
-                type: "gitea",
-                displayName: displayName,
-                costHostName: "Gitea",
-                repoLink: repo.URL,
-                icon: src,
-                iconClassName: className,
-            }
-        }
-        case 'gitiles': {
-            const { src, className } = getCodeHostIcon('gerrit')!;
-            return {
-                type: "gerrit",
-                displayName: displayName,
-                costHostName: "Gerrit",
-                repoLink: repo.URL,
-                icon: src,
-                iconClassName: className,
-            }
-        }
-    }
+    return _getCodeHostInfoInternal(webUrlType, displayName, repo.URL);
 }
 
 export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo | undefined => {
@@ -108,14 +63,18 @@ export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo |
     }
 
     const displayName = repo.repoName.split('/').slice(-2).join('/');
-    switch (repo.codeHostType) {
+    return _getCodeHostInfoInternal(repo.codeHostType, displayName, repo.repoCloneUrl);
+}
+
+const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: string): CodeHostInfo | undefined => {
+    switch (type) {
         case 'github': {
             const { src, className } = getCodeHostIcon('github')!;
             return {
                 type: "github",
                 displayName: displayName,
-                costHostName: "GitHub",
-                repoLink: repo.repoCloneUrl,
+                codeHostName: "GitHub",
+                repoLink: cloneUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -125,8 +84,8 @@ export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo |
             return {
                 type: "gitlab",
                 displayName: displayName,
-                costHostName: "GitLab",
-                repoLink: repo.repoCloneUrl,
+                codeHostName: "GitLab",
+                repoLink: cloneUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -136,8 +95,8 @@ export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo |
             return {
                 type: "gitea",
                 displayName: displayName,
-                costHostName: "Gitea",
-                repoLink: repo.repoCloneUrl,
+                codeHostName: "Gitea",
+                repoLink: cloneUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -147,8 +106,8 @@ export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo |
             return {
                 type: "gerrit",
                 displayName: displayName,
-                costHostName: "Gerrit",
-                repoLink: repo.repoCloneUrl,
+                codeHostName: "Gerrit",
+                repoLink: cloneUrl,
                 icon: src,
                 iconClassName: className,
             }

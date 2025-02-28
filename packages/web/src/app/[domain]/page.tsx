@@ -8,6 +8,7 @@ import { PageNotFound } from "./components/pageNotFound";
 import { Footer } from "./components/footer";
 import { SourcebotLogo } from "../components/sourcebotLogo";
 import { RepositorySnapshot } from "./components/repositorySnapshot";
+import { KeyboardShortcutHint } from "./components/keyboardShortcutHint";
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -86,6 +87,9 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                                 <Query query="content:README"><Highlight>content:</Highlight>README</Query> <QueryExplanation>(search content only)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
+                    </div>
+                    <div className="text-sm">
+                        <span className="dark:text-gray-300">Reference guide: </span><KeyboardShortcutHint shortcut="⌘" /> <KeyboardShortcutHint shortcut="/" />
                     </div>
                 </div>
             </div>
