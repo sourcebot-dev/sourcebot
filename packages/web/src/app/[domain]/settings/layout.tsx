@@ -36,8 +36,8 @@ export default function SettingsLayout({
     return (
         <div className="min-h-screen flex flex-col">
             <NavigationMenu domain={domain} />
-            <div className="flex-grow flex justify-center p-4 bg-[#fafafa] dark:bg-background relative">
-                <div className="w-full max-w-6xl">
+            <div className="flex-grow flex justify-center p-4 bg-backgroundSecondary relative">
+                <div className="w-full max-w-6xl p-6">
                     <Header className="w-full">
                         <h1 className="text-3xl">Settings</h1>
                     </Header>
