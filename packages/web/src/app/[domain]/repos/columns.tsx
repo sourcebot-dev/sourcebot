@@ -134,7 +134,7 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
                                 }
                             }}
                         >
-                            {repo.name}
+                            {repo.name.length > 40 ? `${repo.name.slice(0, 40)}...` : repo.name}
                         </span>
                         {isRemoteRepo && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />}
                     </div>

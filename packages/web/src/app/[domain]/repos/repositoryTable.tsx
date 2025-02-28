@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export const RepositoryTable = () => {
     const domain = useDomain();
+
     const { data: repos, isLoading: reposLoading, error: reposError } = useQuery({
         queryKey: ['repos', domain],
         queryFn: async () => {
