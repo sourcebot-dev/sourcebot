@@ -23,7 +23,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/private.key ${{ secrets.GCP_STAGING_USERNAME }}@${{ secrets.GCP_STAGING_HOST }} << 'EOF'
             # Stop and remove any existing container
-            docker stop sourcebot-staging || true
+            docker stop -t 60 sourcebot-staging || true
             docker rm sourcebot-staging || true
 
             # Run new container
