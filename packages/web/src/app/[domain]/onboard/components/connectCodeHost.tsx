@@ -1,8 +1,7 @@
 'use client';
 
-import Image from "next/image";
 import { useState } from "react";
-import { cn, CodeHostType } from "@/lib/utils";
+import { CodeHostType } from "@/lib/utils";
 import { getCodeHostIcon } from "@/lib/utils";
 import {
     GitHubConnectionCreationForm,
@@ -13,9 +12,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { OnboardingSteps } from "@/lib/constants";
-import { Button } from "@/components/ui/button";
-import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { BackButton } from "./onboardBackButton";
+import { CodeHostIconButton } from "../../components/codeHostIconButton";
 
 interface ConnectCodeHostProps {
     nextStep: OnboardingSteps;
@@ -84,55 +82,26 @@ interface CodeHostSelectionProps {
 const CodeHostSelection = ({ onSelect }: CodeHostSelectionProps) => {
     return (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <CodeHostButton
+            <CodeHostIconButton
                 name="GitHub"
                 logo={getCodeHostIcon("github")!}
                 onClick={() => onSelect("github")}
             />
-            <CodeHostButton
+            <CodeHostIconButton
                 name="GitLab"
                 logo={getCodeHostIcon("gitlab")!}
                 onClick={() => onSelect("gitlab")}
             />
-            <CodeHostButton
+            <CodeHostIconButton
                 name="Gitea"
                 logo={getCodeHostIcon("gitea")!}
                 onClick={() => onSelect("gitea")}
             />
-            <CodeHostButton
+            <CodeHostIconButton
                 name="Gerrit"
                 logo={getCodeHostIcon("gerrit")!}
                 onClick={() => onSelect("gerrit")}
             />
         </div>
-    )
-}
-
-interface CodeHostButtonProps {
-    name: string;
-    logo: { src: string, className?: string };
-    onClick: () => void;
-}
-
-const CodeHostButton = ({
-    name,
-    logo,
-    onClick,
-}: CodeHostButtonProps) => {
-    const captureEvent = useCaptureEvent();
-    return (
-        <Button
-            className="flex flex-col items-center justify-center p-4 w-24 h-24 cursor-pointer gap-2"
-            variant="outline"
-            onClick={() => {
-                captureEvent('wa_connect_code_host_button_pressed', {
-                    name,
-                })
-                onClick();
-            }}
-        >
-            <Image src={logo.src} alt={name} className={cn("w-8 h-8", logo.className)} />
-            <p className="text-sm font-medium">{name}</p>
-        </Button>
     )
 }

@@ -55,7 +55,7 @@ export const Overview = ({ connectionId }: OverviewProps) => {
             captureEvent('wa_connection_retry_sync_success', {});
             refetch();
         }
-    }, [connectionId, domain, toast, captureEvent, refetch]);
+    }, [connectionId, domain, captureEvent, refetch]);
     
 
     if (error) {
