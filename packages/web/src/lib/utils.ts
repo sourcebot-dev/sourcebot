@@ -114,7 +114,7 @@ export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo |
             return {
                 type: "github",
                 displayName: displayName,
-                costHostName: "GitHub",
+                codeHostName: "GitHub",
                 repoLink: repo.repoCloneUrl,
                 icon: src,
                 iconClassName: className,
@@ -125,7 +125,7 @@ export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo |
             return {
                 type: "gitlab",
                 displayName: displayName,
-                costHostName: "GitLab",
+                codeHostName: "GitLab",
                 repoLink: repo.repoCloneUrl,
                 icon: src,
                 iconClassName: className,
@@ -136,7 +136,7 @@ export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo |
             return {
                 type: "gitea",
                 displayName: displayName,
-                costHostName: "Gitea",
+                codeHostName: "Gitea",
                 repoLink: repo.repoCloneUrl,
                 icon: src,
                 iconClassName: className,
@@ -147,7 +147,7 @@ export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo |
             return {
                 type: "gerrit",
                 displayName: displayName,
-                costHostName: "Gerrit",
+                codeHostName: "Gerrit",
                 repoLink: repo.repoCloneUrl,
                 icon: src,
                 iconClassName: className,
