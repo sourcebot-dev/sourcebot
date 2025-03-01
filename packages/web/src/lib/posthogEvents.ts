@@ -231,6 +231,11 @@ export type PosthogEventMap = {
     wa_org_domain_updated_fail: {
         error: string,
     },
+    //////////////////////////////////////////////////////////////////
+    wa_onboard_github_selected: {},
+    wa_onboard_gitlab_selected: {},
+    wa_onboard_gitea_selected: {},
+    wa_onboard_gerrit_selected: {},
 } 
 
 export type PosthogEvent = keyof PosthogEventMap;

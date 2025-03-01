@@ -16,11 +16,10 @@ export const ENTERPRISE_FEATURES = [
 ]
 
 export const TEAM_FEATURES = [
-    "Blazingly fast code search",
-    "Index hundreds of repos from multiple code hosts (GitHub, GitLab, Gerrit, Gitea, etc.). Self-hosted code hosts supported.",
+    "Index thousands of repos from multiple code hosts (GitHub, GitLab, Gerrit, Gitea, etc.). Self-hosted code hosts supported.",
     "Public and private repos supported.",
     "Create shareable links to code snippets.",
-    "Powerful regex and symbol search",
+    "Built on-top of zoekt, Google's code search engine. Blazingly fast and powerful (regex, symbol) code search.",
 ]
 
 export const MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME = 'sb.mobile-unsupported-splash-screen-dismissed';
