@@ -8,8 +8,17 @@ local.file_match "local_files" {
 
 loki.source.file "log_scrape" {
   targets    = local.file_match.local_files.targets
-  forward_to = [loki.write.grafana_loki.receiver]
+  forward_to = [loki.process.filter_logs.receiver]
   tail_from_end = true
+}
+
+loki.process "filter_logs" {
+  stage.drop {
+    source = ""
+    expression  = ""
+    drop_counter_reason = "noisy"
+  }
+  forward_to = [loki.write.grafana_loki.receiver]
 }
 
 loki.write "grafana_loki" {
