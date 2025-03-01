@@ -63,15 +63,19 @@ export const getProviders = () => {
             server: SMTP_CONNECTION_URL,
             from: EMAIL_FROM,
             maxAge: 60 * 10,
-            sendVerificationRequest: async ({ identifier, url, provider }) => {
+            generateVerificationToken: async () => {
+                const token = String(Math.floor(100000 + Math.random() * 900000));
+                return token;
+            },
+            sendVerificationRequest: async ({ identifier, provider, token }) => {
                 const transport = createTransport(provider.server);
-                const html = await render(MagicLinkEmail({ magicLink: url, baseUrl: AUTH_URL }));
+                const html = await render(MagicLinkEmail({ baseUrl: AUTH_URL, token: token }));
                 const result = await transport.sendMail({
                     to: identifier,
                     from: provider.from,
                     subject: 'Log in to Sourcebot',
                     html,
-                    text: `Log in to Sourcebot by clicking here: ${url}`
+                    text: `Log in to Sourcebot using this code: ${token}`
                 });
 
                 const failed = result.rejected.concat(result.pending).filter(Boolean);

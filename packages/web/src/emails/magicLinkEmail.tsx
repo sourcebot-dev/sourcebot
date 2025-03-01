@@ -1,65 +1,66 @@
 import {
     Body,
     Container,
+    Head,
+    Html,
     Img,
-    Link,
     Preview,
     Section,
     Tailwind,
     Text,
 } from '@react-email/components';
-import { EmailFooter } from './emailFooter';
 
 interface MagicLinkEmailProps {
-    magicLink: string,
     baseUrl: string,
+    token: string,
 }
 
 export const MagicLinkEmail = ({
-    magicLink: url,
-    baseUrl: baseUrl,
+    baseUrl,
+    token,
 }: MagicLinkEmailProps) => (
-    <Tailwind>
-        <Preview>Log in to Sourcebot</Preview>
-        <Body className="bg-white my-auto mx-auto font-sans px-2">
-        <Container className="border border-solid border-[#eaeaea] rounded my-[40px] mx-auto p-[20px] max-w-[465px]">
-                <Section className="mt-[32px]">
-                    <Img
-                        src={`${baseUrl}/sb_logo_light_large.png`}
-                        height="60"
-                        width="auto"
-                        alt="Sourcebot Logo"
-                        className="my-0 mx-auto"
-                    />
-                </Section>
-                <Text className="text-black text-[14px] leading-[24px]">
-                    Hello,
-                </Text>
-                <Text className="text-black text-[14px] leading-[24px]">
-                    You can log in to your Sourcebot account by clicking the link below.
-                </Text>
-                <Link
-                    href={url}
-                    className="text-blue-600 no-underline"
-                    target="_blank"
-                    style={{
-                        display: 'block',
-                        marginBottom: '16px',
-                    }}
-                >
-                    Click here to log in
-                </Link>
-                <Text className="text-black text-[14px] leading-[24px]">
-                    If you didn&apos;t try to login, you can safely ignore this email.
-                </Text>
-                <EmailFooter />
-            </Container>
-        </Body>
-    </Tailwind>
-)
+    <Html>
+        <Head />
+        <Preview>Use this code {token} to log in to Sourcebot</Preview>
+        <Tailwind>
+            <Body className="bg-white font-sans m-0 p-0">
+                <Container className="mx-auto max-w-[600px] p-6">
+                    <Section className="mb-4">
+                        <Img
+                            src={`${baseUrl}/sb_logo_light_large.png`}
+                            alt="Sourcebot Logo"
+                            width="auto"
+                            height="40"
+                            className="mx-0"
+                        />
+                    </Section>
+
+                    <Section className="mb-4">
+                        <Text className="text-base text-black">
+                            Use the code below to log in to Sourcebot.
+                        </Text>
+                    </Section>
+
+                    <Section className="bg-[#f4f7fa] py-4 px-2 rounded mb-4 text-center">
+                        <Text className="text-xl font-bold text-black tracking-[0.5em]">
+                            {token}
+                        </Text>
+                    </Section>
+
+                    <Section>
+                        <Text className="text-sm text-gray-600 leading-6">
+                            This code is only valid for the next 10 minutes. If you didn&apos;t try to log in,
+                            you can safely ignore this email.
+                        </Text>
+                    </Section>
+                </Container>
+            </Body>
+        </Tailwind>
+    </Html>
+);
 
 MagicLinkEmail.PreviewProps = {
-    magicLink: 'https://example.com/login',
+    token: '123456',
     baseUrl: 'http://localhost:3000',
 } as MagicLinkEmailProps;
 
