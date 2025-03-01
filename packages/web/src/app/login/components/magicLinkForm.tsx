@@ -10,7 +10,6 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { useSearchParams, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { encryptValue } from "@/actions";
 
@@ -28,8 +27,6 @@ interface MagicLinkFormProps {
 
 export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
     const captureEvent = useCaptureEvent();
-    const currentSearchParams = useSearchParams();
-    const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
 
     const magicLinkForm = useForm<z.infer<typeof magicLinkSchema>>({
