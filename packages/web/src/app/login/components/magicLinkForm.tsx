@@ -47,14 +47,8 @@ export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
         Cookies.set(MAGIC_LINK_ONBOARDING_COOKIE_NAME, `${encryptedIv}:${encryptedEmail}`, { expires: MAGIC_LINK_ONBOARDING_COOKIE_EXPIRATION_DAYS});
 
         signIn("nodemailer", { email: values.email, redirectTo: callbackUrl ?? "/" })
-            .then((res) => {
-                if (!res || res.error) {
-                    setIsLoading(false);
-                    console.error(res?.error ?? "Unknown error caused by nodemailer sign in");
-                    return;
-                }
-            })
             .finally(() => {
+                Cookies.remove(MAGIC_LINK_ONBOARDING_COOKIE_NAME);
                 setIsLoading(false);
             });
     }
