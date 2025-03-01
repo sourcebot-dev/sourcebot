@@ -1,3 +1,7 @@
+logging {
+  level  = "debug"    # or even "trace" for more detail
+  format = "logfmt"   # or "json" for structured logging
+}
 
 local.file_match "local_files" {
   path_targets = [
