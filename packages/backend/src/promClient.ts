@@ -5,6 +5,7 @@ export class PromClient {
     private registry: Registry;
     private app: express.Application;
     public activeRepoIndexingJobs: Gauge<string>;
+    public pendingRepoIndexingJobs: Gauge<string>;
     public repoIndexingReattemptsTotal: Counter<string>;
     public repoIndexingFailTotal: Counter<string>;
     public repoIndexingSuccessTotal: Counter<string>;
@@ -25,6 +26,13 @@ export class PromClient {
             labelNames: ['repo'],
         });
         this.registry.registerMetric(this.activeRepoIndexingJobs);
+
+        this.pendingRepoIndexingJobs = new Gauge({
+            name: 'pending_repo_indexing_jobs',
+            help: 'The number of repo indexing jobs waiting in queue',
+            labelNames: ['repo'],
+        });
+        this.registry.registerMetric(this.pendingRepoIndexingJobs);
 
         this.repoIndexingReattemptsTotal = new Counter({
             name: 'repo_indexing_reattempts',
