@@ -9,18 +9,29 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Cookies from "js-cookie";
+import { MAGIC_LINK_ONBOARDING_COOKIE_NAME } from "../components/magicLinkForm";
+import { decryptValue } from "@/actions"
 
 export default function VerifyPage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [value, setValue] = useState("")
     const router = useRouter()
 
-    const handleSubmit = useCallback(() => {
+    const handleSubmit = useCallback(async () => {
         setIsSubmitting(true)
+
+        const magicLinkOnboardingParams = Cookies.get(MAGIC_LINK_ONBOARDING_COOKIE_NAME);
+        if (!magicLinkOnboardingParams) {
+            throw new Error("No magic link onboarding params found")
+        }
+
+        const [encryptedIv, encryptedEmail] = magicLinkOnboardingParams.split(":");
+        const email = await decryptValue(encryptedIv, encryptedEmail);
 
         const url = new URL("/api/auth/callback/nodemailer", window.location.origin)
         url.searchParams.set("token", value)
-        url.searchParams.set("email", "michael@sourcebot.dev")
+        url.searchParams.set("email", email)
         router.push(url.toString())
     }, [value])
 

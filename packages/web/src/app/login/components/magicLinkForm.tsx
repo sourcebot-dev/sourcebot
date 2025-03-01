@@ -10,6 +10,13 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { useSearchParams, useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import { encryptValue } from "@/actions";
+
+export const MAGIC_LINK_ONBOARDING_COOKIE_NAME = "magic_link_onboarding_params"
+const MAGIC_LINK_ONBOARDING_COOKIE_EXPIRATION_DAYS = 7
+
 
 const magicLinkSchema = z.object({
     email: z.string().email(),
@@ -21,7 +28,10 @@ interface MagicLinkFormProps {
 
 export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
     const captureEvent = useCaptureEvent();
+    const currentSearchParams = useSearchParams();
+    const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+
     const magicLinkForm = useForm<z.infer<typeof magicLinkSchema>>({
         resolver: zodResolver(magicLinkSchema),
         defaultValues: {
@@ -29,10 +39,21 @@ export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
         },
     });
 
-    const onSignIn = (values: z.infer<typeof magicLinkSchema>) => {
+    const onSignIn = async (values: z.infer<typeof magicLinkSchema>) => {
         setIsLoading(true);
         captureEvent("wa_login_with_magic_link", {});
+
+        const { iv: encryptedIv, encryptedData: encryptedEmail } = await encryptValue(values.email);
+        Cookies.set(MAGIC_LINK_ONBOARDING_COOKIE_NAME, `${encryptedIv}:${encryptedEmail}`, { expires: MAGIC_LINK_ONBOARDING_COOKIE_EXPIRATION_DAYS});
+
         signIn("nodemailer", { email: values.email, redirectTo: callbackUrl ?? "/" })
+            .then((res) => {
+                if (!res || res.error) {
+                    setIsLoading(false);
+                    console.error(res?.error ?? "Unknown error caused by nodemailer sign in");
+                    return;
+                }
+            })
             .finally(() => {
                 setIsLoading(false);
             });

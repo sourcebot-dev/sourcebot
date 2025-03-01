@@ -24,7 +24,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "next-themes"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { KeymapType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useKeymapType } from "@/hooks/useKeymapType"
@@ -44,7 +44,7 @@ export const SettingsDropdown = ({
 
     const { theme: _theme, setTheme } = useTheme();
     const [keymapType, setKeymapType] = useKeymapType();
-    const { data: session } = useSession();
+    const { data: session, update } = useSession();
 
     const theme = useMemo(() => {
         return _theme ?? "light";
@@ -64,7 +64,11 @@ export const SettingsDropdown = ({
     }, [theme]);
 
     return (
-        <DropdownMenu>
+        <DropdownMenu onOpenChange={(isOpen) => {
+            if (isOpen) {
+                update();
+            }
+        }}>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className={cn(menuButtonClassName)}>
                     <Settings className="h-4 w-4" />
