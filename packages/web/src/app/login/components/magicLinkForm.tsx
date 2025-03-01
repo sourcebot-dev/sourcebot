@@ -45,7 +45,6 @@ export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
 
         signIn("nodemailer", { email: values.email, redirectTo: callbackUrl ?? "/" })
             .finally(() => {
-                Cookies.remove(MAGIC_LINK_ONBOARDING_COOKIE_NAME);
                 setIsLoading(false);
             });
     }

@@ -23,7 +23,7 @@ export default function VerifyPage() {
 
         const magicLinkOnboardingParams = Cookies.get(MAGIC_LINK_ONBOARDING_COOKIE_NAME);
         if (!magicLinkOnboardingParams) {
-            throw new Error("No magic link onboarding params found")
+            throw new Error("No magic link onboarding params cookie found")
         }
 
         const [encryptedIv, encryptedEmail] = magicLinkOnboardingParams.split(":");
@@ -33,6 +33,8 @@ export default function VerifyPage() {
         url.searchParams.set("token", value)
         url.searchParams.set("email", email)
         router.push(url.toString())
+
+        Cookies.remove(MAGIC_LINK_ONBOARDING_COOKIE_NAME);
     }, [value])
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
