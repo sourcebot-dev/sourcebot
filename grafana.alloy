@@ -27,7 +27,7 @@ loki.process "filter_logs" {
 
 loki.write "grafana_loki" {
   endpoint {
-    url = sys.env("GRAFANA_ENDPOINT")
+    url = sys.env("GRAFANA_LOKI_ENDPOINT")
 
     basic_auth {
       username = sys.env("GRAFANA_USERNAME")
