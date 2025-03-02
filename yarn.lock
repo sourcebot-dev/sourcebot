@@ -3125,6 +3125,14 @@
   dependencies:
     "@sentry/core" "9.3.0"
 
+"@sentry-internal/node-cpu-profiler@^2.0.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/node-cpu-profiler/-/node-cpu-profiler-2.1.0.tgz#ef28f269e43a560a1a9a6e86d0aa7846e3f284c5"
+  integrity sha512-/gPj8ARZ8Jw8gCQWToCiUyLoOxBDP8wuFNx07mAXegYiDa4NcIvo37ZzDWaTG+wjwa/LvCpHxHff6pejt4KOKg==
+  dependencies:
+    detect-libc "^2.0.3"
+    node-abi "^3.73.0"
+
 "@sentry-internal/replay-canvas@9.3.0":
   version "9.3.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/replay-canvas/-/replay-canvas-9.3.0.tgz#b9432ab65152304b5f86f99efdeffcd92091f733"
@@ -3250,7 +3258,7 @@
     rollup "3.29.5"
     stacktrace-parser "^0.1.10"
 
-"@sentry/node@9.3.0":
+"@sentry/node@9.3.0", "@sentry/node@^9.3.0":
   version "9.3.0"
   resolved "https://registry.yarnpkg.com/@sentry/node/-/node-9.3.0.tgz#fe262a72c6dff0166673ee92247bfdcd0f8598be"
   integrity sha512-XzphoVImlKh+wjeKYSaZlH4aQVuw8I63RH6juCktMBKnjTfR9aZkHWeiFc4YghHU2jPXjKTKvGFRkU45xIGr1g==
@@ -3296,6 +3304,15 @@
   integrity sha512-kvHj0n0Gk5H482dU6UH+UrccMBPqbjYadwNdb61kMNy5H/xkFcCDKZ8wm3TawlnuiPxzzf4orofiR6Pn/IW6uA==
   dependencies:
     "@sentry/core" "9.3.0"
+
+"@sentry/profiling-node@^9.3.0":
+  version "9.3.0"
+  resolved "https://registry.yarnpkg.com/@sentry/profiling-node/-/profiling-node-9.3.0.tgz#c7c8854a07c4e9abd2bd261856780e4177b0bc36"
+  integrity sha512-pwuJFP/yFXskJgrDGqaBEnrskQwEA75SurJ47ezp2pda2lR7cyQb7Lr7y8AaJx/jnv0tFIoWxgPqj6DVT+1rVw==
+  dependencies:
+    "@sentry-internal/node-cpu-profiler" "^2.0.0"
+    "@sentry/core" "9.3.0"
+    "@sentry/node" "9.3.0"
 
 "@sentry/react@9.3.0":
   version "9.3.0"
@@ -7721,6 +7738,13 @@ nice-try@^1.0.4:
   version "1.0.5"
   resolved "https://registry.npmjs.org/nice-try/-/nice-try-1.0.5.tgz"
   integrity sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==
+
+node-abi@^3.73.0:
+  version "3.74.0"
+  resolved "https://registry.yarnpkg.com/node-abi/-/node-abi-3.74.0.tgz#5bfb4424264eaeb91432d2adb9da23c63a301ed0"
+  integrity sha512-c5XK0MjkGBrQPGYG24GBADZud0NCbznxNx0ZkS+ebUTrmV1qTDxPxSL8zEAPURXSbLRWVexxmP4986BziahL5w==
+  dependencies:
+    semver "^7.3.5"
 
 node-abort-controller@^3.1.1:
   version "3.1.1"

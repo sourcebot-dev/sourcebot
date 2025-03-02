@@ -23,6 +23,8 @@
     "dependencies": {
         "@gitbeaker/rest": "^40.5.1",
         "@octokit/rest": "^21.0.2",
+        "@sentry/node": "^9.3.0",
+        "@sentry/profiling-node": "^9.3.0",
         "@sourcebot/crypto": "^0.1.0",
         "@sourcebot/db": "^0.1.0",
         "@sourcebot/error": "^0.1.0",

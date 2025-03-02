@@ -1,3 +1,6 @@
+import "./instrument.js";
+
+import Sentry from "@sentry/node";
 import { ArgumentParser } from "argparse";
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
@@ -10,6 +13,17 @@ import { PrismaClient } from "@sourcebot/db";
 const parser = new ArgumentParser({
     description: "Sourcebot backend tool",
 });
+
+Sentry.startSpan({
+    op: "test",
+    name: "My First Test Span",
+  }, () => {
+    try {
+      foo();
+    } catch (e) {
+      Sentry.captureException(e);
+    }
+  });
 
 type Arguments = {
     configPath: string;
