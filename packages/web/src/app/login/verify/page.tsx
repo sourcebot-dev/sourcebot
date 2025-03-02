@@ -41,7 +41,7 @@ function VerifyPageContent() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background to-muted/30">
+        <div className="flex flex-col items-center p-4 sm:p-12 min-h-screen w-full bg-backgroundSecondary">
             <div className="w-full max-w-md">
                 <div className="flex justify-center mb-6">
                     <SourcebotLogo className="h-16" size="large" />

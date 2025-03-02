@@ -42,7 +42,9 @@ export default async function Onboard({ params, searchParams }: OnboardProps) {
 
     return (
         <div className="flex flex-col items-center py-12 px-4 sm:px-12 min-h-screen bg-backgroundSecondary relative">
-            <LogoutEscapeHatch className="absolute top-0 right-0 p-4 sm:p-12" />
+            {step !== OnboardingSteps.Complete && (
+                <LogoutEscapeHatch className="absolute top-0 right-0 p-4 sm:p-12" />
+            )}
             {step === OnboardingSteps.ConnectCodeHost && (
                 <>
                     <OnboardHeader
