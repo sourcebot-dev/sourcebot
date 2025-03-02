@@ -50,7 +50,7 @@ prometheus.scrape "local_app" {
 
   metrics_path = "/metrics"
   scrape_timeout = "500ms"
-  scrape_interval = "500ms"
+  scrape_interval = "15s"
 
   job_name = sys.env("GRAFANA_ENVIRONMENT")
   

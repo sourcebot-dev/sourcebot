@@ -1,4 +1,3 @@
-import { NavigationMenu } from "../components/navigationMenu";
 import { RepositoryTable } from "./repositoryTable";
 import { getOrgFromDomain } from "@/data/org";
 import { PageNotFound } from "../components/pageNotFound";
