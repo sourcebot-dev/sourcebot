@@ -1,4 +1,3 @@
-/*
 logging {
   level  = "debug"    # or even "trace" for more detail
   format = "logfmt"   # or "json" for structured logging
@@ -31,12 +30,11 @@ loki.write "grafana_loki" {
     url = sys.env("GRAFANA_LOKI_ENDPOINT")
 
     basic_auth {
-      username = sys.env("GRAFANA_USERNAME")
+      username = sys.env("GRAFANA_LOKI_USERNAME")
       password = sys.env("GRAFANA_PASSWORD")
     }
   }
 }
-*/
 
 prometheus.scrape "local_app" {
   targets = [
@@ -64,8 +62,8 @@ prometheus.remote_write "grafana_cloud" {
       url  = sys.env("GRAFANA_ENDPOINT")
   
       basic_auth {
-        username = sys.env("GRAFANA_USERNAME")
-        password = sys.env("GRAFANA_PASSWORD")
+        username = sys.env("GRAFANA_PROM_USERNAME")
+        password = sys.env("GRAFANA_PROM_PASSWORD")
       }
    }
 }
