@@ -7,6 +7,8 @@ import micromatch from 'micromatch';
 import { PrismaClient } from '@sourcebot/db';
 import { FALLBACK_GITEA_TOKEN } from './environment.js';
 import { processPromiseResults, throwIfAnyFailed } from './connectionUtils.js';
+import * as Sentry from "@sentry/node";
+
 const logger = createLogger('Gitea');
 
 export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {
@@ -132,6 +134,8 @@ const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
                 data
             };
         } catch (e: any) {
+            Sentry.captureException(e);
+
             if (e?.status === 404) {
                 logger.error(`User ${user} not found or no access`);
                 return {
@@ -170,6 +174,8 @@ const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
                 data
             };
         } catch (e: any) {
+            Sentry.captureException(e);
+
             if (e?.status === 404) {
                 logger.error(`Organization ${org} not found or no access`);
                 return {
@@ -206,6 +212,8 @@ const getRepos = async <T>(repos: string[], api: Api<T>) => {
                 data: [response.data]
             };
         } catch (e: any) {
+            Sentry.captureException(e);
+
             if (e?.status === 404) {
                 logger.error(`Repository ${repo} not found or no access`);
                 return {
@@ -234,7 +242,9 @@ const paginate = async <T>(request: (page: number) => Promise<HttpResponse<T[], 
 
     const totalCountString = result.headers.get('x-total-count');
     if (!totalCountString) {
-        throw new Error("Header 'x-total-count' not found");
+        const e = new Error("Header 'x-total-count' not found");
+        Sentry.captureException(e);
+        throw e;
     }
     const totalCount = parseInt(totalCountString);
 

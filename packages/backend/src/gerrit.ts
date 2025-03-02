@@ -5,6 +5,7 @@ import micromatch from "micromatch";
 import { measure, fetchWithRetry } from './utils.js';
 import { BackendError } from '@sourcebot/error';
 import { BackendException } from '@sourcebot/error';
+import * as Sentry from "@sentry/node";
 
 // https://gerrit-review.googlesource.com/Documentation/rest-api.html
 interface GerritProjects {
@@ -40,6 +41,7 @@ export const getGerritReposFromConfig = async (config: GerritConfig): Promise<Ge
          const fetchFn = () => fetchAllProjects(url);
          return fetchWithRetry(fetchFn, `projects from ${url}`, logger);
       } catch (err) {
+         Sentry.captureException(err);
          if (err instanceof BackendException) {
             throw err;
          }
@@ -50,7 +52,9 @@ export const getGerritReposFromConfig = async (config: GerritConfig): Promise<Ge
    });
 
    if (!projects) {
-      throw new Error(`Failed to fetch projects from ${url}`);
+      const e = new Error(`Failed to fetch projects from ${url}`);
+      Sentry.captureException(e);
+      throw e;
    }
 
    // exclude "All-Projects" and "All-Users" projects
@@ -89,11 +93,14 @@ const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
          response = await fetch(endpointWithParams);
          if (!response.ok) {
             console.log(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${response.status}`);
-            throw new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
+            const e = new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
                status: response.status,
             });
+            Sentry.captureException(e);
+            throw e;
          }
       } catch (err) {
+         Sentry.captureException(err);
          if (err instanceof BackendException) {
             throw err;
          }

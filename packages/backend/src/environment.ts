@@ -1,8 +1,11 @@
 import dotenv from 'dotenv';
+import * as Sentry from "@sentry/node";
 
 export const getEnv = (env: string | undefined, defaultValue?: string, required?: boolean) => {
 	if (required && !env && !defaultValue) {
-		throw new Error(`Missing required environment variable: ${env}`);
+		const e = new Error(`Missing required environment variable: ${env}`);
+		Sentry.captureException(e);
+		throw e;
 	}
 
 	return env ?? defaultValue;
@@ -39,3 +42,4 @@ export const INDEX_CONCURRENCY_MULTIPLE = getEnv(process.env.INDEX_CONCURRENCY_M
 export const REDIS_URL = getEnv(process.env.REDIS_URL, 'redis://localhost:6379')!;
 
 export const SENTRY_DSN = getEnv(process.env.SENTRY_DSN);
+export const SENTRY_ENVIRONMENT = getEnv(process.env.SENTRY_ENVIRONMENT, 'unknown')!;

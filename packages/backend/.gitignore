@@ -1,2 +1,4 @@
 dist/
 !.env
+# Sentry Config File
+.sentryclirc

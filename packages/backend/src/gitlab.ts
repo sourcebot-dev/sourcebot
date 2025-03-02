@@ -6,6 +6,8 @@ import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
 import { PrismaClient } from "@sourcebot/db";
 import { FALLBACK_GITLAB_TOKEN } from "./environment.js";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
+import * as Sentry from "@sentry/node";
+
 const logger = createLogger("GitLab");
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
@@ -47,6 +49,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                 logger.debug(`Found ${_projects.length} projects in ${durationMs}ms.`);
                 allRepos = allRepos.concat(_projects);
             } catch (e) {
+                Sentry.captureException(e);
                 logger.error(`Failed to fetch all projects visible in ${config.url}.`, e);
                 throw e;
             }
@@ -72,6 +75,8 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                     data
                 };
             } catch (e: any) {
+                Sentry.captureException(e);
+
                 const status = e?.cause?.response?.status;
                 if (status === 404) {
                     logger.error(`Group ${group} not found or no access`);
@@ -106,6 +111,8 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                     data
                 };
             } catch (e: any) {
+                Sentry.captureException(e);
+
                 const status = e?.cause?.response?.status;
                 if (status === 404) {
                     logger.error(`User ${user} not found or no access`);
@@ -138,6 +145,8 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                     data: [data]
                 };
             } catch (e: any) {
+                Sentry.captureException(e);
+
                 const status = e?.cause?.response?.status;
 
                 if (status === 404) {

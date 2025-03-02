@@ -5,6 +5,7 @@ import { PrismaClient, Repo } from "@sourcebot/db";
 import { decrypt } from "@sourcebot/crypto";
 import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { BackendException, BackendError } from "@sourcebot/error";
+import * as Sentry from "@sentry/node";
 
 export const measure = async <T>(cb: () => Promise<T>) => {
     const start = Date.now();
@@ -22,9 +23,11 @@ export const marshalBool = (value?: boolean) => {
 
 export const getTokenFromConfig = async (token: Token, orgId: number, db?: PrismaClient) => {
     if (!db) {
-        throw new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
+        const e = new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
             message: `No database connection provided.`,
         });
+        Sentry.captureException(e);
+        throw e;
     }
 
     const secretKey = token.secret;
@@ -38,9 +41,11 @@ export const getTokenFromConfig = async (token: Token, orgId: number, db?: Prism
     });
 
     if (!secret) {
-        throw new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
+        const e = new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
             message: `Secret with key ${secretKey} not found for org ${orgId}`,
         });
+        Sentry.captureException(e);
+        throw e;
     }
 
     const decryptedSecret = decrypt(secret.iv, secret.encryptedValue);
@@ -104,6 +109,8 @@ export const fetchWithRetry = async <T>(
         try {
             return await fetchFn();
         } catch (e: any) {
+            Sentry.captureException(e);
+
             attempts++;
             if ((e.status === 403 || e.status === 429 || e.status === 443) && attempts < maxAttempts) {
                 const computedWaitTime = 3000 * Math.pow(2, attempts - 1);
