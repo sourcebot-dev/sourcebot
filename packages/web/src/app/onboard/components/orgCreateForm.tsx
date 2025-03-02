@@ -13,12 +13,14 @@ import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/hooks/use-toast"
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card"
-import { NEXT_PUBLIC_ROOT_DOMAIN } from "@/lib/environment.client";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { orgNameSchema, orgDomainSchema } from "@/lib/schemas"
 
+interface OrgCreateFormProps {
+    rootDomain: string;
+}
 
-export function OrgCreateForm() {
+export function OrgCreateForm({ rootDomain }: OrgCreateFormProps) {
     const { toast } = useToast();
     const router = useRouter();
     const captureEvent = useCaptureEvent();
@@ -97,7 +99,7 @@ export function OrgCreateForm() {
                                 <FormDescription>{`Your organization's URL namespace. This is where your organization's Sourcebot instance will be accessible.`}</FormDescription>
                                 <FormControl>
                                     <div className="flex items-center w-full">
-                                        <div className="flex-shrink-0 text-sm text-muted-foreground bg-backgroundSecondary rounded-md rounded-r-none border border-r-0 px-3 py-[9px]">{NEXT_PUBLIC_ROOT_DOMAIN}/</div>
+                                        <div className="flex-shrink-0 text-sm text-muted-foreground bg-backgroundSecondary rounded-md rounded-r-none border border-r-0 px-3 py-[9px]">{rootDomain}/</div>
                                         <Input
                                             placeholder="aperture-labs"
                                             {...field}

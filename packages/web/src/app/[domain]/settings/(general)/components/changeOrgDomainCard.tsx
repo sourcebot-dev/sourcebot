@@ -9,7 +9,6 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Input } from "@/components/ui/input";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useDomain } from "@/hooks/useDomain";
-import { NEXT_PUBLIC_ROOT_DOMAIN } from "@/lib/environment.client";
 import { orgDomainSchema } from "@/lib/schemas";
 import { isServiceError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,9 +26,10 @@ const formSchema = z.object({
 interface ChangeOrgDomainCardProps {
     currentUserRole: OrgRole,
     orgDomain: string,
+    rootDomain: string,
 }
 
-export function ChangeOrgDomainCard({ orgDomain, currentUserRole }: ChangeOrgDomainCardProps) {
+export function ChangeOrgDomainCard({ orgDomain, currentUserRole, rootDomain }: ChangeOrgDomainCardProps) {
     const domain = useDomain()
     const { toast } = useToast()
     const captureEvent = useCaptureEvent();
@@ -80,7 +80,7 @@ export function ChangeOrgDomainCard({ orgDomain, currentUserRole }: ChangeOrgDom
                                     <FormItem>
                                         <FormControl>
                                             <div className="flex items-center w-full">
-                                                <div className="flex-shrink-0 text-sm text-muted-foreground bg-backgroundSecondary rounded-md rounded-r-none border border-r-0 px-3 py-[9px]">{NEXT_PUBLIC_ROOT_DOMAIN}/</div>
+                                                <div className="flex-shrink-0 text-sm text-muted-foreground bg-backgroundSecondary rounded-md rounded-r-none border border-r-0 px-3 py-[9px]">{rootDomain}/</div>
                                                 <Input
                                                     placeholder={orgDomain}
                                                     {...field}

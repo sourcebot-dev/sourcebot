@@ -23,3 +23,5 @@ export const CONFIG_MAX_REPOS_NO_TOKEN = getEnvNumber(process.env.CONFIG_MAX_REP
 
 export const SMTP_CONNECTION_URL = getEnv(process.env.SMTP_CONNECTION_URL);
 export const EMAIL_FROM = getEnv(process.env.EMAIL_FROM);
+
+export const SOURCEBOT_ROOT_DOMAIN = getEnv(process.env.SOURCEBOT_ROOT_DOMAIN, "localhost:3000")!;

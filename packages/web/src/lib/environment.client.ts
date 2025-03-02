@@ -11,4 +11,3 @@ export const NEXT_PUBLIC_SOURCEBOT_VERSION = getEnv(process.env.NEXT_PUBLIC_SOUR
 export const NEXT_PUBLIC_DOMAIN_SUB_PATH = getEnv(process.env.NEXT_PUBLIC_DOMAIN_SUB_PATH, "")!;
 export const NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = getEnv(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 export const NEXT_PUBLIC_POLLING_INTERVAL_MS = getEnvNumber(process.env.NEXT_PUBLIC_POLLING_INTERVAL_MS, 5000);
-export const NEXT_PUBLIC_ROOT_DOMAIN = getEnv(process.env.NEXT_PUBLIC_ROOT_DOMAIN, "localhost:3000")!;

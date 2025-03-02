@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { OnboardHeader } from "./components/onboardHeader";
 import { OnboardingSteps } from "@/lib/constants";
 import { LogoutEscapeHatch } from "../components/logoutEscapeHatch";
+import { SOURCEBOT_ROOT_DOMAIN } from "@/lib/environment";
 
 export default async function Onboarding() {
     const session = await auth();
@@ -18,7 +19,7 @@ export default async function Onboarding() {
                 description="Create a organization for your team to search and share code across your repositories."
                 step={OnboardingSteps.CreateOrg}
             />
-            <OrgCreateForm />
+            <OrgCreateForm rootDomain={SOURCEBOT_ROOT_DOMAIN} />
             <LogoutEscapeHatch className="absolute top-0 right-0 p-4 sm:p-12" />
         </div>
     );
