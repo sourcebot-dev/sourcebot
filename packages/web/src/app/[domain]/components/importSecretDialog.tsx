@@ -213,7 +213,7 @@ const GitHubPATCreationStep = ({ step }: { step: number }) => {
         <SecretCreationStep
             step={step}
             title="Create a Personal Access Token"
-            description=<span>Navigate to <Link href="https://github.com/settings/tokens/new" target="_blank" className="underline">here on github.com</Link> (or your enterprise instance) and create a new personal access token. Sourcebot needs the <strong>repo</strong> scope in order to access private repositories:</span>
+            description=<span>Navigate <Link href="https://github.com/settings/tokens/new" target="_blank" className="underline">here on github.com</Link> (or your enterprise instance) and create a new personal access token. Sourcebot needs the <strong>repo</strong> scope in order to access private repositories:</span>
         >
             <Image
                 className="mx-auto rounded-sm"
@@ -231,7 +231,7 @@ const GitLabPATCreationStep = ({ step }: { step: number }) => {
         <SecretCreationStep
             step={step}
             title="Create a Personal Access Token"
-            description=<span>Navigate to <Link href="https://gitlab.com/-/user_settings/personal_access_tokens" target="_blank" className="underline">here on gitlab.com</Link> (or your self-hosted instance) and create a new personal access token. Sourcebot needs the <strong>read_api</strong> scope in order to access private projects:</span>
+            description=<span>Navigate <Link href="https://gitlab.com/-/user_settings/personal_access_tokens" target="_blank" className="underline">here on gitlab.com</Link> (or your self-hosted instance) and create a new personal access token. Sourcebot needs the <strong>read_api</strong> scope in order to access private projects:</span>
         >
             <Image
                 className="mx-auto rounded-sm"
@@ -249,7 +249,7 @@ const GiteaPATCreationStep = ({ step }: { step: number }) => {
         <SecretCreationStep
             step={step}
             title="Create a Personal Access Token"
-            description=<span>Navigate to <Link href="https://gitea.com/user/settings/applications" target="_blank" className="underline">here on gitea.com</Link> (or your self-hosted instance) and create a new access token. Sourcebot needs the <strong>read:repository</strong>, <strong>read:user</strong>, and <strong>read:organization</strong> scopes:</span>
+            description=<span>Navigate <Link href="https://gitea.com/user/settings/applications" target="_blank" className="underline">here on gitea.com</Link> (or your self-hosted instance) and create a new access token. Sourcebot needs the <strong>read:repository</strong>, <strong>read:user</strong>, and <strong>read:organization</strong> scopes:</span>
         >
             <Image
                 className="mx-auto rounded-sm"
