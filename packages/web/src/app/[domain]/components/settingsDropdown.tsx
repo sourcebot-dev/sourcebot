@@ -24,7 +24,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "next-themes"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { KeymapType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useKeymapType } from "@/hooks/useKeymapType"
@@ -44,7 +44,7 @@ export const SettingsDropdown = ({
 
     const { theme: _theme, setTheme } = useTheme();
     const [keymapType, setKeymapType] = useKeymapType();
-    const { data: session } = useSession();
+    const { data: session, update } = useSession();
 
     const theme = useMemo(() => {
         return _theme ?? "light";
@@ -64,7 +64,14 @@ export const SettingsDropdown = ({
     }, [theme]);
 
     return (
-        <DropdownMenu>
+        // Was hitting a bug with invite code login where the first time the user signs in, the settingsDropdown doesn't have a valid session. To fix this
+        // we can simply update the session everytime the settingsDropdown is opened. This isn't a super frequent operation and updating the session is low cost,
+        // so this is a simple solution to the problem.
+        <DropdownMenu onOpenChange={(isOpen) => {
+            if (isOpen) {
+                update();
+            }
+        }}>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className={cn(menuButtonClassName)}>
                     <Settings className="h-4 w-4" />

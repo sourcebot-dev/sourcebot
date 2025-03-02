@@ -12,7 +12,7 @@ import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, GerritConnectionConfig, ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
-import { encrypt } from "@sourcebot/crypto"
+import { decrypt, encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
 import { ConnectionSyncStatus, Prisma, OrgRole, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { cookies, headers } from "next/headers"
@@ -1407,4 +1407,12 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
     }
 
     return parsedConfig;
+}
+
+export const encryptValue = async (value: string) => {
+    return encrypt(value);
+}
+
+export const decryptValue = async (iv: string, encryptedValue: string) => {
+    return decrypt(iv, encryptedValue);
 }

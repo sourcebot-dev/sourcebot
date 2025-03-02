@@ -10,6 +10,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { useRouter } from "next/navigation";
 
 const magicLinkSchema = z.object({
     email: z.string().email(),
@@ -22,6 +23,8 @@ interface MagicLinkFormProps {
 export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
     const captureEvent = useCaptureEvent();
     const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+
     const magicLinkForm = useForm<z.infer<typeof magicLinkSchema>>({
         resolver: zodResolver(magicLinkSchema),
         defaultValues: {
@@ -29,11 +32,18 @@ export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
         },
     });
 
-    const onSignIn = (values: z.infer<typeof magicLinkSchema>) => {
+    const onSignIn = async (values: z.infer<typeof magicLinkSchema>) => {
         setIsLoading(true);
         captureEvent("wa_login_with_magic_link", {});
-        signIn("nodemailer", { email: values.email, redirectTo: callbackUrl ?? "/" })
-            .finally(() => {
+
+        signIn("nodemailer", { email: values.email, redirect: false, redirectTo: callbackUrl ?? "/" })
+            .then(() => {
+                setIsLoading(false);
+
+                router.push("/login/verify?email=" + encodeURIComponent(values.email));
+            })
+            .catch((error) => {
+                console.error("Error signing in", error);
                 setIsLoading(false);
             });
     }
@@ -66,7 +76,7 @@ export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
                     disabled={isLoading}
                 >
                     {isLoading ? <Loader2 className="animate-spin mr-2" /> : ""}
-                    Sign in with magic link
+                    Sign in with login code
                 </Button>
             </form>
         </Form>

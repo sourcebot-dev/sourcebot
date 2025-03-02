@@ -222,6 +222,8 @@ export type PosthogEventMap = {
     wa_mobile_unsupported_splash_screen_dismissed: {},
     wa_mobile_unsupported_splash_screen_displayed: {},
     //////////////////////////////////////////////////////////////////
+    wa_login_verify_page_no_email: {},
+    //////////////////////////////////////////////////////////////////
     wa_org_name_updated_success: {},
     wa_org_name_updated_fail: {
         error: string,
