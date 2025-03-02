@@ -1,11 +1,11 @@
 logging {
-  level  = "debug"    # or even "trace" for more detail
-  format = "logfmt"   # or "json" for structured logging
+  level  = "debug"
+  format = "logfmt"
 }
 
 local.file_match "local_files" {
   path_targets = [
-    {"__path__" = "/var/log/sourcebot/*.log"}
+    {"__path__" = "/var/log/sourcebot/*.log"},
   ]
   sync_period = "5s"
 }
