@@ -9,18 +9,22 @@ export const cloneRepository = async (cloneURL: string, path: string, gitConfig?
         ([key, value]) => ['--config', `${key}=${value}`]
     );
 
-    await git.clone(
-        cloneURL,
-        path,
-        [
-            "--bare",
-            ...configParams
-        ]
-    );
+    try {
+        await git.clone(
+            cloneURL,
+            path,
+            [
+                "--bare",
+                ...configParams
+            ]
+        );
 
-    await git.cwd({
-        path,
-    }).addConfig("remote.origin.fetch", "+refs/heads/*:refs/heads/*");
+        await git.cwd({
+            path,
+        }).addConfig("remote.origin.fetch", "+refs/heads/*:refs/heads/*");
+    } catch (error) {
+        throw new Error(`Failed to clone repository`);
+    }
 }
 
 
@@ -29,15 +33,19 @@ export const fetchRepository = async (path: string, onProgress?: (event: SimpleG
         progress: onProgress,
     });
 
-    await git.cwd({
-        path: path,
-    }).fetch(
-        "origin",
-        [
-            "--prune",
-            "--progress"
-        ]
-    );
+    try {
+        await git.cwd({
+            path: path,
+        }).fetch(
+            "origin",
+            [
+                "--prune",
+                "--progress"
+            ]
+        );
+    } catch (error) {
+        throw new Error(`Failed to fetch repository ${path}`);
+    }
 }
 
 export const getBranches = async (path: string) => {
