@@ -14,6 +14,8 @@ const parser = new ArgumentParser({
     description: "Sourcebot backend tool",
 });
 
+Sentry.captureException(new Error("AAAAAAAAAAAAAAAAAAAAA"));
+
 type Arguments = {
     configPath: string;
     cacheDir: string;
@@ -52,7 +54,7 @@ main(prisma, context)
     .catch(async (e) => {
         console.error(e);
         Sentry.captureException(e);
-        
+
         await prisma.$disconnect();
         process.exit(1);
     })

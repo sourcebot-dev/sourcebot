@@ -41,5 +41,5 @@ export const FALLBACK_GITEA_TOKEN = getEnv(process.env.FALLBACK_GITEA_TOKEN);
 export const INDEX_CONCURRENCY_MULTIPLE = getEnv(process.env.INDEX_CONCURRENCY_MULTIPLE);
 export const REDIS_URL = getEnv(process.env.REDIS_URL, 'redis://localhost:6379')!;
 
-export const SENTRY_DSN = getEnv(process.env.SENTRY_DSN);
+export const SENTRY_BACKEND_DSN = getEnv(process.env.SENTRY_BACKEND_DSN);
 export const SENTRY_ENVIRONMENT = getEnv(process.env.SENTRY_ENVIRONMENT, 'unknown')!;
