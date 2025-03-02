@@ -64,6 +64,9 @@ export const SettingsDropdown = ({
     }, [theme]);
 
     return (
+        // Was hitting a bug with invite code login where the first time the user signs in, the settingsDropdown doesn't have a valid session. To fix this
+        // we can simply update the session everytime the settingsDropdown is opened. This isn't a super frequent operation and updating the session is low cost,
+        // so this is a simple solution to the problem.
         <DropdownMenu onOpenChange={(isOpen) => {
             if (isOpen) {
                 update();
