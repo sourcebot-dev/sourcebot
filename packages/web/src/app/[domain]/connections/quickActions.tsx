@@ -215,10 +215,11 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
             ...previous,
             projects: [
                 ...previous.projects ?? [],
-                ""
+                "<project name>"
             ]
         }),
         name: "Add a project",
+        selectionText: "<project name>",
         description: (
             <div className="flex flex-col">
                 <span>Add a individual project to sync with. Ensure the project is visible to the provided <Code>token</Code> (if any).</span>
@@ -239,10 +240,11 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
             ...previous,
             users: [
                 ...previous.users ?? [],
-                ""
+                "<username>"
             ]
         }),
         name: "Add a user",
+        selectionText: "<username>",
         description: (
             <div className="flex flex-col">
                 <span>Add a user to sync with. All projects that the user owns visible to the provided <Code>token</Code> (if any) will be synced.</span>
@@ -263,10 +265,11 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
             ...previous,
             groups: [
                 ...previous.groups ?? [],
-                ""
+                "<group name>"
             ]
         }),
         name: "Add a group",
+        selectionText: "<group name>",
         description: (
             <div className="flex flex-col">
                 <span>Add a group to sync with. All projects in the group (and recursive subgroups) visible to the provided <Code>token</Code> (if any) will be synced.</span>
@@ -285,9 +288,10 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
     {
         fn: (previous: GitlabConnectionConfig) => ({
             ...previous,
-            url: previous.url ?? "",
+            url: previous.url ?? "https://gitlab.example.com",
         }),
         name: "Set a custom url",
+        selectionText: "https://gitlab.example.com",
         description: <span>Set a custom GitLab host. Defaults to <Code>https://gitlab.com</Code>.</span>
     },
     {
@@ -305,11 +309,12 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
                 ...previous.exclude,
                 projects: [
                     ...(previous.exclude?.projects ?? []),
-                    ""
+                    "<glob pattern>"
                 ]
             }
         }),
         name: "Exclude a project",
+        selectionText: "<glob pattern>",
         description: (
             <div className="flex flex-col">
                 <span>List of projects to exclude from syncing. Glob patterns are supported.</span>
@@ -333,36 +338,30 @@ export const giteaQuickActions: QuickAction<GiteaConnectionConfig>[] = [
             ...previous,
             orgs: [
                 ...(previous.orgs ?? []),
-                ""
+                "<organization name>"
             ]
         }),
         name: "Add an organization",
+        selectionText: "<organization name>",
     },
     {
         fn: (previous: GiteaConnectionConfig) => ({
             ...previous,
             repos: [
                 ...(previous.repos ?? []),
-                ""
+                "<owner>/<repo name>"
             ]
         }),
         name: "Add a repo",
+        selectionText: "<owner>/<repo name>",
     },
     {
         fn: (previous: GiteaConnectionConfig) => ({
             ...previous,
-            url: previous.url ?? "",
+            url: previous.url ?? "https://gitea.example.com",
         }),
         name: "Set a custom url",
-    },
-    {
-        fn: (previous: GiteaConnectionConfig) => ({
-            ...previous,
-            token: previous.token ?? {
-                secret: "",
-            },
-        }),
-        name: "Add a secret",
+        selectionText: "https://gitea.example.com",
     }
 ]
 
