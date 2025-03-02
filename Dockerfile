@@ -145,6 +145,7 @@ COPY --from=shared-libs-builder /app/packages/error ./packages/error
 
 # Configure dependencies
 RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib openssl util-linux unzip
+RUN curl -sL https://sentry.io/get-cli/ | sh
 
 # Install grafana alloy. libc6-compat is required because alloy dynamically links against glibc which doesn't exist in alpine by default
 # @nochekin: figure out how to handle this for self hosted case (especially the config)

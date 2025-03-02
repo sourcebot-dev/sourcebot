@@ -7,9 +7,8 @@
     "scripts": {
         "dev:watch": "tsc-watch --preserveWatchOutput --onSuccess \"yarn dev --cacheDir ../../.sourcebot\"",
         "dev": "export PATH=\"$PWD/../../bin:$PATH\" && export CTAGS_COMMAND=ctags && node ./dist/index.js",
-        "build": "tsc && yarn sentry:sourcemaps",
-        "test": "vitest --config ./vitest.config.ts",
-        "sentry:sourcemaps": "sentry-cli sourcemaps inject --org sourcebot --project backend ./dist && sentry-cli sourcemaps upload --org sourcebot --project backend ./dist"
+        "build": "tsc",
+        "test": "vitest --config ./vitest.config.ts"
     },
     "devDependencies": {
         "@types/argparse": "^2.0.16",

@@ -187,6 +187,12 @@ echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL
 #     done
 # }
 
+# Upload sourcemaps to Sentry
+# @nocheckin
+su -c "sentry-cli login --auth-token $SENTRY_AUTH_TOKEN"
+su -c "sentry-cli sourcemaps inject --org sourcebot --project backend /app/packages/backend/dist"
+su -c "sentry-cli sourcemaps upload --org sourcebot --project backend /app/packages/backend/dist"
+
 
 # Start the database and wait for it to be ready before starting any other service
 if [ "$DATABASE_URL" = "postgresql://postgres@localhost:5432/sourcebot" ]; then

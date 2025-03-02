@@ -29,15 +29,6 @@ jobs:
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
-      - name: Setup Sentry CLI
-        uses: matbour/setup-sentry-cli@v1
-        with:
-          version: latest
-
-      - name: Login to Sentry
-        run: |
-          sentry-cli login --auth-token ${{ secrets.SENTRY_AUTH_TOKEN }}
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
