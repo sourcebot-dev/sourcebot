@@ -1,40 +1,35 @@
 "use client"
 
-import type React from "react"
-
-import { useCallback, useState } from "react"
-import { SourcebotLogo } from "@/app/components/sourcebotLogo"
-import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp"
+import { InputOTPSeparator } from "@/components/ui/input-otp"
+import { InputOTPGroup } from "@/components/ui/input-otp"
+import { InputOTPSlot } from "@/components/ui/input-otp"
+import { InputOTP } from "@/components/ui/input-otp"
+import { Card, CardHeader, CardDescription, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, ArrowLeft } from "lucide-react"
-import { useRouter } from "next/navigation"
-import Cookies from "js-cookie";
-import { MAGIC_LINK_ONBOARDING_COOKIE_NAME } from "../components/magicLinkForm";
-import { decryptValue } from "@/actions"
+import { ArrowLeft } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useCallback, useState } from "react"
+import VerificationFailed from "./verificationFailed"
+import { SourcebotLogo } from "@/app/components/sourcebotLogo"
+import useCaptureEvent from "@/hooks/useCaptureEvent"
 
 export default function VerifyPage() {
-    const [isSubmitting, setIsSubmitting] = useState(false)
     const [value, setValue] = useState("")
+    const searchParams = useSearchParams()
+    const email = searchParams.get("email")
     const router = useRouter()
+    const captureEvent = useCaptureEvent();
+
+    if (!email) {
+        captureEvent("wa_login_verify_page_no_email", {})
+        return <VerificationFailed />
+    }
 
     const handleSubmit = useCallback(async () => {
-        setIsSubmitting(true)
-
-        const magicLinkOnboardingParams = Cookies.get(MAGIC_LINK_ONBOARDING_COOKIE_NAME);
-        if (!magicLinkOnboardingParams) {
-            throw new Error("No magic link onboarding params cookie found")
-        }
-
-        const [encryptedIv, encryptedEmail] = magicLinkOnboardingParams.split(":");
-        const email = await decryptValue(encryptedIv, encryptedEmail);
-
         const url = new URL("/api/auth/callback/nodemailer", window.location.origin)
         url.searchParams.set("token", value)
         url.searchParams.set("email", email)
         router.push(url.toString())
-
-        Cookies.remove(MAGIC_LINK_ONBOARDING_COOKIE_NAME);
     }, [value])
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -49,12 +44,11 @@ export default function VerifyPage() {
                 <div className="flex justify-center mb-6">
                     <SourcebotLogo className="h-16" size="large" />
                 </div>
-
                 <Card className="w-full shadow-lg border-muted/40">
                     <CardHeader className="space-y-1">
                         <CardTitle className="text-2xl font-bold text-center">Verify your email</CardTitle>
                         <CardDescription className="text-center">
-                            Enter the 6-digit code we sent to your email address
+                            Enter the 6-digit code we sent to <span className="font-semibold text-primary">{email}</span>
                         </CardDescription>
                     </CardHeader>
 
@@ -90,7 +84,6 @@ export default function VerifyPage() {
                         </Button>
                     </CardFooter>
                 </Card>
-
                 <div className="mt-8 text-center text-sm text-muted-foreground">
                     <p>
                         Having trouble?{" "}

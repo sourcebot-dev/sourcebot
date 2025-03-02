@@ -10,12 +10,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import Cookies from "js-cookie";
-import { encryptValue } from "@/actions";
-
-export const MAGIC_LINK_ONBOARDING_COOKIE_NAME = "magic_link_onboarding_params"
-const MAGIC_LINK_ONBOARDING_COOKIE_EXPIRATION_DAYS = 7
-
+import { useRouter } from "next/navigation";
 
 const magicLinkSchema = z.object({
     email: z.string().email(),
@@ -28,6 +23,7 @@ interface MagicLinkFormProps {
 export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
     const captureEvent = useCaptureEvent();
     const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
 
     const magicLinkForm = useForm<z.infer<typeof magicLinkSchema>>({
         resolver: zodResolver(magicLinkSchema),
@@ -40,11 +36,14 @@ export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
         setIsLoading(true);
         captureEvent("wa_login_with_magic_link", {});
 
-        const { iv: encryptedIv, encryptedData: encryptedEmail } = await encryptValue(values.email);
-        Cookies.set(MAGIC_LINK_ONBOARDING_COOKIE_NAME, `${encryptedIv}:${encryptedEmail}`, { expires: MAGIC_LINK_ONBOARDING_COOKIE_EXPIRATION_DAYS});
+        signIn("nodemailer", { email: values.email, redirect: false, redirectTo: callbackUrl ?? "/" })
+            .then(() => {
+                setIsLoading(false);
 
-        signIn("nodemailer", { email: values.email, redirectTo: callbackUrl ?? "/" })
-            .finally(() => {
+                router.push("/login/verify?email=" + encodeURIComponent(values.email));
+            })
+            .catch((error) => {
+                console.error("Error signing in", error);
                 setIsLoading(false);
             });
     }
@@ -77,7 +76,7 @@ export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
                     disabled={isLoading}
                 >
                     {isLoading ? <Loader2 className="animate-spin mr-2" /> : ""}
-                    Sign in with magic link
+                    Sign in with login code
                 </Button>
             </form>
         </Form>

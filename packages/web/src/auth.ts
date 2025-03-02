@@ -190,6 +190,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: getProviders(),
     pages: {
         signIn: "/login",
-        verifyRequest: "/login/verify",
+        // We set redirect to false in signInOptions so we can pass the email is as a param
+        // verifyRequest: "/login/verify",
     }
 });
