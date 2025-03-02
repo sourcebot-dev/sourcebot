@@ -14,6 +14,7 @@ import { useCallback } from "react";
 import { OnboardingSteps } from "@/lib/constants";
 import { BackButton } from "./onboardBackButton";
 import { CodeHostIconButton } from "../../components/codeHostIconButton";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface ConnectCodeHostProps {
     nextStep: OnboardingSteps;
@@ -80,27 +81,41 @@ interface CodeHostSelectionProps {
 }
 
 const CodeHostSelection = ({ onSelect }: CodeHostSelectionProps) => {
+    const captureEvent = useCaptureEvent();
+
     return (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <CodeHostIconButton
                 name="GitHub"
                 logo={getCodeHostIcon("github")!}
-                onClick={() => onSelect("github")}
+                onClick={() => {
+                    onSelect("github");
+                    captureEvent("wa_onboard_github_selected", {});
+                }}
             />
             <CodeHostIconButton
                 name="GitLab"
                 logo={getCodeHostIcon("gitlab")!}
-                onClick={() => onSelect("gitlab")}
+                onClick={() => {
+                    onSelect("gitlab");
+                    captureEvent("wa_onboard_gitlab_selected", {});
+                }}
             />
             <CodeHostIconButton
                 name="Gitea"
                 logo={getCodeHostIcon("gitea")!}
-                onClick={() => onSelect("gitea")}
+                onClick={() => {
+                    onSelect("gitea");
+                    captureEvent("wa_onboard_gitea_selected", {});
+                }}
             />
             <CodeHostIconButton
                 name="Gerrit"
                 logo={getCodeHostIcon("gerrit")!}
-                onClick={() => onSelect("gerrit")}
+                onClick={() => {
+                    onSelect("gerrit");
+                    captureEvent("wa_onboard_gerrit_selected", {});
+                }}
             />
         </div>
     )

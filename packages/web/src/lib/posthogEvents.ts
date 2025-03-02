@@ -223,6 +223,21 @@ export type PosthogEventMap = {
     wa_mobile_unsupported_splash_screen_displayed: {},
     //////////////////////////////////////////////////////////////////
     wa_login_verify_page_no_email: {},
+    //////////////////////////////////////////////////////////////////
+    wa_org_name_updated_success: {},
+    wa_org_name_updated_fail: {
+        error: string,
+    },
+    //////////////////////////////////////////////////////////////////
+    wa_org_domain_updated_success: {},
+    wa_org_domain_updated_fail: {
+        error: string,
+    },
+    //////////////////////////////////////////////////////////////////
+    wa_onboard_github_selected: {},
+    wa_onboard_gitlab_selected: {},
+    wa_onboard_gitea_selected: {},
+    wa_onboard_gerrit_selected: {},
 } 
 
 export type PosthogEvent = keyof PosthogEventMap;

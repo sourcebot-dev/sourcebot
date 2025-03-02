@@ -24,7 +24,7 @@ import Stripe from "stripe";
 import { render } from "@react-email/components";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import { createTransport } from "nodemailer";
-import { repositoryQuerySchema } from "./lib/schemas";
+import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { RepositoryQuery } from "./lib/types";
 import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "./lib/constants";
 
@@ -116,6 +116,52 @@ export const createOrg = (name: string, domain: string): Promise<{ id: number } 
             id: org.id,
         }
     });
+
+export const updateOrgName = async (name: string, domain: string) =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const { success } = orgNameSchema.safeParse(name);
+            if (!success) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "Invalid organization url",
+                } satisfies ServiceError;
+            }
+
+            await prisma.org.update({
+                where: { id: orgId },
+                data: { name },
+            });
+
+            return {
+                success: true,
+            }
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    )
+
+export const updateOrgDomain = async (newDomain: string, existingDomain: string) =>
+    withAuth((session) =>
+        withOrgMembership(session, existingDomain, async ({ orgId }) => {
+            const { success } = await orgDomainSchema.safeParseAsync(newDomain);
+            if (!success) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "Invalid organization url",
+                } satisfies ServiceError;
+            }
+
+            await prisma.org.update({
+                where: { id: orgId },
+                data: { domain: newDomain },
+            });
+
+            return {
+                success: true,
+            }
+        }, /* minRequiredRole = */ OrgRole.OWNER),
+    )
 
 export const completeOnboarding = async (domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>

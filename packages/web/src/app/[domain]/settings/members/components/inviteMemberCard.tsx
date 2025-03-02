@@ -101,6 +101,7 @@ export const InviteMemberCard = ({ currentUserRole }: InviteMemberCardProps) => 
                                             <FormControl>
                                                 <Input
                                                     {...field}
+                                                    className="max-w-md"
                                                     placeholder="melissa@example.com"
                                                 />
                                             </FormControl>

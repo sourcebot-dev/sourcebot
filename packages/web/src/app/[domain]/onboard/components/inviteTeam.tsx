@@ -3,7 +3,7 @@
 import { createInvites } from "@/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { isServiceError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -77,6 +77,7 @@ export const InviteTeam = ({ nextStep }: InviteTeamProps) => {
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardContent className="space-y-4">
                         <FormLabel>Email Address</FormLabel>
+                        <FormDescription>{`Invite members to access your organization's Sourcebot instance.`}</FormDescription>
                         {form.watch('emails').map((_, index) => (
                             <FormField
                                 key={index}

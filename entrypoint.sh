@@ -203,5 +203,8 @@ fi
 echo -e "\e[34m[Info] Running database migration...\e[0m"
 yarn workspace @sourcebot/db prisma:migrate:prod
 
+# Create the log directory
+mkdir -p /var/log/sourcebot
+
 # Run supervisord
 exec supervisord -c /etc/supervisor/conf.d/supervisord.conf

@@ -8,29 +8,27 @@ import { getCustomerPortalSessionLink } from "@/actions"
 import { useDomain } from "@/hooks/useDomain";
 import { OrgRole } from "@sourcebot/db";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { ExternalLink, Loader2 } from "lucide-react";
+
 export function ManageSubscriptionButton({ currentUserRole }: { currentUserRole: OrgRole }) {
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
     const domain = useDomain();
     const captureEvent = useCaptureEvent();
+
     const redirectToCustomerPortal = async () => {
         setIsLoading(true)
-        try {
-            const session = await getCustomerPortalSessionLink(domain)
-            if (isServiceError(session)) {
-                captureEvent('wa_manage_subscription_button_create_portal_session_fail', {
-                    error: session.errorCode,
-                })
-            } else {
-                router.push(session)
-                captureEvent('wa_manage_subscription_button_create_portal_session_success', {})
-            }
-        } catch (_error) {
+        const session = await getCustomerPortalSessionLink(domain);
+        if (isServiceError(session)) {
             captureEvent('wa_manage_subscription_button_create_portal_session_fail', {
-                error: "Unknown error",
-            })
-        } finally {
-            setIsLoading(false)
+                error: session.errorCode,
+            });
+            setIsLoading(false);
+        } else {
+            captureEvent('wa_manage_subscription_button_create_portal_session_success', {})
+            router.push(session)
+            // @note: we don't want to set isLoading to false here since we want to show the loading
+            // spinner until the page is redirected.
         }
     }
 
@@ -42,7 +40,9 @@ export function ManageSubscriptionButton({ currentUserRole }: { currentUserRole:
                 disabled={isLoading || !isOwner}
                 title={!isOwner ? "Only the owner of the org can manage the subscription" : undefined}
             >
-                {isLoading ? "Creating customer portal..." : "Manage Subscription"}
+                {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Manage Subscription
+                <ExternalLink className="ml-2 h-4 w-4" />
             </Button>
         </div>
     )

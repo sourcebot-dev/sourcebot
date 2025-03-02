@@ -109,6 +109,11 @@ export class RepoManager implements IRepoManager {
                     }
                 })));
 
+                // Increment pending jobs counter for each repo added
+                orgRepos.forEach(repo => {
+                    this.promClient.pendingRepoIndexingJobs.inc({ repo: repo.id.toString() });
+                });
+
                 this.logger.info(`Added ${orgRepos.length} jobs to indexQueue for org ${orgId} with priority ${priority}`);
             }
 
@@ -267,6 +272,7 @@ export class RepoManager implements IRepoManager {
             }
         });
         this.promClient.activeRepoIndexingJobs.inc();
+        this.promClient.pendingRepoIndexingJobs.dec({ repo: repo.id.toString() });
 
         let indexDuration_s: number | undefined;
         let fetchDuration_s: number | undefined;

@@ -1,3 +1,43 @@
+/*
+logging {
+  level  = "debug"    # or even "trace" for more detail
+  format = "logfmt"   # or "json" for structured logging
+}
+
+local.file_match "local_files" {
+  path_targets = [
+    {"__path__" = "/var/log/sourcebot/*.log"}
+  ]
+  sync_period = "5s"
+}
+
+loki.source.file "log_scrape" {
+  targets    = local.file_match.local_files.targets
+  forward_to = [loki.process.filter_logs.receiver]
+  tail_from_end = true
+}
+
+loki.process "filter_logs" {
+  stage.drop {
+    source = ""
+    expression  = ""
+    drop_counter_reason = "noisy"
+  }
+  forward_to = [loki.write.grafana_loki.receiver]
+}
+
+loki.write "grafana_loki" {
+  endpoint {
+    url = sys.env("GRAFANA_LOKI_ENDPOINT")
+
+    basic_auth {
+      username = sys.env("GRAFANA_USERNAME")
+      password = sys.env("GRAFANA_PASSWORD")
+    }
+  }
+}
+*/
+
 prometheus.scrape "local_app" {
   targets = [
     {
@@ -10,7 +50,7 @@ prometheus.scrape "local_app" {
 
   metrics_path = "/metrics"
   scrape_timeout = "500ms"
-  scrape_interval = "500ms"
+  scrape_interval = "15s"
 
   job_name = sys.env("GRAFANA_ENVIRONMENT")
   
