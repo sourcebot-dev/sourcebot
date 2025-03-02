@@ -29,6 +29,14 @@ jobs:
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
+      - name: Setup Sentry CLI for Backend Source Maps
+        uses: matbour/setup-sentry-cli@v1
+        with:
+          version: latest
+          token: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          organization: sourcebot
+          project: backend
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
