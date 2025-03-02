@@ -1,7 +1,10 @@
 import winston, { format } from 'winston';
-import { SOURCEBOT_LOG_LEVEL } from './environment.js';
+import { SOURCEBOT_LOG_LEVEL, LOGTAIL_TOKEN, LOGTAIL_HOST } from './environment.js';
+import { Logtail } from '@logtail/node';
+import { LogtailTransport } from '@logtail/winston';
 
 const { combine, colorize, timestamp, prettyPrint, errors, printf, label: labelFn } = format;
+
 
 const createLogger = (label: string) => {
     return winston.createLogger({
@@ -28,6 +31,13 @@ const createLogger = (label: string) => {
                     }),
                 ),
             }),
+            ...(LOGTAIL_TOKEN && LOGTAIL_HOST ? [
+                new LogtailTransport(
+                    new Logtail(LOGTAIL_TOKEN, {
+                        endpoint: LOGTAIL_HOST,
+                    })
+                )
+            ] : []),
         ]
     });
 }

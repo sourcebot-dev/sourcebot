@@ -43,3 +43,6 @@ export const REDIS_URL = getEnv(process.env.REDIS_URL, 'redis://localhost:6379')
 
 export const SENTRY_BACKEND_DSN = getEnv(process.env.SENTRY_BACKEND_DSN);
 export const SENTRY_ENVIRONMENT = getEnv(process.env.SENTRY_ENVIRONMENT, 'unknown')!;
+
+export const LOGTAIL_TOKEN = getEnv(process.env.LOGTAIL_TOKEN);
+export const LOGTAIL_HOST = getEnv(process.env.LOGTAIL_HOST);
