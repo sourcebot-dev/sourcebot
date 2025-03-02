@@ -217,14 +217,22 @@ export class RepoManager implements IRepoManager {
             this.logger.info(`Cloning ${repo.id}...`);
 
             const token = await this.getTokenForRepo(repo, this.db);
-            let cloneUrl = repo.cloneUrl;
+            const cloneUrl = new URL(repo.cloneUrl);
             if (token) {
-                const url = new URL(cloneUrl);
-                url.username = token;
-                cloneUrl = url.toString();
+                switch (repo.external_codeHostType) {
+                    case 'gitlab':
+                        cloneUrl.username = 'oauth2';
+                        cloneUrl.password = token;
+                        break;
+                    case 'gitea':
+                    case 'github':
+                    default:
+                        cloneUrl.username = token;
+                        break;
+                }
             }
 
-            const { durationMs } = await measure(() => cloneRepository(cloneUrl, repoPath, metadata.gitConfig, ({ method, stage, progress }) => {
+            const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, metadata.gitConfig, ({ method, stage, progress }) => {
                 //this.logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
             }));
             cloneDuration_s = durationMs / 1000;
