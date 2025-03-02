@@ -43,7 +43,6 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Toggle } from "@/components/ui/toggle";
 import { useDomain } from "@/hooks/useDomain";
-import { KeyboardShortcutHint } from "../keyboardShortcutHint";
 
 interface SearchBarProps {
     className?: string;

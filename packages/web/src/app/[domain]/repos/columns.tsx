@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { RepoIndexingStatus } from "@sourcebot/db";
-import { useDomain } from "@/hooks/useDomain"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { AddRepoButton } from "./addRepoButton"
 

@@ -24,7 +24,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "next-themes"
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { KeymapType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useKeymapType } from "@/hooks/useKeymapType"

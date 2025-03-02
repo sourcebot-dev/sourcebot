@@ -20,17 +20,19 @@ export default function VerifyPage() {
     const router = useRouter()
     const captureEvent = useCaptureEvent();
 
+    const handleSubmit = useCallback(() => {
+        if (email && value.length === 6) {
+            const url = new URL("/api/auth/callback/nodemailer", window.location.origin)
+            url.searchParams.set("token", value)
+            url.searchParams.set("email", email)
+            router.push(url.toString())
+        }
+    }, [value, email, router])
+
     if (!email) {
         captureEvent("wa_login_verify_page_no_email", {})
         return <VerificationFailed />
     }
-
-    const handleSubmit = useCallback(async () => {
-        const url = new URL("/api/auth/callback/nodemailer", window.location.origin)
-        url.searchParams.set("token", value)
-        url.searchParams.set("email", email)
-        router.push(url.toString())
-    }, [value])
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && value.length === 6) {
@@ -55,9 +57,7 @@ export default function VerifyPage() {
                     <CardContent>
                         <form onSubmit={(e) => {
                             e.preventDefault()
-                            if (value.length === 6) {
-                                handleSubmit()
-                            }
+                            handleSubmit()
                         }} className="space-y-6">
                             <div className="flex justify-center py-4">
                                 <InputOTP maxLength={6} value={value} onChange={setValue} onKeyDown={handleKeyDown} className="gap-2">
