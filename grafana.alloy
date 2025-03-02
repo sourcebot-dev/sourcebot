@@ -1,32 +1,3 @@
-logging {
-  level  = "debug"
-  format = "logfmt"
-}
-
-local.file_match "local_files" {
-  path_targets = [
-    {"__path__" = "/var/log/sourcebot/*.log"},
-  ]
-  sync_period = "5s"
-}
-
-loki.source.file "log_scrape" {
-  targets    = local.file_match.local_files.targets
-  forward_to = [loki.write.grafana_loki.receiver]
-  tail_from_end = true
-}
-
-loki.write "grafana_loki" {
-  endpoint {
-    url = sys.env("GRAFANA_LOKI_ENDPOINT")
-
-    basic_auth {
-      username = sys.env("GRAFANA_LOKI_USERNAME")
-      password = sys.env("GRAFANA_PASSWORD")
-    }
-  }
-}
-
 prometheus.scrape "local_app" {
   targets = [
     {
