@@ -33,13 +33,10 @@ jobs:
         uses: matbour/setup-sentry-cli@v1
         with:
           version: latest
-          token: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          organization: sourcebot
-          project: backend
 
       - name: Login to Sentry
         run: |
-          sentry-cli login
+          sentry-cli login --auth-token ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - name: Checkout repository
         uses: actions/checkout@v4
