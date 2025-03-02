@@ -7,6 +7,8 @@ import { PrismaClient } from "@sourcebot/db";
 import { FALLBACK_GITHUB_TOKEN } from "./environment.js";
 import { BackendException, BackendError } from "@sourcebot/error";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
+import * as Sentry from "@sentry/node";
+
 const logger = createLogger("GitHub");
 
 export type OctokitRepository = {
@@ -53,15 +55,21 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
         try {
             await octokit.rest.users.getAuthenticated();
         } catch (error) {
+            Sentry.captureException(error);
+
             if (isHttpError(error, 401)) {
-                throw new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN, {
+                const e = new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN, {
                     secretKey,
                 });
+                Sentry.captureException(e);
+                throw e;
             }
 
-            throw new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
+            const e = new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
                 message: `Failed to authenticate with GitHub`,
             });
+            Sentry.captureException(e);
+            throw e;
         }
     }
 
@@ -239,6 +247,8 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
                 data
             };
         } catch (error) {
+            Sentry.captureException(error);
+
             if (isHttpError(error, 404)) {
                 logger.error(`User ${user} not found or no access`);
                 return {
@@ -282,6 +292,8 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
                 data
             };
         } catch (error) {
+            Sentry.captureException(error);
+
             if (isHttpError(error, 404)) {
                 logger.error(`Organization ${org} not found or no access`);
                 return {
@@ -327,6 +339,8 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
             };
 
         } catch (error) {
+            Sentry.captureException(error);
+
             if (isHttpError(error, 404)) {
                 logger.error(`Repository ${repo} not found or no access`);
                 return {

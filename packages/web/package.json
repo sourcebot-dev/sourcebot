@@ -66,6 +66,7 @@
     "@replit/codemirror-lang-solidity": "^6.0.2",
     "@replit/codemirror-lang-svelte": "^6.0.0",
     "@replit/codemirror-vim": "^6.2.1",
+    "@sentry/nextjs": "^9",
     "@shopify/lang-jsonc": "^1.0.0",
     "@sourcebot/crypto": "^0.1.0",
     "@sourcebot/db": "^0.1.0",

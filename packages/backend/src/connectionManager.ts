@@ -8,6 +8,7 @@ import { Redis } from 'ioredis';
 import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig } from "./repoCompileUtils.js";
 import { BackendError, BackendException } from "@sourcebot/error";
 import { captureEvent } from "./posthog.js";
+import * as Sentry from "@sentry/node";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -94,9 +95,11 @@ export class ConnectionManager implements IConnectionManager {
         });
 
         if (!connection) {
-            throw new BackendException(BackendError.CONNECTION_SYNC_CONNECTION_NOT_FOUND, {
+            const e = new BackendException(BackendError.CONNECTION_SYNC_CONNECTION_NOT_FOUND, {
                 message: `Connection ${job.data.connectionId} not found`,
             });
+            Sentry.captureException(e);
+            throw e;
         }
         
         // Reset the syncStatusMetadata to an empty object at the start of the sync job
@@ -146,6 +149,8 @@ export class ConnectionManager implements IConnectionManager {
             })();
         } catch (err) {
             this.logger.error(`Failed to compile repo data for connection ${job.data.connectionId}: ${err}`);
+            Sentry.captureException(err);
+
             if (err instanceof BackendException) {
                 throw err;
             } else {

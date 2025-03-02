@@ -10,7 +10,7 @@ import { existsSync, readdirSync, promises } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import os from 'os';
 import { PromClient } from './promClient.js';
-
+import * as Sentry from "@sentry/node";
 interface IRepoManager {
     blockingPollLoop: () => void;
     dispose: () => void;
@@ -258,7 +258,9 @@ export class RepoManager implements IRepoManager {
         });
         if (!existingRepo) {
             this.logger.error(`Repo ${repo.id} not found`);
-            throw new Error(`Repo ${repo.id} not found`);
+            const e = new Error(`Repo ${repo.id} not found`);
+            Sentry.captureException(e);
+            throw e;
         }
         const repoAlreadyInIndexingState = existingRepo.repoIndexingStatus === RepoIndexingStatus.INDEXING;
 
@@ -287,6 +289,8 @@ export class RepoManager implements IRepoManager {
                 stats = await this.syncGitRepository(repo, repoAlreadyInIndexingState);
                 break;
             } catch (error) {
+                Sentry.captureException(error);
+
                 attempts++;
                 this.promClient.repoIndexingReattemptsTotal.inc();
                 if (attempts === maxAttempts) {

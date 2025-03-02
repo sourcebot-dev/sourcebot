@@ -123,6 +123,12 @@ echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL
     # Always infer NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
     export NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="$STRIPE_PUBLISHABLE_KEY"
 
+    # Always infer NEXT_PUBLIC_SENTRY_ENVIRONMENT
+    export NEXT_PUBLIC_SENTRY_ENVIRONMENT="$SENTRY_ENVIRONMENT"
+
+    # Always infer NEXT_PUBLIC_SENTRY_WEBAPP_DSN
+    export NEXT_PUBLIC_SENTRY_WEBAPP_DSN="$SENTRY_WEBAPP_DSN"
+
     # Iterate over all .js files in .next & public, making substitutions for the `BAKED_` sentinal values
     # with their actual desired runtime value.
     find /app/packages/web/public /app/packages/web/.next -type f -name "*.js" |
@@ -131,6 +137,8 @@ echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL
         sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION|${NEXT_PUBLIC_SOURCEBOT_VERSION}|g" "$file"
         sed -i "s|BAKED_NEXT_PUBLIC_POSTHOG_PAPIK|${NEXT_PUBLIC_POSTHOG_PAPIK}|g" "$file"
         sed -i "s|BAKED_NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}|g" "$file"
+        sed -i "s|BAKED_NEXT_PUBLIC_SENTRY_ENVIRONMENT|${NEXT_PUBLIC_SENTRY_ENVIRONMENT}|g" "$file"
+        sed -i "s|BAKED_NEXT_PUBLIC_SENTRY_WEBAPP_DSN|${NEXT_PUBLIC_SENTRY_WEBAPP_DSN}|g" "$file"
     done
 }
 
