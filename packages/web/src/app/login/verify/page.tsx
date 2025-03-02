@@ -8,12 +8,12 @@ import { Card, CardHeader, CardDescription, CardTitle, CardContent, CardFooter }
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useCallback, useState } from "react"
+import { useCallback, useState, Suspense } from "react"
 import VerificationFailed from "./verificationFailed"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import useCaptureEvent from "@/hooks/useCaptureEvent"
 
-export default function VerifyPage() {
+function VerifyPageContent() {
     const [value, setValue] = useState("")
     const searchParams = useSearchParams()
     const email = searchParams.get("email")
@@ -94,6 +94,31 @@ export default function VerifyPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+function LoadingVerifyPage() {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background to-muted/30">
+            <div className="w-full max-w-md">
+                <div className="flex justify-center mb-6">
+                    <SourcebotLogo className="h-16" size="large" />
+                </div>
+                <Card className="w-full shadow-lg border-muted/40">
+                    <CardHeader className="space-y-1">
+                        <CardTitle className="text-2xl font-bold text-center">Loading...</CardTitle>
+                    </CardHeader>
+                </Card>
+            </div>
+        </div>
+    )
+}
+
+export default function VerifyPage() {
+    return (
+        <Suspense fallback={<LoadingVerifyPage />}>
+            <VerifyPageContent />
+        </Suspense>
     )
 }
 
