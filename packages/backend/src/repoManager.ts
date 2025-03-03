@@ -71,6 +71,7 @@ export class RepoManager implements IRepoManager {
         while (true) {
             await this.fetchAndScheduleRepoIndexing();
             await this.fetchAndScheduleRepoGarbageCollection();
+            await this.fetchAndScheduleRepoTimeouts();
 
             await new Promise(resolve => setTimeout(resolve, this.settings.reindexRepoPollingIntervalMs));
         }
@@ -489,6 +490,31 @@ export class RepoManager implements IRepoManager {
         }
     }
 
+    private async fetchAndScheduleRepoTimeouts() {
+        const repos = await this.db.repo.findMany({
+            where: {
+                repoIndexingStatus: RepoIndexingStatus.INDEXING,
+                updatedAt: {
+                    lt: new Date(Date.now() - this.settings.repoIndexTimeoutMs)
+                }
+            }
+        });
+
+        if (repos.length > 0) {
+            this.logger.info(`Scheduling ${repos.length} repo timeouts`);
+            await this.scheduleRepoTimeoutsBulk(repos);
+        }
+    }
+
+    private async scheduleRepoTimeoutsBulk(repos: Repo[]) {
+        await this.db.$transaction(async (tx) => {
+            await tx.repo.updateMany({
+                where: { id: { in: repos.map(repo => repo.id) } },
+                data: { repoIndexingStatus: RepoIndexingStatus.FAILED }
+            });
+        });
+    }
+    
     public async dispose() {
         this.indexWorker.close();
         this.indexQueue.close();

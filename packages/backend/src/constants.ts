@@ -12,4 +12,5 @@ export const DEFAULT_SETTINGS: Settings = {
     configSyncConcurrencyMultiple: 3,
     gcConcurrencyMultiple: 1,
     gcGracePeriodMs: 10 * 1000, // 10 seconds
+    repoIndexTimeoutMs: 1000 * 60 * 60 * 2 // 2 hours
 }

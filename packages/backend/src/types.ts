@@ -44,9 +44,13 @@ export type Settings = {
      */
     gcConcurrencyMultiple: number;
     /**
-     * The grace period (in milliseconds) for garbage collection. Used to prevent deleting shards while they're being loaded
+     * The grace period (in milliseconds) for garbage collection. Used to prevent deleting shards while they're being loaded.
      */
     gcGracePeriodMs: number;
+    /**
+     * The timeout (in milliseconds) for a repo indexing to timeout.
+     */
+    repoIndexTimeoutMs: number;
 }
 
 /**
