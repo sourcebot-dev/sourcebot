@@ -12,7 +12,7 @@ import { CredentialsForm } from "./credentialsForm";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { TextSeparator } from "@/app/components/textSeparator";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-
+import DemoCard from "@/app/[domain]/onboard/components/demoCard";
 interface LoginFormProps {
     callbackUrl?: string;
     error?: string;
@@ -51,6 +51,9 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
                     className="h-12 sm:h-16"
                 />
                 <h2 className="text-lg font-bold text-center">Sign in to your account</h2>
+            </div>
+            <div className="w-full sm:w-[500px] max-w-[500px]">
+                <DemoCard />
             </div>
             <Card className="flex flex-col items-center border p-6 sm:p-12 rounded-lg gap-4 sm:gap-6 w-full sm:w-[500px] max-w-[500px] bg-background">
                 {error && (

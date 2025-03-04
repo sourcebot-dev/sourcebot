@@ -238,6 +238,10 @@ export type PosthogEventMap = {
     wa_onboard_gitlab_selected: {},
     wa_onboard_gitea_selected: {},
     wa_onboard_gerrit_selected: {},
+    //////////////////////////////////////////////////////////////////
+    wa_security_page_click: {},
+    //////////////////////////////////////////////////////////////////
+    wa_demo_card_click: {},
 } 
 
 export type PosthogEvent = keyof PosthogEventMap;
