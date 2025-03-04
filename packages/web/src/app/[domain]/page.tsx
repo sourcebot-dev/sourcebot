@@ -5,7 +5,7 @@ import { UpgradeToast } from "./components/upgradeToast";
 import Link from "next/link";
 import { getOrgFromDomain } from "@/data/org";
 import { PageNotFound } from "./components/pageNotFound";
-import { Footer } from "./components/footer";
+import { Footer } from "@/app/components/footer";
 import { SourcebotLogo } from "../components/sourcebotLogo";
 import { RepositorySnapshot } from "./components/repositorySnapshot";
 import { KeyboardShortcutHint } from "./components/keyboardShortcutHint";
