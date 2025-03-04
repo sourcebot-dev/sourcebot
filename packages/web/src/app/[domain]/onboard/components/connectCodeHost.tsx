@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CodeHostType } from "@/lib/utils";
 import { getCodeHostIcon } from "@/lib/utils";
 import {
@@ -15,6 +15,8 @@ import { OnboardingSteps } from "@/lib/constants";
 import { BackButton } from "./onboardBackButton";
 import { CodeHostIconButton } from "../../components/codeHostIconButton";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { useSession } from "next-auth/react";
+import posthog from "posthog-js";
 
 interface ConnectCodeHostProps {
     nextStep: OnboardingSteps;
@@ -23,6 +25,19 @@ interface ConnectCodeHostProps {
 export const ConnectCodeHost = ({ nextStep }: ConnectCodeHostProps) => {
     const [selectedCodeHost, setSelectedCodeHost] = useState<CodeHostType | null>(null);
     const router = useRouter();
+    const { data: session } = useSession();
+
+    // Note: this is currently the first client side page that gets loaded after a user registers. If this changes, we need to update this.
+    // @nocheckin
+    useEffect(() => {
+        if (session?.user) {
+            posthog.identify(session.user.id, {
+                email: session.user.email,
+                name: session.user.name,
+            });
+        }
+    }, [session?.user]);
+
     const onCreated = useCallback(() => {
         router.push(`?step=${nextStep}`);
     }, [nextStep, router]);
