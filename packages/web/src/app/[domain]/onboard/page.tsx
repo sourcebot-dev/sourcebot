@@ -7,6 +7,8 @@ import { InviteTeam } from "./components/inviteTeam";
 import { CompleteOnboarding } from "./components/completeOnboarding";
 import { Checkout } from "./components/checkout";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
+import SecurityCard from "@/app/components/securityCard";
+
 interface OnboardProps {
     params: {
         domain: string

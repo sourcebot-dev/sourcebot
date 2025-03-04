@@ -13,7 +13,7 @@ export default async function ReposPage({ params: { domain } }: { params: { doma
             <Header>
                 <h1 className="text-3xl">Repositories</h1>
             </Header>
-            <div className="h-screen flex flex-col items-center">
+            <div className="flex flex-col items-center">
                 <div className="w-full">
                     <RepositoryTable />
                 </div>
