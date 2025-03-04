@@ -57,7 +57,6 @@ export default async function Onboard({ params, searchParams }: OnboardProps) {
                     <ConnectCodeHost
                         nextStep={OnboardingSteps.InviteTeam}
                     />
-                    <SecurityCard />
                 </>
             )}
             {step === OnboardingSteps.InviteTeam && (

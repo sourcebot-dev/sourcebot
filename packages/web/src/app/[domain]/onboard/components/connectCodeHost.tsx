@@ -17,6 +17,7 @@ import { CodeHostIconButton } from "../../components/codeHostIconButton";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useSession } from "next-auth/react";
 import posthog from "posthog-js";
+import SecurityCard from "@/app/components/securityCard";
 
 interface ConnectCodeHostProps {
     nextStep: OnboardingSteps;
@@ -48,7 +49,10 @@ export const ConnectCodeHost = ({ nextStep }: ConnectCodeHostProps) => {
 
     if (!selectedCodeHost) {
         return (
-            <CodeHostSelection onSelect={setSelectedCodeHost} />
+            <>
+                <CodeHostSelection onSelect={setSelectedCodeHost} />
+                <SecurityCard />
+            </>
         )
     }
 
