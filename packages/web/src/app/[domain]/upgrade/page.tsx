@@ -1,5 +1,5 @@
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
-import { Footer } from "../components/footer";
+import { Footer } from "@/app/components/footer";
 import { OrgSelector } from "../components/orgSelector";
 import { EnterpriseUpgradeCard } from "./components/enterpriseUpgradeCard";
 import { TeamUpgradeCard } from "./components/teamUpgradeCard";
