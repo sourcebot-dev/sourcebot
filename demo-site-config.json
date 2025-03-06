@@ -96,6 +96,21 @@
                 "flameshot-org/flameshot",
                 "envoyproxy/envoy"
             ]
+        },
+        {
+            "type": "gitlab",
+            "token": {
+                "env": "GITLAB_TOKEN"
+            },
+            "groups": [
+                "fdroid"
+            ],
+            "exclude": {
+                "projects": [
+                    "fdroid/wiki",
+                    "Matrixcoffee/internal-twif-preview"
+                ]
+            }
         }
     ]
 }

@@ -12,6 +12,8 @@ import { SymbolIcon } from "@radix-ui/react-icons";
 import { UpgradeToast } from "./components/upgradeToast";
 import Link from "next/link";
 import { KeyboardShortcutHint } from "./components/keyboardShortcutHint";
+import RegistrationCard from "./components/registrationCard";
+import { PUBLIC_SEARCH_DEMO } from "@/lib/environment";
 
 export default async function Home() {
     return (
@@ -38,6 +40,11 @@ export default async function Home() {
                     autoFocus={true}
                     className="mt-4 w-full max-w-[800px]"
                 />
+                {PUBLIC_SEARCH_DEMO && (
+                    <div className="mt-8">
+                        <RegistrationCard />
+                    </div>
+                )}
                 <div className="mt-8">
                     <Suspense fallback={<div>...</div>}>
                         <RepositoryList />

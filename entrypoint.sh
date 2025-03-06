@@ -93,6 +93,11 @@ echo -e "\e[34m[Info] Using config file at: '$CONFIG_PATH'.\e[0m"
         export NEXT_PUBLIC_SOURCEBOT_VERSION="$SOURCEBOT_VERSION"
     fi
 
+    # Infer NEXT_PUBLIC_SEARCH_DEMO if it is not set
+    if [ -z "$NEXT_PUBLIC_SEARCH_DEMO" ] && [ ! -z "$PUBLIC_SEARCH_DEMO" ]; then
+        export NEXT_PUBLIC_SEARCH_DEMO="$PUBLIC_SEARCH_DEMO"
+    fi
+
     # Always infer NEXT_PUBLIC_POSTHOG_PAPIK
     export NEXT_PUBLIC_POSTHOG_PAPIK="$POSTHOG_PAPIK"
 
@@ -103,6 +108,7 @@ echo -e "\e[34m[Info] Using config file at: '$CONFIG_PATH'.\e[0m"
         sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED|${NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED}|g" "$file"
         sed -i "s|BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION|${NEXT_PUBLIC_SOURCEBOT_VERSION}|g" "$file"
         sed -i "s|BAKED_NEXT_PUBLIC_POSTHOG_PAPIK|${NEXT_PUBLIC_POSTHOG_PAPIK}|g" "$file"
+        sed -i "s|BAKED_NEXT_PUBLIC_SEARCH_DEMO|${NEXT_PUBLIC_SEARCH_DEMO}|g" "$file"
     done
 }
 

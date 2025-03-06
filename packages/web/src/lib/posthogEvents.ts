@@ -24,7 +24,8 @@ export type PosthogEventMap = {
         flushReason: number,
         fileLanguages: string[]
     },
-    share_link_created: {},
+    wa_demo_try_card_pressed: {},
+    wa_share_link_created: {},
 }
 
 export type PosthogEvent = keyof PosthogEventMap;
