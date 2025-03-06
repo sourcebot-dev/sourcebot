@@ -272,7 +272,7 @@ const PanelGroup = ({
                 />
             </ResizablePanel>
             <ResizableHandle
-                className="bg-accent w-1 transition-colors delay-50 data-[resize-handle-state=drag]:bg-accent-foreground data-[resize-handle-state=hover]:bg-accent-foreground"
+                className="bg-sidebar-accent w-[2px] transition-colors delay-50 data-[resize-handle-state=drag]:bg-sidebar-accent-foreground data-[resize-handle-state=hover]:bg-sidebar-accent-foreground"
             />
 
             {/* ~~ Search results ~~ */}
