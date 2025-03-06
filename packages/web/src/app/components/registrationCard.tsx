@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Code, Database, Search } from "lucide-react"
+import { ArrowRight, Database, Search } from "lucide-react"
 import useCaptureEvent from "@/hooks/useCaptureEvent"
 
 export default function RegistrationCard() {

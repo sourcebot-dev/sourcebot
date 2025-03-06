@@ -1,5 +1,5 @@
 'use client'
-import { NEXT_PUBLIC_POSTHOG_PAPIK, NEXT_PUBLIC_POSTHOG_UI_HOST, NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED } from '@/lib/environment.client'
+import { NEXT_PUBLIC_POSTHOG_PAPIK, NEXT_PUBLIC_POSTHOG_UI_HOST, NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED, NEXT_PUBLIC_PUBLIC_SEARCH_DEMO } from '@/lib/environment.client'
 import posthog from 'posthog-js'
 import { PostHogProvider } from 'posthog-js/react'
 import { resolveServerPath } from './api/(client)/client'
@@ -14,10 +14,10 @@ if (typeof window !== 'undefined') {
             api_host: posthogHostPath,
             ui_host: NEXT_PUBLIC_POSTHOG_UI_HOST,
             person_profiles: 'identified_only',
-            capture_pageview: false, // Disable automatic pageview capture
+            capture_pageview: NEXT_PUBLIC_PUBLIC_SEARCH_DEMO, // @nocheckin Disable automatic pageview capture if we're not in public demo mode
             autocapture: false, // Disable automatic event capture
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            sanitize_properties: (properties: Record<string, any>, _event: string) => {
+            sanitize_properties: !NEXT_PUBLIC_PUBLIC_SEARCH_DEMO ? (properties: Record<string, any>, _event: string) => {
                 // https://posthog.com/docs/libraries/js#config
                 if (properties['$current_url']) {
                     properties['$current_url'] = null;
@@ -27,7 +27,7 @@ if (typeof window !== 'undefined') {
                 }
             
                 return properties;
-            }
+            } : undefined
         });
     } else {
         console.log("PostHog telemetry disabled");

@@ -9,3 +9,4 @@ export const NEXT_PUBLIC_POSTHOG_ASSET_HOST = getEnv(process.env.NEXT_PUBLIC_POS
 export const NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED = getEnvBoolean(process.env.NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED, false);
 export const NEXT_PUBLIC_SOURCEBOT_VERSION = getEnv(process.env.NEXT_PUBLIC_SOURCEBOT_VERSION, "unknown")!;
 export const NEXT_PUBLIC_DOMAIN_SUB_PATH = getEnv(process.env.NEXT_PUBLIC_DOMAIN_SUB_PATH, "")!;
+export const NEXT_PUBLIC_PUBLIC_SEARCH_DEMO = getEnvBoolean(process.env.NEXT_PUBLIC_PUBLIC_SEARCH_DEMO, false);
