@@ -2,7 +2,7 @@
 
 import { EditorState, Extension, StateEffect } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 interface CodeMirrorProps {
     value?: string;
@@ -29,14 +29,14 @@ const LightweightCodeMirror = forwardRef<CodeMirrorRef, CodeMirrorProps>(({
     className,
 }, ref) => {
     const editor = useRef<HTMLDivElement | null>(null);
-    const [view, setView] = useState<EditorView>();
-    const [state, setState] = useState<EditorState>();
+    const viewRef = useRef<EditorView>();
+    const stateRef = useRef<EditorState>();
 
     useImperativeHandle(ref, () => ({
         editor: editor.current,
-        state,
-        view,
-    }), [editor, state, view]);
+        state: stateRef.current,
+        view: viewRef.current,
+    }), []);
 
     useEffect(() => {
         if (!editor.current) {
@@ -47,31 +47,26 @@ const LightweightCodeMirror = forwardRef<CodeMirrorRef, CodeMirrorProps>(({
             extensions: [], /* extensions are explicitly left out here */
             doc: value,
         });
-        setState(state);
+        stateRef.current = state;
 
         const view = new EditorView({
             state,
             parent: editor.current,
         });
-        setView(view);
-
-        // console.debug(`[CM] Editor created.`);
+        viewRef.current = view;
 
         return () => {
             view.destroy();
-            setView(undefined);
-            setState(undefined);
-            // console.debug(`[CM] Editor destroyed.`);
+            viewRef.current = undefined;
+            stateRef.current = undefined;
         }
-
     }, [value]);
 
     useEffect(() => {
-        if (view) {
-            view.dispatch({ effects: StateEffect.reconfigure.of(extensions ?? []) });
-            // console.debug(`[CM] Editor reconfigured.`);
+        if (viewRef.current) {
+            viewRef.current.dispatch({ effects: StateEffect.reconfigure.of(extensions ?? []) });
         }
-    }, [extensions, view]);
+    }, [extensions]);
 
     return (
         <div

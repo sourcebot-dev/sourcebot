@@ -3,9 +3,9 @@
 import { EditorContextMenu } from "@/app/[domain]/components/editorContextMenu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
-import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 import { gutterWidthExtension } from "@/lib/extensions/gutterWidthExtension";
 import { highlightRanges, searchResultHighlightExtension } from "@/lib/extensions/searchResultHighlightExtension";
 import { SearchResultFileMatch } from "@/lib/types";
@@ -44,8 +44,8 @@ export const CodePreview = ({
 }: CodePreviewProps) => {
     const editorRef = useRef<ReactCodeMirrorRef>(null);
 
-    const { theme } = useThemeNormalized();
     const [gutterWidth, setGutterWidth] = useState(0);
+    const theme = useCodeMirrorTheme();
 
     const keymapExtension = useKeymapExtension(editorRef.current?.view);
     const syntaxHighlighting = useSyntaxHighlightingExtension(file?.language ?? '', editorRef.current?.view);
@@ -106,7 +106,7 @@ export const CodePreview = ({
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex flex-row bg-cyan-200 dark:bg-cyan-900 items-center justify-between pr-3 py-0.5">
+            <div className="flex flex-row bg-accent items-center justify-between pr-3 py-0.5 mt-7">
 
                 {/* Gutter icon */}
                 <div className="flex flex-row">
@@ -178,8 +178,8 @@ export const CodePreview = ({
                     className="relative"
                     readOnly={true}
                     value={file?.content}
-                    theme={theme === "dark" ? "dark" : "light"}
                     extensions={extensions}
+                    theme={theme}
                 >
                     {
                         editorRef.current?.view &&

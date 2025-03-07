@@ -3,13 +3,11 @@
 import { getCodemirrorLanguage } from "@/lib/codemirrorLanguage";
 import { lineOffsetExtension } from "@/lib/extensions/lineOffsetExtension";
 import { SearchResultRange } from "@/lib/types";
-import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState, StateField, Transaction } from "@codemirror/state";
-import { defaultLightThemeOption, oneDarkHighlightStyle, oneDarkTheme } from "@uiw/react-codemirror";
 import { Decoration, DecorationSet, EditorView, lineNumbers } from "@codemirror/view";
 import { useMemo, useRef } from "react";
 import { LightweightCodeMirror, CodeMirrorRef } from "./lightweightCodeMirror";
-import { useThemeNormalized } from "@/hooks/useThemeNormalized";
+import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 
 const markDecoration = Decoration.mark({
     class: "cm-searchMatch-selected"
@@ -29,19 +27,13 @@ export const CodePreview = ({
     lineOffset,
 }: CodePreviewProps) => {
     const editorRef = useRef<CodeMirrorRef>(null);
-    const { theme } = useThemeNormalized();
+    const theme = useCodeMirrorTheme();
 
     const extensions = useMemo(() => {
         const codemirrorExtension = getCodemirrorLanguage(language);
         return [
             EditorView.editable.of(false),
-            ...(theme === 'dark' ? [
-                syntaxHighlighting(oneDarkHighlightStyle),
-                oneDarkTheme,
-            ] : [
-                syntaxHighlighting(defaultHighlightStyle),
-                defaultLightThemeOption,
-            ]),
+            theme,
             lineNumbers(),
             lineOffsetExtension(lineOffset),
             codemirrorExtension ? codemirrorExtension : [],

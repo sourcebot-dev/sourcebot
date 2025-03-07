@@ -4,11 +4,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
-import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 import { search } from "@codemirror/search";
 import CodeMirror, { Decoration, DecorationSet, EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, StateField, ViewUpdate } from "@uiw/react-codemirror";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContextMenu } from "../../components/editorContextMenu";
+import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 
 interface CodePreviewProps {
     path: string;
@@ -119,7 +119,7 @@ export const CodePreview = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [highlightRange, isEditorCreated]);
 
-    const { theme } = useThemeNormalized();
+    const theme = useCodeMirrorTheme();
 
     return (
         <ScrollArea className="h-full overflow-auto flex-1">
@@ -132,7 +132,7 @@ export const CodePreview = ({
                 value={source}
                 extensions={extensions}
                 readOnly={true}
-                theme={theme === "dark" ? "dark" : "light"}
+                theme={theme}
             >
                 {editorRef.current && editorRef.current.view && currentSelection && (
                     <EditorContextMenu

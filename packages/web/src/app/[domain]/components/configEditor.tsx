@@ -2,7 +2,6 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
-import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 import { json, jsonLanguage, jsonParseLinter } from "@codemirror/lang-json";
 import { linter } from "@codemirror/lint";
 import { EditorView, hoverTooltip } from "@codemirror/view";
@@ -14,6 +13,7 @@ import { Schema } from "ajv";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { CodeHostType } from "@/lib/utils";
+import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 
 export type QuickActionFn<T> = (previous: T) => T;
 export type QuickAction<T> = {
@@ -119,7 +119,7 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
     );
 
     const keymapExtension = useKeymapExtension(editorRef.current?.view);
-    const { theme } = useThemeNormalized();
+    const theme = useCodeMirrorTheme();
 
     // ⚠️ DISGUSTING HACK AHEAD ⚠️
     // Background: When navigating to the /connections/:id?tab=settings page, we were hitting a 500 error with the following
@@ -251,7 +251,7 @@ const ConfigEditor = <T,>(props: ConfigEditorProps<T>, forwardedRef: Ref<ReactCo
                         customAutocompleteStyle,
                         ...jsonSchemaExtensions,
                     ]}
-                    theme={theme === "dark" ? "dark" : "light"}
+                    theme={theme}
                 />
             </ScrollArea>
             <div

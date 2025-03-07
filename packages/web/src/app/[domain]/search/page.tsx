@@ -10,8 +10,8 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { Repository, SearchQueryParams, SearchResultFile } from "@/lib/types";
-import { createPathWithQueryParams } from "@/lib/utils";
-import { SymbolIcon } from "@radix-ui/react-icons";
+import { createPathWithQueryParams, measure } from "@/lib/utils";
+import { InfoCircledIcon, SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -47,13 +47,18 @@ const SearchPageInternal = () => {
 
     const { data: searchResponse, isLoading } = useQuery({
         queryKey: ["search", searchQuery, maxMatchDisplayCount],
-        queryFn: () => search({
+        queryFn: () => measure(() => search({
             query: searchQuery,
             maxMatchDisplayCount,
-        }, domain),
+        }, domain), "client.search"),
+        select: ({ data, durationMs }) => ({
+            ...data,
+            durationMs,
+        }),
         enabled: searchQuery.length > 0,
         refetchOnWindowFocus: false,
     });
+
 
     // Write the query to the search history
     useEffect(() => {
@@ -136,7 +141,7 @@ const SearchPageInternal = () => {
 
         return {
             fileMatches: searchResponse.Result.Files ?? [],
-            searchDurationMs: Math.round(searchResponse.Result.Duration / 1000000),
+            searchDurationMs: Math.round(searchResponse.durationMs),
             totalMatchCount: searchResponse.Result.MatchCount,
             isBranchFilteringEnabled: searchResponse.isBranchFilteringEnabled,
             repoUrlTemplates: searchResponse.Result.RepoURLs,
@@ -160,12 +165,12 @@ const SearchPageInternal = () => {
     }, [fileMatches]);
 
     const onLoadMoreResults = useCallback(() => {
-        const url = createPathWithQueryParams('/search',
+        const url = createPathWithQueryParams(`/${domain}/search`,
             [SearchQueryParams.query, searchQuery],
             [SearchQueryParams.maxMatchDisplayCount, `${maxMatchDisplayCount * 2}`],
         )
         router.push(url);
-    }, [maxMatchDisplayCount, router, searchQuery]);
+    }, [maxMatchDisplayCount, router, searchQuery, domain]);
 
     return (
         <div className="flex flex-col h-screen overflow-clip">
@@ -175,26 +180,6 @@ const SearchPageInternal = () => {
                     defaultSearchQuery={searchQuery}
                     domain={domain}
                 />
-                <Separator />
-                {!isLoading && (
-                    <div className="bg-accent py-1 px-2 flex flex-row items-center gap-4">
-                        {
-                            fileMatches.length > 0 ? (
-                                <p className="text-sm font-medium">{`[${searchDurationMs} ms] Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
-                            ) : (
-                                <p className="text-sm font-medium">No results</p>
-                            )
-                        }
-                        {isMoreResultsButtonVisible && (
-                            <div
-                                className="cursor-pointer text-blue-500 text-sm hover:underline"
-                                onClick={onLoadMoreResults}
-                            >
-                                (load more)
-                            </div>
-                        )}
-                    </div>
-                )}
                 <Separator />
             </div>
 
@@ -211,6 +196,8 @@ const SearchPageInternal = () => {
                     isBranchFilteringEnabled={isBranchFilteringEnabled}
                     repoUrlTemplates={repoUrlTemplates}
                     repoMetadata={repoMetadata ?? {}}
+                    searchDurationMs={searchDurationMs}
+                    numMatches={numMatches}
                 />
             )}
         </div>
@@ -224,6 +211,8 @@ interface PanelGroupProps {
     isBranchFilteringEnabled: boolean;
     repoUrlTemplates: Record<string, string>;
     repoMetadata: Record<string, Repository>;
+    searchDurationMs: number;
+    numMatches: number;
 }
 
 const PanelGroup = ({
@@ -233,6 +222,8 @@ const PanelGroup = ({
     isBranchFilteringEnabled,
     repoUrlTemplates,
     repoMetadata,
+    searchDurationMs,
+    numMatches,
 }: PanelGroupProps) => {
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
     const [selectedFile, setSelectedFile] = useState<SearchResultFile | undefined>(undefined);
@@ -272,7 +263,7 @@ const PanelGroup = ({
                 />
             </ResizablePanel>
             <ResizableHandle
-                className="bg-accent w-1 transition-colors delay-50 data-[resize-handle-state=drag]:bg-accent-foreground data-[resize-handle-state=hover]:bg-accent-foreground"
+                className="w-[1px] bg-accent transition-colors delay-50 data-[resize-handle-state=drag]:bg-accent-foreground data-[resize-handle-state=hover]:bg-accent-foreground"
             />
 
             {/* ~~ Search results ~~ */}
@@ -281,6 +272,24 @@ const PanelGroup = ({
                 id={'search-results-panel'}
                 order={2}
             >
+                <div className="py-1 px-2 flex flex-row items-center">
+                    <InfoCircledIcon className="w-4 h-4 mr-2" />
+                    {
+                        fileMatches.length > 0 ? (
+                            <p className="text-sm font-medium">{`[${searchDurationMs} ms] Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
+                        ) : (
+                            <p className="text-sm font-medium">No results</p>
+                        )
+                    }
+                    {isMoreResultsButtonVisible && (
+                        <div
+                            className="cursor-pointer text-blue-500 text-sm hover:underline ml-4"
+                            onClick={onLoadMoreResults}
+                        >
+                            (load more)
+                        </div>
+                    )}
+                </div>
                 {filteredFileMatches.length > 0 ? (
                     <SearchResultsPanel
                         fileMatches={filteredFileMatches}
@@ -302,7 +311,7 @@ const PanelGroup = ({
                 )}
             </ResizablePanel>
             <ResizableHandle
-                withHandle={selectedFile !== undefined}
+                className="mt-7 w-[1px] bg-accent transition-colors delay-50 data-[resize-handle-state=drag]:bg-accent-foreground data-[resize-handle-state=hover]:bg-accent-foreground"
             />
 
             {/* ~~ Code preview ~~ */}
