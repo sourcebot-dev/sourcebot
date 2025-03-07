@@ -124,36 +124,40 @@ export const SearchResultsPanel = ({
                     position: "relative",
                 }}
             >
-                {virtualizer.getVirtualItems().map((virtualRow) => (
-                    <div
-                        key={virtualRow.key}
-                        data-index={virtualRow.index}
-                        ref={virtualizer.measureElement}
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            transform: `translateY(${virtualRow.start}px)`,
-                        }}
-                    >
-                        <FileMatchContainer
-                            file={fileMatches[virtualRow.index]}
-                            onOpenFile={() => {
-                                onOpenFileMatch(fileMatches[virtualRow.index]);
+                {virtualizer.getVirtualItems().map((virtualRow) => {
+                    const file = fileMatches[virtualRow.index];
+                    return (
+                        <div
+                            key={virtualRow.key}
+                            data-index={virtualRow.index}
+                            ref={virtualizer.measureElement}
+                            style={{
+                                position: 'absolute',
+                                transform: `translateY(${virtualRow.start}px)`,
+                                top: 0,
+                                left: 0,
+                                width: '100%',
                             }}
-                            onMatchIndexChanged={(matchIndex) => {
-                                onMatchIndexChanged(matchIndex);
-                            }}
-                            showAllMatches={showAllMatchesStates[virtualRow.index]}
-                            onShowAllMatchesButtonClicked={() => {
-                                onShowAllMatchesButtonClicked(virtualRow.index);
-                            }}
-                            isBranchFilteringEnabled={isBranchFilteringEnabled}
-                            repoMetadata={repoMetadata}
-                        />
-                    </div>
-                ))}
+                        >
+                            <FileMatchContainer
+                                file={file}
+                                onOpenFile={() => {
+                                    onOpenFileMatch(file);
+                                }}
+                                onMatchIndexChanged={(matchIndex) => {
+                                    onMatchIndexChanged(matchIndex);
+                                }}
+                                showAllMatches={showAllMatchesStates[virtualRow.index]}
+                                onShowAllMatchesButtonClicked={() => {
+                                    onShowAllMatchesButtonClicked(virtualRow.index);
+                                }}
+                                isBranchFilteringEnabled={isBranchFilteringEnabled}
+                                repoMetadata={repoMetadata}
+                                yOffset={virtualRow.start}
+                            />
+                        </div>
+                    )
+                })}
             </div>
             {isLoadMoreButtonVisible && (
                 <div className="p-3">

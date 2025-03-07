@@ -46,7 +46,7 @@ export const Entry = ({
                 )}
                 <p className="overflow-hidden text-ellipsis whitespace-nowrap">{displayName}</p>
             </div>
-            <div className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-sm rounded-md">
+            <div className="px-2 py-0.5 bg-accent text-sm rounded-md">
                 {countText}
             </div>
         </div>

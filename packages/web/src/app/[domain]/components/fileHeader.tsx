@@ -23,7 +23,6 @@ export const FileHeader = ({
     branchDisplayName,
     branchDisplayTitle,
 }: FileHeaderProps) => {
-
     const info = getRepoCodeHostInfo(repo);
 
     return (
@@ -47,7 +46,7 @@ export const FileHeader = ({
             </Link>
             {branchDisplayName && (
                 <p
-                    className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-0.5"
+                    className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-[3px] flex items-center gap-0.5"
                     title={branchDisplayTitle}
                 >
                     {/* hack since to make the @ symbol look more centered with the text */}
@@ -64,7 +63,9 @@ export const FileHeader = ({
                 </p>
             )}
             <span>·</span>
-            <div className="flex-1 flex items-center overflow-hidden">
+            <div
+                className="flex-1 flex items-center overflow-hidden mt-0.5"
+            >
                 <span className="inline-block w-full truncate-start font-mono text-sm">
                     {!fileNameHighlightRange ?
                         fileName

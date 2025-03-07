@@ -1,6 +1,6 @@
 'use client';
 
-import { FileHeader } from "@/app/[domain]/components/fireHeader";
+import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { Separator } from "@/components/ui/separator";
 import { Repository, SearchResultFile } from "@/lib/types";
 import { DoubleArrowDownIcon, DoubleArrowUpIcon } from "@radix-ui/react-icons";
@@ -17,6 +17,7 @@ interface FileMatchContainerProps {
     onShowAllMatchesButtonClicked: () => void;
     isBranchFilteringEnabled: boolean;
     repoMetadata: Record<string, Repository>;
+    yOffset: number;
 }
 
 export const FileMatchContainer = ({
@@ -27,6 +28,7 @@ export const FileMatchContainer = ({
     onShowAllMatchesButtonClicked,
     isBranchFilteringEnabled,
     repoMetadata,
+    yOffset,
 }: FileMatchContainerProps) => {
 
     const matchCount = useMemo(() => {
@@ -92,7 +94,10 @@ export const FileMatchContainer = ({
         <div>
             {/* Title */}
             <div
-                className="top-0 bg-cyan-200 dark:bg-cyan-900 primary-foreground px-2 py-0.5 flex flex-row items-center justify-between cursor-pointer"
+                className="bg-accent primary-foreground px-2 py-0.5 flex flex-row items-center justify-between cursor-pointer sticky top-0 z-10"
+                style={{
+                    top: `-${yOffset}px`,
+                }}
                 onClick={() => {
                     onOpenFile();
                 }}
@@ -119,7 +124,7 @@ export const FileMatchContainer = ({
                         }}
                     />
                     {(index !== matches.length - 1 || isMoreContentButtonVisible) && (
-                        <Separator className="dark:bg-gray-400" />
+                        <Separator className="bg-accent" />
                     )}
                 </div>
             ))}
