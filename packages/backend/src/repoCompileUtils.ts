@@ -29,7 +29,7 @@ export const compileGithubConfig = async (
     const notFound = gitHubReposResult.notFound;
 
     const hostUrl = config.url ?? 'https://github.com';
-    const hostname = config.url ? new URL(config.url).hostname : 'github.com';
+    const hostname = new URL(hostUrl).hostname;
 
     const repos = gitHubRepos.map((repo) => {
         const repoName = `${hostname}/${repo.full_name}`;
@@ -92,18 +92,20 @@ export const compileGitlabConfig = async (
     const notFound = gitlabReposResult.notFound;
 
     const hostUrl = config.url ?? 'https://gitlab.com';
+    const hostname = new URL(hostUrl).hostname;
     
     const repos = gitlabRepos.map((project) => {
         const projectUrl = `${hostUrl}/${project.path_with_namespace}`;
         const cloneUrl = new URL(project.http_url_to_repo);
         const isFork = project.forked_from_project !== undefined;
+        const repoName = `${hostname}/${project.path_with_namespace}`;
 
         const record: RepoData = {
             external_id: project.id.toString(),
             external_codeHostType: 'gitlab',
             external_codeHostUrl: hostUrl,
             cloneUrl: cloneUrl.toString(),
-            name: project.path_with_namespace,
+            name: repoName,
             imageUrl: project.avatar_url,
             isFork: isFork,
             isArchived: !!project.archived,
@@ -121,7 +123,7 @@ export const compileGitlabConfig = async (
                 gitConfig: {
                     'zoekt.web-url-type': 'gitlab',
                     'zoekt.web-url': projectUrl,
-                    'zoekt.name': project.path_with_namespace,
+                    'zoekt.name': repoName,
                     'zoekt.gitlab-stars': (project.stargazers_count ?? 0).toString(),
                     'zoekt.gitlab-forks': (project.forks_count ?? 0).toString(),
                     'zoekt.archived': marshalBool(project.archived),
@@ -153,16 +155,18 @@ export const compileGiteaConfig = async (
     const notFound = giteaReposResult.notFound;
 
     const hostUrl = config.url ?? 'https://gitea.com';
+    const hostname = new URL(hostUrl).hostname;
 
     const repos = giteaRepos.map((repo) => {
         const cloneUrl = new URL(repo.clone_url!);
+        const repoName = `${hostname}/${repo.full_name!}`;
 
         const record: RepoData = {
             external_id: repo.id!.toString(),
             external_codeHostType: 'gitea',
             external_codeHostUrl: hostUrl,
             cloneUrl: cloneUrl.toString(),
-            name: repo.full_name!,
+            name: repoName,
             imageUrl: repo.owner?.avatar_url,
             isFork: repo.fork!,
             isArchived: !!repo.archived,
@@ -180,7 +184,7 @@ export const compileGiteaConfig = async (
                 gitConfig: {
                     'zoekt.web-url-type': 'gitea',
                     'zoekt.web-url': repo.html_url!,
-                    'zoekt.name': repo.full_name!,
+                    'zoekt.name': repoName,
                     'zoekt.archived': marshalBool(repo.archived),
                     'zoekt.fork': marshalBool(repo.fork!),
                     'zoekt.public': marshalBool(repo.internal === false && repo.private === false),

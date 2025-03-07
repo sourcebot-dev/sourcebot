@@ -20,7 +20,7 @@ const chalky = "#e5c07b",
     sage = "#98c379",
     whiskey = "#d19a66",
     violet = "#c678dd",
-    highlightBackground = "#2c313a",
+    highlightBackground = "#2c313aaa",
     background = "#282c34",
     selection = "#3E4451",
     cursor = "#528bff";
@@ -65,14 +65,14 @@ export const useCodeMirrorTheme = () => {
                 { tag: t.invalid, color: invalid }
             ]
         });
-    }, []);
+    }, [tailwind.theme.colors.background]);
 
     const cmTheme = useMemo(() => {
         return theme === 'dark' ? darkTheme : [
             defaultLightThemeOption,
             syntaxHighlighting(defaultHighlightStyle),
         ]
-    }, [theme]);
+    }, [theme, darkTheme]);
 
     return cmTheme;
 }
