@@ -52,6 +52,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppConte
                 id: repoId,
                 cloneUrl: cloneUrl.toString(),
                 path: repoPath,
+                defaultBranch: repo.default_branch,
                 isStale: false,
                 isFork: repo.fork!,
                 isArchived: !!repo.archived,
