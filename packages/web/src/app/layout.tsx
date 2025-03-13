@@ -7,6 +7,7 @@ import { PHProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
+import { SyntaxGuideProvider } from "./syntaxGuideProvider";
 
 export const metadata: Metadata = {
     title: "Sourcebot",
@@ -35,14 +36,16 @@ export default function RootLayout({
                     >
                         <QueryClientProvider>
                             <TooltipProvider>
-                                {/*
-                                    @todo : ideally we don't wrap everything in a suspense boundary.
-                                    @see : https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
-                                */}
-                                <Suspense>
-                                    {children}
-                                </Suspense>
-                                <SyntaxReferenceGuide />
+                                <SyntaxGuideProvider>
+                                    {/*
+                                        @todo : ideally we don't wrap everything in a suspense boundary.
+                                        @see : https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+                                    */}
+                                    <Suspense>
+                                        {children}
+                                    </Suspense>
+                                    <SyntaxReferenceGuide />
+                                </SyntaxGuideProvider>
                             </TooltipProvider>
                         </QueryClientProvider>
                     </ThemeProvider>
