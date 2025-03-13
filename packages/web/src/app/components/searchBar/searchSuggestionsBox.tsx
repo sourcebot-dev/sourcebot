@@ -17,6 +17,7 @@ import { VscFile, VscFilter, VscRepo, VscSymbolMisc } from "react-icons/vsc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { KeyboardShortcutHint } from "../keyboardShortcutHint";
+import { useSyntaxGuide } from "@/app/syntaxGuideProvider";
 
 export type Suggestion = {
     value: string;
@@ -79,6 +80,7 @@ const SearchSuggestionsBox = forwardRef(({
     searchHistorySuggestions,
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
+    const { onOpenChanged } = useSyntaxGuide();
 
     const { suggestions, isHighlightEnabled, descriptionPlacement, DefaultIcon, onSuggestionClicked } = useMemo(() => {
         if (!isEnabled) {
@@ -391,7 +393,10 @@ const SearchSuggestionsBox = forwardRef(({
                 className="my-2"
             />
             <div className="flex flex-row items-center justify-between mt-1">
-                <div className="flex flex-row gap-1.5 items-center">
+                <div
+                    className="flex flex-row gap-1.5 items-center cursor-pointer"
+                    onClick={() => onOpenChanged(true)}
+                >
                     <p className="text-muted-foreground text-sm">
                         Syntax help:
                     </p>

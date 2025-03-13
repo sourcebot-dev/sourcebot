@@ -12,30 +12,31 @@ import {
 } from "@/components/ui/table";
 import clsx from "clsx";
 import Link from "next/link";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { useSyntaxGuide } from "../syntaxGuideProvider";
 
 const LINGUIST_LINK = "https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml";
 const CTAGS_LINK = "https://ctags.io/";
 
 export const SyntaxReferenceGuide = () => {
-    const [isOpen, setIsOpen] = useState(false);
+    const { isOpen, onOpenChanged } = useSyntaxGuide();
     const previousFocusedElement = useRef<HTMLElement | null>(null);
 
     const openDialog = useCallback(() => {
         previousFocusedElement.current = document.activeElement as HTMLElement;
-        setIsOpen(true);
-    }, []);
+        onOpenChanged(true);
+    }, [onOpenChanged]);
 
     const closeDialog = useCallback(() => {
-        setIsOpen(false);
+        onOpenChanged(false);
 
         // @note: Without requestAnimationFrame, focus was not being returned
         // to codemirror elements for some reason.
         requestAnimationFrame(() => {
             previousFocusedElement.current?.focus();
         });
-    }, []);
+    }, [onOpenChanged]);
 
     const handleOpenChange = useCallback((isOpen: boolean) => {
         if (isOpen) {
