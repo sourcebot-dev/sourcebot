@@ -81,7 +81,6 @@ jobs:
           build-args: |
             SOURCEBOT_VERSION=${{ github.ref_name }}
             POSTHOG_PAPIK=${{ secrets.POSTHOG_PAPIK }}
-            PUBLIC_SEARCH_DEMO=${{ secrets.PUBLIC_SEARCH_DEMO }}
             
       - name: Export digest
         run: |
