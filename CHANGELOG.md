@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.4] - 2025-03-14
+
+### Fixed
+
+- Fixed bug where Sourcebot Cloud card was shown to self-hosted users
+
 ## [2.8.3] - 2025-03-13
 
 ### Fixed
