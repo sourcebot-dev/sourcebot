@@ -221,3 +221,7 @@ export const orgDomainSchema = z.string()
         const doesDomainExist = await checkIfOrgDomainExists(domain);
         return isServiceError(doesDomainExist) || !doesDomainExist;
     }, "This url is already taken.");
+
+export const getVersionResponseSchema = z.object({
+    version: z.string(),
+});

@@ -8,7 +8,7 @@ import { PageNotFound } from "./components/pageNotFound";
 import { Footer } from "@/app/components/footer";
 import { SourcebotLogo } from "../components/sourcebotLogo";
 import { RepositorySnapshot } from "./components/repositorySnapshot";
-import { KeyboardShortcutHint } from "./components/keyboardShortcutHint";
+import { SyntaxReferenceGuideHint } from "./components/syntaxReferenceGuideHint";
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -88,9 +88,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                             </QueryExample>
                         </HowToSection>
                     </div>
-                    <div className="text-sm">
-                        <span className="dark:text-gray-300">Reference guide: </span><KeyboardShortcutHint shortcut="⌘" /> <KeyboardShortcutHint shortcut="/" />
-                    </div>
+                    <SyntaxReferenceGuideHint />
                 </div>
             </div>
             <Footer />

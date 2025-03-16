@@ -1,8 +1,8 @@
 'use client';
 
 import { NEXT_PUBLIC_DOMAIN_SUB_PATH } from "@/lib/environment.client";
-import { fileSourceResponseSchema, listRepositoriesResponseSchema, searchResponseSchema } from "@/lib/schemas";
-import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
+import { fileSourceResponseSchema, getVersionResponseSchema, listRepositoriesResponseSchema, searchResponseSchema } from "@/lib/schemas";
+import { FileSourceRequest, FileSourceResponse, GetVersionResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
 import assert from "assert";
 
 export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse> => {
@@ -44,6 +44,17 @@ export const getRepos = async (domain: string): Promise<ListRepositoriesResponse
     }).then(response => response.json());
 
     return listRepositoriesResponseSchema.parse(result);
+}
+
+export const getVersion = async (): Promise<GetVersionResponse> => {
+    const path = resolveServerPath("/api/version");
+    const result = await fetch(path, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    }).then(response => response.json());
+    return getVersionResponseSchema.parse(result);
 }
 
 /**

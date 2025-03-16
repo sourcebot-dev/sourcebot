@@ -51,6 +51,7 @@ export const CodePreviewPanel = ({
                         if (!template || !template.match(/^{{URLJoinPath\s.*}}(\?.+)?$/)) {
                             return undefined;
                         }
+
                         const url =
                             template.substring("{{URLJoinPath ".length,template.indexOf("}}"))
                             .replace(".Version", branch ?? "HEAD")

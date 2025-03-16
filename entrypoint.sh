@@ -70,14 +70,16 @@ if [ ! -f "$FIRST_RUN_FILE" ]; then
     # If this is our first run, send a `install` event to PostHog
     # (if telemetry is enabled)
     if [ -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
-        curl -L -s --header "Content-Type: application/json" -d '{
+        if ! ( curl -L --output /dev/null --silent --fail --header "Content-Type: application/json" -d '{
             "api_key": "'"$POSTHOG_PAPIK"'",
             "event": "install",
             "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
             "properties": {
                 "sourcebot_version": "'"$SOURCEBOT_VERSION"'"
             }
-        }' https://us.i.posthog.com/capture/ > /dev/null
+        }' https://us.i.posthog.com/capture/ ) then
+            echo -e "\e[33m[Warning] Failed to send install event.\e[0m"
+        fi
     fi
 else
     export SOURCEBOT_INSTALL_ID=$(cat "$FIRST_RUN_FILE" | jq -r '.install_id')
@@ -88,7 +90,7 @@ else
         echo -e "\e[34m[Info] Upgraded from version $PREVIOUS_VERSION to $SOURCEBOT_VERSION\e[0m"
 
         if [ -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
-            curl -L -s --header "Content-Type: application/json" -d '{
+            if ! ( curl -L --output /dev/null --silent --fail --header "Content-Type: application/json" -d '{
                 "api_key": "'"$POSTHOG_PAPIK"'",
                 "event": "upgrade",
                 "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
@@ -96,7 +98,9 @@ else
                     "from_version": "'"$PREVIOUS_VERSION"'",
                     "to_version": "'"$SOURCEBOT_VERSION"'"
                 }
-            }' https://us.i.posthog.com/capture/ > /dev/null
+            }' https://us.i.posthog.com/capture/ ) then
+                echo -e "\e[33m[Warning] Failed to send upgrade event.\e[0m"
+            fi
         fi
     fi
 fi
@@ -115,6 +119,11 @@ echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL
     # Infer NEXT_PUBLIC_SOURCEBOT_VERSION if it is not set
     if [ -z "$NEXT_PUBLIC_SOURCEBOT_VERSION" ] && [ ! -z "$SOURCEBOT_VERSION" ]; then
         export NEXT_PUBLIC_SOURCEBOT_VERSION="$SOURCEBOT_VERSION"
+    fi
+
+    # Infer NEXT_PUBLIC_PUBLIC_SEARCH_DEMO if it is not set
+    if [ -z "$NEXT_PUBLIC_PUBLIC_SEARCH_DEMO" ] && [ ! -z "$PUBLIC_SEARCH_DEMO" ]; then
+        export NEXT_PUBLIC_PUBLIC_SEARCH_DEMO="$PUBLIC_SEARCH_DEMO"
     fi
 
     # Always infer NEXT_PUBLIC_POSTHOG_PAPIK
@@ -139,6 +148,7 @@ echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL
         sed -i "s|BAKED_NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}|g" "$file"
         sed -i "s|BAKED_NEXT_PUBLIC_SENTRY_ENVIRONMENT|${NEXT_PUBLIC_SENTRY_ENVIRONMENT}|g" "$file"
         sed -i "s|BAKED_NEXT_PUBLIC_SENTRY_WEBAPP_DSN|${NEXT_PUBLIC_SENTRY_WEBAPP_DSN}|g" "$file"
+        sed -i "s|BAKED_NEXT_PUBLIC_PUBLIC_SEARCH_DEMO|${NEXT_PUBLIC_PUBLIC_SEARCH_DEMO}|g" "$file"
     done
 }
 

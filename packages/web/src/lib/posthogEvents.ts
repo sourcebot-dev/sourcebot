@@ -2,6 +2,7 @@
 
 export type PosthogEventMap = {
     search_finished: {
+        query: string | null,
         contentBytesLoaded: number,
         indexBytesLoaded: number,
         crashes: number,
@@ -242,6 +243,8 @@ export type PosthogEventMap = {
     wa_security_page_click: {},
     //////////////////////////////////////////////////////////////////
     wa_demo_card_click: {},
+    wa_demo_try_card_pressed: {},
+    wa_share_link_created: {},
 } 
 
 export type PosthogEvent = keyof PosthogEventMap;

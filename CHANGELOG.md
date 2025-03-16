@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.4] - 2025-03-14
+
+### Fixed
+
+- Fixed bug where Sourcebot Cloud card was shown to self-hosted users
+
+## [2.8.3] - 2025-03-13
+
+### Fixed
+
+- Made syntax reference guide keyboard shortcut hints clickable. ([#229](https://github.com/sourcebot-dev/sourcebot/pull/229))
+
+## [2.8.2] - 2025-02-20
+
+### Fixed
+
+- Remove `repo_synced` telemetry event.
+
+## [2.8.1] - 2025-01-28
+
+### Added
+
+- Added `maxTrigramCount` to the config to control the maximum allowable of trigrams per document. 
+
+### Fixed
+
+- Fixed issue with version upgrade toast not appearing without a hard refresh. ([#179](https://github.com/sourcebot-dev/sourcebot/pull/179))
+
+## [2.8.0] - 2025-01-17
+
+### Added
+
+- Added a syntax reference guide. The guide can be opened using the hotkey "Cmd + /" ("Ctrl + /" on Windows). ([#169](https://github.com/sourcebot-dev/sourcebot/pull/169))
+
+## [2.7.1] - 2025-01-15
+
+### Fixed
+
+- Fixed issue where we crash on startup if the install / upgrade PostHog event fails to send. ([#159](https://github.com/sourcebot-dev/sourcebot/pull/159))
+- Fixed issue with broken file links. ([#161](https://github.com/sourcebot-dev/sourcebot/pull/161))
+
 ## [2.7.0] - 2025-01-10
 
 ### Added
