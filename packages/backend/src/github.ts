@@ -21,8 +21,9 @@ type OctokitRepository = {
     subscribers_count?: number,
     forks_count?: number,
     archived?: boolean,
+    default_branch?: string,
     topics?: string[],
-    size?: number,
+    size?: number
 }
 
 export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: AbortSignal, ctx: AppContext) => {
@@ -79,6 +80,7 @@ export const getGitHubReposFromConfig = async (config: GitHubConfig, signal: Abo
                 id: repoId,
                 cloneUrl: cloneUrl.toString(),
                 path: repoPath,
+                defaultBranch: repo.default_branch,
                 isStale: false,
                 isFork: repo.fork,
                 isArchived: !!repo.archived,

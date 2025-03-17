@@ -9,7 +9,7 @@ import { AppContext, LocalRepository, GitRepository, Repository, Settings } from
 import { cloneRepository, fetchRepository, getGitRepoFromConfig } from "./git.js";
 import { createLogger } from "./logger.js";
 import { createRepository, Database, loadDB, updateRepository, updateSettings } from './db.js';
-import { arraysEqualShallow, isRemotePath, measure } from "./utils.js";
+import { arraysEqualShallow, stringsEqualFalseySafe, isRemotePath, measure } from "./utils.js";
 import { DEFAULT_SETTINGS } from "./constants.js";
 import stripJsonComments from 'strip-json-comments';
 import { indexGitRepository, indexLocalRepository } from "./zoekt.js";
@@ -154,7 +154,8 @@ export const isRepoReindexingRequired = (previous: Repository, current: Reposito
 
         return (
             !arraysEqualShallow(previous.branches, current.branches) ||
-            !arraysEqualShallow(previous.tags, current.tags)
+            !arraysEqualShallow(previous.tags, current.tags) ||
+            !stringsEqualFalseySafe(previous.defaultBranch, current.defaultBranch)
         );
     }
 
