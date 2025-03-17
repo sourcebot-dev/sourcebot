@@ -32,7 +32,6 @@ interface PostHogProviderProps {
 }
 
 export function PostHogProvider({ children, disabled }: PostHogProviderProps) {
-    console.log(env.NEXT_PUBLIC_POSTHOG_PAPIK);
     useEffect(() => {
         if (!disabled && env.NEXT_PUBLIC_POSTHOG_PAPIK) {
             posthog.init(env.NEXT_PUBLIC_POSTHOG_PAPIK, {
