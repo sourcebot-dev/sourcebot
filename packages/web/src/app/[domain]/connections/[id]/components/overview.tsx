@@ -10,7 +10,7 @@ import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { flagConnectionForSync, getConnectionInfo } from "@/actions";
 import { isServiceError, unwrapServiceError } from "@/lib/utils";
-import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
+import { env } from "@/env.mjs";
 import { ConnectionSyncStatus } from "@sourcebot/db";
 import { FiLoader } from "react-icons/fi";
 import { CircleCheckIcon, AlertTriangle, CircleXIcon } from "lucide-react";
@@ -31,7 +31,7 @@ export const Overview = ({ connectionId }: OverviewProps) => {
     const { data: connection, isPending, error, refetch } = useQuery({
         queryKey: ['connection', domain, connectionId],
         queryFn: () => unwrapServiceError(getConnectionInfo(connectionId, domain)),
-        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
     const handleSecretsNavigation = useCallback(() => {

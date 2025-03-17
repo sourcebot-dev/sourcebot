@@ -6,7 +6,7 @@ import { CircleXIcon } from "lucide-react";
 import { useDomain } from "@/hooks/useDomain";
 import { unwrapServiceError } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
+import { env } from "@/env.mjs";
 import { useQuery } from "@tanstack/react-query";
 import { ConnectionSyncStatus, RepoIndexingStatus } from "@sourcebot/db";
 import { getConnections } from "@/actions";
@@ -20,14 +20,14 @@ export const ErrorNavIndicator = () => {
         queryKey: ['repos', domain],
         queryFn: () => unwrapServiceError(getRepos(domain)),
         select: (data) => data.filter(repo => repo.repoIndexingStatus === RepoIndexingStatus.FAILED),
-        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
     const { data: connections, isPending: isPendingConnections, isError: isErrorConnections } = useQuery({
         queryKey: ['connections', domain],
         queryFn: () => unwrapServiceError(getConnections(domain)),
         select: (data) => data.filter(connection => connection.syncStatus === ConnectionSyncStatus.FAILED),
-        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
     if (isPendingRepos || isErrorRepos || isPendingConnections || isErrorConnections) {

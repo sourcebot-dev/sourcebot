@@ -6,6 +6,7 @@ import { PostHogProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "next-auth/react";
+import { env } from "@/env.mjs";
 
 export const metadata: Metadata = {
     title: "Sourcebot",
@@ -26,7 +27,7 @@ export default function RootLayout({
             <body>
                 <Toaster />
                 <SessionProvider>
-                    <PostHogProvider>
+                    <PostHogProvider disabled={env.SOURCEBOT_TELEMETRY_DISABLED === "true"}>
                         <ThemeProvider
                             attribute="class"
                             defaultTheme="system"

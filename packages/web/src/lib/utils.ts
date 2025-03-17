@@ -158,30 +158,6 @@ export const isServiceError = (data: unknown): data is ServiceError => {
         'message' in data;
 }
 
-export const getEnv = (env: string | undefined, defaultValue?: string) => {
-	return env ?? defaultValue;
-}
-
-export const getEnvNumber = (env: string | undefined, defaultValue: number = 0) => {
-    if (!env) {
-        return defaultValue;
-    }
-
-    const num = Number(env);
-    if (isNaN(num)) {
-        return defaultValue;
-    }
-
-    return num;
-}
-
-export const getEnvBoolean = (env: string | undefined, defaultValue: boolean) => {
-	if (!env) {
-		return defaultValue;
-	}
-	return env === 'true' || env === '1';
-}
-
 // From https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
 export const base64Decode = (base64: string): string => {
     const binString = atob(base64);

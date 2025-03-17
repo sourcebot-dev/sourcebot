@@ -28,11 +28,10 @@ import { useMemo } from "react"
 import { KeymapType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useKeymapType } from "@/hooks/useKeymapType"
-import { NEXT_PUBLIC_SOURCEBOT_VERSION } from "@/lib/environment.client";
 import { useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react"
-
+import { env } from "@/env.mjs";
 
 interface SettingsDropdownProps {
     menuButtonClassName?: string;
@@ -147,7 +146,7 @@ export const SettingsDropdown = ({
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <div className="px-2 py-1 text-sm text-muted-foreground">
-                    version: {NEXT_PUBLIC_SOURCEBOT_VERSION}
+                    version: {env.NEXT_PUBLIC_SOURCEBOT_VERSION}
                 </div>
             </DropdownMenuContent>
         </DropdownMenu>

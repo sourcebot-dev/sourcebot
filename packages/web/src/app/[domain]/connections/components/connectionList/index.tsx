@@ -6,7 +6,7 @@ import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { getConnections } from "@/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
+import { env } from "@/env.mjs";
 import { RepoIndexingStatus, ConnectionSyncStatus } from "@sourcebot/db";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,7 @@ export const ConnectionList = ({
     const { data: unfilteredConnections, isPending, error } = useQuery({
         queryKey: ['connections', domain],
         queryFn: () => unwrapServiceError(getConnections(domain)),
-        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
     const connections = useMemo(() => {

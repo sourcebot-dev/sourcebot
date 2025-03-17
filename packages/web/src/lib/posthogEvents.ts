@@ -2,7 +2,6 @@
 
 export type PosthogEventMap = {
     search_finished: {
-        query: string | null,
         contentBytesLoaded: number,
         indexBytesLoaded: number,
         crashes: number,

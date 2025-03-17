@@ -75,6 +75,7 @@
     "@ssddanbrown/codemirror-lang-twig": "^1.0.0",
     "@stripe/react-stripe-js": "^3.1.1",
     "@stripe/stripe-js": "^5.6.0",
+    "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "^5.53.3",
     "@tanstack/react-table": "^8.20.5",
     "@tanstack/react-virtual": "^3.10.8",
@@ -133,7 +134,7 @@
     "tailwind-scrollbar-hide": "^1.1.7",
     "tailwindcss-animate": "^1.0.7",
     "usehooks-ts": "^3.1.0",
-    "zod": "^3.23.8"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

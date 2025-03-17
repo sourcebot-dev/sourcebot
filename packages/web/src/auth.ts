@@ -6,17 +6,7 @@ import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
-import {
-    AUTH_GITHUB_CLIENT_ID,
-    AUTH_GITHUB_CLIENT_SECRET,
-    AUTH_GOOGLE_CLIENT_ID,
-    AUTH_GOOGLE_CLIENT_SECRET,
-    AUTH_SECRET,
-    AUTH_URL,
-    AUTH_CREDENTIALS_LOGIN_ENABLED,
-    EMAIL_FROM,
-    SMTP_CONNECTION_URL
-} from "./lib/environment";
+import { env } from "@/env.mjs";
 import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
@@ -44,24 +34,24 @@ declare module 'next-auth/jwt' {
 export const getProviders = () => {
     const providers: Provider[] = [];
 
-    if (AUTH_GITHUB_CLIENT_ID && AUTH_GITHUB_CLIENT_SECRET) {
+    if (env.AUTH_GITHUB_CLIENT_ID && env.AUTH_GITHUB_CLIENT_SECRET) {
         providers.push(GitHub({
-            clientId: AUTH_GITHUB_CLIENT_ID,
-            clientSecret: AUTH_GITHUB_CLIENT_SECRET,
+            clientId: env.AUTH_GITHUB_CLIENT_ID,
+            clientSecret: env.AUTH_GITHUB_CLIENT_SECRET,
         }));
     }
 
-    if (AUTH_GOOGLE_CLIENT_ID && AUTH_GOOGLE_CLIENT_SECRET) {
+    if (env.AUTH_GOOGLE_CLIENT_ID && env.AUTH_GOOGLE_CLIENT_SECRET) {
         providers.push(Google({
-            clientId: AUTH_GOOGLE_CLIENT_ID,
-            clientSecret: AUTH_GOOGLE_CLIENT_SECRET,
+            clientId: env.AUTH_GOOGLE_CLIENT_ID,
+            clientSecret: env.AUTH_GOOGLE_CLIENT_SECRET,
         }));
     }
 
-    if (SMTP_CONNECTION_URL && EMAIL_FROM) {
+    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM) {
         providers.push(EmailProvider({
-            server: SMTP_CONNECTION_URL,
-            from: EMAIL_FROM,
+            server: env.SMTP_CONNECTION_URL,
+            from: env.EMAIL_FROM,
             maxAge: 60 * 10,
             generateVerificationToken: async () => {
                 const token = String(Math.floor(100000 + Math.random() * 900000));
@@ -69,7 +59,7 @@ export const getProviders = () => {
             },
             sendVerificationRequest: async ({ identifier, provider, token }) => {
                 const transport = createTransport(provider.server);
-                const html = await render(MagicLinkEmail({ baseUrl: AUTH_URL, token: token }));
+                const html = await render(MagicLinkEmail({ baseUrl: env.AUTH_URL, token: token }));
                 const result = await transport.sendMail({
                     to: identifier,
                     from: provider.from,
@@ -86,7 +76,7 @@ export const getProviders = () => {
         }));
     }
 
-    if (AUTH_CREDENTIALS_LOGIN_ENABLED) {
+    if (env.AUTH_CREDENTIALS_LOGIN_ENABLED) {
         providers.push(Credentials({
             credentials: {
                 email: {},
@@ -102,7 +92,7 @@ export const getProviders = () => {
     
                 // authorize runs in the edge runtime (where we cannot make DB calls / access environment variables),
                 // so we need to make a request to the server to verify the credentials.
-                const response = await fetch(new URL('/api/auth/verifyCredentials', AUTH_URL), {
+                const response = await fetch(new URL('/api/auth/verifyCredentials', env.AUTH_URL), {
                     method: 'POST',
                     body: JSON.stringify({ email, password }),
                 });
@@ -125,11 +115,11 @@ export const getProviders = () => {
     return providers;
 }
 
-const useSecureCookies = AUTH_URL?.startsWith("https://") ?? false;
-const hostName = AUTH_URL ? new URL(AUTH_URL).hostname : "localhost";
+const useSecureCookies = env.AUTH_URL?.startsWith("https://") ?? false;
+const hostName = env.AUTH_URL ? new URL(env.AUTH_URL).hostname : "localhost";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-    secret: AUTH_SECRET,
+    secret: env.AUTH_SECRET,
     adapter: PrismaAdapter(prisma),
     session: {
         strategy: "jwt",

@@ -1,5 +1,4 @@
-import { ZOEKT_WEBSERVER_URL } from "../environment"
-
+import { env } from "@/env.mjs";
 
 interface ZoektRequest {
     path: string,
@@ -17,7 +16,7 @@ export const zoektFetch = async ({
     cache,
 }: ZoektRequest) => {
     const response = await fetch(
-        new URL(path, ZOEKT_WEBSERVER_URL),
+        new URL(path, env.ZOEKT_WEBSERVER_URL),
         {
             method,
             headers: {

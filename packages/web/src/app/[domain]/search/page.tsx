@@ -22,7 +22,6 @@ import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { useDomain } from "@/hooks/useDomain";
-import { NEXT_PUBLIC_PUBLIC_SEARCH_DEMO } from "@/lib/environment.client";
 
 const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 10000;
 
@@ -105,7 +104,6 @@ const SearchPageInternal = () => {
         const fileLanguages = searchResponse.Result.Files?.map(file => file.Language) || [];
 
         captureEvent("search_finished", {
-            query: NEXT_PUBLIC_PUBLIC_SEARCH_DEMO ? searchQuery : null, // @nocheckin
             contentBytesLoaded: searchResponse.Result.ContentBytesLoaded,
             indexBytesLoaded: searchResponse.Result.IndexBytesLoaded,
             crashes: searchResponse.Result.Crashes,

@@ -1,5 +1,5 @@
 import escapeStringRegexp from "escape-string-regexp";
-import { SHARD_MAX_MATCH_COUNT, TOTAL_MAX_MATCH_COUNT } from "../environment";
+import { env } from "@/env.mjs";
 import { listRepositoriesResponseSchema, zoektSearchResponseSchema } from "../schemas";
 import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "../types";
 import { fileNotFound, invalidZoektResponse, ServiceError, unexpectedError } from "../serviceError";
@@ -59,8 +59,8 @@ export const search = async ({ query, maxMatchDisplayCount, whole}: SearchReques
             ChunkMatches: true,
             MaxMatchDisplayCount: maxMatchDisplayCount,
             Whole: !!whole,
-            ShardMaxMatchCount: SHARD_MAX_MATCH_COUNT,
-            TotalMaxMatchCount: TOTAL_MAX_MATCH_COUNT,
+            ShardMaxMatchCount: env.SHARD_MAX_MATCH_COUNT,
+            TotalMaxMatchCount: env.TOTAL_MAX_MATCH_COUNT,
         }
     });
 
