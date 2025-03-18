@@ -51,8 +51,8 @@ ENV NEXT_PUBLIC_POSTHOG_PAPIK=$POSTHOG_PAPIK
 ARG SENTRY_ENVIRONMENT
 ENV NEXT_PUBLIC_SENTRY_ENVIRONMENT=$SENTRY_ENVIRONMENT
 # Local args
-ARG SENTRY_DSN
-ENV NEXT_PUBLIC_SENTRY_DSN=$SENTRY_DSN
+ARG SENTRY_WEBAPP_DSN
+ENV NEXT_PUBLIC_SENTRY_WEBAPP_DSN=$SENTRY_WEBAPP_DSN
 # -----------
 
 RUN apk add --no-cache libc6-compat
@@ -72,19 +72,13 @@ RUN yarn config set network-timeout 1200000
 RUN yarn workspace @sourcebot/web install --frozen-lockfile
 
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# @nocheckin: This was interfering with the the `matcher` regex in middleware.ts,
-# causing regular expressions parsing errors when making a request. It's unclear
-# why exactly this was happening, but it's likely due to a bad replacement happening
-# in the `sed` command.
-# @note: leading "/" is required for the basePath property. @see: https://nextjs.org/docs/app/api-reference/next-config-js/basePath
-# ARG NEXT_PUBLIC_DOMAIN_SUB_PATH=/BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH
-
 RUN yarn workspace @sourcebot/web build
+ENV DOCKER_BUILD=0
 # ------------------------------
 
 # ------ Build Backend ------
 FROM node-alpine AS backend-builder
+ENV DOCKER_BUILD=1
 WORKDIR /app
 
 COPY package.json yarn.lock* ./
@@ -97,6 +91,7 @@ COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 RUN yarn workspace @sourcebot/backend install --frozen-lockfile
 RUN yarn workspace @sourcebot/backend build
+ENV DOCKER_BUILD=0
 # ------------------------------
         
 # ------ Runner ------

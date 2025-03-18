@@ -4,16 +4,16 @@ import { createLogger } from "./logger.js";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type"
 import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
 import { PrismaClient } from "@sourcebot/db";
-import { FALLBACK_GITLAB_TOKEN } from "./environment.js";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
+import { env } from "./env.js";
 
 const logger = createLogger("GitLab");
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
 export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {
     const tokenResult = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
-    const token = tokenResult?.token ?? FALLBACK_GITLAB_TOKEN;
+    const token = tokenResult?.token ?? env.FALLBACK_GITLAB_TOKEN;
     
     const api = new Gitlab({
         ...(token ? {

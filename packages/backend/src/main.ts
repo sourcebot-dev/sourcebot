@@ -5,13 +5,13 @@ import { DEFAULT_SETTINGS } from './constants.js';
 import { Redis } from 'ioredis';
 import { ConnectionManager } from './connectionManager.js';
 import { RepoManager } from './repoManager.js';
-import { INDEX_CONCURRENCY_MULTIPLE, REDIS_URL } from './environment.js';
+import { env } from './env.js';
 import { PromClient } from './promClient.js';
 
 const logger = createLogger('main');
 
 export const main = async (db: PrismaClient, context: AppContext) => {
-    const redis = new Redis(REDIS_URL, {
+    const redis = new Redis(env.REDIS_URL, {
         maxRetriesPerRequest: null
     });
     redis.ping().then(() => {
@@ -23,8 +23,8 @@ export const main = async (db: PrismaClient, context: AppContext) => {
     });
 
     const settings = DEFAULT_SETTINGS;
-    if (INDEX_CONCURRENCY_MULTIPLE) {
-        settings.indexConcurrencyMultiple = parseInt(INDEX_CONCURRENCY_MULTIPLE);
+    if (env.INDEX_CONCURRENCY_MULTIPLE) {
+        settings.indexConcurrencyMultiple = env.INDEX_CONCURRENCY_MULTIPLE;
     }
 
     const promClient = new PromClient();

@@ -4,10 +4,10 @@ import { createLogger } from "./logger.js";
 import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
 import micromatch from "micromatch";
 import { PrismaClient } from "@sourcebot/db";
-import { FALLBACK_GITHUB_TOKEN } from "./environment.js";
 import { BackendException, BackendError } from "@sourcebot/error";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
+import { env } from "./env.js";
 
 const logger = createLogger("GitHub");
 
@@ -45,7 +45,7 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
     const secretKey = tokenResult?.secretKey;
 
     const octokit = new Octokit({
-        auth: token ?? FALLBACK_GITHUB_TOKEN,
+        auth: token ?? env.FALLBACK_GITHUB_TOKEN,
         ...(config.url ? {
             baseUrl: `${config.url}/api/v3`
         } : {}),
