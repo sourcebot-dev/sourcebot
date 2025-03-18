@@ -31,14 +31,13 @@ export const env = createEnv({
         SOURCEBOT_ROOT_DOMAIN: z.string().default("localhost:3000"),
         NODE_ENV: z.enum(["development", "test", "production"]),
         SOURCEBOT_TELEMETRY_DISABLED: z.enum(["true", "false"]).default("false"),
+        DATABASE_URL: z.string().url(),
     },
     // @NOTE: Make sure you destructure all client variables in the
     // `experimental__runtimeEnv` block below.
     client: {
         // PostHog
         NEXT_PUBLIC_POSTHOG_PAPIK: z.string().optional(),
-        NEXT_PUBLIC_POSTHOG_HOST: z.string().url().default('https://us.i.posthog.com'),
-        NEXT_PUBLIC_POSTHOG_ASSET_HOST: z.string().url().default('https://us-assets.i.posthog.com'),
         NEXT_PUBLIC_POSTHOG_UI_HOST: z.string().url().default('https://us.posthog.com'),
 
         // Misc
@@ -48,8 +47,6 @@ export const env = createEnv({
     // For Next.js >= 13.4.4, you only need to destructure client variables:
     experimental__runtimeEnv: {
         NEXT_PUBLIC_POSTHOG_PAPIK: process.env.NEXT_PUBLIC_POSTHOG_PAPIK,
-        NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-        NEXT_PUBLIC_POSTHOG_ASSET_HOST: process.env.NEXT_PUBLIC_POSTHOG_ASSET_HOST,
         NEXT_PUBLIC_POSTHOG_UI_HOST: process.env.NEXT_PUBLIC_POSTHOG_UI_HOST,
         NEXT_PUBLIC_SOURCEBOT_VERSION: process.env.NEXT_PUBLIC_SOURCEBOT_VERSION,
         NEXT_PUBLIC_POLLING_INTERVAL_MS: process.env.NEXT_PUBLIC_POLLING_INTERVAL_MS,

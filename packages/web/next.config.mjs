@@ -1,6 +1,5 @@
 await import("./src/env.mjs");
 import { withSentryConfig } from "@sentry/nextjs";
-import { env } from "./src/env.mjs";
 
 
 /** @type {import('next').NextConfig} */
@@ -16,15 +15,15 @@ const nextConfig = {
         return [
             {
                 source: "/ingest/static/:path*",
-                destination: `${env.NEXT_PUBLIC_POSTHOG_ASSET_HOST}/static/:path*`,
+                destination: `https://us-assets.i.posthog.com/static/:path*`,
             },
             {
                 source: "/ingest/:path*",
-                destination: `${env.NEXT_PUBLIC_POSTHOG_HOST}/:path*`,
+                destination: `https://us.i.posthog.com/:path*`,
             },
             {
                 source: "/ingest/decide",
-                destination: `${env.NEXT_PUBLIC_POSTHOG_HOST}/decide`,
+                destination: `https://us.i.posthog.com/decide`,
             },
         ];
     },
