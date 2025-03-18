@@ -76,7 +76,7 @@ export const getProviders = () => {
         }));
     }
 
-    if (env.AUTH_CREDENTIALS_LOGIN_ENABLED) {
+    if (env.AUTH_CREDENTIALS_LOGIN_ENABLED === 'true') {
         providers.push(Credentials({
             credentials: {
                 email: {},
