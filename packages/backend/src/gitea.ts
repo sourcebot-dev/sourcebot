@@ -5,15 +5,15 @@ import fetch from 'cross-fetch';
 import { createLogger } from './logger.js';
 import micromatch from 'micromatch';
 import { PrismaClient } from '@sourcebot/db';
-import { FALLBACK_GITEA_TOKEN } from './environment.js';
 import { processPromiseResults, throwIfAnyFailed } from './connectionUtils.js';
 import * as Sentry from "@sentry/node";
+import { env } from './env.js';
 
 const logger = createLogger('Gitea');
 
 export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {
     const tokenResult = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
-    const token = tokenResult?.token ?? FALLBACK_GITEA_TOKEN;
+    const token = tokenResult?.token ?? env.FALLBACK_GITEA_TOKEN;
 
     const api = giteaApi(config.url ?? 'https://gitea.com', {
         token: token,

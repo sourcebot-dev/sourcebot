@@ -2,9 +2,9 @@ import { headers } from 'next/headers';
 import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/prisma';
-import { STRIPE_WEBHOOK_SECRET } from '@/lib/environment';
-import { getStripe } from '@/lib/stripe';
 import { ConnectionSyncStatus, StripeSubscriptionStatus } from '@sourcebot/db';
+import { stripeClient } from '@/lib/stripe';
+import { env } from '@/env.mjs';
 
 export async function POST(req: NextRequest) {
     const body = await req.text();
@@ -14,12 +14,19 @@ export async function POST(req: NextRequest) {
         return new Response('No signature', { status: 400 });
     }
 
+    if (!stripeClient) {
+        return new Response('Stripe client not initialized', { status: 500 });
+    }
+
+    if (!env.STRIPE_WEBHOOK_SECRET) {
+        return new Response('Stripe webhook secret not set', { status: 500 });
+    }
+
     try {
-        const stripe = getStripe();
-        const event = stripe.webhooks.constructEvent(
+        const event = stripeClient.webhooks.constructEvent(
             body,
             signature,
-            STRIPE_WEBHOOK_SECRET!
+            env.STRIPE_WEBHOOK_SECRET
         );
 
         if (event.type === 'customer.subscription.deleted') {

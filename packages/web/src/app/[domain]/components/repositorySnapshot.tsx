@@ -6,7 +6,7 @@ import { useDomain } from "@/hooks/useDomain";
 import { useQuery } from "@tanstack/react-query";
 import { unwrapServiceError } from "@/lib/utils";
 import { getRepos } from "@/actions";
-import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
+import { env } from "@/env.mjs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     Carousel,
@@ -22,7 +22,7 @@ export function RepositorySnapshot() {
     const { data: repos, isPending, isError } = useQuery({
         queryKey: ['repos', domain],
         queryFn: () => unwrapServiceError(getRepos(domain)),
-        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
     if (isPending || isError || !repos) {

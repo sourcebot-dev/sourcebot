@@ -1,12 +1,8 @@
 import 'server-only';
+import { env } from '@/env.mjs'
+import Stripe from "stripe";
 
-import Stripe from 'stripe'
-import { STRIPE_SECRET_KEY } from './environment'
-
-let stripeInstance: Stripe | null = null;
-export const getStripe = () => {
-    if (!stripeInstance) {
-        stripeInstance = new Stripe(STRIPE_SECRET_KEY!);
-    }
-    return stripeInstance;
-}
+export const stripeClient =
+  env.STRIPE_SECRET_KEY
+    ? new Stripe(env.STRIPE_SECRET_KEY)
+    : undefined;

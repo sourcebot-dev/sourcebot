@@ -4,7 +4,7 @@ import { getRepos } from "@/actions";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useDomain } from "@/hooks/useDomain";
-import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
+import { env } from "@/env.mjs";
 import { unwrapServiceError } from "@/lib/utils";
 import { RepoIndexingStatus } from "@prisma/client";
 import { useQuery } from "@tanstack/react-query";
@@ -19,7 +19,7 @@ export const ProgressNavIndicator = () => {
         queryKey: ['repos', domain],
         queryFn: () => unwrapServiceError(getRepos(domain)),
         select: (data) => data.filter(repo => repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE || repo.repoIndexingStatus === RepoIndexingStatus.INDEXING),
-        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
     if (isPending || isError || inProgressRepos.length === 0) {

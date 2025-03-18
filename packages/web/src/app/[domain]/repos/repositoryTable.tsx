@@ -5,11 +5,11 @@ import { columns, RepositoryColumnInfo } from "./columns";
 import { unwrapServiceError } from "@/lib/utils";
 import { getRepos } from "@/actions";
 import { useQuery } from "@tanstack/react-query";
-import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
 import { useDomain } from "@/hooks/useDomain";
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { env } from "@/env.mjs";
 
 export const RepositoryTable = () => {
     const domain = useDomain();
@@ -19,7 +19,7 @@ export const RepositoryTable = () => {
         queryFn: async () => {
             return await unwrapServiceError(getRepos(domain));
         },
-        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
         refetchIntervalInBackground: true,
     });
 

@@ -16,10 +16,9 @@ import { decrypt, encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
 import { ConnectionSyncStatus, Prisma, OrgRole, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { cookies, headers } from "next/headers"
-import { getStripe } from "@/lib/stripe"
 import { getUser } from "@/data/user";
 import { Session } from "next-auth";
-import { STRIPE_PRODUCT_ID, CONFIG_MAX_REPOS_NO_TOKEN, EMAIL_FROM, SMTP_CONNECTION_URL, AUTH_URL } from "@/lib/environment";
+import { env } from "@/env.mjs";
 import Stripe from "stripe";
 import { render } from "@react-email/components";
 import InviteUserEmail from "./emails/inviteUserEmail";
@@ -27,6 +26,7 @@ import { createTransport } from "nodemailer";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { RepositoryQuery } from "./lib/types";
 import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "./lib/constants";
+import { stripeClient } from "./lib/stripe";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -594,7 +594,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
             });
 
             // Send invites to recipients
-            if (SMTP_CONNECTION_URL && EMAIL_FROM) {
+            if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM) {
                 const origin = (await headers()).get('origin')!;
                 await Promise.all(emails.map(async (email) => {
                     const invite = await prisma.invite.findUnique({
@@ -619,9 +619,9 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                         },
                     });
                     const inviteLink = `${origin}/redeem?invite_id=${invite.id}`;
-                    const transport = createTransport(SMTP_CONNECTION_URL);
+                    const transport = createTransport(env.SMTP_CONNECTION_URL);
                     const html = await render(InviteUserEmail({
-                        baseUrl: AUTH_URL,
+                        baseUrl: env.AUTH_URL,
                         host: {
                             name: session.user.name ?? undefined,
                             email: session.user.email!,
@@ -637,7 +637,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
 
                     const result = await transport.sendMail({
                         to: email,
-                        from: EMAIL_FROM,
+                        from: env.EMAIL_FROM,
                         subject: `Join ${invite.org.name} on Sourcebot`,
                         html,
                         text: `Join ${invite.org.name} on Sourcebot by clicking here: ${inviteLink}`,
@@ -718,8 +718,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
                 const existingSeatCount = subscription.items.data[0].quantity;
                 const newSeatCount = (existingSeatCount || 1) + 1
 
-                const stripe = getStripe();
-                await stripe.subscriptionItems.update(
+                await stripeClient?.subscriptionItems.update(
                     subscription.items.data[0].id,
                     {
                         quantity: newSeatCount,
@@ -873,10 +872,16 @@ export const createOnboardingSubscription = async (domain: string) =>
                 return notFound();
             }
 
-            const stripe = getStripe();
+            if (!stripeClient) {
+                return {
+                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
+                    message: "Stripe client is not initialized.",
+                } satisfies ServiceError;
+            }
 
             // @nocheckin
-            const test_clock = AUTH_URL !== "https://app.sourcebot.dev" ? await stripe.testHelpers.testClocks.create({
+            const test_clock = env.AUTH_URL !== "https://app.sourcebot.dev" ? await stripeClient.testHelpers.testClocks.create({
                 frozen_time: Math.floor(Date.now() / 1000)
             }) : null;
 
@@ -886,7 +891,7 @@ export const createOnboardingSubscription = async (domain: string) =>
                     return org.stripeCustomerId;
                 }
 
-                const customer = await stripe.customers.create({
+                const customer = await stripeClient.customers.create({
                     name: org.name,
                     email: user.email ?? undefined,
                     test_clock: test_clock?.id,
@@ -915,13 +920,13 @@ export const createOnboardingSubscription = async (domain: string) =>
             }
 
 
-            const prices = await stripe.prices.list({
-                product: STRIPE_PRODUCT_ID,
+            const prices = await stripeClient.prices.list({
+                product: env.STRIPE_PRODUCT_ID,
                 expand: ['data.product'],
             });
 
             try {
-                const subscription = await stripe.subscriptions.create({
+                const subscription = await stripeClient.subscriptions.create({
                     customer: customerId,
                     items: [{
                         price: prices.data[0].id,
@@ -974,6 +979,14 @@ export const createStripeCheckoutSession = async (domain: string) =>
                 return notFound();
             }
 
+            if (!stripeClient) {
+                return {
+                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
+                    message: "Stripe client is not initialized.",
+                } satisfies ServiceError;
+            }
+
             const orgMembers = await prisma.userToOrg.findMany({
                 where: {
                     orgId,
@@ -984,14 +997,13 @@ export const createStripeCheckoutSession = async (domain: string) =>
             });
             const numOrgMembers = orgMembers.length;
 
-            const stripe = getStripe();
             const origin = (await headers()).get('origin')
-            const prices = await stripe.prices.list({
-                product: STRIPE_PRODUCT_ID,
+            const prices = await stripeClient.prices.list({
+                product: env.STRIPE_PRODUCT_ID,
                 expand: ['data.product'],
             });
 
-            const stripeSession = await stripe.checkout.sessions.create({
+            const stripeSession = await stripeClient.checkout.sessions.create({
                 customer: org.stripeCustomerId as string,
                 payment_method_types: ['card'],
                 line_items: [
@@ -1033,9 +1045,16 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
                 return notFound();
             }
 
-            const stripe = getStripe();
+            if (!stripeClient) {
+                return {
+                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
+                    message: "Stripe client is not initialized.",
+                } satisfies ServiceError;
+            }
+
             const origin = (await headers()).get('origin')
-            const portalSession = await stripe.billingPortal.sessions.create({
+            const portalSession = await stripeClient.billingPortal.sessions.create({
                 customer: org.stripeCustomerId as string,
                 return_url: `${origin}/${domain}/settings/billing`,
             });
@@ -1064,8 +1083,15 @@ export const getSubscriptionBillingEmail = async (domain: string): Promise<strin
                 return notFound();
             }
 
-            const stripe = getStripe();
-            const customer = await stripe.customers.retrieve(org.stripeCustomerId);
+            if (!stripeClient) {
+                return {
+                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
+                    message: "Stripe client is not initialized.",
+                } satisfies ServiceError;
+            }
+
+            const customer = await stripeClient.customers.retrieve(org.stripeCustomerId);
             if (!('email' in customer) || customer.deleted) {
                 return notFound();
             }
@@ -1086,8 +1112,15 @@ export const changeSubscriptionBillingEmail = async (domain: string, newEmail: s
                 return notFound();
             }
 
-            const stripe = getStripe();
-            await stripe.customers.update(org.stripeCustomerId, {
+            if (!stripeClient) {
+                return {
+                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
+                    message: "Stripe client is not initialized.",
+                } satisfies ServiceError;
+            }
+
+            await stripeClient.customers.update(org.stripeCustomerId, {
                 email: newEmail,
             });
 
@@ -1143,8 +1176,7 @@ export const removeMemberFromOrg = async (memberId: string, domain: string): Pro
                 const existingSeatCount = subscription.items.data[0].quantity;
                 const newSeatCount = (existingSeatCount || 1) - 1;
 
-                const stripe = getStripe();
-                await stripe.subscriptionItems.update(
+                await stripeClient?.subscriptionItems.update(
                     subscription.items.data[0].id,
                     {
                         quantity: newSeatCount,
@@ -1198,8 +1230,7 @@ export const leaveOrg = async (domain: string): Promise<{ success: boolean } | S
                 const existingSeatCount = subscription.items.data[0].quantity;
                 const newSeatCount = (existingSeatCount || 1) - 1;
 
-                const stripe = getStripe();
-                await stripe.subscriptionItems.update(
+                await stripeClient?.subscriptionItems.update(
                     subscription.items.data[0].id,
                     {
                         quantity: newSeatCount,
@@ -1307,8 +1338,15 @@ const _fetchSubscriptionForOrg = async (orgId: number, prisma: Prisma.Transactio
         return notFound();
     }
 
-    const stripe = getStripe();
-    const subscriptions = await stripe.subscriptions.list({
+    if (!stripeClient) {
+        return {
+            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+            errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
+            message: "Stripe client is not initialized.",
+        } satisfies ServiceError;
+    }
+
+    const subscriptions = await stripeClient.subscriptions.list({
         customer: org.stripeCustomerId
     });
 
@@ -1389,11 +1427,11 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
         }
     })();
 
-    if (!hasToken && numRepos && numRepos > CONFIG_MAX_REPOS_NO_TOKEN) {
+    if (!hasToken && numRepos && numRepos > env.CONFIG_MAX_REPOS_NO_TOKEN) {
         return {
             statusCode: StatusCodes.BAD_REQUEST,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: `You must provide a token to sync more than ${CONFIG_MAX_REPOS_NO_TOKEN} repositories.`,
+            message: `You must provide a token to sync more than ${env.CONFIG_MAX_REPOS_NO_TOKEN} repositories.`,
         } satisfies ServiceError;
     }
 

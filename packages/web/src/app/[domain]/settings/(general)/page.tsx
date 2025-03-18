@@ -4,7 +4,7 @@ import { isServiceError } from "@/lib/utils";
 import { getCurrentUserRole } from "@/actions";
 import { getOrgFromDomain } from "@/data/org";
 import { ChangeOrgDomainCard } from "./components/changeOrgDomainCard";
-import { SOURCEBOT_ROOT_DOMAIN } from "@/lib/environment";
+import { env } from "@/env.mjs";
 
 interface GeneralSettingsPageProps {
     params: {
@@ -42,7 +42,7 @@ export default async function GeneralSettingsPage({ params: { domain } }: Genera
             <ChangeOrgDomainCard
                 orgDomain={org.domain}
                 currentUserRole={currentUserRole}
-                rootDomain={SOURCEBOT_ROOT_DOMAIN}
+                rootDomain={env.SOURCEBOT_ROOT_DOMAIN}
             />
         </div>
     )

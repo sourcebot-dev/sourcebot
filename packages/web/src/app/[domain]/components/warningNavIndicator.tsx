@@ -7,7 +7,7 @@ import { useDomain } from "@/hooks/useDomain";
 import { getConnections } from "@/actions";
 import { unwrapServiceError } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
+import { env } from "@/env.mjs";
 import { useQuery } from "@tanstack/react-query";
 import { ConnectionSyncStatus } from "@prisma/client";
 
@@ -19,7 +19,7 @@ export const WarningNavIndicator = () => {
         queryKey: ['connections', domain],
         queryFn: () => unwrapServiceError(getConnections(domain)),
         select: (data) => data.filter(connection => connection.syncStatus === ConnectionSyncStatus.SYNCED_WITH_WARNINGS),
-        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
     if (isPending || isError || connections.length === 0) {

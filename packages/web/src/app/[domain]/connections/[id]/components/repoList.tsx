@@ -11,7 +11,7 @@ import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCallback, useMemo, useState } from "react";
 import { RepoListItemSkeleton } from "./repoListItemSkeleton";
-import { NEXT_PUBLIC_POLLING_INTERVAL_MS } from "@/lib/environment.client";
+import { env } from "@/env.mjs";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -78,7 +78,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
                 return new Date(a.indexedAt ?? new Date()).getTime() - new Date(b.indexedAt ?? new Date()).getTime();
             });
         },
-        refetchInterval: NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });
 
     const { data: connection, isPending: isConnectionPending, error: isConnectionError } = useQuery({

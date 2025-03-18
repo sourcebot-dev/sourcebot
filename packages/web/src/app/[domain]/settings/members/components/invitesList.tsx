@@ -1,7 +1,6 @@
 'use client';
 
 import { OrgRole } from "@sourcebot/db";
-import { resolveServerPath } from "@/app/api/(client)/client";
 import { useToast } from "@/components/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
@@ -124,8 +123,7 @@ export const InvitesList = ({ invites, currentUserRole }: InviteListProps) => {
                                         className="gap-2"
                                         title="Copy invite link"
                                         onClick={() => {
-                                            const basePath = `${window.location.origin}${resolveServerPath('/')}`;
-                                            const url = createPathWithQueryParams(`${basePath}redeem?invite_id=${invite.id}`);
+                                            const url = createPathWithQueryParams(`${window.location.origin}/redeem?invite_id=${invite.id}`);
                                             navigator.clipboard.writeText(url)
                                                 .then(() => {
                                                     toast({

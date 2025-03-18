@@ -1,5 +1,18 @@
+# ------ Global scope variables ------
+# Set of global build arguments.
+# @see: https://docs.docker.com/build/building/variables/#scoping
+
+ARG SOURCEBOT_VERSION
+# PAPIK = Project API Key
+# Note that this key does not need to be kept secret, so it's not
+# necessary to use Docker build secrets here.
+# @see: https://posthog.com/tutorials/api-capture-events#authenticating-with-the-project-api-key
+ARG POSTHOG_PAPIK
+ARG SENTRY_ENVIRONMENT
+
 FROM node:20-alpine3.19 AS node-alpine
 FROM golang:1.23.4-alpine3.19 AS go-alpine
+# ----------------------------------
 
 # ------ Build Zoekt ------
 FROM go-alpine AS zoekt-builder
@@ -9,6 +22,7 @@ COPY vendor/zoekt/go.mod vendor/zoekt/go.sum ./
 RUN go mod download
 COPY vendor/zoekt ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o /cmd/ ./cmd/...
+# -------------------------
 
 # ------ Build shared libraries ------
 FROM node-alpine AS shared-libs-builder
@@ -23,9 +37,24 @@ RUN yarn workspace @sourcebot/db install --frozen-lockfile
 RUN yarn workspace @sourcebot/schemas install --frozen-lockfile
 RUN yarn workspace @sourcebot/crypto install --frozen-lockfile
 RUN yarn workspace @sourcebot/error install --frozen-lockfile
+# ------------------------------------
 
 # ------ Build Web ------
 FROM node-alpine AS web-builder
+ENV DOCKER_BUILD=1
+# -----------
+# Global args
+ARG SOURCEBOT_VERSION
+ENV NEXT_PUBLIC_SOURCEBOT_VERSION=$SOURCEBOT_VERSION
+ARG POSTHOG_PAPIK
+ENV NEXT_PUBLIC_POSTHOG_PAPIK=$POSTHOG_PAPIK
+ARG SENTRY_ENVIRONMENT
+ENV NEXT_PUBLIC_SENTRY_ENVIRONMENT=$SENTRY_ENVIRONMENT
+# Local args
+ARG SENTRY_WEBAPP_DSN
+ENV NEXT_PUBLIC_SENTRY_WEBAPP_DSN=$SENTRY_WEBAPP_DSN
+# -----------
+
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -43,26 +72,13 @@ RUN yarn config set network-timeout 1200000
 RUN yarn workspace @sourcebot/web install --frozen-lockfile
 
 ENV NEXT_TELEMETRY_DISABLED=1
-# @see: https://phase.dev/blog/nextjs-public-runtime-variables/
-ARG NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=BAKED_NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED
-ARG NEXT_PUBLIC_SOURCEBOT_VERSION=BAKED_NEXT_PUBLIC_SOURCEBOT_VERSION
-ENV NEXT_PUBLIC_PUBLIC_SEARCH_DEMO=BAKED_NEXT_PUBLIC_PUBLIC_SEARCH_DEMO
-ENV NEXT_PUBLIC_POSTHOG_PAPIK=BAKED_NEXT_PUBLIC_POSTHOG_PAPIK
-ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=BAKED_NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-ENV NEXT_PUBLIC_SENTRY_ENVIRONMENT=BAKED_NEXT_PUBLIC_SENTRY_ENVIRONMENT
-ENV NEXT_PUBLIC_SENTRY_WEBAPP_DSN=BAKED_NEXT_PUBLIC_SENTRY_WEBAPP_DSN
-
-# @nocheckin: This was interfering with the the `matcher` regex in middleware.ts,
-# causing regular expressions parsing errors when making a request. It's unclear
-# why exactly this was happening, but it's likely due to a bad replacement happening
-# in the `sed` command.
-# @note: leading "/" is required for the basePath property. @see: https://nextjs.org/docs/app/api-reference/next-config-js/basePath
-# ARG NEXT_PUBLIC_DOMAIN_SUB_PATH=/BAKED_NEXT_PUBLIC_DOMAIN_SUB_PATH
-
 RUN yarn workspace @sourcebot/web build
+ENV DOCKER_BUILD=0
+# ------------------------------
 
 # ------ Build Backend ------
 FROM node-alpine AS backend-builder
+ENV DOCKER_BUILD=1
 WORKDIR /app
 
 COPY package.json yarn.lock* ./
@@ -75,10 +91,22 @@ COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 RUN yarn workspace @sourcebot/backend install --frozen-lockfile
 RUN yarn workspace @sourcebot/backend build
-    
+ENV DOCKER_BUILD=0
+# ------------------------------
         
 # ------ Runner ------
 FROM node-alpine AS runner
+# -----------
+# Global args
+ARG SOURCEBOT_VERSION
+ENV SOURCEBOT_VERSION=$SOURCEBOT_VERSION
+ARG POSTHOG_PAPIK
+ENV POSTHOG_PAPIK=$POSTHOG_PAPIK
+# Local args
+# -----------
+
+RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
+
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -90,14 +118,6 @@ ENV DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
 ENV REDIS_URL="redis://localhost:6379"
 ENV SRC_TENANT_ENFORCEMENT_MODE=strict
 
-ARG SOURCEBOT_VERSION=unknown
-ENV SOURCEBOT_VERSION=$SOURCEBOT_VERSION
-RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
-
-ARG PUBLIC_SEARCH_DEMO=false
-ENV PUBLIC_SEARCH_DEMO=$PUBLIC_SEARCH_DEMO
-RUN echo "Public Search Demo: $PUBLIC_SEARCH_DEMO"
-
 # Valid values are: debug, info, warn, error
 ENV SOURCEBOT_LOG_LEVEL=info
 
@@ -106,17 +126,8 @@ ENV SOURCEBOT_LOG_LEVEL=info
 # will serve from http(s)://example.com/sb
 ENV DOMAIN_SUB_PATH=/
 
-# PAPIK = Project API Key
-# Note that this key does not need to be kept secret, so it's not
-# necessary to use Docker build secrets here.
-# @see: https://posthog.com/tutorials/api-capture-events#authenticating-with-the-project-api-key
-ARG POSTHOG_PAPIK=
-ENV POSTHOG_PAPIK=$POSTHOG_PAPIK
-
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
-
-ENV STRIPE_PUBLISHABLE_KEY=""
 
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
@@ -179,3 +190,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENTRYPOINT ["/sbin/tini", "--", "./entrypoint.sh"]
+# ------------------------------
