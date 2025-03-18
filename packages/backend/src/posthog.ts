@@ -8,13 +8,13 @@ if (env.POSTHOG_PAPIK) {
     posthog = new PostHog(
         env.POSTHOG_PAPIK,
         {
-            host: env.POSTHOG_HOST,
+            host: "https://us.i.posthog.com",
         }
     );
 }
 
 export function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E]) {
-    if (env.SOURCEBOT_TELEMETRY_DISABLED) {
+    if (env.SOURCEBOT_TELEMETRY_DISABLED === 'true') {
         return;
     }
 

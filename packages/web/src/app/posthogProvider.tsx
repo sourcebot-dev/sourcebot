@@ -37,7 +37,6 @@ export function PostHogProvider({ children, disabled }: PostHogProviderProps) {
             posthog.init(env.NEXT_PUBLIC_POSTHOG_PAPIK, {
                 // @see next.config.mjs for path rewrites to the "/ingest" route.
                 api_host: "/ingest",
-                ui_host: env.NEXT_PUBLIC_POSTHOG_UI_HOST,
                 person_profiles: 'identified_only',
                 capture_pageview: false, // @nocheckin Disable automatic pageview capture if we're not in public demo mode
                 autocapture: false, // Disable automatic event capture

@@ -1,7 +1,8 @@
 {
   "name": "@sourcebot/crypto",
-  "main": "dist/index.js",
   "version": "0.1.0",
+  "main": "dist/index.js",
+  "private": true,
   "scripts": {
     "build": "tsc",
     "postinstall": "yarn build"
