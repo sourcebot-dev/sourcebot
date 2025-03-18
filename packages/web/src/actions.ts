@@ -27,6 +27,7 @@ import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/sch
 import { RepositoryQuery } from "./lib/types";
 import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "./lib/constants";
 import { stripeClient } from "./lib/stripe";
+import { IS_BILLING_ENABLED } from "./lib/stripe";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -174,19 +175,31 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
                 return notFound();
             }
 
-            const subscription = await fetchSubscription(domain);
-            if (isServiceError(subscription)) {
-                return subscription;
-            }
+            // If billing is not enabled, we can just mark the org as onboarded.
+            if (!IS_BILLING_ENABLED) {
+                await prisma.org.update({
+                    where: { id: orgId },
+                    data: {
+                        isOnboarded: true,
+                    }
+                });
 
-            await prisma.org.update({
-                where: { id: orgId },
-                data: {
-                    isOnboarded: true,
-                    stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
-                    stripeLastUpdatedAt: new Date(),
+                // Else, validate that the org has an active subscription.
+            } else {
+                const subscriptionOrError = await fetchSubscription(domain);
+                if (isServiceError(subscriptionOrError)) {
+                    return subscriptionOrError;
                 }
-            });
+
+                await prisma.org.update({
+                    where: { id: orgId },
+                    data: {
+                        isOnboarded: true,
+                        stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
+                        stripeLastUpdatedAt: new Date(),
+                    }
+                });
+            }
 
             return {
                 success: true,
@@ -708,9 +721,9 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         }
 
         const res = await prisma.$transaction(async (tx) => {
-            // @note: we need to use the internal subscription fetch here since we would otherwise fail the `withOrgMembership` check.
-            const subscription = await _fetchSubscriptionForOrg(invite.orgId, tx);
-            if (subscription) {
+            if (IS_BILLING_ENABLED) {
+                // @note: we need to use the internal subscription fetch here since we would otherwise fail the `withOrgMembership` check.
+                const subscription = await _fetchSubscriptionForOrg(invite.orgId, tx);
                 if (isServiceError(subscription)) {
                     return subscription;
                 }
@@ -880,8 +893,7 @@ export const createOnboardingSubscription = async (domain: string) =>
                 } satisfies ServiceError;
             }
 
-            // @nocheckin
-            const test_clock = env.AUTH_URL !== "https://app.sourcebot.dev" ? await stripeClient.testHelpers.testClocks.create({
+            const test_clock = env.STRIPE_ENABLE_TEST_CLOCKS === 'true' ? await stripeClient.testHelpers.testClocks.create({
                 frozen_time: Math.floor(Date.now() / 1000)
             }) : null;
 
@@ -911,7 +923,7 @@ export const createOnboardingSubscription = async (domain: string) =>
             })();
 
             const existingSubscription = await fetchSubscription(domain);
-            if (existingSubscription && !isServiceError(existingSubscription)) {
+            if (!isServiceError(existingSubscription)) {
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.SUBSCRIPTION_ALREADY_EXISTS,
@@ -1063,7 +1075,7 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
         }, /* minRequiredRole = */ OrgRole.OWNER)
     );
 
-export const fetchSubscription = (domain: string): Promise<Stripe.Subscription | null | ServiceError> =>
+export const fetchSubscription = (domain: string): Promise<Stripe.Subscription | ServiceError> =>
     withAuth(async (session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             return _fetchSubscriptionForOrg(orgId, prisma);
@@ -1167,8 +1179,8 @@ export const removeMemberFromOrg = async (memberId: string, domain: string): Pro
                 return notFound();
             }
 
-            const subscription = await fetchSubscription(domain);
-            if (subscription) {
+            if (IS_BILLING_ENABLED) {
+                const subscription = await fetchSubscription(domain);
                 if (isServiceError(subscription)) {
                     return subscription;
                 }
@@ -1221,8 +1233,8 @@ export const leaveOrg = async (domain: string): Promise<{ success: boolean } | S
                 return notFound();
             }
 
-            const subscription = await fetchSubscription(domain);
-            if (subscription) {
+            if (IS_BILLING_ENABLED) {
+                const subscription = await fetchSubscription(domain);
                 if (isServiceError(subscription)) {
                     return subscription;
                 }
@@ -1323,7 +1335,7 @@ export const dismissMobileUnsupportedSplashScreen = async () => {
 
 ////// Helpers ///////
 
-const _fetchSubscriptionForOrg = async (orgId: number, prisma: Prisma.TransactionClient): Promise<Stripe.Subscription | null | ServiceError> => {
+const _fetchSubscriptionForOrg = async (orgId: number, prisma: Prisma.TransactionClient): Promise<Stripe.Subscription | ServiceError> => {
     const org = await prisma.org.findUnique({
         where: {
             id: orgId,

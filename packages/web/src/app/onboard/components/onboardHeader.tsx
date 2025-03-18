@@ -1,5 +1,6 @@
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { OnboardingSteps } from "@/lib/constants";
+import { IS_BILLING_ENABLED } from "@/lib/stripe";
 
 interface OnboardHeaderProps {
     title: string
@@ -8,7 +9,9 @@ interface OnboardHeaderProps {
 }
 
 export const OnboardHeader = ({ title, description, step: currentStep }: OnboardHeaderProps) => {
-    const steps = Object.values(OnboardingSteps).filter(s => s !== OnboardingSteps.Complete);
+    const steps = Object.values(OnboardingSteps)
+        .filter(s => s !== OnboardingSteps.Complete)
+        .filter(s => !IS_BILLING_ENABLED ? s !== OnboardingSteps.Checkout : true);
 
     return (
         <div className="flex flex-col items-center text-center mb-10">

@@ -5,6 +5,8 @@ import { ManageSubscriptionButton } from "./manageSubscriptionButton"
 import { getSubscriptionData, getCurrentUserRole, getSubscriptionBillingEmail } from "@/actions"
 import { isServiceError } from "@/lib/utils"
 import { ChangeBillingEmailCard } from "./changeBillingEmailCard"
+import { notFound } from "next/navigation"
+import { IS_BILLING_ENABLED } from "@/lib/stripe"
 
 export const metadata: Metadata = {
     title: "Billing | Settings",
@@ -20,6 +22,10 @@ interface BillingPageProps {
 export default async function BillingPage({
     params: { domain },
 }: BillingPageProps) {
+    if (!IS_BILLING_ENABLED) {
+        notFound();
+    }
+
     const subscription = await getSubscriptionData(domain)
 
     if (isServiceError(subscription)) {

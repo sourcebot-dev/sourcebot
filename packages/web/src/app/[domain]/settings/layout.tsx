@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import { SidebarNav } from "./components/sidebar-nav"
 import { NavigationMenu } from "../components/navigationMenu"
 import { Header } from "./components/header";
+import { IS_BILLING_ENABLED } from "@/lib/stripe";
 export const metadata: Metadata = {
     title: "Settings",
 }
@@ -19,10 +20,12 @@ export default function SettingsLayout({
             title: "General",
             href: `/${domain}/settings`,
         },
-        {
-            title: "Billing",
-            href: `/${domain}/settings/billing`,
-        },
+        ...(IS_BILLING_ENABLED ? [
+            {
+                title: "Billing",
+                href: `/${domain}/settings/billing`,
+            }
+        ] : []),
         {
             title: "Members",
             href: `/${domain}/settings/members`,

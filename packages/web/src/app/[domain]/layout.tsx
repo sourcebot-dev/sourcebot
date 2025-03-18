@@ -12,6 +12,7 @@ import { MobileUnsupportedSplashScreen } from "./components/mobileUnsupportedSpl
 import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "@/lib/constants";
 import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
+import { IS_BILLING_ENABLED } from "@/lib/stripe";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -56,19 +57,21 @@ export default async function Layout({
         )
     }
 
-    const subscription = await fetchSubscription(domain);
-    if (
-        subscription &&
-        (
-            isServiceError(subscription) ||
-            (subscription.status !== "active" && subscription.status !== "trialing")
-        )
-    ) {
-        return (
-            <UpgradeGuard>
-                {children}
-            </UpgradeGuard>
-        )
+    if (IS_BILLING_ENABLED) {
+        const subscription = await fetchSubscription(domain);
+        if (
+            subscription &&
+            (
+                isServiceError(subscription) ||
+                (subscription.status !== "active" && subscription.status !== "trialing")
+            )
+        ) {
+            return (
+                <UpgradeGuard>
+                    {children}
+                </UpgradeGuard>
+            )
+        }
     }
 
     const headersList = await headers();
