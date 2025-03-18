@@ -33,6 +33,8 @@ export const env = createEnv({
 
         LOGTAIL_TOKEN: z.string().optional(),
         LOGTAIL_HOST: z.string().url().optional(),
+
+        INDEX_CONCURRENCY_MULTIPLE: z.number().optional(),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,
