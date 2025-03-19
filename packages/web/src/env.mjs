@@ -28,6 +28,7 @@ export const env = createEnv({
         STRIPE_SECRET_KEY: z.string().optional(),
         STRIPE_PRODUCT_ID: z.string().optional(),
         STRIPE_WEBHOOK_SECRET: z.string().optional(),
+        STRIPE_ENABLE_TEST_CLOCKS: booleanSchema.default('false'),
 
         // Misc
         CONFIG_MAX_REPOS_NO_TOKEN: z.number().default(500),

@@ -12,7 +12,7 @@ import { WarningNavIndicator } from "./warningNavIndicator";
 import { ProgressNavIndicator } from "./progressNavIndicator";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { TrialNavIndicator } from "./trialNavIndicator";
-
+import { IS_BILLING_ENABLED } from "@/lib/stripe";
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
 
@@ -23,7 +23,7 @@ interface NavigationMenuProps {
 export const NavigationMenu = async ({
     domain,
 }: NavigationMenuProps) => {
-    const subscription = await getSubscriptionData(domain);
+    const subscription = IS_BILLING_ENABLED ? await getSubscriptionData(domain) : null;
 
     return (
         <div className="flex flex-col w-screen h-fit">

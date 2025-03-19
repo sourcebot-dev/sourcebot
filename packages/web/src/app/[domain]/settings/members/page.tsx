@@ -9,7 +9,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { InvitesList } from "./components/invitesList";
 import { getOrgInvites } from "@/actions";
-
+import { IS_BILLING_ENABLED } from "@/lib/stripe";
 interface MembersSettingsPageProps {
     params: {
         domain: string
@@ -61,6 +61,7 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
 
             <InviteMemberCard
                 currentUserRole={userRoleInOrg}
+                isBillingEnabled={IS_BILLING_ENABLED}
             />
 
             <Tabs value={currentTab}>
