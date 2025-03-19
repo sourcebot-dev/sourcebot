@@ -27,5 +27,5 @@ export const MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME = 'sb.mobile
 export const SINGLE_TENANT_USER_ID = '1';
 export const SINGLE_TENANT_USER_EMAIL = 'default@example.com';
 export const SINGLE_TENANT_ORG_ID = 1;
-export const SINGLE_TENANT_ORG_DOMAIN = 'default';
+export const SINGLE_TENANT_ORG_DOMAIN = '~';
 export const SINGLE_TENANT_ORG_NAME = 'default';
