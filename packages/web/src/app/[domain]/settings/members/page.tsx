@@ -1,14 +1,12 @@
 import { MembersList } from "./components/membersList";
 import { getOrgMembers } from "@/actions";
 import { isServiceError } from "@/lib/utils";
-import { auth } from "@/auth";
-import { getUser, getUserRoleInOrg } from "@/data/user";
 import { getOrgFromDomain } from "@/data/org";
 import { InviteMemberCard } from "./components/inviteMemberCard";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { InvitesList } from "./components/invitesList";
-import { getOrgInvites } from "@/actions";
+import { getOrgInvites, getMe } from "@/actions";
 import { IS_BILLING_ENABLED } from "@/lib/stripe";
 interface MembersSettingsPageProps {
     params: {
@@ -20,23 +18,18 @@ interface MembersSettingsPageProps {
 }
 
 export default async function MembersSettingsPage({ params: { domain }, searchParams: { tab } }: MembersSettingsPageProps) {
-    const session = await auth();
-    if (!session) {
-        return null;
-    }
-
     const members = await getOrgMembers(domain);
     const org = await getOrgFromDomain(domain);
     if (!org) {
         return null;
     }
 
-    const user = await getUser(session.user.id);
-    if (!user) {
+    const me = await getMe();
+    if (isServiceError(me)) {
         return null;
     }
 
-    const userRoleInOrg = await getUserRoleInOrg(user.id, org.id);
+    const userRoleInOrg = me.memberships.find((membership) => membership.id === org.id)?.role;
     if (!userRoleInOrg) {
         return null;
     }
@@ -78,7 +71,7 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                 <TabsContent value="members">
                         <MembersList
                             members={members}
-                            currentUserId={session.user.id}
+                            currentUserId={me.id}
                             currentUserRole={userRoleInOrg}
                             orgName={org.name}
                     />

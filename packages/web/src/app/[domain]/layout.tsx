@@ -13,6 +13,7 @@ import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "@/lib/co
 import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { env } from "@/env.mjs";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -29,24 +30,26 @@ export default async function Layout({
         return <PageNotFound />
     }
 
-
-    const session = await auth();
-    if (!session) {
-        return <PageNotFound />
-    }
-
-
-    const membership = await prisma.userToOrg.findUnique({
-        where: {
-            orgId_userId: {
-                orgId: org.id,
-                userId: session.user.id
-            }
+    if (env.SOURCEBOT_TENANCY_MODE === 'multi') {
+        const session = await auth();
+        if (!session) {
+            return <PageNotFound />
         }
-    });
 
-    if (!membership) {
-        return <PageNotFound />
+        const membership = await prisma.userToOrg.findUnique({
+            where: {
+                orgId_userId: {
+                    orgId: org.id,
+                    userId: session.user.id
+                }
+            }
+        });
+
+        if (!membership) {
+            return <PageNotFound />
+        }
+    } else {
+        // no-op
     }
 
     if (!org.isOnboarded) {
@@ -57,7 +60,7 @@ export default async function Layout({
         )
     }
 
-    if (IS_BILLING_ENABLED) {
+    if (IS_BILLING_ENABLED && env.SOURCEBOT_TENANCY_MODE === 'multi') {
         const subscription = await fetchSubscription(domain);
         if (
             subscription &&

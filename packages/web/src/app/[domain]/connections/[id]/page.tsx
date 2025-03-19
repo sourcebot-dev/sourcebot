@@ -15,7 +15,6 @@ import { ConfigSetting } from "./components/configSetting"
 import { DeleteConnectionSetting } from "./components/deleteConnectionSetting"
 import { DisplayNameSetting } from "./components/displayNameSetting"
 import { RepoList } from "./components/repoList"
-import { auth } from "@/auth"
 import { getConnectionByDomain } from "@/data/connection"
 import { Overview } from "./components/overview"
 
@@ -30,18 +29,12 @@ interface ConnectionManagementPageProps {
 }
 
 export default async function ConnectionManagementPage({ params, searchParams }: ConnectionManagementPageProps) {
-    const session = await auth();
-    if (!session) {
-        return null;
-    }
-
     const connection = await getConnectionByDomain(Number(params.id), params.domain);
     if (!connection) {
         return <NotFound className="flex w-full h-full items-center justify-center" message="Connection not found" />
     }
 
     const currentTab = searchParams.tab || "overview";
-
 
     return (
         <Tabs value={currentTab} className="w-full">

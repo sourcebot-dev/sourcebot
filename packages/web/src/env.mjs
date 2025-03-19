@@ -41,6 +41,8 @@ export const env = createEnv({
         NODE_ENV: z.enum(["development", "test", "production"]),
         SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default('false'),
         DATABASE_URL: z.string().url(),
+
+        SOURCEBOT_TENANCY_MODE: z.enum(["multi", "single"]).default("multi"),
     },
     // @NOTE: Make sure you destructure all client variables in the
     // `experimental__runtimeEnv` block below.

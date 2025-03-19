@@ -16,7 +16,6 @@ import { decrypt, encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
 import { ConnectionSyncStatus, Prisma, OrgRole, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { cookies, headers } from "next/headers"
-import { getUser } from "@/data/user";
 import { Session } from "next-auth";
 import { env } from "@/env.mjs";
 import Stripe from "stripe";
@@ -25,7 +24,7 @@ import InviteUserEmail from "./emails/inviteUserEmail";
 import { createTransport } from "nodemailer";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { RepositoryQuery } from "./lib/types";
-import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "./lib/constants";
+import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_USER_EMAIL, SINGLE_TENANT_USER_ID } from "./lib/constants";
 import { stripeClient } from "./lib/stripe";
 import { IS_BILLING_ENABLED } from "./lib/stripe";
 
@@ -34,6 +33,16 @@ const ajv = new Ajv({
 });
 
 export const withAuth = async <T>(fn: (session: Session) => Promise<T>) => {
+    if (env.SOURCEBOT_TENANCY_MODE === 'single') {
+        return fn({
+            user: {
+                id: SINGLE_TENANT_USER_ID,
+                email: SINGLE_TENANT_USER_EMAIL,
+            },
+            expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+        });
+    }
+
     const session = await auth();
     if (!session) {
         return notAuthenticated();
@@ -87,11 +96,6 @@ export const withOrgMembership = async <T>(session: Session, domain: string, fn:
         orgId: org.id,
         userRole: membership.role,
     });
-}
-
-export const isAuthed = async () => {
-    const session = await auth();
-    return session != null;
 }
 
 export const createOrg = (name: string, domain: string): Promise<{ id: number } | ServiceError> =>
@@ -695,6 +699,38 @@ export const cancelInvite = async (inviteId: string, domain: string): Promise<{ 
         }, /* minRequiredRole = */ OrgRole.OWNER)
     );
 
+export const getMe = async () =>
+    withAuth(async (session) => {
+        const user = await prisma.user.findUnique({
+            where: {
+                id: session.user.id,
+            },
+            include: {
+                orgs: {
+                    include: {
+                        org: true,
+                    }
+                },
+            }
+        });
+
+        if (!user) {
+            return notFound();
+        }
+
+        return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            memberships: user.orgs.map((org) => ({
+                id: org.orgId,
+                role: org.role,
+                domain: org.org.domain,
+                name: org.org.name,
+            }))
+        }
+    });
+
 export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth(async (session) => {
         const invite = await prisma.invite.findUnique({
@@ -710,9 +746,9 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
             return notFound();
         }
 
-        const user = await getUser(session.user.id);
-        if (!user) {
-            return notFound();
+        const user = await getMe();
+        if (isServiceError(user)) {
+            return user;
         }
 
         // Check if the user is the recipient of the invite
@@ -765,10 +801,10 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
     });
 
 export const getInviteInfo = async (inviteId: string) =>
-    withAuth(async (session) => {
-        const user = await getUser(session.user.id);
-        if (!user) {
-            return notFound();
+    withAuth(async () => {
+        const user = await getMe();
+        if (isServiceError(user)) {
+            return user;
         }
 
         const invite = await prisma.invite.findUnique({
@@ -880,9 +916,9 @@ export const createOnboardingSubscription = async (domain: string) =>
                 return notFound();
             }
 
-            const user = await getUser(session.user.id);
-            if (!user) {
-                return notFound();
+            const user = await getMe();
+            if (isServiceError(user)) {
+                return user;
             }
 
             if (!stripeClient) {

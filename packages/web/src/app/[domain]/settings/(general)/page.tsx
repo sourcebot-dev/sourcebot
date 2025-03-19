@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { ChangeOrgNameCard } from "./components/changeOrgNameCard";
 import { isServiceError } from "@/lib/utils";
 import { getCurrentUserRole } from "@/actions";
@@ -13,11 +12,6 @@ interface GeneralSettingsPageProps {
 }
 
 export default async function GeneralSettingsPage({ params: { domain } }: GeneralSettingsPageProps) {
-    const session = await auth();
-    if (!session) {
-        return null;
-    }
-
     const currentUserRole = await getCurrentUserRole(domain)
     if (isServiceError(currentUserRole)) {
         return <div>Failed to fetch user role. Please contact us at team@sourcebot.dev if this issue persists.</div>
