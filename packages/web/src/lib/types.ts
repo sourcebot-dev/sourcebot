@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { fileSourceRequestSchema, fileSourceResponseSchema, listRepositoriesResponseSchema, locationSchema, rangeSchema, repositorySchema, repositoryQuerySchema, searchRequestSchema, searchResponseSchema, symbolSchema, getVersionResponseSchema } from "./schemas";
+import { tenancyModeSchema } from "@/env.mjs";
 
 export type KeymapType = "default" | "vim";
 
@@ -26,3 +27,5 @@ export enum SearchQueryParams {
     query = "query",
     maxMatchDisplayCount = "maxMatchDisplayCount",
 }
+
+export type TenancyMode = z.infer<typeof tenancyModeSchema>;

@@ -60,7 +60,7 @@ export default async function Layout({
         )
     }
 
-    if (IS_BILLING_ENABLED && env.SOURCEBOT_TENANCY_MODE === 'multi') {
+    if (IS_BILLING_ENABLED) {
         const subscription = await fetchSubscription(domain);
         if (
             subscription &&

@@ -8,6 +8,7 @@ import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { InvitesList } from "./components/invitesList";
 import { getOrgInvites, getMe } from "@/actions";
 import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { ServiceErrorException } from "@/lib/serviceError";
 interface MembersSettingsPageProps {
     params: {
         domain: string
@@ -18,29 +19,29 @@ interface MembersSettingsPageProps {
 }
 
 export default async function MembersSettingsPage({ params: { domain }, searchParams: { tab } }: MembersSettingsPageProps) {
-    const members = await getOrgMembers(domain);
     const org = await getOrgFromDomain(domain);
     if (!org) {
-        return null;
+        throw new Error("Organization not found");
     }
 
     const me = await getMe();
     if (isServiceError(me)) {
-        return null;
+        throw new ServiceErrorException(me);
     }
 
     const userRoleInOrg = me.memberships.find((membership) => membership.id === org.id)?.role;
     if (!userRoleInOrg) {
-        return null;
+        throw new Error("User role not found");
     }
 
+    const members = await getOrgMembers(domain);
     if (isServiceError(members)) {
-        return null;
+        throw new ServiceErrorException(members);
     }
 
     const invites = await getOrgInvites(domain);
     if (isServiceError(invites)) {
-        return null;
+        throw new ServiceErrorException(invites);
     }
 
     const currentTab = tab || "members";

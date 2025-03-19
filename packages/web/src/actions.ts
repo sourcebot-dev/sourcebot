@@ -2,7 +2,7 @@
 
 import Ajv from "ajv";
 import { auth } from "./auth";
-import { notAuthenticated, notFound, ServiceError, unexpectedError, orgInvalidSubscription, secretAlreadyExists } from "@/lib/serviceError";
+import { notAuthenticated, notFound, ServiceError, unexpectedError, orgInvalidSubscription, secretAlreadyExists, stripeClientNotInitialized } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -23,7 +23,7 @@ import { render } from "@react-email/components";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import { createTransport } from "nodemailer";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
-import { RepositoryQuery } from "./lib/types";
+import { RepositoryQuery, TenancyMode } from "./lib/types";
 import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_USER_EMAIL, SINGLE_TENANT_USER_ID } from "./lib/constants";
 import { stripeClient } from "./lib/stripe";
 import { IS_BILLING_ENABLED } from "./lib/stripe";
@@ -98,75 +98,89 @@ export const withOrgMembership = async <T>(session: Session, domain: string, fn:
     });
 }
 
+export const withTenancyModeEnforcement = async<T>(mode: TenancyMode, fn: () => Promise<T>) => {
+    if (env.SOURCEBOT_TENANCY_MODE !== mode) {
+        return {
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.ACTION_DISALLOWED_IN_TENANCY_MODE,
+            message: "This action is not allowed in the current tenancy mode.",
+        } satisfies ServiceError;
+    }
+    return fn();
+}
+
 export const createOrg = (name: string, domain: string): Promise<{ id: number } | ServiceError> =>
-    withAuth(async (session) => {
-        const org = await prisma.org.create({
-            data: {
-                name,
-                domain,
-                members: {
-                    create: {
-                        role: "OWNER",
-                        user: {
-                            connect: {
-                                id: session.user.id,
+    withTenancyModeEnforcement('multi', () =>
+        withAuth(async (session) => {
+            const org = await prisma.org.create({
+                data: {
+                    name,
+                    domain,
+                    members: {
+                        create: {
+                            role: "OWNER",
+                            user: {
+                                connect: {
+                                    id: session.user.id,
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
 
-        return {
-            id: org.id,
-        }
-    });
+            return {
+                id: org.id,
+            }
+        }));
 
 export const updateOrgName = async (name: string, domain: string) =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const { success } = orgNameSchema.safeParse(name);
-            if (!success) {
+    withTenancyModeEnforcement('multi', () =>
+        withAuth((session) =>
+            withOrgMembership(session, domain, async ({ orgId }) => {
+                const { success } = orgNameSchema.safeParse(name);
+                if (!success) {
+                    return {
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: "Invalid organization url",
+                    } satisfies ServiceError;
+                }
+
+                await prisma.org.update({
+                    where: { id: orgId },
+                    data: { name },
+                });
+
                 return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "Invalid organization url",
-                } satisfies ServiceError;
-            }
-
-            await prisma.org.update({
-                where: { id: orgId },
-                data: { name },
-            });
-
-            return {
-                success: true,
-            }
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    )
+                    success: true,
+                }
+            }, /* minRequiredRole = */ OrgRole.OWNER)
+        ));
 
 export const updateOrgDomain = async (newDomain: string, existingDomain: string) =>
-    withAuth((session) =>
-        withOrgMembership(session, existingDomain, async ({ orgId }) => {
-            const { success } = await orgDomainSchema.safeParseAsync(newDomain);
-            if (!success) {
+    withTenancyModeEnforcement('multi', () =>
+        withAuth((session) =>
+            withOrgMembership(session, existingDomain, async ({ orgId }) => {
+                const { success } = await orgDomainSchema.safeParseAsync(newDomain);
+                if (!success) {
+                    return {
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: "Invalid organization url",
+                    } satisfies ServiceError;
+                }
+
+                await prisma.org.update({
+                    where: { id: orgId },
+                    data: { domain: newDomain },
+                });
+
                 return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "Invalid organization url",
-                } satisfies ServiceError;
-            }
-
-            await prisma.org.update({
-                where: { id: orgId },
-                data: { domain: newDomain },
-            });
-
-            return {
-                success: true,
-            }
-        }, /* minRequiredRole = */ OrgRole.OWNER),
-    )
+                    success: true,
+                }
+            }, /* minRequiredRole = */ OrgRole.OWNER)
+        ));
 
 export const completeOnboarding = async (domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
@@ -212,24 +226,25 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
     );
 
 export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const secrets = await prisma.secret.findMany({
-                where: {
-                    orgId,
-                },
-                select: {
-                    key: true,
-                    createdAt: true
-                }
-            });
+    withTenancyModeEnforcement('multi', () =>
+        withAuth((session) =>
+            withOrgMembership(session, domain, async ({ orgId }) => {
+                const secrets = await prisma.secret.findMany({
+                    where: {
+                        orgId,
+                    },
+                    select: {
+                        key: true,
+                        createdAt: true
+                    }
+                });
 
-            return secrets.map((secret) => ({
-                key: secret.key,
-                createdAt: secret.createdAt,
-            }));
+                return secrets.map((secret) => ({
+                    key: secret.key,
+                    createdAt: secret.createdAt,
+                }));
 
-        }));
+            })));
 
 export const createSecret = async (key: string, value: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
@@ -732,7 +747,7 @@ export const getMe = async () =>
     });
 
 export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> =>
-    withAuth(async (session) => {
+    withAuth(async () => {
         const invite = await prisma.invite.findUnique({
             where: {
                 id: inviteId,
@@ -922,11 +937,7 @@ export const createOnboardingSubscription = async (domain: string) =>
             }
 
             if (!stripeClient) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-                    message: "Stripe client is not initialized.",
-                } satisfies ServiceError;
+                return stripeClientNotInitialized();
             }
 
             const test_clock = env.STRIPE_ENABLE_TEST_CLOCKS === 'true' ? await stripeClient.testHelpers.testClocks.create({
@@ -1028,11 +1039,7 @@ export const createStripeCheckoutSession = async (domain: string) =>
             }
 
             if (!stripeClient) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-                    message: "Stripe client is not initialized.",
-                } satisfies ServiceError;
+                return stripeClientNotInitialized();
             }
 
             const orgMembers = await prisma.userToOrg.findMany({
@@ -1094,11 +1101,7 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
             }
 
             if (!stripeClient) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-                    message: "Stripe client is not initialized.",
-                } satisfies ServiceError;
+                return stripeClientNotInitialized();
             }
 
             const origin = (await headers()).get('origin')
@@ -1132,11 +1135,7 @@ export const getSubscriptionBillingEmail = async (domain: string): Promise<strin
             }
 
             if (!stripeClient) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-                    message: "Stripe client is not initialized.",
-                } satisfies ServiceError;
+                return stripeClientNotInitialized();
             }
 
             const customer = await stripeClient.customers.retrieve(org.stripeCustomerId);
@@ -1161,11 +1160,7 @@ export const changeSubscriptionBillingEmail = async (domain: string, newEmail: s
             }
 
             if (!stripeClient) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-                    message: "Stripe client is not initialized.",
-                } satisfies ServiceError;
+                return stripeClientNotInitialized();
             }
 
             await stripeClient.customers.update(org.stripeCustomerId, {
@@ -1387,11 +1382,7 @@ const _fetchSubscriptionForOrg = async (orgId: number, prisma: Prisma.Transactio
     }
 
     if (!stripeClient) {
-        return {
-            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-            errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-            message: "Stripe client is not initialized.",
-        } satisfies ServiceError;
+        return stripeClientNotInitialized();
     }
 
     const subscriptions = await stripeClient.subscriptions.list({

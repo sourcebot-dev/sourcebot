@@ -4,7 +4,8 @@ import { getCurrentUserRole } from "@/actions";
 import { getOrgFromDomain } from "@/data/org";
 import { ChangeOrgDomainCard } from "./components/changeOrgDomainCard";
 import { env } from "@/env.mjs";
-
+import { ServiceErrorException } from "@/lib/serviceError";
+import { ErrorCode } from "@/lib/errorCodes";
 interface GeneralSettingsPageProps {
     params: {
         domain: string;
@@ -14,12 +15,16 @@ interface GeneralSettingsPageProps {
 export default async function GeneralSettingsPage({ params: { domain } }: GeneralSettingsPageProps) {
     const currentUserRole = await getCurrentUserRole(domain)
     if (isServiceError(currentUserRole)) {
-        return <div>Failed to fetch user role. Please contact us at team@sourcebot.dev if this issue persists.</div>
+        throw new ServiceErrorException(currentUserRole);
     }
 
     const org = await getOrgFromDomain(domain)
     if (!org) {
-        return <div>Failed to fetch organization. Please contact us at team@sourcebot.dev if this issue persists.</div>
+        throw new ServiceErrorException({
+            message: "Failed to fetch organization.",
+            statusCode: 500,
+            errorCode: ErrorCode.NOT_FOUND,
+        });
     }
 
     return (

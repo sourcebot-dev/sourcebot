@@ -7,7 +7,7 @@ import { isServiceError } from "@/lib/utils"
 import { ChangeBillingEmailCard } from "./changeBillingEmailCard"
 import { notFound } from "next/navigation"
 import { IS_BILLING_ENABLED } from "@/lib/stripe"
-
+import { ServiceErrorException } from "@/lib/serviceError"
 export const metadata: Metadata = {
     title: "Billing | Settings",
     description: "Manage your subscription and billing information",
@@ -29,21 +29,21 @@ export default async function BillingPage({
     const subscription = await getSubscriptionData(domain)
 
     if (isServiceError(subscription)) {
-        return <div>Failed to fetch subscription data. Please contact us at team@sourcebot.dev if this issue persists.</div>
+        throw new ServiceErrorException(subscription);
     }
 
     if (!subscription) {
-        return <div>todo</div>
+        throw new Error("Subscription not found");
     }
 
     const currentUserRole = await getCurrentUserRole(domain)
     if (isServiceError(currentUserRole)) {
-        return <div>Failed to fetch user role. Please contact us at team@sourcebot.dev if this issue persists.</div>
+        throw new ServiceErrorException(currentUserRole);
     }
 
     const billingEmail = await getSubscriptionBillingEmail(domain);
     if (isServiceError(billingEmail)) {
-        return <div>Failed to fetch billing email. Please contact us at team@sourcebot.dev if this issue persists.</div>
+        throw new ServiceErrorException(billingEmail);
     }
 
     return (
