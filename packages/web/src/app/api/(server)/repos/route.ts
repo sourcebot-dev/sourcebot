@@ -22,5 +22,5 @@ const getRepos = (domain: string) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const response = await listRepositories(orgId);
             return response;
-        })
-    );
+        }
+    ), /* allowSingleTenantUnauthedAccess */ true);

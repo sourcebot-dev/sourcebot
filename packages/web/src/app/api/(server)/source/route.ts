@@ -32,4 +32,5 @@ const postSource = (request: FileSourceRequest, domain: string) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const response = await getFileSource(request, orgId);
             return response;
-        }));
+        }
+    ), /* allowSingleTenantUnauthedAccess */ true);

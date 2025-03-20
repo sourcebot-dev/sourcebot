@@ -1,7 +1,7 @@
-import { auth } from "@/auth";
-import { getUserOrgs } from "../../../../data/user";
 import { OrgSelectorDropdown } from "./orgSelectorDropdown";
 import { prisma } from "@/prisma";
+import { getMe } from "@/actions";
+import { isServiceError } from "@/lib/utils";
 
 interface OrgSelectorProps {
     domain: string;
@@ -10,12 +10,11 @@ interface OrgSelectorProps {
 export const OrgSelector = async ({
     domain,
 }: OrgSelectorProps) => {
-    const session = await auth();
-    if (!session) {
+    const user = await getMe();
+    if (isServiceError(user)) {
         return null;
     }
 
-    const orgs = await getUserOrgs(session.user.id);
     const activeOrg = await prisma.org.findUnique({
         where: {
             domain,
@@ -28,10 +27,10 @@ export const OrgSelector = async ({
 
     return (
         <OrgSelectorDropdown
-            orgs={orgs.map((org) => ({
-                name: org.name,
-                id: org.id,
-                domain: org.domain,
+            orgs={user.memberships.map(({ name, domain, id }) => ({
+                name,
+                domain,
+                id,
             }))}
             activeOrgId={activeOrg.id}
         />

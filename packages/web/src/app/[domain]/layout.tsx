@@ -13,7 +13,8 @@ import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "@/lib/co
 import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { IS_BILLING_ENABLED } from "@/lib/stripe";
-
+import { env } from "@/env.mjs";
+import { notFound, redirect } from "next/navigation";
 interface LayoutProps {
     children: React.ReactNode,
     params: { domain: string }
@@ -26,27 +27,27 @@ export default async function Layout({
     const org = await getOrgFromDomain(domain);
 
     if (!org) {
-        return <PageNotFound />
+        return notFound();
     }
 
-
-    const session = await auth();
-    if (!session) {
-        return <PageNotFound />
-    }
-
-
-    const membership = await prisma.userToOrg.findUnique({
-        where: {
-            orgId_userId: {
-                orgId: org.id,
-                userId: session.user.id
-            }
+    if (env.SOURCEBOT_AUTH_ENABLED === 'true') {
+        const session = await auth();
+        if (!session) {
+            redirect('/login');
         }
-    });
 
-    if (!membership) {
-        return <PageNotFound />
+        const membership = await prisma.userToOrg.findUnique({
+            where: {
+                orgId_userId: {
+                    orgId: org.id,
+                    userId: session.user.id
+                }
+            }
+        });
+
+        if (!membership) {
+            return notFound();
+        }
     }
 
     if (!org.isOnboarded) {

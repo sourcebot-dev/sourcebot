@@ -1,5 +1,5 @@
 import 'next-auth/jwt';
-import NextAuth, { DefaultSession } from "next-auth"
+import NextAuth, { DefaultSession, User as AuthJsUser } from "next-auth"
 import GitHub from "next-auth/providers/github"
 import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
@@ -7,13 +7,15 @@ import EmailProvider from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
 import { env } from "@/env.mjs";
-import { User } from '@sourcebot/db';
+import { OrgRole, User } from '@sourcebot/db';
 import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
-import { verifyCredentialsRequestSchema, verifyCredentialsResponseSchema } from './lib/schemas';
+import { verifyCredentialsRequestSchema } from './lib/schemas';
 import { createTransport } from 'nodemailer';
 import { render } from '@react-email/render';
 import MagicLinkEmail from './emails/magicLinkEmail';
+import { SINGLE_TENANT_ORG_ID } from './lib/constants';
+import bcrypt from 'bcrypt';
 
 export const runtime = 'nodejs';
 
@@ -89,30 +91,92 @@ export const getProviders = () => {
                     return null;
                 }
                 const { email, password } = body.data;
-    
-                // authorize runs in the edge runtime (where we cannot make DB calls / access environment variables),
-                // so we need to make a request to the server to verify the credentials.
-                const response = await fetch(new URL('/api/auth/verifyCredentials', env.AUTH_URL), {
-                    method: 'POST',
-                    body: JSON.stringify({ email, password }),
+
+                const user = await prisma.user.findUnique({
+                    where: { email }
                 });
-    
-                if (!response.ok) {
-                    return null;
-                }
-    
-                const user = verifyCredentialsResponseSchema.parse(await response.json());
-                return {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    image: user.image,
+
+                // The user doesn't exist, so create a new one.
+                if (!user) {
+                    const hashedPassword = bcrypt.hashSync(password, 10);
+                    const newUser = await prisma.user.create({
+                        data: {
+                            email,
+                            hashedPassword,
+                        }
+                    });
+
+                    const authJsUser: AuthJsUser = {
+                        id: newUser.id,
+                        email: newUser.email,
+                    }
+
+                    onCreateUser({ user: authJsUser });
+                    return authJsUser;
+
+                    // Otherwise, the user exists, so verify the password.
+                } else {
+                    if (!user.hashedPassword) {
+                        return null;
+                    }
+
+                    if (!bcrypt.compareSync(password, user.hashedPassword)) {
+                        return null;
+                    }
+
+                    return {
+                        id: user.id,
+                        email: user.email,
+                        name: user.name ?? undefined,
+                        image: user.image ?? undefined,
+                    };
                 }
             }
         }));
     }
 
     return providers;
+}
+
+const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
+    // In single-tenant mode w/ auth, we assign the first user to sign
+    // up as the owner of the default org.
+    if (
+        env.SOURCEBOT_TENANCY_MODE === 'single' &&
+        env.SOURCEBOT_AUTH_ENABLED === 'true'
+    ) {
+        await prisma.$transaction(async (tx) => {
+            const defaultOrg = await tx.org.findUnique({
+                where: {
+                    id: SINGLE_TENANT_ORG_ID,
+                },
+                include: {
+                    members: true,
+                }
+            });
+
+            // Only the first user to sign up will be an owner of the default org.
+            if (defaultOrg?.members.length === 0) {
+                await tx.org.update({
+                    where: {
+                        id: SINGLE_TENANT_ORG_ID,
+                    },
+                    data: {
+                        members: {
+                            create: {
+                                role: OrgRole.OWNER,
+                                user: {
+                                    connect: {
+                                        id: user.id,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
 }
 
 const useSecureCookies = env.AUTH_URL?.startsWith("https://") ?? false;
@@ -125,6 +189,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         strategy: "jwt",
     },
     trustHost: true,
+    events: {
+        createUser: onCreateUser,
+    },
     callbacks: {
         async jwt({ token, user: _user }) {
             const user = _user as User | undefined;

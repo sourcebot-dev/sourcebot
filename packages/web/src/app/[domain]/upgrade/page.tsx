@@ -9,8 +9,13 @@ import { isServiceError } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@radix-ui/react-icons";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
+import { env } from "@/env.mjs";
+import { IS_BILLING_ENABLED } from "@/lib/stripe";
 
 export default async function Upgrade({ params: { domain } }: { params: { domain: string } }) {
+    if (!IS_BILLING_ENABLED) {
+        redirect(`/${domain}`);
+    }
 
     const subscription = await fetchSubscription(domain);
     if (!subscription) {
@@ -52,9 +57,11 @@ export default async function Upgrade({ params: { domain } }: { params: { domain
                 </p>
             </div>
 
-            <OrgSelector
-                domain={domain}
-            />
+            {env.SOURCEBOT_TENANCY_MODE === 'multi' && (
+                <OrgSelector
+                    domain={domain}
+                />
+            )}
 
             <div className="grid gap-8 md:grid-cols-2 max-w-4xl mt-12">
                 <TeamUpgradeCard

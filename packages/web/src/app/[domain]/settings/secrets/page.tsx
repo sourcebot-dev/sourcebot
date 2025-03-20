@@ -2,6 +2,8 @@ import { getSecrets } from "@/actions";
 import { SecretsList } from "./components/secretsList";
 import { isServiceError } from "@/lib/utils";
 import { ImportSecretCard } from "./components/importSecretCard";
+import { ServiceErrorException } from "@/lib/serviceError";
+
 interface SecretsPageProps {
     params: {
         domain: string;
@@ -11,7 +13,7 @@ interface SecretsPageProps {
 export default async function SecretsPage({ params: { domain } }: SecretsPageProps) {
     const secrets = await getSecrets(domain);
     if (isServiceError(secrets)) {
-        return null;
+        throw new ServiceErrorException(secrets);
     }
 
     return (

@@ -1,11 +1,22 @@
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 
-export interface ServiceError {
-    statusCode: StatusCodes;
-    errorCode: ErrorCode;
-    message: string;
+export const serviceErrorSchema = z.object({
+    statusCode: z.number(),
+    errorCode: z.string(),
+    message: z.string(),
+});
+
+export type ServiceError = z.infer<typeof serviceErrorSchema>;
+
+/**
+ * Useful for throwing errors and handling them in error boundaries.
+ */
+export class ServiceErrorException extends Error {
+    constructor(public readonly serviceError: ServiceError) {
+        super(JSON.stringify(serviceError));
+    }
 }
 
 export const serviceErrorResponse = ({ statusCode, errorCode, message }: ServiceError) => {
@@ -106,5 +117,13 @@ export const secretAlreadyExists = (): ServiceError => {
         statusCode: StatusCodes.CONFLICT,
         errorCode: ErrorCode.SECRET_ALREADY_EXISTS,
         message: "Secret already exists",
+    }
+}
+
+export const stripeClientNotInitialized = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+        errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
+        message: "Stripe client is not initialized.",
     }
 }

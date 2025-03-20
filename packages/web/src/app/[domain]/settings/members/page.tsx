@@ -1,15 +1,14 @@
 import { MembersList } from "./components/membersList";
 import { getOrgMembers } from "@/actions";
 import { isServiceError } from "@/lib/utils";
-import { auth } from "@/auth";
-import { getUser, getUserRoleInOrg } from "@/data/user";
 import { getOrgFromDomain } from "@/data/org";
 import { InviteMemberCard } from "./components/inviteMemberCard";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { InvitesList } from "./components/invitesList";
-import { getOrgInvites } from "@/actions";
+import { getOrgInvites, getMe } from "@/actions";
 import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { ServiceErrorException } from "@/lib/serviceError";
 interface MembersSettingsPageProps {
     params: {
         domain: string
@@ -20,34 +19,29 @@ interface MembersSettingsPageProps {
 }
 
 export default async function MembersSettingsPage({ params: { domain }, searchParams: { tab } }: MembersSettingsPageProps) {
-    const session = await auth();
-    if (!session) {
-        return null;
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        throw new Error("Organization not found");
+    }
+
+    const me = await getMe();
+    if (isServiceError(me)) {
+        throw new ServiceErrorException(me);
+    }
+
+    const userRoleInOrg = me.memberships.find((membership) => membership.id === org.id)?.role;
+    if (!userRoleInOrg) {
+        throw new Error("User role not found");
     }
 
     const members = await getOrgMembers(domain);
-    const org = await getOrgFromDomain(domain);
-    if (!org) {
-        return null;
-    }
-
-    const user = await getUser(session.user.id);
-    if (!user) {
-        return null;
-    }
-
-    const userRoleInOrg = await getUserRoleInOrg(user.id, org.id);
-    if (!userRoleInOrg) {
-        return null;
-    }
-
     if (isServiceError(members)) {
-        return null;
+        throw new ServiceErrorException(members);
     }
 
     const invites = await getOrgInvites(domain);
     if (isServiceError(invites)) {
-        return null;
+        throw new ServiceErrorException(invites);
     }
 
     const currentTab = tab || "members";
@@ -78,7 +72,7 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                 <TabsContent value="members">
                         <MembersList
                             members={members}
-                            currentUserId={session.user.id}
+                            currentUserId={me.id}
                             currentUserRole={userRoleInOrg}
                             orgName={org.name}
                     />

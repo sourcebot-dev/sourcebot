@@ -63,7 +63,7 @@ export const ImportSecretDialog = ({ open, onOpenChange, onSecretCreated, codeHo
         const response = await createSecret(data.key, data.value, domain);
         if (isServiceError(response)) {
             toast({
-                description: `❌ Failed to create secret`
+                description: `❌ Failed to create secret. Reason: ${response.message}`
             });
             captureEvent('wa_secret_combobox_import_secret_fail', {
                 type: codeHostType,

@@ -1,14 +1,14 @@
 import { ConnectionList } from "./components/connectionList";
 import { Header } from "../components/header";
 import { NewConnectionCard } from "./components/newConnectionCard";
-import NotFoundPage from "@/app/not-found";
 import { getConnections } from "@/actions";
 import { isServiceError } from "@/lib/utils";
+import { ServiceErrorException } from "@/lib/serviceError";
 
 export default async function ConnectionsPage({ params: { domain } }: { params: { domain: string } }) {
     const connections = await getConnections(domain);
     if (isServiceError(connections)) {
-        return <NotFoundPage />;
+        throw new ServiceErrorException(connections);
     }
 
     return (

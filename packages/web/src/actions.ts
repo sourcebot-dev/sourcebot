@@ -2,7 +2,7 @@
 
 import Ajv from "ajv";
 import { auth } from "./auth";
-import { notAuthenticated, notFound, ServiceError, unexpectedError, orgInvalidSubscription, secretAlreadyExists } from "@/lib/serviceError";
+import { notAuthenticated, notFound, ServiceError, unexpectedError, orgInvalidSubscription, secretAlreadyExists, stripeClientNotInitialized } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -16,7 +16,6 @@ import { decrypt, encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
 import { ConnectionSyncStatus, Prisma, OrgRole, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { cookies, headers } from "next/headers"
-import { getUser } from "@/data/user";
 import { Session } from "next-auth";
 import { env } from "@/env.mjs";
 import Stripe from "stripe";
@@ -24,8 +23,8 @@ import { render } from "@react-email/components";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import { createTransport } from "nodemailer";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
-import { RepositoryQuery } from "./lib/types";
-import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "./lib/constants";
+import { TenancyMode } from "./lib/types";
+import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_USER_EMAIL, SINGLE_TENANT_USER_ID } from "./lib/constants";
 import { stripeClient } from "./lib/stripe";
 import { IS_BILLING_ENABLED } from "./lib/stripe";
 
@@ -33,9 +32,27 @@ const ajv = new Ajv({
     validateFormats: false,
 });
 
-export const withAuth = async <T>(fn: (session: Session) => Promise<T>) => {
+export const withAuth = async <T>(fn: (session: Session) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false) => {
     const session = await auth();
     if (!session) {
+        if (
+            env.SOURCEBOT_TENANCY_MODE === 'single' &&
+            env.SOURCEBOT_AUTH_ENABLED === 'false' &&
+            allowSingleTenantUnauthedAccess === true
+        ) {
+            // To allow for unauthed acccess in single-tenant mode, we can
+            // create a fake session with the default user. This user has membership
+            // in the default org.
+            // @see: initialize.ts
+            return fn({
+                user: {
+                    id: SINGLE_TENANT_USER_ID,
+                    email: SINGLE_TENANT_USER_EMAIL,
+                },
+                expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+            });
+        }
+
         return notAuthenticated();
     }
     return fn(session);
@@ -89,34 +106,41 @@ export const withOrgMembership = async <T>(session: Session, domain: string, fn:
     });
 }
 
-export const isAuthed = async () => {
-    const session = await auth();
-    return session != null;
+export const withTenancyModeEnforcement = async<T>(mode: TenancyMode, fn: () => Promise<T>) => {
+    if (env.SOURCEBOT_TENANCY_MODE !== mode) {
+        return {
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.ACTION_DISALLOWED_IN_TENANCY_MODE,
+            message: "This action is not allowed in the current tenancy mode.",
+        } satisfies ServiceError;
+    }
+    return fn();
 }
 
 export const createOrg = (name: string, domain: string): Promise<{ id: number } | ServiceError> =>
-    withAuth(async (session) => {
-        const org = await prisma.org.create({
-            data: {
-                name,
-                domain,
-                members: {
-                    create: {
-                        role: "OWNER",
-                        user: {
-                            connect: {
-                                id: session.user.id,
+    withTenancyModeEnforcement('multi', () =>
+        withAuth(async (session) => {
+            const org = await prisma.org.create({
+                data: {
+                    name,
+                    domain,
+                    members: {
+                        create: {
+                            role: "OWNER",
+                            user: {
+                                connect: {
+                                    id: session.user.id,
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
 
-        return {
-            id: org.id,
-        }
-    });
+            return {
+                id: org.id,
+            }
+        }));
 
 export const updateOrgName = async (name: string, domain: string) =>
     withAuth((session) =>
@@ -139,30 +163,31 @@ export const updateOrgName = async (name: string, domain: string) =>
                 success: true,
             }
         }, /* minRequiredRole = */ OrgRole.OWNER)
-    )
+    );
 
 export const updateOrgDomain = async (newDomain: string, existingDomain: string) =>
-    withAuth((session) =>
-        withOrgMembership(session, existingDomain, async ({ orgId }) => {
-            const { success } = await orgDomainSchema.safeParseAsync(newDomain);
-            if (!success) {
+    withTenancyModeEnforcement('multi', () =>
+        withAuth((session) =>
+            withOrgMembership(session, existingDomain, async ({ orgId }) => {
+                const { success } = await orgDomainSchema.safeParseAsync(newDomain);
+                if (!success) {
+                    return {
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: "Invalid organization url",
+                    } satisfies ServiceError;
+                }
+
+                await prisma.org.update({
+                    where: { id: orgId },
+                    data: { domain: newDomain },
+                });
+
                 return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "Invalid organization url",
-                } satisfies ServiceError;
-            }
-
-            await prisma.org.update({
-                where: { id: orgId },
-                data: { domain: newDomain },
-            });
-
-            return {
-                success: true,
-            }
-        }, /* minRequiredRole = */ OrgRole.OWNER),
-    )
+                    success: true,
+                }
+            }, /* minRequiredRole = */ OrgRole.OWNER)
+        ));
 
 export const completeOnboarding = async (domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
@@ -224,7 +249,6 @@ export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: stri
                 key: secret.key,
                 createdAt: secret.createdAt,
             }));
-
         }));
 
 export const createSecret = async (key: string, value: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
@@ -275,8 +299,7 @@ export const checkIfSecretExists = async (key: string, domain: string): Promise<
             });
 
             return !!secret;
-        })
-    );
+        }));
 
 export const deleteSecret = async (key: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
@@ -360,9 +383,9 @@ export const getConnectionInfo = async (connectionId: number, domain: string) =>
                 numLinkedRepos: connection.repos.length,
             }
         })
-    )
+    );
 
-export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}): Promise<RepositoryQuery[] | ServiceError> =>
+export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const repos = await prisma.repo.findMany({
@@ -401,8 +424,8 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,
             }));
-        })
-    );
+        }
+        ), /* allowSingleTenantUnauthedAccess = */ true);
 
 export const createConnection = async (name: string, type: string, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> =>
     withAuth((session) =>
@@ -424,7 +447,8 @@ export const createConnection = async (name: string, type: string, connectionCon
             return {
                 id: connection.id,
             }
-        }));
+        })
+    );
 
 export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
@@ -695,8 +719,40 @@ export const cancelInvite = async (inviteId: string, domain: string): Promise<{ 
         }, /* minRequiredRole = */ OrgRole.OWNER)
     );
 
-export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> =>
+export const getMe = async () =>
     withAuth(async (session) => {
+        const user = await prisma.user.findUnique({
+            where: {
+                id: session.user.id,
+            },
+            include: {
+                orgs: {
+                    include: {
+                        org: true,
+                    }
+                },
+            }
+        });
+
+        if (!user) {
+            return notFound();
+        }
+
+        return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            memberships: user.orgs.map((org) => ({
+                id: org.orgId,
+                role: org.role,
+                domain: org.org.domain,
+                name: org.org.name,
+            }))
+        }
+    });
+
+export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> =>
+    withAuth(async () => {
         const invite = await prisma.invite.findUnique({
             where: {
                 id: inviteId,
@@ -710,9 +766,9 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
             return notFound();
         }
 
-        const user = await getUser(session.user.id);
-        if (!user) {
-            return notFound();
+        const user = await getMe();
+        if (isServiceError(user)) {
+            return user;
         }
 
         // Check if the user is the recipient of the invite
@@ -765,10 +821,10 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
     });
 
 export const getInviteInfo = async (inviteId: string) =>
-    withAuth(async (session) => {
-        const user = await getUser(session.user.id);
-        if (!user) {
-            return notFound();
+    withAuth(async () => {
+        const user = await getMe();
+        if (isServiceError(user)) {
+            return user;
         }
 
         const invite = await prisma.invite.findUnique({
@@ -880,17 +936,13 @@ export const createOnboardingSubscription = async (domain: string) =>
                 return notFound();
             }
 
-            const user = await getUser(session.user.id);
-            if (!user) {
-                return notFound();
+            const user = await getMe();
+            if (isServiceError(user)) {
+                return user;
             }
 
             if (!stripeClient) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-                    message: "Stripe client is not initialized.",
-                } satisfies ServiceError;
+                return stripeClientNotInitialized();
             }
 
             const test_clock = env.STRIPE_ENABLE_TEST_CLOCKS === 'true' ? await stripeClient.testHelpers.testClocks.create({
@@ -992,11 +1044,7 @@ export const createStripeCheckoutSession = async (domain: string) =>
             }
 
             if (!stripeClient) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-                    message: "Stripe client is not initialized.",
-                } satisfies ServiceError;
+                return stripeClientNotInitialized();
             }
 
             const orgMembers = await prisma.userToOrg.findMany({
@@ -1042,7 +1090,7 @@ export const createStripeCheckoutSession = async (domain: string) =>
                 url: stripeSession.url,
             }
         })
-    )
+    );
 
 export const getCustomerPortalSessionLink = async (domain: string): Promise<string | ServiceError> =>
     withAuth((session) =>
@@ -1058,11 +1106,7 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
             }
 
             if (!stripeClient) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-                    message: "Stripe client is not initialized.",
-                } satisfies ServiceError;
+                return stripeClientNotInitialized();
             }
 
             const origin = (await headers()).get('origin')
@@ -1096,11 +1140,7 @@ export const getSubscriptionBillingEmail = async (domain: string): Promise<strin
             }
 
             if (!stripeClient) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-                    message: "Stripe client is not initialized.",
-                } satisfies ServiceError;
+                return stripeClientNotInitialized();
             }
 
             const customer = await stripeClient.customers.retrieve(org.stripeCustomerId);
@@ -1125,11 +1165,7 @@ export const changeSubscriptionBillingEmail = async (domain: string, newEmail: s
             }
 
             if (!stripeClient) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-                    message: "Stripe client is not initialized.",
-                } satisfies ServiceError;
+                return stripeClientNotInitialized();
             }
 
             await stripeClient.customers.update(org.stripeCustomerId, {
@@ -1351,11 +1387,7 @@ const _fetchSubscriptionForOrg = async (orgId: number, prisma: Prisma.Transactio
     }
 
     if (!stripeClient) {
-        return {
-            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-            errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-            message: "Stripe client is not initialized.",
-        } satisfies ServiceError;
+        return stripeClientNotInitialized();
     }
 
     const subscriptions = await stripeClient.subscriptions.list({
@@ -1398,6 +1430,15 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
             statusCode: StatusCodes.BAD_REQUEST,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
             message: "invalid connection type",
+        } satisfies ServiceError;
+    }
+
+    const isValidConfig = ajv.validate(schema, parsedConfig);
+    if (!isValidConfig) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: `config schema validation failed with errors: ${ajv.errorsText(ajv.errors)}`,
         } satisfies ServiceError;
     }
 
@@ -1444,15 +1485,6 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
             statusCode: StatusCodes.BAD_REQUEST,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
             message: `You must provide a token to sync more than ${env.CONFIG_MAX_REPOS_NO_TOKEN} repositories.`,
-        } satisfies ServiceError;
-    }
-
-    const isValidConfig = ajv.validate(schema, parsedConfig);
-    if (!isValidConfig) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: `config schema validation failed with errors: ${ajv.errorsText(ajv.errors)}`,
         } satisfies ServiceError;
     }
 

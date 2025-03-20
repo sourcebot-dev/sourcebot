@@ -183,14 +183,6 @@ export const verifyCredentialsRequestSchema = z.object({
     password: z.string().min(8),
 });
 
-
-export const verifyCredentialsResponseSchema = z.object({
-    id: z.string().optional(),
-    name: z.string().optional(),
-    email: z.string().optional(),
-    image: z.string().optional(),
-});
-
 export const orgNameSchema = z.string().min(2, { message: "Organization name must be at least 3 characters long." });
 
 export const orgDomainSchema = z.string()

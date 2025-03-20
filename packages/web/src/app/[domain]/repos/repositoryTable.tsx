@@ -11,7 +11,11 @@ import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { env } from "@/env.mjs";
 
-export const RepositoryTable = () => {
+interface RepositoryTableProps {
+    isAddNewRepoButtonVisible: boolean;
+}
+
+export const RepositoryTable = ({ isAddNewRepoButtonVisible }: RepositoryTableProps) => {
     const domain = useDomain();
 
     const { data: repos, isLoading: reposLoading, error: reposError } = useQuery({
@@ -48,31 +52,31 @@ export const RepositoryTable = () => {
 
     const tableColumns = useMemo(() => {
         if (reposLoading) {
-            return columns(domain).map((column) => {
+            return columns(domain, isAddNewRepoButtonVisible).map((column) => {
                 if ('accessorKey' in column && column.accessorKey === "name") {
-                  return {
+                    return {
+                        ...column,
+                        cell: () => (
+                            <div className="flex flex-row items-center gap-3 py-2">
+                                <Skeleton className="h-8 w-8 rounded-md" /> {/* Avatar skeleton */}
+                                <Skeleton className="h-4 w-48" /> {/* Repository name skeleton */}
+                            </div>
+                        ),
+                    }
+                }
+
+                return {
                     ...column,
                     cell: () => (
-                      <div className="flex flex-row items-center gap-3 py-2">
-                        <Skeleton className="h-8 w-8 rounded-md" /> {/* Avatar skeleton */}
-                        <Skeleton className="h-4 w-48" /> {/* Repository name skeleton */}
-                      </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            <Skeleton className="h-5 w-24 rounded-full" />
+                        </div>
                     ),
-                  }
                 }
-        
-                return {
-                  ...column,
-                  cell: () => (
-                    <div className="flex flex-wrap gap-1.5">
-                      <Skeleton className="h-5 w-24 rounded-full" />
-                    </div>
-                  ),
-                }
-              })
+            })
         }
 
-        return columns(domain);
+        return columns(domain, isAddNewRepoButtonVisible);
     }, [reposLoading, domain]);
 
 

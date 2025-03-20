@@ -4,11 +4,11 @@ import { Separator } from '@/components/ui/separator';
 import { getFileSource, listRepositories } from '@/lib/server/searchService';
 import { base64Decode, isServiceError } from "@/lib/utils";
 import { CodePreview } from "./codePreview";
-import { PageNotFound } from "@/app/[domain]/components/pageNotFound";
 import { ErrorCode } from "@/lib/errorCodes";
 import { LuFileX2, LuBookX } from "react-icons/lu";
 import { getOrgFromDomain } from "@/data/org";
-
+import { notFound } from "next/navigation";
+import { ServiceErrorException } from "@/lib/serviceError";
 interface BrowsePageProps {
     params: {
         path: string[];
@@ -22,7 +22,7 @@ export default async function BrowsePage({
     const rawPath = decodeURIComponent(params.path.join('/'));
     const sentinalIndex = rawPath.search(/\/-\/(tree|blob)\//);
     if (sentinalIndex === -1) {
-        return <PageNotFound />;
+        notFound();
     }
 
     const repoAndRevisionName = rawPath.substring(0, sentinalIndex).split('@');
@@ -48,19 +48,14 @@ export default async function BrowsePage({
 
     const org = await getOrgFromDomain(params.domain);
     if (!org) {
-        return <PageNotFound />
+        notFound();
     }
 
     // @todo (bkellam) : We should probably have a endpoint to fetch repository metadata
     // given it's name or id.
     const reposResponse = await listRepositories(org.id);
     if (isServiceError(reposResponse)) {
-        // @todo : proper error handling
-        return (
-            <>
-                Error: {reposResponse.message}
-            </>
-        )
+        throw new ServiceErrorException(reposResponse);
     }
     const repo = reposResponse.List.Repos.find(r => r.Repository.Name === repoName);
 
@@ -145,12 +140,7 @@ const CodePreviewWrapper = async ({
             )
         }
 
-        // @todo : proper error handling
-        return (
-            <>
-                Error: {fileSourceResponse.message}
-            </>
-        )
+        throw new ServiceErrorException(fileSourceResponse);
     }
 
     return (
