@@ -9600,7 +9600,7 @@ strip-json-comments@^3.1.1:
 
 strip-json-comments@^5.0.1:
   version "5.0.1"
-  resolved "https://registry.npmjs.org/strip-json-comments/-/strip-json-comments-5.0.1.tgz"
+  resolved "https://registry.npmjs.org/strip-json-comments/-/strip-json-comments-5.0.1.tgz#0d8b7d01b23848ed7dbdf4baaaa31a8250d8cfa0"
   integrity sha512-0fk9zBqO67Nq5M/m45qHCJxylV/DhBlIOVExqgOMiCCrzrhU6tCibRXNqE3jwJLftzE9SNuZtYbpzcO+i9FiKw==
 
 stripe@^17.6.0:

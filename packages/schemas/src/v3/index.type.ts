@@ -10,11 +10,11 @@ export type ConnectionConfig =
   | GiteaConnectionConfig
   | GerritConnectionConfig;
 
-export interface Index {
+export interface SourcebotConfig {
   /**
-   * Defines a collection of connections from varying code hosts that Sourcebot should sync with.
+   * Defines a collection of connections from varying code hosts that Sourcebot should sync with. This is only available in single-tenancy mode.
    */
-  connections: {
+  connections?: {
     [k: string]: ConnectionConfig;
   };
   [k: string]: unknown;

@@ -42,7 +42,7 @@ export const env = createEnv({
         LOGTAIL_HOST: z.string().url().optional(),
 
         INDEX_CONCURRENCY_MULTIPLE: numberSchema.optional(),
-        DATABASE_URL: z.string().url().default("postgresql://postgres:postgres@localhost:5432/postgres")
+        DATABASE_URL: z.string().url().default("postgresql://postgres:postgres@localhost:5432/postgres"),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

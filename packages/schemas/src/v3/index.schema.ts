@@ -2,10 +2,11 @@
 const schema = {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
+  "title": "SourcebotConfig",
   "properties": {
     "connections": {
       "type": "object",
-      "description": "Defines a collection of connections from varying code hosts that Sourcebot should sync with.",
+      "description": "Defines a collection of connections from varying code hosts that Sourcebot should sync with. This is only available in single-tenancy mode.",
       "patternProperties": {
         "^[a-zA-Z0-9_-]+$": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -501,9 +502,6 @@ const schema = {
       },
       "additionalProperties": false
     }
-  },
-  "required": [
-    "connections"
-  ]
+  }
 } as const;
 export { schema as indexSchema };

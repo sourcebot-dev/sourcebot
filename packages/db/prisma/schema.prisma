@@ -79,6 +79,8 @@ model Connection {
   // The organization that owns this connection
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
+
+  @@unique([name, orgId])
 }
 
 model RepoToConnection {

@@ -55,9 +55,6 @@ export const getTokenFromConfig = async (token: Token, orgId: number, db?: Prism
     };
 }
 
-export const isRemotePath = (path: string) => {
-    return path.startsWith('https://') || path.startsWith('http://');
-}
 
 export const resolvePathRelativeToConfig = (localPath: string, configPath: string) => {
     let absolutePath = localPath;

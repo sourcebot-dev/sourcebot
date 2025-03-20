@@ -7,13 +7,13 @@
         "build": "yarn workspaces run build",
         "test": "yarn workspaces run test",
 
-        "dev": "yarn dev:prisma:migrate && npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web",
+        "dev": "yarn dev:prisma:migrate:dev && npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web",
         "with-env": "cross-env PATH=\"$PWD/bin:$PATH\" dotenv -e .env.development -c --",
         "dev:zoekt": "yarn with-env zoekt-webserver -index .sourcebot/index -rpc",
         "dev:backend": "yarn with-env yarn workspace @sourcebot/backend dev:watch",
         "dev:web": "yarn with-env yarn workspace @sourcebot/web dev",
 
-        "dev:prisma:migrate": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:dev",
+        "dev:prisma:migrate:dev": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:dev",
         "dev:prisma:studio": "yarn with-env yarn workspace @sourcebot/db prisma:studio",
         "dev:prisma:migrate:reset": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:reset"
     },
