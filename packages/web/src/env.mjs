@@ -43,7 +43,7 @@ export const env = createEnv({
         SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default('false'),
         DATABASE_URL: z.string().url(),
 
-        SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("multi"),
+        SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
         SOURCEBOT_AUTH_ENABLED: booleanSchema.default('true'),
     },
     // @NOTE: Make sure you destructure all client variables in the
