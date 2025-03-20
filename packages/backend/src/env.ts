@@ -5,6 +5,11 @@ import dotenv from 'dotenv';
 // Booleans are specified as 'true' or 'false' strings.
 const booleanSchema = z.enum(["true", "false"]);
 
+// Numbers are treated as strings in .env files.
+// coerce helps us convert them to numbers.
+// @see: https://zod.dev/?id=coercion-for-primitives
+const numberSchema = z.coerce.number();
+
 dotenv.config({
 	path: './.env',
 });
@@ -28,7 +33,7 @@ export const env = createEnv({
         FALLBACK_GITLAB_TOKEN: z.string().optional(),
         FALLBACK_GITEA_TOKEN: z.string().optional(),
 
-        REDIS_URL: z.string().url(),
+        REDIS_URL: z.string().url().default("redis://localhost:6379"),
 
         SENTRY_BACKEND_DSN: z.string().optional(),
         SENTRY_ENVIRONMENT: z.string().optional(),
@@ -36,8 +41,8 @@ export const env = createEnv({
         LOGTAIL_TOKEN: z.string().optional(),
         LOGTAIL_HOST: z.string().url().optional(),
 
-        INDEX_CONCURRENCY_MULTIPLE: z.number().optional(),
-        DATABASE_URL: z.string().url(),
+        INDEX_CONCURRENCY_MULTIPLE: numberSchema.optional(),
+        DATABASE_URL: z.string().url().default("postgresql://postgres:postgres@localhost:5432/postgres")
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,
