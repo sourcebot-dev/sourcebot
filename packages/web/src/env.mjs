@@ -37,7 +37,7 @@ export const env = createEnv({
         STRIPE_ENABLE_TEST_CLOCKS: booleanSchema.default('false'),
 
         // Misc
-        CONFIG_MAX_REPOS_NO_TOKEN: numberSchema.default(500),
+        CONFIG_MAX_REPOS_NO_TOKEN: numberSchema.default(Number.MAX_SAFE_INTEGER),
         SOURCEBOT_ROOT_DOMAIN: z.string().default("localhost:3000"),
         NODE_ENV: z.enum(["development", "test", "production"]),
         SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default('false'),

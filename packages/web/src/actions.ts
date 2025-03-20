@@ -1433,6 +1433,15 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
         } satisfies ServiceError;
     }
 
+    const isValidConfig = ajv.validate(schema, parsedConfig);
+    if (!isValidConfig) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: `config schema validation failed with errors: ${ajv.errorsText(ajv.errors)}`,
+        } satisfies ServiceError;
+    }
+
     const { numRepos, hasToken } = (() => {
         switch (connectionType) {
             case "github": {
@@ -1476,15 +1485,6 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
             statusCode: StatusCodes.BAD_REQUEST,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
             message: `You must provide a token to sync more than ${env.CONFIG_MAX_REPOS_NO_TOKEN} repositories.`,
-        } satisfies ServiceError;
-    }
-
-    const isValidConfig = ajv.validate(schema, parsedConfig);
-    if (!isValidConfig) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: `config schema validation failed with errors: ${ajv.errorsText(ajv.errors)}`,
         } satisfies ServiceError;
     }
 
