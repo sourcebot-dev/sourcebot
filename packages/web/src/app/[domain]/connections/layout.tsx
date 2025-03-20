@@ -1,12 +1,18 @@
+import { auth } from "@/auth";
 import { NavigationMenu } from "../components/navigationMenu";
+import { redirect } from "next/navigation";
 
-export default function Layout({
+export default async function Layout({
     children,
     params: { domain },
 }: Readonly<{
     children: React.ReactNode;
     params: { domain: string };
 }>) {
+    const session = await auth();
+    if (!session) {
+        return redirect(`/${domain}`);
+    }
 
     return (
         <div className="min-h-screen flex flex-col">
