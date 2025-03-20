@@ -10,8 +10,6 @@ export type AppContext = {
     indexPath: string;
 
     cachePath: string;
-
-    configPath: string;
 }
 
 export type Settings = {

@@ -1,0 +1,19 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "connections": {
+            "type": "object",
+            "description": "Defines a collection of connections from varying code hosts that Sourcebot should sync with.",
+            "patternProperties": {
+                "^[a-zA-Z0-9_-]+$": {
+                    "$ref": "./connection.json"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "connections"
+    ]
+}

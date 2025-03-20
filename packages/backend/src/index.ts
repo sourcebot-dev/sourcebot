@@ -42,7 +42,6 @@ const parser = new ArgumentParser({
 });
 
 type Arguments = {
-    configPath: string;
     cacheDir: string;
 }
 
@@ -67,7 +66,6 @@ const context: AppContext = {
     indexPath,
     reposPath,
     cachePath: cacheDir,
-    configPath: args.configPath,
 }
 
 const prisma = new PrismaClient();
