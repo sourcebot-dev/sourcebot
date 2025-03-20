@@ -451,6 +451,23 @@ export const createConnection = async (name: string, type: string, connectionCon
                 return parsedConfig;
             }
 
+            const existingConnectionWithName = await prisma.connection.findUnique({
+                where: {
+                    name_orgId: {
+                        orgId,
+                        name,
+                    }
+                }
+            });
+
+            if (existingConnectionWithName) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.CONNECTION_ALREADY_EXISTS,
+                    message: "A connection with this name already exists.",
+                } satisfies ServiceError;
+            }
+
             const connection = await prisma.connection.create({
                 data: {
                     orgId,
@@ -472,6 +489,23 @@ export const updateConnectionDisplayName = async (connectionId: number, name: st
             const connection = await getConnection(connectionId, orgId);
             if (!connection) {
                 return notFound();
+            }
+
+            const existingConnectionWithName = await prisma.connection.findUnique({
+                where: {
+                    name_orgId: {
+                        orgId,
+                        name,
+                    }
+                }
+            });
+
+            if (existingConnectionWithName) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.CONNECTION_ALREADY_EXISTS,
+                    message: "A connection with this name already exists.",
+                } satisfies ServiceError;
             }
 
             await prisma.connection.update({
