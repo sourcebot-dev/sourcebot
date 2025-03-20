@@ -44,6 +44,7 @@ export const env = createEnv({
         DATABASE_URL: z.string().url(),
 
         SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("multi"),
+        SOURCEBOT_AUTH_ENABLED: booleanSchema.default('true'),
     },
     // @NOTE: Make sure you destructure all client variables in the
     // `experimental__runtimeEnv` block below.

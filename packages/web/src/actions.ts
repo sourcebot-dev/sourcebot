@@ -23,7 +23,7 @@ import { render } from "@react-email/components";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import { createTransport } from "nodemailer";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
-import { RepositoryQuery, TenancyMode } from "./lib/types";
+import { TenancyMode } from "./lib/types";
 import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_USER_EMAIL, SINGLE_TENANT_USER_ID } from "./lib/constants";
 import { stripeClient } from "./lib/stripe";
 import { IS_BILLING_ENABLED } from "./lib/stripe";
@@ -32,19 +32,27 @@ const ajv = new Ajv({
     validateFormats: false,
 });
 
-export const withAuth = async <T>(fn: (session: Session) => Promise<T>) => {
-    if (env.SOURCEBOT_TENANCY_MODE === 'single') {
-        return fn({
-            user: {
-                id: SINGLE_TENANT_USER_ID,
-                email: SINGLE_TENANT_USER_EMAIL,
-            },
-            expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
-        });
-    }
-
+export const withAuth = async <T>(fn: (session: Session) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false) => {
     const session = await auth();
     if (!session) {
+        if (
+            env.SOURCEBOT_TENANCY_MODE === 'single' &&
+            env.SOURCEBOT_AUTH_ENABLED === 'false' &&
+            allowSingleTenantUnauthedAccess === true
+        ) {
+            // To allow for unauthed acccess in single-tenant mode, we can
+            // create a fake session with the default user. This user has membership
+            // in the default org.
+            // @see: initialize.ts
+            return fn({
+                user: {
+                    id: SINGLE_TENANT_USER_ID,
+                    email: SINGLE_TENANT_USER_EMAIL,
+                },
+                expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+            });
+        }
+
         return notAuthenticated();
     }
     return fn(session);
@@ -135,28 +143,27 @@ export const createOrg = (name: string, domain: string): Promise<{ id: number } 
         }));
 
 export const updateOrgName = async (name: string, domain: string) =>
-    withTenancyModeEnforcement('multi', () =>
-        withAuth((session) =>
-            withOrgMembership(session, domain, async ({ orgId }) => {
-                const { success } = orgNameSchema.safeParse(name);
-                if (!success) {
-                    return {
-                        statusCode: StatusCodes.BAD_REQUEST,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: "Invalid organization url",
-                    } satisfies ServiceError;
-                }
-
-                await prisma.org.update({
-                    where: { id: orgId },
-                    data: { name },
-                });
-
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const { success } = orgNameSchema.safeParse(name);
+            if (!success) {
                 return {
-                    success: true,
-                }
-            }, /* minRequiredRole = */ OrgRole.OWNER)
-        ));
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "Invalid organization url",
+                } satisfies ServiceError;
+            }
+
+            await prisma.org.update({
+                where: { id: orgId },
+                data: { name },
+            });
+
+            return {
+                success: true,
+            }
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    );
 
 export const updateOrgDomain = async (newDomain: string, existingDomain: string) =>
     withTenancyModeEnforcement('multi', () =>
@@ -226,25 +233,23 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
     );
 
 export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> =>
-    withTenancyModeEnforcement('multi', () =>
-        withAuth((session) =>
-            withOrgMembership(session, domain, async ({ orgId }) => {
-                const secrets = await prisma.secret.findMany({
-                    where: {
-                        orgId,
-                    },
-                    select: {
-                        key: true,
-                        createdAt: true
-                    }
-                });
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const secrets = await prisma.secret.findMany({
+                where: {
+                    orgId,
+                },
+                select: {
+                    key: true,
+                    createdAt: true
+                }
+            });
 
-                return secrets.map((secret) => ({
-                    key: secret.key,
-                    createdAt: secret.createdAt,
-                }));
-
-            })));
+            return secrets.map((secret) => ({
+                key: secret.key,
+                createdAt: secret.createdAt,
+            }));
+        }));
 
 export const createSecret = async (key: string, value: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
@@ -294,8 +299,7 @@ export const checkIfSecretExists = async (key: string, domain: string): Promise<
             });
 
             return !!secret;
-        })
-    );
+        }));
 
 export const deleteSecret = async (key: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
@@ -379,9 +383,9 @@ export const getConnectionInfo = async (connectionId: number, domain: string) =>
                 numLinkedRepos: connection.repos.length,
             }
         })
-    )
+    );
 
-export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}): Promise<RepositoryQuery[] | ServiceError> =>
+export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const repos = await prisma.repo.findMany({
@@ -420,8 +424,8 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,
             }));
-        })
-    );
+        }
+        ), /* allowSingleTenantUnauthedAccess = */ true);
 
 export const createConnection = async (name: string, type: string, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> =>
     withAuth((session) =>
@@ -443,7 +447,8 @@ export const createConnection = async (name: string, type: string, connectionCon
             return {
                 id: connection.id,
             }
-        }));
+        })
+    );
 
 export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> =>
     withAuth((session) =>
@@ -1085,7 +1090,7 @@ export const createStripeCheckoutSession = async (domain: string) =>
                 url: stripeSession.url,
             }
         })
-    )
+    );
 
 export const getCustomerPortalSessionLink = async (domain: string): Promise<string | ServiceError> =>
     withAuth((session) =>

@@ -14,7 +14,7 @@ import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { IS_BILLING_ENABLED } from "@/lib/stripe";
 import { env } from "@/env.mjs";
-
+import { notFound, redirect } from "next/navigation";
 interface LayoutProps {
     children: React.ReactNode,
     params: { domain: string }
@@ -27,13 +27,13 @@ export default async function Layout({
     const org = await getOrgFromDomain(domain);
 
     if (!org) {
-        return <PageNotFound />
+        return notFound();
     }
 
-    if (env.SOURCEBOT_TENANCY_MODE === 'multi') {
+    if (env.SOURCEBOT_AUTH_ENABLED === 'true') {
         const session = await auth();
         if (!session) {
-            return <PageNotFound />
+            redirect('/login');
         }
 
         const membership = await prisma.userToOrg.findUnique({
@@ -46,10 +46,8 @@ export default async function Layout({
         });
 
         if (!membership) {
-            return <PageNotFound />
+            return notFound();
         }
-    } else {
-        // no-op
     }
 
     if (!org.isOnboarded) {

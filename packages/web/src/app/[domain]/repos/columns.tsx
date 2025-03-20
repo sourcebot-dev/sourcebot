@@ -93,13 +93,13 @@ const StatusIndicator = ({ status }: { status: RepoIndexingStatus }) => {
     )
 }
 
-export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
+export const columns = (domain: string, isAddNewRepoButtonVisible: boolean): ColumnDef<RepositoryColumnInfo>[] => [
     {
         accessorKey: "name",
         header: () => (
             <div className="flex items-center w-[400px]">
                 <span>Repository</span>
-                <AddRepoButton />
+                {isAddNewRepoButtonVisible && <AddRepoButton />}
             </div>
         ),
         cell: ({ row }) => {

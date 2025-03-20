@@ -3,14 +3,23 @@ import type { NextRequest } from 'next/server'
 import { env } from './env.mjs'
 import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants'
 
-// The following middleware is used to redirect all requests to
-// the single tenant domain (when in single tenant mode).
 export async function middleware(request: NextRequest) {
+    const url = request.nextUrl.clone();
+
     if (env.SOURCEBOT_TENANCY_MODE !== 'single') {
         return NextResponse.next();
     }
 
-    const url = request.nextUrl.clone();
+    // Enable these domains when auth is enabled.
+    if (env.SOURCEBOT_AUTH_ENABLED === 'true' &&
+        (
+            url.pathname.startsWith('/login') ||
+            url.pathname.startsWith('/redeem')
+        )
+    ) {
+        return NextResponse.next();
+    }
+
     const pathSegments = url.pathname.split('/').filter(Boolean);
     const currentDomain = pathSegments[0];
 

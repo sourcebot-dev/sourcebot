@@ -13,6 +13,7 @@ import { ProgressNavIndicator } from "./progressNavIndicator";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { TrialNavIndicator } from "./trialNavIndicator";
 import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { env } from "@/env.mjs";
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
 
@@ -39,10 +40,14 @@ export const NavigationMenu = async ({
                         />
                     </Link>
 
-                    <OrgSelector
-                        domain={domain}
-                    />
-                    <Separator orientation="vertical" className="h-6 mx-2" />
+                    {env.SOURCEBOT_TENANCY_MODE === 'multi' && (
+                        <>
+                            <OrgSelector
+                                domain={domain}
+                            />
+                            <Separator orientation="vertical" className="h-6 mx-2" />
+                        </>
+                    )}
 
                     <NavigationMenuBase>
                         <NavigationMenuList>
@@ -60,20 +65,24 @@ export const NavigationMenu = async ({
                                     </NavigationMenuLink>
                                 </Link>
                             </NavigationMenuItem>
-                            <NavigationMenuItem>
-                                <Link href={`/${domain}/connections`} legacyBehavior passHref>
-                                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                        Connections
-                                    </NavigationMenuLink>
-                                </Link>
-                            </NavigationMenuItem>
-                            <NavigationMenuItem>
-                                <Link href={`/${domain}/settings`} legacyBehavior passHref>
-                                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                        Settings
-                                    </NavigationMenuLink>
-                                </Link>
-                            </NavigationMenuItem>
+                            {env.SOURCEBOT_AUTH_ENABLED === 'true' && (
+                                <NavigationMenuItem>
+                                    <Link href={`/${domain}/connections`} legacyBehavior passHref>
+                                        <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                            Connections
+                                        </NavigationMenuLink>
+                                    </Link>
+                                </NavigationMenuItem>
+                            )}
+                            {env.SOURCEBOT_AUTH_ENABLED === 'true' && (
+                                <NavigationMenuItem>
+                                    <Link href={`/${domain}/settings`} legacyBehavior passHref>
+                                        <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                            Settings
+                                        </NavigationMenuLink>
+                                    </Link>
+                                </NavigationMenuItem>
+                            )}
                         </NavigationMenuList>
                     </NavigationMenuBase>
                 </div>

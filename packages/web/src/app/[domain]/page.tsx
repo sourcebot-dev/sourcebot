@@ -43,48 +43,48 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                             title="Search in files or paths"
                         >
                             <QueryExample>
-                                <Query query="test todo">test todo</Query> <QueryExplanation>(both test and todo)</QueryExplanation>
+                                <Query query="test todo" domain={domain}>test todo</Query> <QueryExplanation>(both test and todo)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="test or todo">test <Highlight>or</Highlight> todo</Query> <QueryExplanation>(either test or todo)</QueryExplanation>
+                                <Query query="test or todo" domain={domain}>test <Highlight>or</Highlight> todo</Query> <QueryExplanation>(either test or todo)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query={`"exit boot"`}>{`"exit boot"`}</Query> <QueryExplanation>(exact match)</QueryExplanation>
+                                <Query query={`"exit boot"`} domain={domain}>{`"exit boot"`}</Query> <QueryExplanation>(exact match)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="TODO case:yes">TODO <Highlight>case:</Highlight>yes</Query> <QueryExplanation>(case sensitive)</QueryExplanation>
+                                <Query query="TODO case:yes" domain={domain}>TODO <Highlight>case:</Highlight>yes</Query> <QueryExplanation>(case sensitive)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
                         <HowToSection
                             title="Filter results"
                         >
                             <QueryExample>
-                                <Query query="file:README setup"><Highlight>file:</Highlight>README setup</Query> <QueryExplanation>(by filename)</QueryExplanation>
+                                <Query query="file:README setup" domain={domain}><Highlight>file:</Highlight>README setup</Query> <QueryExplanation>(by filename)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="repo:torvalds/linux test"><Highlight>repo:</Highlight>torvalds/linux test</Query> <QueryExplanation>(by repo)</QueryExplanation>
+                                <Query query="repo:torvalds/linux test" domain={domain}><Highlight>repo:</Highlight>torvalds/linux test</Query> <QueryExplanation>(by repo)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="lang:typescript"><Highlight>lang:</Highlight>typescript</Query> <QueryExplanation>(by language)</QueryExplanation>
+                                <Query query="lang:typescript" domain={domain}><Highlight>lang:</Highlight>typescript</Query> <QueryExplanation>(by language)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="rev:HEAD"><Highlight>rev:</Highlight>HEAD</Query> <QueryExplanation>(by branch or tag)</QueryExplanation>
+                                <Query query="rev:HEAD" domain={domain}><Highlight>rev:</Highlight>HEAD</Query> <QueryExplanation>(by branch or tag)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
                         <HowToSection
                             title="Advanced"
                         >
                             <QueryExample>
-                                <Query query="file:\.py$"><Highlight>file:</Highlight>{`\\.py$`}</Query> <QueryExplanation>{`(files that end in ".py")`}</QueryExplanation>
+                                <Query query="file:\.py$" domain={domain}><Highlight>file:</Highlight>{`\\.py$`}</Query> <QueryExplanation>{`(files that end in ".py")`}</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="sym:main"><Highlight>sym:</Highlight>main</Query> <QueryExplanation>{`(symbols named "main")`}</QueryExplanation>
+                                <Query query="sym:main" domain={domain}><Highlight>sym:</Highlight>main</Query> <QueryExplanation>{`(symbols named "main")`}</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="todo -lang:c">todo <Highlight>-lang:c</Highlight></Query> <QueryExplanation>(negate filter)</QueryExplanation>
+                                <Query query="todo -lang:c" domain={domain}>todo <Highlight>-lang:c</Highlight></Query> <QueryExplanation>(negate filter)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="content:README"><Highlight>content:</Highlight>README</Query> <QueryExplanation>(search content only)</QueryExplanation>
+                                <Query query="content:README" domain={domain}><Highlight>content:</Highlight>README</Query> <QueryExplanation>(search content only)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
                     </div>
@@ -130,10 +130,10 @@ const QueryExplanation = ({ children }: { children: React.ReactNode }) => {
     )
 }
 
-const Query = ({ query, children }: { query: string, children: React.ReactNode }) => {
+const Query = ({ query, domain, children }: { query: string, domain: string, children: React.ReactNode }) => {
     return (
         <Link
-            href={`/search?query=${query}`}
+            href={`/${domain}/search?query=${query}`}
             className="cursor-pointer hover:underline"
         >
             {children}

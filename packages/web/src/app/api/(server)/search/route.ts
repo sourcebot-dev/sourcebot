@@ -30,4 +30,5 @@ const postSearch = (request: SearchRequest, domain: string) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const response = await search(request, orgId);
             return response;
-        }))
+        }
+    ), /* allowSingleTenantUnauthedAccess */ true);
