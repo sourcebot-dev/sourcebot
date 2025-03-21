@@ -3,9 +3,9 @@ import { isServiceError } from "@/lib/utils";
 import { getCurrentUserRole } from "@/actions";
 import { getOrgFromDomain } from "@/data/org";
 import { ChangeOrgDomainCard } from "./components/changeOrgDomainCard";
-import { env } from "@/env.mjs";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { ErrorCode } from "@/lib/errorCodes";
+import { headers } from "next/headers";
 interface GeneralSettingsPageProps {
     params: {
         domain: string;
@@ -27,6 +27,8 @@ export default async function GeneralSettingsPage({ params: { domain } }: Genera
         });
     }
 
+    const host = (await headers()).get('host') ?? '';
+
     return (
         <div className="flex flex-col gap-6">
             <div>
@@ -41,7 +43,7 @@ export default async function GeneralSettingsPage({ params: { domain } }: Genera
             <ChangeOrgDomainCard
                 orgDomain={org.domain}
                 currentUserRole={currentUserRole}
-                rootDomain={env.SOURCEBOT_ROOT_DOMAIN}
+                rootDomain={host}
             />
         </div>
     )
