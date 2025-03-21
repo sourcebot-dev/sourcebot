@@ -38,13 +38,13 @@ export const env = createEnv({
 
         // Misc
         CONFIG_MAX_REPOS_NO_TOKEN: numberSchema.default(Number.MAX_SAFE_INTEGER),
-        SOURCEBOT_ROOT_DOMAIN: z.string().default("localhost:3000"),
         NODE_ENV: z.enum(["development", "test", "production"]),
         SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default('false'),
         DATABASE_URL: z.string().url(),
 
         SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
         SOURCEBOT_AUTH_ENABLED: booleanSchema.default('true'),
+        CONFIG_PATH: z.string().optional(),
     },
     // @NOTE: Make sure you destructure all client variables in the
     // `experimental__runtimeEnv` block below.

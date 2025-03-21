@@ -1,11 +1,73 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema definition
+ * via the `patternProperty` "^[a-zA-Z0-9_-]+$".
+ */
 export type ConnectionConfig =
   | GithubConnectionConfig
   | GitlabConnectionConfig
   | GiteaConnectionConfig
   | GerritConnectionConfig;
 
+export interface SourcebotConfig {
+  $schema?: string;
+  settings?: Settings;
+  /**
+   * Defines a collection of connections from varying code hosts that Sourcebot should sync with. This is only available in single-tenancy mode.
+   */
+  connections?: {
+    [k: string]: ConnectionConfig;
+  };
+}
+/**
+ * Defines the globabl settings for Sourcebot.
+ *
+ * This interface was referenced by `SourcebotConfig`'s JSON-Schema
+ * via the `definition` "Settings".
+ */
+export interface Settings {
+  /**
+   * The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be indexed.
+   */
+  maxFileSize?: number;
+  /**
+   * The maximum number of trigrams per document. Files that exceed this maximum will not be indexed.
+   */
+  maxTrigramCount?: number;
+  /**
+   * The interval (in milliseconds) at which the indexer should re-index all repositories.
+   */
+  reindexIntervalMs?: number;
+  /**
+   * The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced.
+   */
+  resyncConnectionPollingIntervalMs?: number;
+  /**
+   * The polling rate (in milliseconds) at which the db should be checked for repos that should be re-indexed.
+   */
+  reindexRepoPollingIntervalMs?: number;
+  /**
+   * The multiple of the number of CPUs to use for indexing.
+   */
+  indexConcurrencyMultiple?: number;
+  /**
+   * The multiple of the number of CPUs to use for syncing the configuration.
+   */
+  configSyncConcurrencyMultiple?: number;
+  /**
+   * The multiple of the number of CPUs to use for garbage collection.
+   */
+  gcConcurrencyMultiple?: number;
+  /**
+   * The grace period (in milliseconds) for garbage collection. Used to prevent deleting shards while they're being loaded.
+   */
+  gcGracePeriodMs?: number;
+  /**
+   * The timeout (in milliseconds) for a repo indexing to timeout.
+   */
+  repoIndexTimeoutMs?: number;
+}
 export interface GithubConnectionConfig {
   /**
    * GitHub Configuration

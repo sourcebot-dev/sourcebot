@@ -21,43 +21,48 @@ export const marshalBool = (value?: boolean) => {
     return !!value ? '1' : '0';
 }
 
-export const getTokenFromConfig = async (token: Token, orgId: number, db?: PrismaClient) => {
-    if (!db) {
-        const e = new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
-            message: `No database connection provided.`,
-        });
-        Sentry.captureException(e);
-        throw e;
-    }
-
-    const secretKey = token.secret;
-    const secret = await db.secret.findUnique({
-        where: {
-            orgId_key: {
-                key: secretKey,
-                orgId
-            }
-        }
-    });
-
-    if (!secret) {
-        const e = new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
-            message: `Secret with key ${secretKey} not found for org ${orgId}`,
-        });
-        Sentry.captureException(e);
-        throw e;
-    }
-
-    const decryptedSecret = decrypt(secret.iv, secret.encryptedValue);
-    return {
-        token: decryptedSecret,
-        secretKey,
-    };
-}
-
 export const isRemotePath = (path: string) => {
     return path.startsWith('https://') || path.startsWith('http://');
 }
+
+export const getTokenFromConfig = async (token: Token, orgId: number, db: PrismaClient, logger?: Logger) => {
+    if ('secret' in token) {
+        const secretKey = token.secret;
+        const secret = await db.secret.findUnique({
+            where: {
+                orgId_key: {
+                    key: secretKey,
+                    orgId
+                }
+            }
+        });
+
+        if (!secret) {
+            const e = new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
+                message: `Secret with key ${secretKey} not found for org ${orgId}`,
+            });
+            Sentry.captureException(e);
+            logger?.error(e.metadata.message);
+            throw e;
+        }
+
+        const decryptedToken = decrypt(secret.iv, secret.encryptedValue);
+        return decryptedToken;
+    } else {
+        const envToken = process.env[token.env];
+        if (!envToken) {
+            const e = new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
+                message: `Environment variable ${token.env} not found.`,
+            });
+            Sentry.captureException(e);
+            logger?.error(e.metadata.message);
+            throw e;
+        }
+
+        return envToken;
+    }
+}
+
 
 export const resolvePathRelativeToConfig = (localPath: string, configPath: string) => {
     let absolutePath = localPath;

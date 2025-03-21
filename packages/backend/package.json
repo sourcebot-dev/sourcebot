@@ -34,6 +34,7 @@
         "@sourcebot/schemas": "^0.1.0",
         "@t3-oss/env-core": "^0.12.0",
         "@types/express": "^5.0.0",
+        "ajv": "^8.17.1",
         "argparse": "^2.0.1",
         "bullmq": "^5.34.10",
         "cross-fetch": "^4.0.0",

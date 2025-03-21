@@ -35,9 +35,10 @@ export const CredentialsForm = ({ callbackUrl }: CredentialsFormProps) => {
             password: values.password,
             redirectTo: callbackUrl ?? "/"
         })
-        .finally(() => {
+        .catch(() => {
             setIsLoading(false);
         });
+        // signIn will redirect on success, so don't set isLoading to false
     }
 
     return (

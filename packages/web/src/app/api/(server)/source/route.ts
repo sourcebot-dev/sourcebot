@@ -5,7 +5,7 @@ import { getFileSource } from "@/lib/server/searchService";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { withAuth, withOrgMembership } from "@/actions";
+import { sew, withAuth, withOrgMembership } from "@/actions";
 import { FileSourceRequest } from "@/lib/types";
 
 export const POST = async (request: NextRequest) => {
@@ -27,10 +27,10 @@ export const POST = async (request: NextRequest) => {
 }
 
 
-const postSource = (request: FileSourceRequest, domain: string) =>
+const postSource = (request: FileSourceRequest, domain: string) => sew(() =>
     withAuth(async (session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const response = await getFileSource(request, orgId);
             return response;
         }
-    ), /* allowSingleTenantUnauthedAccess */ true);
+    ), /* allowSingleTenantUnauthedAccess */ true));

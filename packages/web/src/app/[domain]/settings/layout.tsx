@@ -3,17 +3,24 @@ import { SidebarNav } from "./components/sidebar-nav"
 import { NavigationMenu } from "../components/navigationMenu"
 import { Header } from "./components/header";
 import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+
 export const metadata: Metadata = {
     title: "Settings",
 }
 
-export default function SettingsLayout({
+export default async function SettingsLayout({
     children,
     params: { domain },
 }: Readonly<{
     children: React.ReactNode;
     params: { domain: string };
 }>) {
+    const session = await auth();
+    if (!session) {
+        return redirect(`/${domain}`);
+    }
 
     const sidebarNavItems = [
         {
@@ -37,9 +44,9 @@ export default function SettingsLayout({
     ]
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-backgroundSecondary">
             <NavigationMenu domain={domain} />
-            <div className="flex-grow flex justify-center p-4 bg-backgroundSecondary relative">
+            <div className="flex-grow flex justify-center p-4 relative">
                 <div className="w-full max-w-6xl p-6">
                     <Header className="w-full">
                         <h1 className="text-3xl">Settings</h1>

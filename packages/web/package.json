@@ -129,6 +129,7 @@
     "react-resizable-panels": "^2.1.1",
     "server-only": "^0.0.1",
     "sharp": "^0.33.5",
+    "strip-json-comments": "^5.0.1",
     "stripe": "^17.6.0",
     "tailwind-merge": "^2.5.2",
     "tailwind-scrollbar-hide": "^1.1.7",

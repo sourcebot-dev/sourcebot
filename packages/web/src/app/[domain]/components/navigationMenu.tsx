@@ -27,7 +27,7 @@ export const NavigationMenu = async ({
     const subscription = IS_BILLING_ENABLED ? await getSubscriptionData(domain) : null;
 
     return (
-        <div className="flex flex-col w-screen h-fit">
+        <div className="flex flex-col w-screen h-fit bg-background">
             <div className="flex flex-row justify-between items-center py-1.5 px-3">
                 <div className="flex flex-row items-center">
                     <Link
