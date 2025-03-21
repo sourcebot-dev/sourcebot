@@ -11,8 +11,13 @@ import { isRemotePath } from './utils.js';
 import { readFile } from 'fs/promises';
 import stripJsonComments from 'strip-json-comments';
 import { SourcebotConfig } from '@sourcebot/schemas/v3/index.type';
+import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
+import { Ajv } from "ajv";
 
 const logger = createLogger('main');
+const ajv = new Ajv({
+    validateFormats: false,
+});
 
 const getSettings = async (configPath?: string) => {
     if (!configPath) {
@@ -32,6 +37,11 @@ const getSettings = async (configPath?: string) => {
     })();
 
     const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfig;
+    const isValidConfig = ajv.validate(indexSchema, config);
+    if (!isValidConfig) {
+        throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
+    }
+
     return {
         ...DEFAULT_SETTINGS,
         ...config.settings,

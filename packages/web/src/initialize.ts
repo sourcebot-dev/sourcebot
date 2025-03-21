@@ -6,6 +6,12 @@ import { readFile } from 'fs/promises';
 import stripJsonComments from 'strip-json-comments';
 import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
+import Ajv from 'ajv';
+
+const ajv = new Ajv({
+    validateFormats: false,
+});
 
 if (env.SOURCEBOT_AUTH_ENABLED === 'false' && env.SOURCEBOT_TENANCY_MODE === 'multi') {
     throw new Error('SOURCEBOT_AUTH_ENABLED must be true when SOURCEBOT_TENANCY_MODE is multi');
@@ -77,6 +83,11 @@ const initSingleTenancy = async () => {
         })();
         
         const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfig;
+        const isValidConfig = ajv.validate(indexSchema, config);
+        if (!isValidConfig) {
+            throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
+        }
+
         if (config.connections) {
             for (const [key, newConnectionConfig] of Object.entries(config.connections)) {
                 const currentConnection = await prisma.connection.findUnique({

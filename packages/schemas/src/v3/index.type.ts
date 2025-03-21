@@ -11,6 +11,7 @@ export type ConnectionConfig =
   | GerritConnectionConfig;
 
 export interface SourcebotConfig {
+  $schema?: string;
   settings?: Settings;
   /**
    * Defines a collection of connections from varying code hosts that Sourcebot should sync with. This is only available in single-tenancy mode.
@@ -18,7 +19,6 @@ export interface SourcebotConfig {
   connections?: {
     [k: string]: ConnectionConfig;
   };
-  [k: string]: unknown;
 }
 /**
  * Defines the globabl settings for Sourcebot.

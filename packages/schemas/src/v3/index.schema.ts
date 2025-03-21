@@ -53,6 +53,9 @@ const schema = {
     }
   },
   "properties": {
+    "$schema": {
+      "type": "string"
+    },
     "settings": {
       "$ref": "#/definitions/Settings"
     },
@@ -571,6 +574,7 @@ const schema = {
       },
       "additionalProperties": false
     }
-  }
+  },
+  "additionalProperties": false
 } as const;
 export { schema as indexSchema };

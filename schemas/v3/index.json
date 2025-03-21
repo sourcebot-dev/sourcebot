@@ -52,6 +52,9 @@
         }
     },
     "properties": {
+        "$schema": {
+            "type": "string"
+        },
         "settings": {
             "$ref": "#/definitions/Settings"
         },
@@ -65,5 +68,6 @@
             },
             "additionalProperties": false
         }
-    }
+    },
+    "additionalProperties": false
 }
