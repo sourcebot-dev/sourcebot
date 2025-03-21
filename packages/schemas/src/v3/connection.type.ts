@@ -11,7 +11,22 @@ export interface GithubConnectionConfig {
    * GitHub Configuration
    */
   type: "github";
-  token?: Token;
+  /**
+   * A Personal Access Token (PAT).
+   */
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
   /**
    * The URL of the GitHub host. Defaults to https://github.com
    */
@@ -68,15 +83,6 @@ export interface GithubConnectionConfig {
   revisions?: GitRevisions;
 }
 /**
- * A Personal Access Token (PAT).
- */
-export interface Token {
-  /**
-   * The name of the secret that contains the token.
-   */
-  secret: string;
-}
-/**
  * The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.
  */
 export interface GitRevisions {
@@ -94,7 +100,22 @@ export interface GitlabConnectionConfig {
    * GitLab Configuration
    */
   type: "gitlab";
-  token?: Token1;
+  /**
+   * An authentication token.
+   */
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
   /**
    * The URL of the GitLab host. Defaults to https://gitlab.com
    */
@@ -141,21 +162,27 @@ export interface GitlabConnectionConfig {
   };
   revisions?: GitRevisions;
 }
-/**
- * An authentication token.
- */
-export interface Token1 {
-  /**
-   * The name of the secret that contains the token.
-   */
-  secret: string;
-}
 export interface GiteaConnectionConfig {
   /**
    * Gitea Configuration
    */
   type: "gitea";
-  token?: Token2;
+  /**
+   * A Personal Access Token (PAT).
+   */
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
   /**
    * The URL of the Gitea host. Defaults to https://gitea.com
    */
@@ -187,15 +214,6 @@ export interface GiteaConnectionConfig {
     repos?: string[];
   };
   revisions?: GitRevisions;
-}
-/**
- * A Personal Access Token (PAT).
- */
-export interface Token2 {
-  /**
-   * The name of the secret that contains the token.
-   */
-  secret: string;
 }
 export interface GerritConnectionConfig {
   /**

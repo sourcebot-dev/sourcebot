@@ -40,12 +40,10 @@ const isHttpError = (error: unknown, status: number): boolean => {
 }
 
 export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal) => {
-    const tokenResult = config.token ? await getTokenFromConfig(config.token, orgId, db) : undefined;
-    const token = tokenResult?.token;
-    const secretKey = tokenResult?.secretKey;
+    const token = config.token ? await getTokenFromConfig(config.token, orgId, db, logger) : env.FALLBACK_GITHUB_TOKEN;
 
     const octokit = new Octokit({
-        auth: token ?? env.FALLBACK_GITHUB_TOKEN,
+        auth: token,
         ...(config.url ? {
             baseUrl: `${config.url}/api/v3`
         } : {}),
@@ -59,7 +57,9 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
 
             if (isHttpError(error, 401)) {
                 const e = new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN, {
-                    secretKey,
+                    ...(config.token && 'secret' in config.token ? {
+                        secretKey: config.token.secret,
+                    } : {}),
                 });
                 Sentry.captureException(e);
                 throw e;

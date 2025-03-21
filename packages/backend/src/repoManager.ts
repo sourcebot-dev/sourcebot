@@ -177,8 +177,7 @@ export class RepoManager implements IRepoManager {
 
             const config = connection.config as unknown as GithubConnectionConfig | GitlabConnectionConfig | GiteaConnectionConfig;
             if (config.token) {
-                const tokenResult = await getTokenFromConfig(config.token, connection.orgId, db);
-                token = tokenResult?.token;
+                token = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
                 if (token) {
                     break;
                 }
@@ -207,7 +206,7 @@ export class RepoManager implements IRepoManager {
             this.logger.info(`Fetching ${repo.id}...`);
 
             const { durationMs } = await measure(() => fetchRepository(repoPath, ({ method, stage, progress }) => {
-                //this.logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+                this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
             }));
             fetchDuration_s = durationMs / 1000;
 
@@ -234,7 +233,7 @@ export class RepoManager implements IRepoManager {
             }
 
             const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, metadata.gitConfig, ({ method, stage, progress }) => {
-                //this.logger.info(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+                this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
             }));
             cloneDuration_s = durationMs / 1000;
 

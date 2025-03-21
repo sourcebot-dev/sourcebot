@@ -44,6 +44,7 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
         return await fn();
     } catch (e) {
         Sentry.captureException(e);
+        console.error(e);
         return unexpectedError(`An unexpected error occurred. Please try again later.`);
     }
 }
@@ -272,32 +273,29 @@ export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: stri
 export const createSecret = async (key: string, value: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
-            try {
-                const encrypted = encrypt(value);
-                const existingSecret = await prisma.secret.findUnique({
-                    where: {
-                        orgId_key: {
-                            orgId,
-                            key,
-                        }
-                    }
-                });
-
-                if (existingSecret) {
-                    return secretAlreadyExists();
-                }
-
-                await prisma.secret.create({
-                    data: {
+            const encrypted = encrypt(value);
+            const existingSecret = await prisma.secret.findUnique({
+                where: {
+                    orgId_key: {
                         orgId,
                         key,
-                        encryptedValue: encrypted.encryptedData,
-                        iv: encrypted.iv,
                     }
-                });
-            } catch {
-                return unexpectedError(`Failed to create secret`);
+                }
+            });
+
+            if (existingSecret) {
+                return secretAlreadyExists();
             }
+
+            await prisma.secret.create({
+                data: {
+                    orgId,
+                    key,
+                    encryptedValue: encrypted.encryptedData,
+                    iv: encrypted.iv,
+                }
+            });
+            
 
             return {
                 success: true,
@@ -1497,41 +1495,35 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
         } satisfies ServiceError;
     }
 
+    if ('token' in parsedConfig && parsedConfig.token && 'env' in parsedConfig.token) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: "Environment variables are not supported for connections created in the web UI. Please use a secret instead.",
+        } satisfies ServiceError;
+    }
+
     const { numRepos, hasToken } = (() => {
-        switch (connectionType) {
+        switch (parsedConfig.type) {
+            case "gitea":
             case "github": {
-                const githubConfig = parsedConfig as GithubConnectionConfig;
                 return {
-                    numRepos: githubConfig.repos?.length,
-                    hasToken: !!githubConfig.token,
+                    numRepos: parsedConfig.repos?.length,
+                    hasToken: !!parsedConfig.token,
                 }
             }
             case "gitlab": {
-                const gitlabConfig = parsedConfig as GitlabConnectionConfig;
                 return {
-                    numRepos: gitlabConfig.projects?.length,
-                    hasToken: !!gitlabConfig.token,
-                }
-            }
-            case "gitea": {
-                const giteaConfig = parsedConfig as GiteaConnectionConfig;
-                return {
-                    numRepos: giteaConfig.repos?.length,
-                    hasToken: !!giteaConfig.token,
+                    numRepos: parsedConfig.projects?.length,
+                    hasToken: !!parsedConfig.token,
                 }
             }
             case "gerrit": {
-                const gerritConfig = parsedConfig as GerritConnectionConfig;
                 return {
-                    numRepos: gerritConfig.projects?.length,
+                    numRepos: parsedConfig.projects?.length,
                     hasToken: true, // gerrit doesn't use a token atm
                 }
             }
-            default:
-                return {
-                    numRepos: undefined,
-                    hasToken: true
-                }
         }
     })();
 

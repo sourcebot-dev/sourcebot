@@ -5,7 +5,22 @@ export interface GithubConnectionConfig {
    * GitHub Configuration
    */
   type: "github";
-  token?: Token;
+  /**
+   * A Personal Access Token (PAT).
+   */
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
   /**
    * The URL of the GitHub host. Defaults to https://github.com
    */
@@ -60,15 +75,6 @@ export interface GithubConnectionConfig {
     };
   };
   revisions?: GitRevisions;
-}
-/**
- * A Personal Access Token (PAT).
- */
-export interface Token {
-  /**
-   * The name of the secret that contains the token.
-   */
-  secret: string;
 }
 /**
  * The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.

@@ -1,17 +1,25 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
-export interface Shared {
-  [k: string]: unknown;
-}
 /**
  * This interface was referenced by `Shared`'s JSON-Schema
  * via the `definition` "Token".
  */
-export interface Token {
-  /**
-   * The name of the secret that contains the token.
-   */
-  secret: string;
+export type Token =
+  | {
+      /**
+       * The name of the secret that contains the token.
+       */
+      secret: string;
+    }
+  | {
+      /**
+       * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+       */
+      env: string;
+    };
+
+export interface Shared {
+  [k: string]: unknown;
 }
 /**
  * The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.
