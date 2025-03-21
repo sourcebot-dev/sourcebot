@@ -12,7 +12,7 @@ import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
-import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, GerritConnectionConfig, ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
+import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { decrypt, encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
 import { ConnectionSyncStatus, Prisma, OrgRole, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
