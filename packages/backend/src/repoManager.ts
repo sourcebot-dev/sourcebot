@@ -11,6 +11,7 @@ import { indexGitRepository } from "./zoekt.js";
 import os from 'os';
 import { PromClient } from './promClient.js';
 import * as Sentry from "@sentry/node";
+
 interface IRepoManager {
     blockingPollLoop: () => void;
     dispose: () => void;
@@ -242,7 +243,7 @@ export class RepoManager implements IRepoManager {
         }
 
         this.logger.info(`Indexing ${repo.id}...`);
-        const { durationMs } = await measure(() => indexGitRepository(repo, this.ctx));
+        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, this.ctx));
         const indexDuration_s = durationMs / 1000;
         this.logger.info(`Indexed ${repo.id} in ${indexDuration_s}s`);
 

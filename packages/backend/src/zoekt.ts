@@ -1,8 +1,7 @@
 import { exec } from "child_process";
-import { AppContext, RepoMetadata } from "./types.js";
+import { AppContext, RepoMetadata, Settings } from "./types.js";
 import { Repo } from "@sourcebot/db";
 import { getRepoPath } from "./utils.js";
-import { DEFAULT_SETTINGS } from "./constants.js";
 import { getShardPrefix } from "./utils.js";
 import { getBranches, getTags } from "./git.js";
 import micromatch from "micromatch";
@@ -11,7 +10,7 @@ import { captureEvent } from "./posthog.js";
 
 const logger = createLogger('zoekt');
 
-export const indexGitRepository = async (repo: Repo, ctx: AppContext) => {
+export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: AppContext) => {
     let revisions = [
         'HEAD'
     ];
@@ -58,7 +57,7 @@ export const indexGitRepository = async (repo: Repo, ctx: AppContext) => {
         revisions = revisions.slice(0, 64);
     }
     
-    const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -max_trigram_count ${DEFAULT_SETTINGS.maxTrigramCount} -file_limit ${DEFAULT_SETTINGS.maxFileSize} -branches ${revisions.join(',')} -tenant_id ${repo.orgId} -shard_prefix ${shardPrefix} ${repoPath}`;
+    const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -max_trigram_count ${settings.maxTrigramCount} -file_limit ${settings.maxFileSize} -branches ${revisions.join(',')} -tenant_id ${repo.orgId} -shard_prefix ${shardPrefix} ${repoPath}`;
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {

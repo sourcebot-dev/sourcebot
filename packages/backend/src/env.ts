@@ -41,8 +41,8 @@ export const env = createEnv({
         LOGTAIL_TOKEN: z.string().optional(),
         LOGTAIL_HOST: z.string().url().optional(),
 
-        INDEX_CONCURRENCY_MULTIPLE: numberSchema.optional(),
         DATABASE_URL: z.string().url().default("postgresql://postgres:postgres@localhost:5432/postgres"),
+        CONFIG_PATH: z.string().optional(),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

@@ -2,7 +2,59 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "title": "SourcebotConfig",
+    "definitions": {
+        "Settings": {
+            "type": "object",
+            "description": "Defines the globabl settings for Sourcebot.",
+            "properties": {
+                "maxFileSize": {
+                    "type": "number",
+                    "description": "The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be indexed."
+                },
+                "maxTrigramCount": {
+                    "type": "number",
+                    "description": "The maximum number of trigrams per document. Files that exceed this maximum will not be indexed."
+                },
+                "reindexIntervalMs": {
+                    "type": "number",
+                    "description": "The interval (in milliseconds) at which the indexer should re-index all repositories."
+                },
+                "resyncConnectionPollingIntervalMs": {
+                    "type": "number",
+                    "description": "The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced."
+                },
+                "reindexRepoPollingIntervalMs": {
+                    "type": "number",
+                    "description": "The polling rate (in milliseconds) at which the db should be checked for repos that should be re-indexed."
+                },
+                "indexConcurrencyMultiple": {
+                    "type": "number",
+                    "description": "The multiple of the number of CPUs to use for indexing."
+                },
+                "configSyncConcurrencyMultiple": {
+                    "type": "number",
+                    "description": "The multiple of the number of CPUs to use for syncing the configuration."
+                },
+                "gcConcurrencyMultiple": {
+                    "type": "number",
+                    "description": "The multiple of the number of CPUs to use for garbage collection."
+                },
+                "gcGracePeriodMs": {
+                    "type": "number",
+                    "description": "The grace period (in milliseconds) for garbage collection. Used to prevent deleting shards while they're being loaded."
+                },
+                "repoIndexTimeoutMs": {
+                    "type": "number",
+                    "description": "The timeout (in milliseconds) for a repo indexing to timeout."
+                }
+            },
+            "additionalProperties": false
+        }
+    },
     "properties": {
+        "settings": {
+            "$ref": "#/definitions/Settings"
+        },
         "connections": {
             "type": "object",
             "description": "Defines a collection of connections from varying code hosts that Sourcebot should sync with. This is only available in single-tenancy mode.",

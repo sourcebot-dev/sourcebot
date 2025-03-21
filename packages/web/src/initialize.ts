@@ -62,14 +62,9 @@ const initSingleTenancy = async () => {
     // Load any connections defined declaratively in the config file.
     const configPath = env.CONFIG_PATH;
     if (configPath) {
-        const abortController = new AbortController();
-        const signal = abortController.signal;
-
         const configContent = await (async () => {
             if (isRemotePath(configPath)) {
-                const response = await fetch(configPath, {
-                    signal,
-                });
+                const response = await fetch(configPath);
                 if (!response.ok) {
                     throw new Error(`Failed to fetch config file ${configPath}: ${response.statusText}`);
                 }
@@ -77,7 +72,6 @@ const initSingleTenancy = async () => {
             } else {
                 return readFile(configPath, {
                     encoding: 'utf-8',
-                    signal,
                 });
             }
         })();
