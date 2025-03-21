@@ -46,6 +46,5 @@ export const env = createEnv({
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,
-    // Skip environment variable validation in Docker builds.
-    skipValidation: process.env.DOCKER_BUILD === "1",
+    skipValidation: process.env.SKIP_ENV_VALIDATION === "1",
 });

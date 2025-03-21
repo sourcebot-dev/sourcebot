@@ -2,7 +2,6 @@
 
 import { fileSourceResponseSchema, getVersionResponseSchema, listRepositoriesResponseSchema, searchResponseSchema } from "@/lib/schemas";
 import { FileSourceRequest, FileSourceResponse, GetVersionResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
-import assert from "assert";
 
 export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse> => {
     const result = await fetch("/api/search", {

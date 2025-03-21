@@ -4,7 +4,7 @@
         "packages/*"
     ],
     "scripts": {
-        "build": "yarn workspaces run build",
+        "build": "cross-env SKIP_ENV_VALIDATION=1 yarn workspaces run build",
         "test": "yarn workspaces run test",
 
         "dev": "yarn dev:prisma:migrate:dev && npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web",

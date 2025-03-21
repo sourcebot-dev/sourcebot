@@ -134,6 +134,8 @@ const initSingleTenancy = async () => {
     }
 }
 
-if (env.SOURCEBOT_TENANCY_MODE === 'single') {
-    await initSingleTenancy();
-}
+(async () => {
+    if (env.SOURCEBOT_TENANCY_MODE === 'single') {
+        await initSingleTenancy();
+    }
+})();

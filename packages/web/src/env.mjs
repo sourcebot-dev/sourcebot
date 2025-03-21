@@ -62,7 +62,6 @@ export const env = createEnv({
         NEXT_PUBLIC_SOURCEBOT_VERSION: process.env.NEXT_PUBLIC_SOURCEBOT_VERSION,
         NEXT_PUBLIC_POLLING_INTERVAL_MS: process.env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
     },
-    // Skip environment variable validation in Docker builds.
-    skipValidation: process.env.DOCKER_BUILD === "1",
+    skipValidation: process.env.SKIP_ENV_VALIDATION === "1",
     emptyStringAsUndefined: true,
 });

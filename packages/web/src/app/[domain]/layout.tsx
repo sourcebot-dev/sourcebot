@@ -1,5 +1,4 @@
 import { prisma } from "@/prisma";
-import { PageNotFound } from "./components/pageNotFound";
 import { auth } from "@/auth";
 import { getOrgFromDomain } from "@/data/org";
 import { isServiceError } from "@/lib/utils";

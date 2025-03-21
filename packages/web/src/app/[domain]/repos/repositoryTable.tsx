@@ -77,7 +77,7 @@ export const RepositoryTable = ({ isAddNewRepoButtonVisible }: RepositoryTablePr
         }
 
         return columns(domain, isAddNewRepoButtonVisible);
-    }, [reposLoading, domain]);
+    }, [reposLoading, domain, isAddNewRepoButtonVisible]);
 
 
     if (reposError) {

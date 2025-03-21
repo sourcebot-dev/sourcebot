@@ -41,7 +41,7 @@ RUN yarn workspace @sourcebot/error install --frozen-lockfile
 
 # ------ Build Web ------
 FROM node-alpine AS web-builder
-ENV DOCKER_BUILD=1
+ENV SKIP_ENV_VALIDATION=1
 # -----------
 # Global args
 ARG SOURCEBOT_VERSION
@@ -73,12 +73,12 @@ RUN yarn workspace @sourcebot/web install --frozen-lockfile
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN yarn workspace @sourcebot/web build
-ENV DOCKER_BUILD=0
+ENV SKIP_ENV_VALIDATION=0
 # ------------------------------
 
 # ------ Build Backend ------
 FROM node-alpine AS backend-builder
-ENV DOCKER_BUILD=1
+ENV SKIP_ENV_VALIDATION=1
 WORKDIR /app
 
 COPY package.json yarn.lock* ./
@@ -91,7 +91,7 @@ COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 RUN yarn workspace @sourcebot/backend install --frozen-lockfile
 RUN yarn workspace @sourcebot/backend build
-ENV DOCKER_BUILD=0
+ENV SKIP_ENV_VALIDATION=0
 # ------------------------------
         
 # ------ Runner ------
