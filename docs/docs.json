@@ -1,0 +1,95 @@
+{
+    "$schema": "https://mintlify.com/docs.json",
+    "theme": "mint",
+    "name": "Sourcebot",
+    "colors": {
+        "primary": "#851EE7",
+        "light": "#851EE7",
+        "dark": "#851EE7"
+    },
+    "favicon": "/fav.svg",
+    "styling": {
+        "eyebrows": "section"
+    },
+    "navigation": {
+        "anchors": [
+            {
+                "anchor": "Docs",
+                "icon": "book-open",
+                "groups": [
+                    {
+                        "group": "General",
+                        "pages": [
+                            "docs/overview",
+                            "docs/getting-started"
+                        ]
+                    },
+                    {
+                        "group": "Connections",
+                        "pages": [
+                            "docs/connections/overview",
+                            "docs/connections/github",
+                            "docs/connections/gitlab"
+                        ]
+                    },
+                    {
+                        "group": "Access Tokens",
+                        "pages": [
+                            "docs/access-tokens/overview",
+                            "docs/access-tokens/secrets"
+                        ]
+                    }
+                ]
+            },
+            {
+                "anchor": "Self Hosting",
+                "icon": "server",
+                "groups": [
+                    {
+                        "group": "Getting Started",
+                        "pages": [
+                            "self-hosting/overview"
+                        ]
+                    },
+                    {
+                        "group": "Deployment",
+                        "pages": [
+                            "self-hosting/deployment/source"
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "logo": {
+        "light": "/logo/light.png",
+        "dark": "/logo/dark.png"
+    },
+    "navbar": {
+        "links": [
+            {
+                "label": "Support",
+                "href": "mailto:team@sourcebot.dev"
+            }
+        ],
+        "primary": {
+            "type": "button",
+            "label": "Login",
+            "href": "https://sourcebot.dev/login"
+        }
+    },
+    "footer": {
+        "socials": {
+            "github": "https://github.com/sourcebot-dev/sourcebot"
+        }
+    },
+    "integrations": {
+        "posthog": {
+            "apiKey": "phc_DBGufjG0rkj3OEhuTcZ04xfeZB6eDhO7dP8ZCnqH7K7"
+        }
+    },
+    "appearance": {
+        "default": "dark",
+        "strict": true
+    }
+}

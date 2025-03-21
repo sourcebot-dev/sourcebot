@@ -1,0 +1,31 @@
+---
+title: Access Tokens
+sidebarTitle: Access Tokens
+---
+
+In order to search your private repos, you'll need to provide Sourcebot with an access token. Access tokens are provided as [secrets](/docs/access-tokens/secrets), which are encrypted at rest and in transit using [AES-256](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard) 
+
+<AccordionGroup>
+
+    <Accordion title="Create a GitHub Access Token">
+        Navigate to the [personal access token (PAT) creation page](https://github.com/settings/tokens/new) (or the equivelent page if you're
+        self hosting)
+
+        Ensure that the `repo` scope is enabled. This gives the PAT access to fetch your repos
+
+        ![GitHub PAT Scope](/images/github_pat_scopes.png)
+
+        Once you've created your GitHub PAT, add it as a [secret](access-tokens/secrets) in Sourcebot to use it within your connections
+    </Accordion>
+
+    <Accordion title="Create a GitLab Access Token">
+        Navigate to the [personal access token (PAT) creation page](https://gitlab.com/-/user_settings/personal_access_tokens) (or the equivelent page if you're
+        self hosting), and press `Add new token`
+
+        Ensure that the `read_api` scope is enabled. This gives the PAT **read-only** access to fetch your repos
+
+        ![GitLab PAT Scope](/images/gitlab_pat_scopes.png)
+
+        Once you've created your GitLab PAT, add it as a [secret](access-tokens/secrets) in Sourcebot to use it within your connections
+    </Accordion>
+</AccordionGroup>

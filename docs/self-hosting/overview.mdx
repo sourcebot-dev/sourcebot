@@ -1,0 +1,31 @@
+---
+title: Self-host Sourcebot
+sidebarTitle: Overview
+---
+
+<Note>Want to use Sourcebot without self-hosting? Checkout [Sourcebot Cloud](https://sourcebot.dev/login)</Note>
+
+<Warning></Warning>
+
+Sourcebot is open source and can be self-hosted using our official Docker images. To get started, run the following command:
+
+``` bash
+docker run -p 3000:3000 --rm --name sourcebot ghcr.io/sourcebot-dev/sourcebot:staging
+```
+
+Navigate to `localhost:3000` to see your Sourcebot deployment in action. Check out our [Getting Started](/getting-started) guide to learn how to index your repos and use the tool.
+
+Making changes to Sourcebot? Checkout our guide on how to [build from source](/self-hosting/deployment/source).
+
+
+### Telemetry
+
+By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We don't collect or transmit [any information related to your codebase](https://sourcebot.dev/search/search?query=captureEvent%20repo%3Asourcebot%20case%3Ano). In addition, all events are [sanitized](https://github.com/sourcebot-dev/sourcebot/blob/HEAD/packages/web/src/app/posthogProvider.tsx) to ensure that no sensitive details (ex. ip address, query info) leave your machine. 
+
+The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made :)
+
+If you'd like to disable all telemetry, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `1` in the docker run command:
+
+```bash
+docker run -e SOURCEBOT_TELEMETRY_DISABLED=1 /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
+```

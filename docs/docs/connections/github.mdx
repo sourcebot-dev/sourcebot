@@ -1,0 +1,181 @@
+---
+title: GitHub Connection
+sidebarTitle: GitHub
+icon: github
+---
+
+To search repos on GitHub, you'll create a GitHub Connection. Using this connection, you can:
+- Index individual GitHub repos
+- Index all of the repos in a GitHub organization
+- Index all of the repos from a GitHub user
+
+<Note>If you want to index a private repo/org, make sure you provide an [access token](/docs/access-tokens/overview)</Note>
+
+![GitHub Connection](/images/github_connection.png)
+
+# Config Schema
+
+For a detailed description of the schema, check out the schema file (TODO: link)
+
+<Tabs>
+    <Tab title="Orgs">
+        You can provide a list of orgs to index. Sourcebot will fetch all of the visible repos in these orgs.
+        ```json
+        {
+            "type": "github",
+            "orgs": [
+                "sourcebot-dev",
+                "getsentry",
+                "vercel"
+            ]
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Users">
+        You can provide a list of users to index. Sourcebot will fetch all of the visible repos for these users.
+        ```json
+        {
+            "type": "github",
+            "users": [
+                "msukkari",
+                "brendan-kellem",
+                "torvalds"
+            ]
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Repos">
+        You can provide a list of repos to index. These must be provided in the `<owner>/<repo_name>` syntax.
+        ```json
+        {
+            "type": "github",
+            "repos": [
+                "sourcebot-dev/sourcebot",
+                "facebook/react"
+            ]
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Custom URL">
+        If you're self-hosting you're own GitHub instance, you can provide a link to it:
+        ```json
+        {
+            "type": "github",
+            "url": {
+                "https://my.custom.github.com"
+            }
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Token">
+        If you'd like to index private repos, make sure you provide a token. You can do so by referencing the [secret](/docs/access-tokens/secrets) that contains your token.
+        ```json
+        {
+            "type": "github",
+            "token": {
+                "secret": "MY_SECRET"
+            }
+            // .. additional configs ..
+        }
+        ```
+    </Tab>
+</Tabs>
+
+### Filter Options
+
+This connection type supports additional options for filtering which repos are indexed.
+
+<Tabs>
+    <Tab title="Topics">
+        You can provide a list of repository topics to include while fetching the repos. Only repos that match at least one of these topics will be fetched.
+        ```json
+        {
+            "type": "github",
+            "topics": [
+                "docs",
+                "core"
+            ]
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Exclude Forks">
+        If enabled, forked repos will be ignored.
+        ```json
+        {
+            "type": "github",
+            "exclude": {
+                "forks": true
+                // .. additional excludes ..
+            }
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Exclude Archived">
+        If enabled, archived repos will be ignored.
+        ```json
+        {
+            "type": "github",
+            "exclude": {
+                "archived": true 
+                // .. additional excludes ..
+            }
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Exclude Repos">
+        You can provide a list of repos to exclude. These must be provided in the `<owner>/<repo_name>` syntax.
+        ```json
+        {
+            "type": "github",
+            "exclude": {
+                "repos": [
+                    "sourcebot-dev/zoekt",
+                    "torvalds/linux"
+                ]
+                // .. additional excludes ..
+            }
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Exclude Topics">
+        You can provide a list of topics to ignore. Repos that contain any of these topics will be ignored
+        ```json
+        {
+            "type": "github",
+            "exclude": {
+                "topics": [
+                    "ci",
+                    "experimental"
+                ]
+                // .. additional excludes ..
+            }
+            // .. additional configs ..
+        }
+        ```
+    </Tab>
+    <Tab title="Exclude by Size">
+        <Note>The disk usage is calculated by GitHub and may not reflect the actual disk usage when cloned</Note>
+        Exclude repos based on their disk usage. Min/max numbers are in bytes.
+        ```json
+        {
+            "type": "github",
+            "exclude": {
+                "size": {
+                    "min": 1000
+                    "max": 1000000000
+                }
+                // .. additional excludes .. 
+            }
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+</Tabs>
