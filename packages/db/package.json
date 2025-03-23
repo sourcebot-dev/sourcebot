@@ -4,6 +4,9 @@
     "main": "dist/index.js",
     "private": true,
     "scripts": {
+        "build": "yarn prisma:generate && tsc",
+        "postinstall": "yarn build",
+
         "prisma:generate": "prisma generate",
         "prisma:generate:watch": "prisma generate --watch",
         "prisma:migrate:dev": "prisma migrate dev",
@@ -11,14 +14,20 @@
         "prisma:migrate:reset": "prisma migrate reset",
         "prisma:db:push": "prisma db push",
         "prisma:studio": "prisma studio",
-        "build": "yarn prisma:generate && tsc",
-        "postinstall": "yarn build"
+
+        "tool:prisma": "tsx tools/runPrismaCommand.ts",
+        "tool:run-script": "tsx tools/scriptRunner.ts"
     },
     "devDependencies": {
+        "@types/argparse": "^2.0.16",
+        "argparse": "^2.0.1",
         "prisma": "^6.2.1",
+        "tsx": "^4.19.1",
         "typescript": "^5.7.3"
     },
     "dependencies": {
-        "@prisma/client": "6.2.1"
+        "@prisma/client": "6.2.1",
+        "@types/readline-sync": "^1.4.8",
+        "readline-sync": "^1.4.10"
     }
 }
