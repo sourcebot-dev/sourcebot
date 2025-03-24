@@ -12,7 +12,15 @@ const logger = createLogger("GitLab");
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
 export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {
-    const token = config.token ? await getTokenFromConfig(config.token, orgId, db, logger) : env.FALLBACK_GITLAB_TOKEN;
+    const hostname = config.url ?
+        new URL(config.url).hostname :
+        GITLAB_CLOUD_HOSTNAME;
+
+    const token = config.token ?
+        await getTokenFromConfig(config.token, orgId, db, logger) :
+        hostname === GITLAB_CLOUD_HOSTNAME ?
+        env.FALLBACK_GITLAB_CLOUD_TOKEN :
+        undefined;
     
     const api = new Gitlab({
         ...(token ? {
@@ -22,7 +30,6 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
             host: config.url,
         } : {}),
     });
-    const hostname = config.url ? new URL(config.url).hostname : GITLAB_CLOUD_HOSTNAME;
 
     let allRepos: ProjectSchema[] = [];
     let notFound: {

@@ -29,9 +29,9 @@ export const env = createEnv({
 
         POSTHOG_PAPIK: z.string().optional(),
 
-        FALLBACK_GITHUB_TOKEN: z.string().optional(),
-        FALLBACK_GITLAB_TOKEN: z.string().optional(),
-        FALLBACK_GITEA_TOKEN: z.string().optional(),
+        FALLBACK_GITHUB_CLOUD_TOKEN: z.string().optional(),
+        FALLBACK_GITLAB_CLOUD_TOKEN: z.string().optional(),
+        FALLBACK_GITEA_CLOUD_TOKEN: z.string().optional(),
 
         REDIS_URL: z.string().url().default("redis://localhost:6379"),
 
