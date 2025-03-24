@@ -71,7 +71,6 @@ jobs:
           build-args: |
             SOURCEBOT_VERSION=${{ github.ref_name }}
             POSTHOG_PAPIK=${{ secrets.POSTHOG_PAPIK }}
-            SOURCEBOT_ENCRYPTION_KEY=${{ secrets.STAGING_SOURCEBOT_ENCRYPTION_KEY }}
 
       - name: Export digest
         run: |
