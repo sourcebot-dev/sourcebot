@@ -54,10 +54,19 @@ const initSingleTenancy = async () => {
             },
             data: {
                 members: {
-                    create: {
-                        role: OrgRole.MEMBER,
-                        user: {
-                            connect: { id: SINGLE_TENANT_USER_ID }
+                    upsert: {
+                        where: {
+                            orgId_userId: {
+                                orgId: SINGLE_TENANT_ORG_ID,
+                                userId: SINGLE_TENANT_USER_ID,
+                            }
+                        },
+                        update: {},
+                        create: {
+                            role: OrgRole.MEMBER,
+                            user: {
+                                connect: { id: SINGLE_TENANT_USER_ID }
+                            }
                         }
                     }
                 }
