@@ -6,11 +6,21 @@ echo -e "\e[34m[Info] Sourcebot version: $SOURCEBOT_VERSION\e[0m"
 # If we don't have a PostHog key, then we need to disable telemetry.
 if [ -z "$POSTHOG_PAPIK" ]; then
     echo -e "\e[33m[Warning] POSTHOG_PAPIK was not set. Setting SOURCEBOT_TELEMETRY_DISABLED.\e[0m"
-    export SOURCEBOT_TELEMETRY_DISABLED=1
+    export SOURCEBOT_TELEMETRY_DISABLED=true
+fi
+
+if [ -n "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
+    # Validate that SOURCEBOT_TELEMETRY_DISABLED is either "true" or "false"
+    if [ "$SOURCEBOT_TELEMETRY_DISABLED" != "true" ] && [ "$SOURCEBOT_TELEMETRY_DISABLED" != "false" ]; then
+        echo -e "\e[31m[Error] SOURCEBOT_TELEMETRY_DISABLED must be either 'true' or 'false'. Got '$SOURCEBOT_TELEMETRY_DISABLED'\e[0m"
+        exit 1
+    fi
+else
+    export SOURCEBOT_TELEMETRY_DISABLED=false
 fi
 
 # Issue a info message about telemetry
-if [ ! -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
+if [ "$SOURCEBOT_TELEMETRY_DISABLED" = "true" ]; then
     echo -e "\e[34m[Info] Disabling telemetry since SOURCEBOT_TELEMETRY_DISABLED was set.\e[0m"
 fi
 
@@ -59,6 +69,11 @@ if [ -z "$AUTH_SECRET" ]; then
     set +a
 fi
 
+if [ -z "$AUTH_URL" ]; then
+    echo -e "\e[33m[Warning] AUTH_URL is not set.\e[0m"
+    export AUTH_URL="http://localhost:3000"
+fi
+
 # In order to detect if this is the first run, we create a `.installed` file in
 # the cache directory.
 FIRST_RUN_FILE="$DATA_CACHE_DIR/.installedv2"
@@ -69,7 +84,7 @@ if [ ! -f "$FIRST_RUN_FILE" ]; then
     
     # If this is our first run, send a `install` event to PostHog
     # (if telemetry is enabled)
-    if [ -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
+    if [ "$SOURCEBOT_TELEMETRY_DISABLED" = "false" ]; then
         if ! ( curl -L --output /dev/null --silent --fail --header "Content-Type: application/json" -d '{
             "api_key": "'"$POSTHOG_PAPIK"'",
             "event": "install",
@@ -89,7 +104,7 @@ else
     if [ "$PREVIOUS_VERSION" != "$SOURCEBOT_VERSION" ]; then
         echo -e "\e[34m[Info] Upgraded from version $PREVIOUS_VERSION to $SOURCEBOT_VERSION\e[0m"
 
-        if [ -z "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
+        if [ "$SOURCEBOT_TELEMETRY_DISABLED" = "false" ]; then
             if ! ( curl -L --output /dev/null --silent --fail --header "Content-Type: application/json" -d '{
                 "api_key": "'"$POSTHOG_PAPIK"'",
                 "event": "upgrade",

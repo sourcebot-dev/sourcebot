@@ -11,3 +11,5 @@ packages/web/.next
 **/.env.local
 **/.sentryclirc
 **/.env.sentry-build-plugin
+.yarn
+!.yarn/releases

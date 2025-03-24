@@ -28,15 +28,17 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /cmd/ ./cmd/...
 FROM node-alpine AS shared-libs-builder
 WORKDIR /app
 
-COPY package.json yarn.lock* ./
+COPY package.json yarn.lock* .yarnrc.yml ./
+COPY .yarn ./.yarn
 COPY ./packages/db ./packages/db
 COPY ./packages/schemas ./packages/schemas
 COPY ./packages/crypto ./packages/crypto
 COPY ./packages/error ./packages/error
-RUN yarn workspace @sourcebot/db install --frozen-lockfile
-RUN yarn workspace @sourcebot/schemas install --frozen-lockfile
-RUN yarn workspace @sourcebot/crypto install --frozen-lockfile
-RUN yarn workspace @sourcebot/error install --frozen-lockfile
+
+RUN yarn workspace @sourcebot/db install
+RUN yarn workspace @sourcebot/schemas install
+RUN yarn workspace @sourcebot/crypto install
+RUN yarn workspace @sourcebot/error install
 # ------------------------------------
 
 # ------ Build Web ------
@@ -58,7 +60,8 @@ ENV NEXT_PUBLIC_SENTRY_WEBAPP_DSN=$SENTRY_WEBAPP_DSN
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-COPY package.json yarn.lock* ./
+COPY package.json yarn.lock* .yarnrc.yml ./
+COPY .yarn ./.yarn
 COPY ./packages/web ./packages/web
 COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
@@ -67,9 +70,7 @@ COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 
 # Fixes arm64 timeouts
-RUN yarn config set registry https://registry.npmjs.org/
-RUN yarn config set network-timeout 1200000
-RUN yarn workspace @sourcebot/web install --frozen-lockfile
+RUN yarn workspace @sourcebot/web install
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN yarn workspace @sourcebot/web build
@@ -81,7 +82,8 @@ FROM node-alpine AS backend-builder
 ENV SKIP_ENV_VALIDATION=1
 WORKDIR /app
 
-COPY package.json yarn.lock* ./
+COPY package.json yarn.lock* .yarnrc.yml ./
+COPY .yarn ./.yarn
 COPY ./schemas ./schemas
 COPY ./packages/backend ./packages/backend
 COPY --from=shared-libs-builder /app/node_modules ./node_modules
@@ -89,7 +91,7 @@ COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
-RUN yarn workspace @sourcebot/backend install --frozen-lockfile
+RUN yarn workspace @sourcebot/backend install
 RUN yarn workspace @sourcebot/backend build
 ENV SKIP_ENV_VALIDATION=0
 # ------------------------------
@@ -128,6 +130,9 @@ ENV DOMAIN_SUB_PATH=/
 
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
+
+COPY package.json yarn.lock* .yarnrc.yml ./
+COPY .yarn ./.yarn
 
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
