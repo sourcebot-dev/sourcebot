@@ -10,6 +10,7 @@ import * as Sentry from "@sentry/node";
 import { env } from "./env.js";
 
 const logger = createLogger("GitHub");
+const GITHUB_CLOUD_HOSTNAME = "github.com";
 
 export type OctokitRepository = {
     name: string,
@@ -40,7 +41,15 @@ const isHttpError = (error: unknown, status: number): boolean => {
 }
 
 export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal) => {
-    const token = config.token ? await getTokenFromConfig(config.token, orgId, db, logger) : env.FALLBACK_GITHUB_TOKEN;
+    const hostname = config.url ?
+        new URL(config.url).hostname :
+        GITHUB_CLOUD_HOSTNAME;
+
+    const token = config.token ?
+        await getTokenFromConfig(config.token, orgId, db, logger) :
+        hostname === GITHUB_CLOUD_HOSTNAME ?
+        env.FALLBACK_GITHUB_CLOUD_TOKEN :
+        undefined;
 
     const octokit = new Octokit({
         auth: token,

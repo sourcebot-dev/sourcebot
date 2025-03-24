@@ -10,9 +10,18 @@ import * as Sentry from "@sentry/node";
 import { env } from './env.js';
 
 const logger = createLogger('Gitea');
+const GITEA_CLOUD_HOSTNAME = "gitea.com";
 
 export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {
-    const token = config.token ? await getTokenFromConfig(config.token, orgId, db, logger) : env.FALLBACK_GITEA_TOKEN;
+    const hostname = config.url ?
+        new URL(config.url).hostname :
+        GITEA_CLOUD_HOSTNAME;
+
+    const token = config.token ?
+        await getTokenFromConfig(config.token, orgId, db, logger) :
+        hostname === GITEA_CLOUD_HOSTNAME ?
+        env.FALLBACK_GITEA_CLOUD_TOKEN :
+        undefined;
 
     const api = giteaApi(config.url ?? 'https://gitea.com', {
         token: token,
