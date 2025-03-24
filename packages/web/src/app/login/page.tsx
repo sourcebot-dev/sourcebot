@@ -29,8 +29,8 @@ export default async function Login({ searchParams }: LoginProps) {
         });
 
     return (
-        <div className="flex flex-col min-h-screen">
-            <div className="flex-1 flex flex-col items-center p-4 sm:p-12 w-full bg-backgroundSecondary">
+        <div className="flex flex-col min-h-screen bg-backgroundSecondary">
+            <div className="flex-1 flex flex-col items-center p-4 sm:p-12 w-full">
                 <LoginForm
                     callbackUrl={searchParams.callbackUrl}
                     error={searchParams.error}

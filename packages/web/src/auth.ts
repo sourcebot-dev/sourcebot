@@ -15,7 +15,7 @@ import { createTransport } from 'nodemailer';
 import { render } from '@react-email/render';
 import MagicLinkEmail from './emails/magicLinkEmail';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 export const runtime = 'nodejs';
 
@@ -59,9 +59,10 @@ export const getProviders = () => {
                 const token = String(Math.floor(100000 + Math.random() * 900000));
                 return token;
             },
-            sendVerificationRequest: async ({ identifier, provider, token }) => {
+            sendVerificationRequest: async ({ identifier, provider, token, request }) => {
+                const origin = request.headers.get('origin')!;
                 const transport = createTransport(provider.server);
-                const html = await render(MagicLinkEmail({ baseUrl: env.AUTH_URL, token: token }));
+                const html = await render(MagicLinkEmail({ baseUrl: origin, token: token }));
                 const result = await transport.sendMail({
                     to: identifier,
                     from: provider.from,
@@ -179,9 +180,6 @@ const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
     }
 }
 
-const useSecureCookies = env.AUTH_URL?.startsWith("https://") ?? false;
-const hostName = env.AUTH_URL ? new URL(env.AUTH_URL).hostname : "localhost";
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
     secret: env.AUTH_SECRET,
     adapter: PrismaAdapter(prisma),
@@ -212,37 +210,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
             return session;
         },
-    },
-    cookies: {
-        sessionToken: {
-            name: `${useSecureCookies ? '__Secure-' : ''}authjs.session-token`,
-            options: {
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: useSecureCookies,
-                domain: `.${hostName}`
-            }
-        },
-        callbackUrl: {
-            name: `${useSecureCookies ? '__Secure-' : ''}authjs.callback-url`,
-            options: {
-                sameSite: 'lax',
-                path: '/',
-                secure: useSecureCookies,
-                domain: `.${hostName}`
-            }
-        },
-        csrfToken: {
-            name: `${useSecureCookies ? '__Secure-' : ''}authjs.csrf-token`,
-            options: {
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: useSecureCookies,
-                domain: `.${hostName}`
-            }
-        }
     },
     providers: getProviders(),
     pages: {

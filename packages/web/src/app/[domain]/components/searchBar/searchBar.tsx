@@ -252,7 +252,7 @@ export const SearchBar = ({
             />
             <CodeMirror
                 ref={editorRef}
-                className="overflow-x-auto scrollbar-hide w-full"
+                className="overflow-x-auto w-full"
                 placeholder={isHistorySearchEnabled ? "Filter history..." : "Search (/) through repos..."}
                 value={query}
                 onChange={(value) => {

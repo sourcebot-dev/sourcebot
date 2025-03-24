@@ -710,7 +710,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                     const inviteLink = `${origin}/redeem?invite_id=${invite.id}`;
                     const transport = createTransport(env.SMTP_CONNECTION_URL);
                     const html = await render(InviteUserEmail({
-                        baseUrl: env.AUTH_URL,
+                        baseUrl: origin,
                         host: {
                             name: session.user.name ?? undefined,
                             email: session.user.email!,
@@ -1109,7 +1109,7 @@ export const createStripeCheckoutSession = async (domain: string) => sew(() =>
             });
             const numOrgMembers = orgMembers.length;
 
-            const origin = (await headers()).get('origin')
+            const origin = (await headers()).get('origin')!;
             const prices = await stripeClient.prices.list({
                 product: env.STRIPE_PRODUCT_ID,
                 expand: ['data.product'],
@@ -1161,7 +1161,7 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
                 return stripeClientNotInitialized();
             }
 
-            const origin = (await headers()).get('origin')
+            const origin = (await headers()).get('origin')!;
             const portalSession = await stripeClient.billingPortal.sessions.create({
                 customer: org.stripeCustomerId as string,
                 return_url: `${origin}/${domain}/settings/billing`,
