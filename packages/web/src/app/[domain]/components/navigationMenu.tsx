@@ -89,8 +89,12 @@ export const NavigationMenu = async ({
 
                 <div className="flex flex-row items-center gap-2">
                     <ProgressNavIndicator />
-                    <WarningNavIndicator />
-                    <ErrorNavIndicator />
+                    {env.SOURCEBOT_AUTH_ENABLED === 'true' && (
+                        <>
+                            <WarningNavIndicator />
+                            <ErrorNavIndicator />
+                        </>
+                    )}
                     <TrialNavIndicator subscription={subscription} />
                     <form
                         action={async () => {

@@ -105,14 +105,13 @@ const initSingleTenancy = async () => {
                             name: key,
                             orgId: SINGLE_TENANT_ORG_ID,
                         }
-                    },
-                    select: {
-                        config: true,
                     }
                 });
 
                 const currentConnectionConfig = currentConnection ? currentConnection.config as unknown as ConnectionConfig : undefined;
-                const syncNeededOnUpdate = currentConnectionConfig && JSON.stringify(currentConnectionConfig) !== JSON.stringify(newConnectionConfig);
+                const syncNeededOnUpdate =
+                    (currentConnectionConfig && JSON.stringify(currentConnectionConfig) !== JSON.stringify(newConnectionConfig)) ||
+                    (currentConnection?.syncStatus === ConnectionSyncStatus.FAILED);
 
                 const connectionDb = await prisma.connection.upsert({
                     where: {

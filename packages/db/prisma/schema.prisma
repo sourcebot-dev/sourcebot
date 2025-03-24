@@ -45,6 +45,7 @@ model Repo {
   isArchived         Boolean
   metadata           Json
   cloneUrl           String
+  webUrl             String?
   connections        RepoToConnection[]
   imageUrl           String?
   repoIndexingStatus RepoIndexingStatus @default(NEW)

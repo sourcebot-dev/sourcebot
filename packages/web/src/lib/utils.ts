@@ -63,7 +63,7 @@ export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo |
     }
 
     const displayName = repo.repoName.split('/').slice(-2).join('/');
-    return _getCodeHostInfoInternal(repo.codeHostType, displayName, repo.repoCloneUrl);
+    return _getCodeHostInfoInternal(repo.codeHostType, displayName, repo.webUrl ?? repo.repoCloneUrl);
 }
 
 const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: string): CodeHostInfo | undefined => {
@@ -101,6 +101,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: s
                 iconClassName: className,
             }
         }
+        case 'gerrit':
         case 'gitiles': {
             const { src, className } = getCodeHostIcon('gerrit')!;
             return {

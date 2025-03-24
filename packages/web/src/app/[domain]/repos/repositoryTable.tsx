@@ -44,7 +44,7 @@ export const RepositoryTable = ({ isAddNewRepoButtonVisible }: RepositoryTablePr
             connections: repo.linkedConnections,
             repoIndexingStatus: repo.repoIndexingStatus as RepoIndexingStatus,
             lastIndexed: repo.indexedAt?.toISOString() ?? "",
-            url: repo.repoCloneUrl,
+            url: repo.webUrl ?? repo.repoCloneUrl,
         })).sort((a, b) => {
             return new Date(b.lastIndexed).getTime() - new Date(a.lastIndexed).getTime();
         });
