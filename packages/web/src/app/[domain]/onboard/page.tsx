@@ -8,6 +8,7 @@ import { CompleteOnboarding } from "./components/completeOnboarding";
 import { Checkout } from "./components/checkout";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { env } from "@/env.mjs";
 
 interface OnboardProps {
     params: {
@@ -57,6 +58,7 @@ export default async function Onboard({ params, searchParams }: OnboardProps) {
                     />
                     <ConnectCodeHost
                         nextStep={OnboardingSteps.InviteTeam}
+                        securityCardEnabled={env.SECURITY_CARD_ENABLED === 'true'}
                     />
                 </>
             )}

@@ -45,6 +45,9 @@ export const env = createEnv({
         SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
         SOURCEBOT_AUTH_ENABLED: booleanSchema.default('true'),
         CONFIG_PATH: z.string().optional(),
+
+        // Misc UI flags
+        SECURITY_CARD_ENABLED: booleanSchema.default('false'),
     },
     // @NOTE: Make sure you destructure all client variables in the
     // `experimental__runtimeEnv` block below.

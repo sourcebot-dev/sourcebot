@@ -21,9 +21,10 @@ import SecurityCard from "@/app/components/securityCard";
 
 interface ConnectCodeHostProps {
     nextStep: OnboardingSteps;
+    securityCardEnabled: boolean;
 }
 
-export const ConnectCodeHost = ({ nextStep }: ConnectCodeHostProps) => {
+export const ConnectCodeHost = ({ nextStep, securityCardEnabled }: ConnectCodeHostProps) => {
     const [selectedCodeHost, setSelectedCodeHost] = useState<CodeHostType | null>(null);
     const router = useRouter();
     const { data: session } = useSession();
@@ -51,7 +52,7 @@ export const ConnectCodeHost = ({ nextStep }: ConnectCodeHostProps) => {
         return (
             <>
                 <CodeHostSelection onSelect={setSelectedCodeHost} />
-                <SecurityCard />
+                {securityCardEnabled && <SecurityCard />}
             </>
         )
     }
