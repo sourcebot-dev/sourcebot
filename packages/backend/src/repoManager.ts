@@ -130,15 +130,25 @@ export class RepoManager implements IRepoManager {
         const thresholdDate = new Date(Date.now() - this.settings.reindexIntervalMs);
         const repos = await this.db.repo.findMany({
             where: {
-                repoIndexingStatus: {
-                    in: [
-                        RepoIndexingStatus.NEW,
-                        RepoIndexingStatus.INDEXED
-                    ]
-                },
                 OR: [
-                    { indexedAt: null },
-                    { indexedAt: { lt: thresholdDate } },
+                    // "NEW" is really a misnomer here - it just means that the repo needs to be indexed
+                    // immediately. In most cases, this will be because the repo was just created and
+                    // is indeed "new". However, it could also be that a "retry" was requested on a failed
+                    // index. So, we don't want to block on the indexedAt timestamp here.
+                    {
+                        repoIndexingStatus: RepoIndexingStatus.NEW,
+                    },
+                    // When the repo has already been indexed, we only want to reindex if the reindexing
+                    // interval has elapsed (or if the date isn't set for some reason).
+                    {
+                        AND: [
+                            { repoIndexingStatus: RepoIndexingStatus.INDEXED },
+                            { OR: [
+                                { indexedAt: null },
+                                { indexedAt: { lt: thresholdDate } },
+                            ]}
+                        ]
+                    }
                 ]
             },
             include: {
@@ -335,7 +345,15 @@ export class RepoManager implements IRepoManager {
     }
 
     private async onIndexJobFailed(job: Job<RepoIndexingPayload> | undefined, err: unknown) {
-        this.logger.info(`Repo index job failed (id: ${job?.id ?? 'unknown'})`);
+        this.logger.info(`Repo index job failed (id: ${job?.id ?? 'unknown'}) with error: ${err}`);
+        Sentry.captureException(err, {
+            tags: {
+                repoId: job?.data.repo.id,
+                jobId: job?.id,
+                queue: REPO_INDEXING_QUEUE,
+            }
+        });
+
         if (job) {
             this.promClient.activeRepoIndexingJobs.dec();
             this.promClient.repoIndexingFailTotal.inc();
@@ -474,6 +492,13 @@ export class RepoManager implements IRepoManager {
 
     private async onGarbageCollectionJobFailed(job: Job<RepoGarbageCollectionPayload> | undefined, err: unknown) {
         this.logger.info(`Garbage collection job failed (id: ${job?.id ?? 'unknown'}) with error: ${err}`);
+        Sentry.captureException(err, {
+            tags: {
+                repoId: job?.data.repo.id,
+                jobId: job?.id,
+                queue: REPO_GC_QUEUE,
+            }
+        });
 
         if (job) {
             this.promClient.activeRepoGarbageCollectionJobs.dec();
