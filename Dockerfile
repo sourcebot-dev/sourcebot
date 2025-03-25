@@ -115,8 +115,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATA_DIR=/data
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
 ENV DB_DATA_DIR=$DATA_CACHE_DIR/db
+ENV REDIS_DATA_DIR=$DATA_CACHE_DIR/redis
 ENV DB_NAME=sourcebot
-ENV DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
+ENV DATABASE_URL="postgresql://postgres@localhost:5432/$DB_NAME"
 ENV REDIS_URL="redis://localhost:6379"
 ENV SRC_TENANT_ENFORCEMENT_MODE=strict
 

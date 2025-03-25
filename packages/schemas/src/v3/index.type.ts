@@ -28,41 +28,41 @@ export interface SourcebotConfig {
  */
 export interface Settings {
   /**
-   * The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be indexed.
+   * The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be indexed. Defaults to 2MB.
    */
   maxFileSize?: number;
   /**
-   * The maximum number of trigrams per document. Files that exceed this maximum will not be indexed.
+   * The maximum number of trigrams per document. Files that exceed this maximum will not be indexed. Default to 20000.
    */
   maxTrigramCount?: number;
   /**
-   * The interval (in milliseconds) at which the indexer should re-index all repositories.
+   * The interval (in milliseconds) at which the indexer should re-index all repositories. Defaults to 1 hour.
    */
   reindexIntervalMs?: number;
   /**
-   * The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced.
+   * The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced. Defaults to 5 seconds.
    */
   resyncConnectionPollingIntervalMs?: number;
   /**
-   * The polling rate (in milliseconds) at which the db should be checked for repos that should be re-indexed.
+   * The polling rate (in milliseconds) at which the db should be checked for repos that should be re-indexed. Defaults to 5 seconds.
    */
   reindexRepoPollingIntervalMs?: number;
   /**
-   * The multiple of the number of CPUs to use for indexing.
+   * The number of connection sync jobs to run concurrently. Defaults to 8.
    */
-  indexConcurrencyMultiple?: number;
+  maxConnectionSyncJobConcurrency?: number;
   /**
-   * The multiple of the number of CPUs to use for syncing the configuration.
+   * The number of repo indexing jobs to run concurrently. Defaults to 8.
    */
-  configSyncConcurrencyMultiple?: number;
+  maxRepoIndexingJobConcurrency?: number;
   /**
-   * The multiple of the number of CPUs to use for garbage collection.
+   * The number of repo GC jobs to run concurrently. Defaults to 8.
    */
-  gcConcurrencyMultiple?: number;
+  maxRepoGarbageCollectionJobConcurrency?: number;
   /**
    * The grace period (in milliseconds) for garbage collection. Used to prevent deleting shards while they're being loaded.
    */
-  gcGracePeriodMs?: number;
+  repoGarbageCollectionGracePeriodMs?: number;
   /**
    * The timeout (in milliseconds) for a repo indexing to timeout.
    */

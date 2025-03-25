@@ -130,11 +130,13 @@ const initSingleTenancy = async () => {
                     update: {
                         config: newConnectionConfig as unknown as Prisma.InputJsonValue,
                         syncStatus: syncNeededOnUpdate ? ConnectionSyncStatus.SYNC_NEEDED : undefined,
+                        isDeclarative: true,
                     },
                     create: {
                         name: key,
                         connectionType: newConnectionConfig.type,
                         config: newConnectionConfig as unknown as Prisma.InputJsonValue,
+                        isDeclarative: true,
                         org: {
                             connect: {
                                 id: SINGLE_TENANT_ORG_ID,
@@ -159,6 +161,25 @@ const initSingleTenancy = async () => {
                         }
                     })
                 }
+            }
+
+            const deletedConnections = await prisma.connection.findMany({
+                where: {
+                    isDeclarative: true,
+                    name: {
+                        notIn: Object.keys(config.connections),
+                    },
+                    orgId: SINGLE_TENANT_ORG_ID,
+                }
+            });
+
+            for (const connection of deletedConnections) {
+                console.log(`Deleting connection with name '${connection.name}'. Connection ID: ${connection.id}`);
+                await prisma.connection.delete({
+                    where: {
+                        id: connection.id,
+                    }
+                })
             }
         }
     }

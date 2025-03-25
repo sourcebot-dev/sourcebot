@@ -67,6 +67,7 @@ model Connection {
   id                 Int                  @id @default(autoincrement())
   name               String
   config             Json
+  isDeclarative      Boolean              @default(false)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   syncedAt           DateTime?

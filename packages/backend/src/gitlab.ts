@@ -82,6 +82,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                 };
             } catch (e: any) {
                 Sentry.captureException(e);
+                logger.error(`Failed to fetch projects for group ${group}.`, e);
 
                 const status = e?.cause?.response?.status;
                 if (status === 404) {
@@ -118,6 +119,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                 };
             } catch (e: any) {
                 Sentry.captureException(e);
+                logger.error(`Failed to fetch projects for user ${user}.`, e);
 
                 const status = e?.cause?.response?.status;
                 if (status === 404) {
@@ -152,6 +154,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
                 };
             } catch (e: any) {
                 Sentry.captureException(e);
+                logger.error(`Failed to fetch project ${project}.`, e);
 
                 const status = e?.cause?.response?.status;
 

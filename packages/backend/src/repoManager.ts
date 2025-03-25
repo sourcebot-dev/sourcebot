@@ -8,7 +8,6 @@ import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./util
 import { cloneRepository, fetchRepository } from "./git.js";
 import { existsSync, readdirSync, promises } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
-import os from 'os';
 import { PromClient } from './promClient.js';
 import * as Sentry from "@sentry/node";
 
@@ -43,15 +42,13 @@ export class RepoManager implements IRepoManager {
         private promClient: PromClient,
         private ctx: AppContext,
     ) {
-        const numCores = os.cpus().length;
-
         // Repo indexing
         this.indexQueue = new Queue<RepoIndexingPayload>(REPO_INDEXING_QUEUE, {
             connection: redis,
         });
         this.indexWorker = new Worker(REPO_INDEXING_QUEUE, this.runIndexJob.bind(this), {
             connection: redis,
-            concurrency: numCores * this.settings.indexConcurrencyMultiple,
+            concurrency: this.settings.maxRepoIndexingJobConcurrency,
         });
         this.indexWorker.on('completed', this.onIndexJobCompleted.bind(this));
         this.indexWorker.on('failed', this.onIndexJobFailed.bind(this));
@@ -62,7 +59,7 @@ export class RepoManager implements IRepoManager {
         });
         this.gcWorker = new Worker(REPO_GC_QUEUE, this.runGarbageCollectionJob.bind(this), {
             connection: redis,
-            concurrency: numCores * this.settings.gcConcurrencyMultiple,
+            concurrency: this.settings.maxRepoGarbageCollectionJobConcurrency,
         });
         this.gcWorker.on('completed', this.onGarbageCollectionJobCompleted.bind(this));
         this.gcWorker.on('failed', this.onGarbageCollectionJobFailed.bind(this));
@@ -396,7 +393,7 @@ export class RepoManager implements IRepoManager {
         ////////////////////////////////////
 
 
-        const thresholdDate = new Date(Date.now() - this.settings.gcGracePeriodMs);
+        const thresholdDate = new Date(Date.now() - this.settings.repoGarbageCollectionGracePeriodMs);
         const reposWithNoConnections = await this.db.repo.findMany({
             where: {
                 repoIndexingStatus: {

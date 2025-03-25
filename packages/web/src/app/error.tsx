@@ -13,6 +13,7 @@ import { SourcebotLogo } from './components/sourcebotLogo';
 export default function Error({ error, reset }: { error: Error & { digest?: string }, reset: () => void }) {
     useEffect(() => {
         Sentry.captureException(error);
+        console.error(error);
     }, [error]);
 
     const { message, errorCode, statusCode } = useMemo(() => {
