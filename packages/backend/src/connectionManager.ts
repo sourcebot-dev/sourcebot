@@ -1,4 +1,4 @@
-import { Connection, ConnectionSyncStatus, PrismaClient, Prisma } from "@sourcebot/db";
+import { Connection, ConnectionSyncStatus, PrismaClient, Prisma, RepoIndexingStatus } from "@sourcebot/db";
 import { Job, Queue, Worker } from 'bullmq';
 import { Settings } from "./types.js";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
@@ -160,7 +160,7 @@ export class ConnectionManager implements IConnectionManager {
             }
         }
 
-        const { repoData, notFound } = result;
+        let { repoData, notFound } = result;
 
         // Push the information regarding not found users, orgs, and repos to the connection's syncStatusMetadata. Note that 
         // this won't be overwritten even if the connection job fails
@@ -174,7 +174,7 @@ export class ConnectionManager implements IConnectionManager {
         });
             
         // Filter out any duplicates by external_id and external_codeHostUrl.
-        repoData.filter((repo, index, self) => {
+        repoData = repoData.filter((repo, index, self) => {
             return index === self.findIndex(r =>
                 r.external_id === repo.external_id &&
                 r.external_codeHostUrl === repo.external_codeHostUrl
@@ -263,6 +263,14 @@ export class ConnectionManager implements IConnectionManager {
 
     private async onSyncJobFailed(job: Job | undefined, err: unknown) {
         this.logger.info(`Connection sync job failed with error: ${err}`);
+        Sentry.captureException(err, {
+            tags: {
+                repoId: job?.data.repo.id,
+                jobId: job?.id,
+                queue: QUEUE_NAME,
+            }
+        });
+
         if (job) {
             const { connectionId } = job.data;
 

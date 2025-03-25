@@ -38,8 +38,8 @@ export function PostHogProvider({ children, disabled }: PostHogProviderProps) {
                 // @see next.config.mjs for path rewrites to the "/ingest" route.
                 api_host: "/ingest",
                 person_profiles: 'identified_only',
-                capture_pageview: false, // @nocheckin Disable automatic pageview capture if we're not in public demo mode
-                autocapture: false, // Disable automatic event capture
+                capture_pageview: false,
+                autocapture: false,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 sanitize_properties: (properties: Record<string, any>, _event: string) => {
                     // https://posthog.com/docs/libraries/js#config
