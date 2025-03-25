@@ -16,6 +16,7 @@ export const env = createEnv({
         ZOEKT_WEBSERVER_URL: z.string().url().default("http://localhost:6070"),
         SHARD_MAX_MATCH_COUNT: numberSchema.default(10000),
         TOTAL_MAX_MATCH_COUNT: numberSchema.default(100000),
+        ZOEKT_MAX_WALL_TIME_MS: numberSchema.default(10000),
         
         // Auth
         AUTH_SECRET: z.string(),
