@@ -244,6 +244,10 @@ export type PosthogEventMap = {
     wa_demo_card_click: {},
     wa_demo_try_card_pressed: {},
     wa_share_link_created: {},
+    //////////////////////////////////////////////////////////////////
+    $pageview: {
+        $current_url: string,
+    },
 } 
 
 export type PosthogEvent = keyof PosthogEventMap;
