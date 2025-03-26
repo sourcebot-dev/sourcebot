@@ -50,8 +50,10 @@ export const env = createEnv({
         // Misc UI flags
         SECURITY_CARD_ENABLED: booleanSchema.default('false'),
     },
-    // @NOTE: Make sure you destructure all client variables in the
-    // `experimental__runtimeEnv` block below.
+    // @NOTE: Please make sure of the following:
+    // - Make sure you destructure all client variables in
+    //   the `experimental__runtimeEnv` block below.
+    // - Update the Dockerfile to pass these variables as build-args.
     client: {
         // PostHog
         NEXT_PUBLIC_POSTHOG_PAPIK: z.string().optional(),
@@ -59,12 +61,15 @@ export const env = createEnv({
         // Misc
         NEXT_PUBLIC_SOURCEBOT_VERSION: z.string().default('unknown'),
         NEXT_PUBLIC_POLLING_INTERVAL_MS: numberSchema.default(5000),
+
+        NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: z.enum(["dev", "staging", "prod"]).optional(),
     },
     // For Next.js >= 13.4.4, you only need to destructure client variables:
     experimental__runtimeEnv: {
         NEXT_PUBLIC_POSTHOG_PAPIK: process.env.NEXT_PUBLIC_POSTHOG_PAPIK,
         NEXT_PUBLIC_SOURCEBOT_VERSION: process.env.NEXT_PUBLIC_SOURCEBOT_VERSION,
         NEXT_PUBLIC_POLLING_INTERVAL_MS: process.env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: process.env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT,
     },
     skipValidation: process.env.SKIP_ENV_VALIDATION === "1",
     emptyStringAsUndefined: true,
