@@ -10,7 +10,7 @@ export function Footer() {
         <Separator orientation="vertical" className="h-4" />
         <Link href="https://sourcebot.dev/security" className="text-gray-400 text-sm hover:underline">Security</Link>
         <Separator orientation="vertical" className="h-4" />
-        <Link href="mailto:team@sourcebot.dev" className="text-gray-400 text-sm hover:underline">Contact Us</Link>
+        <Link href="https://www.sourcebot.dev/contact" target="_blank" className="text-gray-400 text-sm hover:underline">Contact Us</Link>
     </footer>
     )
 }
