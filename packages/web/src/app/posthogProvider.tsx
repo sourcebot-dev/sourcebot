@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { Suspense, useEffect } from "react"
 import { env } from '@/env.mjs'
 import { useSession } from 'next-auth/react'
+import { captureEvent } from '@/hooks/useCaptureEvent'
 
 // @see: https://posthog.com/docs/libraries/next-js#capturing-pageviews
 function PostHogPageView() {
@@ -20,7 +21,10 @@ function PostHogPageView() {
                 url = url + `?${searchParams.toString()}`
             }
 
-            posthog.capture('$pageview', { '$current_url': url })
+            captureEvent('$pageview', {
+                $current_url: url,
+                domain: window.location.hostname,
+            });
         }
     }, [pathname, searchParams, posthog])
 
@@ -46,6 +50,7 @@ export function PostHogProvider({ children, disabled }: PostHogProviderProps) {
                 autocapture: false,
                 before_send: (cr) => {
                     // Remove all default posthog properties if we are not running in a cloud environment.
+
                     if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined && cr) {
                         cr.properties = Object.fromEntries(
                             Object.entries(cr.properties ?? {}).filter(([key]) => !key.startsWith('$'))
