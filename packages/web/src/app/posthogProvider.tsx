@@ -23,7 +23,6 @@ function PostHogPageView() {
 
             captureEvent('$pageview', {
                 $current_url: url,
-                domain: window.location.hostname,
             });
         }
     }, [pathname, searchParams, posthog])
@@ -48,17 +47,21 @@ export function PostHogProvider({ children, disabled }: PostHogProviderProps) {
                 person_profiles: 'identified_only',
                 capture_pageview: false,
                 autocapture: false,
-                before_send: (cr) => {
-                    // Remove all default posthog properties if we are not running in a cloud environment.
-
-                    if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined && cr) {
-                        cr.properties = Object.fromEntries(
-                            Object.entries(cr.properties ?? {}).filter(([key]) => !key.startsWith('$'))
-                        );
-                    }
-
-                    return cr;
-                },
+                // In self-hosted mode, we don't want to capture the following
+                // default properties.
+                // @see: https://posthog.com/docs/data/events#default-properties
+                property_denylist: env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined ? [
+                    '$current_url',
+                    '$pathname',
+                    '$session_entry_url',
+                    '$session_entry_host',
+                    '$session_entry_pathname',
+                    '$session_entry_referrer',
+                    '$session_entry_referring_domain',
+                    '$referrer',
+                    '$referring_domain',
+                    '$ip',
+                ] : []
             });
         } else {
             console.debug("PostHog telemetry disabled");

@@ -247,7 +247,6 @@ export type PosthogEventMap = {
     //////////////////////////////////////////////////////////////////
     $pageview: {
         $current_url: string,
-        domain: string,
     },
 } 
 
