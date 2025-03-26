@@ -36,6 +36,11 @@ if [ ! -d "$DB_DATA_DIR" ]; then
     su postgres -c "initdb -D $DB_DATA_DIR"
 fi
 
+# Create the redis data directory if it doesn't exist
+if [ ! -d "$REDIS_DATA_DIR" ]; then
+    mkdir -p $REDIS_DATA_DIR
+fi
+
 if [ -z "$SOURCEBOT_ENCRYPTION_KEY" ]; then
     echo -e "\e[33m[Warning] SOURCEBOT_ENCRYPTION_KEY is not set.\e[0m"
 

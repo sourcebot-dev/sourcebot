@@ -257,6 +257,7 @@ const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, o
             };
         } catch (error) {
             Sentry.captureException(error);
+            logger.error(`Failed to fetch repositories for user ${user}.`, error);
 
             if (isHttpError(error, 404)) {
                 logger.error(`User ${user} not found or no access`);
@@ -302,6 +303,7 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
             };
         } catch (error) {
             Sentry.captureException(error);
+            logger.error(`Failed to fetch repositories for org ${org}.`, error);
 
             if (isHttpError(error, 404)) {
                 logger.error(`Organization ${org} not found or no access`);
@@ -349,6 +351,7 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
 
         } catch (error) {
             Sentry.captureException(error);
+            logger.error(`Failed to fetch repository ${repo}.`, error);
 
             if (isHttpError(error, 404)) {
                 logger.error(`Repository ${repo} not found or no access`);

@@ -1,9 +1,8 @@
-import { Connection, ConnectionSyncStatus, PrismaClient, Prisma, RepoIndexingStatus } from "@sourcebot/db";
+import { Connection, ConnectionSyncStatus, PrismaClient, Prisma } from "@sourcebot/db";
 import { Job, Queue, Worker } from 'bullmq';
 import { Settings } from "./types.js";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { createLogger } from "./logger.js";
-import os from 'os';
 import { Redis } from 'ioredis';
 import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig } from "./repoCompileUtils.js";
 import { BackendError, BackendException } from "@sourcebot/error";
@@ -42,10 +41,9 @@ export class ConnectionManager implements IConnectionManager {
         this.queue = new Queue<JobPayload>(QUEUE_NAME, {
             connection: redis,
         });
-        const numCores = os.cpus().length;
         this.worker = new Worker(QUEUE_NAME, this.runSyncJob.bind(this), {
             connection: redis,
-            concurrency: numCores * this.settings.configSyncConcurrencyMultiple,
+            concurrency: this.settings.maxConnectionSyncJobConcurrency,
         });
         this.worker.on('completed', this.onSyncJobCompleted.bind(this));
         this.worker.on('failed', this.onSyncJobFailed.bind(this));
@@ -262,11 +260,11 @@ export class ConnectionManager implements IConnectionManager {
         });
     }
 
-    private async onSyncJobFailed(job: Job | undefined, err: unknown) {
+    private async onSyncJobFailed(job: Job<JobPayload> | undefined, err: unknown) {
         this.logger.info(`Connection sync job failed with error: ${err}`);
         Sentry.captureException(err, {
             tags: {
-                repoId: job?.data.repo.id,
+                connectionid: job?.data.connectionId,
                 jobId: job?.id,
                 queue: QUEUE_NAME,
             }
