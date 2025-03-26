@@ -43,6 +43,8 @@ export const env = createEnv({
 
         DATABASE_URL: z.string().url().default("postgresql://postgres:postgres@localhost:5432/postgres"),
         CONFIG_PATH: z.string().optional(),
+
+        CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(10000),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

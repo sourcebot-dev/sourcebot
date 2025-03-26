@@ -8,6 +8,7 @@ import { Redis } from 'ioredis';
 import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig } from "./repoCompileUtils.js";
 import { BackendError, BackendException } from "@sourcebot/error";
 import { captureEvent } from "./posthog.js";
+import { env } from "./env.js";
 import * as Sentry from "@sentry/node";
 
 interface IConnectionManager {
@@ -220,7 +221,7 @@ export class ConnectionManager implements IConnectionManager {
             }
             const totalUpsertDuration = performance.now() - totalUpsertStart;
             this.logger.info(`Upserted ${repoData.length} repos in ${totalUpsertDuration}ms`);
-        });
+        }, { timeout: env.CONNECTION_MANAGER_UPSERT_TIMEOUT_MS });
 
         return {
             repoCount: repoData.length,
