@@ -4,7 +4,7 @@
     "name": "Sourcebot",
     "colors": {
         "primary": "#851EE7",
-        "light": "#851EE7",
+        "light": "#FFFFFF",
         "dark": "#851EE7"
     },
     "favicon": "/fav.svg",
@@ -48,13 +48,28 @@
                     {
                         "group": "Getting Started",
                         "pages": [
-                            "self-hosting/overview"
+                            "self-hosting/overview",
+                            "self-hosting/configuration"
                         ]
                     },
                     {
                         "group": "Deployment",
                         "pages": [
-                            "self-hosting/deployment/source"
+                            
+                        ]
+                    },
+                    {
+                        "group": "Features",
+                        "pages": [
+                            "self-hosting/features/authentication",
+                            "self-hosting/features/tenancy",
+                            "self-hosting/features/transactional-emails"
+                        ]
+                    },
+                    {
+                        "group": "Security",
+                        "pages": [
+                            "self-hosting/security/telemetry"
                         ]
                     }
                 ]
@@ -74,8 +89,8 @@
         ],
         "primary": {
             "type": "button",
-            "label": "Login",
-            "href": "https://sourcebot.dev/login"
+            "label": "To App",
+            "href": "https://app.sourcebot.dev"
         }
     },
     "footer": {
