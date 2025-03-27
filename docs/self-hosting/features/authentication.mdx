@@ -1,0 +1,60 @@
+---
+title: Authentication
+sidebarTitle: Authentication
+---
+
+Sourcebot has built-in authentication that gates access to your organization to only those that are members. OAuth, email codes, and email / password are supported.
+
+![Login Page](/images/login.png)
+
+
+# Authentication Providers
+
+To enable a authentication provider in Sourcebot, configure the required environment variables for the provider. Under the hood, Sourcebot uses Auth.js which supports [many providers](https://authjs.dev/getting-started/authentication/oauth). Submit a [feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas) if you want us to add support for a specific provider.
+
+
+## Email / Password
+---
+Email / password authentication is enabled by default. It can be **disabled** by setting `AUTH_CREDENTIALS_LOGIN_ENABLED` to `false`.
+
+## Email codes
+---
+Email codes are 6 digit codes sent to a provided email. Email codes are enabled when transactional emails are configured using the following environment variables:
+
+- `SMTP_CONNECTION_URL`
+- `EMAIL_FROM_ADDRESS`
+
+
+See [transactional emails](/self-hosting/features/transactional-emails) for more details.
+
+## GitHub
+---
+
+[Auth.js GitHub Provider Docs](https://authjs.dev/getting-started/providers/github)
+
+**Required environment variables:**
+- `AUTH_GITHUB_CLIENT_ID`
+- `AUTH_GITHUB_CLIENT_SECRET`
+
+## Google
+---
+
+[Auth.js Google Provider Docs](https://next-auth.js.org/providers/google)
+
+**Required environment variables:**
+- `AUTH_GOOGLE_CLIENT_ID`
+- `AUTH_GOOGLE_CLIENT_SECRET`
+
+---
+
+# Disable Authentication
+
+Authentication can be disabled by setting the `SOURCEBOT_AUTH_ENABLED` environment variable to `false`. When authentication is disabled, the following will be enabled/disabled:
+
+- 
+
+
+Note that this feature is only available when `SOURCEBOT_TENANCY_MODE` is set to `single` (it will not work when set to `multi`).
+
+
+# Troubleshooting

@@ -684,7 +684,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
             });
 
             // Send invites to recipients
-            if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM) {
+            if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
                 const origin = (await headers()).get('origin')!;
                 await Promise.all(emails.map(async (email) => {
                     const invite = await prisma.invite.findUnique({
@@ -727,7 +727,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
 
                     const result = await transport.sendMail({
                         to: email,
-                        from: env.EMAIL_FROM,
+                        from: env.EMAIL_FROM_ADDRESS,
                         subject: `Join ${invite.org.name} on Sourcebot`,
                         html,
                         text: `Join ${invite.org.name} on Sourcebot by clicking here: ${inviteLink}`,
