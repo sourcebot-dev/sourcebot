@@ -77,7 +77,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true,annotation-index.org.opencontainers.image.description=Blazingly fast code search
           build-args: |
             SOURCEBOT_VERSION=${{ github.ref_name }}
             POSTHOG_PAPIK=${{ secrets.POSTHOG_PAPIK }}
