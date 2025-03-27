@@ -40,11 +40,11 @@ export interface Settings {
    */
   reindexIntervalMs?: number;
   /**
-   * The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced. Defaults to 5 seconds.
+   * The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced. Defaults to 1 second.
    */
   resyncConnectionPollingIntervalMs?: number;
   /**
-   * The polling rate (in milliseconds) at which the db should be checked for repos that should be re-indexed. Defaults to 5 seconds.
+   * The polling rate (in milliseconds) at which the db should be checked for repos that should be re-indexed. Defaults to 1 second.
    */
   reindexRepoPollingIntervalMs?: number;
   /**
@@ -60,11 +60,11 @@ export interface Settings {
    */
   maxRepoGarbageCollectionJobConcurrency?: number;
   /**
-   * The grace period (in milliseconds) for garbage collection. Used to prevent deleting shards while they're being loaded.
+   * The grace period (in milliseconds) for garbage collection. Used to prevent deleting shards while they're being loaded. Defaults to 10 seconds.
    */
   repoGarbageCollectionGracePeriodMs?: number;
   /**
-   * The timeout (in milliseconds) for a repo indexing to timeout.
+   * The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.
    */
   repoIndexTimeoutMs?: number;
 }

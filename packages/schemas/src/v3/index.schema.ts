@@ -25,12 +25,12 @@ const schema = {
         },
         "resyncConnectionPollingIntervalMs": {
           "type": "number",
-          "description": "The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced. Defaults to 5 seconds.",
+          "description": "The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced. Defaults to 1 second.",
           "minimum": 1
         },
         "reindexRepoPollingIntervalMs": {
           "type": "number",
-          "description": "The polling rate (in milliseconds) at which the db should be checked for repos that should be re-indexed. Defaults to 5 seconds.",
+          "description": "The polling rate (in milliseconds) at which the db should be checked for repos that should be re-indexed. Defaults to 1 second.",
           "minimum": 1
         },
         "maxConnectionSyncJobConcurrency": {
@@ -50,11 +50,13 @@ const schema = {
         },
         "repoGarbageCollectionGracePeriodMs": {
           "type": "number",
-          "description": "The grace period (in milliseconds) for garbage collection. Used to prevent deleting shards while they're being loaded."
+          "description": "The grace period (in milliseconds) for garbage collection. Used to prevent deleting shards while they're being loaded. Defaults to 10 seconds.",
+          "minimum": 1
         },
         "repoIndexTimeoutMs": {
           "type": "number",
-          "description": "The timeout (in milliseconds) for a repo indexing to timeout."
+          "description": "The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.",
+          "minimum": 1
         }
       },
       "additionalProperties": false
