@@ -63,13 +63,20 @@
                         "pages": [
                             "self-hosting/features/authentication",
                             "self-hosting/features/tenancy",
-                            "self-hosting/features/transactional-emails"
+                            "self-hosting/features/transactional-emails",
+                            "self-hosting/features/declarative-config"
                         ]
                     },
                     {
                         "group": "Security",
                         "pages": [
                             "self-hosting/security/telemetry"
+                        ]
+                    },
+                    {
+                        "group": "Upgrade",
+                        "pages": [
+                            "self-hosting/upgrade/how-to-upgrade"
                         ]
                     }
                 ]

@@ -5,10 +5,10 @@ sidebarTitle: Overview
 
 <Note>Want to use Sourcebot without self-hosting? Checkout [Sourcebot Cloud](/docs/overview)</Note>
 
-Sourcebot is open source and can be self-hosted using our official Docker images. To get started, run the following command:
+Sourcebot is open source and can be self-hosted using our official [Docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot). To get started, run the following command:
 
 ``` bash
-docker run -p 3000:3000 --rm --name sourcebot ghcr.io/sourcebot-dev/sourcebot:staging
+docker run -p 3000:3000 --rm --name sourcebot ghcr.io/sourcebot-dev/sourcebot:latest
 ```
 
 Navigate to `localhost:3000` to see your Sourcebot deployment in action. Check out the [README](https://github.com/sourcebot-dev/sourcebot/tree/main) to learn how to configure Sourcebot to index your repos.
