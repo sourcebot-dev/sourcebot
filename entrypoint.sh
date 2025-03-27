@@ -74,11 +74,6 @@ if [ -z "$AUTH_SECRET" ]; then
     set +a
 fi
 
-if [ -z "$AUTH_URL" ]; then
-    echo -e "\e[33m[Warning] AUTH_URL is not set.\e[0m"
-    export AUTH_URL="http://localhost:3000"
-fi
-
 # In order to detect if this is the first run, we create a `.installed` file in
 # the cache directory.
 FIRST_RUN_FILE="$DATA_CACHE_DIR/.installedv2"
