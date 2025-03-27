@@ -1,11 +1,22 @@
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 
-export interface ServiceError {
-    statusCode: StatusCodes;
-    errorCode: ErrorCode;
-    message: string;
+export const serviceErrorSchema = z.object({
+    statusCode: z.number(),
+    errorCode: z.string(),
+    message: z.string(),
+});
+
+export type ServiceError = z.infer<typeof serviceErrorSchema>;
+
+/**
+ * Useful for throwing errors and handling them in error boundaries.
+ */
+export class ServiceErrorException extends Error {
+    constructor(public readonly serviceError: ServiceError) {
+        super(JSON.stringify(serviceError));
+    }
 }
 
 export const serviceErrorResponse = ({ statusCode, errorCode, message }: ServiceError) => {
@@ -67,4 +78,52 @@ export const unexpectedError = (message: string): ServiceError => {
         errorCode: ErrorCode.UNEXPECTED_ERROR,
         message: `Unexpected error: ${message}`,
     };
+}
+
+export const notAuthenticated = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        errorCode: ErrorCode.NOT_AUTHENTICATED,
+        message: "Not authenticated",
+    }
+}
+
+export const notFound = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.NOT_FOUND,
+        errorCode: ErrorCode.NOT_FOUND,
+        message: "Not found",
+    }
+}
+
+export const orgDomainExists = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.CONFLICT,
+        errorCode: ErrorCode.ORG_DOMAIN_ALREADY_EXISTS,
+        message: "Organization domain already exists, please try a different one.",
+    }
+}
+
+export const orgInvalidSubscription = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.BAD_REQUEST,
+        errorCode: ErrorCode.ORG_INVALID_SUBSCRIPTION,
+        message: "Invalid subscription",
+    }
+}
+
+export const secretAlreadyExists = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.CONFLICT,
+        errorCode: ErrorCode.SECRET_ALREADY_EXISTS,
+        message: "Secret already exists",
+    }
+}
+
+export const stripeClientNotInitialized = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+        errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
+        message: "Stripe client is not initialized.",
+    }
 }

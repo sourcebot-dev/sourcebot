@@ -1,0 +1,175 @@
+---
+title: GitLab Connection
+sidebarTitle: GitLab
+icon: gitlab
+---
+
+To search projects on GitLab, you'll create a GitLab Connection. Using this connection, you can:
+- Index individual GitLab projects
+- Index all of the projects in a GitLab group/sub-group 
+- Index all of the projects from a GitLab user
+
+<Note>If you want to index a private project/group, make sure you provide an [access token](/docs/access-tokens/overview)</Note>
+
+![GitLab Connection](/images/gitlab_connection.png)
+
+# Config Schema
+
+For a detailed description of the schema, check out the schema file (TODO: link)
+
+<Tabs>
+    <Tab title="All Visible">
+        <Note>This flag only works if your GitLab instance url is set and not equal to https://gitlab.com. Make sure you provide a [secret](/docs/access-tokens/secrets) containing the necessary access token to fetch your projects.</Note>
+        If you'd like to index all projects visible to your GitLab instance, you can use the `all` flag.
+        ```json
+            {
+                "type": "gitlab",
+                "all": "true",
+                "url": "https://gitlab.aperaturelabs.com" // This is required, and cannot be https://gitlab.com
+                "token": {
+                    "secret": "MY_SECRET_KEY_NAME" // the name of the secret you created in Sourcebot
+                }
+            }
+        ```
+    </Tab>
+    <Tab title="Groups">
+        You can provide a list of groups (and recursive sub-groups) to index. Sourcebot will fetch all of the visible projects in these groups. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`)
+        ```json
+        {
+            "type": "gitlab",
+            "groups": [
+                "gitlab-org/api",
+                "veloren"
+            ]
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Users">
+        You can provide a list of users to index. Sourcebot will fetch all of the visible projects for these users.
+        ```json
+        {
+            "type": "gitlab",
+            "users": [
+                "gnachman"
+            ]
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Projects">
+        You can provide a list of projects to index. These must be provided in the `<owner>/<project_name>` syntax.
+        ```json
+        {
+            "type": "gitlab",
+            "projects": [
+                "inkscape/inkscape",
+                "wireshark/wireshark"
+            ]
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Custom URL">
+        If you're self-hosting you're own GitLab instance, you can provide a link to it:
+        ```json
+        {
+            "type": "gitlab",
+            "url": {
+                "https://gitlab.aperaturelabs.com"
+            }
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Token">
+        If you'd like to index private projects, make sure you provide a token. You can do so by referencing the [secret](/docs/access-tokens/secrets) that contains your token.
+        ```json
+        {
+            "type": "gitlab",
+            "token": {
+                "secret": "MY_SECRET_KEY_NAME"
+            }
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+</Tabs>
+
+### Filter Options
+
+This connection type supports additional options for filtering which projects are indexed.
+
+<Tabs>
+    <Tab title="Topics">
+        You can provide a list of repository topics to include while fetching the projects. Only projects that match at least one of these topics will be fetched.
+        ```json
+        {
+            "type": "gitlab",
+            "topics": [
+                "docs",
+                "core"
+            ]
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Exclude Forks">
+        If enabled, forked projects will be ignored.
+        ```json
+        {
+            "type": "gitlab",
+            "exclude": {
+                "forks": true
+                // .. additional excludes ..
+            }
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Exclude Archived">
+        If enabled, archived projects will be ignored.
+        ```json
+        {
+            "type": "gitlab",
+            "exclude": {
+                "archived": true 
+                // .. additional excludes ..
+            }
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Exclude Projects">
+        You can provide a list of projects to exclude. These must be provided in the `<owner>/<repo_name>` syntax.
+        ```json
+        {
+            "type": "gitlab",
+            "exclude": {
+                "projects": [
+                    "sourcebot-dev/zoekt",
+                    "torvalds/linux"
+                ]
+                // .. additional excludes ..
+            }
+            // .. additional configs .. 
+        }
+        ```
+    </Tab>
+    <Tab title="Exclude Topics">
+        You can provide a list of topics to ignore. Projects that contain any of these topics will be ignored
+        ```json
+        {
+            "type": "gitlab",
+            "exclude": {
+                "topics": [
+                    "ci",
+                    "experimental"
+                ]
+                // .. additional excludes ..
+            }
+            // .. additional configs ..
+        }
+        ```
+    </Tab>
+</Tabs>

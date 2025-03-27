@@ -1,0 +1,21 @@
+{
+    "name": "@sourcebot/schemas",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "build": "yarn generate && tsc",
+        "generate": "tsx tools/generate.ts",
+        "postinstall": "yarn build"
+    },
+    "devDependencies": {
+        "@apidevtools/json-schema-ref-parser": "^11.7.3",
+        "glob": "^11.0.1",
+        "json-schema-to-typescript": "^15.0.4",
+        "tsx": "^4.19.2",
+        "typescript": "^5.7.3"
+    },
+    "exports": {
+        "./v2/*": "./dist/v2/*.js",
+        "./v3/*": "./dist/v3/*.js"
+    }
+}

@@ -1,0 +1,28 @@
+# fly.toml app configuration file generated for sourcebot-staging on 2025-01-29T15:57:18-08:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'sourcebot-staging'
+primary_region = 'sea'
+
+[build]
+  image = 'ghcr.io/sourcebot-dev/sourcebot:staging'
+
+[[mounts]]
+  source = 'sourcebot_staging_data'
+  destination = '/data'
+  initial_size = "60GB"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '4gb'
+  cpu_kind = 'performance'
+  cpus = 2

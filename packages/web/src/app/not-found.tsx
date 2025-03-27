@@ -1,6 +1,6 @@
-import { PageNotFound } from "./components/pageNotFound";
+import { PageNotFound } from "./[domain]/components/pageNotFound";
 
-export default function NotFound() {
+export default function NotFoundPage() {
     return (
         <PageNotFound />
     )

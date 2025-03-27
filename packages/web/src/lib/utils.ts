@@ -1,11 +1,11 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import githubLogo from "../../public/github.svg";
-import gitlabLogo from "../../public/gitlab.svg";
-import giteaLogo from "../../public/gitea.svg";
-import gerritLogo from "../../public/gerrit.svg";
+import githubLogo from "@/public/github.svg";
+import gitlabLogo from "@/public/gitlab.svg";
+import giteaLogo from "@/public/gitea.svg";
+import gerritLogo from "@/public/gerrit.svg";
 import { ServiceError } from "./serviceError";
-import { Repository } from "./types";
+import { Repository, RepositoryQuery } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -31,8 +31,10 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
     return `${path}?${queryString}`;
 }
 
+export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit";
+
 type CodeHostInfo = {
-    type: "github" | "gitlab" | "gitea" | "gerrit";
+    type: CodeHostType;
     displayName: string;
     codeHostName: string;
     repoLink: string;
@@ -52,40 +54,100 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
 
     const url = new URL(repo.URL);
     const displayName = url.pathname.slice(1);
-    switch (webUrlType) {
-        case 'github':
+    return _getCodeHostInfoInternal(webUrlType, displayName, repo.URL);
+}
+
+export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo | undefined => {
+    if (!repo) {
+        return undefined;
+    }
+
+    const displayName = repo.repoName.split('/').slice(-2).join('/');
+    return _getCodeHostInfoInternal(repo.codeHostType, displayName, repo.webUrl ?? repo.repoCloneUrl);
+}
+
+const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: string): CodeHostInfo | undefined => {
+    switch (type) {
+        case 'github': {
+            const { src, className } = getCodeHostIcon('github')!;
             return {
                 type: "github",
                 displayName: displayName,
                 codeHostName: "GitHub",
-                repoLink: repo.URL,
-                icon: githubLogo,
-                iconClassName: "dark:invert",
+                repoLink: cloneUrl,
+                icon: src,
+                iconClassName: className,
             }
-        case 'gitlab':
+        }
+        case 'gitlab': {
+            const { src, className } = getCodeHostIcon('gitlab')!;
             return {
                 type: "gitlab",
                 displayName: displayName,
                 codeHostName: "GitLab",
-                repoLink: repo.URL,
-                icon: gitlabLogo,
+                repoLink: cloneUrl,
+                icon: src,
+                iconClassName: className,
             }
-        case 'gitea':
+        }
+        case 'gitea': {
+            const { src, className } = getCodeHostIcon('gitea')!;
             return {
                 type: "gitea",
                 displayName: displayName,
                 codeHostName: "Gitea",
-                repoLink: repo.URL,
-                icon: giteaLogo,
+                repoLink: cloneUrl,
+                icon: src,
+                iconClassName: className,
             }
-        case 'gitiles':
+        }
+        case 'gerrit':
+        case 'gitiles': {
+            const { src, className } = getCodeHostIcon('gerrit')!;
             return {
                 type: "gerrit",
                 displayName: displayName,
                 codeHostName: "Gerrit",
-                repoLink: repo.URL,
-                icon: gerritLogo,
+                repoLink: cloneUrl,
+                icon: src,
+                iconClassName: className,
             }
+        }
+    }
+}
+
+export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, className?: string } | null => {
+    switch (codeHostType) {
+        case "github":
+            return {
+                src: githubLogo,
+                className: "dark:invert",
+            };
+        case "gitlab":
+            return {
+                src: gitlabLogo,
+            };
+        case "gitea":
+            return {
+                src: giteaLogo,
+            }
+        case "gerrit":
+            return {
+                src: gerritLogo,
+            }
+        default:
+            return null;
+    }
+}
+
+export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean => {
+    switch (codeHostType) {
+        case "github":
+        case "gitlab":
+        case "gitea":
+            return true;
+        case "gerrit":
+            return false;
     }
 }
 
@@ -97,21 +159,6 @@ export const isServiceError = (data: unknown): data is ServiceError => {
         'message' in data;
 }
 
-export const getEnv = (env: string | undefined, defaultValue?: string) => {
-	return env ?? defaultValue;
-}
-
-export const getEnvNumber = (env: string | undefined, defaultValue: number = 0) => {
-	return Number(env) ?? defaultValue;
-}
-
-export const getEnvBoolean = (env: string | undefined, defaultValue: boolean) => {
-	if (!env) {
-		return defaultValue;
-	}
-	return env === 'true' || env === '1';
-}
-
 // From https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
 export const base64Decode = (base64: string): string => {
     const binString = atob(base64);
@@ -121,4 +168,86 @@ export const base64Decode = (base64: string): string => {
 // @see: https://stackoverflow.com/a/65959350/23221295
 export const isDefined = <T>(arg: T | null | undefined): arg is T extends null | undefined ? never : T => {
     return arg !== null && arg !== undefined;
+}
+
+export const getDisplayTime = (date: Date) => {
+    const now = new Date();
+    const minutes = (now.getTime() - date.getTime()) / (1000 * 60);
+    const hours = minutes / 60;
+    const days = hours / 24;
+    const months = days / 30;
+
+    const formatTime = (value: number, unit: 'minute' | 'hour' | 'day' | 'month') => {
+        const roundedValue = Math.floor(value);
+        if (roundedValue < 2) {
+            return `${roundedValue} ${unit} ago`;
+        } else {
+            return `${roundedValue} ${unit}s ago`;
+        }
+    }
+
+    if (minutes < 1) {
+        return 'just now';
+    } else if (minutes < 60) {
+        return formatTime(minutes, 'minute');
+    } else if (hours < 24) {
+        return formatTime(hours, 'hour');
+    } else if (days < 30) {
+        return formatTime(days, 'day');
+    } else {
+        return formatTime(months, 'month');
+    }
+}
+
+export const measureSync = <T>(cb: () => T, measureName: string) => {
+    const startMark = `${measureName}.start`;
+    const endMark = `${measureName}.end`;
+
+    performance.mark(startMark);
+    const data = cb();
+    performance.mark(endMark);
+
+    const measure = performance.measure(measureName, startMark, endMark);
+    const durationMs = measure.duration;
+    console.debug(`[${measureName}] took ${durationMs}ms`);
+
+    return {
+        data,
+        durationMs
+    }
+}
+
+export const measure = async <T>(cb: () => Promise<T>, measureName: string) => {
+    const startMark = `${measureName}.start`;
+    const endMark = `${measureName}.end`;
+
+    performance.mark(startMark);
+    const data = await cb();
+    performance.mark(endMark);
+
+    const measure = performance.measure(measureName, startMark, endMark);
+    const durationMs = measure.duration;
+    console.debug(`[${measureName}] took ${durationMs}ms`);
+
+    return {
+        data,
+        durationMs
+    }
+}
+
+/**
+ * Unwraps a promise that could return a ServiceError, throwing an error if it does.
+ * This is useful for calling server actions in a useQuery hook since it allows us
+ * to take advantage of error handling behavior built into react-query.
+ * 
+ * @param promise The promise to unwrap.
+ * @returns The data from the promise.
+ */
+export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>): Promise<T> => {    
+    const data = await promise;
+    if (isServiceError(data)) {
+        throw new Error(data.message);
+    }
+
+    return data;
 }

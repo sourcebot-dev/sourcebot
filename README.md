@@ -348,7 +348,7 @@ docker run <b>-v /path/to/my-repo:/repos/my-repo</b> /* additional args */ ghcr.
 >[!NOTE]
 > Building from source is only required if you'd like to contribute. The recommended way to use Sourcebot is to use the [pre-built docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot).
 
-1. Install <a href="https://go.dev/doc/install"><img src="https://go.dev/favicon.ico" width="16" height="16"> go</a> and <a href="https://nodejs.org/"><img src="https://nodejs.org/favicon.ico" width="16" height="16"> NodeJS</a>. Note that a NodeJS version of at least `21.1.0` is required.
+1. Install <a href="https://go.dev/doc/install"><img src="https://go.dev/favicon.ico" width="16" height="16"> go</a>, <a href="https://nodejs.org/"><img src="https://nodejs.org/favicon.ico" width="16" height="16"> NodeJS</a>, [redis](https://redis.io/), and [postgres](https://www.postgresql.org/). Note that a NodeJS version of at least `21.1.0` is required.
 
 2. Install [ctags](https://github.com/universal-ctags/ctags) (required by zoekt)
     ```sh
@@ -374,14 +374,20 @@ docker run <b>-v /path/to/my-repo:/repos/my-repo</b> /* additional args */ ghcr.
 
 5. Create a `config.json` file at the repository root. See [Configuring Sourcebot](#configuring-sourcebot) for more information.
 
-6. Start Sourcebot with the command:
+6. Create `.env.local` files in the `packages/backend` and `packages/web` directories with the following contents:
+    ```sh
+    # You can use https://acte.ltd/utils/randomkeygen to generate a key ("Encryption key 256")
+    SOURCEBOT_ENCRYPTION_KEY="32-byte-secret-key"
+    ```
+
+7. Start Sourcebot with the command:
     ```sh
     yarn dev
     ```
 
     A `.sourcebot` directory will be created and zoekt will begin to index the repositories found given `config.json`.
 
-7. Start searching at `http://localhost:3000`.
+8. Start searching at `http://localhost:3000`.
 
 ## Telemetry
 
@@ -404,3 +410,4 @@ NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED=1
 Sourcebot makes use of the following libraries:
 
 - [@vscode/codicons](https://github.com/microsoft/vscode-codicons) under the [CC BY 4.0 License](https://github.com/microsoft/vscode-codicons/blob/main/LICENSE).
+

@@ -1,9 +1,13 @@
 import { Logger } from "winston";
-import { AppContext, Repository } from "./types.js";
+import { AppContext } from "./types.js";
 import path from 'path';
-import micromatch from "micromatch";
+import { PrismaClient, Repo } from "@sourcebot/db";
+import { decrypt } from "@sourcebot/crypto";
+import { Token } from "@sourcebot/schemas/v3/shared.type";
+import { BackendException, BackendError } from "@sourcebot/error";
+import * as Sentry from "@sentry/node";
 
-export const measure = async <T>(cb : () => Promise<T>) => {
+export const measure = async <T>(cb: () => Promise<T>) => {
     const start = Date.now();
     const data = await cb();
     const durationMs = Date.now() - start;
@@ -17,88 +21,48 @@ export const marshalBool = (value?: boolean) => {
     return !!value ? '1' : '0';
 }
 
-export const excludeForkedRepos = <T extends Repository>(repos: T[], logger?: Logger) => {
-    return repos.filter((repo) => {
-        if (!!repo.isFork) {
-            logger?.debug(`Excluding repo ${repo.id}. Reason: \`exclude.forks\` is true`);
-            return false;
-        }
-        return true;
-    });
-}
-
-export const excludeArchivedRepos = <T extends Repository>(repos: T[], logger?: Logger) => {
-    return repos.filter((repo) => {
-        if (!!repo.isArchived) {
-            logger?.debug(`Excluding repo ${repo.id}. Reason: \`exclude.archived\` is true`);
-            return false;
-        }
-        return true;
-    });
-}
-
-
-export const excludeReposByName = <T extends Repository>(repos: T[], excludedRepoNames: string[], logger?: Logger) => {
-    return repos.filter((repo) => {
-        if (micromatch.isMatch(repo.name, excludedRepoNames)) {
-            logger?.debug(`Excluding repo ${repo.id}. Reason: \`exclude.repos\` contains ${repo.name}`);
-            return false;
-        }
-        return true;
-    });
-}
-
-export const includeReposByName = <T extends Repository>(repos: T[], includedRepoNames: string[], logger?: Logger) => {
-    return repos.filter((repo) => {
-        if (micromatch.isMatch(repo.name, includedRepoNames)) {
-            logger?.debug(`Including repo ${repo.id}. Reason: \`repos\` contain ${repo.name}`);
-            return true;
-        }
-        return false;
-    });
-}
-
-export const includeReposByTopic = <T extends Repository>(repos: T[], includedRepoTopics: string[], logger?: Logger) => {
-    return repos.filter((repo) => {
-        const topics = repo.topics ?? [];
-        const matchingTopics = topics.filter((topic) => micromatch.isMatch(topic, includedRepoTopics));
-
-        if (matchingTopics.length > 0) {
-
-            logger?.debug(`Including repo ${repo.id}. Reason: \`topics\` matches the following topics: ${matchingTopics.join(', ')}`);
-            return true;
-        }
-        return false;
-    });
-}
-
-export const excludeReposByTopic = <T extends Repository>(repos: T[], excludedRepoTopics: string[], logger?: Logger) => {
-    return repos.filter((repo) => {
-        const topics = repo.topics ?? [];
-        const matchingTopics = topics.filter((topic) => micromatch.isMatch(topic, excludedRepoTopics));
-
-        if (matchingTopics.length > 0) {
-            logger?.debug(`Excluding repo ${repo.id}. Reason: \`exclude.topics\` matches the following topics: ${matchingTopics.join(', ')}`);
-            return false;
-        }
-        return true;
-    });
-}
-
-export const getTokenFromConfig = (token: string | { env: string }, ctx: AppContext) => {
-    if (typeof token === 'string') {
-        return token;
-    }
-    const tokenValue = process.env[token.env];
-    if (!tokenValue) {
-        throw new Error(`The environment variable '${token.env}' was referenced in ${ctx.configPath}, but was not set.`);
-    }
-    return tokenValue;
-}
-
 export const isRemotePath = (path: string) => {
     return path.startsWith('https://') || path.startsWith('http://');
 }
+
+export const getTokenFromConfig = async (token: Token, orgId: number, db: PrismaClient, logger?: Logger) => {
+    if ('secret' in token) {
+        const secretKey = token.secret;
+        const secret = await db.secret.findUnique({
+            where: {
+                orgId_key: {
+                    key: secretKey,
+                    orgId
+                }
+            }
+        });
+
+        if (!secret) {
+            const e = new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
+                message: `Secret with key ${secretKey} not found for org ${orgId}`,
+            });
+            Sentry.captureException(e);
+            logger?.error(e.metadata.message);
+            throw e;
+        }
+
+        const decryptedToken = decrypt(secret.iv, secret.encryptedValue);
+        return decryptedToken;
+    } else {
+        const envToken = process.env[token.env];
+        if (!envToken) {
+            const e = new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
+                message: `Environment variable ${token.env} not found.`,
+            });
+            Sentry.captureException(e);
+            logger?.error(e.metadata.message);
+            throw e;
+        }
+
+        return envToken;
+    }
+}
+
 
 export const resolvePathRelativeToConfig = (localPath: string, configPath: string) => {
     let absolutePath = localPath;
@@ -128,4 +92,41 @@ export const arraysEqualShallow = <T>(a?: readonly T[], b?: readonly T[]) => {
     }
 
     return true;
+}
+
+export const getRepoPath = (repo: Repo, ctx: AppContext) => {
+    return path.join(ctx.reposPath, repo.id.toString());
+}
+
+export const getShardPrefix = (orgId: number, repoId: number) => {
+    return `${orgId}_${repoId}`;
+}
+
+export const fetchWithRetry = async <T>(
+    fetchFn: () => Promise<T>,
+    identifier: string,
+    logger: Logger,
+    maxAttempts: number = 3
+): Promise<T> => {
+    let attempts = 0;
+
+    while (true) {
+        try {
+            return await fetchFn();
+        } catch (e: any) {
+            Sentry.captureException(e);
+
+            attempts++;
+            if ((e.status === 403 || e.status === 429 || e.status === 443) && attempts < maxAttempts) {
+                const computedWaitTime = 3000 * Math.pow(2, attempts - 1);
+                const resetTime = e.response?.headers?.['x-ratelimit-reset'] ? parseInt(e.response.headers['x-ratelimit-reset']) * 1000 : Date.now() + computedWaitTime;
+                const waitTime = resetTime - Date.now();
+                logger.warn(`Rate limit exceeded for ${identifier}. Waiting ${waitTime}ms before retry ${attempts}/${maxAttempts}...`);
+
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+                continue;
+            }
+            throw e;
+        }
+    }
 }

@@ -1,0 +1,148 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "GithubConnectionConfig",
+    "properties": {
+        "type": {
+            "const": "github",
+            "description": "GitHub Configuration"
+        },
+        "token": {
+            "$ref": "./shared.json#/definitions/Token",
+            "description": "A Personal Access Token (PAT).",
+            "examples": [
+                {
+                    "secret": "SECRET_KEY"
+                }
+            ]
+        },
+        "url": {
+            "type": "string",
+            "format": "url",
+            "default": "https://github.com",
+            "description": "The URL of the GitHub host. Defaults to https://github.com",
+            "examples": [
+                "https://github.com",
+                "https://github.example.com"
+            ],
+            "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+        },
+        "users": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^[\\w.-]+$"
+            },
+            "default": [],
+            "examples": [
+                [
+                    "torvalds",
+                    "DHH"
+                ]
+            ],
+            "description": "List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property."
+        },
+        "orgs": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^[\\w.-]+$"
+            },
+            "default": [],
+            "examples": [
+                [
+                    "my-org-name"
+                ],
+                [
+                    "sourcebot-dev",
+                    "commaai"
+                ]
+            ],
+            "description": "List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property."
+        },
+        "repos": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+            },
+            "default": [],
+            "description": "List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
+        },
+        "topics": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "minItems": 1,
+            "default": [],
+            "description": "List of repository topics to include when syncing. Only repositories that match at least one of the provided `topics` will be synced. If not specified, all repositories will be synced, unless explicitly defined in the `exclude` property. Glob patterns are supported.",
+            "examples": [
+                [
+                    "docs",
+                    "core"
+                ]
+            ]
+        },
+        "exclude": {
+            "type": "object",
+            "properties": {
+                "forks": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Exclude forked repositories from syncing."
+                },
+                "archived": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Exclude archived repositories from syncing."
+                },
+                "repos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "List of individual repositories to exclude from syncing. Glob patterns are supported."
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "List of repository topics to exclude when syncing. Repositories that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.",
+                    "examples": [
+                        [
+                            "tests",
+                            "ci"
+                        ]
+                    ]
+                },
+                "size": {
+                    "type": "object",
+                    "description": "Exclude repositories based on their disk usage. Note: the disk usage is calculated by GitHub and may not reflect the actual disk usage when cloned.",
+                    "properties": {
+                        "min": {
+                            "type": "integer",
+                            "description": "Minimum repository size (in bytes) to sync (inclusive). Repositories less than this size will be excluded from syncing."
+                        },
+                        "max": {
+                            "type": "integer",
+                            "description": "Maximum repository size (in bytes) to sync (inclusive). Repositories greater than this size will be excluded from syncing."
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "revisions": {
+            "$ref": "./shared.json#/definitions/GitRevisions"
+        }
+    },
+    "required": [
+        "type"
+    ],
+    "additionalProperties": false
+}

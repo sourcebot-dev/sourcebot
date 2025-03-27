@@ -1,0 +1,52 @@
+---
+title: Getting started
+---
+
+<Note>This page assumes that you're either using Sourcebot Cloud or have spun up your own Sourcebot
+self-hosted deployment. If you haven't, checkout out the [Overview](/overview) page.</Note>
+
+This page will guide you through configuring Sourcebot with your teams repositories.
+
+### Account Registration
+
+When you visit a Sourcebot deployment for the first time (either Sourcebot Cloud or your own self-hosted deployment), you'll be presented with the following login page. Pick
+your login method of choice to register for a new account.
+
+<Note>Some login options may not be visible if you haven't configured them in your self-hosted deployment</Note>
+![Login Page](/images/login.png)
+
+### Organization Creation
+
+After logging in, you'll be asked to create an organization. You'll invite your team members to this organization later so they can also use Sourcebot.
+
+![Org Creation](/images/org_create.png)
+
+### Connection Creation
+
+After creating an org, we jump right into creating a [connection](/connections/overview). Connections are how you tell Sourcebot which repositories you want to index.
+
+<Note>If you're self-hosting Sourcebot, your source code never leaves your machine</Note>
+![Connect Code Host](/images/connect_code_host.png)
+
+#### Create Connection
+After selecting a code host you want to connect to, you'll be presented with the connection creation page. This page has the following three inputs:
+- Connection name (required): The name of the connection within Sourcebot
+- Secret (optional): An [access token](/access-tokens/overview) that is used to fetch private repos
+- Configuration: The JSON configuration schema that defines the repos/orgs to fetch. 
+
+For a more detailed explenation of connections, check out the [Connections](/connections/overview) page.
+
+The example below shows a connection named `sourcebot-org` that fetches all of the repos for the `sourcebot-dev` GitHub organization, but excludes the `sourcebot-dev/zoekt` repo
+
+<Note>This page won't let you continue with an invalid connection schema. If you're hitting errors, make sure the input you're providing is a valid JSON</Note> 
+![Connection Create Example](/images/create_connection_example.png)
+
+### Search
+
+Once you create your organization's first connection successfully, you'll be redirected to your org's main search page. From here, you can use the search bar to search across all
+of the repos you've indexed
+
+![Onboard Complete](/images/onboard_complete.png)
+
+Congrats, you've successfuly setup Sourcebot! Read on to learn more about the Sourcebot's capabilities
+- Checkout the [Connections](/connections/overview) page to learn how to control which repos Sourcebot fetches

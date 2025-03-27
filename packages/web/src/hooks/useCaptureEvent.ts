@@ -3,7 +3,7 @@
 import { CaptureOptions } from "posthog-js";
 import posthog from "posthog-js";
 import { PosthogEvent, PosthogEventMap } from "../lib/posthogEvents";
-import { NEXT_PUBLIC_SOURCEBOT_VERSION } from "@/lib/environment.client";
+import { env } from "@/env.mjs";
 
 export function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E], options?: CaptureOptions) {
     if(!options) {
@@ -12,7 +12,7 @@ export function captureEvent<E extends PosthogEvent>(event: E, properties: Posth
     options.send_instantly = true;
     posthog.capture(event, {
         ...properties,
-        sourcebot_version: NEXT_PUBLIC_SOURCEBOT_VERSION,
+        sourcebot_version: env.NEXT_PUBLIC_SOURCEBOT_VERSION,
     }, options);
 }
 
