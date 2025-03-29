@@ -79,6 +79,8 @@ export function PostHogProvider({ children, disabled }: PostHogProviderProps) {
                 email: session.user.email,
                 name: session.user.name,
             });
+        } else {
+            console.debug("PostHog identify skipped");
         }
     }, [session]);
 

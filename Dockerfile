@@ -1,15 +1,22 @@
 # ------ Global scope variables ------
+
 # Set of global build arguments.
+# These are considered "public" and will be baked into the image.
+# The convention is to prefix these with `NEXT_PUBLIC_` so that
+# they can be optionally be passed as client-side environment variables
+# in the webapp.
 # @see: https://docs.docker.com/build/building/variables/#scoping
 
-ARG SOURCEBOT_VERSION
+ARG NEXT_PUBLIC_SOURCEBOT_VERSION
 # PAPIK = Project API Key
 # Note that this key does not need to be kept secret, so it's not
 # necessary to use Docker build secrets here.
 # @see: https://posthog.com/tutorials/api-capture-events#authenticating-with-the-project-api-key
-ARG POSTHOG_PAPIK
-ARG SENTRY_ENVIRONMENT
-ARG SOURCEBOT_CLOUD_ENVIRONMENT
+ARG NEXT_PUBLIC_POSTHOG_PAPIK
+ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
+ARG NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
+ARG NEXT_PUBLIC_SENTRY_WEBAPP_DSN
+ARG NEXT_PUBLIC_SENTRY_BACKEND_DSN
 
 FROM node:20-alpine3.19 AS node-alpine
 FROM golang:1.23.4-alpine3.19 AS go-alpine
@@ -46,16 +53,14 @@ RUN yarn workspace @sourcebot/error install
 FROM node-alpine AS web-builder
 ENV SKIP_ENV_VALIDATION=1
 # -----------
-# Global args
-ARG SOURCEBOT_VERSION
-ENV NEXT_PUBLIC_SOURCEBOT_VERSION=$SOURCEBOT_VERSION
-ARG POSTHOG_PAPIK
-ENV NEXT_PUBLIC_POSTHOG_PAPIK=$POSTHOG_PAPIK
-ARG SENTRY_ENVIRONMENT
-ENV NEXT_PUBLIC_SENTRY_ENVIRONMENT=$SENTRY_ENVIRONMENT
-ARG SOURCEBOT_CLOUD_ENVIRONMENT
-ENV NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT=$SOURCEBOT_CLOUD_ENVIRONMENT
-# Local args
+ARG NEXT_PUBLIC_SOURCEBOT_VERSION
+ENV NEXT_PUBLIC_SOURCEBOT_VERSION=$NEXT_PUBLIC_SOURCEBOT_VERSION
+ARG NEXT_PUBLIC_POSTHOG_PAPIK
+ENV NEXT_PUBLIC_POSTHOG_PAPIK=$NEXT_PUBLIC_POSTHOG_PAPIK
+ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
+ENV NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT
+ARG NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
+ENV NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT=$NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
 ARG NEXT_PUBLIC_SENTRY_WEBAPP_DSN
 ENV NEXT_PUBLIC_SENTRY_WEBAPP_DSN=$NEXT_PUBLIC_SENTRY_WEBAPP_DSN
 # -----------
@@ -102,17 +107,19 @@ ENV SKIP_ENV_VALIDATION=0
 # ------ Runner ------
 FROM node-alpine AS runner
 # -----------
-# Global args
-ARG SOURCEBOT_VERSION
-ENV SOURCEBOT_VERSION=$SOURCEBOT_VERSION
-ARG POSTHOG_PAPIK
-ENV POSTHOG_PAPIK=$POSTHOG_PAPIK
-ARG SENTRY_ENVIRONMENT
-ENV SENTRY_ENVIRONMENT=$SENTRY_ENVIRONMENT
-# Local args
+ARG NEXT_PUBLIC_SOURCEBOT_VERSION
+ENV NEXT_PUBLIC_SOURCEBOT_VERSION=$NEXT_PUBLIC_SOURCEBOT_VERSION
+ARG NEXT_PUBLIC_POSTHOG_PAPIK
+ENV NEXT_PUBLIC_POSTHOG_PAPIK=$NEXT_PUBLIC_POSTHOG_PAPIK
+ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
+ENV NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT
+ARG NEXT_PUBLIC_SENTRY_WEBAPP_DSN
+ENV NEXT_PUBLIC_SENTRY_WEBAPP_DSN=$NEXT_PUBLIC_SENTRY_WEBAPP_DSN
+ARG NEXT_PUBLIC_SENTRY_BACKEND_DSN
+ENV NEXT_PUBLIC_SENTRY_BACKEND_DSN=$NEXT_PUBLIC_SENTRY_BACKEND_DSN
 # -----------
 
-RUN echo "Sourcebot Version: $SOURCEBOT_VERSION"
+RUN echo "Sourcebot Version: $NEXT_PUBLIC_SOURCEBOT_VERSION"
 
 WORKDIR /app
 ENV NODE_ENV=production
@@ -172,17 +179,6 @@ COPY --from=shared-libs-builder /app/packages/error ./packages/error
 
 # Configure dependencies
 RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib openssl util-linux unzip
-RUN curl -sL https://sentry.io/get-cli/ | sh
-
-# Install grafana alloy. libc6-compat is required because alloy dynamically links against glibc which doesn't exist in alpine by default
-# @nocheckin: figure out how to handle this for self hosted case (especially the config)
-RUN apk add --no-cache libc6-compat 
-RUN wget https://github.com/grafana/alloy/releases/download/v1.7.0/alloy-linux-amd64.zip \
-    && unzip alloy-linux-amd64.zip \
-    && mv alloy-linux-amd64 /usr/local/bin/alloy \
-    && chmod +x /usr/local/bin/alloy \
-    && rm alloy-linux-amd64.zip
-COPY grafana.alloy .
 
 # Configure the database
 RUN mkdir -p /run/postgresql && \

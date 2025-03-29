@@ -69,9 +69,12 @@ jobs:
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
           build-args: |
-            SOURCEBOT_VERSION=${{ github.ref_name }}
-            POSTHOG_PAPIK=${{ secrets.POSTHOG_PAPIK }}
+            NEXT_PUBLIC_SOURCEBOT_VERSION=${{ github.ref_name }}
+            NEXT_PUBLIC_POSTHOG_PAPIK=${{ secrets.POSTHOG_PAPIK }}
             NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT=staging
+            NEXT_PUBLIC_SENTRY_ENVIRONMENT=staging
+            NEXT_PUBLIC_SENTRY_WEBAPP_DSN=${{ secrets.SENTRY_WEBAPP_DSN }}
+            NEXT_PUBLIC_SENTRY_BACKEND_DSN=${{ secrets.SENTRY_BACKEND_DSN }}
 
       - name: Export digest
         run: |

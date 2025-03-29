@@ -25,9 +25,9 @@ export const env = createEnv({
         SOURCEBOT_LOG_LEVEL: z.enum(["info", "debug", "warn", "error"]).default("info"),
         SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default("false"),
         SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
-        SOURCEBOT_VERSION: z.string().default("unknown"),
+        NEXT_PUBLIC_SOURCEBOT_VERSION: z.string().default("unknown"),
 
-        POSTHOG_PAPIK: z.string().optional(),
+        NEXT_PUBLIC_POSTHOG_PAPIK: z.string().optional(),
 
         FALLBACK_GITHUB_CLOUD_TOKEN: z.string().optional(),
         FALLBACK_GITLAB_CLOUD_TOKEN: z.string().optional(),
@@ -35,8 +35,8 @@ export const env = createEnv({
 
         REDIS_URL: z.string().url().default("redis://localhost:6379"),
 
-        SENTRY_BACKEND_DSN: z.string().optional(),
-        SENTRY_ENVIRONMENT: z.string().optional(),
+        NEXT_PUBLIC_SENTRY_BACKEND_DSN: z.string().optional(),
+        NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().optional(),
 
         LOGTAIL_TOKEN: z.string().optional(),
         LOGTAIL_HOST: z.string().url().optional(),
