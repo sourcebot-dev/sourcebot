@@ -1,0 +1,12 @@
+name: Scratch Workflow
+
+on:
+  push:
+    branches: [bkellam/release_cleanup]
+  workflow_dispatch:
+
+jobs:
+  scratch:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Hello, world!"
