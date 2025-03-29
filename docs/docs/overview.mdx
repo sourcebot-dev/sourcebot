@@ -4,30 +4,23 @@ title: "Overview"
 
 import ConnectionCards from '/snippets/connection-cards.mdx';
 
-Sourcebot is an open-source code search tool ([Github](https://github.com/sourcebot-dev/sourcebot)). It allows teams to index repositories across various different platforms, and provides a powerful interface to search across them.
+Sourcebot is an **[open-source](https://github.com/sourcebot-dev/) code search tool** that is purpose built to search multi-million line codebases in seconds. It integrates with [GitHub](/docs/connections/github), [GitLab](/docs/connections/gitlab), and [other platforms](/docs/connections).
 
-We have a [public demo](https://sourcebot.dev/search) if you'd like to try Sourcebot out before registering.
+## Getting Started
 
 There are two ways to get started using Sourcebot:
-<AccordionGroup>
-  <Accordion title="Sourcebot Cloud">
-  A fully managed version of Sourcebot that is hosted and maintained by the Sourcebot team: https://app.sourcebot.dev/
-  
-  Best for teams who:
-    - Have large indexing requirements (500+ repos)
-    - Don't want to deal with the headache of managing their own Sourcebot deployment
-  </Accordion>
 
-  <Accordion title="Self-host Sourcebot">
-  Run Sourcebot within your own infrastructure. Check out our [self-hosting](/self-hosting/overview) guide to get started (it takes < 1 minute to spin up)
+<CardGroup cols={2}>
+  <Card horizontal title="Self-Host" icon="server" href="/self-hosting/overview">
+    Deploy Sourcebot on your own infrastructure.
+  </Card>
+  <Card horizontal title="Sourcebot Cloud" icon="cloud" href="/docs/getting-started">
+    Use Sourcebot on our managed infrastructure.
+  </Card>
+</CardGroup>
 
-  Best for teams who:
-    - Want to try out Sourcebot without going through security review (everything stays on your machine)
-    - Want full control over their Sourcebot deployment
-  </Accordion>
-</AccordionGroup>
+We also have a [public demo](https://sourcebot.dev/search) if you'd like to try Sourcebot out before registering.
 
-Once you know which Sourcebot deployment you want to use, check out the [Getting Started](/getting-started) page
 # Platform Support
 
 Sourcebot can index repositories across various different code host platforms.

@@ -21,7 +21,8 @@
                         "group": "General",
                         "pages": [
                             "docs/overview",
-                            "docs/getting-started"
+                            "docs/getting-started",
+                            "docs/getting-started-selfhost"
                         ]
                     },
                     {
@@ -38,6 +39,12 @@
                             "docs/access-tokens/overview",
                             "docs/access-tokens/secrets"
                         ]
+                    },
+                    {
+                        "group": "More",
+                        "pages": [
+                            "docs/more/roles-and-permissions"
+                        ]
                     }
                 ]
             },
@@ -53,12 +60,6 @@
                         ]
                     },
                     {
-                        "group": "Deployment",
-                        "pages": [
-                            
-                        ]
-                    },
-                    {
                         "group": "Features",
                         "pages": [
                             "self-hosting/features/authentication",
@@ -70,7 +71,6 @@
                     {
                         "group": "Security",
                         "pages": [
-                            "self-hosting/security/telemetry"
                         ]
                     },
                     {
@@ -80,6 +80,16 @@
                         ]
                     }
                 ]
+            },
+            {
+                "anchor": "Changelog",
+                "href": "https://sourcebot.dev/changelog",
+                "icon": "list-check"
+            },
+            {
+                "anchor": "Support",
+                "href": "https://github.com/sourcebot-dev/sourcebot/discussions/categories/support",
+                "icon": "life-ring"
             }
         ]
     },
@@ -90,8 +100,8 @@
     "navbar": {
         "links": [
             {
-                "label": "Support",
-                "href": "mailto:team@sourcebot.dev"
+                "label": "GitHub",
+                "href": "https://github.com/sourcebot-dev/sourcebot"
             }
         ],
         "primary": {

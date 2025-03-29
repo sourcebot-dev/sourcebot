@@ -3,27 +3,102 @@ title: Self-host Sourcebot
 sidebarTitle: Overview
 ---
 
-<Note>Want to use Sourcebot without self-hosting? Checkout [Sourcebot Cloud](/docs/overview)</Note>
+<Note>Want a managed solution? Checkout [Sourcebot Cloud](/docs/getting-started).</Note>
 
-Sourcebot is open source and can be self-hosted using our official [Docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot). To get started, run the following command:
+Sourcebot is open source and can be self-hosted using our official [Docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot).
 
-``` bash
-docker run -p 3000:3000 --rm --name sourcebot ghcr.io/sourcebot-dev/sourcebot:latest
-```
-
-Navigate to `localhost:3000` to see your Sourcebot deployment in action. Check out the [README](https://github.com/sourcebot-dev/sourcebot/tree/main) to learn how to configure Sourcebot to index your repos.
-
-Making changes to Sourcebot? Checkout our guide on how to [build from source](/self-hosting/deployment/source).
+## Quick Start Guide
 
 
-### Telemetry
+{/*@nocheckin: record a self-hosting quick start guide*/}
+<iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/4KzFe50RQkQ"
+    title="YouTube video player"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen
+></iframe>
+
+<Steps>
+    <Step title="Launch your instance">
+        Sourcebot is packaged as a [single Docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot). Run the following command to start your instance:
+
+        ``` bash
+        docker run -p 3000:3000 --pull=always --rm -v $(pwd):/data --name sourcebot ghcr.io/sourcebot-dev/sourcebot:latest
+        ```
+    
+        <Accordion title="Details">
+            **This command will**:
+                - pulls the latest version of the `sourcebot` docker image.
+                - mounts the working directory to `/data` in the container to allow Sourcebot to persist data (like Postgres & Redis) across restarts. In your local directory, you should see a `.sourcebot` folder created that contains all persistent data.
+                - runs any pending database migrations.
+                - starts up all services, including the webserver exposed on port 3000.
+        </Accordion>
+
+        <Warning>Hit an issue? Please let us know on [GitHub discussions](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) or by [emailing us](mailto:team@sourcebot.dev).</Warning>
+    </Step>
+    <Step title="Login">
+        Sourcebot has built-in authentication that gates access to your deployment.
+
+        ![Login Page](/images/login.png)
+    </Step>
+
+    <Step title="Create an organization">
+        After logging in, you'll be asked to create an organization. You'll invite your team members to this organization later so they can also use Sourcebot.
+
+        ![Org Creation](/images/org_create.png)
+    </Step>
+
+    <Step title="Link your code host">
+        After selecting a code host you want to connect to, you'll be presented with the connection creation page. This page has the following three inputs:
+        - Connection name (required): The name of the connection within Sourcebot
+        - Secret (optional): An [access token](/access-tokens/overview) that is used to fetch private repos
+        - Configuration: The JSON configuration schema that defines the repos/orgs to fetch. 
+
+        For a more detailed explanation of connections, check out the [Connections](/connections/overview) page.
+
+        The example below shows a connection named `sourcebot-org` that fetches all of the repos for the `sourcebot-dev` GitHub organization, but excludes the `sourcebot-dev/zoekt` repo
+
+        <Note>This page won't let you continue with an invalid connection schema. If you're hitting errors, make sure the input you're providing is a valid JSON</Note> 
+        ![Connection Create Example](/images/create_connection_example.png)
+    </Step>
+</Steps>
+
+## Architecture
+
+Sourcebot is shipped as a single docker container that runs a collection of services using [supervisord](https://supervisord.org/):
+
+![architecture diagram](/images/architecture_diagram.png)
+
+{/*TODO: outline the different services, how Sourcebot communicates with code hosts, and the different*/}
+
+Sourcebot consists of the following components:
+- **Web Server** : main Next.js web application serving the Sourcebot UI.
+- **Backend Worker** : Node.js process that incrementally syncs with code hosts (e.g., GitHub, GitLab etc.) and asynchronously indexes configured repositories.
+- **Zoekt** : the [open-source](https://github.com/sourcegraph/zoekt), trigram indexing code search engine that powers Sourcebot under the hood.
+- **Postgres** : transactional database for storing business-logic data.
+- **Redis Job Queue** : fast in-memory store. Used with [BullMQ](https://docs.bullmq.io/) for queuing asynchronous work.
+- **`.sourcebot/` cache** : file-system cache where persistent data is written.
+
+You can use managed Redis / Postgres services that run outside of the Sourcebot container by providing the `REDIS_URL` and `DATABASE_URL` environment variables, respectively. See the [configuration](/self-hosting/configuration) for more configuration options.
+
+## Scalability
+
+One of our design philosophies for Sourcebot is to keep our infrastructure [radically simple](https://www.radicalsimpli.city/) while balancing scalability concerns. Depending on the number of repositories you have indexed and the instance you are running Sourcebot on, you may experience slow search times or other performance degradations. Our recommendation is to vertically scale your instance by increasing the number of CPU cores and memory.
+
+Sourcebot does not support horizontal scaling at this time, but it is on our roadmap. If this is something your team would be interested in, please contact us at [team@sourcebot.dev](mailto:team@sourcebot.dev).
+
+
+## Telemetry
 
 By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We don't collect or transmit [any information related to your codebase](https://sourcebot.dev/search/search?query=captureEvent%20repo%3Asourcebot%20case%3Ano). In addition, all events are [sanitized](https://github.com/sourcebot-dev/sourcebot/blob/HEAD/packages/web/src/app/posthogProvider.tsx) to ensure that no sensitive details (ex. ip address, query info) leave your machine. 
 
-The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made :)
+The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made.
 
-If you'd like to disable all telemetry, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `1` in the docker run command:
+If you'd like to disable all telemetry, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `true`:
 
 ```bash
-docker run -e SOURCEBOT_TELEMETRY_DISABLED=1 /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
+docker run -e SOURCEBOT_TELEMETRY_DISABLED=true /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
 ```

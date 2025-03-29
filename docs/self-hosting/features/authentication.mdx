@@ -3,14 +3,14 @@ title: Authentication
 sidebarTitle: Authentication
 ---
 
-Sourcebot has built-in authentication that gates access to your organization to only those that are members. OAuth, email codes, and email / password are supported.
+Sourcebot has built-in authentication that gates access to your organization. OAuth, email codes, and email / password are supported.
 
 ![Login Page](/images/login.png)
 
 
 # Authentication Providers
 
-To enable a authentication provider in Sourcebot, configure the required environment variables for the provider. Under the hood, Sourcebot uses Auth.js which supports [many providers](https://authjs.dev/getting-started/authentication/oauth). Submit a [feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas) if you want us to add support for a specific provider.
+To enable an authentication provider in Sourcebot, configure the required environment variables for the provider. Under the hood, Sourcebot uses Auth.js which supports [many providers](https://authjs.dev/getting-started/authentication/oauth). Submit a [feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas) if you want us to add support for a specific provider.
 
 
 ## Email / Password
@@ -49,12 +49,16 @@ See [transactional emails](/self-hosting/features/transactional-emails) for more
 
 # Disable Authentication
 
-Authentication can be disabled by setting the `SOURCEBOT_AUTH_ENABLED` environment variable to `false`. When authentication is disabled, the following will be enabled/disabled:
+Authentication can be disabled by setting the `SOURCEBOT_AUTH_ENABLED` environment variable to `false`. When authentication is disabled:
 
-- 
+- Your Sourcebot instance can be accessed without signing in.
+- All organization & team-management features are disabled. (e.g., invites, organization settings, etc.)
+- Connections management via the UI is disabled, and can only be [configured declaratively](/self-hosting/features/declarative-config).
 
 
-Note that this feature is only available when `SOURCEBOT_TENANCY_MODE` is set to `single` (it will not work when set to `multi`).
+Note that this feature is **only** available when `SOURCEBOT_TENANCY_MODE` is set to `single`.
 
 
 # Troubleshooting
+
+- If you experience issues logging in, logging out, or accessing an organization you should have access to, try clearing your cookies & performing a full page refresh (`Cmd/Ctrl + Shift + R` on most browsers).
