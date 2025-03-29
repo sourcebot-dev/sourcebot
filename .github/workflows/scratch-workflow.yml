@@ -8,5 +8,11 @@ on:
 jobs:
   scratch:
     runs-on: ubuntu-latest
+    environment: staging
     steps:
       - run: echo "Hello, world!"
+
+      - name: Print environment variable
+        env:
+          NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT }}
+        run: echo $NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
