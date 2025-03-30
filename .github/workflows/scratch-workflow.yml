@@ -51,7 +51,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sourcebot-dev/sourcebot:${{ github.sha }}
+          tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sourcebot-staging/sourcebot:${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_SOURCEBOT_VERSION=${{ github.ref_name }}
             NEXT_PUBLIC_POSTHOG_PAPIK=${{ vars.NEXT_PUBLIC_POSTHOG_PAPIK }}
