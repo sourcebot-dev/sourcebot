@@ -32,3 +32,12 @@ jobs:
         with:
           project_id: '${{ secrets.GCP_PROJECT_ID }}'
           workload_identity_provider: '${{ secrets.GCP_WIF_PROVIDER }}'
+          
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+        with:
+          project_id: '${{ secrets.GCP_PROJECT_ID }}'
+          
+      - name: 'Docker auth'
+        run: |-
+          gcloud auth configure-docker us-west1-docker.pkg.dev
