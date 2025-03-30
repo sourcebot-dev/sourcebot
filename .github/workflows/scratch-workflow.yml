@@ -75,11 +75,11 @@ jobs:
             docker rm sourcebot || true
 
             # Run the new container
+            # -v /mnt/data:/data \
             docker run -d \
               -p 80:3000 \
               --rm \
               --env-file .env \
-              # -v /mnt/data:/data \
               --name sourcebot \
               ${{ env.IMAGE_PATH }}:${{ github.sha }}
           EOF
