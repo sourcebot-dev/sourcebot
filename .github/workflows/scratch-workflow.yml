@@ -10,9 +10,20 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      - run: echo "Hello, world!"
+      # - name: 'Checkout'
+      #   uses: 'actions/checkout@v3'
+      #   with:
+      #     submodules: "true"
 
       - name: Print environment variable
         env:
           NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT }}
         run: echo $NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
+
+     # @see: https://github.com/google-github-actions/auth?tab=readme-ov-file#direct-wif
+     - name: 'Google auth'
+       id: 'auth'
+       uses: 'google-github-actions/auth@v2'
+       with:
+        project_id: '${{ secrets.GCP_PROJECT_ID }}'
+        workload_identity_provider: '${{ secrets.GCP_WIF_PROVIDER }}'
