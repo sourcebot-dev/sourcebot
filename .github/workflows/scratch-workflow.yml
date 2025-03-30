@@ -1,12 +1,12 @@
 name: Scratch Workflow
 
+env:
+  GAR_LOCATION: us-west1
+
 on:
   push:
     branches: [bkellam/release_cleanup]
   workflow_dispatch:
-
-env:
-  GAR_LOCATION: us-west1
 
 jobs:
   scratch:
@@ -17,16 +17,13 @@ jobs:
       # Requird for OIDC auth with GCP.
       # @see: https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect#adding-permissions-settings
       id-token: 'write'
+    env:
+      IMAGE_PATH: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sourcebot-staging/sourcebot
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@v3'
         with:
           submodules: "true"
-
-      - name: Print environment variable
-        env:
-          NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT }}
-        run: echo $NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
 
       # @see: https://github.com/google-github-actions/auth?tab=readme-ov-file#direct-wif
       - name: 'Google auth'
@@ -51,7 +48,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sourcebot-staging/sourcebot:${{ github.sha }}
+          tags: |
+            ${{ env.IMAGE_PATH }}:${{ github.sha }}
+            ${{ env.IMAGE_PATH }}:latest
           build-args: |
             NEXT_PUBLIC_SOURCEBOT_VERSION=${{ github.ref_name }}
             NEXT_PUBLIC_POSTHOG_PAPIK=${{ vars.NEXT_PUBLIC_POSTHOG_PAPIK }}
