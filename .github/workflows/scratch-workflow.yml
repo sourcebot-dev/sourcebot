@@ -20,10 +20,10 @@ jobs:
           NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT }}
         run: echo $NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
 
-     # @see: https://github.com/google-github-actions/auth?tab=readme-ov-file#direct-wif
-     - name: 'Google auth'
-       id: 'auth'
-       uses: 'google-github-actions/auth@v2'
-       with:
-        project_id: '${{ secrets.GCP_PROJECT_ID }}'
-        workload_identity_provider: '${{ secrets.GCP_WIF_PROVIDER }}'
+      # @see: https://github.com/google-github-actions/auth?tab=readme-ov-file#direct-wif
+      - name: 'Google auth'
+        id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          project_id: '${{ secrets.GCP_PROJECT_ID }}'
+          workload_identity_provider: '${{ secrets.GCP_WIF_PROVIDER }}'
