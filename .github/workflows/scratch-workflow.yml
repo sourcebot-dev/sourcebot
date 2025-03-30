@@ -5,9 +5,6 @@ on:
     branches: [bkellam/release_cleanup]
   workflow_dispatch:
 
-env:
-  GAR_LOCATION: us-west1
-
 jobs:
   scratch:
     runs-on: ubuntu-latest
@@ -18,6 +15,7 @@ jobs:
       # @see: https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect#adding-permissions-settings
       id-token: 'write'
     env:
+      GAR_LOCATION: us-west1
       IMAGE_PATH: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sourcebot-staging/sourcebot
     steps:
       - name: 'Checkout'
