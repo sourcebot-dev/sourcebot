@@ -15,8 +15,7 @@ jobs:
       # @see: https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect#adding-permissions-settings
       id-token: 'write'
     env:
-      GAR_LOCATION: us-west1
-      IMAGE_PATH: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sourcebot-staging/sourcebot
+      IMAGE_PATH: us-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sourcebot-staging/sourcebot
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@v3'
@@ -38,7 +37,7 @@ jobs:
           
       - name: 'Docker auth'
         run: |-
-          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+          gcloud auth configure-docker us-west1-docker.pkg.dev
       
       - name: Build Docker image
         id: build
