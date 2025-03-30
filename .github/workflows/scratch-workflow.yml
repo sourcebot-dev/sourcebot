@@ -9,13 +9,12 @@ jobs:
   scratch:
     runs-on: ubuntu-latest
     environment: staging
+    permissions:
+      contents: 'read'
+      # Requird for OIDC auth with GCP.
+      # @see: https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect#adding-permissions-settings
+      id-token: 'write'
     steps:
-      permissions:
-        contents: 'read'
-        # Requird for OIDC auth with GCP.
-        # @see: https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect#adding-permissions-settings
-        id-token: 'write'
-
       # - name: 'Checkout'
       #   uses: 'actions/checkout@v3'
       #   with:
