@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-
       permissions:
         contents: 'read'
         # Requird for OIDC auth with GCP.
