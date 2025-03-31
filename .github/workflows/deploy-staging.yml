@@ -2,7 +2,8 @@ name: Deploy Staging
 
 on:
   push:
-    branches: [main]
+    # @nocheckin
+    branches: [main, bkellam/release_cleanup]
     tags: ["v*.*.*"]
   workflow_dispatch:
 
