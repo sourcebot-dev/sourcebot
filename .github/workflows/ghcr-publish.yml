@@ -15,6 +15,7 @@ env:
 jobs:
   build:
     runs-on: ${{ matrix.runs-on}}
+    environment: oss
     permissions:
       contents: read
       packages: write
@@ -29,8 +30,6 @@ jobs:
             runs-on: ubuntu-latest
           - platform: linux/arm64
             runs-on: ubuntu-24.04-arm
-
-
 
     steps:
       - name: Prepare
@@ -79,8 +78,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
           build-args: |
-            SOURCEBOT_VERSION=${{ github.ref_name }}
-            POSTHOG_PAPIK=${{ secrets.POSTHOG_PAPIK }}
+            NEXT_PUBLIC_SOURCEBOT_VERSION=${{ github.ref_name }}
+            NEXT_PUBLIC_POSTHOG_PAPIK=${{ vars.NEXT_PUBLIC_POSTHOG_PAPIK }}
             
       - name: Export digest
         run: |

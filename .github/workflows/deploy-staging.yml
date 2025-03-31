@@ -1,0 +1,20 @@
+name: Deploy Staging
+
+on:
+  push:
+    # @todo: remove v3 after merge is complete.
+    branches: [main, v3]
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    uses: ./.github/workflows/_gcp-deploy.yml
+    secrets: inherit
+    permissions:
+      contents: 'read'
+      # Requird for OIDC auth with GCP.
+      # @see: https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect#adding-permissions-settings
+      id-token: 'write'
+    with:
+      environment: staging
