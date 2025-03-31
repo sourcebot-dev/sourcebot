@@ -2,8 +2,9 @@ name: Deploy Staging
 
 on:
   push:
-    # @nocheckin
-    branches: [main, bkellam/release_cleanup]
+    # @todo: remove v3 after merge is complete.
+    # @nocheckin : remove bkellam/release_cleanup
+    branches: [main, v3, bkellam/release_cleanup]
     tags: ["v*.*.*"]
   workflow_dispatch:
 
