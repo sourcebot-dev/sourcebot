@@ -1,12 +1,13 @@
-name: Scratch Workflow
+name: Deploy Staging
 
 on:
   push:
-    branches: [bkellam/release_cleanup]
+    branches: [main]
+    tags: ["v*.*.*"]
   workflow_dispatch:
 
 jobs:
-  scratch:
+  deploy-staging:
     uses: ./.github/workflows/_gcp-deploy.yml
     secrets: inherit
     permissions:
