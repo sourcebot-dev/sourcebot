@@ -479,7 +479,7 @@ export const createConnection = async (name: string, type: string, connectionCon
             return {
                 id: connection.id,
             }
-        })
+        }, OrgRole.OWNER)
     ));
 
 export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
@@ -520,7 +520,7 @@ export const updateConnectionDisplayName = async (connectionId: number, name: st
             return {
                 success: true,
             }
-        })
+        }, OrgRole.OWNER)
     ));
 
 export const updateConnectionConfigAndScheduleSync = async (connectionId: number, config: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
@@ -560,7 +560,7 @@ export const updateConnectionConfigAndScheduleSync = async (connectionId: number
             return {
                 success: true,
             }
-        })
+        }, OrgRole.OWNER)
     ));
 
 export const flagConnectionForSync = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
@@ -623,7 +623,7 @@ export const deleteConnection = async (connectionId: number, domain: string): Pr
             return {
                 success: true,
             }
-        })
+        }, OrgRole.OWNER)
     ));
 
 export const getCurrentUserRole = async (domain: string): Promise<OrgRole | ServiceError> => sew(() =>
@@ -1374,6 +1374,26 @@ export const getSubscriptionData = async (domain: string) => sew(() =>
                 nextBillingDate: subscription.current_period_end!,
                 status: subscription.status,
             }
+        })
+    ));
+
+export const getOrgMembership = async (domain: string) => sew(() =>
+    withAuth(async (session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const membership = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        orgId,
+                        userId: session.user.id,
+                    }
+                }
+            });
+
+            if (!membership) {
+                return notFound();
+            }
+
+            return membership;
         })
     ));
 

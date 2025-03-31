@@ -32,6 +32,7 @@ interface ConnectionListItemProps {
     editedAt: Date;
     syncedAt?: Date;
     failedRepos?: { repoId: number, repoName: string }[];
+    disabled: boolean;
 }
 
 export const ConnectionListItem = ({
@@ -43,6 +44,7 @@ export const ConnectionListItem = ({
     editedAt,
     syncedAt,
     failedRepos,
+    disabled,
 }: ConnectionListItemProps) => {
     const statusDisplayName = useMemo(() => {
         switch (status) {
@@ -111,7 +113,7 @@ export const ConnectionListItem = ({
                         )
                     }
                 </p>
-                <ConnectionListItemManageButton id={id} />
+                <ConnectionListItemManageButton id={id} disabled={disabled} />
             </div>
         </div>
     )

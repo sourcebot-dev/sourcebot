@@ -21,11 +21,13 @@ const formSchema = z.object({
 interface DisplayNameSettingProps {
     connectionId: number;
     name: string;
+    disabled?: boolean;
 }
 
 export const DisplayNameSetting = ({
     connectionId,
     name,
+    disabled,
 }: DisplayNameSettingProps) => {
     const { toast } = useToast();
     const router = useRouter();
@@ -85,7 +87,7 @@ export const DisplayNameSetting = ({
                         <Button
                             size="sm"
                             type="submit"
-                            disabled={isLoading}
+                            disabled={isLoading || disabled}
                         >
                             {isLoading && <Loader2 className="animate-spin mr-2" />}
                             Save

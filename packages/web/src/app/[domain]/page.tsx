@@ -9,6 +9,7 @@ import { Footer } from "@/app/components/footer";
 import { SourcebotLogo } from "../components/sourcebotLogo";
 import { RepositorySnapshot } from "./components/repositorySnapshot";
 import { SyntaxReferenceGuideHint } from "./components/syntaxReferenceGuideHint";
+import { env } from '@/env.mjs';
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -33,7 +34,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                     className="mt-4 w-full max-w-[800px]"
                 />
                 <div className="mt-8">
-                    <RepositorySnapshot />
+                    <RepositorySnapshot authEnabled={env.SOURCEBOT_AUTH_ENABLED === 'true'} />
                 </div>
                 <div className="flex flex-col items-center w-fit gap-6">
                     <Separator className="mt-5" />
