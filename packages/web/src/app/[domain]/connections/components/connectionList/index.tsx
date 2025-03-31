@@ -137,7 +137,7 @@ export const ConnectionList = ({
             ) : (
                 <div className="flex flex-col items-center justify-center border rounded-md p-4 h-full">
                     <InfoCircledIcon className="w-7 h-7" />
-                <h2 className="mt-2 font-medium">No connections</h2>
+                    <h2 className="mt-2 font-medium">No connections</h2>
                 </div>
             )}
         </div>
