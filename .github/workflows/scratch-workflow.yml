@@ -15,7 +15,7 @@ jobs:
       # @see: https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect#adding-permissions-settings
       id-token: 'write'
     env:
-      IMAGE_PATH: us-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sourcebot-staging/sourcebot
+      IMAGE_PATH: us-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sourcebot/sourcebot-${{ vars.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT }}
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@v3'
