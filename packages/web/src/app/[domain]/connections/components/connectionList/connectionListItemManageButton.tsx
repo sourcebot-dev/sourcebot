@@ -7,12 +7,12 @@ import { useDomain } from "@/hooks/useDomain";
 
 interface ConnectionListItemManageButtonProps {
     id: string;
-    isManageable: boolean;
+    disabled: boolean;
 }
 
 export const ConnectionListItemManageButton = ({
     id,
-    isManageable,
+    disabled,
 }: ConnectionListItemManageButtonProps) => {
     const captureEvent = useCaptureEvent()
     const router = useRouter();
@@ -23,9 +23,9 @@ export const ConnectionListItemManageButton = ({
             variant="outline"
             size={"sm"}
             className="ml-4"
-            disabled={!isManageable}
+            disabled={disabled}
             onClick={() => {
-                if (isManageable) {
+                if (!disabled) {
                     captureEvent('wa_connection_list_item_manage_pressed', {})
                     router.push(`/${domain}/connections/${id}`)
                 }
