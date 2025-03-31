@@ -131,7 +131,7 @@ export const ConnectionList = ({
                                 repoId: repo.id,
                                 repoName: repo.name,
                             }))}
-                            isManageable={role === OrgRole.OWNER}
+                            disabled={role !== OrgRole.OWNER}
                         />
                     ))
             ) : (
