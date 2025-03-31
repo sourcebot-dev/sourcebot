@@ -134,7 +134,7 @@ RUN yarn workspace @sourcebot/backend build
 RUN if [ -n "$SENTRY_SMUAT" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_BACKEND_PROJECT" ] && [ -n "$NEXT_PUBLIC_SOURCEBOT_VERSION" ]; then \
     apk add --no-cache curl; \
     curl -sL https://sentry.io/get-cli/ | sh; \
-    sentry-cli auth --token $SENTRY_SMUAT; \
+    sentry-cli login --auth-token $SENTRY_SMUAT; \
     sentry-cli sourcemaps inject --org $SENTRY_ORG --project $SENTRY_BACKEND_PROJECT --release $NEXT_PUBLIC_SOURCEBOT_VERSION ./packages/backend/dist; \
     sentry-cli sourcemaps upload --org $SENTRY_ORG --project $SENTRY_BACKEND_PROJECT ./packages/backend/dist; \
 fi
