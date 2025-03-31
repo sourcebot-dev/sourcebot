@@ -63,6 +63,18 @@ ARG NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
 ENV NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT=$NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
 ARG NEXT_PUBLIC_SENTRY_WEBAPP_DSN
 ENV NEXT_PUBLIC_SENTRY_WEBAPP_DSN=$NEXT_PUBLIC_SENTRY_WEBAPP_DSN
+
+# To upload source maps to Sentry, we need to set the following build-time args.
+# It's important that we don't set these for oss builds, otherwise the Sentry
+# auth token will be exposed.
+# @see : next.config.mjs
+ARG SENTRY_ORG
+ENV SENTRY_ORG=$SENTRY_ORG
+ARG SENTRY_WEBAPP_PROJECT
+ENV SENTRY_WEBAPP_PROJECT=$SENTRY_WEBAPP_PROJECT
+# SMUAT = Source Map Upload Auth Token
+ARG SENTRY_SMUAT
+ENV SENTRY_SMUAT=$SENTRY_SMUAT
 # -----------
 
 RUN apk add --no-cache libc6-compat
@@ -88,6 +100,22 @@ ENV SKIP_ENV_VALIDATION=0
 # ------ Build Backend ------
 FROM node-alpine AS backend-builder
 ENV SKIP_ENV_VALIDATION=1
+# -----------
+ARG NEXT_PUBLIC_SOURCEBOT_VERSION
+ENV NEXT_PUBLIC_SOURCEBOT_VERSION=$NEXT_PUBLIC_SOURCEBOT_VERSION
+
+# To upload source maps to Sentry, we need to set the following build-time args.
+# It's important that we don't set these for oss builds, otherwise the Sentry
+# auth token will be exposed.
+ARG SENTRY_ORG
+ENV SENTRY_ORG=$SENTRY_ORG
+ARG SENTRY_BACKEND_PROJECT
+ENV SENTRY_BACKEND_PROJECT=$SENTRY_BACKEND_PROJECT
+# SMUAT = Source Map Upload Auth Token
+ARG SENTRY_SMUAT
+ENV SENTRY_SMUAT=$SENTRY_SMUAT
+# -----------
+
 WORKDIR /app
 
 COPY package.json yarn.lock* .yarnrc.yml ./
@@ -101,6 +129,15 @@ COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 RUN yarn workspace @sourcebot/backend install
 RUN yarn workspace @sourcebot/backend build
+
+# Upload source maps to Sentry if we have the necessary build-time args.
+RUN if [ -n "$SENTRY_SMUAT" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_BACKEND_PROJECT" ] && [ -n "$NEXT_PUBLIC_SOURCEBOT_VERSION" ]; then \
+    curl -sL https://sentry.io/get-cli/ | sh; \
+    sentry-cli auth --token $SENTRY_SMUAT; \
+    sentry-cli sourcemaps inject --org $SENTRY_ORG --project $SENTRY_BACKEND_PROJECT --release $NEXT_PUBLIC_SOURCEBOT_VERSION ./packages/backend/dist; \
+    sentry-cli sourcemaps upload --org $SENTRY_ORG --project $SENTRY_BACKEND_PROJECT ./packages/backend/dist; \
+fi
+
 ENV SKIP_ENV_VALIDATION=0
 # ------------------------------
         
