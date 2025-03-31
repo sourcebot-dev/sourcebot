@@ -54,9 +54,7 @@ jobs:
             ${{ env.IMAGE_PATH }}:${{ github.sha }}
             ${{ env.IMAGE_PATH }}:latest
           build-args: |
-            # @nocheckin : revert back to ref_name
-            NEXT_PUBLIC_SOURCEBOT_VERSION=${{ github.commit_sha }}
-            # NEXT_PUBLIC_SOURCEBOT_VERSION=${{ github.ref_name }}
+            NEXT_PUBLIC_SOURCEBOT_VERSION=${{ github.ref_name }}
             NEXT_PUBLIC_POSTHOG_PAPIK=${{ vars.NEXT_PUBLIC_POSTHOG_PAPIK }}
             NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT=${{ vars.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT }}
             NEXT_PUBLIC_SENTRY_ENVIRONMENT=${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
