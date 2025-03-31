@@ -33,6 +33,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react"
 import { env } from "@/env.mjs";
 import posthog from "posthog-js";
+import { useDomain } from "@/hooks/useDomain";
 
 interface SettingsDropdownProps {
     menuButtonClassName?: string;
@@ -45,6 +46,7 @@ export const SettingsDropdown = ({
     const { theme: _theme, setTheme } = useTheme();
     const [keymapType, setKeymapType] = useKeymapType();
     const { data: session, update } = useSession();
+    const domain = useDomain();
 
     const theme = useMemo(() => {
         return _theme ?? "light";
@@ -146,6 +148,12 @@ export const SettingsDropdown = ({
                             </DropdownMenuSubContent>
                         </DropdownMenuPortal>
                     </DropdownMenuSub>
+                    <DropdownMenuItem asChild>
+                        <a href={`/${domain}/settings`}>
+                            <Settings className="h-4 w-4 mr-2" />
+                            <span>Settings</span>
+                        </a>
+                    </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <div className="px-2 py-1 text-sm text-muted-foreground">

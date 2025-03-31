@@ -44,7 +44,7 @@ export const env = createEnv({
         DATABASE_URL: z.string().url(),
 
         SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
-        SOURCEBOT_AUTH_ENABLED: booleanSchema.default('true'),
+        SOURCEBOT_AUTH_ENABLED: booleanSchema.default('false'),
         CONFIG_PATH: z.string().optional(),
 
         // Misc UI flags
