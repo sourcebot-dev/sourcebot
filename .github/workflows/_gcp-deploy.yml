@@ -1,0 +1,89 @@
+name: GCP Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        description: 'The environment to deploy to'
+        type: string
+
+jobs:
+  gcp-deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: 'read'
+      # Requird for OIDC auth with GCP.
+      # @see: https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect#adding-permissions-settings
+      id-token: 'write'
+    env:
+      IMAGE_PATH: us-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sourcebot/sourcebot-${{ vars.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT }}
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@v3'
+        with:
+          submodules: "true"
+
+      # @see: https://github.com/google-github-actions/auth?tab=readme-ov-file#direct-wif
+      - name: 'Google auth'
+        id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          project_id: '${{ secrets.GCP_PROJECT_ID }}'
+          workload_identity_provider: '${{ secrets.GCP_WIF_PROVIDER }}'
+          
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+        with:
+          project_id: '${{ secrets.GCP_PROJECT_ID }}'
+          
+      - name: 'Docker auth'
+        run: |-
+          gcloud auth configure-docker us-west1-docker.pkg.dev
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.GCP_SSH_PRIVATE_KEY }}" > ~/.ssh/private.key
+          chmod 600 ~/.ssh/private.key
+          echo "${{ secrets.GCP_SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+      
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_PATH }}:${{ github.sha }}
+            ${{ env.IMAGE_PATH }}:latest
+          build-args: |
+            NEXT_PUBLIC_SOURCEBOT_VERSION=${{ github.ref_name }}
+            NEXT_PUBLIC_POSTHOG_PAPIK=${{ vars.NEXT_PUBLIC_POSTHOG_PAPIK }}
+            NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT=${{ vars.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT }}
+            NEXT_PUBLIC_SENTRY_ENVIRONMENT=${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+            NEXT_PUBLIC_SENTRY_WEBAPP_DSN=${{ vars.NEXT_PUBLIC_SENTRY_WEBAPP_DSN }}
+            NEXT_PUBLIC_SENTRY_BACKEND_DSN=${{ vars.NEXT_PUBLIC_SENTRY_BACKEND_DSN }}
+
+      
+      - name: Deploy to GCP
+        run: |
+          ssh -i ~/.ssh/private.key ${{ secrets.GCP_USERNAME }}@${{ secrets.GCP_HOST }} << 'EOF'
+            # First pull the new image
+            docker pull ${{ env.IMAGE_PATH }}:${{ github.sha }}
+
+            # Stop and remove any existing container
+            docker stop -t 60 sourcebot || true
+            docker rm sourcebot || true
+
+            # Run the new container
+            # @nocheckin: add this back
+            # -v /mnt/data:/data \
+            docker run -d \
+              -p 80:3000 \
+              --rm \
+              --env-file .env \
+              --name sourcebot \
+              ${{ env.IMAGE_PATH }}:${{ github.sha }}
+          EOF
