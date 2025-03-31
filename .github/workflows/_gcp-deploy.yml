@@ -12,8 +12,6 @@ jobs:
   gcp-deploy:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
-    permissions:
-      contents: 'read'
     env:
       IMAGE_PATH: us-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/sourcebot/sourcebot-${{ vars.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT }}
     steps:

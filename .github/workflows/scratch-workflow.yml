@@ -8,6 +8,7 @@ on:
 jobs:
   scratch:
     uses: ./.github/workflows/_gcp-deploy.yml
+    secrets: inherit
     permissions:
       contents: 'read'
       # Requird for OIDC auth with GCP.
