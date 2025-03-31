@@ -23,10 +23,12 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface DeleteConnectionSettingProps {
     connectionId: number;
+    disabled?: boolean;
 }
 
 export const DeleteConnectionSetting = ({
     connectionId,
+    disabled,
 }: DeleteConnectionSettingProps) => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -73,7 +75,7 @@ export const DeleteConnectionSetting = ({
                         <Button
                             variant="destructive"
                             className="mt-4"
-                            disabled={isLoading}
+                            disabled={isLoading || disabled}
                         >
                             {isLoading && <Loader2 className="animate-spin mr-2" />}
                             Delete

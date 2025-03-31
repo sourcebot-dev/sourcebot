@@ -17,7 +17,10 @@ import { DisplayNameSetting } from "./components/displayNameSetting"
 import { RepoList } from "./components/repoList"
 import { getConnectionByDomain } from "@/data/connection"
 import { Overview } from "./components/overview"
-
+import { getOrgMembership } from "@/actions"
+import { isServiceError } from "@/lib/utils"
+import { notFound } from "next/navigation"
+import { OrgRole } from "@sourcebot/db"
 interface ConnectionManagementPageProps {
     params: {
         domain: string
@@ -34,6 +37,12 @@ export default async function ConnectionManagementPage({ params, searchParams }:
         return <NotFound className="flex w-full h-full items-center justify-center" message="Connection not found" />
     }
 
+    const membership = await getOrgMembership(params.domain);
+    if (isServiceError(membership)) {
+        return notFound();
+    }
+
+    const isOwner = membership.role === OrgRole.OWNER;
     const currentTab = searchParams.tab || "overview";
 
     return (
@@ -81,13 +90,14 @@ export default async function ConnectionManagementPage({ params, searchParams }:
                 value="settings"
                 className="flex flex-col gap-6"
             >
-                <DisplayNameSetting connectionId={connection.id} name={connection.name} />
+                <DisplayNameSetting connectionId={connection.id} name={connection.name} disabled={!isOwner} />
                 <ConfigSetting
                     connectionId={connection.id}
                     type={connection.connectionType}
                     config={JSON.stringify(connection.config, null, 2)}
+                    disabled={!isOwner}
                 />
-                <DeleteConnectionSetting connectionId={connection.id} />
+                <DeleteConnectionSetting connectionId={connection.id} disabled={!isOwner} />
             </TabsContent>
         </Tabs>
     )

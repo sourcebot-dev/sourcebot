@@ -32,6 +32,7 @@ interface ConfigSettingProps {
     connectionId: number;
     config: string;
     type: string;
+    disabled?: boolean;
 }
 
 export const ConfigSetting = (props: ConfigSettingProps) => {
@@ -83,10 +84,12 @@ function ConfigSettingInternal<T>({
     quickActions,
     schema,
     type,
+    disabled,
 }: ConfigSettingProps & {
     quickActions?: QuickAction<T>[],
     schema: Schema,
     type: CodeHostType,
+    disabled?: boolean,
 }) {
     const { toast } = useToast();
     const router = useRouter();
@@ -237,7 +240,7 @@ function ConfigSettingInternal<T>({
                         <Button
                             size="sm"
                             type="submit"
-                            disabled={isLoading}
+                            disabled={isLoading || disabled}
                         >
                             {isLoading && <Loader2 className="animate-spin mr-2" />}
                             {isLoading ? 'Syncing...' : 'Save'}

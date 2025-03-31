@@ -12,8 +12,11 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useMemo, useState } from "react";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { OrgRole } from "@sourcebot/db";
+
 interface ConnectionListProps {
     className?: string;
+    role: OrgRole;
 }
 
 const convertSyncStatus = (status: ConnectionSyncStatus) => {
@@ -35,6 +38,7 @@ const convertSyncStatus = (status: ConnectionSyncStatus) => {
 
 export const ConnectionList = ({
     className,
+    role,
 }: ConnectionListProps) => {
     const domain = useDomain();
     const [searchQuery, setSearchQuery] = useState("");
@@ -127,12 +131,13 @@ export const ConnectionList = ({
                                 repoId: repo.id,
                                 repoName: repo.name,
                             }))}
+                            isManageable={role === OrgRole.OWNER}
                         />
                     ))
             ) : (
                 <div className="flex flex-col items-center justify-center border rounded-md p-4 h-full">
                     <InfoCircledIcon className="w-7 h-7" />
-                    <h2 className="mt-2 font-medium">No connections</h2>
+                <h2 className="mt-2 font-medium">No connections</h2>
                 </div>
             )}
         </div>
