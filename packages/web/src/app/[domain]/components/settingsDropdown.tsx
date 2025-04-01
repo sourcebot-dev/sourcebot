@@ -37,12 +37,12 @@ import { useDomain } from "@/hooks/useDomain";
 
 interface SettingsDropdownProps {
     menuButtonClassName?: string;
-    isAuthEnabled: boolean;
+    displaySettingsOption: boolean;
 }
 
 export const SettingsDropdown = ({
     menuButtonClassName,
-    isAuthEnabled,
+    displaySettingsOption,
 }: SettingsDropdownProps) => {
 
     const { theme: _theme, setTheme } = useTheme();
@@ -150,7 +150,7 @@ export const SettingsDropdown = ({
                             </DropdownMenuSubContent>
                         </DropdownMenuPortal>
                     </DropdownMenuSub>
-                    {isAuthEnabled && (
+                    {displaySettingsOption && (
                         <DropdownMenuItem asChild>
                             <a href={`/${domain}/settings`}>
                                 <Settings className="h-4 w-4 mr-2" />
