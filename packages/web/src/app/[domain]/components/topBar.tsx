@@ -4,6 +4,7 @@ import logoLight from "@/public/sb_logo_light.png";
 import logoDark from "@/public/sb_logo_dark.png";
 import { SearchBar } from "./searchBar";
 import { SettingsDropdown } from "./settingsDropdown";
+import { env } from "@/env.mjs";
 
 interface TopBarProps {
     defaultSearchQuery?: string;
@@ -40,6 +41,7 @@ export const TopBar = ({
             </div>
             <SettingsDropdown
                 menuButtonClassName="w-8 h-8"
+                isAuthEnabled={env.SOURCEBOT_AUTH_ENABLED === 'true'}
             />
         </div>
     )
