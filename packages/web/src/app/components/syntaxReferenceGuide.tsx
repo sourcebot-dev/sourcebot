@@ -14,7 +14,7 @@ import clsx from "clsx";
 import Link from "next/link";
 import { useCallback, useRef } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useSyntaxGuide } from "../syntaxGuideProvider";
+import { useSyntaxGuide } from "../[domain]/components/syntaxGuideProvider";
 
 const LINGUIST_LINK = "https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml";
 const CTAGS_LINK = "https://ctags.io/";

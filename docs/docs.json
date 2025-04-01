@@ -1,0 +1,123 @@
+{
+    "$schema": "https://mintlify.com/docs.json",
+    "theme": "mint",
+    "name": "Sourcebot",
+    "colors": {
+        "primary": "#851EE7",
+        "light": "#FFFFFF",
+        "dark": "#851EE7"
+    },
+    "favicon": "/fav.svg",
+    "styling": {
+        "eyebrows": "section"
+    },
+    "navigation": {
+        "anchors": [
+            {
+                "anchor": "Docs",
+                "icon": "book-open",
+                "groups": [
+                    {
+                        "group": "General",
+                        "pages": [
+                            "docs/overview",
+                            "docs/getting-started",
+                            "docs/getting-started-selfhost"
+                        ]
+                    },
+                    {
+                        "group": "Connecting your code",
+                        "pages": [
+                            "docs/connections/overview",
+                            "docs/connections/github",
+                            "docs/connections/gitlab",
+                            "docs/connections/gitea",
+                            "docs/connections/gerrit",
+                            "docs/connections/request-new"
+                        ]
+                    },
+                    {
+                        "group": "More",
+                        "pages": [
+                            "docs/more/roles-and-permissions"
+                        ]
+                    }
+                ]
+            },
+            {
+                "anchor": "Self Hosting",
+                "icon": "server",
+                "groups": [
+                    {
+                        "group": "Getting Started",
+                        "pages": [
+                            "self-hosting/overview",
+                            "self-hosting/configuration"
+                        ]
+                    },
+                    {
+                        "group": "More",
+                        "pages": [
+                            "self-hosting/more/authentication",
+                            "self-hosting/more/tenancy",
+                            "self-hosting/more/transactional-emails",
+                            "self-hosting/more/declarative-config"
+                        ]
+                    },
+                    {
+                        "group": "Security",
+                        "pages": [
+                        ]
+                    },
+                    {
+                        "group": "Upgrade",
+                        "pages": [
+                            "self-hosting/upgrade/v2-to-v3-guide"
+                        ]
+                    }
+                ]
+            },
+            {
+                "anchor": "Changelog",
+                "href": "https://sourcebot.dev/changelog",
+                "icon": "list-check"
+            },
+            {
+                "anchor": "Support",
+                "href": "https://github.com/sourcebot-dev/sourcebot/discussions/categories/support",
+                "icon": "life-ring"
+            }
+        ]
+    },
+    "logo": {
+        "light": "/logo/light.png",
+        "dark": "/logo/dark.png"
+    },
+    "navbar": {
+        "links": [
+            {
+                "label": "GitHub",
+                "href": "https://github.com/sourcebot-dev/sourcebot"
+            }
+        ],
+        "primary": {
+            "type": "button",
+            "label": "Sourcebot Cloud",
+            "href": "https://app.sourcebot.dev"
+        }
+    },
+    "footer": {
+        "socials": {
+            "github": "https://github.com/sourcebot-dev/sourcebot"
+        }
+    },
+    "integrations": {
+        "posthog": {
+            "apiKey": "phc_DBGufjG0rkj3OEhuTcZ04xfeZB6eDhO7dP8ZCnqH7K7"
+        }
+    },
+    "appearance": {
+        "default": "dark",
+        "strict": true
+    }
+}

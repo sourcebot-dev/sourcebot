@@ -1,0 +1,224 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RepoIndexingStatus {
+  NEW
+  IN_INDEX_QUEUE
+  INDEXING
+  INDEXED
+  FAILED
+  IN_GC_QUEUE
+  GARBAGE_COLLECTING
+  GARBAGE_COLLECTION_FAILED
+}
+
+enum ConnectionSyncStatus {
+  SYNC_NEEDED
+  IN_SYNC_QUEUE
+  SYNCING
+  SYNCED
+  SYNCED_WITH_WARNINGS
+  FAILED
+}
+
+enum StripeSubscriptionStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Repo {
+  id                 Int                @id @default(autoincrement())
+  name               String
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  indexedAt          DateTime?
+  isFork             Boolean
+  isArchived         Boolean
+  metadata           Json
+  cloneUrl           String
+  webUrl             String?
+  connections        RepoToConnection[]
+  imageUrl           String?
+  repoIndexingStatus RepoIndexingStatus @default(NEW)
+
+  // The id of the repo in the external service
+  external_id           String
+  // The type of the external service (e.g., github, gitlab, etc.)
+  external_codeHostType String
+  // The base url of the external service (e.g., https://github.com)
+  external_codeHostUrl  String
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@unique([external_id, external_codeHostUrl, orgId])
+}
+
+model Connection {
+  id                 Int                  @id @default(autoincrement())
+  name               String
+  config             Json
+  isDeclarative      Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  syncedAt           DateTime?
+  repos              RepoToConnection[]
+  syncStatus         ConnectionSyncStatus @default(SYNC_NEEDED)
+  syncStatusMetadata Json?
+
+  // The type of connection (e.g., github, gitlab, etc.)
+  connectionType String
+
+  // The organization that owns this connection
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@unique([name, orgId])
+}
+
+model RepoToConnection {
+  addedAt DateTime @default(now())
+
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connectionId Int
+
+  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
+
+  @@id([connectionId, repoId])
+}
+
+model Invite {
+  /// The globally unique invite id
+  id String @id @default(cuid())
+
+  /// Time of invite creation
+  createdAt DateTime @default(now())
+
+  /// The email of the recipient of the invite
+  recipientEmail String
+
+  /// The user that created the invite
+  host       User   @relation(fields: [hostUserId], references: [id], onDelete: Cascade)
+  hostUserId String
+
+  /// The organization the invite is for
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@unique([recipientEmail, orgId])
+}
+
+model Org {
+  id          Int          @id @default(autoincrement())
+  name        String
+  domain      String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  members     UserToOrg[]
+  connections Connection[]
+  repos       Repo[]
+  secrets     Secret[]
+  isOnboarded Boolean      @default(false)
+  imageUrl    String?
+
+  stripeCustomerId         String?
+  stripeSubscriptionStatus StripeSubscriptionStatus?
+  stripeLastUpdatedAt      DateTime?
+
+  /// List of pending invites to this organization
+  invites Invite[]
+}
+
+enum OrgRole {
+  OWNER
+  MEMBER
+}
+
+model UserToOrg {
+  joinedAt DateTime @default(now())
+
+  /// The linked organization
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  /// The linked user
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  role OrgRole @default(MEMBER)
+
+  @@id([orgId, userId])
+}
+
+model Secret {
+  orgId          Int
+  key            String
+  encryptedValue String
+  iv             String
+
+  createdAt DateTime @default(now())
+
+  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@id([orgId, key])
+}
+
+// @see : https://authjs.dev/concepts/database-models#user
+model User {
+  id             String      @id @default(cuid())
+  name           String?
+  email          String?     @unique
+  hashedPassword String?
+  emailVerified  DateTime?
+  image          String?
+  accounts       Account[]
+  orgs           UserToOrg[]
+
+  /// List of pending invites that the user has created
+  invites Invite[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// @see : https://authjs.dev/concepts/database-models#account
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+// @see : https://authjs.dev/concepts/database-models#verificationtoken
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

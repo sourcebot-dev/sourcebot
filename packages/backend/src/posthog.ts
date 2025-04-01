@@ -1,29 +1,29 @@
 import { PostHog } from 'posthog-node';
 import { PosthogEvent, PosthogEventMap } from './posthogEvents.js';
-import { POSTHOG_HOST, POSTHOG_PAPIK, SOURCEBOT_INSTALL_ID, SOURCEBOT_TELEMETRY_DISABLED, SOURCEBOT_VERSION } from './environment.js';
+import { env } from './env.js';
 
 let posthog: PostHog | undefined = undefined;
 
-if (POSTHOG_PAPIK) {
+if (env.NEXT_PUBLIC_POSTHOG_PAPIK) {
     posthog = new PostHog(
-        POSTHOG_PAPIK,
+        env.NEXT_PUBLIC_POSTHOG_PAPIK,
         {
-            host: POSTHOG_HOST,
+            host: "https://us.i.posthog.com",
         }
     );
 }
 
 export function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E]) {
-    if (SOURCEBOT_TELEMETRY_DISABLED) {
+    if (env.SOURCEBOT_TELEMETRY_DISABLED === 'true') {
         return;
     }
 
     posthog?.capture({
-        distinctId: SOURCEBOT_INSTALL_ID,
+        distinctId: env.SOURCEBOT_INSTALL_ID,
         event: event,
         properties: {
             ...properties,
-            sourcebot_version: SOURCEBOT_VERSION,
+            sourcebot_version: env.NEXT_PUBLIC_SOURCEBOT_VERSION,
         },
     });
 }

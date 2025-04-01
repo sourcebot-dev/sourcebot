@@ -1,9 +1,9 @@
 
-CMDS := zoekt ui
+CMDS := zoekt yarn
 
 ALL: $(CMDS)
 
-ui:
+yarn:
 	yarn install
 
 zoekt:
@@ -20,6 +20,19 @@ clean:
 		packages/web/.next \
 		packages/backend/dist \
 		packages/backend/node_modules \
+		packages/db/node_modules \
+		packages/db/dist \
+		packages/schemas/node_modules \
+		packages/schemas/dist \
+		packages/crypto/node_modules \
+		packages/crypto/dist \
+		packages/error/node_modules \
+		packages/error/dist \
 		.sourcebot
+
+soft-reset:
+	rm -rf .sourcebot
+	redis-cli FLUSHALL
+
 
 .PHONY: bin

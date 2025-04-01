@@ -1,32 +1,4 @@
-interface BaseRepository {
-    vcs: 'git' | 'local';
-    id: string;
-    name: string;
-    path: string;
-    isStale: boolean;
-    lastIndexedDate?: string;
-    isFork?: boolean;
-    isArchived?: boolean;
-    codeHost?: string;
-    topics?: string[];
-    sizeInBytes?: number;
-}
-
-export interface GitRepository extends BaseRepository {
-    vcs: 'git';
-    cloneUrl: string;
-    branches: string[];
-    tags: string[];
-    gitConfigMetadata?: Record<string, string>;
-}
-
-export interface LocalRepository extends BaseRepository {
-    vcs: 'local';
-    excludedPaths: string[];
-    watch: boolean;
-}
-
-export type Repository = GitRepository | LocalRepository;
+import { Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
 
 export type AppContext = {
     /**
@@ -40,34 +12,37 @@ export type AppContext = {
     indexPath: string;
 
     cachePath: string;
-
-    configPath: string;
 }
 
-export type Settings = {
+export type Settings = Required<SettingsSchema>;
+
+/**
+ * Structure of the `metadata` field in the `Repo` table.
+ */
+export type RepoMetadata = {
     /**
-     * The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be indexed.
+     * A set of key-value pairs that will be used as git config
+     * variables when cloning the repo.
+     * @see: https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--configcodecodeltkeygtltvaluegtcode
      */
-    maxFileSize: number;
+    gitConfig?: Record<string, string>;
+
     /**
-     * The maximum number of trigrams per document. Files that exceed this maximum will not be indexed.
+     * A list of branches to index. Glob patterns are supported.
      */
-    maxTrigramCount: number;
+    branches?: string[];
+
     /**
-     * Automatically delete stale repositories from the index. Defaults to true.
+     * A list of tags to index. Glob patterns are supported.
      */
-    autoDeleteStaleRepos: boolean;
-    /**
-     * The interval (in milliseconds) at which the indexer should re-index all repositories.
-     */
-    reindexInterval: number;
-    /**
-     * The interval (in milliseconds) at which the configuration file should be re-synced.
-     */
-    resyncInterval: number;
+    tags?: string[];
 }
+
 
 // @see : https://stackoverflow.com/a/61132308
 export type DeepPartial<T> = T extends object ? {
     [P in keyof T]?: DeepPartial<T[P]>;
 } : T;
+
+// @see: https://stackoverflow.com/a/69328045
+export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };

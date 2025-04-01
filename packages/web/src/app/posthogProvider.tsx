@@ -1,43 +1,96 @@
 'use client'
-import { NEXT_PUBLIC_POSTHOG_PAPIK, NEXT_PUBLIC_POSTHOG_UI_HOST, NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED, NEXT_PUBLIC_PUBLIC_SEARCH_DEMO } from '@/lib/environment.client'
 import posthog from 'posthog-js'
-import { PostHogProvider } from 'posthog-js/react'
-import { resolveServerPath } from './api/(client)/client'
-import { isDefined } from '@/lib/utils'
+import { usePostHog } from 'posthog-js/react'
+import { PostHogProvider as PHProvider } from 'posthog-js/react'
+import { usePathname, useSearchParams } from "next/navigation"
+import { Suspense, useEffect } from "react"
+import { env } from '@/env.mjs'
+import { useSession } from 'next-auth/react'
+import { captureEvent } from '@/hooks/useCaptureEvent'
 
-if (typeof window !== 'undefined') {
-    if (!NEXT_PUBLIC_SOURCEBOT_TELEMETRY_DISABLED && isDefined(NEXT_PUBLIC_POSTHOG_PAPIK)) {
-        // @see next.config.mjs for path rewrites to the "/ingest" route.
-        const posthogHostPath = resolveServerPath('/ingest');
+// @see: https://posthog.com/docs/libraries/next-js#capturing-pageviews
+function PostHogPageView() {
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
+    const posthog = usePostHog()
 
-        posthog.init(NEXT_PUBLIC_POSTHOG_PAPIK, {
-            api_host: posthogHostPath,
-            ui_host: NEXT_PUBLIC_POSTHOG_UI_HOST,
-            person_profiles: 'identified_only',
-            capture_pageview: NEXT_PUBLIC_PUBLIC_SEARCH_DEMO, // @nocheckin Disable automatic pageview capture if we're not in public demo mode
-            autocapture: false, // Disable automatic event capture
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            sanitize_properties: !NEXT_PUBLIC_PUBLIC_SEARCH_DEMO ? (properties: Record<string, any>, _event: string) => {
-                // https://posthog.com/docs/libraries/js#config
-                if (properties['$current_url']) {
-                    properties['$current_url'] = null;
-                }
-                if (properties['$ip']) {
-                    properties['$ip'] = null;
-                }
-            
-                return properties;
-            } : undefined
-        });
-    } else {
-        console.log("PostHog telemetry disabled");
-    }
+    useEffect(() => {
+        if (pathname && posthog) {
+            let url = window.origin + pathname
+            if (searchParams.toString()) {
+                url = url + `?${searchParams.toString()}`
+            }
+
+            captureEvent('$pageview', {
+                $current_url: url,
+            });
+        }
+    }, [pathname, searchParams, posthog])
+
+    return null
 }
 
-export function PHProvider({
-    children,
-}: {
+interface PostHogProviderProps {
     children: React.ReactNode
-}) {
-    return <PostHogProvider client={posthog}>{children}</PostHogProvider>
+    disabled: boolean
+}
+
+export function PostHogProvider({ children, disabled }: PostHogProviderProps) {
+    const { data: session } = useSession();
+
+    useEffect(() => {
+        if (!disabled && env.NEXT_PUBLIC_POSTHOG_PAPIK) {
+            console.debug(`PostHog telemetry enabled. Cloud environment: ${env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT}`);
+            posthog.init(env.NEXT_PUBLIC_POSTHOG_PAPIK, {
+                // @see next.config.mjs for path rewrites to the "/ingest" route.
+                api_host: "/ingest",
+                person_profiles: 'identified_only',
+                capture_pageview: false,
+                autocapture: false,
+                // In self-hosted mode, we don't want to capture the following
+                // default properties.
+                // @see: https://posthog.com/docs/data/events#default-properties
+                property_denylist: env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined ? [
+                    '$current_url',
+                    '$pathname',
+                    '$session_entry_url',
+                    '$session_entry_host',
+                    '$session_entry_pathname',
+                    '$session_entry_referrer',
+                    '$session_entry_referring_domain',
+                    '$referrer',
+                    '$referring_domain',
+                    '$ip',
+                ] : []
+            });
+        } else {
+            console.debug("PostHog telemetry disabled");
+        }
+    }, [disabled]);
+
+    useEffect(() => {
+        if (!session) {
+            return;
+        }
+
+        // Only identify the user if we are running in a cloud environment.
+        if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined) {
+            posthog.identify(session.user.id, {
+                email: session.user.email,
+                name: session.user.name,
+            });
+        } else {
+            console.debug("PostHog identify skipped");
+        }
+    }, [session]);
+
+    return (
+        <PHProvider client={posthog}>
+            {/* @see: https://github.com/vercel/next.js/issues/51581 */}
+            <Suspense fallback={null}>
+                <PostHogPageView />
+            </Suspense>
+            {children}
+        </PHProvider>
+    )
 }

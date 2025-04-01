@@ -1,160 +1,132 @@
 import { Api, giteaApi, HttpResponse, Repository as GiteaRepository } from 'gitea-js';
-import { GiteaConfig } from './schemas/v2.js';
-import { excludeArchivedRepos, excludeForkedRepos, excludeReposByName, getTokenFromConfig, marshalBool, measure } from './utils.js';
-import { AppContext, GitRepository } from './types.js';
+import { GiteaConnectionConfig } from '@sourcebot/schemas/v3/gitea.type';
+import { getTokenFromConfig, measure } from './utils.js';
 import fetch from 'cross-fetch';
 import { createLogger } from './logger.js';
-import path from 'path';
 import micromatch from 'micromatch';
+import { PrismaClient } from '@sourcebot/db';
+import { processPromiseResults, throwIfAnyFailed } from './connectionUtils.js';
+import * as Sentry from "@sentry/node";
+import { env } from './env.js';
 
 const logger = createLogger('Gitea');
+const GITEA_CLOUD_HOSTNAME = "gitea.com";
 
-export const getGiteaReposFromConfig = async (config: GiteaConfig, ctx: AppContext) => {
-    const token = config.token ? getTokenFromConfig(config.token, ctx) : undefined;
+export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {
+    const hostname = config.url ?
+        new URL(config.url).hostname :
+        GITEA_CLOUD_HOSTNAME;
+
+    const token = config.token ?
+        await getTokenFromConfig(config.token, orgId, db, logger) :
+        hostname === GITEA_CLOUD_HOSTNAME ?
+        env.FALLBACK_GITEA_CLOUD_TOKEN :
+        undefined;
 
     const api = giteaApi(config.url ?? 'https://gitea.com', {
-        token,
+        token: token,
         customFetch: fetch,
     });
 
     let allRepos: GiteaRepository[] = [];
+    let notFound: {
+        users: string[],
+        orgs: string[],
+        repos: string[],
+    } = {
+        users: [],
+        orgs: [],
+        repos: [],
+    };
 
     if (config.orgs) {
-        const _repos = await getReposForOrgs(config.orgs, api);
-        allRepos = allRepos.concat(_repos);
+        const { validRepos, notFoundOrgs } = await getReposForOrgs(config.orgs, api);
+        allRepos = allRepos.concat(validRepos);
+        notFound.orgs = notFoundOrgs;
     }
 
     if (config.repos) {
-        const _repos = await getRepos(config.repos, api);
-        allRepos = allRepos.concat(_repos);
+        const { validRepos, notFoundRepos } = await getRepos(config.repos, api);
+        allRepos = allRepos.concat(validRepos);
+        notFound.repos = notFoundRepos;
     }
 
     if (config.users) {
-        const _repos = await getReposOwnedByUsers(config.users, api);
-        allRepos = allRepos.concat(_repos);
+        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, api);
+        allRepos = allRepos.concat(validRepos);
+        notFound.users = notFoundUsers;
     }
+    
+    allRepos = allRepos.filter(repo => repo.full_name !== undefined);
+    allRepos = allRepos.filter(repo => {
+        if (repo.full_name === undefined) {
+            logger.warn(`Repository with undefined full_name found: orgId=${orgId}, repoId=${repo.id}`);
+            return false;
+        }
+        return true;
+    });
 
-    let repos: GitRepository[] = allRepos
-        .map((repo) => {
-            const hostname = config.url ? new URL(config.url).hostname : 'gitea.com';
-            const repoId = `${hostname}/${repo.full_name!}`;
-            const repoPath = path.resolve(path.join(ctx.reposPath, `${repoId}.git`));
+    let repos = allRepos
+        .filter((repo) => {
+            const isExcluded = shouldExcludeRepo({
+                repo,
+                exclude: config.exclude,
+            });
 
-            const cloneUrl = new URL(repo.clone_url!);
-            if (token) {
-                cloneUrl.username = token;
-            }
-
-            return {
-                vcs: 'git',
-                codeHost: 'gitea',
-                name: repo.full_name!,
-                id: repoId,
-                cloneUrl: cloneUrl.toString(),
-                path: repoPath,
-                isStale: false,
-                isFork: repo.fork!,
-                isArchived: !!repo.archived,
-                gitConfigMetadata: {
-                    'zoekt.web-url-type': 'gitea',
-                    'zoekt.web-url': repo.html_url!,
-                    'zoekt.name': repoId,
-                    'zoekt.archived': marshalBool(repo.archived),
-                    'zoekt.fork': marshalBool(repo.fork!),
-                    'zoekt.public': marshalBool(repo.internal === false && repo.private === false),
-                },
-                branches: [],
-                tags: []
-            } satisfies GitRepository;
+            return !isExcluded;
         });
     
-    if (config.exclude) {
-        if (!!config.exclude.forks) {
-            repos = excludeForkedRepos(repos, logger);
-        }
-
-        if (!!config.exclude.archived) {
-            repos = excludeArchivedRepos(repos, logger);
-        }
-
-        if (config.exclude.repos) {
-            repos = excludeReposByName(repos, config.exclude.repos, logger);
-        }
-    }
-
     logger.debug(`Found ${repos.length} total repositories.`);
+    return {
+        validRepos: repos,
+        notFound,
+    };
+}
 
-    if (config.revisions) {
-        if (config.revisions.branches) {
-            const branchGlobs = config.revisions.branches;
-            repos = await Promise.all(
-                repos.map(async (repo) => {
-                    const [owner, name] = repo.name.split('/');
-                    let branches = (await getBranchesForRepo(owner, name, api)).map(branch => branch.name!);
-                    branches = micromatch.match(branches, branchGlobs);
-
-                    return {
-                        ...repo,
-                        branches,
-                    };
-                })
-            )
-        }
-
-        if (config.revisions.tags) {
-            const tagGlobs = config.revisions.tags;
-            repos = await Promise.all(
-                repos.map(async (repo) => {
-                    const [owner, name] = repo.name.split('/');
-                    let tags = (await getTagsForRepo(owner, name, api)).map(tag => tag.name!);
-                    tags = micromatch.match(tags, tagGlobs);
-
-                    return {
-                        ...repo,
-                        tags,
-                    };
-                })
-            )
-        }
+const shouldExcludeRepo = ({
+    repo,
+    exclude
+} : {
+    repo: GiteaRepository,
+    exclude?: {
+        forks?: boolean,
+        archived?: boolean,
+        repos?: string[],
     }
+}) => {
+    let reason = '';
+    const repoName = repo.full_name!;
+
+    const shouldExclude = (() => {
+        if (!!exclude?.forks && repo.fork) {
+            reason = `\`exclude.forks\` is true`;
+            return true;
+        }
     
-    return repos;
-}
+        if (!!exclude?.archived && !!repo.archived) {
+            reason = `\`exclude.archived\` is true`;
+            return true;
+        }
 
-const getTagsForRepo = async <T>(owner: string, repo: string, api: Api<T>) => {
-    try {
-        logger.debug(`Fetching tags for repo ${owner}/${repo}...`);
-        const { durationMs, data: tags } = await measure(() =>
-            paginate((page) => api.repos.repoListTags(owner, repo, {
-                page
-            }))
-        );
-        logger.debug(`Found ${tags.length} tags in repo ${owner}/${repo} in ${durationMs}ms.`);
-        return tags;
-    } catch (e) {
-        logger.error(`Failed to fetch tags for repo ${owner}/${repo}.`, e);
-        return [];
-    }
-}
+        if (exclude?.repos) {
+            if (micromatch.isMatch(repoName, exclude.repos)) {
+                reason = `\`exclude.repos\` contains ${repoName}`;
+                return true;
+            }
+        }
 
-const getBranchesForRepo = async <T>(owner: string, repo: string, api: Api<T>) => {
-    try {
-        logger.debug(`Fetching branches for repo ${owner}/${repo}...`);
-        const { durationMs, data: branches } = await measure(() => 
-            paginate((page) => api.repos.repoListBranches(owner, repo, {
-                page
-            }))
-        );
-        logger.debug(`Found ${branches.length} branches in repo ${owner}/${repo} in ${durationMs}ms.`);
-        return branches;
-    } catch (e) {
-        logger.error(`Failed to fetch branches for repo ${owner}/${repo}.`, e);
-        return [];
+        return false;
+    })();
+
+    if (shouldExclude) {
+        logger.debug(`Excluding repo ${repoName}. Reason: ${reason}`);
     }
+
+    return shouldExclude;
 }
 
 const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
-    const repos = (await Promise.all(users.map(async (user) => {
+    const results = await Promise.allSettled(users.map(async (user) => {
         try {
             logger.debug(`Fetching repos for user ${user}...`);
 
@@ -165,18 +137,35 @@ const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
             );
 
             logger.debug(`Found ${data.length} repos owned by user ${user} in ${durationMs}ms.`);
-            return data;
-        } catch (e) {
-            logger.error(`Failed to fetch repos for user ${user}.`, e);
-            return [];
-        }
-    }))).flat();
+            return {
+                type: 'valid' as const,
+                data
+            };
+        } catch (e: any) {
+            Sentry.captureException(e);
 
-    return repos;
+            if (e?.status === 404) {
+                logger.error(`User ${user} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    value: user
+                };
+            }
+            throw e;
+        }
+    }));
+
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundUsers } = processPromiseResults<GiteaRepository>(results);
+
+    return {
+        validRepos,
+        notFoundUsers,
+    };
 }
 
 const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
-    return (await Promise.all(orgs.map(async (org) => {
+    const results = await Promise.allSettled(orgs.map(async (org) => {
         try {
             logger.debug(`Fetching repos for org ${org}...`);
 
@@ -188,16 +177,35 @@ const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
             );
 
             logger.debug(`Found ${data.length} repos for org ${org} in ${durationMs}ms.`);
-            return data;
-        } catch (e) {
-            logger.error(`Failed to fetch repos for org ${org}.`, e);
-            return [];
+            return {
+                type: 'valid' as const,
+                data
+            };
+        } catch (e: any) {
+            Sentry.captureException(e);
+
+            if (e?.status === 404) {
+                logger.error(`Organization ${org} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    value: org
+                };
+            }
+            throw e;
         }
-    }))).flat();
+    }));
+
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundOrgs } = processPromiseResults<GiteaRepository>(results);
+
+    return {
+        validRepos,
+        notFoundOrgs,
+    };
 }
 
 const getRepos = async <T>(repos: string[], api: Api<T>) => {
-    return (await Promise.all(repos.map(async (repo) => {
+    const results = await Promise.allSettled(repos.map(async (repo) => {
         try {
             logger.debug(`Fetching repository info for ${repo}...`);
 
@@ -207,13 +215,31 @@ const getRepos = async <T>(repos: string[], api: Api<T>) => {
             );
 
             logger.debug(`Found repo ${repo} in ${durationMs}ms.`);
+            return {
+                type: 'valid' as const,
+                data: [response.data]
+            };
+        } catch (e: any) {
+            Sentry.captureException(e);
 
-            return [response.data];
-        } catch (e) {
-            logger.error(`Failed to fetch repository info for ${repo}.`, e);
-            return [];
+            if (e?.status === 404) {
+                logger.error(`Repository ${repo} not found or no access`);
+                return {
+                    type: 'notFound' as const,
+                    value: repo
+                };
+            }
+            throw e;
         }
-    }))).flat();
+    }));
+
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults<GiteaRepository>(results);
+
+    return {
+        validRepos,
+        notFoundRepos,
+    };
 }
 
 // @see : https://docs.gitea.com/development/api-usage#pagination
@@ -224,7 +250,9 @@ const paginate = async <T>(request: (page: number) => Promise<HttpResponse<T[], 
 
     const totalCountString = result.headers.get('x-total-count');
     if (!totalCountString) {
-        throw new Error("Header 'x-total-count' not found");
+        const e = new Error("Header 'x-total-count' not found");
+        Sentry.captureException(e);
+        throw e;
     }
     const totalCount = parseInt(totalCountString);
 
