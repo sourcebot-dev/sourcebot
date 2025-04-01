@@ -1,0 +1,29 @@
+name: 🐞 Bug Report
+description: Create a bug report to help us improve
+title: "[bug] "
+labels: ["bug", "triage needed"]
+body:
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of the bug, as well as what you expected to happen when encountering it.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: To reproduce
+      description: Describe how to reproduce your bug.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Sourcebot deployment information
+      description: 
+      placeholder: |
+        Sourcebot version (e.g. v3.0.1): 
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional information
+      description: Add any other information related to the bug here such as screenshots, logs, etc.
