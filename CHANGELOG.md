@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2025-04-01
+
+Sourcebot v3 is here and brings a number of structural changes to the tool's foundation, including a SQL database, parallelized indexing, authentication support, multitenancy, and more. Checkout the [migration guide](https://docs.sourcebot.dev/self-hosting/upgrade/v2-to-v3-guide) for information on upgrading your instance to v3.
+
+### Changed
+- [**Breaking Change**] Changed the config schema such that connection objects are specified in the `connection` map, instead of the `repos` array. [See migration guide](https://docs.sourcebot.dev/self-hosting/upgrade/v2-to-v3-guide).
+- Updated the tool's color-palette in dark mode.
+
+### Added
+- Added parallelized repo indexing and connection syncing via Redis & BullMQ. See the [architecture overview](https://docs.sourcebot.dev/self-hosting/overview#architecture).
+- Added repo indexing progress indicators in the navbar.
+- Added authentication support via OAuth or email/password. For instructions on enabling, see [this doc](https://docs.sourcebot.dev/self-hosting/more/authentication).
+- Added the following UI for managing your deployment when **[auth is enabled](https://docs.sourcebot.dev/self-hosting/more/authentication)**:
+  - connection management: create and manage your JSON configs via a integrated web-editor.
+  - secrets: import personal access tokens (PAT) into Sourcebot (AES-256 encrypted). Reference secrets in your connection config by name.
+  - team & invite management: invite users to your instance to give them access. Configure team [roles & permissions](https://docs.sourcebot.dev/docs/more/roles-and-permissions).
+- Added multi-tenancy support. See [this doc](https://docs.sourcebot.dev/self-hosting/more/tenancy).
+
+### Removed
+- [**Breaking Change**] Removed `db.json` in favour of a Postgres database for transactional workloads. See the [architecture overview](https://docs.sourcebot.dev/self-hosting/overview#architecture).
+- [**Breaking Change**] Removed local folder & arbitrary .git repo support. If your deployment depended on these features, please [open a discussion](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) and let us know.
+- [**Breaking Chnage**] Removed ability to specify a `token` as a string literal from the schema.
+- [**Breaking Change**] Removed support for `DOMAIN_SUB_PATH` configuration.
+
+
 ## [2.8.4] - 2025-03-14
 
 ### Fixed
