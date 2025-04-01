@@ -3,7 +3,15 @@ title: Authentication
 sidebarTitle: Authentication
 ---
 
-Sourcebot has built-in authentication that gates access to your organization. OAuth, email codes, and email / password are supported.
+<Note>SSO is currently not supported. If you'd like SSO, please reach out using our [contact form](https://www.sourcebot.dev/contact)</Note>
+<Warning>If you're switching from non-auth, delete the Sourcebot cache (the `.sourcebot` folder) before starting.</Warning>
+
+Sourcebot has built-in authentication that gates access to your organization. OAuth, email codes, and email / password are supported. To enable authentication, set the `SOURCEBOT_AUTH_ENABLED` environment variable to `true`.
+When authentication is enabled:
+
+- Connection managment happens through the UI
+- Members must be invited to an organization to gain access
+- If you're in single-tenant mode, the first user to register will be made the owner of the default organization. Check out the [roles page](/docs/more/roles-and-permissions) for more info on the different roles and permissions
 
 ![Login Page](/images/login.png)
 
@@ -47,18 +55,7 @@ See [transactional emails](/self-hosting/features/transactional-emails) for more
 
 ---
 
-# Disable Authentication
-
-Authentication can be disabled by setting the `SOURCEBOT_AUTH_ENABLED` environment variable to `false`. When authentication is disabled:
-
-- Your Sourcebot instance can be accessed without signing in.
-- All organization & team-management features are disabled. (e.g., invites, organization settings, etc.)
-- Connections management via the UI is disabled, and can only be [configured declaratively](/self-hosting/features/declarative-config).
-
-
-Note that this feature is **only** available when `SOURCEBOT_TENANCY_MODE` is set to `single`.
-
-
 # Troubleshooting
 
 - If you experience issues logging in, logging out, or accessing an organization you should have access to, try clearing your cookies & performing a full page refresh (`Cmd/Ctrl + Shift + R` on most browsers).
+- Still not working? Reach out to us on our [discord](https://discord.com/invite/6Fhp27x7Pb) or [github discussions](https://github.com/sourcebot-dev/sourcebot/discussions)
