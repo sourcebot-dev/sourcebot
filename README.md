@@ -67,6 +67,49 @@ You can try out our public hosted demo [here](https://sourcebot.dev/search)!
 
 Sourcebot can be deployed in seconds using our official docker image. Visit our [docs](https://docs.sourcebot.dev/self-hosting/overview) for more information.
 
+1. Create a config
+```json
+touch config.json
+echo '{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "connections": {
+        // Comments are supported
+        "starter-connection": {
+            "type": "github",
+            "repos": [
+                "sourcebot-dev/sourcebot"
+            ]
+        }
+    }
+}' > config.jsono
+```
+
+
+2. Run the docker container
+```sh
+docker run -p 3000:3000 --pull=always --rm -v $(pwd):/data -e CONFIG_PATH=/data/config.json --name sourcebot ghcr.io/sourcebot-dev/sourcebot:latest
+```
+<details>
+<summary>What does this command do?</summary>
+
+- Pull and run the Sourcebot docker image from [ghcr.io/sourcebot-dev/sourcebot:latest](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot).
+- Mount the current directory (`-v $(pwd):/data`) to allow Sourcebot to persist the `.sourcebot` cache.
+- Clones sourcebot at `HEAD` into `.sourcebot/github/sourcebot-dev/sourcebot`.
+- Indexes sourcebot into a .zoekt index file in `.sourcebot/index/`.
+- Map port 3000 between your machine and the docker image.
+- Starts the web server on port 3000.
+</details>
+</br>
+3. Start searching at `http://localhost:3000`
+
+</br>
+
+To learn how to configure Sourcebot to index your own repos, please refer to our [docs](https://docs.sourcebot.dev/self-hosting/overview).
+
+> [!NOTE]
+> Sourcebot collects [anonymous usage data](https://sourcebot.dev/search/search?query=captureEvent%5C(%20repo%3Asourcebot) by default to help us improve the product. No sensitive data is collected, but if you'd like to disable this you can do so by setting the `SOURCEBOT_TELEMETRY_DISABLED` environment
+> variable to `false`. Please refer to our [telemetry docs](https://docs.sourcebot.dev/self-hosting/overview#telemetry) for more information.
+
 # Build from source
 >[!NOTE]
 > Building from source is only required if you'd like to contribute. If you'd just like to use Sourcebot, we recommend checking out our self-hosting [docs](https://docs.sourcebot.dev/self-hosting/overview).
