@@ -1,1 +1,70 @@
-todo
+---
+title: Linking code from Gerrit
+sidebarTitle: Gerrit
+---
+
+## Schema reference
+
+<Accordion title="Reference">
+[schemas/v3/gerrit.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/gerrit.json)
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "GerritConnectionConfig",
+  "properties": {
+    "type": {
+      "const": "gerrit",
+      "description": "Gerrit Configuration"
+    },
+    "url": {
+      "type": "string",
+      "format": "url",
+      "description": "The URL of the Gerrit host.",
+      "examples": [
+        "https://gerrit.example.com"
+      ],
+      "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of specific projects to sync. If not specified, all projects will be synced. Glob patterns are supported",
+      "examples": [
+        [
+          "project1/repo1",
+          "project2/**"
+        ]
+      ]
+    },
+    "exclude": {
+      "type": "object",
+      "properties": {
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "project1/repo1",
+              "project2/**"
+            ]
+          ],
+          "description": "List of specific projects to exclude from syncing."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "type",
+    "url"
+  ],
+  "additionalProperties": false
+}
+```
+</Accordion>

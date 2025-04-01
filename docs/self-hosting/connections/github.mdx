@@ -3,12 +3,127 @@ title: Linking code from GitHub
 sidebarTitle: GitHub
 ---
 
+Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub Enterprise Cloud.
+
+## Examples
+
+<AccordionGroup>
+    <Accordion title="Index individual repos">
+        ```json
+        {
+            "type": "github",
+            "repos": [
+                "sourcebot-dev/sourcebot",
+                "getsentry/sentry",
+                "torvalds/linux"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Index all repos in a organization">
+        ```json
+        // Sync all repos in sourcebot-dev, getsentry, and vercel (visible to the provided token, if any)
+        {
+            "type": "github",
+            "orgs": [
+                "sourcebot-dev",
+                "getsentry",
+                "vercel"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Index all repos owned by a user">
+        ```json
+        {
+            "type": "github",
+            "orgs": [
+                "sourcebot-dev",
+                "getsentry",
+                "vercel"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Index specific repos">
+        ```json
+            
+        ```
+    </Accordion>
+</AccordionGroup>
 
 
+
+## Authenticating with GitHub
+
+In order to index private repositories, you'll need to generate a GitHub Personal Access Token (PAT). Create a new PAT [here](https://github.com/settings/tokens/new) and make sure you select the `repo` scope:
+
+![GitHub PAT Scope](/images/github_pat_scopes.png)
+
+Next, provide the PAT via the `token` property, either as an environment variable or a secret:
+
+<Tabs>
+    <Tab title="Environment Variable">
+        <Note>Environment variables are only supported in a [declarative config](/self-hosting/more/declarative-config) and cannot be used in the web UI.</Note>
+
+        1. Add the `token` property to your connection config:
+        ```json
+        {
+            "type": "github",
+            "token": {
+                // note: this env var can be named anything. It
+                // doesn't need to be `GITHUB_TOKEN`.
+                "env": "GITHUB_TOKEN"
+            }
+            // .. rest of config ..
+        }
+        ```
+
+        2. Pass this environment variable each time you run Sourcebot:
+        ```bash
+            docker run -e GITHUB_TOKEN=<PAT> ... ghcr.io/sourcebot-dev/sourcebot:latest
+        ```
+    </Tab>
+
+    <Tab title="Secret">
+        <Note>Secrets are only supported when [authentication](/self-hosting/more/authentication) is enabled.</Note>
+
+        1. Navigate to **Secrets** in settings and create a new secret with your PAT:
+
+        ![](/images/secrets_list.png)
+
+        2. Add the `token` property to your connection config:
+
+        ```json
+        {
+            "type": "github",
+            "token": {
+                "secret": "mysecret"
+            }
+            // .. rest of config ..
+        }
+        ```
+
+    </Tab>
+</Tabs>
+
+## Connecting to a custom GitHub host
+
+To connect to a GitHub host other than `github.com`, provide the `url` property to your config:
+
+```json
+{
+    "type": "github",
+    "url": "https://github.example.com"
+    // .. rest of config ..
+}
+```
 
 ## Schema reference
 
 <Accordion title="Reference">
+[schemas/v3/github.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/github.json)
+
 ```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",

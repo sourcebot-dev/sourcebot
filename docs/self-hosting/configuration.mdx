@@ -15,8 +15,8 @@ Sourcebot accepts a variety of environment variables to fine tune your deploymen
 | `REDIS_URL` | `redis://localhost:6379` | Connection string of your Redis instance. By default, a Redis database is automatically provisioned at startup within the container. |
 | `SOURCEBOT_ENCRYPTION_KEY` | - | Used to encrypt connection secrets. Generated using `openssl rand -base64 24`. Automatically generated at startup if no value is provided. |
 | `AUTH_SECRET` | - | Used to validate login session cookies. Generated using `openssl rand -base64 33`. Automatically generated at startup if no value is provided. |
-| `SOURCEBOT_TENANCY_MODE` | `single` | The tenancy configuration for Sourcebot. Valid values are `single` or `multi`. See [this doc](/self-hosting/features/tenancy) for more info. |
-| `SOURCEBOT_AUTH_ENABLED` | `false` | Enables/disables authentication in Sourcebot. If set to `false`, `SOURCEBOT_TENANCY_MODE` must be `single`. See [this doc](/self-hosting/features/authentication) for more info. |
+| `SOURCEBOT_TENANCY_MODE` | `single` | The tenancy configuration for Sourcebot. Valid values are `single` or `multi`. See [this doc](/self-hosting/more/tenancy) for more info. |
+| `SOURCEBOT_AUTH_ENABLED` | `false` | Enables/disables authentication in Sourcebot. If set to `false`, `SOURCEBOT_TENANCY_MODE` must be `single`. See [this doc](/self-hosting/more/authentication) for more info. |
 | `SOURCEBOT_TELEMETRY_DISABLED` | `false` | Enables/disables telemetry collection in Sourcebot. See [this doc](/self-hosting/security/telemetry) for more info. |
 | `DATA_DIR` | `/data` | The directory within the container to store all persistent data. Typically, this directory will be volume mapped such that data is persisted across container restarts (e.g., `docker run -v $(pwd):/data`) |
 | `DATA_CACHE_DIR` | `$DATA_DIR/.sourcebot` | The root data directory in which all data written to disk by Sourcebot will be located. |
@@ -29,10 +29,10 @@ Sourcebot accepts a variety of environment variables to fine tune your deploymen
 There are additional features that can be enabled and configured via environment variables.
 
 <CardGroup cols={2}>
-  <Card horizontal title="Authentication" icon="lock" href="/self-hosting/features/authentication" />
-  <Card horizontal title="Tenancy" icon="users" href="/self-hosting/features/tenancy" />
-  <Card horizontal title="Transactional Emails" icon="envelope" href="/self-hosting/features/transactional-emails" />
-  <Card horizontal title="Declarative Configs" icon="page" href="/self-hosting/features/declarative-config" />
+  <Card horizontal title="Authentication" icon="lock" href="/self-hosting/more/authentication" />
+  <Card horizontal title="Tenancy" icon="users" href="/self-hosting/more/tenancy" />
+  <Card horizontal title="Transactional Emails" icon="envelope" href="/self-hosting/more/transactional-emails" />
+  <Card horizontal title="Declarative Configs" icon="page" href="/self-hosting/more/declarative-config" />
 </CardGroup>
 
 ## Health Check and Version Endpoints
