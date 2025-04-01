@@ -1,5 +1,4 @@
 [submodule "vendor/zoekt"]
 	path = vendor/zoekt
 	url = https://github.com/sourcebot-dev/zoekt
-	# @todo : update this to main when we have a release
-	branch=v3
+	branch=main
