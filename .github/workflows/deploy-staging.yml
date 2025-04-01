@@ -2,8 +2,7 @@ name: Deploy Staging
 
 on:
   push:
-    # @todo: remove v3 after merge is complete.
-    branches: [main, v3]
+    branches: [main]
     tags: ["v*.*.*"]
   workflow_dispatch:
 
