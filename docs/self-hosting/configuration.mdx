@@ -15,6 +15,7 @@ Sourcebot accepts a variety of environment variables to fine tune your deploymen
 | `REDIS_URL` | `redis://localhost:6379` | Connection string of your Redis instance. By default, a Redis database is automatically provisioned at startup within the container. |
 | `SOURCEBOT_ENCRYPTION_KEY` | - | Used to encrypt connection secrets. Generated using `openssl rand -base64 24`. Automatically generated at startup if no value is provided. |
 | `AUTH_SECRET` | - | Used to validate login session cookies. Generated using `openssl rand -base64 33`. Automatically generated at startup if no value is provided. |
+| `AUTH_URL` | - | URL of your Sourcebot deployment, e.g., `https://example.com` or `http://localhost:3000`. Required when `SOURCEBOT_AUTH_ENABLED` is `true`. |
 | `SOURCEBOT_TENANCY_MODE` | `single` | The tenancy configuration for Sourcebot. Valid values are `single` or `multi`. See [this doc](/self-hosting/more/tenancy) for more info. |
 | `SOURCEBOT_AUTH_ENABLED` | `false` | Enables/disables authentication in Sourcebot. If set to `false`, `SOURCEBOT_TENANCY_MODE` must be `single`. See [this doc](/self-hosting/more/authentication) for more info. |
 | `SOURCEBOT_TELEMETRY_DISABLED` | `false` | Enables/disables telemetry collection in Sourcebot. See [this doc](/self-hosting/security/telemetry) for more info. |

@@ -3,6 +3,61 @@ title: Linking code from Gerrit
 sidebarTitle: Gerrit
 ---
 
+<Note>Authenticating with Gerrit is currently not supported. If you need this capability, please raise a [feature request](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas).</Note>
+
+Sourcebot can sync code from self-hosted gerrit instances.
+
+## Connecting to a Gerrit instance
+
+To connect to a gerrit instance, provide the `url` property to your config:
+
+```json
+{
+    "type": "gerrit",
+    "url": "https://gerrit.example.com"
+    // .. rest of config ..
+}
+```
+
+## Examples
+
+<AccordionGroup>
+    <Accordion title="Sync projects by glob pattern">
+        ```json
+        {
+            "type": "gerrit",
+            "url": "https://gerrit.example.com",
+            // Sync all repos under project1 and project2/sub-project
+            "projects": [
+                "project1/**",
+                "project2/sub-project/**"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Exclude repos from syncing">
+        ```json
+        {
+            "type": "gerrit",
+            "url": "https://gerrit.example.com",
+            // Sync all repos under project1 and project2/sub-project...
+            "projects": [
+                "project1/**",
+                "project2/sub-project/**"
+            ],
+            // ...except:
+            "exclude": {
+                // any project that matches these glob patterns
+                "projects": [
+                    "project1/foo-project",
+                    "project2/sub-project/some-sub-folder/**"
+                ]
+            }
+        }
+        ```
+    </Accordion>
+</AccordionGroup>
+
 ## Schema reference
 
 <Accordion title="Reference">

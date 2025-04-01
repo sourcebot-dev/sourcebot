@@ -76,7 +76,7 @@ In order to index private repositories, you'll need to generate a Gitea access t
 
 ![Gitea Access token creation](/images/gitea_pat_creation.png)
 
-Next, provide the PAT via the `token` property, either as an environment variable or a secret:
+Next, provide the access token via the `token` property, either as an environment variable or a secret:
 
 <Tabs>
     <Tab title="Environment Variable">
@@ -88,8 +88,8 @@ Next, provide the PAT via the `token` property, either as an environment variabl
             "type": "gitea",
             "token": {
                 // note: this env var can be named anything. It
-                // doesn't need to be `GITHUB_TOKEN`.
-                "env": "GITHUB_TOKEN"
+                // doesn't need to be `GITEA_TOKEN`.
+                "env": "GITEA_TOKEN"
             }
             // .. rest of config ..
         }
@@ -97,7 +97,7 @@ Next, provide the PAT via the `token` property, either as an environment variabl
 
         2. Pass this environment variable each time you run Sourcebot:
         ```bash
-            docker run -e GITHUB_TOKEN=<PAT> ... ghcr.io/sourcebot-dev/sourcebot:latest
+            docker run -e GITEA_TOKEN=<PAT> ... ghcr.io/sourcebot-dev/sourcebot:latest
         ```
     </Tab>
 
@@ -123,14 +123,14 @@ Next, provide the PAT via the `token` property, either as an environment variabl
     </Tab>
 </Tabs>
 
-## Connecting to a custom GitHub host
+## Connecting to a custom Gitea
 
-To connect to a GitHub host other than `github.com`, provide the `url` property to your config:
+To connect to a custom Gitea deployment, provide the `url` property to your config:
 
 ```json
 {
     "type": "gitea",
-    "url": "https://github.example.com"
+    "url": "https://gitea.example.com"
     // .. rest of config ..
 }
 ```
