@@ -16,7 +16,7 @@ import { ConnectionList } from "../connections/components/connectionList"
 import { useDomain } from "@/hooks/useDomain"
 import Link from "next/link";
 
-export function AddRepoButton() {
+export function AddRepoButton({ isAddNewRepoButtonVisible }: { isAddNewRepoButtonVisible: boolean }) {
     const [isOpen, setIsOpen] = useState(false)
     const domain = useDomain()
 
@@ -40,7 +40,7 @@ export function AddRepoButton() {
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto p-6">
-                <ConnectionList className="w-full" />
+                <ConnectionList className="w-full" isDisabled={!isAddNewRepoButtonVisible} />
               </div>
               <DialogFooter className="flex justify-between items-center border-t p-4 px-6">
                 <Button asChild variant="default" className="bg-primary hover:bg-primary/90">

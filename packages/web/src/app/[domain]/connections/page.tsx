@@ -4,6 +4,7 @@ import { NewConnectionCard } from "./components/newConnectionCard";
 import { getConnections, getOrgMembership } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { notFound, ServiceErrorException } from "@/lib/serviceError";
+import { OrgRole } from "@sourcebot/db";
 
 export default async function ConnectionsPage({ params: { domain } }: { params: { domain: string } }) {
     const connections = await getConnections(domain);
@@ -24,7 +25,7 @@ export default async function ConnectionsPage({ params: { domain } }: { params: 
             <div className="flex flex-col md:flex-row gap-4">
                 <ConnectionList
                     className="md:w-3/4"
-                    role={membership.role}
+                    isDisabled={membership.role !== OrgRole.OWNER}
                 />
                 <NewConnectionCard
                     className="md:w-1/4"
