@@ -99,7 +99,7 @@ export const columns = (domain: string, isAddNewRepoButtonVisible: boolean): Col
         header: () => (
             <div className="flex items-center w-[400px]">
                 <span>Repository</span>
-                {isAddNewRepoButtonVisible && <AddRepoButton />}
+                {isAddNewRepoButtonVisible && <AddRepoButton isAddNewRepoButtonVisible={isAddNewRepoButtonVisible} />}
             </div>
         ),
         cell: ({ row }) => {
