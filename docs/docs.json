@@ -56,16 +56,25 @@
                         "group": "Getting Started",
                         "pages": [
                             "self-hosting/overview",
+                            {
+                                "group": "Connecting your code",
+                                "pages": [
+                                    "self-hosting/connections/github",
+                                    "self-hosting/connections/gitlab",
+                                    "self-hosting/connections/gitea",
+                                    "self-hosting/connections/gerrit"
+                                ]
+                            },
                             "self-hosting/configuration"
                         ]
                     },
                     {
-                        "group": "Features",
+                        "group": "More",
                         "pages": [
-                            "self-hosting/features/authentication",
-                            "self-hosting/features/tenancy",
-                            "self-hosting/features/transactional-emails",
-                            "self-hosting/features/declarative-config"
+                            "self-hosting/more/authentication",
+                            "self-hosting/more/tenancy",
+                            "self-hosting/more/transactional-emails",
+                            "self-hosting/more/declarative-config"
                         ]
                     },
                     {

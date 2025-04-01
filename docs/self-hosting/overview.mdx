@@ -9,8 +9,7 @@ Sourcebot is open source and can be self-hosted using our official [Docker image
 
 ## Quick Start Guide
 
-
-{/*@nocheckin: record a self-hosting quick start guide*/}
+{/*@todo: record a self-hosting quick start guide
 <iframe
     width="560"
     height="315"
@@ -20,49 +19,63 @@ Sourcebot is open source and can be self-hosted using our official [Docker image
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen
 ></iframe>
+*/}
 
 <Steps>
+    <Step title="Create a config">
+        By default, Sourcebot requires a [configuration file](/self-hosting/features/declarative-config) with a list of [code host connections](/docs/connections/overview) that specify what repositories should be **synced** (cloned and indexed). To get started, run the following command to create a starter `config.json`:
+
+        ```bash
+        touch config.json
+        echo '{
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "connections": {
+                // Comments are supported
+                "starter-connection": {
+                    "type": "github",
+                    "repos": [
+                        "sourcebot-dev/sourcebot"
+                    ]
+                }
+            }
+        }' > config.json
+        ```
+
+        This config creates a single GitHub connection named `starter-connection` that specifies [Sourcebot](https://github.com/sourcebot-dev/sourcebot) as a repo to sync.
+    </Step>
+
     <Step title="Launch your instance">
-        Sourcebot is packaged as a [single Docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot). Run the following command to start your instance:
+        Sourcebot is packaged as a [single Docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot). In the same directory as `config.json`, run the following command to start your instance:
 
         ``` bash
-        docker run -p 3000:3000 --pull=always --rm -v $(pwd):/data --name sourcebot ghcr.io/sourcebot-dev/sourcebot:latest
+        docker run -p 3000:3000 --pull=always --rm -v $(pwd):/data -e CONFIG_PATH=/data/config.json --name sourcebot ghcr.io/sourcebot-dev/sourcebot:latest
         ```
+
+        Navigate to `localhost:3000` to start searching the Sourcebot repo.
     
         <Accordion title="Details">
             **This command will**:
                 - pulls the latest version of the `sourcebot` docker image.
-                - mounts the working directory to `/data` in the container to allow Sourcebot to persist data (like Postgres & Redis) across restarts. In your local directory, you should see a `.sourcebot` folder created that contains all persistent data.
+                - mounts the working directory to `/data` in the container to allow Sourcebot to persist data (like Postgres & Redis) across restarts, and to access the `config.json`. In your local directory, you should see a `.sourcebot` folder created that contains all persistent data.
                 - runs any pending database migrations.
                 - starts up all services, including the webserver exposed on port 3000.
+                - reads `config.json` and starts syncing.
         </Accordion>
 
         <Warning>Hit an issue? Please let us know on [GitHub discussions](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) or by [emailing us](mailto:team@sourcebot.dev).</Warning>
     </Step>
-    <Step title="Login">
-        Sourcebot has built-in authentication that gates access to your deployment.
 
-        ![Login Page](/images/login.png)
-    </Step>
+    <Step title="Link your code">
+        Sourcebot supports indexing public & private code on the following code hosts:
 
-    <Step title="Create an organization">
-        After logging in, you'll be asked to create an organization. You'll invite your team members to this organization later so they can also use Sourcebot.
+        <CardGroup cols={2}>
+            <Card horizontal title="GitHub" href="/self-hosting/connections/github" />
+            <Card horizontal title="GitLab" href="/self-hosting/connections/gitlab" />
+            <Card horizontal title="Gitea" href="/self-hosting/connections/gitea" />
+            <Card horizontal title="Gerrit" href="/self-hosting/connections/gerrit" />
+        </CardGroup>
 
-        ![Org Creation](/images/org_create.png)
-    </Step>
-
-    <Step title="Link your code host">
-        After selecting a code host you want to connect to, you'll be presented with the connection creation page. This page has the following three inputs:
-        - Connection name (required): The name of the connection within Sourcebot
-        - Secret (optional): An [access token](/access-tokens/overview) that is used to fetch private repos
-        - Configuration: The JSON configuration schema that defines the repos/orgs to fetch. 
-
-        For a more detailed explanation of connections, check out the [Connections](/connections/overview) page.
-
-        The example below shows a connection named `sourcebot-org` that fetches all of the repos for the `sourcebot-dev` GitHub organization, but excludes the `sourcebot-dev/zoekt` repo
-
-        <Note>This page won't let you continue with an invalid connection schema. If you're hitting errors, make sure the input you're providing is a valid JSON</Note> 
-        ![Connection Create Example](/images/create_connection_example.png)
+        <Note>Missing your code host? [Submit a feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas).</Note>
     </Step>
 </Steps>
 
