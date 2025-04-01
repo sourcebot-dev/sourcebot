@@ -62,7 +62,7 @@ export const env = createEnv({
         NEXT_PUBLIC_SOURCEBOT_VERSION: z.string().default('unknown'),
         NEXT_PUBLIC_POLLING_INTERVAL_MS: numberSchema.default(5000),
 
-        NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: z.enum(["dev", "staging", "prod"]).optional(),
+        NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: z.enum(["dev", "demo", "staging", "prod"]).optional(),
     },
     // For Next.js >= 13.4.4, you only need to destructure client variables:
     experimental__runtimeEnv: {
