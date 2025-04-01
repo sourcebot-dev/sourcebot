@@ -6,11 +6,11 @@ sidebarTitle: V2 to V3 guide
 This guide will walk you through upgrading your Sourcebot deployment from v2 to v3. 
 
 <Warning>
-Please note that the following features are no longer supported in v3. If your deployment is dependent on these features, please [reach out to us](https://github.com/sourcebot-dev/sourcebot/discussions) and we'll prioritize integrating them
-back.
-
+Please note that the following features are no longer supported in v3:
 - Local file indexing
 - Raw remote `.git` repo indexing (i.e. not through a supported code host)
+
+If your deployment is dependent on these features, please [reach out](https://github.com/sourcebot-dev/sourcebot/discussions).
 </Warning>
 
 <Warning>This migration will require you to reindex all your repos</Warning>
@@ -23,7 +23,7 @@ back.
     <Step title="Migrate your configuration file to the v3 schema">
         The main change between the v3 and v2 schemas is how the data is structured. In v2, you defined a `repos` array which contained unnamed config objects:
 
-        ```
+        ```json
         {
             "$schema": "./schemas/v2/index.json",
             "repos": [
@@ -44,7 +44,7 @@ back.
         ```
 
         In v3, you define a `connections` map which contains named `connection` objects:
-        ```
+        ```json
         {
             "$schema": "./schemas/v3/index.json",
             "connections": {
