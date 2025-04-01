@@ -1,0 +1,93 @@
+---
+title: V2 to V3 Guide
+sidebarTitle: V2 to V3 guide
+---
+
+This guide will walk you through upgrading your Sourcebot deployment from v2 to v3. 
+
+<Warning>
+Please note that the following features are no longer supported in v3. If your deployment is dependent on these features, please [reach out to us](https://github.com/sourcebot-dev/sourcebot/discussions) and we'll prioritize integrating them
+back.
+
+- Local file indexing
+- Raw remote `.git` repo indexing (i.e. not through a supported code host)
+</Warning>
+
+<Warning>This migration will require you to reindex all your repos</Warning>
+
+<Steps>
+    <Step title="Spin down deployment">
+    </Step>
+    <Step title="Delete Sourcebot cache (.sourcebot directory)">
+    </Step>
+    <Step title="Migrate your configuration file to the v3 schema">
+        The main change between the v3 and v2 schemas is how the data is structured. In v2, you defined a `repos` array which contained unnamed config objects:
+
+        ```
+        {
+            "$schema": "./schemas/v2/index.json",
+            "repos": [
+                {
+                    "type": "github",
+                    "repos": [
+                        "sourcebot-dev/sourcebot"
+                    ]
+                },
+                {
+                    "type": "gitlab":
+                    "groups": [
+                        "wireshark"
+                    ]
+                }
+            ]
+        }
+        ```
+
+        In v3, you define a `connections` map which contains named `connection` objects:
+        ```
+        {
+            "$schema": "./schemas/v3/index.json",
+            "connections": {
+                "sourcebot-connection": {
+                    "type": "github",
+                    "repos": [
+                        "sourcebot-dev/sourcebot"
+                    ]
+                },
+                "wireshark-connection": {
+                    "type": "gitlab":
+                    "groups": [
+                        "wireshark
+                    ]
+                }
+            }
+        }
+        ```
+
+        The schema of the connections defined here is the same as the "repos" you defined in the v2 schema. Some helpful notes:
+        
+        - The name of the connection (`sourcebot-connection` and `wireshark-connection` above) is only used to identify the connection in Sourcebot. It can be any string that contains letters, digits, hyphens, or underscores
+        - A connection is associated with one and only one code host platform, and this must be specified in the connections `type` field
+        - Make sure you update the `$schema` field to point to the v3 schema
+        - The `settings` object doesn't need to be changed. We've added new settings params (check out the v3 schema for more details)
+    </Step>
+    <Step title="Start your Sourcebot deployment">
+        When you start up your Sourcebot deployment, it will create a fresh cache and begin indexing against your new v3 configuration file. 
+        
+        If there are issues with your configuration file it will provide an error in the console.
+        After updating your configuration file, restart your Sourcebot deployment to pick up the new changes.
+    </Step>
+    <Step title="You're done!">
+        Congrats, you've successfully migrated to v3! Please let us know what you think of the new features by reaching out on our [discord](https://discord.gg/6Fhp27x7Pb) or [GitHub discussion](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support)
+    </Step>
+</Steps>
+
+## Troubleshooting
+
+Some things to check:
+
+- Make sure you update the `$schema` field in the configuration file to point to the v3 schema
+- Make sure you have a name for each `connection`, and that the name only contains letters, digits, hyphens, or underscores
+- Make sure each `connection` has a `type` field with a valid value (`gitlab`, `github`, `gitea`, `gerrit`)
+
+Having troubles migrating from v2 to v3? Reach out to us on [discord](https://discord.gg/6Fhp27x7Pb) or [GitHub discussion](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) and we'll try our best to help
