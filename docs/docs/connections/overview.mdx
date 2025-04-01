@@ -9,11 +9,11 @@ There are two ways to define connections:
 
 <AccordionGroup>
     <Accordion title="Declarative configuration file">
-        This is only supported when self-hosting, and is the default mechanism to define connections. Connections are defined in a [JSON file](http://localhost:3001/self-hosting/more/declarative-config)
+        This is only supported when self-hosting, and is the default mechanism to define connections. Connections are defined in a [JSON file](/self-hosting/more/declarative-config)
         and the path to the file is provided through the `CONFIG_PATH` environment variable
     </Accordion>
     <Accordion title="UI connection management">
-        This is the only way to define connections when using Sourcebot Cloud, and can be enabled when self-hosting by enabling [authentication](/self-hosting/more/authentications).
+        This is the only way to define connections when using Sourcebot Cloud, and can be configured when self-hosting by enabling [authentication](/self-hosting/more/authentications).
 
         In this method, connections are defined and managed within the webapp:
 
@@ -29,3 +29,5 @@ There are two ways to define connections:
     <Card horizontal title="Gitea" href="/docs/connections/gitea" />
     <Card horizontal title="Gerrit" href="/docs/connections/gerrit" />
 </CardGroup>
+
+<Note>Missing your code host? [Submit a feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas).</Note>

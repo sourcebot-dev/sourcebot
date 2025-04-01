@@ -23,7 +23,7 @@ Sourcebot is open source and can be self-hosted using our official [Docker image
 
 <Steps>
     <Step title="Create a config">
-        By default, Sourcebot requires a [configuration file](/self-hosting/more/declarative-config) with a list of [code host connections](/docs/connections/overview) that specify what repositories should be **synced** (cloned and indexed). To get started, run the following command to create a starter `config.json`:
+        By default, Sourcebot requires a configuration file with a list of [code host connections](/docs/connections/overview) that specify what repositories should be **synced** (cloned and indexed). To get started, run the following command to create a starter `config.json`:
 
         ```bash
         touch config.json
@@ -48,15 +48,22 @@ Sourcebot is open source and can be self-hosted using our official [Docker image
         Sourcebot is packaged as a [single Docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot). In the same directory as `config.json`, run the following command to start your instance:
 
         ``` bash
-        docker run -p 3000:3000 --pull=always --rm -v $(pwd):/data -e CONFIG_PATH=/data/config.json --name sourcebot ghcr.io/sourcebot-dev/sourcebot:latest
+        docker run \
+            -p 3000:3000 \
+            --pull=always \
+            --rm \
+            -v $(pwd):/data \
+            -e CONFIG_PATH=/data/config.json \
+            --name sourcebot \
+            ghcr.io/sourcebot-dev/sourcebot:latest
         ```
 
         Navigate to `localhost:3000` to start searching the Sourcebot repo.
     
         <Accordion title="Details">
-            **This command will**:
+            **This command**:
                 - pulls the latest version of the `sourcebot` docker image.
-                - mounts the working directory to `/data` in the container to allow Sourcebot to persist data (like Postgres & Redis) across restarts, and to access the `config.json`. In your local directory, you should see a `.sourcebot` folder created that contains all persistent data.
+                - mounts the working directory to `/data` in the container to allow Sourcebot to persist data across restarts, and to access the `config.json`. In your local directory, you should see a `.sourcebot` folder created that contains all persistent data.
                 - runs any pending database migrations.
                 - starts up all services, including the webserver exposed on port 3000.
                 - reads `config.json` and starts syncing.
@@ -105,13 +112,15 @@ Sourcebot does not support horizontal scaling at this time, but it is on our roa
 
 
 ## Telemetry
-
-By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We don't collect or transmit [any information related to your codebase](https://sourcebot.dev/search/search?query=captureEvent%5C(%20repo%3Asourcebot). In addition, all events are [sanitized](https://github.com/sourcebot-dev/sourcebot/blob/HEAD/packages/web/src/app/posthogProvider.tsx) to ensure that no sensitive details (ex. ip address, query info) leave your machine. 
+By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We don't collect or transmit <a href="https://sourcebot.dev/search/search?query=captureEvent%5C(%20repo%3Asourcebot">any information related to your codebase</a>. In addition, all events are [sanitized](https://github.com/sourcebot-dev/sourcebot/blob/HEAD/packages/web/src/app/posthogProvider.tsx) to ensure that no sensitive details (ex. ip address, query info) leave your machine. 
 
 The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made.
 
 If you'd like to disable all telemetry, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `true`:
 
 ```bash
-docker run -e SOURCEBOT_TELEMETRY_DISABLED=true /* additional args */ ghcr.io/sourcebot-dev/sourcebot:latest
+docker run \
+  -e SOURCEBOT_TELEMETRY_DISABLED=true \
+  /* additional args */ \
+  ghcr.io/sourcebot-dev/sourcebot:latest
 ```
