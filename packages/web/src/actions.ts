@@ -368,7 +368,7 @@ export const getConnections = async (domain: string, filter: { status?: Connecti
                     repoIndexingStatus: repo.repoIndexingStatus,
                 })),
             }));
-        })));
+        }), /* allowSingleTenantUnauthedAccess = */ true));
 
 export const getConnectionInfo = async (connectionId: number, domain: string) => sew(() =>
     withAuth((session) =>
