@@ -50,7 +50,7 @@
 
 Sourcebot is the open source Sourcegraph alternative. Index all your repos and branches across multiple code hosts (GitHub, GitLab, Gitea, or Gerrit) and search through them using a blazingly fast interface.
 
-https://github.com/user-attachments/assets/98d46192-5469-430f-ad9e-5c042adbb10d
+https://github.com/user-attachments/assets/ced355f3-967e-4f37-ae6e-74ab8c06b9ec
 
 
 ## Features
