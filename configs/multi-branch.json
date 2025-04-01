@@ -1,7 +1,7 @@
 {
-    "$schema": "../schemas/v2/index.json",
-    "repos": [
-        {
+    "$schema": "../schemas/v3/index.json",
+    "connections": {
+        "example-1": {
             "type": "github",
             "revisions": {
                  // Specify branches to index...
@@ -22,5 +22,5 @@
                 "org/repob"
             ]
         }
-   ]
+    }
 }

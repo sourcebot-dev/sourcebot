@@ -1,15 +1,14 @@
 {
-    "$schema": "../schemas/v2/index.json",
+    "$schema": "../schemas/v3/index.json",
     // Note: to include private repositories, you must provide an authentication token.
     // See: configs/auth.json for a example.
-    "repos": [
+    "connections": {
         // From GitHub, include:
         // - all public repos owned by user `torvalds`
         // - all public repos owned by organization `commai`
         // - repo `sourcebot-dev/sourcebot`
-        {
+        "example-1": {
             "type": "github",
-            "token": "my-token",
             "users": [
                 "torvalds"
             ],
@@ -24,9 +23,8 @@
         // - all public projects owned by user `brendan67`
         // - all public projects in group `my-group` and sub-group `sub-group`
         // - project `my-group/project1`
-        {
+        "example-2": {
             "type": "gitlab",
-            "token": "my-token",
             "users": [
                 "brendan67"
             ],
@@ -42,9 +40,8 @@
         // - all public repos owned by user `my-user`
         // - all public repos owned by organization `my-org`
         // - repo `my-org/my-repo`
-        {
+        "example-3": {
             "type": "gitea",
-            "token": "my-token",
             "users": [
                 "my-user"
             ],
@@ -54,20 +51,6 @@
             "repos": [
                 "my-org/my-repo"
             ]
-        },
-        // Index a local repository
-        {
-            "type": "local",
-            "path": "/path/to/local/repo"
-        },
-        // Index all projects in a self-hosted GitLab instance
-        // that are visible to the provided token.
-        // Note: this does not work with gitlab.com
-        {
-            "type": "gitlab",
-            "url": "https://gitlab.example.com",
-            "token": "my-token",
-            "all": true
         }
-    ]
+    }
 }

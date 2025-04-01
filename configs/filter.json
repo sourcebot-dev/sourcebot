@@ -1,12 +1,11 @@
 {
-    "$schema": "../schemas/v2/index.json",
-    "repos": [
+    "$schema": "../schemas/v3/index.json",
+    "connections": {
         // Include all repos in my-org, except:
         // - repo1 & repo2
         // - repos that are archived or forks
-        {
+        "example-1": {
             "type": "github",
-            "token": "my-token",
             "orgs": [
                 "my-org"
             ],
@@ -25,9 +24,8 @@
         // Include all projects in my-group, except:
         // - project1 & project2
         // - projects that are archived or forks
-        {
+        "example-2": {
             "type": "gitlab",
-            "token": "my-token",
             "groups": [
                 "my-group"
             ],
@@ -46,9 +44,8 @@
         // Include all repos in my-org, except:
         // - repo1 & repo2
         // - repos that are archived or forks
-        {
+        "example-3": {
             "type": "gitea",
-            "token": "my-token",
             "orgs": [
                 "my-org"
             ],
@@ -66,7 +63,7 @@
         // Include all repos in my-org that have the topic
         // "TypeScript" and do not have a topic that starts
         // with "test-"
-        {
+        "example-4": {
             "type": "github",
             "orgs": [
                 "my-org"
@@ -83,7 +80,7 @@
         // Include all repos in my-group that have the topic
         // "TypeScript" and do not have a topic that starts
         // with "test-"
-        {
+        "example-5": {
             "type": "gitlab",
             "groups": [
                 "my-group"
@@ -97,5 +94,5 @@
                 ]
             }
         }
-    ]
+    }
 }

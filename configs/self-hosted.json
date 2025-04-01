@@ -1,26 +1,26 @@
 {
-    "$schema": "../schemas/v2/index.json",
-    "repos": [
-        {
+    "$schema": "../schemas/v3/index.json",
+    "connections": {
+        "example-1": {
             "type": "github",
             "url": "https://github.example.com",
             "orgs": [
                 "my-org-name"
             ]
         },
-        {
+        "example-2": {
             "type": "gitlab",
             "url": "https://gitlab.example.com",
             "groups": [
                 "my-group"
             ]
         },
-        {
+        "example-3": {
             "type": "gitea",
             "url": "https://gitea.example.com",
             "orgs": [
                 "my-org-name"
             ]
         }
-    ]
+    }
 }
