@@ -2,4 +2,12 @@
 title: Roles and Permissions
 ---
 
-todo
+<Note>Looking to sync permissions with your identify provider? We're working on it - [reach out](https://www.sourcebot.dev/contact) to us to learn more</Note>
+
+If you're using Sourcebot Cloud, or are self-hosting with [authentication](/self-hosting/more/authentication) enabled, you may have multiple members in your organization. Each
+member has a role which defines their permissions:
+
+| Role | Permission |
+| :--- | :--------- |
+| `Owner` | Each organization has a single `Owner`. This user has full access rights, including: connection management, organization management, and inviting new members. |
+| `Member` | Read-only access to the organization. A `Member` can search across the repos indexed by an organization's connections, but may not manage the organization or its connections. |
