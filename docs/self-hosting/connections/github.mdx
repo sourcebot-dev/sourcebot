@@ -8,7 +8,7 @@ Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub En
 ## Examples
 
 <AccordionGroup>
-    <Accordion title="Index individual repos">
+    <Accordion title="Sync individual repos">
         ```json
         {
             "type": "github",
@@ -20,7 +20,7 @@ Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub En
         }
         ```
     </Accordion>
-    <Accordion title="Index all repos in a organization">
+    <Accordion title="Sync all repos in a organization">
         ```json
         // Sync all repos in sourcebot-dev, getsentry, and vercel (visible to the provided token, if any)
         {
@@ -33,21 +33,51 @@ Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub En
         }
         ```
     </Accordion>
-    <Accordion title="Index all repos owned by a user">
+    <Accordion title="Sync all repos owned by a user">
         ```json
         {
             "type": "github",
-            "orgs": [
-                "sourcebot-dev",
-                "getsentry",
-                "vercel"
+            "users": [
+                "torvalds",
+                "ggerganov"
             ]
         }
         ```
     </Accordion>
-    <Accordion title="Index specific repos">
+    <Accordion title="Exclude repos from syncing">
         ```json
-            
+        {
+            "type": "github",
+            // Include all repos in my-org...
+            "orgs": [
+                "my-org"
+            ],
+            // ...except:
+            "exclude": {
+                // repos that are archived
+                "archived": true,
+                // repos that are forks
+                "forks": true,
+                // repos that match these glob patterns
+                "repos": [
+                    "my-org/repo1",
+                    "my-org/repo2",
+                    "my-org/sub-org-1/**",
+                    "my-org/sub-org-*/**"
+                ],
+                "size": {
+                    // repos that are less than 1MB (in bytes)...
+                    "min": 1048576,
+                    // or repos greater than 100MB (in bytes)
+                    "max": 104857600 
+                },
+                // repos with topics that match these glob patterns
+                "topics": [
+                    "test-*",
+                    "ci"
+                ]
+            }
+        }
         ```
     </Accordion>
 </AccordionGroup>
