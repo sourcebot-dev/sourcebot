@@ -3,8 +3,137 @@ title: Linking code from Gitea
 sidebarTitle: Gitea
 ---
 
-todo
+Sourcebot can sync code from Gitea Cloud, and self-hosted.
 
+## Examples
+
+<AccordionGroup>
+    <Accordion title="Sync individual repos">
+        ```json
+        {
+            "type": "gitea",
+            "repos": [
+                "sourcebot-dev/sourcebot",
+                "getsentry/sentry",
+                "torvalds/linux"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Sync all repos in a organization">
+        ```json
+        {
+            "type": "gitea",
+            "orgs": [
+                "sourcebot-dev",
+                "getsentry",
+                "vercel"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Sync all repos owned by a user">
+        ```json
+        {
+            "type": "gitea",
+            "users": [
+                "torvalds",
+                "ggerganov"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Exclude repos from syncing">
+        ```json
+        {
+            "type": "gitea",
+            // Include all repos in my-org...
+            "orgs": [
+                "my-org"
+            ],
+            // ...except:
+            "exclude": {
+                // repos that are archived
+                "archived": true,
+                // repos that are forks
+                "forks": true,
+                // repos that match these glob patterns
+                "repos": [
+                    "my-org/repo1",
+                    "my-org/repo2",
+                    "my-org/sub-org-1/**",
+                    "my-org/sub-org-*/**"
+                ]
+            }
+        }
+        ```
+    </Accordion>
+</AccordionGroup>
+
+## Authenticating with Gitea
+
+In order to index private repositories, you'll need to generate a Gitea access token. Generate a Gitea access token [here](http://gitea.com/user/settings/applications). At minimum, you'll need to select the `read:repository` scope. `read:user` and `read:organization` are required for the `user` and `org` fields of your config file:
+
+![Gitea Access token creation](/images/gitea_pat_creation.png)
+
+Next, provide the PAT via the `token` property, either as an environment variable or a secret:
+
+<Tabs>
+    <Tab title="Environment Variable">
+        <Note>Environment variables are only supported in a [declarative config](/self-hosting/more/declarative-config) and cannot be used in the web UI.</Note>
+
+        1. Add the `token` property to your connection config:
+        ```json
+        {
+            "type": "gitea",
+            "token": {
+                // note: this env var can be named anything. It
+                // doesn't need to be `GITHUB_TOKEN`.
+                "env": "GITHUB_TOKEN"
+            }
+            // .. rest of config ..
+        }
+        ```
+
+        2. Pass this environment variable each time you run Sourcebot:
+        ```bash
+            docker run -e GITHUB_TOKEN=<PAT> ... ghcr.io/sourcebot-dev/sourcebot:latest
+        ```
+    </Tab>
+
+    <Tab title="Secret">
+        <Note>Secrets are only supported when [authentication](/self-hosting/more/authentication) is enabled.</Note>
+
+        1. Navigate to **Secrets** in settings and create a new secret with your PAT:
+
+        ![](/images/secrets_list.png)
+
+        2. Add the `token` property to your connection config:
+
+        ```json
+        {
+            "type": "gitea",
+            "token": {
+                "secret": "mysecret"
+            }
+            // .. rest of config ..
+        }
+        ```
+
+    </Tab>
+</Tabs>
+
+## Connecting to a custom GitHub host
+
+To connect to a GitHub host other than `github.com`, provide the `url` property to your config:
+
+```json
+{
+    "type": "gitea",
+    "url": "https://github.example.com"
+    // .. rest of config ..
+}
+```
 
 ## Schema reference
 

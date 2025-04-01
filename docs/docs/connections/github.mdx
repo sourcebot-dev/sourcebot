@@ -1,25 +1,26 @@
 ---
-title: GitHub Connection
+title: Linking code from GitHub
 sidebarTitle: GitHub
-icon: github
 ---
 
-To search repos on GitHub, you'll create a GitHub Connection. Using this connection, you can:
-- Index individual GitHub repos
-- Index all of the repos in a GitHub organization
-- Index all of the repos from a GitHub user
+Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub Enterprise Cloud.
 
-<Note>If you want to index a private repo/org, make sure you provide an [access token](/docs/access-tokens/overview)</Note>
+## Examples
 
-![GitHub Connection](/images/github_connection.png)
-
-# Config Schema
-
-For a detailed description of the schema, check out the schema file (TODO: link)
-
-<Tabs>
-    <Tab title="Orgs">
-        You can provide a list of orgs to index. Sourcebot will fetch all of the visible repos in these orgs.
+<AccordionGroup>
+    <Accordion title="Sync individual repos">
+        ```json
+        {
+            "type": "github",
+            "repos": [
+                "sourcebot-dev/sourcebot",
+                "getsentry/sentry",
+                "torvalds/linux"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Sync all repos in a organization">
         ```json
         {
             "type": "github",
@@ -28,154 +29,360 @@ For a detailed description of the schema, check out the schema file (TODO: link)
                 "getsentry",
                 "vercel"
             ]
-            // .. additional configs .. 
         }
         ```
-    </Tab>
-    <Tab title="Users">
-        You can provide a list of users to index. Sourcebot will fetch all of the visible repos for these users.
+    </Accordion>
+    <Accordion title="Sync all repos owned by a user">
         ```json
         {
             "type": "github",
             "users": [
-                "msukkari",
-                "brendan-kellem",
-                "torvalds"
+                "torvalds",
+                "ggerganov"
             ]
-            // .. additional configs .. 
         }
         ```
-    </Tab>
-    <Tab title="Repos">
-        You can provide a list of repos to index. These must be provided in the `<owner>/<repo_name>` syntax.
+    </Accordion>
+    <Accordion title="Filter repos by topic">
         ```json
         {
             "type": "github",
-            "repos": [
-                "sourcebot-dev/sourcebot",
-                "facebook/react"
+            // Sync all repos in `my-org` that have a topic that...
+            "orgs": [
+                "my-org"
+            ],
+            // ...match one of these glob patterns.
+            "topics": [
+                "test-*",
+                "ci-*",
+                "k8s"
             ]
-            // .. additional configs .. 
         }
+
         ```
-    </Tab>
-    <Tab title="Custom URL">
-        If you're self-hosting you're own GitHub instance, you can provide a link to it:
+    </Accordion>
+    <Accordion title="Exclude repos from syncing">
         ```json
         {
             "type": "github",
-            "url": {
-                "https://my.custom.github.com"
+            // Include all repos in my-org...
+            "orgs": [
+                "my-org"
+            ],
+            // ...except:
+            "exclude": {
+                // repos that are archived
+                "archived": true,
+                // repos that are forks
+                "forks": true,
+                // repos that match these glob patterns
+                "repos": [
+                    "my-org/repo1",
+                    "my-org/repo2",
+                    "my-org/sub-org-1/**",
+                    "my-org/sub-org-*/**"
+                ],
+                "size": {
+                    // repos that are less than 1MB (in bytes)...
+                    "min": 1048576,
+                    // or repos greater than 100MB (in bytes)
+                    "max": 104857600 
+                },
+                // repos with topics that match these glob patterns
+                "topics": [
+                    "test-*",
+                    "ci"
+                ]
             }
-            // .. additional configs .. 
         }
         ```
-    </Tab>
-    <Tab title="Token">
-        If you'd like to index private repos, make sure you provide a token. You can do so by referencing the [secret](/docs/access-tokens/secrets) that contains your token.
+    </Accordion>
+</AccordionGroup>
+
+## Authenticating with GitHub
+
+In order to index private repositories, you'll need to generate a GitHub Personal Access Token (PAT). Create a new PAT [here](https://github.com/settings/tokens/new) and make sure you select the `repo` scope:
+
+![GitHub PAT Scope](/images/github_pat_scopes.png)
+
+Next, provide the PAT via the `token` property, either as an environment variable or a secret:
+
+<Tabs>
+    <Tab title="Environment Variable">
+        <Note>Environment variables are only supported in a [declarative config](/self-hosting/more/declarative-config) and cannot be used in the web UI.</Note>
+
+        1. Add the `token` property to your connection config:
         ```json
         {
             "type": "github",
             "token": {
-                "secret": "MY_SECRET"
+                // note: this env var can be named anything. It
+                // doesn't need to be `GITHUB_TOKEN`.
+                "env": "GITHUB_TOKEN"
             }
-            // .. additional configs ..
+            // .. rest of config ..
         }
         ```
+
+        2. Pass this environment variable each time you run Sourcebot:
+        ```bash
+            docker run -e GITHUB_TOKEN=<PAT> ... ghcr.io/sourcebot-dev/sourcebot:latest
+        ```
     </Tab>
-</Tabs>
 
-### Filter Options
+    <Tab title="Secret">
+        <Note>Secrets are only supported when [authentication](/self-hosting/more/authentication) is enabled.</Note>
 
-This connection type supports additional options for filtering which repos are indexed.
+        1. Navigate to **Secrets** in settings and create a new secret with your PAT:
 
-<Tabs>
-    <Tab title="Topics">
-        You can provide a list of repository topics to include while fetching the repos. Only repos that match at least one of these topics will be fetched.
+        ![](/images/secrets_list.png)
+
+        2. Add the `token` property to your connection config:
+
         ```json
         {
             "type": "github",
-            "topics": [
-                "docs",
-                "core"
+            "token": {
+                "secret": "mysecret"
+            }
+            // .. rest of config ..
+        }
+        ```
+
+    </Tab>
+</Tabs>
+
+## Connecting to a custom GitHub host
+
+To connect to a GitHub host other than `github.com`, provide the `url` property to your config:
+
+```json
+{
+    "type": "github",
+    "url": "https://github.example.com"
+    // .. rest of config ..
+}
+```
+
+## Schema reference
+
+<Accordion title="Reference">
+[schemas/v3/github.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/github.json)
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "GithubConnectionConfig",
+  "properties": {
+    "type": {
+      "const": "github",
+      "description": "GitHub Configuration"
+    },
+    "token": {
+      "description": "A Personal Access Token (PAT).",
+      "examples": [
+        {
+          "secret": "SECRET_KEY"
+        }
+      ],
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "secret": {
+              "type": "string",
+              "description": "The name of the secret that contains the token."
+            }
+          },
+          "required": [
+            "secret"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "env": {
+              "type": "string",
+              "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+            }
+          },
+          "required": [
+            "env"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "url": {
+      "type": "string",
+      "format": "url",
+      "default": "https://github.com",
+      "description": "The URL of the GitHub host. Defaults to https://github.com",
+      "examples": [
+        "https://github.com",
+        "https://github.example.com"
+      ],
+      "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+    },
+    "users": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[\\w.-]+$"
+      },
+      "default": [],
+      "examples": [
+        [
+          "torvalds",
+          "DHH"
+        ]
+      ],
+      "description": "List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property."
+    },
+    "orgs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[\\w.-]+$"
+      },
+      "default": [],
+      "examples": [
+        [
+          "my-org-name"
+        ],
+        [
+          "sourcebot-dev",
+          "commaai"
+        ]
+      ],
+      "description": "List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property."
+    },
+    "repos": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+      },
+      "default": [],
+      "description": "List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
+    },
+    "topics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "default": [],
+      "description": "List of repository topics to include when syncing. Only repositories that match at least one of the provided `topics` will be synced. If not specified, all repositories will be synced, unless explicitly defined in the `exclude` property. Glob patterns are supported.",
+      "examples": [
+        [
+          "docs",
+          "core"
+        ]
+      ]
+    },
+    "exclude": {
+      "type": "object",
+      "properties": {
+        "forks": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exclude forked repositories from syncing."
+        },
+        "archived": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exclude archived repositories from syncing."
+        },
+        "repos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of individual repositories to exclude from syncing. Glob patterns are supported."
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of repository topics to exclude when syncing. Repositories that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.",
+          "examples": [
+            [
+              "tests",
+              "ci"
             ]
-            // .. additional configs .. 
-        }
-        ```
-    </Tab>
-    <Tab title="Exclude Forks">
-        If enabled, forked repos will be ignored.
-        ```json
-        {
-            "type": "github",
-            "exclude": {
-                "forks": true
-                // .. additional excludes ..
+          ]
+        },
+        "size": {
+          "type": "object",
+          "description": "Exclude repositories based on their disk usage. Note: the disk usage is calculated by GitHub and may not reflect the actual disk usage when cloned.",
+          "properties": {
+            "min": {
+              "type": "integer",
+              "description": "Minimum repository size (in bytes) to sync (inclusive). Repositories less than this size will be excluded from syncing."
+            },
+            "max": {
+              "type": "integer",
+              "description": "Maximum repository size (in bytes) to sync (inclusive). Repositories greater than this size will be excluded from syncing."
             }
-            // .. additional configs .. 
+          },
+          "additionalProperties": false
         }
-        ```
-    </Tab>
-    <Tab title="Exclude Archived">
-        If enabled, archived repos will be ignored.
-        ```json
-        {
-            "type": "github",
-            "exclude": {
-                "archived": true 
-                // .. additional excludes ..
-            }
-            // .. additional configs .. 
+      },
+      "additionalProperties": false
+    },
+    "revisions": {
+      "type": "object",
+      "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+      "properties": {
+        "branches": {
+          "type": "array",
+          "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "main",
+              "release/*"
+            ],
+            [
+              "**"
+            ]
+          ],
+          "default": []
+        },
+        "tags": {
+          "type": "array",
+          "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "latest",
+              "v2.*.*"
+            ],
+            [
+              "**"
+            ]
+          ],
+          "default": []
         }
-        ```
-    </Tab>
-    <Tab title="Exclude Repos">
-        You can provide a list of repos to exclude. These must be provided in the `<owner>/<repo_name>` syntax.
-        ```json
-        {
-            "type": "github",
-            "exclude": {
-                "repos": [
-                    "sourcebot-dev/zoekt",
-                    "torvalds/linux"
-                ]
-                // .. additional excludes ..
-            }
-            // .. additional configs .. 
-        }
-        ```
-    </Tab>
-    <Tab title="Exclude Topics">
-        You can provide a list of topics to ignore. Repos that contain any of these topics will be ignored
-        ```json
-        {
-            "type": "github",
-            "exclude": {
-                "topics": [
-                    "ci",
-                    "experimental"
-                ]
-                // .. additional excludes ..
-            }
-            // .. additional configs ..
-        }
-        ```
-    </Tab>
-    <Tab title="Exclude by Size">
-        <Note>The disk usage is calculated by GitHub and may not reflect the actual disk usage when cloned</Note>
-        Exclude repos based on their disk usage. Min/max numbers are in bytes.
-        ```json
-        {
-            "type": "github",
-            "exclude": {
-                "size": {
-                    "min": 1000
-                    "max": 1000000000
-                }
-                // .. additional excludes .. 
-            }
-            // .. additional configs .. 
-        }
-        ```
-    </Tab>
-</Tabs>
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "type"
+  ],
+  "additionalProperties": false
+}
+```
+
+</Accordion>

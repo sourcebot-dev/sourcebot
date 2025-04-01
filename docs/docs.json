@@ -26,18 +26,14 @@
                         ]
                     },
                     {
-                        "group": "Connections",
+                        "group": "Connecting your code",
                         "pages": [
                             "docs/connections/overview",
                             "docs/connections/github",
-                            "docs/connections/gitlab"
-                        ]
-                    },
-                    {
-                        "group": "Access Tokens",
-                        "pages": [
-                            "docs/access-tokens/overview",
-                            "docs/access-tokens/secrets"
+                            "docs/connections/gitlab",
+                            "docs/connections/gitea",
+                            "docs/connections/gerrit",
+                            "docs/connections/request-new"
                         ]
                     },
                     {
@@ -56,15 +52,6 @@
                         "group": "Getting Started",
                         "pages": [
                             "self-hosting/overview",
-                            {
-                                "group": "Connecting your code",
-                                "pages": [
-                                    "self-hosting/connections/github",
-                                    "self-hosting/connections/gitlab",
-                                    "self-hosting/connections/gitea",
-                                    "self-hosting/connections/gerrit"
-                                ]
-                            },
                             "self-hosting/configuration"
                         ]
                     },

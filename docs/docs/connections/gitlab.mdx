@@ -1,175 +1,381 @@
 ---
-title: GitLab Connection
+title: Linking code from GitLab
 sidebarTitle: GitLab
-icon: gitlab
 ---
 
-To search projects on GitLab, you'll create a GitLab Connection. Using this connection, you can:
-- Index individual GitLab projects
-- Index all of the projects in a GitLab group/sub-group 
-- Index all of the projects from a GitLab user
+Sourcebot can sync code from GitLab.com, Self Managed (CE & EE), and Dedicated.
 
-<Note>If you want to index a private project/group, make sure you provide an [access token](/docs/access-tokens/overview)</Note>
 
-![GitLab Connection](/images/gitlab_connection.png)
+## Examples
 
-# Config Schema
-
-For a detailed description of the schema, check out the schema file (TODO: link)
-
-<Tabs>
-    <Tab title="All Visible">
-        <Note>This flag only works if your GitLab instance url is set and not equal to https://gitlab.com. Make sure you provide a [secret](/docs/access-tokens/secrets) containing the necessary access token to fetch your projects.</Note>
-        If you'd like to index all projects visible to your GitLab instance, you can use the `all` flag.
-        ```json
-            {
-                "type": "gitlab",
-                "all": "true",
-                "url": "https://gitlab.aperaturelabs.com" // This is required, and cannot be https://gitlab.com
-                "token": {
-                    "secret": "MY_SECRET_KEY_NAME" // the name of the secret you created in Sourcebot
-                }
-            }
-        ```
-    </Tab>
-    <Tab title="Groups">
-        You can provide a list of groups (and recursive sub-groups) to index. Sourcebot will fetch all of the visible projects in these groups. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`)
-        ```json
-        {
-            "type": "gitlab",
-            "groups": [
-                "gitlab-org/api",
-                "veloren"
-            ]
-            // .. additional configs .. 
-        }
-        ```
-    </Tab>
-    <Tab title="Users">
-        You can provide a list of users to index. Sourcebot will fetch all of the visible projects for these users.
-        ```json
-        {
-            "type": "gitlab",
-            "users": [
-                "gnachman"
-            ]
-            // .. additional configs .. 
-        }
-        ```
-    </Tab>
-    <Tab title="Projects">
-        You can provide a list of projects to index. These must be provided in the `<owner>/<project_name>` syntax.
+<AccordionGroup>
+    <Accordion title="Sync individual projects">
         ```json
         {
             "type": "gitlab",
             "projects": [
-                "inkscape/inkscape",
-                "wireshark/wireshark"
+                "my-group/foo",
+                "my-group/subgroup/bar"
             ]
-            // .. additional configs .. 
         }
         ```
-    </Tab>
-    <Tab title="Custom URL">
-        If you're self-hosting you're own GitLab instance, you can provide a link to it:
+    </Accordion>
+    <Accordion title="Sync all projects in a group/subgroup">
         ```json
         {
             "type": "gitlab",
-            "url": {
-                "https://gitlab.aperaturelabs.com"
-            }
-            // .. additional configs .. 
+            "groups": [
+                "my-group",
+                "my-other-group/sub-group"
+            ]
         }
         ```
-    </Tab>
-    <Tab title="Token">
-        If you'd like to index private projects, make sure you provide a token. You can do so by referencing the [secret](/docs/access-tokens/secrets) that contains your token.
+    </Accordion>
+    <Accordion title="Sync all projects in a self managed instance">
+        <Note>This option is ignored if `url` is unset. See [connecting to a custom gitlab host](/docs/connections/gitlab#connecting-to-a-custom-gitlab-host).</Note>
+        ```json
+        {
+            "type": "gitlab",
+            "url": "https://gitlab.example.com",
+            // Index all projects in this self-managed instance
+            "all": true
+        }
+        ```
+    </Accordion>
+    <Accordion title="Sync all projects owned by a user">
+        ```json
+        {
+            "type": "gitlab",
+            "users": [
+                "user-1",
+                "user-2"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Filter projects by topic">
+        ```json
+        {
+            "type": "gitlab",
+            // Sync all projects in `my-group` that have a topic that...
+            "groups": [
+                "my-group"
+            ],
+            // ...match one of these glob patterns.
+            "topics": [
+                "test-*",
+                "ci-*",
+                "k8s"
+            ]
+        }
+
+        ```
+    </Accordion>
+    <Accordion title="Exclude projects from syncing">
+        ```json
+        {
+            "type": "gitlab",
+            // Include all projects in these groups...
+            "groups": [
+                "my-group",
+                "my-other-group/sub-group"
+            ]
+            // ...except:
+            "exclude": {
+                // projects that are archived
+                "archived": true,
+                // projects that are forks
+                "forks": true,
+                // projects that match these glob patterns
+                "projects": [
+                    "my-group/foo/**",
+                    "my-group/bar/**",
+                    "my-other-group/sub-group/specific-project"
+                ],
+                // repos with topics that match these glob patterns
+                "topics": [
+                    "test-*",
+                    "ci"
+                ]
+            }
+        }
+        ```
+    </Accordion>
+</AccordionGroup>
+
+
+## Authenticating with GitLab
+
+In order to index private projects, you'll need to generate a GitLab Personal Access Token (PAT). Create a new PAT [here](https://gitlab.com/-/user_settings/personal_access_tokens) and make sure you select the `read_api` scope:
+
+![GitLab PAT Scope](/images/gitlab_pat_scopes.png)
+
+Next, provide the PAT via the `token` property, either as an environment variable or a secret:
+
+<Tabs>
+    <Tab title="Environment Variable">
+        <Note>Environment variables are only supported in a [declarative config](/self-hosting/more/declarative-config) and cannot be used in the web UI.</Note>
+
+        1. Add the `token` property to your connection config:
         ```json
         {
             "type": "gitlab",
             "token": {
-                "secret": "MY_SECRET_KEY_NAME"
+                // note: this env var can be named anything. It
+                // doesn't need to be `GITLAB_TOKEN`.
+                "env": "GITLAB_TOKEN"
             }
-            // .. additional configs .. 
+            // .. rest of config ..
         }
         ```
+
+        2. Pass this environment variable each time you run Sourcebot:
+        ```bash
+            docker run -e GITLAB_TOKEN=<PAT> ... ghcr.io/sourcebot-dev/sourcebot:latest
+        ```
     </Tab>
-</Tabs>
 
-### Filter Options
+    <Tab title="Secret">
+        <Note>Secrets are only supported when [authentication](/self-hosting/more/authentication) is enabled.</Note>
 
-This connection type supports additional options for filtering which projects are indexed.
+        1. Navigate to **Secrets** in settings and create a new secret with your PAT:
 
-<Tabs>
-    <Tab title="Topics">
-        You can provide a list of repository topics to include while fetching the projects. Only projects that match at least one of these topics will be fetched.
+        ![](/images/secrets_list.png)
+
+        2. Add the `token` property to your connection config:
+
         ```json
         {
             "type": "gitlab",
-            "topics": [
-                "docs",
-                "core"
+            "token": {
+                "secret": "mysecret"
+            }
+            // .. rest of config ..
+        }
+        ```
+
+    </Tab>
+</Tabs>
+
+## Connecting to a custom GitLab host
+
+To connect to a GitLab host other than `gitlab.com`, provide the `url` property to your config:
+
+```json
+{
+    "type": "gitlab",
+    "url": "https://gitlab.example.com"
+    // .. rest of config ..
+}
+```
+
+## Schema reference
+
+<Accordion title="Reference">
+[schemas/v3/gitlab.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/gitlab.json)
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "GitlabConnectionConfig",
+  "properties": {
+    "type": {
+      "const": "gitlab",
+      "description": "GitLab Configuration"
+    },
+    "token": {
+      "description": "An authentication token.",
+      "examples": [
+        {
+          "secret": "SECRET_KEY"
+        }
+      ],
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "secret": {
+              "type": "string",
+              "description": "The name of the secret that contains the token."
+            }
+          },
+          "required": [
+            "secret"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "env": {
+              "type": "string",
+              "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+            }
+          },
+          "required": [
+            "env"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "url": {
+      "type": "string",
+      "format": "url",
+      "default": "https://gitlab.com",
+      "description": "The URL of the GitLab host. Defaults to https://gitlab.com",
+      "examples": [
+        "https://gitlab.com",
+        "https://gitlab.example.com"
+      ],
+      "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+    },
+    "all": {
+      "type": "boolean",
+      "default": false,
+      "description": "Sync all projects visible to the provided `token` (if any) in the GitLab instance. This option is ignored if `url` is either unset or set to https://gitlab.com ."
+    },
+    "users": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of users to sync with. All projects owned by the user and visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property."
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "examples": [
+        [
+          "my-group"
+        ],
+        [
+          "my-group/sub-group-a",
+          "my-group/sub-group-b"
+        ]
+      ],
+      "description": "List of groups to sync with. All projects in the group (and recursive subgroups) visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`)."
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "examples": [
+        [
+          "my-group/my-project"
+        ],
+        [
+          "my-group/my-sub-group/my-project"
+        ]
+      ],
+      "description": "List of individual projects to sync with. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/"
+    },
+    "topics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "description": "List of project topics to include when syncing. Only projects that match at least one of the provided `topics` will be synced. If not specified, all projects will be synced, unless explicitly defined in the `exclude` property. Glob patterns are supported.",
+      "examples": [
+        [
+          "docs",
+          "core"
+        ]
+      ]
+    },
+    "exclude": {
+      "type": "object",
+      "properties": {
+        "forks": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exclude forked projects from syncing."
+        },
+        "archived": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exclude archived projects from syncing."
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "examples": [
+            [
+              "my-group/my-project"
             ]
-            // .. additional configs .. 
+          ],
+          "description": "List of projects to exclude from syncing. Glob patterns are supported. The project's namespace must be specified, see: https://docs.gitlab.com/ee/user/namespace/"
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of project topics to exclude when syncing. Projects that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.",
+          "examples": [
+            [
+              "tests",
+              "ci"
+            ]
+          ]
         }
-        ```
-    </Tab>
-    <Tab title="Exclude Forks">
-        If enabled, forked projects will be ignored.
-        ```json
-        {
-            "type": "gitlab",
-            "exclude": {
-                "forks": true
-                // .. additional excludes ..
-            }
-            // .. additional configs .. 
+      },
+      "additionalProperties": false
+    },
+    "revisions": {
+      "type": "object",
+      "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+      "properties": {
+        "branches": {
+          "type": "array",
+          "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "main",
+              "release/*"
+            ],
+            [
+              "**"
+            ]
+          ],
+          "default": []
+        },
+        "tags": {
+          "type": "array",
+          "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "latest",
+              "v2.*.*"
+            ],
+            [
+              "**"
+            ]
+          ],
+          "default": []
         }
-        ```
-    </Tab>
-    <Tab title="Exclude Archived">
-        If enabled, archived projects will be ignored.
-        ```json
-        {
-            "type": "gitlab",
-            "exclude": {
-                "archived": true 
-                // .. additional excludes ..
-            }
-            // .. additional configs .. 
-        }
-        ```
-    </Tab>
-    <Tab title="Exclude Projects">
-        You can provide a list of projects to exclude. These must be provided in the `<owner>/<repo_name>` syntax.
-        ```json
-        {
-            "type": "gitlab",
-            "exclude": {
-                "projects": [
-                    "sourcebot-dev/zoekt",
-                    "torvalds/linux"
-                ]
-                // .. additional excludes ..
-            }
-            // .. additional configs .. 
-        }
-        ```
-    </Tab>
-    <Tab title="Exclude Topics">
-        You can provide a list of topics to ignore. Projects that contain any of these topics will be ignored
-        ```json
-        {
-            "type": "gitlab",
-            "exclude": {
-                "topics": [
-                    "ci",
-                    "experimental"
-                ]
-                // .. additional excludes ..
-            }
-            // .. additional configs ..
-        }
-        ```
-    </Tab>
-</Tabs>
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "type"
+  ],
+  "additionalProperties": false
+}
+```
+</Accordion>
