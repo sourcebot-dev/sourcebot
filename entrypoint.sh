@@ -29,11 +29,11 @@ if [ ! -d "$DATA_CACHE_DIR" ]; then
     mkdir -p "$DATA_CACHE_DIR"
 fi
 
-# Check if DB_DATA_DIR exists, if not initialize it
-if [ ! -d "$DB_DATA_DIR" ]; then
-    echo -e "\e[34m[Info] Initializing database at $DB_DATA_DIR...\e[0m"
-    mkdir -p $DB_DATA_DIR && chown -R postgres:postgres "$DB_DATA_DIR"
-    su postgres -c "initdb -D $DB_DATA_DIR"
+# Check if DATABASE_DATA_DIR exists, if not initialize it
+if [ ! -d "$DATABASE_DATA_DIR" ]; then
+    echo -e "\e[34m[Info] Initializing database at $DATABASE_DATA_DIR...\e[0m"
+    mkdir -p $DATABASE_DATA_DIR && chown -R postgres:postgres "$DATABASE_DATA_DIR"
+    su postgres -c "initdb -D $DATABASE_DATA_DIR"
 fi
 
 # Create the redis data directory if it doesn't exist
@@ -130,20 +130,20 @@ echo "{\"version\": \"$NEXT_PUBLIC_SOURCEBOT_VERSION\", \"install_id\": \"$SOURC
 
 # Start the database and wait for it to be ready before starting any other service
 if [ "$DATABASE_URL" = "postgresql://postgres@localhost:5432/sourcebot" ]; then
-    su postgres -c "postgres -D $DB_DATA_DIR" &
+    su postgres -c "postgres -D $DATABASE_DATA_DIR" &
     until pg_isready -h localhost -p 5432 -U postgres; do
         echo -e "\e[34m[Info] Waiting for the database to be ready...\e[0m"
         sleep 1
     done
 
     # Check if the database already exists, and create it if it dne
-    EXISTING_DB=$(psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'")
+    EXISTING_DB=$(psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'sourcebot'")
 
     if [ "$EXISTING_DB" = "1" ]; then
-        echo "Database '$DB_NAME' already exists; skipping creation."
+        echo "Database 'sourcebot' already exists; skipping creation."
     else
-        echo "Creating database '$DB_NAME'..."
-        psql -U postgres -c "CREATE DATABASE \"$DB_NAME\""
+        echo "Creating database 'sourcebot'..."
+        psql -U postgres -c "CREATE DATABASE \"sourcebot\""
     fi
 fi
 

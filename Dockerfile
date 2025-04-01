@@ -164,20 +164,14 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATA_DIR=/data
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
-ENV DB_DATA_DIR=$DATA_CACHE_DIR/db
+ENV DATABASE_DATA_DIR=$DATA_CACHE_DIR/db
 ENV REDIS_DATA_DIR=$DATA_CACHE_DIR/redis
-ENV DB_NAME=sourcebot
-ENV DATABASE_URL="postgresql://postgres@localhost:5432/$DB_NAME"
+ENV DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
 ENV REDIS_URL="redis://localhost:6379"
 ENV SRC_TENANT_ENFORCEMENT_MODE=strict
 
 # Valid values are: debug, info, warn, error
 ENV SOURCEBOT_LOG_LEVEL=info
-
-# Configures the sub-path of the domain to serve Sourcebot from.
-# For example, if DOMAIN_SUB_PATH is set to "/sb", Sourcebot
-# will serve from http(s)://example.com/sb
-ENV DOMAIN_SUB_PATH=/
 
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1

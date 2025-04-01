@@ -1,0 +1,59 @@
+---
+title: Configuration
+sidebarTitle: Configuration
+---
+
+
+## Environment Variables
+
+Sourcebot accepts a variety of environment variables to fine tune your deployment.
+
+| Variable | Default | Description |
+| :------- | :------ | :---------- |
+| `SOURCEBOT_LOG_LEVEL` | `info` | The Sourcebot logging level. Valid values are `debug`, `info`, `warn`, `error`, in order of severity. |
+| `DATABASE_URL` | `postgresql://postgres@ localhost:5432/sourcebot` | Connection string of your Postgres database. By default, a Postgres database is automatically provisioned at startup within the container. |
+| `REDIS_URL` | `redis://localhost:6379` | Connection string of your Redis instance. By default, a Redis database is automatically provisioned at startup within the container. |
+| `SOURCEBOT_ENCRYPTION_KEY` | - | Used to encrypt connection secrets. Generated using `openssl rand -base64 24`. Automatically generated at startup if no value is provided. |
+| `AUTH_SECRET` | - | Used to validate login session cookies. Generated using `openssl rand -base64 33`. Automatically generated at startup if no value is provided. |
+| `AUTH_URL` | - | URL of your Sourcebot deployment, e.g., `https://example.com` or `http://localhost:3000`. Required when `SOURCEBOT_AUTH_ENABLED` is `true`. |
+| `SOURCEBOT_TENANCY_MODE` | `single` | The tenancy configuration for Sourcebot. Valid values are `single` or `multi`. See [this doc](/self-hosting/more/tenancy) for more info. |
+| `SOURCEBOT_AUTH_ENABLED` | `false` | Enables/disables authentication in Sourcebot. If set to `false`, `SOURCEBOT_TENANCY_MODE` must be `single`. See [this doc](/self-hosting/more/authentication) for more info. |
+| `SOURCEBOT_TELEMETRY_DISABLED` | `false` | Enables/disables telemetry collection in Sourcebot. See [this doc](/self-hosting/security/telemetry) for more info. |
+| `DATA_DIR` | `/data` | The directory within the container to store all persistent data. Typically, this directory will be volume mapped such that data is persisted across container restarts (e.g., `docker run -v $(pwd):/data`) |
+| `DATA_CACHE_DIR` | `$DATA_DIR/.sourcebot` | The root data directory in which all data written to disk by Sourcebot will be located. |
+| `DATABASE_DATA_DIR` | `$DATA_CACHE_DIR/db` | The data directory for the default Postgres database. |
+| `REDIS_DATA_DIR` | `$DATA_CACHE_DIR/redis` | The data directory for the default Redis instance. |
+
+
+## Additional Features
+
+There are additional features that can be enabled and configured via environment variables.
+
+<CardGroup cols={2}>
+  <Card horizontal title="Authentication" icon="lock" href="/self-hosting/more/authentication" />
+  <Card horizontal title="Tenancy" icon="users" href="/self-hosting/more/tenancy" />
+  <Card horizontal title="Transactional Emails" icon="envelope" href="/self-hosting/more/transactional-emails" />
+  <Card horizontal title="Declarative Configs" icon="page" href="/self-hosting/more/declarative-config" />
+</CardGroup>
+
+## Health Check and Version Endpoints
+
+Sourcebot includes a health check endpoint that indicates if the application is alive, returning `200 OK` if it is:
+
+```sh
+curl http://localhost:3000/api/health
+```
+
+It also includes a version endpoint to check the current version of the application:
+
+```sh
+curl http://localhost:3000/api/version
+```
+
+Sample response:
+
+```json
+{
+    "version": "v3.0.0"
+}
+```

@@ -1,20 +1,33 @@
 ---
-title: "Connections"
-sidebarTitle: "Connections"
-icon: "plug"
+title: Overview
+sidebarTitle: Overview
 ---
 
-import ConnectionCards from '/snippets/connection-cards.mdx';
+To connect your code to Sourcebot you create **connections**. A **connection** is a configuration object that describes how Sourcebot should fetch information from a supported code host.
 
-Connections are how you tell Sourcebot what repositories you want to index. 
+There are two ways to define connections:
 
-To index your code, you'll create a connection to your code host platform and tell Sourcebot which repos/users/orgs to fetch, as well as other information Sourcebot may need (ex. access tokens, instance URLs)
+<AccordionGroup>
+    <Accordion title="Declarative configuration file">
+        This is only supported when self-hosting, and is the default mechanism to define connections. Connections are defined in a [JSON file](/self-hosting/more/declarative-config)
+        and the path to the file is provided through the `CONFIG_PATH` environment variable
+    </Accordion>
+    <Accordion title="UI connection management">
+        This is the only way to define connections when using Sourcebot Cloud, and can be configured when self-hosting by enabling [authentication](/self-hosting/more/authentications).
 
-You can view your connections by pressing `Connections` in the nav menu:  
+        In this method, connections are defined and managed within the webapp:
 
-![Connections Nav](/images/connection_nav.png)
+        ![Connections page](/images/connection_page.png)
+    </Accordion>
+</AccordionGroup>
 
-# Platform Support
+### Supported code hosts
 
-Sourcebot can index repositories across various different code host platforms
-<ConnectionCards/>
+<CardGroup cols={2}>
+    <Card horizontal title="GitHub" icon="github" href="/docs/connections/github" />
+    <Card horizontal title="GitLab" icon="gitlab" href="/docs/connections/gitlab" />
+    <Card horizontal title="Gitea" href="/docs/connections/gitea" />
+    <Card horizontal title="Gerrit" href="/docs/connections/gerrit" />
+</CardGroup>
+
+<Note>Missing your code host? [Submit a feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas).</Note>

@@ -4,7 +4,7 @@
     "name": "Sourcebot",
     "colors": {
         "primary": "#851EE7",
-        "light": "#851EE7",
+        "light": "#FFFFFF",
         "dark": "#851EE7"
     },
     "favicon": "/fav.svg",
@@ -21,22 +21,25 @@
                         "group": "General",
                         "pages": [
                             "docs/overview",
-                            "docs/getting-started"
+                            "docs/getting-started",
+                            "docs/getting-started-selfhost"
                         ]
                     },
                     {
-                        "group": "Connections",
+                        "group": "Connecting your code",
                         "pages": [
                             "docs/connections/overview",
                             "docs/connections/github",
-                            "docs/connections/gitlab"
+                            "docs/connections/gitlab",
+                            "docs/connections/gitea",
+                            "docs/connections/gerrit",
+                            "docs/connections/request-new"
                         ]
                     },
                     {
-                        "group": "Access Tokens",
+                        "group": "More",
                         "pages": [
-                            "docs/access-tokens/overview",
-                            "docs/access-tokens/secrets"
+                            "docs/more/roles-and-permissions"
                         ]
                     }
                 ]
@@ -48,16 +51,41 @@
                     {
                         "group": "Getting Started",
                         "pages": [
-                            "self-hosting/overview"
+                            "self-hosting/overview",
+                            "self-hosting/configuration"
                         ]
                     },
                     {
-                        "group": "Deployment",
+                        "group": "More",
                         "pages": [
-                            "self-hosting/deployment/source"
+                            "self-hosting/more/authentication",
+                            "self-hosting/more/tenancy",
+                            "self-hosting/more/transactional-emails",
+                            "self-hosting/more/declarative-config"
+                        ]
+                    },
+                    {
+                        "group": "Security",
+                        "pages": [
+                        ]
+                    },
+                    {
+                        "group": "Upgrade",
+                        "pages": [
+                            "self-hosting/upgrade/v2-to-v3-guide"
                         ]
                     }
                 ]
+            },
+            {
+                "anchor": "Changelog",
+                "href": "https://sourcebot.dev/changelog",
+                "icon": "list-check"
+            },
+            {
+                "anchor": "Support",
+                "href": "https://github.com/sourcebot-dev/sourcebot/discussions/categories/support",
+                "icon": "life-ring"
             }
         ]
     },
@@ -68,14 +96,14 @@
     "navbar": {
         "links": [
             {
-                "label": "Support",
-                "href": "mailto:team@sourcebot.dev"
+                "label": "GitHub",
+                "href": "https://github.com/sourcebot-dev/sourcebot"
             }
         ],
         "primary": {
             "type": "button",
-            "label": "Login",
-            "href": "https://sourcebot.dev/login"
+            "label": "Sourcebot Cloud",
+            "href": "https://app.sourcebot.dev"
         }
     },
     "footer": {

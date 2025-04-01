@@ -29,7 +29,7 @@ export const env = createEnv({
 
         // Email
         SMTP_CONNECTION_URL: z.string().url().optional(),
-        EMAIL_FROM: z.string().email().optional(),
+        EMAIL_FROM_ADDRESS: z.string().email().optional(),
 
         // Stripe
         STRIPE_SECRET_KEY: z.string().optional(),

@@ -50,10 +50,10 @@ export const getProviders = () => {
         }));
     }
 
-    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM) {
+    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
         providers.push(EmailProvider({
             server: env.SMTP_CONNECTION_URL,
-            from: env.EMAIL_FROM,
+            from: env.EMAIL_FROM_ADDRESS,
             maxAge: 60 * 10,
             generateVerificationToken: async () => {
                 const token = String(Math.floor(100000 + Math.random() * 900000));

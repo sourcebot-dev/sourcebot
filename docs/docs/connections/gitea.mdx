@@ -1,9 +1,9 @@
 ---
-title: Linking code from GitHub
-sidebarTitle: GitHub
+title: Linking code from Gitea
+sidebarTitle: Gitea
 ---
 
-Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub Enterprise Cloud.
+Sourcebot can sync code from Gitea Cloud, and self-hosted.
 
 ## Examples
 
@@ -11,7 +11,7 @@ Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub En
     <Accordion title="Sync individual repos">
         ```json
         {
-            "type": "github",
+            "type": "gitea",
             "repos": [
                 "sourcebot-dev/sourcebot",
                 "getsentry/sentry",
@@ -23,7 +23,7 @@ Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub En
     <Accordion title="Sync all repos in a organization">
         ```json
         {
-            "type": "github",
+            "type": "gitea",
             "orgs": [
                 "sourcebot-dev",
                 "getsentry",
@@ -35,7 +35,7 @@ Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub En
     <Accordion title="Sync all repos owned by a user">
         ```json
         {
-            "type": "github",
+            "type": "gitea",
             "users": [
                 "torvalds",
                 "ggerganov"
@@ -43,28 +43,10 @@ Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub En
         }
         ```
     </Accordion>
-    <Accordion title="Filter repos by topic">
-        ```json
-        {
-            "type": "github",
-            // Sync all repos in `my-org` that have a topic that...
-            "orgs": [
-                "my-org"
-            ],
-            // ...match one of these glob patterns.
-            "topics": [
-                "test-*",
-                "ci-*",
-                "k8s"
-            ]
-        }
-
-        ```
-    </Accordion>
     <Accordion title="Exclude repos from syncing">
         ```json
         {
-            "type": "github",
+            "type": "gitea",
             // Include all repos in my-org...
             "orgs": [
                 "my-org"
@@ -81,17 +63,6 @@ Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub En
                     "my-org/repo2",
                     "my-org/sub-org-1/**",
                     "my-org/sub-org-*/**"
-                ],
-                "size": {
-                    // repos that are less than 1MB (in bytes)...
-                    "min": 1048576,
-                    // or repos greater than 100MB (in bytes)
-                    "max": 104857600 
-                },
-                // repos with topics that match these glob patterns
-                "topics": [
-                    "test-*",
-                    "ci"
                 ]
             }
         }
@@ -99,13 +70,13 @@ Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub En
     </Accordion>
 </AccordionGroup>
 
-## Authenticating with GitHub
+## Authenticating with Gitea
 
-In order to index private repositories, you'll need to generate a GitHub Personal Access Token (PAT). Create a new PAT [here](https://github.com/settings/tokens/new) and make sure you select the `repo` scope:
+In order to index private repositories, you'll need to generate a Gitea access token. Generate a Gitea access token [here](http://gitea.com/user/settings/applications). At minimum, you'll need to select the `read:repository` scope. `read:user` and `read:organization` are required for the `user` and `org` fields of your config file:
 
-![GitHub PAT Scope](/images/github_pat_scopes.png)
+![Gitea Access token creation](/images/gitea_pat_creation.png)
 
-Next, provide the PAT via the `token` property, either as an environment variable or a secret:
+Next, provide the access token via the `token` property, either as an environment variable or a secret:
 
 <Tabs>
     <Tab title="Environment Variable">
@@ -114,11 +85,11 @@ Next, provide the PAT via the `token` property, either as an environment variabl
         1. Add the `token` property to your connection config:
         ```json
         {
-            "type": "github",
+            "type": "gitea",
             "token": {
                 // note: this env var can be named anything. It
-                // doesn't need to be `GITHUB_TOKEN`.
-                "env": "GITHUB_TOKEN"
+                // doesn't need to be `GITEA_TOKEN`.
+                "env": "GITEA_TOKEN"
             }
             // .. rest of config ..
         }
@@ -127,7 +98,7 @@ Next, provide the PAT via the `token` property, either as an environment variabl
         2. Pass this environment variable each time you run Sourcebot:
         ```bash
         docker run \
-            -e GITHUB_TOKEN=<PAT> \
+            -e GITEA_TOKEN=<PAT> \
             /* additional args */ \
             ghcr.io/sourcebot-dev/sourcebot:latest
         ```
@@ -144,7 +115,7 @@ Next, provide the PAT via the `token` property, either as an environment variabl
 
         ```json
         {
-            "type": "github",
+            "type": "gitea",
             "token": {
                 "secret": "mysecret"
             }
@@ -155,14 +126,14 @@ Next, provide the PAT via the `token` property, either as an environment variabl
     </Tab>
 </Tabs>
 
-## Connecting to a custom GitHub host
+## Connecting to a custom Gitea
 
-To connect to a GitHub host other than `github.com`, provide the `url` property to your config:
+To connect to a custom Gitea deployment, provide the `url` property to your config:
 
 ```json
 {
-    "type": "github",
-    "url": "https://github.example.com"
+    "type": "gitea",
+    "url": "https://gitea.example.com"
     // .. rest of config ..
 }
 ```
@@ -170,17 +141,17 @@ To connect to a GitHub host other than `github.com`, provide the `url` property 
 ## Schema reference
 
 <Accordion title="Reference">
-[schemas/v3/github.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/github.json)
+[schemas/v3/gitea.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/gitea.json)
 
 ```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "title": "GithubConnectionConfig",
+  "title": "GiteaConnectionConfig",
   "properties": {
     "type": {
-      "const": "github",
-      "description": "GitHub Configuration"
+      "const": "gitea",
+      "description": "Gitea Configuration"
     },
     "token": {
       "description": "A Personal Access Token (PAT).",
@@ -221,46 +192,25 @@ To connect to a GitHub host other than `github.com`, provide the `url` property 
     "url": {
       "type": "string",
       "format": "url",
-      "default": "https://github.com",
-      "description": "The URL of the GitHub host. Defaults to https://github.com",
+      "default": "https://gitea.com",
+      "description": "The URL of the Gitea host. Defaults to https://gitea.com",
       "examples": [
-        "https://github.com",
-        "https://github.example.com"
+        "https://gitea.com",
+        "https://gitea.example.com"
       ],
       "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
-    },
-    "users": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "^[\\w.-]+$"
-      },
-      "default": [],
-      "examples": [
-        [
-          "torvalds",
-          "DHH"
-        ]
-      ],
-      "description": "List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property."
     },
     "orgs": {
       "type": "array",
       "items": {
-        "type": "string",
-        "pattern": "^[\\w.-]+$"
+        "type": "string"
       },
-      "default": [],
       "examples": [
         [
           "my-org-name"
-        ],
-        [
-          "sourcebot-dev",
-          "commaai"
         ]
       ],
-      "description": "List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property."
+      "description": "List of organizations to sync with. All repositories in the organization visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:organization scope."
     },
     "repos": {
       "type": "array",
@@ -268,23 +218,20 @@ To connect to a GitHub host other than `github.com`, provide the `url` property 
         "type": "string",
         "pattern": "^[\\w.-]+\\/[\\w.-]+$"
       },
-      "default": [],
       "description": "List of individual repositories to sync with. Expected to be formatted as '{orgName}/{repoName}' or '{userName}/{repoName}'."
     },
-    "topics": {
+    "users": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "minItems": 1,
-      "default": [],
-      "description": "List of repository topics to include when syncing. Only repositories that match at least one of the provided `topics` will be synced. If not specified, all repositories will be synced, unless explicitly defined in the `exclude` property. Glob patterns are supported.",
       "examples": [
         [
-          "docs",
-          "core"
+          "username-1",
+          "username-2"
         ]
-      ]
+      ],
+      "description": "List of users to sync with. All repositories that the user owns will be synced, unless explicitly defined in the `exclude` property. If a `token` is provided, it must have the read:user scope."
     },
     "exclude": {
       "type": "object",
@@ -306,35 +253,6 @@ To connect to a GitHub host other than `github.com`, provide the `url` property 
           },
           "default": [],
           "description": "List of individual repositories to exclude from syncing. Glob patterns are supported."
-        },
-        "topics": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "List of repository topics to exclude when syncing. Repositories that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.",
-          "examples": [
-            [
-              "tests",
-              "ci"
-            ]
-          ]
-        },
-        "size": {
-          "type": "object",
-          "description": "Exclude repositories based on their disk usage. Note: the disk usage is calculated by GitHub and may not reflect the actual disk usage when cloned.",
-          "properties": {
-            "min": {
-              "type": "integer",
-              "description": "Minimum repository size (in bytes) to sync (inclusive). Repositories less than this size will be excluded from syncing."
-            },
-            "max": {
-              "type": "integer",
-              "description": "Maximum repository size (in bytes) to sync (inclusive). Repositories greater than this size will be excluded from syncing."
-            }
-          },
-          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -387,5 +305,4 @@ To connect to a GitHub host other than `github.com`, provide the `url` property 
   "additionalProperties": false
 }
 ```
-
 </Accordion>
