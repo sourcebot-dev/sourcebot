@@ -212,7 +212,7 @@ export const compileGerritConfig = async (
     orgId: number) => {
 
     const gerritRepos = await getGerritReposFromConfig(config);
-    const hostUrl = config.url ?? 'https://gerritcodereview.com';
+    const hostUrl = (config.url ?? 'https://gerritcodereview.com').replace(/\/$/, ''); // Remove trailing slash
     const hostname = new URL(hostUrl).hostname;
 
     const repos = gerritRepos.map((project) => {
@@ -226,6 +226,12 @@ export const compileGerritConfig = async (
             if (webLink) {
                 webUrl = webLink.url;
             }
+        }
+
+        // Handle case where webUrl is just a gitiles path
+        // https://github.com/GerritCodeReview/plugins_gitiles/blob/5ee7f57/src/main/java/com/googlesource/gerrit/plugins/gitiles/GitilesWeblinks.java#L50
+        if (webUrl.startsWith('/plugins/gitiles/')) {
+            webUrl = `${hostUrl}${webUrl}`;
         }
 
         const record: RepoData = {
