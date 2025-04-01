@@ -124,7 +124,7 @@ export const NavigationMenu = async ({
                             <GitHubLogoIcon className="w-4 h-4" />
                         </Button>
                     </form>
-                    <SettingsDropdown />
+                    <SettingsDropdown isAuthEnabled={env.SOURCEBOT_AUTH_ENABLED === 'true'} />
                 </div>
             </div>
             <Separator />
