@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.1] - 2025-04-01
+
+### Fixes
+- Fix issue with match highlighting not appearing when first clicking on a search result. ([#255](https://github.com/sourcebot-dev/sourcebot/issues/255))
+
 ## [3.0.0] - 2025-04-01
 
 Sourcebot v3 is here and brings a number of structural changes to the tool's foundation, including a SQL database, parallelized indexing, authentication support, multitenancy, and more. Checkout the [migration guide](https://docs.sourcebot.dev/self-hosting/upgrade/v2-to-v3-guide) for information on upgrading your instance to v3.

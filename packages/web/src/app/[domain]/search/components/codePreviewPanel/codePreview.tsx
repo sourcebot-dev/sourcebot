@@ -16,7 +16,7 @@ import { Scrollbar } from "@radix-ui/react-scroll-area";
 import CodeMirror, { ReactCodeMirrorRef, SelectionRange } from '@uiw/react-codemirror';
 import clsx from "clsx";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export interface CodePreviewFile {
     content: string;
@@ -42,13 +42,13 @@ export const CodePreview = ({
     onSelectedMatchIndexChange,
     onClose,
 }: CodePreviewProps) => {
-    const editorRef = useRef<ReactCodeMirrorRef>(null);
+    const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
 
     const [gutterWidth, setGutterWidth] = useState(0);
     const theme = useCodeMirrorTheme();
 
-    const keymapExtension = useKeymapExtension(editorRef.current?.view);
-    const syntaxHighlighting = useSyntaxHighlightingExtension(file?.language ?? '', editorRef.current?.view);
+    const keymapExtension = useKeymapExtension(editorRef?.view);
+    const syntaxHighlighting = useSyntaxHighlightingExtension(file?.language ?? '', editorRef?.view);
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
 
     const extensions = useMemo(() => {
@@ -89,12 +89,12 @@ export const CodePreview = ({
     }, [file]);
 
     useEffect(() => {
-        if (!file || !editorRef.current?.view) {
+        if (!file || !editorRef?.view) {
             return;
         }
 
-        highlightRanges(selectedMatchIndex, ranges, editorRef.current.view);
-    }, [ranges, selectedMatchIndex, file]);
+        highlightRanges(selectedMatchIndex, ranges, editorRef.view);
+    }, [ranges, selectedMatchIndex, file, editorRef]);
 
     const onUpClicked = useCallback(() => {
         onSelectedMatchIndexChange(selectedMatchIndex - 1);
@@ -174,7 +174,7 @@ export const CodePreview = ({
             </div>
             <ScrollArea className="h-full overflow-auto flex-1">
                 <CodeMirror
-                    ref={editorRef}
+                    ref={setEditorRef}
                     className="relative"
                     readOnly={true}
                     value={file?.content}
@@ -182,13 +182,13 @@ export const CodePreview = ({
                     theme={theme}
                 >
                     {
-                        editorRef.current?.view &&
+                        editorRef?.view &&
                         file?.filepath &&
                         repoName &&
                         currentSelection &&
                         (
                             <EditorContextMenu
-                                view={editorRef.current.view}
+                                view={editorRef.view}
                                 path={file?.filepath}
                                 repoName={repoName}
                                 selection={currentSelection}
