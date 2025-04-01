@@ -19,7 +19,7 @@ body:
     attributes:
       label: Sourcebot deployment information
       description: 
-      placeholder: |
+      value: |
         Sourcebot version (e.g. v3.0.1): 
     validations:
       required: true
