@@ -22,7 +22,7 @@ export default function DemoCard() {
 
             <Button asChild variant="outline" size="sm" className="h-8 text-xs">
               <Link 
-                href="https://sourcebot.dev/search" 
+                href="https://demo.sourcebot.dev" 
                 target="_blank" 
                 className="flex items-center gap-1.5"
                 onClick={() => captureEvent('wa_demo_card_click', {})}

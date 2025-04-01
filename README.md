@@ -14,7 +14,7 @@
          <a href="https://docs.sourcebot.dev/self-hosting/overview">
             <strong>Self Host</strong>
          </a> · 
-         <a href="https://sourcebot.dev/search">
+         <a href="https://demo.sourcebot.dev">
             <strong>Demo</strong>
          </a>
       </h3>
@@ -60,7 +60,7 @@ https://github.com/user-attachments/assets/ced355f3-967e-4f37-ae6e-74ab8c06b9ec
 - 🎨 **Modern web app**: Enjoy a sleek interface with features like syntax highlighting, light/dark mode, and vim-style navigation 
 - 📂 **Full file visualization**: Instantly view the entire file when selecting any search result.
 
-You can try out our public hosted demo [here](https://sourcebot.dev/search)!
+You can try out our public hosted demo [here](https://demo.sourcebot.dev)!
 
 # Deploy Sourcebot
 
@@ -105,7 +105,7 @@ docker run -p 3000:3000 --pull=always --rm -v $(pwd):/data -e CONFIG_PATH=/data/
 To learn how to configure Sourcebot to index your own repos, please refer to our [docs](https://docs.sourcebot.dev/self-hosting/overview).
 
 > [!NOTE]
-> Sourcebot collects <a href="https://sourcebot.dev/search/search?query=captureEvent%5C(%20repo%3Asourcebot">anonymous usage data</a> by default to help us improve the product. No sensitive data is collected, but if you'd like to disable this you can do so by setting the `SOURCEBOT_TELEMETRY_DISABLED` environment
+> Sourcebot collects <a href="https://demo.sourcebot.dev/~/search?query=captureEvent%5C(%20repo%3Asourcebot">anonymous usage data</a> by default to help us improve the product. No sensitive data is collected, but if you'd like to disable this you can do so by setting the `SOURCEBOT_TELEMETRY_DISABLED` environment
 > variable to `false`. Please refer to our [telemetry docs](https://docs.sourcebot.dev/self-hosting/overview#telemetry) for more information.
 
 # Build from source
