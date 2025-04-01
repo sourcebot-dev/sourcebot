@@ -95,6 +95,7 @@ export const ErrorNavIndicator = () => {
                             <div className="flex flex-col gap-2">
                                 {repos
                                     .slice(0, 10)
+                                    .filter(item => item.linkedConnections.length > 0) // edge case: don't show repos that are orphaned and awaiting gc.
                                     .map(repo => (
                                         // Link to the first connection for the repo
                                         <Link key={repo.repoId} href={`/${domain}/connections/${repo.linkedConnections[0].id}`} onClick={() => captureEvent('wa_error_nav_job_pressed', {})}>
