@@ -79,7 +79,6 @@ jobs:
             # Run the new container
             docker run -d \
               -p 80:3000 \
-              --rm \
               --env-file .env \
               -v /mnt/data:/data \
               --name sourcebot \
