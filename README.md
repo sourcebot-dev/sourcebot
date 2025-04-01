@@ -62,7 +62,7 @@ https://github.com/user-attachments/assets/ced355f3-967e-4f37-ae6e-74ab8c06b9ec
 
 You can try out our public hosted demo [here](https://sourcebot.dev/search)!
 
-# Deply Sourcebot
+# Deploy Sourcebot
 
 Sourcebot can be deployed in seconds using our official docker image. Visit our [docs](https://docs.sourcebot.dev/self-hosting/overview) for more information.
 
