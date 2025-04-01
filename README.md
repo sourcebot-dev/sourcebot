@@ -67,7 +67,7 @@ You can try out our public hosted demo [here](https://sourcebot.dev/search)!
 Sourcebot can be deployed in seconds using our official docker image. Visit our [docs](https://docs.sourcebot.dev/self-hosting/overview) for more information.
 
 1. Create a config
-```json
+```sh
 touch config.json
 echo '{
     "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
@@ -105,7 +105,7 @@ docker run -p 3000:3000 --pull=always --rm -v $(pwd):/data -e CONFIG_PATH=/data/
 To learn how to configure Sourcebot to index your own repos, please refer to our [docs](https://docs.sourcebot.dev/self-hosting/overview).
 
 > [!NOTE]
-> Sourcebot collects [anonymous usage data](https://sourcebot.dev/search/search?query=captureEvent%5C(%20repo%3Asourcebot) by default to help us improve the product. No sensitive data is collected, but if you'd like to disable this you can do so by setting the `SOURCEBOT_TELEMETRY_DISABLED` environment
+> Sourcebot collects <a href="https://sourcebot.dev/search/search?query=captureEvent%5C(%20repo%3Asourcebot">anonymous usage data</a> by default to help us improve the product. No sensitive data is collected, but if you'd like to disable this you can do so by setting the `SOURCEBOT_TELEMETRY_DISABLED` environment
 > variable to `false`. Please refer to our [telemetry docs](https://docs.sourcebot.dev/self-hosting/overview#telemetry) for more information.
 
 # Build from source
