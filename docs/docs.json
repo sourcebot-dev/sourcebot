@@ -115,7 +115,7 @@
         ],
         "primary": {
             "type": "button",
-            "label": "To App",
+            "label": "Sourcebot Cloud",
             "href": "https://app.sourcebot.dev"
         }
     },
