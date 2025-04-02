@@ -98,8 +98,8 @@ docker run -p 3000:3000 --pull=always --rm -v $(pwd):/data -e CONFIG_PATH=/data/
 - Starts the web server on port 3000.
 </details>
 </br>
-3. Start searching at `http://localhost:3000`
 
+3. Start searching at `http://localhost:3000`
 </br>
 
 To learn how to configure Sourcebot to index your own repos, please refer to our [docs](https://docs.sourcebot.dev/self-hosting/overview).
