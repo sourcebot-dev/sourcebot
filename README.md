@@ -80,7 +80,7 @@ echo '{
             ]
         }
     }
-}' > config.jsono
+}' > config.json
 ```
 
 2. Run the docker container
