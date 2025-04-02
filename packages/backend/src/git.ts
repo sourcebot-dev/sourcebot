@@ -1,21 +1,15 @@
 import { simpleGit, SimpleGitProgressEvent } from 'simple-git';
 
-export const cloneRepository = async (cloneURL: string, path: string, gitConfig?: Record<string, string>, onProgress?: (event: SimpleGitProgressEvent) => void) => {
+export const cloneRepository = async (cloneURL: string, path: string, onProgress?: (event: SimpleGitProgressEvent) => void) => {
     const git = simpleGit({
         progress: onProgress,
     });
-
-    const configParams = Object.entries(gitConfig ?? {}).flatMap(
-        ([key, value]) => ['--config', `${key}=${value}`]
-    );
-
     try {
         await git.clone(
             cloneURL,
             path,
             [
                 "--bare",
-                ...configParams
             ]
         );
 
@@ -45,6 +39,26 @@ export const fetchRepository = async (path: string, onProgress?: (event: SimpleG
         );
     } catch (error) {
         throw new Error(`Failed to fetch repository ${path}`);
+    }
+}
+
+/**
+ * Applies the gitConfig to the repo at the given path. Note that this will
+ * override the values for any existing keys, and append new values for keys
+ * that do not exist yet. It will _not_ remove any existing keys that are not
+ * present in gitConfig.
+ */
+export const upsertGitConfig = async (path: string, gitConfig: Record<string, string>, onProgress?: (event: SimpleGitProgressEvent) => void) => {
+    const git = simpleGit({
+        progress: onProgress,
+    }).cwd(path);
+
+    try {
+        for (const [key, value] of Object.entries(gitConfig)) {
+            await git.addConfig(key, value);
+        }
+    } catch (error) {
+        throw new Error(`Failed to set git config ${path}`);
     }
 }
 

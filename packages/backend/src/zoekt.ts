@@ -57,7 +57,17 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
         revisions = revisions.slice(0, 64);
     }
     
-    const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -max_trigram_count ${settings.maxTrigramCount} -file_limit ${settings.maxFileSize} -branches ${revisions.join(',')} -tenant_id ${repo.orgId} -shard_prefix ${shardPrefix} ${repoPath}`;
+    const command = [
+        'zoekt-git-index',
+        '-allow_missing_branches',
+        `-index ${ctx.indexPath}`,
+        `-max_trigram_count ${settings.maxTrigramCount}`,
+        `-file_limit ${settings.maxFileSize}`,
+        `-branches ${revisions.join(',')}`,
+        `-tenant_id ${repo.orgId}`,
+        `-shard_prefix ${shardPrefix}`,
+        repoPath
+    ].join(' ');
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {
