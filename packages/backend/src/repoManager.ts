@@ -3,7 +3,7 @@ import { Redis } from 'ioredis';
 import { createLogger } from "./logger.js";
 import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
-import { AppContext, Settings, RepoMetadata } from "./types.js";
+import { AppContext, Settings, repoMetadataSchema } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
 import { cloneRepository, fetchRepository, upsertGitConfig } from "./git.js";
 import { existsSync, readdirSync, promises } from 'fs';
@@ -200,8 +200,7 @@ export class RepoManager implements IRepoManager {
         let cloneDuration_s: number | undefined = undefined;
 
         const repoPath = getRepoPath(repo, this.ctx);
-        const metadata = repo.metadata as RepoMetadata;
-
+        const metadata = repoMetadataSchema.parse(repo.metadata);
         
         // If the repo was already in the indexing state, this job was likely killed and picked up again. As a result,
         // to ensure the repo state is valid, we delete the repo if it exists so we get a fresh clone 

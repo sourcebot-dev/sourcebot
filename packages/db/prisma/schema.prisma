@@ -43,7 +43,7 @@ model Repo {
   indexedAt          DateTime?
   isFork             Boolean
   isArchived         Boolean
-  metadata           Json
+  metadata           Json // For schema see repoMetadataSchema in packages/backend/src/types.ts
   cloneUrl           String
   webUrl             String?
   connections        RepoToConnection[]

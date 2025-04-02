@@ -1,5 +1,5 @@
 import { exec } from "child_process";
-import { AppContext, RepoMetadata, Settings } from "./types.js";
+import { AppContext, repoMetadataSchema, Settings } from "./types.js";
 import { Repo } from "@sourcebot/db";
 import { getRepoPath } from "./utils.js";
 import { getShardPrefix } from "./utils.js";
@@ -17,7 +17,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
 
     const repoPath = getRepoPath(repo, ctx);
     const shardPrefix = getShardPrefix(repo.orgId, repo.id);
-    const metadata = repo.metadata as RepoMetadata;
+    const metadata = repoMetadataSchema.parse(repo.metadata);
 
     if (metadata.branches) {
         const branchGlobs = metadata.branches
