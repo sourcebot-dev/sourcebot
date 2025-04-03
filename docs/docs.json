@@ -52,7 +52,8 @@
                         "group": "Getting Started",
                         "pages": [
                             "self-hosting/overview",
-                            "self-hosting/configuration"
+                            "self-hosting/configuration",
+                            "self-hosting/license-key"
                         ]
                     },
                     {
@@ -61,7 +62,8 @@
                             "self-hosting/more/authentication",
                             "self-hosting/more/tenancy",
                             "self-hosting/more/transactional-emails",
-                            "self-hosting/more/declarative-config"
+                            "self-hosting/more/declarative-config",
+                            "self-hosting/more/search-contexts"
                         ]
                     },
                     {
