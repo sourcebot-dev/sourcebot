@@ -249,7 +249,7 @@ export const compileGerritConfig = async (
             // Handle case where webUrl is just a gitiles path
             // https://github.com/GerritCodeReview/plugins_gitiles/blob/5ee7f57/src/main/java/com/googlesource/gerrit/plugins/gitiles/GitilesWeblinks.java#L50
             if (webUrl.startsWith('/plugins/gitiles/')) {
-                return `${hostUrl}${webUrl}`;
+                return path.join(hostUrl, webUrl);
             } else {
                 return webUrl;
             }
