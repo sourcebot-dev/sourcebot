@@ -47,22 +47,19 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
         return undefined;
     }
 
-    const webUrlType = repo.RawConfig ? repo.RawConfig['web-url-type'] : undefined;
-    if (!webUrlType) {
+    if (!repo.RawConfig) {
         return undefined;
     }
 
-    const url = new URL(repo.URL);
-    const displayName = url.pathname.slice(1);
+    // @todo : use zod to validate config schema
+    const webUrlType = repo.RawConfig['web-url-type']!;
+    const displayName = repo.RawConfig['display-name'] ?? repo.RawConfig['name']!;
+
     return _getCodeHostInfoInternal(webUrlType, displayName, repo.URL);
 }
 
-export const getRepoQueryCodeHostInfo = (repo?: RepositoryQuery): CodeHostInfo | undefined => {
-    if (!repo) {
-        return undefined;
-    }
-
-    const displayName = repo.repoName.split('/').slice(-2).join('/');
+export const getRepoQueryCodeHostInfo = (repo: RepositoryQuery): CodeHostInfo | undefined => {
+    const displayName = repo.repoDisplayName ?? repo.repoName;
     return _getCodeHostInfoInternal(repo.codeHostType, displayName, repo.webUrl ?? repo.repoCloneUrl);
 }
 

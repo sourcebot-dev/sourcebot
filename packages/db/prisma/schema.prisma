@@ -38,12 +38,13 @@ enum StripeSubscriptionStatus {
 model Repo {
   id                 Int                @id @default(autoincrement())
   name               String
+  displayName        String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   indexedAt          DateTime?
   isFork             Boolean
   isArchived         Boolean
-  metadata           Json
+  metadata           Json // For schema see repoMetadataSchema in packages/backend/src/types.ts
   cloneUrl           String
   webUrl             String?
   connections        RepoToConnection[]

@@ -8,6 +8,7 @@ import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
 import { GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { RepoMetadata } from './types.js';
+import path from 'path';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 
@@ -29,10 +30,13 @@ export const compileGithubConfig = async (
     const notFound = gitHubReposResult.notFound;
 
     const hostUrl = config.url ?? 'https://github.com';
-    const hostname = new URL(hostUrl).hostname;
+    const repoNameRoot = new URL(hostUrl)
+        .toString()
+        .replace(/^https?:\/\//, '');
 
     const repos = gitHubRepos.map((repo) => {
-        const repoName = `${hostname}/${repo.full_name}`;
+        const repoDisplayName = repo.full_name;
+        const repoName = path.join(repoNameRoot, repoDisplayName);
         const cloneUrl = new URL(repo.clone_url!);
 
         const record: RepoData = {
@@ -42,6 +46,7 @@ export const compileGithubConfig = async (
             cloneUrl: cloneUrl.toString(),
             webUrl: repo.html_url,
             name: repoName,
+            displayName: repoDisplayName,
             imageUrl: repo.owner.avatar_url,
             isFork: repo.fork,
             isArchived: !!repo.archived,
@@ -67,6 +72,7 @@ export const compileGithubConfig = async (
                     'zoekt.archived': marshalBool(repo.archived),
                     'zoekt.fork': marshalBool(repo.fork),
                     'zoekt.public': marshalBool(repo.private === false),
+                    'zoekt.display-name': repoDisplayName,
                 },
                 branches: config.revisions?.branches ?? undefined,
                 tags: config.revisions?.tags ?? undefined,
@@ -93,13 +99,16 @@ export const compileGitlabConfig = async (
     const notFound = gitlabReposResult.notFound;
 
     const hostUrl = config.url ?? 'https://gitlab.com';
-    const hostname = new URL(hostUrl).hostname;
-    
+    const repoNameRoot = new URL(hostUrl)
+        .toString()
+        .replace(/^https?:\/\//, '');
+
     const repos = gitlabRepos.map((project) => {
         const projectUrl = `${hostUrl}/${project.path_with_namespace}`;
         const cloneUrl = new URL(project.http_url_to_repo);
         const isFork = project.forked_from_project !== undefined;
-        const repoName = `${hostname}/${project.path_with_namespace}`;
+        const repoDisplayName = project.path_with_namespace;
+        const repoName = path.join(repoNameRoot, repoDisplayName);
 
         const record: RepoData = {
             external_id: project.id.toString(),
@@ -108,6 +117,7 @@ export const compileGitlabConfig = async (
             cloneUrl: cloneUrl.toString(),
             webUrl: projectUrl,
             name: repoName,
+            displayName: repoDisplayName,
             imageUrl: project.avatar_url,
             isFork: isFork,
             isArchived: !!project.archived,
@@ -130,7 +140,8 @@ export const compileGitlabConfig = async (
                     'zoekt.gitlab-forks': (project.forks_count ?? 0).toString(),
                     'zoekt.archived': marshalBool(project.archived),
                     'zoekt.fork': marshalBool(isFork),
-                    'zoekt.public': marshalBool(project.private === false)
+                    'zoekt.public': marshalBool(project.private === false),
+                    'zoekt.display-name': repoDisplayName,
                 },
                 branches: config.revisions?.branches ?? undefined,
                 tags: config.revisions?.tags ?? undefined,
@@ -157,11 +168,14 @@ export const compileGiteaConfig = async (
     const notFound = giteaReposResult.notFound;
 
     const hostUrl = config.url ?? 'https://gitea.com';
-    const hostname = new URL(hostUrl).hostname;
+    const repoNameRoot = new URL(hostUrl)
+        .toString()
+        .replace(/^https?:\/\//, '');
 
     const repos = giteaRepos.map((repo) => {
         const cloneUrl = new URL(repo.clone_url!);
-        const repoName = `${hostname}/${repo.full_name!}`;
+        const repoDisplayName = repo.full_name!;
+        const repoName = path.join(repoNameRoot, repoDisplayName);
 
         const record: RepoData = {
             external_id: repo.id!.toString(),
@@ -170,6 +184,7 @@ export const compileGiteaConfig = async (
             cloneUrl: cloneUrl.toString(),
             webUrl: repo.html_url,
             name: repoName,
+            displayName: repoDisplayName,
             imageUrl: repo.owner?.avatar_url,
             isFork: repo.fork!,
             isArchived: !!repo.archived,
@@ -191,6 +206,7 @@ export const compileGiteaConfig = async (
                     'zoekt.archived': marshalBool(repo.archived),
                     'zoekt.fork': marshalBool(repo.fork!),
                     'zoekt.public': marshalBool(repo.internal === false && repo.private === false),
+                    'zoekt.display-name': repoDisplayName,
                 },
                 branches: config.revisions?.branches ?? undefined,
                 tags: config.revisions?.tags ?? undefined,
@@ -212,27 +228,32 @@ export const compileGerritConfig = async (
     orgId: number) => {
 
     const gerritRepos = await getGerritReposFromConfig(config);
-    const hostUrl = (config.url ?? 'https://gerritcodereview.com').replace(/\/$/, ''); // Remove trailing slash
-    const hostname = new URL(hostUrl).hostname;
+    const hostUrl = config.url;
+    const repoNameRoot = new URL(hostUrl)
+        .toString()
+        .replace(/^https?:\/\//, '');
 
     const repos = gerritRepos.map((project) => {
-        const repoId = `${hostname}/${project.name}`;
-        const cloneUrl = new URL(`${config.url}/${encodeURIComponent(project.name)}`);
+        const cloneUrl = new URL(path.join(hostUrl, encodeURIComponent(project.name)));
+        const repoDisplayName = project.name;
+        const repoName = path.join(repoNameRoot, repoDisplayName);
 
-        let webUrl = "https://www.gerritcodereview.com/";
-        // Gerrit projects can have multiple web links; use the first one
-        if (project.web_links) {
-            const webLink = project.web_links[0];
-            if (webLink) {
-                webUrl = webLink.url;
+        const webUrl = (() => {
+            if (!project.web_links || project.web_links.length === 0) {
+                return null;
             }
-        }
 
-        // Handle case where webUrl is just a gitiles path
-        // https://github.com/GerritCodeReview/plugins_gitiles/blob/5ee7f57/src/main/java/com/googlesource/gerrit/plugins/gitiles/GitilesWeblinks.java#L50
-        if (webUrl.startsWith('/plugins/gitiles/')) {
-            webUrl = `${hostUrl}${webUrl}`;
-        }
+            const webLink = project.web_links[0];
+            const webUrl = webLink.url;
+
+            // Handle case where webUrl is just a gitiles path
+            // https://github.com/GerritCodeReview/plugins_gitiles/blob/5ee7f57/src/main/java/com/googlesource/gerrit/plugins/gitiles/GitilesWeblinks.java#L50
+            if (webUrl.startsWith('/plugins/gitiles/')) {
+                return path.join(hostUrl, webUrl);
+            } else {
+                return webUrl;
+            }
+        })();
 
         const record: RepoData = {
             external_id: project.id.toString(),
@@ -240,7 +261,8 @@ export const compileGerritConfig = async (
             external_codeHostUrl: hostUrl,
             cloneUrl: cloneUrl.toString(),
             webUrl: webUrl,
-            name: project.name,
+            name: repoName,
+            displayName: repoDisplayName,
             isFork: false,
             isArchived: false,
             org: {
@@ -256,11 +278,12 @@ export const compileGerritConfig = async (
             metadata: {
                 gitConfig: {
                     'zoekt.web-url-type': 'gitiles',
-                    'zoekt.web-url': webUrl,
-                    'zoekt.name': repoId,
+                    'zoekt.web-url': webUrl ?? '',
+                    'zoekt.name': repoName,
                     'zoekt.archived': marshalBool(false),
                     'zoekt.fork': marshalBool(false),
                     'zoekt.public': marshalBool(true),
+                    'zoekt.display-name': repoDisplayName,
                 },
             } satisfies RepoMetadata,
         };

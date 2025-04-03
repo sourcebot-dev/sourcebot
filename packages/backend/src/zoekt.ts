@@ -1,5 +1,5 @@
 import { exec } from "child_process";
-import { AppContext, RepoMetadata, Settings } from "./types.js";
+import { AppContext, repoMetadataSchema, Settings } from "./types.js";
 import { Repo } from "@sourcebot/db";
 import { getRepoPath } from "./utils.js";
 import { getShardPrefix } from "./utils.js";
@@ -17,7 +17,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
 
     const repoPath = getRepoPath(repo, ctx);
     const shardPrefix = getShardPrefix(repo.orgId, repo.id);
-    const metadata = repo.metadata as RepoMetadata;
+    const metadata = repoMetadataSchema.parse(repo.metadata);
 
     if (metadata.branches) {
         const branchGlobs = metadata.branches
@@ -57,7 +57,17 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
         revisions = revisions.slice(0, 64);
     }
     
-    const command = `zoekt-git-index -allow_missing_branches -index ${ctx.indexPath} -max_trigram_count ${settings.maxTrigramCount} -file_limit ${settings.maxFileSize} -branches ${revisions.join(',')} -tenant_id ${repo.orgId} -shard_prefix ${shardPrefix} ${repoPath}`;
+    const command = [
+        'zoekt-git-index',
+        '-allow_missing_branches',
+        `-index ${ctx.indexPath}`,
+        `-max_trigram_count ${settings.maxTrigramCount}`,
+        `-file_limit ${settings.maxFileSize}`,
+        `-branches ${revisions.join(',')}`,
+        `-tenant_id ${repo.orgId}`,
+        `-shard_prefix ${shardPrefix}`,
+        repoPath
+    ].join(' ');
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {

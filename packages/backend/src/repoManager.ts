@@ -3,9 +3,9 @@ import { Redis } from 'ioredis';
 import { createLogger } from "./logger.js";
 import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
-import { AppContext, Settings, RepoMetadata } from "./types.js";
+import { AppContext, Settings, repoMetadataSchema } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
-import { cloneRepository, fetchRepository } from "./git.js";
+import { cloneRepository, fetchRepository, upsertGitConfig } from "./git.js";
 import { existsSync, readdirSync, promises } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import { PromClient } from './promClient.js';
@@ -200,8 +200,7 @@ export class RepoManager implements IRepoManager {
         let cloneDuration_s: number | undefined = undefined;
 
         const repoPath = getRepoPath(repo, this.ctx);
-        const metadata = repo.metadata as RepoMetadata;
-
+        const metadata = repoMetadataSchema.parse(repo.metadata);
         
         // If the repo was already in the indexing state, this job was likely killed and picked up again. As a result,
         // to ensure the repo state is valid, we delete the repo if it exists so we get a fresh clone 
@@ -240,13 +239,20 @@ export class RepoManager implements IRepoManager {
                 }
             }
 
-            const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, metadata.gitConfig, ({ method, stage, progress }) => {
+            const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, ({ method, stage, progress }) => {
                 this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
             }));
             cloneDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
             this.logger.info(`Cloned ${repo.id} in ${cloneDuration_s}s`);
+        }
+
+        // Regardless of clone or fetch, always upsert the git config for the repo.
+        // This ensures that the git config is always up to date for whatever we
+        // have in the DB.
+        if (metadata.gitConfig) {
+            await upsertGitConfig(repoPath, metadata.gitConfig);
         }
 
         this.logger.info(`Indexing ${repo.id}...`);

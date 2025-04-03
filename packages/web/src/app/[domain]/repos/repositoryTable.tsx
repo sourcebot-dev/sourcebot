@@ -39,7 +39,7 @@ export const RepositoryTable = ({ isAddNewRepoButtonVisible }: RepositoryTablePr
 
         if (!repos) return [];
         return repos.map((repo): RepositoryColumnInfo => ({
-            name: repo.repoName.split('/').length > 2 ? repo.repoName.split('/').slice(-2).join('/') : repo.repoName,
+            name: repo.repoDisplayName ?? repo.repoName,
             imageUrl: repo.imageUrl,
             connections: repo.linkedConnections,
             repoIndexingStatus: repo.repoIndexingStatus as RepoIndexingStatus,

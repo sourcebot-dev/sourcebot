@@ -73,7 +73,7 @@ const RepositoryBadge = ({
 
         return {
             repoIcon: <FileIcon className="w-4 h-4" />,
-            displayName: repo.repoName.split('/').slice(-2).join('/'),
+            displayName: repo.repoName,
             repoLink: undefined,
         }
     })();
