@@ -23,6 +23,11 @@
                     "description": "The interval (in milliseconds) at which the indexer should re-index all repositories. Defaults to 1 hour.",
                     "minimum": 1
                 },
+                "resyncConnectionIntervalMs": {
+                    "type": "number",
+                    "description": "The interval (in milliseconds) at which the connection manager should check for connections that need to be re-synced. Defaults to 24 hours.",
+                    "minimum": 1
+                },
                 "resyncConnectionPollingIntervalMs": {
                     "type": "number",
                     "description": "The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced. Defaults to 1 second.",

@@ -40,6 +40,10 @@ export interface Settings {
    */
   reindexIntervalMs?: number;
   /**
+   * The interval (in milliseconds) at which the connection manager should check for connections that need to be re-synced. Defaults to 24 hours.
+   */
+  resyncConnectionIntervalMs?: number;
+  /**
    * The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced. Defaults to 1 second.
    */
   resyncConnectionPollingIntervalMs?: number;
