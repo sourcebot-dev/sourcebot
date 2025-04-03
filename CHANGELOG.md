@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Change connection manager upsert timeout to 5 minutes
 - Fix issue with repo display names being poorly formatted, especially for gerrit. ([#259](https://github.com/sourcebot-dev/sourcebot/pull/259))
 
+### Added
+- Added config setting `resyncConnectionIntervalMs` to control how often a connection should be re-synced. ([#260](https://github.com/sourcebot-dev/sourcebot/pull/260))
+
 ## [3.0.1] - 2025-04-01
 
 ### Fixes
