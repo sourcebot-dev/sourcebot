@@ -429,6 +429,7 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                 codeHostType: repo.external_codeHostType,
                 repoId: repo.id,
                 repoName: repo.name,
+                repoDisplayName: repo.displayName ?? undefined,
                 repoCloneUrl: repo.cloneUrl,
                 webUrl: repo.webUrl ?? undefined,
                 linkedConnections: repo.connections.map(({ connection }) => ({

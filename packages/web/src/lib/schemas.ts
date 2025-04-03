@@ -168,6 +168,7 @@ export const repositoryQuerySchema = z.object({
     codeHostType: z.string(),
     repoId: z.number(),
     repoName: z.string(),
+    repoDisplayName: z.string().optional(),
     repoCloneUrl: z.string(),
     webUrl: z.string().optional(),
     linkedConnections: z.array(z.object({
