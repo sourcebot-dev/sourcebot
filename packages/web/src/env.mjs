@@ -49,6 +49,9 @@ export const env = createEnv({
 
         // Misc UI flags
         SECURITY_CARD_ENABLED: booleanSchema.default('false'),
+
+        // EE License
+        SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in

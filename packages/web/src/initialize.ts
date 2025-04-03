@@ -5,11 +5,11 @@ import { SINGLE_TENANT_USER_ID, SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, 
 import { readFile } from 'fs/promises';
 import { watch } from 'fs';
 import stripJsonComments from 'strip-json-comments';
-import { SearchContext, SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
+import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
 import Ajv from 'ajv';
-import micromatch from 'micromatch';
+import { syncSearchContexts } from '@/ee/features/searchContexts/syncSearchContexts';
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -107,99 +107,6 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
         await prisma.connection.delete({
             where: {
                 id: connection.id,
-            }
-        })
-    }
-}
-
-const syncSearchContexts = async (contexts?: { [key: string]: SearchContext }) => {
-    if (contexts) {
-        for (const [key, newContextConfig] of Object.entries(contexts)) {
-            const allRepos = await prisma.repo.findMany({
-                where: {
-                    orgId: SINGLE_TENANT_ORG_ID,
-                },
-                select: {
-                    id: true,
-                    name: true,
-                }
-            });
-
-            let newReposInContext = allRepos.filter(repo => {
-                return micromatch.isMatch(repo.name, newContextConfig.include);
-            });
-
-            if (newContextConfig.exclude) {
-                const exclude = newContextConfig.exclude;
-                newReposInContext = newReposInContext.filter(repo => {
-                    return !micromatch.isMatch(repo.name, exclude);
-                });
-            }
-
-            const currentReposInContext = (await prisma.searchContext.findUnique({
-                where: {
-                    name_orgId: {
-                        name: key,
-                        orgId: SINGLE_TENANT_ORG_ID,
-                    }
-                },
-                include: {
-                    repos: true,
-                }
-            }))?.repos ?? [];
-
-            await prisma.searchContext.upsert({
-                where: {
-                    name_orgId: {
-                        name: key,
-                        orgId: SINGLE_TENANT_ORG_ID,
-                    }
-                },
-                update: {
-                    repos: {
-                        connect: newReposInContext.map(repo => ({
-                            id: repo.id,
-                        })),
-                        disconnect: currentReposInContext
-                            .filter(repo => !newReposInContext.map(r => r.id).includes(repo.id))
-                            .map(repo => ({
-                                id: repo.id,
-                            })),
-                    },
-                    description: newContextConfig.description,
-                },
-                create: {
-                    name: key,
-                    description: newContextConfig.description,
-                    org: {
-                        connect: {
-                            id: SINGLE_TENANT_ORG_ID,
-                        }
-                    },
-                    repos: {
-                        connect: newReposInContext.map(repo => ({
-                            id: repo.id,
-                        })),
-                    }
-                }
-            });
-        }
-    }
-
-    const deletedContexts = await prisma.searchContext.findMany({
-        where: {
-            name: {
-                notIn: Object.keys(contexts ?? {}),
-            },
-            orgId: SINGLE_TENANT_ORG_ID,
-        }
-    });
-
-    for (const context of deletedContexts) {
-        console.log(`Deleting search context with name '${context.name}'. ID: ${context.id}`);
-        await prisma.searchContext.delete({
-            where: {
-                id: context.id,
             }
         })
     }
