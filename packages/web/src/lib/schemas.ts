@@ -2,6 +2,7 @@ import { checkIfOrgDomainExists } from "@/actions";
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { z } from "zod";
 import { isServiceError } from "./utils";
+
 export const searchRequestSchema = z.object({
     query: z.string(),
     maxMatchDisplayCount: z.number(),

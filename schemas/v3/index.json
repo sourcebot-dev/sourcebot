@@ -11,7 +11,6 @@
                     "type": "number",
                     "description": "The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be indexed. Defaults to 2MB.",
                     "minimum": 1
-                    
                 },
                 "maxTrigramCount": {
                     "type": "number",
@@ -65,6 +64,30 @@
                 }
             },
             "additionalProperties": false
+        },
+        "SearchContext": {
+            "type": "object",
+            "properties": {
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "exclude": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "include"
+            ],
+            "additionalProperties": false
         }
     },
     "properties": {
@@ -73,6 +96,15 @@
         },
         "settings": {
             "$ref": "#/definitions/Settings"
+        },
+        "contexts": {
+            "type": "object",
+            "patternProperties": {
+                "^[a-zA-Z0-9_-]+$": {
+                    "$ref": "#/definitions/SearchContext"
+                }
+            },
+            "additionalProperties": false
         },
         "connections": {
             "type": "object",

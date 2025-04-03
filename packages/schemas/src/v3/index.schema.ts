@@ -65,6 +65,30 @@ const schema = {
         }
       },
       "additionalProperties": false
+    },
+    "SearchContext": {
+      "type": "object",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "include"
+      ],
+      "additionalProperties": false
     }
   },
   "properties": {
@@ -73,6 +97,15 @@ const schema = {
     },
     "settings": {
       "$ref": "#/definitions/Settings"
+    },
+    "contexts": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "$ref": "#/definitions/SearchContext"
+        }
+      },
+      "additionalProperties": false
     },
     "connections": {
       "type": "object",

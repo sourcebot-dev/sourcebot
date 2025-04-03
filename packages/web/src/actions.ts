@@ -1443,6 +1443,22 @@ export const dismissMobileUnsupportedSplashScreen = async () => sew(async () => 
     return true;
 });
 
+export const getSearchContexts = async (domain: string) => sew(() =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const searchContexts = await prisma.searchContext.findMany({
+                where: {
+                    orgId,
+                },
+            });
+
+            return searchContexts.map((context) => ({
+                name: context.name,
+                description: context.description ?? undefined,
+            }));
+        }
+    ), /* allowSingleTenantUnauthedAccess = */ true));
+
 
 ////// Helpers ///////
 

@@ -61,7 +61,22 @@ model Repo {
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
+  searchContexts SearchContext[]
+
   @@unique([external_id, external_codeHostUrl, orgId])
+}
+
+model SearchContext {
+  id Int @id @default(autoincrement())
+
+  name  String
+  description String?
+  repos Repo[]
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@unique([name, orgId])
 }
 
 model Connection {
@@ -138,6 +153,8 @@ model Org {
 
   /// List of pending invites to this organization
   invites Invite[]
+
+  searchContexts SearchContext[]
 }
 
 enum OrgRole {

@@ -18,7 +18,8 @@ enum SearchPrefix {
     archived = "archived:",
     case = "case:",
     fork = "fork:",
-    public = "public:"
+    public = "public:",
+    context = "context:",
 }
 
 const negate = (prefix: SearchPrefix) => {
@@ -99,6 +100,13 @@ export const suggestionModeMappings: SuggestionModeMapping[] = [
         prefixes: [
             SearchPrefix.public
         ]
+    },
+    {
+        suggestionMode: "context",
+        prefixes: [
+            SearchPrefix.context,
+            negate(SearchPrefix.context),
+        ]
     }
 ];
 
@@ -171,6 +179,14 @@ export const refineModeSuggestions: Suggestion[] = [
     {
         value: SearchPrefix.public,
         description: "Filter on repository visibility."
+    },
+    {
+        value: SearchPrefix.context,
+        description: "Include only results from the given search context."
+    },
+    {
+        value: negate(SearchPrefix.context),
+        description: "Exclude results from the given search context."
     },
 ];
 

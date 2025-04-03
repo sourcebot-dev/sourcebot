@@ -13,6 +13,9 @@ export type ConnectionConfig =
 export interface SourcebotConfig {
   $schema?: string;
   settings?: Settings;
+  contexts?: {
+    [k: string]: SearchContext;
+  };
   /**
    * Defines a collection of connections from varying code hosts that Sourcebot should sync with. This is only available in single-tenancy mode.
    */
@@ -71,6 +74,18 @@ export interface Settings {
    * The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.
    */
   repoIndexTimeoutMs?: number;
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema definition
+ * via the `patternProperty` "^[a-zA-Z0-9_-]+$".
+ *
+ * This interface was referenced by `SourcebotConfig`'s JSON-Schema
+ * via the `definition` "SearchContext".
+ */
+export interface SearchContext {
+  include: string[];
+  exclude?: string[];
+  description?: string;
 }
 export interface GithubConnectionConfig {
   /**

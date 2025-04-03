@@ -39,7 +39,8 @@ export type SuggestionMode =
     "symbol" |
     "content" |
     "repo" |
-    "searchHistory";
+    "searchHistory" |
+    "context";
 
 interface SearchSuggestionsBoxProps {
     query: string;
@@ -59,6 +60,7 @@ interface SearchSuggestionsBoxProps {
     symbolSuggestions: Suggestion[];
     languageSuggestions: Suggestion[];
     searchHistorySuggestions: Suggestion[];
+    searchContextSuggestions: Suggestion[];
 }
 
 const SearchSuggestionsBox = forwardRef(({
@@ -78,6 +80,7 @@ const SearchSuggestionsBox = forwardRef(({
     symbolSuggestions,
     languageSuggestions,
     searchHistorySuggestions,
+    searchContextSuggestions,
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
     const { onOpenChanged } = useSyntaxGuide();
@@ -198,6 +201,12 @@ const SearchSuggestionsBox = forwardRef(({
                         },
                         descriptionPlacement: "right",
                     }
+                case "context":
+                    return {
+                        list: searchContextSuggestions,
+                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                        descriptionPlacement: "right",
+                    }
                 case "none":
                 case "revision":
                 case "content":
@@ -287,6 +296,8 @@ const SearchSuggestionsBox = forwardRef(({
                 return "Languages";
             case "searchHistory":
                 return "Search history"
+            case "context":
+                return "Search contexts"
             default:
                 return "";
         }

@@ -1,9 +1,11 @@
 'use client';
 
 import { fileSourceResponseSchema, getVersionResponseSchema, listRepositoriesResponseSchema, searchResponseSchema } from "@/lib/schemas";
+import { ServiceError } from "@/lib/serviceError";
 import { FileSourceRequest, FileSourceResponse, GetVersionResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
+import { isServiceError } from "@/lib/utils";
 
-export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse> => {
+export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
         method: "POST",
         headers: {
@@ -12,6 +14,10 @@ export const search = async (body: SearchRequest, domain: string): Promise<Searc
         },
         body: JSON.stringify(body),
     }).then(response => response.json());
+
+    if (isServiceError(result)) {
+        return result;
+    }
 
     return searchResponseSchema.parse(result);
 }
