@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Shield, Lock, CheckCircle, ExternalLink, Mail } from "lucide-react"
 import useCaptureEvent from "@/hooks/useCaptureEvent"
+import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants"
 
 export default function SecurityCard() {
     const captureEvent = useCaptureEvent();
@@ -62,7 +63,7 @@ export default function SecurityCard() {
                 <div className="flex flex-row justify-center text-sm text-[#A1A1AA] mb-5">
                     Have questions?
                     <Link
-                        href="mailto:team@sourcebot.dev"
+                        href={`mailto:${SOURCEBOT_SUPPORT_EMAIL}`}
                         className="inline-flex items-center ml-2 text-[#9D5CFF] hover:text-[#B47EFF] transition-colors"
                     >
                         <Mail className="h-3.5 w-3.5 mr-1" />

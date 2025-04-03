@@ -29,3 +29,5 @@ export const SINGLE_TENANT_USER_EMAIL = 'default@sourcebot.dev';
 export const SINGLE_TENANT_ORG_ID = 1;
 export const SINGLE_TENANT_ORG_DOMAIN = '~';
 export const SINGLE_TENANT_ORG_NAME = 'default';
+
+export const SOURCEBOT_SUPPORT_EMAIL = 'team@sourcebot.dev';

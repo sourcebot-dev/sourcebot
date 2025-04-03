@@ -1,6 +1,6 @@
 import { env } from "@/env.mjs";
 import { getPlan, hasEntitlement } from "@/features/entitlements/server";
-import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
+import { SINGLE_TENANT_ORG_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { prisma } from "@/prisma";
 import { SearchContext } from "@sourcebot/schemas/v3/index.type";
 import micromatch from "micromatch";
@@ -13,7 +13,7 @@ export const syncSearchContexts = async (contexts?: { [key: string]: SearchConte
     if (!hasEntitlement("search-contexts")) {
         if (contexts) {
             const plan = getPlan();
-            console.error(`Search contexts are not supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact team@sourcebot.dev.`);
+            console.error(`Search contexts are not supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
         }
         return;
     }

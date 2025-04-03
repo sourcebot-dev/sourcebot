@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { AlertCircle } from "lucide-react"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { useRouter } from "next/navigation"
+import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants"
 
 export default function VerificationFailed() {
   const router = useRouter()
@@ -34,7 +35,7 @@ export default function VerificationFailed() {
         <a href="https://www.sourcebot.dev" className="hover:text-gray-300">
           About
         </a>
-        <a href="mailto:team@sourcebot.dev" className="hover:text-gray-300">
+        <a href={`mailto:${SOURCEBOT_SUPPORT_EMAIL}`} className="hover:text-gray-300">
           Contact Us
         </a>
       </div>

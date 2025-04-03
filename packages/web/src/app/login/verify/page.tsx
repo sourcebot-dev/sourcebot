@@ -13,6 +13,7 @@ import VerificationFailed from "./verificationFailed"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import useCaptureEvent from "@/hooks/useCaptureEvent"
 import { Footer } from "@/app/components/footer"
+import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants"
 
 function VerifyPageContent() {
     const [value, setValue] = useState("")
@@ -89,7 +90,7 @@ function VerifyPageContent() {
                     <div className="mt-8 text-center text-sm text-muted-foreground">
                         <p>
                             Having trouble?{" "}
-                            <a href="mailto:team@sourcebot.dev" className="text-primary hover:underline">
+                            <a href={`mailto:${SOURCEBOT_SUPPORT_EMAIL}`} className="text-primary hover:underline">
                                 Contact support
                             </a>
                         </p>

@@ -2,6 +2,8 @@ import { env } from "@/env.mjs"
 import { Entitlement, entitlementsByPlan, Plan } from "./constants"
 import { base64Decode } from "@/lib/utils";
 import { z } from "zod";
+import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
+
 const eeLicenseKeyPrefix = "sourcebot_ee_";
 
 const eeLicenseKeyPayloadSchema = z.object({
@@ -28,7 +30,7 @@ export const getPlan = (): Plan => {
             const { expiryDate } = decodeLicenseKeyPayload(payload);
 
             if (new Date(expiryDate).getTime() < new Date().getTime()) {
-                console.error("The provided license key has expired. Falling back to oss plan. Please contact team@sourcebot.dev for support.");
+                console.error(`The provided license key has expired. Falling back to oss plan. Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
                 return "oss";
             }
 
