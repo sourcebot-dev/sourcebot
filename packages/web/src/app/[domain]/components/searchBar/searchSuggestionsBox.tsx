@@ -10,7 +10,6 @@ import {
     caseModeSuggestions,
     forkModeSuggestions,
     publicModeSuggestions,
-    refineModeSuggestions,
 } from "./constants";
 import { IconType } from "react-icons/lib";
 import { VscFile, VscFilter, VscRepo, VscSymbolMisc } from "react-icons/vsc";
@@ -18,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { KeyboardShortcutHint } from "../keyboardShortcutHint";
 import { useSyntaxGuide } from "@/app/[domain]/components/syntaxGuideProvider";
+import { useRefineModeSuggestions } from "./useRefineModeSuggestions";
 
 export type Suggestion = {
     value: string;
@@ -84,6 +84,7 @@ const SearchSuggestionsBox = forwardRef(({
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
     const { onOpenChanged } = useSyntaxGuide();
+    const refineModeSuggestions = useRefineModeSuggestions();
 
     const { suggestions, isHighlightEnabled, descriptionPlacement, DefaultIcon, onSuggestionClicked } = useMemo(() => {
         if (!isEnabled) {
