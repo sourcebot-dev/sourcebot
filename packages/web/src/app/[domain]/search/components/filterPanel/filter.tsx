@@ -44,27 +44,27 @@ export const Filter = ({
             className
         )}>
             <h2 className="text-sm font-semibold">{title}</h2>
-            <Input
-                placeholder={searchPlaceholder}
-                className="h-8"
-                onChange={(event) => setSearchFilter(event.target.value)}
-            />
+            <div className="pr-1">
+                <Input
+                    placeholder={searchPlaceholder}
+                    className="h-8"
+                    onChange={(event) => setSearchFilter(event.target.value)}
+                />
+            </div>
 
-            <ScrollArea>
-                <div
-                    className="flex flex-col gap-0.5 text-sm px-0.5"
-                >
-                    {filteredEntries
-                        .sort((entryA, entryB) => compareEntries(entryB, entryA))
-                        .map((entry) => (
-                            <Entry
-                                key={entry.key}
-                                entry={entry}
-                                onClicked={() => onEntryClicked(entry.key)}
-                            />
-                        ))}
-                </div>
-            </ScrollArea>
+            <div
+                className="flex flex-col gap-0.5 text-sm overflow-scroll no-scrollbar"
+            >
+                {filteredEntries
+                    .sort((entryA, entryB) => compareEntries(entryB, entryA))
+                    .map((entry) => (
+                        <Entry
+                            key={entry.key}
+                            entry={entry}
+                            onClicked={() => onEntryClicked(entry.key)}
+                        />
+                    ))}
+            </div>
         </div>
     )
 }

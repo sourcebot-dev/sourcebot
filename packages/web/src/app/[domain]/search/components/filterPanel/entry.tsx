@@ -32,7 +32,7 @@ export const Entry = ({
     return (
         <div
             className={clsx(
-                "flex flex-row items-center justify-between py-0.5 px-2 cursor-pointer rounded-md gap-2 select-none",
+                "flex flex-row items-center justify-between py-0.5 px-1 cursor-pointer rounded-md gap-2 select-none",
                 {
                     "hover:bg-gray-200 dark:hover:bg-gray-700": !isSelected,
                     "bg-blue-200 dark:bg-blue-400": isSelected,
