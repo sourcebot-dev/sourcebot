@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.2] - 2025-04-04
+
 ### Fixes
 - Change connection manager upsert timeout to 5 minutes
 - Fix issue with repo display names being poorly formatted, especially for gerrit. ([#259](https://github.com/sourcebot-dev/sourcebot/pull/259))
