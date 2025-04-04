@@ -7,6 +7,7 @@ export const DEFAULT_SETTINGS: Settings = {
     maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
     maxTrigramCount: 20000,
     reindexIntervalMs: 1000 * 60 * 60, // 1 hour
+    resyncConnectionIntervalMs: 1000 * 60 * 60 * 24, // 24 hours
     resyncConnectionPollingIntervalMs: 1000 * 1, // 1 second
     reindexRepoPollingIntervalMs: 1000 * 1, // 1 second
     maxConnectionSyncJobConcurrency: 8,

@@ -71,9 +71,29 @@ export class ConnectionManager implements IConnectionManager {
 
     public async registerPollingCallback() {
         setInterval(async () => {
+            const thresholdDate = new Date(Date.now() - this.settings.resyncConnectionIntervalMs);
             const connections = await this.db.connection.findMany({
                 where: {
-                    syncStatus: ConnectionSyncStatus.SYNC_NEEDED,
+                    OR: [
+                        // When the connection needs to be synced, we want to sync it immediately.
+                        {
+                            syncStatus: ConnectionSyncStatus.SYNC_NEEDED,
+                        },
+                        // When the connection has already been synced, we only want to re-sync if the re-sync interval has elapsed
+                        // (or if the date isn't set for some reason).
+                        {
+                            AND: [
+                                { OR: [
+                                    { syncStatus: ConnectionSyncStatus.SYNCED },
+                                    { syncStatus: ConnectionSyncStatus.SYNCED_WITH_WARNINGS },
+                                ]},
+                                { OR: [
+                                    { syncedAt: null },
+                                    { syncedAt: { lt: thresholdDate } },
+                                ]}
+                            ]
+                        }
+                    ]
                 }
             });
             for (const connection of connections) {
