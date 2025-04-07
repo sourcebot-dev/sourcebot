@@ -85,7 +85,14 @@ echo '{
 
 2. Run the docker container
 ```sh
-docker run -p 3000:3000 --pull=always --rm -v $(pwd):/data -e CONFIG_PATH=/data/config.json --name sourcebot ghcr.io/sourcebot-dev/sourcebot:latest
+docker run \
+  -p 3000:3000 \
+  --pull=always \
+  --rm \
+  -v $(pwd):/data \
+  -e CONFIG_PATH=/data/config.json \
+  --name sourcebot \
+  ghcr.io/sourcebot-dev/sourcebot:latest
 ```
 <details>
 <summary>What does this command do?</summary>
