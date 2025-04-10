@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+if [ "$DATABASE_URL" = "postgresql://postgres@localhost:5432/sourcebot" ]; then
+    DATABASE_EMBEDDED="true"
+fi
+
 echo -e "\e[34m[Info] Sourcebot version: $NEXT_PUBLIC_SOURCEBOT_VERSION\e[0m"
 
 # If we don't have a PostHog key, then we need to disable telemetry.
@@ -30,7 +34,7 @@ if [ ! -d "$DATA_CACHE_DIR" ]; then
 fi
 
 # Check if DATABASE_DATA_DIR exists, if not initialize it
-if [ ! -d "$DATABASE_DATA_DIR" ]; then
+if [ "$DATABASE_EMBEDDED" = "true" ] && [ ! -d "$DATABASE_DATA_DIR" ]; then
     echo -e "\e[34m[Info] Initializing database at $DATABASE_DATA_DIR...\e[0m"
     mkdir -p $DATABASE_DATA_DIR && chown -R postgres:postgres "$DATABASE_DATA_DIR"
     su postgres -c "initdb -D $DATABASE_DATA_DIR"
@@ -129,7 +133,7 @@ echo "{\"version\": \"$NEXT_PUBLIC_SOURCEBOT_VERSION\", \"install_id\": \"$SOURC
 
 
 # Start the database and wait for it to be ready before starting any other service
-if [ "$DATABASE_URL" = "postgresql://postgres@localhost:5432/sourcebot" ]; then
+if [ "$DATABASE_EMBEDDED" = "true" ]; then
     su postgres -c "postgres -D $DATABASE_DATA_DIR" &
     until pg_isready -h localhost -p 5432 -U postgres; do
         echo -e "\e[34m[Info] Waiting for the database to be ready...\e[0m"
