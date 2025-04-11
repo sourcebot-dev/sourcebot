@@ -20,6 +20,7 @@ const QUEUE_NAME = 'connectionSyncQueue';
 
 type JobPayload = {
     connectionId: number,
+    connectionName: string,
     orgId: number,
     config: ConnectionConfig,
 };
@@ -60,12 +61,13 @@ export class ConnectionManager implements IConnectionManager {
 
             await this.queue.add('connectionSyncJob', {
                 connectionId: connection.id,
+                connectionName: connection.name,
                 orgId: connection.orgId,
                 config: connectionConfig,
             });
-            this.logger.info(`Added job to queue for connection ${connection.id}`);
+            this.logger.info(`Added job to queue for connection ${connection.name} (id: ${connection.id})`);
         }).catch((err: unknown) => {
-            this.logger.error(`Failed to add job to queue for connection ${connection.id}: ${err}`);
+            this.logger.error(`Failed to add job to queue for connection ${connection.name} (id: ${connection.id}): ${err}`);
         });
     }
 
@@ -83,14 +85,18 @@ export class ConnectionManager implements IConnectionManager {
                         // (or if the date isn't set for some reason).
                         {
                             AND: [
-                                { OR: [
-                                    { syncStatus: ConnectionSyncStatus.SYNCED },
-                                    { syncStatus: ConnectionSyncStatus.SYNCED_WITH_WARNINGS },
-                                ]},
-                                { OR: [
-                                    { syncedAt: null },
-                                    { syncedAt: { lt: thresholdDate } },
-                                ]}
+                                {
+                                    OR: [
+                                        { syncStatus: ConnectionSyncStatus.SYNCED },
+                                        { syncStatus: ConnectionSyncStatus.SYNCED_WITH_WARNINGS },
+                                    ]
+                                },
+                                {
+                                    OR: [
+                                        { syncedAt: null },
+                                        { syncedAt: { lt: thresholdDate } },
+                                    ]
+                                }
                             ]
                         }
                     ]
@@ -103,7 +109,7 @@ export class ConnectionManager implements IConnectionManager {
     }
 
     private async runSyncJob(job: Job<JobPayload>): Promise<JobResult> {
-        const { config, orgId } = job.data;
+        const { config, orgId, connectionName } = job.data;
         // @note: We aren't actually doing anything with this atm.
         const abortController = new AbortController();
 
@@ -120,7 +126,7 @@ export class ConnectionManager implements IConnectionManager {
             Sentry.captureException(e);
             throw e;
         }
-        
+
         // Reset the syncStatusMetadata to an empty object at the start of the sync job
         await this.db.connection.update({
             where: {
@@ -131,7 +137,7 @@ export class ConnectionManager implements IConnectionManager {
                 syncStatusMetadata: {}
             }
         })
-        
+
 
         let result: {
             repoData: RepoData[],
@@ -167,7 +173,7 @@ export class ConnectionManager implements IConnectionManager {
                 }
             })();
         } catch (err) {
-            this.logger.error(`Failed to compile repo data for connection ${job.data.connectionId}: ${err}`);
+            this.logger.error(`Failed to compile repo data for connection ${job.data.connectionId} (${connectionName}): ${err}`);
             Sentry.captureException(err);
 
             if (err instanceof BackendException) {
@@ -191,7 +197,7 @@ export class ConnectionManager implements IConnectionManager {
                 syncStatusMetadata: { notFound }
             }
         });
-            
+
         // Filter out any duplicates by external_id and external_codeHostUrl.
         repoData = repoData.filter((repo, index, self) => {
             return index === self.findIndex(r =>
@@ -218,7 +224,7 @@ export class ConnectionManager implements IConnectionManager {
                 }
             });
             const deleteDuration = performance.now() - deleteStart;
-            this.logger.info(`Deleted all RepoToConnection records for connection ${job.data.connectionId} in ${deleteDuration}ms`);
+            this.logger.info(`Deleted all RepoToConnection records for connection ${connectionName} (id: ${job.data.connectionId}) in ${deleteDuration}ms`);
 
             const totalUpsertStart = performance.now();
             for (const repo of repoData) {
@@ -235,10 +241,10 @@ export class ConnectionManager implements IConnectionManager {
                     create: repo,
                 })
                 const upsertDuration = performance.now() - upsertStart;
-                this.logger.info(`Upserted repo ${repo.external_id} in ${upsertDuration}ms`);
+                this.logger.info(`Upserted repo ${repo.displayName} (id: ${repo.external_id}) in ${upsertDuration}ms`);
             }
             const totalUpsertDuration = performance.now() - totalUpsertStart;
-            this.logger.info(`Upserted ${repoData.length} repos in ${totalUpsertDuration}ms`);
+            this.logger.info(`Upserted ${repoData.length} repos for connection ${connectionName} (id: ${job.data.connectionId}) in ${totalUpsertDuration}ms`);
         }, { timeout: env.CONNECTION_MANAGER_UPSERT_TIMEOUT_MS });
 
         return {
@@ -248,18 +254,20 @@ export class ConnectionManager implements IConnectionManager {
 
 
     private async onSyncJobCompleted(job: Job<JobPayload>, result: JobResult) {
-        this.logger.info(`Connection sync job ${job.id} completed`);
+        this.logger.info(`Connection sync job for connection ${job.data.connectionName} (id: ${job.data.connectionId}, jobId: ${job.id}) completed`);
         const { connectionId } = job.data;
 
         let syncStatusMetadata: Record<string, unknown> = (await this.db.connection.findUnique({
             where: { id: connectionId },
             select: { syncStatusMetadata: true }
         }))?.syncStatusMetadata as Record<string, unknown> ?? {};
-        const { notFound } = syncStatusMetadata as { notFound: {
-            users: string[],
-            orgs: string[],
-            repos: string[],
-        }};
+        const { notFound } = syncStatusMetadata as {
+            notFound: {
+                users: string[],
+                orgs: string[],
+                repos: string[],
+            }
+        };
 
         await this.db.connection.update({
             where: {
@@ -268,8 +276,8 @@ export class ConnectionManager implements IConnectionManager {
             data: {
                 syncStatus:
                     notFound.users.length > 0 ||
-                    notFound.orgs.length > 0 ||
-                    notFound.repos.length > 0 ? ConnectionSyncStatus.SYNCED_WITH_WARNINGS : ConnectionSyncStatus.SYNCED,
+                        notFound.orgs.length > 0 ||
+                        notFound.repos.length > 0 ? ConnectionSyncStatus.SYNCED_WITH_WARNINGS : ConnectionSyncStatus.SYNCED,
                 syncedAt: new Date()
             }
         })
@@ -281,7 +289,7 @@ export class ConnectionManager implements IConnectionManager {
     }
 
     private async onSyncJobFailed(job: Job<JobPayload> | undefined, err: unknown) {
-        this.logger.info(`Connection sync job failed with error: ${err}`);
+        this.logger.info(`Connection sync job for connection ${job?.data.connectionName} (id: ${job?.data.connectionId}, jobId: ${job?.id}) failed with error: ${err}`);
         Sentry.captureException(err, {
             tags: {
                 connectionid: job?.data.connectionId,
@@ -312,7 +320,7 @@ export class ConnectionManager implements IConnectionManager {
                 }
             } else {
                 syncStatusMetadata = {
-                    ...syncStatusMetadata, 
+                    ...syncStatusMetadata,
                     error: 'UNKNOWN',
                 }
             }

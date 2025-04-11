@@ -6,11 +6,14 @@ import { getGerritReposFromConfig } from "./gerrit.js";
 import { Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
+import { createLogger } from './logger.js';
 import { GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { RepoMetadata } from './types.js';
 import path from 'path';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
+
+const logger = createLogger('RepoCompileUtils');
 
 export const compileGithubConfig = async (
     config: GithubConnectionConfig,
@@ -38,6 +41,8 @@ export const compileGithubConfig = async (
         const repoDisplayName = repo.full_name;
         const repoName = path.join(repoNameRoot, repoDisplayName);
         const cloneUrl = new URL(repo.clone_url!);
+
+        logger.debug(`Found github repo ${repoDisplayName} with webUrl: ${repo.html_url}`);
 
         const record: RepoData = {
             external_id: repo.id.toString(),
@@ -110,6 +115,8 @@ export const compileGitlabConfig = async (
         const repoDisplayName = project.path_with_namespace;
         const repoName = path.join(repoNameRoot, repoDisplayName);
 
+        logger.debug(`Found gitlab repo ${repoDisplayName} with webUrl: ${projectUrl}`);
+
         const record: RepoData = {
             external_id: project.id.toString(),
             external_codeHostType: 'gitlab',
@@ -176,6 +183,8 @@ export const compileGiteaConfig = async (
         const cloneUrl = new URL(repo.clone_url!);
         const repoDisplayName = repo.full_name!;
         const repoName = path.join(repoNameRoot, repoDisplayName);
+
+        logger.debug(`Found gitea repo ${repoDisplayName} with webUrl: ${repo.html_url}`);
 
         const record: RepoData = {
             external_id: repo.id!.toString(),
@@ -246,11 +255,15 @@ export const compileGerritConfig = async (
             const webLink = project.web_links[0];
             const webUrl = webLink.url;
 
+            logger.debug(`Found gerrit repo ${project.name} with webUrl: ${webUrl}`);
+
             // Handle case where webUrl is just a gitiles path
             // https://github.com/GerritCodeReview/plugins_gitiles/blob/5ee7f57/src/main/java/com/googlesource/gerrit/plugins/gitiles/GitilesWeblinks.java#L50
             if (webUrl.startsWith('/plugins/gitiles/')) {
+                logger.debug(`WebUrl is a gitiles path, joining with hostUrl: ${webUrl}`);
                 return path.join(hostUrl, webUrl);
             } else {
+                logger.debug(`WebUrl is not a gitiles path, returning as is: ${webUrl}`);
                 return webUrl;
             }
         })();

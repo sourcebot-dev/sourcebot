@@ -140,10 +140,12 @@ export class RepoManager implements IRepoManager {
                     {
                         AND: [
                             { repoIndexingStatus: RepoIndexingStatus.INDEXED },
-                            { OR: [
-                                { indexedAt: null },
-                                { indexedAt: { lt: thresholdDate } },
-                            ]}
+                            {
+                                OR: [
+                                    { indexedAt: null },
+                                    { indexedAt: { lt: thresholdDate } },
+                                ]
+                            }
                         ]
                     }
                 ]
@@ -201,27 +203,27 @@ export class RepoManager implements IRepoManager {
 
         const repoPath = getRepoPath(repo, this.ctx);
         const metadata = repoMetadataSchema.parse(repo.metadata);
-        
+
         // If the repo was already in the indexing state, this job was likely killed and picked up again. As a result,
         // to ensure the repo state is valid, we delete the repo if it exists so we get a fresh clone 
         if (repoAlreadyInIndexingState && existsSync(repoPath)) {
             this.logger.info(`Deleting repo directory ${repoPath} during sync because it was already in the indexing state`);
-            await promises.rm(repoPath, { recursive: true, force: true });      
+            await promises.rm(repoPath, { recursive: true, force: true });
         }
 
         if (existsSync(repoPath)) {
-            this.logger.info(`Fetching ${repo.id}...`);
+            this.logger.info(`Fetching ${repo.displayName}...`);
 
             const { durationMs } = await measure(() => fetchRepository(repoPath, ({ method, stage, progress }) => {
-                this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+                this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
             }));
             fetchDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
-            this.logger.info(`Fetched ${repo.name} in ${fetchDuration_s}s`);
+            this.logger.info(`Fetched ${repo.displayName} in ${fetchDuration_s}s`);
 
         } else {
-            this.logger.info(`Cloning ${repo.id}...`);
+            this.logger.info(`Cloning ${repo.displayName}...`);
 
             const token = await this.getTokenForRepo(repo, this.db);
             const cloneUrl = new URL(repo.cloneUrl);
@@ -240,12 +242,12 @@ export class RepoManager implements IRepoManager {
             }
 
             const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, ({ method, stage, progress }) => {
-                this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.id}`)
+                this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
             }));
             cloneDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
-            this.logger.info(`Cloned ${repo.id} in ${cloneDuration_s}s`);
+            this.logger.info(`Cloned ${repo.displayName} in ${cloneDuration_s}s`);
         }
 
         // Regardless of clone or fetch, always upsert the git config for the repo.
@@ -255,10 +257,10 @@ export class RepoManager implements IRepoManager {
             await upsertGitConfig(repoPath, metadata.gitConfig);
         }
 
-        this.logger.info(`Indexing ${repo.id}...`);
+        this.logger.info(`Indexing ${repo.displayName}...`);
         const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, this.ctx));
         const indexDuration_s = durationMs / 1000;
-        this.logger.info(`Indexed ${repo.id} in ${indexDuration_s}s`);
+        this.logger.info(`Indexed ${repo.displayName} in ${indexDuration_s}s`);
 
         return {
             fetchDuration_s,
@@ -268,7 +270,7 @@ export class RepoManager implements IRepoManager {
     }
 
     private async runIndexJob(job: Job<RepoIndexingPayload>) {
-        this.logger.info(`Running index job (id: ${job.id}) for repo ${job.data.repo.id}`);
+        this.logger.info(`Running index job (id: ${job.id}) for repo ${job.data.repo.displayName}`);
         const repo = job.data.repo as RepoWithConnections;
 
         // We have to use the existing repo object to get the repoIndexingStatus because the repo object
@@ -332,7 +334,7 @@ export class RepoManager implements IRepoManager {
     }
 
     private async onIndexJobCompleted(job: Job<RepoIndexingPayload>) {
-        this.logger.info(`Repo index job ${job.id} completed`);
+        this.logger.info(`Repo index job for repo ${job.data.repo.displayName} (id: ${job.data.repo.id}, jobId: ${job.id}) completed`);
         this.promClient.activeRepoIndexingJobs.dec();
         this.promClient.repoIndexingSuccessTotal.inc();
 
@@ -348,7 +350,7 @@ export class RepoManager implements IRepoManager {
     }
 
     private async onIndexJobFailed(job: Job<RepoIndexingPayload> | undefined, err: unknown) {
-        this.logger.info(`Repo index job failed (id: ${job?.id ?? 'unknown'}) with error: ${err}`);
+        this.logger.info(`Repo index job for repo ${job?.data.repo.displayName} (id: ${job?.data.repo.id}, jobId: ${job?.id}) failed with error: ${err}`);
         Sentry.captureException(err, {
             tags: {
                 repoId: job?.data.repo.id,
@@ -468,7 +470,7 @@ export class RepoManager implements IRepoManager {
         const repoPath = getRepoPath(repo, this.ctx);
         if (existsSync(repoPath)) {
             this.logger.info(`Deleting repo directory ${repoPath}`);
-            await promises.rm(repoPath, { recursive: true, force: true });      
+            await promises.rm(repoPath, { recursive: true, force: true });
         }
 
         // delete shards
@@ -542,7 +544,7 @@ export class RepoManager implements IRepoManager {
             });
         });
     }
-    
+
     public async dispose() {
         this.indexWorker.close();
         this.indexQueue.close();
