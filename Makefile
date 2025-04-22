@@ -33,6 +33,7 @@ clean:
 soft-reset:
 	rm -rf .sourcebot
 	redis-cli FLUSHALL
+	yarn dev:prisma:migrate:reset
 
 
 .PHONY: bin
