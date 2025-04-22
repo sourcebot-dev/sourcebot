@@ -583,6 +583,30 @@ const schema = {
                 "url"
               ],
               "additionalProperties": false
+            },
+            {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "type": "object",
+              "title": "GitConnectionConfig",
+              "properties": {
+                "type": {
+                  "const": "git",
+                  "description": "Git Configuration"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "url",
+                  "description": "The URL to the git repository."
+                },
+                "revisions": {
+                  "$ref": "#/properties/connections/patternProperties/%5E%5Ba-zA-Z0-9_-%5D%2B%24/oneOf/0/properties/revisions"
+                }
+              },
+              "required": [
+                "type",
+                "url"
+              ],
+              "additionalProperties": false
             }
           ]
         }

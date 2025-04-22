@@ -13,6 +13,9 @@
         },
         {
             "$ref": "./gerrit.json"
+        },
+        {
+            "$ref": "./git.json"
         }
     ]
 }

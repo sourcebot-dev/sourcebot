@@ -504,6 +504,30 @@ const schema = {
         "url"
       ],
       "additionalProperties": false
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "title": "GitConnectionConfig",
+      "properties": {
+        "type": {
+          "const": "git",
+          "description": "Git Configuration"
+        },
+        "url": {
+          "type": "string",
+          "format": "url",
+          "description": "The URL to the git repository."
+        },
+        "revisions": {
+          "$ref": "#/oneOf/0/properties/revisions"
+        }
+      },
+      "required": [
+        "type",
+        "url"
+      ],
+      "additionalProperties": false
     }
   ]
 } as const;

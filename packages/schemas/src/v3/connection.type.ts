@@ -4,7 +4,8 @@ export type ConnectionConfig =
   | GithubConnectionConfig
   | GitlabConnectionConfig
   | GiteaConnectionConfig
-  | GerritConnectionConfig;
+  | GerritConnectionConfig
+  | GitConnectionConfig;
 
 export interface GithubConnectionConfig {
   /**
@@ -234,4 +235,15 @@ export interface GerritConnectionConfig {
      */
     projects?: string[];
   };
+}
+export interface GitConnectionConfig {
+  /**
+   * Git Configuration
+   */
+  type: "git";
+  /**
+   * The URL to the git repository.
+   */
+  url: string;
+  revisions?: GitRevisions;
 }
