@@ -206,7 +206,8 @@ const SearchSuggestionsBox = forwardRef(({
                     return {
                         list: searchContextSuggestions,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
-                        descriptionPlacement: "right",
+                        descriptionPlacement: "left",
+                        DefaultIcon: VscFilter,
                     }
                 case "none":
                 case "revision":

@@ -39,6 +39,7 @@
                     {
                         "group": "More",
                         "pages": [
+                            "docs/more/syntax-reference",
                             "docs/more/roles-and-permissions"
                         ]
                     }

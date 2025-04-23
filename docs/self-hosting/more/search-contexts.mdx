@@ -4,11 +4,95 @@ sidebarTitle: Search contexts (EE)
 ---
 
 <Note>
-This is only available in the Enteprise Edition. Please add your [license key](/self-hosting/license-key) to activate it.
+This is only available in the Enterprise Edition. Please add your [license key](/self-hosting/license-key) to activate it.
 </Note>
 
-todo
+A **search context** is a user-defined grouping of repositories that helps focus searches on specific areas of your codebase, like frontend, backend, or infrastructure code. This reduces noise in search results and improves developer productivity.
 
+## Getting started
+
+<Note>
+The following will walkthrough an example of how search contexts can be used. For a full reference, see [here](#schema-reference).
+</Note>
+
+Let's assume we have a GitLab instance hosted at `https://gitlab.example.com` with three top-level projects, `web`, `backend`, and `shared`:
+
+```sh
+web/
+├─ admin_panel/
+├─ customer_portal/
+├─ pipelines/
+├─ ...
+backend/
+├─ billing_server/
+├─ auth_server/
+├─ db_migrations/
+├─ pipelines/
+├─ ...
+shared/
+├─ protobufs/
+├─ react/
+├─ pipelines/
+├─ ...
+```
+
+To make searching easier, we can create three search contexts:
+- `web`: For all frontend-related code
+- `backend`: For backend services and shared APIs
+- `pipelines`: For all CI/CD configurations
+
+Add these contexts to your [config.json](/self-hosting/more/declarative-config):
+
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "connections": {
+        "gitlab-connection": {
+            "type": "gitlab",
+            "url": "https://gitlab.example.com",
+            "groups": ["web", "backend", "shared"]
+        }
+    },
+    "contexts": {
+        "web": {
+            "description": "Frontend related repos.",
+            "include": [
+                "gitlab.example.com/web/**",
+                "gitlab.example.com/shared/react/**",
+                "gitlab.example.com/shared/protobufs/**"
+            ]
+        },
+        "backend": {
+            "description": "Backend related repos.",
+            "include": [
+                "gitlab.example.com/backend/**",
+                "gitlab.example.com/shared/protobufs/**"
+            ]
+        },
+        "pipelines": {
+            "description": "Devops related repos.",
+            "include": [
+                "gitlab.example.com/web/pipelines/**",
+                "gitlab.example.com/backend/pipelines/**",
+                "gitlab.example.com/shared/pipelines/**"
+            ]
+        }
+    }
+}
+```
+
+Once configured, you can use these contexts in the search bar by prefixing your query with the context name. For example:
+- `context:web login form` searches for login form code in frontend repositories
+- `context:backend auth` searches for authentication code in backend services
+- `context:pipelines deploy` searches for deployment configurations
+
+![Example](/images/search_contexts_example.png)
+
+Like other prefixes, contexts can be negated using `-` or combined using `or`:
+- `-context:web` excludes frontend repositories from results
+- `( context:web or context:backend )` searches across both frontend and backend code
+
+See [this doc](/docs/more/syntax-reference) for more details on the search query syntax.
 
 ## Schema reference
 
