@@ -373,6 +373,8 @@ export const compileBitbucketConfig = async (
                         'zoekt.public': marshalBool(serverRepo.public),
                         'zoekt.display-name': repoDisplayName,
                     },
+                    branches: config.revisions?.branches ?? undefined,
+                    tags: config.revisions?.tags ?? undefined,
                 } satisfies RepoMetadata,
             }
         } else {
@@ -412,6 +414,8 @@ export const compileBitbucketConfig = async (
                         'zoekt.public': marshalBool(cloudRepo.is_private === false),
                         'zoekt.display-name': repoDisplayName,
                     },
+                    branches: config.revisions?.branches ?? undefined,
+                    tags: config.revisions?.tags ?? undefined,
                 } satisfies RepoMetadata,
             }
         }
