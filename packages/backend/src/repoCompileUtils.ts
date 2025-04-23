@@ -373,7 +373,7 @@ export const compileBitbucketConfig = async (
                         'zoekt.public': marshalBool(serverRepo.public),
                         'zoekt.display-name': repoDisplayName,
                     },
-                },
+                } satisfies RepoMetadata,
             }
         } else {
             const cloudRepo = repo as BitbucketCloudRepository;
@@ -381,17 +381,13 @@ export const compileBitbucketConfig = async (
             const repoDisplayName = cloudRepo.full_name!;
             const repoName = path.join(repoNameRoot, repoDisplayName);
 
-            const cloneInfo = cloudRepo.links!.clone![0];
-            const webInfo = cloudRepo.links!.self!;
-            const cloneUrl = new URL(cloneInfo.href!);
-            const webUrl = new URL(webInfo.href!);
-
+            const htmlUrl = cloudRepo.links!.html?.href!;
             record = {
                 external_id: cloudRepo.uuid!,
                 external_codeHostType: 'bitbucket-cloud',
                 external_codeHostUrl: hostUrl,
-                cloneUrl: cloneUrl.toString(),
-                webUrl: webUrl.toString(),
+                cloneUrl: htmlUrl,
+                webUrl: htmlUrl,
                 name: repoName,
                 displayName: repoDisplayName,
                 isFork: false,
@@ -409,14 +405,14 @@ export const compileBitbucketConfig = async (
                 metadata: {
                     gitConfig: {
                         'zoekt.web-url-type': 'bitbucket-cloud',
-                        'zoekt.web-url': webUrl.toString(),
+                        'zoekt.web-url': htmlUrl,
                         'zoekt.name': repoName,
                         'zoekt.archived': marshalBool(false),
                         'zoekt.fork': marshalBool(false),
                         'zoekt.public': marshalBool(cloudRepo.is_private === false),
                         'zoekt.display-name': repoDisplayName,
                     },
-                },
+                } satisfies RepoMetadata,
             }
         }
 

@@ -4,6 +4,7 @@ import githubLogo from "@/public/github.svg";
 import gitlabLogo from "@/public/gitlab.svg";
 import giteaLogo from "@/public/gitea.svg";
 import gerritLogo from "@/public/gerrit.svg";
+import bitbucketLogo from "@/public/bitbucket.svg";
 import { ServiceError } from "./serviceError";
 import { Repository, RepositoryQuery } from "./types";
 
@@ -31,7 +32,7 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
     return `${path}?${queryString}`;
 }
 
-export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit";
+export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit" | "bitbucket";
 
 type CodeHostInfo = {
     type: CodeHostType;
@@ -110,6 +111,18 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: s
                 iconClassName: className,
             }
         }
+        case "bitbucket-server": 
+        case "bitbucket-cloud": {
+            const { src, className } = getCodeHostIcon('bitbucket')!;
+            return {
+                type: "bitbucket",
+                displayName: displayName,
+                codeHostName: "Bitbucket",
+                repoLink: cloneUrl,
+                icon: src,
+                iconClassName: className,
+            }
+        }
     }
 }
 
@@ -132,6 +145,10 @@ export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, clas
             return {
                 src: gerritLogo,
             }
+        case "bitbucket":
+            return {
+                src: bitbucketLogo,
+            }
         default:
             return null;
     }
@@ -142,6 +159,7 @@ export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean 
         case "github":
         case "gitlab":
         case "gitea":
+        case "bitbucket":
             return true;
         case "gerrit":
             return false;

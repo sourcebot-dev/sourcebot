@@ -35,8 +35,8 @@ interface BitbucketClient {
     getPaginated: <T, V extends CloudGetRequestPath>(path: V, get: (url: V) => Promise<PaginatedResponse<T>>) => Promise<T[]>;
     getReposForWorkspace: (client: BitbucketClient, workspace: string) => Promise<{validRepos: BitbucketRepository[], notFoundWorkspaces: string[]}>;
     getReposForProjects: (client: BitbucketClient, projects: string[]) => Promise<{validRepos: BitbucketRepository[], notFoundProjects: string[]}>;
+    getRepos: (client: BitbucketClient, repos: string[]) => Promise<{validRepos: BitbucketRepository[], notFoundRepos: string[]}>;
     /*
-    getRepos: (client: BitbucketClient, workspace: string, project: string) => Promise<Repo[]>;
     countForks: (client: BitbucketClient, repo: Repo) => Promise<number>;
     countWatchers: (client: BitbucketClient, repo: Repo) => Promise<number>;
     getBranches: (client: BitbucketClient, repo: string) => Promise<string[]>;
@@ -89,6 +89,12 @@ export const getBitbucketReposFromConfig = async (config: BitbucketConnectionCon
         notFound.repos = notFoundProjects;
     }
 
+    if (config.repos) {
+        const { validRepos, notFoundRepos } = await client.getRepos(client, config.repos);
+        allRepos = allRepos.concat(validRepos);
+        notFound.repos = notFoundRepos;
+    }
+
     return {
         validRepos: allRepos,
         notFound,
@@ -114,6 +120,7 @@ function cloudClient(token: string | undefined): BitbucketClient {
         getPaginated: getPaginatedCloud,
         getReposForWorkspace: cloudGetReposForWorkspace,
         getReposForProjects: cloudGetReposForProjects,
+        getRepos: cloudGetRepos,
         /*
         getRepos: cloudGetRepos,
         countForks: cloudCountForks,
@@ -170,7 +177,7 @@ async function cloudGetReposForWorkspace(client: BitbucketClient, workspace: str
                 });
                 const { data, error } = response;
                 if (error) {
-                    throw new Error (`Failed to fetch projects for workspace ${workspace}: ${error.type}`);
+                    throw new Error(`Failed to fetch projects for workspace ${workspace}: ${JSON.stringify(error)}`);
                 }
                 return data;
             });
@@ -192,8 +199,15 @@ async function cloudGetReposForWorkspace(client: BitbucketClient, workspace: str
 async function cloudGetReposForProjects(client: BitbucketClient, projects: string[]): Promise<{validRepos: CloudRepository[], notFoundProjects: string[]}> {
     const results = await Promise.allSettled(projects.map(async (project) => {
         const [workspace, project_name] = project.split('/');
-        logger.debug(`Fetching all repos for project ${project} for workspace ${workspace}...`);
+        if (!workspace || !project_name) {
+            logger.error(`Invalid project ${project}`);
+            return {
+                type: 'notFound' as const,
+                value: project
+            }
+        }
 
+        logger.debug(`Fetching all repos for project ${project} for workspace ${workspace}...`);
         try {
             const path = `/repositories/${workspace}?q=project.key="${project_name}"` as CloudGetRequestPath;
             const repos = await client.getPaginated<CloudRepository, typeof path>(path, async (url) => {
@@ -232,4 +246,51 @@ async function cloudGetReposForProjects(client: BitbucketClient, projects: strin
         validRepos,
         notFoundProjects
     }
+}
+
+async function cloudGetRepos(client: BitbucketClient, repos: string[]): Promise<{validRepos: CloudRepository[], notFoundRepos: string[]}> {
+    const results = await Promise.allSettled(repos.map(async (repo) => {
+        const [workspace, repo_slug] = repo.split('/');
+        if (!workspace || !repo_slug) {
+            logger.error(`Invalid repo ${repo}`);
+            return {
+                type: 'notFound' as const,
+                value: repo
+            };
+        }
+
+        logger.debug(`Fetching repo ${repo_slug} for workspace ${workspace}...`);
+        try {
+            const path = `/repositories/${workspace}/${repo_slug}` as CloudGetRequestPath;
+            const response = await client.apiClient.GET(path);
+            const { data, error } = response;
+            if (error) {
+                throw new Error(`Failed to fetch repo ${repo}: ${error.type}`);
+            }
+            return {
+                type: 'valid' as const,
+                data: [data]
+            };
+        } catch (e: any) {
+            Sentry.captureException(e);
+            logger.error(`Failed to fetch repo ${repo}: ${e}`);
+
+            const status = e?.cause?.response?.status;
+            if (status === 404) {
+                logger.error(`Repo ${repo} not found in ${workspace} or invalid access`);
+                return {
+                    type: 'notFound' as const,
+                    value: repo
+                };
+            }
+            throw e;
+        }
+    }));
+
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults(results);
+    return {
+        validRepos,
+        notFoundRepos
+    };
 }
