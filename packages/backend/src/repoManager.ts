@@ -462,7 +462,7 @@ export class RepoManager implements IRepoManager {
     }
 
     private async runGarbageCollectionJob(job: Job<RepoGarbageCollectionPayload>) {
-        this.logger.info(`Running garbage collection job (id: ${job.id}) for repo ${job.data.repo.id}`);
+        this.logger.info(`Running garbage collection job (id: ${job.id}) for repo ${job.data.repo.displayName} (id: ${job.data.repo.id})`);
         this.promClient.activeRepoGarbageCollectionJobs.inc();
 
         const repo = job.data.repo as Repo;

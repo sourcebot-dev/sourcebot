@@ -36,7 +36,7 @@ export interface BitbucketConnectionConfig {
   /**
    * List of workspaces to sync. Ignored if deploymentType is server.
    */
-  workspace?: string;
+  workspaces?: string[];
   /**
    * List of projects to sync
    */
@@ -54,14 +54,6 @@ export interface BitbucketConnectionConfig {
      * Exclude forked repositories from syncing.
      */
     forks?: boolean;
-    /**
-     * List of specific workspaces to exclude from syncing. Ignored if deploymentType is server.
-     */
-    workspaces?: string[];
-    /**
-     * List of specific projects to exclude from syncing.
-     */
-    projects?: string[];
     /**
      * List of specific repos to exclude from syncing.
      */

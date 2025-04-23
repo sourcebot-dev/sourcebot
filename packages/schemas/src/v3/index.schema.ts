@@ -625,8 +625,11 @@ const schema = {
                   "default": "cloud",
                   "description": "The type of Bitbucket deployment"
                 },
-                "workspace": {
-                  "type": "string",
+                "workspaces": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
                   "description": "List of workspaces to sync. Ignored if deploymentType is server."
                 },
                 "projects": {
@@ -655,32 +658,6 @@ const schema = {
                       "type": "boolean",
                       "default": false,
                       "description": "Exclude forked repositories from syncing."
-                    },
-                    "workspaces": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      },
-                      "examples": [
-                        [
-                          "workspace1",
-                          "workspace2"
-                        ]
-                      ],
-                      "description": "List of specific workspaces to exclude from syncing. Ignored if deploymentType is server."
-                    },
-                    "projects": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      },
-                      "examples": [
-                        [
-                          "project1",
-                          "project2"
-                        ]
-                      ],
-                      "description": "List of specific projects to exclude from syncing."
                     },
                     "repos": {
                       "type": "array",
