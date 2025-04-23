@@ -64,7 +64,7 @@ export const getBitbucketReposFromConfig = async (config: BitbucketConnectionCon
     const token = await getTokenFromConfig(config.token, orgId, db, logger);
 
     //const deploymentType = config.deploymentType;
-    const client = cloudClient(token);
+    const client = cloudClient(config.user, token);
 
     let allRepos: BitbucketRepository[] = [];
     let notFound: {
@@ -101,12 +101,14 @@ export const getBitbucketReposFromConfig = async (config: BitbucketConnectionCon
     };
 }
 
-function cloudClient(token: string | undefined): BitbucketClient {
+function cloudClient(user: string | undefined, token: string | undefined): BitbucketClient {
+
+    const authorizationString = !user || user == "x-token-auth" ? `Bearer ${token}` : `Basic ${Buffer.from(`${user}:${token}`).toString('base64')}`;
     const clientOptions: ClientOptions = {
         baseUrl: BITBUCKET_CLOUD_API,
         headers: {
             Accept: "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: authorizationString,
         },
     };
 

@@ -177,7 +177,7 @@ export class RepoManager implements IRepoManager {
             return undefined;
         }
 
-        const username = (() => {
+        let username = (() => {
             switch (repo.external_codeHostType) {
                 case 'gitlab':
                     return 'oauth2';
@@ -202,6 +202,11 @@ export class RepoManager implements IRepoManager {
             if (config.token) {
                 password = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
                 if (password) {
+                    // If we're using a bitbucket connection, check to see if we're provided a username
+                    if (connection.connectionType === 'bitbucket') {
+                        const bitbucketConfig = config as BitbucketConnectionConfig;
+                        username = bitbucketConfig.user ?? "x-token-auth";
+                    }
                     break;
                 }
             }
