@@ -1,0 +1,191 @@
+// THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
+const schema = {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "BitbucketConnectionConfig",
+  "properties": {
+    "type": {
+      "const": "bitbucket",
+      "description": "Bitbucket configuration"
+    },
+    "user": {
+      "type": "string",
+      "description": "The username to use for authentication. Only needed if token is an app password."
+    },
+    "token": {
+      "description": "An authentication token.",
+      "examples": [
+        {
+          "secret": "SECRET_KEY"
+        }
+      ],
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "secret": {
+              "type": "string",
+              "description": "The name of the secret that contains the token."
+            }
+          },
+          "required": [
+            "secret"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "env": {
+              "type": "string",
+              "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+            }
+          },
+          "required": [
+            "env"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "url": {
+      "type": "string",
+      "format": "url",
+      "default": "https://api.bitbucket.org/2.0",
+      "description": "Bitbucket URL",
+      "examples": [
+        "https://bitbucket.example.com"
+      ],
+      "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+    },
+    "deploymentType": {
+      "type": "string",
+      "enum": [
+        "cloud",
+        "server"
+      ],
+      "default": "cloud",
+      "description": "The type of Bitbucket deployment"
+    },
+    "workspace": {
+      "type": "string",
+      "description": "List of workspaces to sync. Ignored if deploymentType is server."
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of projects to sync"
+    },
+    "repos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of repos to sync"
+    },
+    "exclude": {
+      "type": "object",
+      "properties": {
+        "archived": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exclude archived repositories from syncing."
+        },
+        "forks": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exclude forked repositories from syncing."
+        },
+        "workspaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "workspace1",
+              "workspace2"
+            ]
+          ],
+          "description": "List of specific workspaces to exclude from syncing. Ignored if deploymentType is server."
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "project1",
+              "project2"
+            ]
+          ],
+          "description": "List of specific projects to exclude from syncing."
+        },
+        "repos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "cloud_workspace/repo1",
+              "server_project/repo2"
+            ]
+          ],
+          "description": "List of specific repos to exclude from syncing."
+        }
+      },
+      "additionalProperties": false
+    },
+    "revisions": {
+      "type": "object",
+      "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+      "properties": {
+        "branches": {
+          "type": "array",
+          "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "main",
+              "release/*"
+            ],
+            [
+              "**"
+            ]
+          ],
+          "default": []
+        },
+        "tags": {
+          "type": "array",
+          "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "latest",
+              "v2.*.*"
+            ],
+            [
+              "**"
+            ]
+          ],
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "token",
+    "type"
+  ],
+  "additionalProperties": false
+} as const;
+export { schema as bitbucketSchema };

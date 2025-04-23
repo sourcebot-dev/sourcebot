@@ -3,11 +3,14 @@ import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
 import { getGerritReposFromConfig } from "./gerrit.js";
+import { getBitbucketReposFromConfig } from "./bitbucket.js";
+import { SchemaRepository as BitbucketServerRepository } from "@coderabbitai/bitbucket/server/openapi";
+import { SchemaRepository as BitbucketCloudRepository } from "@coderabbitai/bitbucket/cloud/openapi";
 import { Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
 import { createLogger } from './logger.js';
-import { GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { RepoMetadata } from './types.js';
 import path from 'path';
 
@@ -311,5 +314,117 @@ export const compileGerritConfig = async (
             orgs: [],
             repos: [],
         }
+    };
+}
+
+export const compileBitbucketConfig = async (
+    config: BitbucketConnectionConfig,
+    connectionId: number,
+    orgId: number,
+    db: PrismaClient) => {
+
+    const bitbucketReposResult = await getBitbucketReposFromConfig(config, orgId, db);
+    const bitbucketRepos = bitbucketReposResult.validRepos;
+    const notFound = bitbucketReposResult.notFound;
+
+    const hostUrl = config.url ?? 'https://bitbucket.org';
+    const repoNameRoot = new URL(hostUrl)
+        .toString()
+        .replace(/^https?:\/\//, '');
+
+    const repos = bitbucketRepos.map((repo) => {
+        const deploymentType = config.deploymentType;
+        let record: RepoData;
+        if (deploymentType === 'server') {
+            const serverRepo = repo as BitbucketServerRepository;
+
+            const repoDisplayName = serverRepo.name!;
+            const repoName = path.join(repoNameRoot, repoDisplayName);
+            const cloneUrl = `${hostUrl}/${serverRepo.slug}`;
+            const webUrl = `${hostUrl}/${serverRepo.slug}`;
+
+            record = {
+                external_id: serverRepo.id!.toString(),
+                external_codeHostType: 'bitbucket-server',
+                external_codeHostUrl: hostUrl,
+                cloneUrl: cloneUrl.toString(),
+                webUrl: webUrl.toString(),
+                name: repoName,
+                displayName: repoDisplayName,
+                isFork: false,
+                isArchived: false,
+                org: {
+                    connect: {
+                        id: orgId,
+                    },
+                },
+                connections: {
+                    create: {
+                        connectionId: connectionId,
+                    }
+                },
+                metadata: {
+                    gitConfig: {
+                        'zoekt.web-url-type': 'bitbucket-server',
+                        'zoekt.web-url': webUrl ?? '',
+                        'zoekt.name': repoName,
+                        'zoekt.archived': marshalBool(false),
+                        'zoekt.fork': marshalBool(false),
+                        'zoekt.public': marshalBool(serverRepo.public),
+                        'zoekt.display-name': repoDisplayName,
+                    },
+                },
+            }
+        } else {
+            const cloudRepo = repo as BitbucketCloudRepository;
+
+            const repoDisplayName = cloudRepo.full_name!;
+            const repoName = path.join(repoNameRoot, repoDisplayName);
+
+            const cloneInfo = cloudRepo.links!.clone![0];
+            const webInfo = cloudRepo.links!.self!;
+            const cloneUrl = new URL(cloneInfo.href!);
+            const webUrl = new URL(webInfo.href!);
+
+            record = {
+                external_id: cloudRepo.uuid!,
+                external_codeHostType: 'bitbucket-cloud',
+                external_codeHostUrl: hostUrl,
+                cloneUrl: cloneUrl.toString(),
+                webUrl: webUrl.toString(),
+                name: repoName,
+                displayName: repoDisplayName,
+                isFork: false,
+                isArchived: false,
+                org: {
+                    connect: {
+                        id: orgId,
+                    },
+                },
+                connections: {
+                    create: {
+                        connectionId: connectionId,
+                    }
+                },
+                metadata: {
+                    gitConfig: {
+                        'zoekt.web-url-type': 'bitbucket-cloud',
+                        'zoekt.web-url': webUrl.toString(),
+                        'zoekt.name': repoName,
+                        'zoekt.archived': marshalBool(false),
+                        'zoekt.fork': marshalBool(false),
+                        'zoekt.public': marshalBool(cloudRepo.is_private === false),
+                        'zoekt.display-name': repoDisplayName,
+                    },
+                },
+            }
+        }
+
+        return record;
+    })
+
+    return {
+        repoData: repos,
+        notFound,
     };
 }

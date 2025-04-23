@@ -7,21 +7,9 @@
             "const": "bitbucket",
             "description": "Bitbucket configuration"
         },
-        "url": {
+        "user": {
             "type": "string",
-            "format": "url",
-            "default": "https://api.bitbucket.org/2.0",
-            "description": "Bitbucket URL",
-            "examples": [
-                "https://bitbucket.example.com"
-            ],
-            "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
-        },
-        "serverType": {
-            "type": "string",
-            "enum": ["cloud", "server"],
-            "default": "cloud",
-            "description": "server type"
+            "description": "The username to use for authentication. Only needed if token is an app password."
         },
         "token": {
             "$ref": "./shared.json#/definitions/Token",
@@ -32,9 +20,39 @@
                 }
             ]
         },
-        "user": {
+        "url": {
             "type": "string",
-            "description": "User name for authentication"
+            "format": "url",
+            "default": "https://api.bitbucket.org/2.0",
+            "description": "Bitbucket URL",
+            "examples": [
+                "https://bitbucket.example.com"
+            ],
+            "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+        },
+        "deploymentType": {
+            "type": "string",
+            "enum": ["cloud", "server"],
+            "default": "cloud",
+            "description": "The type of Bitbucket deployment"
+        },
+        "workspace": {
+            "type": "string",
+            "description": "List of workspaces to sync. Ignored if deploymentType is server."
+        },
+        "projects": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "List of projects to sync"
+        },
+        "repos": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "List of repos to sync"
         },
         "exclude": {
             "type": "object",
@@ -56,11 +74,11 @@
                     },
                     "examples": [
                         [
-                            "workspace1/repo1",
-                            "workspace2/**"
+                            "workspace1",
+                            "workspace2"
                         ]
                     ],
-                    "description": "List of specific workspaces to exclude from syncing."
+                    "description": "List of specific workspaces to exclude from syncing. Ignored if deploymentType is server."
                 },
                 "projects": {
                     "type": "array",
@@ -69,8 +87,8 @@
                     },
                     "examples": [
                         [
-                            "project1/repo1",
-                            "project2/**"
+                            "project1",
+                            "project2"
                         ]
                     ],
                     "description": "List of specific projects to exclude from syncing."
@@ -82,8 +100,8 @@
                     },
                     "examples": [
                         [
-                            "workspace1/repo1",
-                            "workspace2/**"
+                            "cloud_workspace/repo1", 
+                            "server_project/repo2" 
                         ]
                     ],
                     "description": "List of specific repos to exclude from syncing."
@@ -97,8 +115,7 @@
     },
     "required": [
         "token",
-        "type",
-        "user"
+        "type"
     ],
     "additionalProperties": false
 }
