@@ -1,3 +1,83 @@
+---
+title: Linking code from Bitbucket Data Center
+sidebarTitle: Bitbucket Data Center
+---
+
+import BitbucketToken from '/snippets/bitbucket-token.mdx';
+import BitbucketAppPassword from '/snippets/bitbucket-app-password.mdx';
+
+## Examples
+
+<AccordionGroup>
+    <Accordion title="Sync individual repos">
+        ```json
+        {
+            "type": "bitbucket",
+            "deploymentType": "server",
+            "url": "https://mybitbucketdeployment.com"
+            "repos": [
+                "myProject/myRepo"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Sync all repos in a project">
+        ```json
+        {
+            "type": "bitbucket",
+            "deploymentType": "server",
+            "url": "https://mybitbucketdeployment.com"
+            "projects": [
+                "myProject"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Exclude repos from syncing">
+        ```json
+        {
+            "type": "bitbucket",
+            "deploymentType": "server",
+            "url": "https://mybitbucketdeployment.com"
+            // Include all repos in myProject...
+            "projects": [
+                "myProject"
+            ],
+            // ...except:
+            "exclude": {
+                // repos that are archived
+                "archived": true,
+                // repos that are forks
+                "forks": true,
+                // repos that match these glob patterns
+                "repos": [
+                    "myProject/repo1",
+                    "myProject2/*"
+                ]
+            }
+        }
+        ```
+    </Accordion>
+</AccordionGroup>
+
+## Authenticating with Bitbucket Data Center
+
+In order to index private repositories, you'll need to provide an access token to Sourcebot.
+
+Create an access token for the desired scope (repo, project, or workspace). Visit the official [Bitbucket Data Center docs](https://confluence.atlassian.com/bitbucketserver/http-access-tokens-939515499.html)
+for more info.
+
+Next, provide the access token to Sourcebot:
+
+<BitbucketToken />
+
+
+## Schema reference
+
+<Accordion title="Reference">
+[schemas/v3/bitbucket.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/bitbucket.json)
+
+```json
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
@@ -93,13 +173,8 @@
     "required": [
         "type"
     ],
-    "if": {
-        "properties": {
-            "deploymentType": { "const": "server" }
-        }
-    },
-    "then": {
-        "required": ["url"]
-    },
     "additionalProperties": false
 }
+```
+
+</Accordion>

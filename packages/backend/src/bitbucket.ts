@@ -495,9 +495,12 @@ async function serverGetRepos(client: BitbucketClient, repos: string[]): Promise
 
 function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
     const serverRepo = repo as ServerRepository;
+
+    const projectName = serverRepo.project!.key;
+    const repoSlug = serverRepo.slug!;
     
     const shouldExclude = (() => {
-        if (config.exclude?.repos && config.exclude.repos.includes(serverRepo.slug!)) {
+        if (config.exclude?.repos && config.exclude.repos.includes(`${projectName}/${repoSlug}`)) {
             return true;
         }
 
@@ -509,7 +512,7 @@ function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketCon
     })();
 
     if (shouldExclude) {
-        logger.debug(`Excluding repo ${serverRepo.slug} because it matches the exclude pattern`);
+        logger.debug(`Excluding repo ${projectName}/${repoSlug} because it matches the exclude pattern`);
         return true;
     }
     return false;

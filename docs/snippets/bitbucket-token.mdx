@@ -1,0 +1,47 @@
+<Tabs>
+    <Tab title="Environment Variable">
+        <Note>Environment variables are only supported in a [declarative config](/self-hosting/more/declarative-config) and cannot be used in the web UI.</Note>
+
+        1. Add the `token` property to your connection config:
+        ```json
+        {
+            "type": "bitbucket",
+            "token": {
+                // note: this env var can be named anything. It
+                // doesn't need to be `BITBUCKET_TOKEN`.
+                "env": "BITBUCKET_TOKEN"
+            }
+            // .. rest of config ..
+        }
+        ```
+
+        2. Pass this environment variable each time you run Sourcebot:
+        ```bash
+        docker run \
+            -e BITBUCKET_TOKEN=<PAT> \
+            /* additional args */ \
+            ghcr.io/sourcebot-dev/sourcebot:latest
+        ```
+    </Tab>
+
+    <Tab title="Secret">
+        <Note>Secrets are only supported when [authentication](/self-hosting/more/authentication) is enabled.</Note>
+
+        1. Navigate to **Secrets** in settings and create a new secret with your PAT:
+
+        ![](/images/secrets_list.png)
+
+        2. Add the `token` property to your connection config:
+
+        ```json
+        {
+            "type": "bitbucket",
+            "token": {
+                "secret": "mysecret"
+            }
+            // .. rest of config ..
+        }
+        ```
+
+    </Tab>
+</Tabs>

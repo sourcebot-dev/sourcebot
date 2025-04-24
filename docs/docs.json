@@ -31,6 +31,8 @@
                             "docs/connections/overview",
                             "docs/connections/github",
                             "docs/connections/gitlab",
+                            "docs/connections/bitbucket-cloud",
+                            "docs/connections/bitbucket-server",
                             "docs/connections/gitea",
                             "docs/connections/gerrit",
                             "docs/connections/request-new"

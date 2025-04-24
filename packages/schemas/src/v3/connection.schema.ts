@@ -603,6 +603,18 @@ const schema = {
       "required": [
         "type"
       ],
+      "if": {
+        "properties": {
+          "deploymentType": {
+            "const": "server"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "url"
+        ]
+      },
       "additionalProperties": false
     }
   ]
