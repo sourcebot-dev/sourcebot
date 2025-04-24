@@ -5,9 +5,9 @@ import { notFound, redirect } from "next/navigation";
 import { ConnectCodeHost } from "./components/connectCodeHost";
 import { InviteTeam } from "./components/inviteTeam";
 import { CompleteOnboarding } from "./components/completeOnboarding";
-import { Checkout } from "./components/checkout";
+import { Checkout } from "@/ee/features/billing/components/checkout";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
-import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { env } from "@/env.mjs";
 
 interface OnboardProps {

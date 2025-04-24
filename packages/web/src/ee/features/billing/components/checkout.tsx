@@ -1,6 +1,5 @@
 'use client';
 
-import { createOnboardingSubscription } from "@/actions";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingSteps, TEAM_FEATURES } from "@/lib/constants";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { createOnboardingSubscription } from "../actions";
 
 export const Checkout = () => {
     const domain = useDomain();

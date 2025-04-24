@@ -1,23 +1,23 @@
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { Footer } from "@/app/components/footer";
 import { OrgSelector } from "../components/orgSelector";
-import { EnterpriseUpgradeCard } from "./components/enterpriseUpgradeCard";
-import { TeamUpgradeCard } from "./components/teamUpgradeCard";
-import { fetchSubscription } from "@/actions";
+import { EnterpriseUpgradeCard } from "@/ee/features/billing/components/enterpriseUpgradeCard";
+import { TeamUpgradeCard } from "@/ee/features/billing/components/teamUpgradeCard";
 import { redirect } from "next/navigation";
 import { isServiceError } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@radix-ui/react-icons";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { env } from "@/env.mjs";
-import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
+import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 
 export default async function Upgrade({ params: { domain } }: { params: { domain: string } }) {
     if (!IS_BILLING_ENABLED) {
         redirect(`/${domain}`);
     }
 
-    const subscription = await fetchSubscription(domain);
+    const subscription = await getSubscriptionInfo(domain);
     if (!subscription) {
         redirect(`/${domain}`);
     }

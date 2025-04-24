@@ -6,14 +6,15 @@ import { SettingsDropdown } from "./settingsDropdown";
 import { GitHubLogoIcon, DiscordLogoIcon } from "@radix-ui/react-icons";
 import { redirect } from "next/navigation";
 import { OrgSelector } from "./orgSelector";
-import { getSubscriptionData } from "@/actions";
 import { ErrorNavIndicator } from "./errorNavIndicator";
 import { WarningNavIndicator } from "./warningNavIndicator";
 import { ProgressNavIndicator } from "./progressNavIndicator";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { TrialNavIndicator } from "./trialNavIndicator";
-import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { env } from "@/env.mjs";
+import { getSubscriptionInfo } from "@/ee/features/billing/actions";
+
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
 
@@ -24,7 +25,7 @@ interface NavigationMenuProps {
 export const NavigationMenu = async ({
     domain,
 }: NavigationMenuProps) => {
-    const subscription = IS_BILLING_ENABLED ? await getSubscriptionData(domain) : null;
+    const subscription = IS_BILLING_ENABLED ? await getSubscriptionInfo(domain) : null;
 
     return (
         <div className="flex flex-col w-screen h-fit bg-background">

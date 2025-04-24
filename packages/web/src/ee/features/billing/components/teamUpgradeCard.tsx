@@ -1,7 +1,6 @@
 'use client';
 
 import { UpgradeCard } from "./upgradeCard";
-import { createStripeCheckoutSession } from "@/actions";
 import { useToast } from "@/components/hooks/use-toast";
 import { useDomain } from "@/hooks/useDomain";
 import { isServiceError } from "@/lib/utils";
@@ -9,6 +8,7 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TEAM_FEATURES } from "@/lib/constants";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { createStripeCheckoutSession } from "../actions";
 
 interface TeamUpgradeCardProps {
     buttonText: string;

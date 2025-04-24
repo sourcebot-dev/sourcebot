@@ -4,11 +4,11 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { isServiceError } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { getCustomerPortalSessionLink } from "@/actions"
 import { useDomain } from "@/hooks/useDomain";
 import { OrgRole } from "@sourcebot/db";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { ExternalLink, Loader2 } from "lucide-react";
+import { getCustomerPortalSessionLink } from "@/ee/features/billing/actions"
 
 export function ManageSubscriptionButton({ currentUserRole }: { currentUserRole: OrgRole }) {
     const [isLoading, setIsLoading] = useState(false)

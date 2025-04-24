@@ -8,12 +8,13 @@ export type Plan = keyof typeof planLabels;
 
 
 const entitlements = [
-    "search-contexts"
+    "search-contexts",
+    "billing"
 ] as const;
 export type Entitlement = (typeof entitlements)[number];
 
 export const entitlementsByPlan: Record<Plan, Entitlement[]> = {
     oss: [],
-    "cloud:team": [],
+    "cloud:team": ["billing"],
     "self-hosted:enterprise": ["search-contexts"],
 } as const;
