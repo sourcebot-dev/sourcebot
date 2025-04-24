@@ -160,7 +160,6 @@ const schema = {
     }
   },
   "required": [
-    "token",
     "type"
   ],
   "additionalProperties": false

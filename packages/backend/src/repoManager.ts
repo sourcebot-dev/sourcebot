@@ -183,7 +183,6 @@ export class RepoManager implements IRepoManager {
                     return 'oauth2';
                 case 'bitbucket-server':
                 case 'bitbucket-cloud':
-                    return 'x-token-auth';
                 case 'github':
                 case 'gitea':
                 default:
@@ -327,12 +326,12 @@ export class RepoManager implements IRepoManager {
                 attempts++;
                 this.promClient.repoIndexingReattemptsTotal.inc();
                 if (attempts === maxAttempts) {
-                    this.logger.error(`Failed to sync repository ${repo.id} after ${maxAttempts} attempts. Error: ${error}`);
+                    this.logger.error(`Failed to sync repository ${repo.name} (id: ${repo.id}) after ${maxAttempts} attempts. Error: ${error}`);
                     throw error;
                 }
 
                 const sleepDuration = 5000 * Math.pow(2, attempts - 1);
-                this.logger.error(`Failed to sync repository ${repo.id}, attempt ${attempts}/${maxAttempts}. Sleeping for ${sleepDuration / 1000}s... Error: ${error}`);
+                this.logger.error(`Failed to sync repository ${repo.name} (id: ${repo.id}), attempt ${attempts}/${maxAttempts}. Sleeping for ${sleepDuration / 1000}s... Error: ${error}`);
                 await new Promise(resolve => setTimeout(resolve, sleepDuration));
             }
         }

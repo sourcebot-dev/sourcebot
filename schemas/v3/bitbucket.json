@@ -91,7 +91,6 @@
         }
     },
     "required": [
-        "token",
         "type"
     ],
     "additionalProperties": false

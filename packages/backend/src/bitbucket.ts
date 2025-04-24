@@ -1,20 +1,15 @@
 import { createBitbucketCloudClient } from "@coderabbitai/bitbucket/cloud";
-import { paths } from "@coderabbitai/bitbucket/cloud";
+import { createBitbucketServerClient } from "@coderabbitai/bitbucket/server";
 import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type";
 import type { ClientOptions, Client, ClientPathsWithMethod } from "openapi-fetch";
 import { createLogger } from "./logger.js";
-import { PrismaClient, Repo } from "@sourcebot/db";
+import { PrismaClient } from "@sourcebot/db";
 import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
-import { env } from "./env.js";
 import * as Sentry from "@sentry/node";
 import {
-    SchemaBranch as CloudBranch,
-    SchemaProject as CloudProject,
     SchemaRepository as CloudRepository,
-    SchemaTag as CloudTag,
-    SchemaWorkspace as CloudWorkspace
 } from "@coderabbitai/bitbucket/cloud/openapi";
-import { SchemaRepository as ServerRepository } from "@coderabbitai/bitbucket/server/openapi";
+import { SchemaRestRepository as ServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { processPromiseResults } from "./connectionUtils.js";
 import { throwIfAnyFailed } from "./connectionUtils.js";
 
@@ -32,23 +27,18 @@ interface BitbucketClient {
     apiClient: any;
     baseUrl: string;
     gitUrl: string;
-    getPaginated: <T, V extends CloudGetRequestPath>(path: V, get: (url: V) => Promise<PaginatedResponse<T>>) => Promise<T[]>;
+    getPaginated: <T, V extends CloudGetRequestPath | ServerGetRequestPath>(path: V, get: (url: V) => Promise<PaginatedResponse<T>>) => Promise<T[]>;
     getReposForWorkspace: (client: BitbucketClient, workspaces: string[]) => Promise<{validRepos: BitbucketRepository[], notFoundWorkspaces: string[]}>;
     getReposForProjects: (client: BitbucketClient, projects: string[]) => Promise<{validRepos: BitbucketRepository[], notFoundProjects: string[]}>;
     getRepos: (client: BitbucketClient, repos: string[]) => Promise<{validRepos: BitbucketRepository[], notFoundRepos: string[]}>;
     shouldExcludeRepo: (repo: BitbucketRepository, config: BitbucketConnectionConfig) => boolean;
-    /*
-    getBranches: (client: BitbucketClient, repo: string) => Promise<string[]>;
-    getTags: (client: BitbucketClient, repo: string) => Promise<string[]>;
-    */
 }
 
-// afaik, this is the only way of extracting the client API type
 type CloudAPI = ReturnType<typeof createBitbucketCloudClient>;
-
-// Defines a type that is a union of all API paths that have a GET method in the
-// client api.
 type CloudGetRequestPath = ClientPathsWithMethod<CloudAPI, "get">;
+
+type ServerAPI = ReturnType<typeof createBitbucketServerClient>;
+type ServerGetRequestPath = ClientPathsWithMethod<ServerAPI, "get">;
 
 type PaginatedResponse<T> = {
     readonly next?: string;
@@ -60,10 +50,17 @@ type PaginatedResponse<T> = {
 }
 
 export const getBitbucketReposFromConfig = async (config: BitbucketConnectionConfig, orgId: number, db: PrismaClient) => {
-    const token = await getTokenFromConfig(config.token, orgId, db, logger);
+    const token = config.token ?
+        await getTokenFromConfig(config.token, orgId, db, logger) :
+        undefined;
 
-    //const deploymentType = config.deploymentType;
-    const client = cloudClient(config.user, token);
+    if (config.deploymentType === 'server' && !config.url) {
+        throw new Error('URL is required for Bitbucket Server');
+    }
+
+    const client = config.deploymentType === 'server' ? 
+        serverClient(config.url!, config.user, token) : 
+        cloudClient(config.user, token);
 
     let allRepos: BitbucketRepository[] = [];
     let notFound: {
@@ -127,10 +124,6 @@ function cloudClient(user: string | undefined, token: string | undefined): Bitbu
         getReposForProjects: cloudGetReposForProjects,
         getRepos: cloudGetRepos,
         shouldExcludeRepo: cloudShouldExcludeRepo,
-        /*
-        getBranches: cloudGetBranches,
-        getTags: cloudGetTags,
-        */
     }
 
     return client;
@@ -140,7 +133,7 @@ function cloudClient(user: string | undefined, token: string | undefined): Bitbu
 * We need to do `V extends CloudGetRequestPath` since we will need to call `apiClient.GET(url, ...)`, which
 * expects `url` to be of type `CloudGetRequestPath`. See example.
 **/
-const getPaginatedCloud = async <T, V extends CloudGetRequestPath>(path: V, get: (url: V) => Promise<PaginatedResponse<T>>) => {
+const getPaginatedCloud = async <T, V extends CloudGetRequestPath | ServerGetRequestPath>(path: V, get: (url: V) => Promise<PaginatedResponse<T>>) => {
     const results: T[] = [];
     let url = path;
 
@@ -331,6 +324,192 @@ function cloudShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConn
 
     if (shouldExclude) {
         logger.debug(`Excluding repo ${cloudRepo.full_name} because it matches the exclude pattern`);
+        return true;
+    }
+    return false;
+}
+
+function serverClient(url: string, user: string | undefined, token: string | undefined): BitbucketClient {
+    const authorizationString = (() => {
+        // If we're not given any credentials we return an empty auth string. This will only work if the project/repos are public
+        if(!user && !token) {
+            return "";
+        }
+
+        // A user must be provided when using basic auth
+        // https://developer.atlassian.com/server/bitbucket/rest/v906/intro/#authentication
+        if (!user || user == "x-token-auth") {
+            return `Bearer ${token}`;
+        }
+        return `Basic ${Buffer.from(`${user}:${token}`).toString('base64')}`;
+    })();
+    const clientOptions: ClientOptions = {
+        baseUrl: url,
+        headers: {
+            Accept: "application/json",
+            Authorization: authorizationString,
+        },
+    };
+
+    const apiClient = createBitbucketServerClient(clientOptions);
+    var client: BitbucketClient = {
+        deploymentType: BITBUCKET_SERVER,
+        token: token,
+        apiClient: apiClient,
+        baseUrl: url,
+        gitUrl: url,
+        getPaginated: getPaginatedServer,
+        getReposForWorkspace: serverGetReposForWorkspace,
+        getReposForProjects: serverGetReposForProjects,
+        getRepos: serverGetRepos,
+        shouldExcludeRepo: serverShouldExcludeRepo,
+    }
+
+    return client;
+}
+
+const getPaginatedServer = async <T, V extends CloudGetRequestPath | ServerGetRequestPath>(path: V, get: (url: V) => Promise<PaginatedResponse<T>>) => {
+    const results: T[] = [];
+    let url = path;
+
+    while (true) {
+        const response = await get(url);
+
+        if (!response.values || response.values.length === 0) { 
+            break;
+        }
+
+        results.push(...response.values);
+
+        if (!response.next) {
+            break;
+        }
+
+        // cast required here since response.next is a string.
+        url = response.next as V;
+    }
+    return results;
+}
+
+async function serverGetReposForWorkspace(client: BitbucketClient, workspaces: string[]): Promise<{validRepos: ServerRepository[], notFoundWorkspaces: string[]}> {
+    logger.debug('Workspaces are not supported in Bitbucket Server');
+    return {
+        validRepos: [],
+        notFoundWorkspaces: workspaces
+    };
+}
+
+async function serverGetReposForProjects(client: BitbucketClient, projects: string[]): Promise<{validRepos: ServerRepository[], notFoundProjects: string[]}> {
+    const results = await Promise.allSettled(projects.map(async (project) => {
+        try {
+            logger.debug(`Fetching all repos for project ${project}...`);
+
+            const path = `/rest/api/1.0/projects/${project}/repos` as ServerGetRequestPath;
+            const { durationMs, data } = await measure(async () => {
+                const fetchFn = () => client.getPaginated<ServerRepository, typeof path>(path, async (url) => {
+                    const response = await client.apiClient.GET(url);
+                    const { data, error } = response;
+                    if (error) {
+                        throw new Error(`Failed to fetch repos for project ${project}: ${JSON.stringify(error)}`);
+                    }
+                    return data;
+                });
+                return fetchWithRetry(fetchFn, `project ${project}`, logger);
+            });
+            logger.debug(`Found ${data.length} repos for project ${project} in ${durationMs}ms.`);
+
+            return {
+                type: 'valid' as const,
+                data: data,
+            };
+        } catch (e: any) {
+            Sentry.captureException(e);
+            logger.error(`Failed to get repos for project ${project}: ${e}`);
+
+            const status = e?.cause?.response?.status;
+            if (status == 404) {
+                logger.error(`Project ${project} not found or invalid access`);
+                return {
+                    type: 'notFound' as const,
+                    value: project
+                };
+            }
+            throw e;
+        }
+    }));
+
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundProjects } = processPromiseResults(results);
+    return {
+        validRepos,
+        notFoundProjects
+    };
+}
+
+async function serverGetRepos(client: BitbucketClient, repos: string[]): Promise<{validRepos: ServerRepository[], notFoundRepos: string[]}> {
+    const results = await Promise.allSettled(repos.map(async (repo) => {
+        const [project, repo_slug] = repo.split('/');
+        if (!project || !repo_slug) {
+            logger.error(`Invalid repo ${repo}`);
+            return {
+                type: 'notFound' as const,
+                value: repo
+            };
+        }
+
+        logger.debug(`Fetching repo ${repo_slug} for project ${project}...`);
+        try {
+            const path = `/rest/api/1.0/projects/${project}/repos/${repo_slug}` as ServerGetRequestPath;
+            const response = await client.apiClient.GET(path);
+            const { data, error } = response;
+            if (error) {
+                throw new Error(`Failed to fetch repo ${repo}: ${error.type}`);
+            }
+            return {
+                type: 'valid' as const,
+                data: [data]
+            };
+        } catch (e: any) {
+            Sentry.captureException(e);
+            logger.error(`Failed to fetch repo ${repo}: ${e}`);
+
+            const status = e?.cause?.response?.status;
+            if (status === 404) {
+                logger.error(`Repo ${repo} not found in project ${project} or invalid access`);
+                return {
+                    type: 'notFound' as const,
+                    value: repo
+                };
+            }
+            throw e;
+        }
+    }));
+
+    throwIfAnyFailed(results);
+    const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults(results);
+    return {
+        validRepos,
+        notFoundRepos
+    };
+}
+
+function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
+    const serverRepo = repo as ServerRepository;
+    
+    const shouldExclude = (() => {
+        if (config.exclude?.repos && config.exclude.repos.includes(serverRepo.slug!)) {
+            return true;
+        }
+
+        // Note: Bitbucket Server doesn't have a direct way to check if a repo is a fork
+        // We'll need to check the origin property if it exists
+        if (!!config.exclude?.forks && serverRepo.origin !== undefined) {
+            return true;
+        }
+    })();
+
+    if (shouldExclude) {
+        logger.debug(`Excluding repo ${serverRepo.slug} because it matches the exclude pattern`);
         return true;
     }
     return false;
