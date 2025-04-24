@@ -7,8 +7,9 @@ import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 const eeLicenseKeyPrefix = "sourcebot_ee_";
 
 const eeLicenseKeyPayloadSchema = z.object({
+    id: z.string(),
     // ISO 8601 date string
-    expiryDate: z.string().datetime(),
+    expiryDate: z.string().datetime().optional(),
 });
 
 const decodeLicenseKeyPayload = (payload: string) => {
@@ -29,14 +30,15 @@ export const getPlan = (): Plan => {
         try {
             const { expiryDate } = decodeLicenseKeyPayload(payload);
 
-            if (new Date(expiryDate).getTime() < new Date().getTime()) {
+            if (expiryDate && new Date(expiryDate).getTime() < new Date().getTime()) {
                 console.error(`The provided license key has expired. Falling back to oss plan. Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
                 return "oss";
             }
 
             return "self-hosted:enterprise";
         } catch (error) {
-            console.error(`Failed to decode license key payload: ${error}`);
+            console.error(`Failed to decode license key payload with error: ${error}`);
+            console.info('Falling back to oss plan.');
             return "oss";
         }
     }
