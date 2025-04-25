@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - [Sourcebot EE] Added search contexts, user-defined groupings of repositories that help focus searches on specific areas of a codebase. [#273](https://github.com/sourcebot-dev/sourcebot/pull/273)
+- Added support for Bitbucket Cloud and Bitbucket Data Center connections. [#275](https://github.com/sourcebot-dev/sourcebot/pull/275)
 
 
 ## [3.0.4] - 2025-04-12

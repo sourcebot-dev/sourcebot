@@ -2,7 +2,7 @@ import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createLogger } from "./logger.js";
 import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
-import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings, repoMetadataSchema } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
 import { cloneRepository, fetchRepository, upsertGitConfig } from "./git.js";
@@ -170,31 +170,50 @@ export class RepoManager implements IRepoManager {
     // fetch the token here using the connections from the repo. Multiple connections could be referencing this repo, and each
     // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
     // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referrencing.
-    private async getTokenForRepo(repo: RepoWithConnections, db: PrismaClient) {
+    private async getAuthForRepo(repo: RepoWithConnections, db: PrismaClient): Promise<{ username: string, password: string } | undefined> {
         const repoConnections = repo.connections;
         if (repoConnections.length === 0) {
             this.logger.error(`Repo ${repo.id} has no connections`);
-            return;
+            return undefined;
         }
 
+        let username = (() => {
+            switch (repo.external_codeHostType) {
+                case 'gitlab':
+                    return 'oauth2';
+                case 'bitbucket-cloud':
+                case 'bitbucket-server':
+                case 'github':
+                case 'gitea':
+                default:
+                    return '';
+            }
+        })();
 
-        let token: string | undefined;
+        let password: string | undefined = undefined;
         for (const repoConnection of repoConnections) {
             const connection = repoConnection.connection;
-            if (connection.connectionType !== 'github' && connection.connectionType !== 'gitlab' && connection.connectionType !== 'gitea') {
+            if (connection.connectionType !== 'github' && connection.connectionType !== 'gitlab' && connection.connectionType !== 'gitea' && connection.connectionType !== 'bitbucket') {
                 continue;
             }
 
-            const config = connection.config as unknown as GithubConnectionConfig | GitlabConnectionConfig | GiteaConnectionConfig;
+            const config = connection.config as unknown as GithubConnectionConfig | GitlabConnectionConfig | GiteaConnectionConfig | BitbucketConnectionConfig;
             if (config.token) {
-                token = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
-                if (token) {
+                password = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
+                if (password) {
+                    // If we're using a bitbucket connection we need to set the username to be able to clone the repo
+                    if (connection.connectionType === 'bitbucket') {
+                        const bitbucketConfig = config as BitbucketConnectionConfig;
+                        username = bitbucketConfig.user ?? "x-token-auth";
+                    }
                     break;
                 }
             }
         }
 
-        return token;
+        return password
+            ? { username, password }
+            : undefined;
     }
 
     private async syncGitRepository(repo: RepoWithConnections, repoAlreadyInIndexingState: boolean) {
@@ -225,20 +244,11 @@ export class RepoManager implements IRepoManager {
         } else {
             this.logger.info(`Cloning ${repo.displayName}...`);
 
-            const token = await this.getTokenForRepo(repo, this.db);
+            const auth = await this.getAuthForRepo(repo, this.db);
             const cloneUrl = new URL(repo.cloneUrl);
-            if (token) {
-                switch (repo.external_codeHostType) {
-                    case 'gitlab':
-                        cloneUrl.username = 'oauth2';
-                        cloneUrl.password = token;
-                        break;
-                    case 'gitea':
-                    case 'github':
-                    default:
-                        cloneUrl.username = token;
-                        break;
-                }
+            if (auth) {
+                cloneUrl.username = auth.username;
+                cloneUrl.password = auth.password;
             }
 
             const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, ({ method, stage, progress }) => {
@@ -318,12 +328,12 @@ export class RepoManager implements IRepoManager {
                 attempts++;
                 this.promClient.repoIndexingReattemptsTotal.inc();
                 if (attempts === maxAttempts) {
-                    this.logger.error(`Failed to sync repository ${repo.id} after ${maxAttempts} attempts. Error: ${error}`);
+                    this.logger.error(`Failed to sync repository ${repo.name} (id: ${repo.id}) after ${maxAttempts} attempts. Error: ${error}`);
                     throw error;
                 }
 
                 const sleepDuration = 5000 * Math.pow(2, attempts - 1);
-                this.logger.error(`Failed to sync repository ${repo.id}, attempt ${attempts}/${maxAttempts}. Sleeping for ${sleepDuration / 1000}s... Error: ${error}`);
+                this.logger.error(`Failed to sync repository ${repo.name} (id: ${repo.id}), attempt ${attempts}/${maxAttempts}. Sleeping for ${sleepDuration / 1000}s... Error: ${error}`);
                 await new Promise(resolve => setTimeout(resolve, sleepDuration));
             }
         }
@@ -453,7 +463,7 @@ export class RepoManager implements IRepoManager {
     }
 
     private async runGarbageCollectionJob(job: Job<RepoGarbageCollectionPayload>) {
-        this.logger.info(`Running garbage collection job (id: ${job.id}) for repo ${job.data.repo.id}`);
+        this.logger.info(`Running garbage collection job (id: ${job.id}) for repo ${job.data.repo.displayName} (id: ${job.data.repo.id})`);
         this.promClient.activeRepoGarbageCollectionJobs.inc();
 
         const repo = job.data.repo as Repo;

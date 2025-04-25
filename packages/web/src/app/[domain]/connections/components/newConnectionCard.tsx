@@ -50,6 +50,18 @@ export const NewConnectionCard = ({ className, role }: NewConnectionCardProps) =
                     disabled={!isOwner}
                 />
                 <Card
+                    type="bitbucket-cloud"
+                    title="Bitbucket Cloud"
+                    subtitle="Fetch repos from Bitbucket Cloud."
+                    disabled={!isOwner}
+                />
+                <Card
+                    type="bitbucket-server"
+                    title="Bitbucket Data Center"
+                    subtitle="Fetch repos from a Bitbucket DC instance."
+                    disabled={!isOwner}
+                />
+                <Card
                     type="gitea"
                     title="Gitea" 
                     subtitle="Cloud and Self-Hosted supported."

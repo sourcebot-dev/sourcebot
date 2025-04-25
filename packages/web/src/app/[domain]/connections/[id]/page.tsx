@@ -21,6 +21,9 @@ import { getOrgMembership } from "@/actions"
 import { isServiceError } from "@/lib/utils"
 import { notFound } from "next/navigation"
 import { OrgRole } from "@sourcebot/db"
+import { CodeHostType } from "@/lib/utils"
+import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type"
+
 interface ConnectionManagementPageProps {
     params: {
         domain: string
@@ -93,7 +96,7 @@ export default async function ConnectionManagementPage({ params, searchParams }:
                 <DisplayNameSetting connectionId={connection.id} name={connection.name} disabled={!isOwner} />
                 <ConfigSetting
                     connectionId={connection.id}
-                    type={connection.connectionType}
+                    type={connection.connectionType as CodeHostType}
                     config={JSON.stringify(connection.config, null, 2)}
                     disabled={!isOwner}
                 />

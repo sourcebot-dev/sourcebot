@@ -65,7 +65,11 @@ export const CodePreviewPanel = ({
                             })
                             .join("/");
 
-                        const optionalQueryParams = template.substring(template.indexOf("}}") + 2);
+                        const optionalQueryParams = 
+                            template.substring(template.indexOf("}}") + 2)
+                            .replace("{{.Version}}", branch ?? "HEAD")
+                            .replace("{{.Path}}", fileMatch.FileName);
+
                         return url + optionalQueryParams;
                     })();
 

@@ -5,7 +5,9 @@ import {
     GitHubConnectionCreationForm,
     GitLabConnectionCreationForm,
     GiteaConnectionCreationForm,
-    GerritConnectionCreationForm
+    GerritConnectionCreationForm,
+    BitbucketCloudConnectionCreationForm,
+    BitbucketDataCenterConnectionCreationForm
 } from "@/app/[domain]/components/connectionCreationForms";
 import { useCallback } from "react";
 import { useDomain } from "@/hooks/useDomain";
@@ -36,6 +38,15 @@ export default function NewConnectionPage({
     if (type === 'gerrit') {
         return <GerritConnectionCreationForm onCreated={onCreated} />;
     }
+
+    if (type === 'bitbucket-cloud') {
+        return <BitbucketCloudConnectionCreationForm onCreated={onCreated} />;
+    }
+
+    if (type === 'bitbucket-server') {
+        return <BitbucketDataCenterConnectionCreationForm onCreated={onCreated} />;
+    }
+    
 
     router.push(`/${domain}/connections`);
 }

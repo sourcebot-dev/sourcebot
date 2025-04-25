@@ -633,6 +633,118 @@ const schema = {
                 "url"
               ],
               "additionalProperties": false
+            },
+            {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "type": "object",
+              "title": "BitbucketConnectionConfig",
+              "properties": {
+                "type": {
+                  "const": "bitbucket",
+                  "description": "Bitbucket configuration"
+                },
+                "user": {
+                  "type": "string",
+                  "description": "The username to use for authentication. Only needed if token is an app password."
+                },
+                "token": {
+                  "$ref": "#/properties/connections/patternProperties/%5E%5Ba-zA-Z0-9_-%5D%2B%24/oneOf/0/properties/token",
+                  "description": "An authentication token.",
+                  "examples": [
+                    {
+                      "secret": "SECRET_KEY"
+                    }
+                  ]
+                },
+                "url": {
+                  "type": "string",
+                  "format": "url",
+                  "default": "https://api.bitbucket.org/2.0",
+                  "description": "Bitbucket URL",
+                  "examples": [
+                    "https://bitbucket.example.com"
+                  ],
+                  "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+                },
+                "deploymentType": {
+                  "type": "string",
+                  "enum": [
+                    "cloud",
+                    "server"
+                  ],
+                  "default": "cloud",
+                  "description": "The type of Bitbucket deployment"
+                },
+                "workspaces": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of workspaces to sync. Ignored if deploymentType is server."
+                },
+                "projects": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of projects to sync"
+                },
+                "repos": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of repos to sync"
+                },
+                "exclude": {
+                  "type": "object",
+                  "properties": {
+                    "archived": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Exclude archived repositories from syncing."
+                    },
+                    "forks": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Exclude forked repositories from syncing."
+                    },
+                    "repos": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "cloud_workspace/repo1",
+                          "server_project/repo2"
+                        ]
+                      ],
+                      "description": "List of specific repos to exclude from syncing."
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "revisions": {
+                  "$ref": "#/properties/connections/patternProperties/%5E%5Ba-zA-Z0-9_-%5D%2B%24/oneOf/0/properties/revisions"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "if": {
+                "properties": {
+                  "deploymentType": {
+                    "const": "server"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "url"
+                ]
+              },
+              "additionalProperties": false
             }
           ]
         }

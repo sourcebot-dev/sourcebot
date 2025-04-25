@@ -3,7 +3,7 @@
 import { env } from "@/env.mjs";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notAuthenticated, notFound, secretAlreadyExists, ServiceError, unexpectedError } from "@/lib/serviceError";
-import { isServiceError } from "@/lib/utils";
+import { CodeHostType, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
@@ -27,6 +27,7 @@ import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_U
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { TenancyMode } from "./lib/types";
 import { decrementOrgSeatCount, getSubscriptionForOrg, incrementOrgSeatCount } from "./ee/features/billing/serverUtils";
+import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -442,10 +443,10 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
         }
         ), /* allowSingleTenantUnauthedAccess = */ true));
 
-export const createConnection = async (name: string, type: string, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
+export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
-            const parsedConfig = parseConnectionConfig(type, connectionConfig);
+            const parsedConfig = parseConnectionConfig(connectionConfig);
             if (isServiceError(parsedConfig)) {
                 return parsedConfig;
             }
@@ -531,7 +532,7 @@ export const updateConnectionConfigAndScheduleSync = async (connectionId: number
                 return notFound();
             }
 
-            const parsedConfig = parseConnectionConfig(connection.connectionType, config);
+            const parsedConfig = parseConnectionConfig(config);
             if (isServiceError(parsedConfig)) {
                 return parsedConfig;
             }
@@ -1154,7 +1155,7 @@ export const getSearchContexts = async (domain: string) => sew(() =>
 
 ////// Helpers ///////
 
-const parseConnectionConfig = (connectionType: string, config: string) => {
+const parseConnectionConfig = (config: string) => {
     let parsedConfig: ConnectionConfig;
     try {
         parsedConfig = JSON.parse(config);
@@ -1166,6 +1167,7 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
         } satisfies ServiceError;
     }
 
+    const connectionType = parsedConfig.type;
     const schema = (() => {
         switch (connectionType) {
             case "github":
@@ -1176,6 +1178,8 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
                 return giteaSchema;
             case 'gerrit':
                 return gerritSchema;
+            case 'bitbucket':
+                return bitbucketSchema;
         }
     })();
 
@@ -1205,9 +1209,10 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
     }
 
     const { numRepos, hasToken } = (() => {
-        switch (parsedConfig.type) {
+        switch (connectionType) {
             case "gitea":
-            case "github": {
+            case "github": 
+            case "bitbucket": {
                 return {
                     numRepos: parsedConfig.repos?.length,
                     hasToken: !!parsedConfig.token,

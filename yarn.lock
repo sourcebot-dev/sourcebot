@@ -667,6 +667,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@coderabbitai/bitbucket@npm:^1.1.3":
+  version: 1.1.3
+  resolution: "@coderabbitai/bitbucket@npm:1.1.3"
+  dependencies:
+    openapi-fetch: "npm:^0.13.4"
+  bin:
+    coderabbitai-bitbucket: dist/main.js
+  checksum: 10c0/0c034866f8094b9ce68a5292d513fe6226d50b333a0a6ce929542b635a8bcf1d8d5abc7eb1aaf665ebce99e312a192d83b224085843d5641806ca4adc36ab0ff
+  languageName: node
+  linkType: hard
+
 "@colors/colors@npm:1.6.0, @colors/colors@npm:^1.6.0":
   version: 1.6.0
   resolution: "@colors/colors@npm:1.6.0"
@@ -11611,6 +11622,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"openapi-fetch@npm:^0.13.4":
+  version: 0.13.5
+  resolution: "openapi-fetch@npm:0.13.5"
+  dependencies:
+    openapi-typescript-helpers: "npm:^0.0.15"
+  checksum: 10c0/57736d9d4310d7bc7fa5e4e37e80d28893a7fefee88ee6e0327600de893e0638479445bf0c9f5bd7b1a2429f409425d3945d6e942b23b37b8081630ac52244fb
+  languageName: node
+  linkType: hard
+
+"openapi-typescript-helpers@npm:^0.0.15":
+  version: 0.0.15
+  resolution: "openapi-typescript-helpers@npm:0.0.15"
+  checksum: 10c0/5eb68d487b787e3e31266470b1a310726549dd45a1079655ab18066ab291b0b3c343fdf629991013706a2329b86964f8798d56ef0272b94b931fe6c19abd7a88
+  languageName: node
+  linkType: hard
+
 "optionator@npm:^0.9.3":
   version: 0.9.4
   resolution: "optionator@npm:0.9.4"
@@ -13047,6 +13074,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
+    "@coderabbitai/bitbucket": "npm:^1.1.3"
     cross-env: "npm:^7.0.3"
     dotenv-cli: "npm:^8.0.0"
     npm-run-all: "npm:^4.1.5"

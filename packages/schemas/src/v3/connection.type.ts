@@ -4,7 +4,8 @@ export type ConnectionConfig =
   | GithubConnectionConfig
   | GitlabConnectionConfig
   | GiteaConnectionConfig
-  | GerritConnectionConfig;
+  | GerritConnectionConfig
+  | BitbucketConnectionConfig;
 
 export interface GithubConnectionConfig {
   /**
@@ -234,4 +235,65 @@ export interface GerritConnectionConfig {
      */
     projects?: string[];
   };
+}
+export interface BitbucketConnectionConfig {
+  /**
+   * Bitbucket configuration
+   */
+  type: "bitbucket";
+  /**
+   * The username to use for authentication. Only needed if token is an app password.
+   */
+  user?: string;
+  /**
+   * An authentication token.
+   */
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
+  /**
+   * Bitbucket URL
+   */
+  url?: string;
+  /**
+   * The type of Bitbucket deployment
+   */
+  deploymentType?: "cloud" | "server";
+  /**
+   * List of workspaces to sync. Ignored if deploymentType is server.
+   */
+  workspaces?: string[];
+  /**
+   * List of projects to sync
+   */
+  projects?: string[];
+  /**
+   * List of repos to sync
+   */
+  repos?: string[];
+  exclude?: {
+    /**
+     * Exclude archived repositories from syncing.
+     */
+    archived?: boolean;
+    /**
+     * Exclude forked repositories from syncing.
+     */
+    forks?: boolean;
+    /**
+     * List of specific repos to exclude from syncing.
+     */
+    repos?: string[];
+  };
+  revisions?: GitRevisions;
 }

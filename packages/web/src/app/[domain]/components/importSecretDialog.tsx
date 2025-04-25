@@ -88,6 +88,10 @@ export const ImportSecretDialog = ({ open, onOpenChange, onSecretCreated, codeHo
                 return <GitHubPATCreationStep step={1} />;
             case 'gitlab':
                 return <GitLabPATCreationStep step={1} />;
+            case 'bitbucket-cloud':
+                return <BitbucketCloudPATCreationStep step={1} />;
+            case 'bitbucket-server':
+                return <BitbucketServerPATCreationStep step={1} />;
             case 'gitea':
                 return <GiteaPATCreationStep step={1} />;
             case 'gerrit':
@@ -179,7 +183,7 @@ export const ImportSecretDialog = ({ open, onOpenChange, onSecretCreated, codeHo
                                         <FormLabel>Key</FormLabel>
                                         <FormControl>
                                             <Input
-                                                placeholder="my-github-token"
+                                                placeholder="my-access-token"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -262,11 +266,33 @@ const GiteaPATCreationStep = ({ step }: { step: number }) => {
     )
 }
 
+const BitbucketCloudPATCreationStep = ({ step }: { step: number }) => {
+    return (
+        <SecretCreationStep
+            step={step}
+            title="Create an Access Token"
+            description=<span>Please check out our <Link href="https://docs.sourcebot.dev/docs/connections/bitbucket-cloud#authenticating-with-bitbucket-cloud" target="_blank" className="underline">docs</Link> for more information on how to create auth credentials for Bitbucket Cloud.</span>
+        >
+        </SecretCreationStep>
+    )
+}
+
+const BitbucketServerPATCreationStep = ({ step }: { step: number }) => {
+    return (
+        <SecretCreationStep
+            step={step}
+            title="Create an Access Token"
+            description=<span>Please check out our <Link href="https://docs.sourcebot.dev/docs/connections/bitbucket-data-center#authenticating-with-bitbucket-data-center" target="_blank" className="underline">docs</Link> for more information on how to create auth credentials for Bitbucket Data Center.</span>
+        >
+        </SecretCreationStep>
+    )
+}
+
 interface SecretCreationStepProps {
     step: number;
     title: string;
     description: string | React.ReactNode;
-    children: React.ReactNode;
+    children?: React.ReactNode;
 }
 
 const SecretCreationStep = ({ step, title, description, children }: SecretCreationStepProps) => {

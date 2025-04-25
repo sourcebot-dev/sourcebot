@@ -7,7 +7,9 @@ import {
     GitHubConnectionCreationForm,
     GitLabConnectionCreationForm,
     GiteaConnectionCreationForm,
-    GerritConnectionCreationForm
+    GerritConnectionCreationForm,
+    BitbucketCloudConnectionCreationForm,
+    BitbucketDataCenterConnectionCreationForm
 } from "@/app/[domain]/components/connectionCreationForms";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
@@ -79,6 +81,24 @@ export const ConnectCodeHost = ({ nextStep, securityCardEnabled }: ConnectCodeHo
         )
     }
 
+    if (selectedCodeHost === "bitbucket-cloud") {
+        return (
+            <>
+                <BackButton onClick={onBack} />
+                <BitbucketCloudConnectionCreationForm onCreated={onCreated} />
+            </>
+        )
+    }
+
+    if (selectedCodeHost === "bitbucket-server") {
+        return (
+            <>
+                <BackButton onClick={onBack} />
+                <BitbucketDataCenterConnectionCreationForm onCreated={onCreated} />
+            </>
+        )
+    }
+
     return null;
 }
 
@@ -90,7 +110,7 @@ const CodeHostSelection = ({ onSelect }: CodeHostSelectionProps) => {
     const captureEvent = useCaptureEvent();
 
     return (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
             <CodeHostIconButton
                 name="GitHub"
                 logo={getCodeHostIcon("github")!}
@@ -105,6 +125,22 @@ const CodeHostSelection = ({ onSelect }: CodeHostSelectionProps) => {
                 onClick={() => {
                     onSelect("gitlab");
                     captureEvent("wa_onboard_gitlab_selected", {});
+                }}
+            />
+            <CodeHostIconButton
+                name="Bitbucket Cloud"
+                logo={getCodeHostIcon("bitbucket-cloud")!}
+                onClick={() => {
+                    onSelect("bitbucket-cloud");
+                    captureEvent("wa_onboard_bitbucket_cloud_selected", {});
+                }}
+            />
+            <CodeHostIconButton
+                name="Bitbucket DC"
+                logo={getCodeHostIcon("bitbucket-server")!}
+                onClick={() => {
+                    onSelect("bitbucket-server");
+                    captureEvent("wa_onboard_bitbucket_server_selected", {});
                 }}
             />
             <CodeHostIconButton

@@ -3,11 +3,14 @@ import { getGitHubReposFromConfig } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
 import { getGerritReposFromConfig } from "./gerrit.js";
+import { BitbucketRepository, getBitbucketReposFromConfig } from "./bitbucket.js";
+import { SchemaRestRepository as BitbucketServerRepository } from "@coderabbitai/bitbucket/server/openapi";
+import { SchemaRepository as BitbucketCloudRepository } from "@coderabbitai/bitbucket/cloud/openapi";
 import { Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
 import { createLogger } from './logger.js';
-import { GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { RepoMetadata } from './types.js';
 import path from 'path';
 
@@ -311,5 +314,121 @@ export const compileGerritConfig = async (
             orgs: [],
             repos: [],
         }
+    };
+}
+
+export const compileBitbucketConfig = async (
+    config: BitbucketConnectionConfig,
+    connectionId: number,
+    orgId: number,
+    db: PrismaClient) => {
+
+    const bitbucketReposResult = await getBitbucketReposFromConfig(config, orgId, db);
+    const bitbucketRepos = bitbucketReposResult.validRepos;
+    const notFound = bitbucketReposResult.notFound;
+
+    const hostUrl = config.url ?? 'https://bitbucket.org';
+    const repoNameRoot = new URL(hostUrl)
+        .toString()
+        .replace(/^https?:\/\//, '');
+
+    const getCloneUrl = (repo: BitbucketRepository) => {
+        if (!repo.links) {
+            throw new Error(`No clone links found for server repo ${repo.name}`);
+        }
+
+        // In the cloud case we simply fetch the html link and use that as the clone url. For server we
+        // need to fetch the actual clone url
+        if (config.deploymentType === 'cloud') {
+            const htmlLink = repo.links.html as { href: string };
+            return htmlLink.href;
+        }
+
+        const cloneLinks = repo.links.clone as {
+            href: string;
+            name: string;
+        }[];
+
+        for (const link of cloneLinks) {
+            if (link.name === 'http') {
+                return link.href;
+            }
+        }
+
+        throw new Error(`No clone links found for repo ${repo.name}`);
+    }
+
+    const getWebUrl = (repo: BitbucketRepository) => {
+        const isServer = config.deploymentType === 'server';
+        const repoLinks = (repo as BitbucketServerRepository | BitbucketCloudRepository).links;
+        const repoName = isServer ? (repo as BitbucketServerRepository).name : (repo as BitbucketCloudRepository).full_name;
+
+        if (!repoLinks) {
+            throw new Error(`No links found for ${isServer ? 'server' : 'cloud'} repo ${repoName}`);
+        }
+
+        // In server case we get an array of lenth == 1 links in the self field, while in cloud case we get a single
+        // link object in the html field
+        const link = isServer ? (repoLinks.self as { name: string, href: string }[])?.[0] : repoLinks.html as { href: string };
+        if (!link || !link.href) {
+            throw new Error(`No ${isServer ? 'self' : 'html'} link found for ${isServer ? 'server' : 'cloud'} repo ${repoName}`);
+        }
+
+        return link.href;
+    }
+
+    const repos = bitbucketRepos.map((repo) => {
+        const isServer = config.deploymentType === 'server';
+        const codeHostType = isServer ? 'bitbucket-server' : 'bitbucket-cloud'; // zoekt expects bitbucket-server
+        const displayName = isServer ? (repo as BitbucketServerRepository).name! : (repo as BitbucketCloudRepository).full_name!;
+        const externalId = isServer ? (repo as BitbucketServerRepository).id!.toString() : (repo as BitbucketCloudRepository).uuid!;
+        const isPublic = isServer ? (repo as BitbucketServerRepository).public : (repo as BitbucketCloudRepository).is_private === false;
+        const isArchived = isServer ? (repo as BitbucketServerRepository).archived === true : false;
+        const isFork = isServer ? (repo as BitbucketServerRepository).origin !== undefined : (repo as BitbucketCloudRepository).parent !== undefined;
+        const repoName = path.join(repoNameRoot, displayName);
+        const cloneUrl = getCloneUrl(repo);
+        const webUrl = getWebUrl(repo);
+
+        const record: RepoData = {
+            external_id: externalId,
+            external_codeHostType: codeHostType,
+            external_codeHostUrl: hostUrl,
+            cloneUrl: cloneUrl,
+            webUrl: webUrl,
+            name: repoName,
+            displayName: displayName,
+            isFork: isFork,
+            isArchived: isArchived,
+            org: {
+                connect: {
+                    id: orgId,
+                },
+            },
+            connections: {
+                create: {
+                    connectionId: connectionId,
+                }
+            },
+            metadata: {
+                gitConfig: {
+                    'zoekt.web-url-type': codeHostType,
+                    'zoekt.web-url': webUrl,
+                    'zoekt.name': repoName,
+                    'zoekt.archived': marshalBool(isArchived),
+                    'zoekt.fork': marshalBool(isFork),
+                    'zoekt.public': marshalBool(isPublic),
+                    'zoekt.display-name': displayName,
+                },
+                branches: config.revisions?.branches ?? undefined,
+                tags: config.revisions?.tags ?? undefined,
+            } satisfies RepoMetadata,
+        };
+
+        return record;
+    })
+
+    return {
+        repoData: repos,
+        notFound,
     };
 }

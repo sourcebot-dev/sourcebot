@@ -1,0 +1,180 @@
+---
+title: Linking code from Bitbucket Data Center
+sidebarTitle: Bitbucket Data Center
+---
+
+import BitbucketToken from '/snippets/bitbucket-token.mdx';
+import BitbucketAppPassword from '/snippets/bitbucket-app-password.mdx';
+
+## Examples
+
+<AccordionGroup>
+    <Accordion title="Sync individual repos">
+        ```json
+        {
+            "type": "bitbucket",
+            "deploymentType": "server",
+            "url": "https://mybitbucketdeployment.com",
+            "repos": [
+                "myProject/myRepo"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Sync all repos in a project">
+        ```json
+        {
+            "type": "bitbucket",
+            "deploymentType": "server",
+            "url": "https://mybitbucketdeployment.com",
+            "projects": [
+                "myProject"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Exclude repos from syncing">
+        ```json
+        {
+            "type": "bitbucket",
+            "deploymentType": "server",
+            "url": "https://mybitbucketdeployment.com",
+            // Include all repos in myProject...
+            "projects": [
+                "myProject"
+            ],
+            // ...except:
+            "exclude": {
+                // repos that are archived
+                "archived": true,
+                // repos that are forks
+                "forks": true,
+                // repos that match these glob patterns
+                "repos": [
+                    "myProject/repo1",
+                    "myProject2/*"
+                ]
+            }
+        }
+        ```
+    </Accordion>
+</AccordionGroup>
+
+## Authenticating with Bitbucket Data Center
+
+In order to index private repositories, you'll need to provide an access token to Sourcebot.
+
+Create an access token for the desired scope (repo, project, or workspace). Visit the official [Bitbucket Data Center docs](https://confluence.atlassian.com/bitbucketserver/http-access-tokens-939515499.html)
+for more info.
+
+Next, provide the access token to Sourcebot:
+
+<BitbucketToken />
+
+
+## Schema reference
+
+<Accordion title="Reference">
+[schemas/v3/bitbucket.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/bitbucket.json)
+
+```json
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "BitbucketConnectionConfig",
+    "properties": {
+        "type": {
+            "const": "bitbucket",
+            "description": "Bitbucket configuration"
+        },
+        "user": {
+            "type": "string",
+            "description": "The username to use for authentication. Only needed if token is an app password."
+        },
+        "token": {
+            "$ref": "./shared.json#/definitions/Token",
+            "description": "An authentication token.",
+            "examples": [
+                {
+                    "secret": "SECRET_KEY"
+                }
+            ]
+        },
+        "url": {
+            "type": "string",
+            "format": "url",
+            "default": "https://api.bitbucket.org/2.0",
+            "description": "Bitbucket URL",
+            "examples": [
+                "https://bitbucket.example.com"
+            ],
+            "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+        },
+        "deploymentType": {
+            "type": "string",
+            "enum": ["cloud", "server"],
+            "default": "cloud",
+            "description": "The type of Bitbucket deployment"
+        },
+        "workspaces": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "List of workspaces to sync. Ignored if deploymentType is server."
+        },
+        "projects": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "List of projects to sync"
+        },
+        "repos": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "List of repos to sync"
+        },
+        "exclude": {
+            "type": "object",
+            "properties": {
+                "archived": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Exclude archived repositories from syncing."
+                },
+                "forks": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Exclude forked repositories from syncing."
+                },
+                "repos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "examples": [
+                        [
+                            "cloud_workspace/repo1", 
+                            "server_project/repo2" 
+                        ]
+                    ],
+                    "description": "List of specific repos to exclude from syncing."
+                }
+            },
+            "additionalProperties": false
+        },
+        "revisions": {
+            "$ref": "./shared.json#/definitions/GitRevisions"
+        }
+    },
+    "required": [
+        "type"
+    ],
+    "additionalProperties": false
+}
+```
+
+</Accordion>
