@@ -12,6 +12,7 @@ import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
+import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { decrypt, encrypt } from "@sourcebot/crypto"
 import { getConnection } from "./data/connection";
@@ -1497,6 +1498,8 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
                 return giteaSchema;
             case 'gerrit':
                 return gerritSchema;
+            case 'bitbucket':
+                return bitbucketSchema;
         }
     })();
 

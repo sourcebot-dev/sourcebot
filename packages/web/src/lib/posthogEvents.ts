@@ -238,6 +238,8 @@ export type PosthogEventMap = {
     wa_onboard_gitlab_selected: {},
     wa_onboard_gitea_selected: {},
     wa_onboard_gerrit_selected: {},
+    wa_onboard_bitbucket_cloud_selected: {},
+    wa_onboard_bitbucket_data_center_selected: {},
     //////////////////////////////////////////////////////////////////
     wa_security_page_click: {},
     //////////////////////////////////////////////////////////////////

@@ -32,7 +32,7 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
     return `${path}?${queryString}`;
 }
 
-export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit" | "bitbucket";
+export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit" | "bitbucket" | "bitbucket-cloud" | "bitbucket-data-center";
 
 type CodeHostInfo = {
     type: CodeHostType;
@@ -146,6 +146,8 @@ export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, clas
                 src: gerritLogo,
             }
         case "bitbucket":
+        case "bitbucket-cloud":
+        case "bitbucket-data-center":
             return {
                 src: bitbucketLogo,
             }
@@ -160,6 +162,8 @@ export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean 
         case "gitlab":
         case "gitea":
         case "bitbucket":
+        case "bitbucket-cloud":
+        case "bitbucket-data-center":
             return true;
         case "gerrit":
             return false;
