@@ -32,7 +32,7 @@
                             "docs/connections/github",
                             "docs/connections/gitlab",
                             "docs/connections/bitbucket-cloud",
-                            "docs/connections/bitbucket-server",
+                            "docs/connections/bitbucket-data-center",
                             "docs/connections/gitea",
                             "docs/connections/gerrit",
                             "docs/connections/request-new"
