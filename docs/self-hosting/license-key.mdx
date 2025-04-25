@@ -8,8 +8,13 @@ All core Sourcebot features are available in Sourcebot OSS (MIT Licensed). Some 
 
 ## Activating a license key
 
-```sh
-SOURCEBOT_EE_LICENSE_KEY=<your-license-key>
+After purchasing a license key, you can activate it by setting the `SOURCEBOT_EE_LICENSE_KEY` environment variable.
+
+```bash
+docker run \
+    -e SOURCEBOT_EE_LICENSE_KEY=<your-license-key> \
+    /* additional args */ \
+    ghcr.io/sourcebot-dev/sourcebot:latest
 ```
 
 ## Questions?

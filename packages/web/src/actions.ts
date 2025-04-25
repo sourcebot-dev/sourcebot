@@ -830,13 +830,6 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         }
 
         const res = await prisma.$transaction(async (tx) => {
-            if (IS_BILLING_ENABLED) {
-                const result = await incrementOrgSeatCount(invite.orgId, tx);
-                if (isServiceError(result)) {
-                    return result;
-                }
-            }
-
             await tx.userToOrg.create({
                 data: {
                     userId: user.id,
@@ -850,6 +843,13 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
                     id: invite.id,
                 }
             });
+
+            if (IS_BILLING_ENABLED) {
+                const result = await incrementOrgSeatCount(invite.orgId, tx);
+                if (isServiceError(result)) {
+                    throw result;
+                }
+            }
         });
 
         if (isServiceError(res)) {
@@ -1001,18 +1001,20 @@ export const removeMemberFromOrg = async (memberId: string, domain: string): Pro
                 return notFound();
             }
 
-            if (IS_BILLING_ENABLED) {
-                const result = await decrementOrgSeatCount(orgId, prisma);
-                if (isServiceError(result)) {
-                    return result;
-                }
-            }
+            await prisma.$transaction(async (tx) => {
+                await tx.userToOrg.delete({
+                    where: {
+                        orgId_userId: {
+                            orgId,
+                            userId: memberId,
+                        }
+                    }
+                });
 
-            await prisma.userToOrg.delete({
-                where: {
-                    orgId_userId: {
-                        orgId,
-                        userId: memberId,
+                if (IS_BILLING_ENABLED) {
+                    const result = await decrementOrgSeatCount(orgId, tx);
+                    if (isServiceError(result)) {
+                        throw result;
                     }
                 }
             });
@@ -1044,18 +1046,20 @@ export const leaveOrg = async (domain: string): Promise<{ success: boolean } | S
                 return notFound();
             }
 
-            if (IS_BILLING_ENABLED) {
-                const result = await decrementOrgSeatCount(orgId, prisma);
-                if (isServiceError(result)) {
-                    return result;
-                }
-            }
+            await prisma.$transaction(async (tx) => {
+                await tx.userToOrg.delete({
+                    where: {
+                        orgId_userId: {
+                            orgId,
+                            userId: session.user.id,
+                        }
+                    }
+                });
 
-            await prisma.userToOrg.delete({
-                where: {
-                    orgId_userId: {
-                        orgId,
-                        userId: session.user.id,
+                if (IS_BILLING_ENABLED) {
+                    const result = await decrementOrgSeatCount(orgId, tx);
+                    if (isServiceError(result)) {
+                        throw result;
                     }
                 }
             });

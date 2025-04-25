@@ -274,6 +274,7 @@ const SearchSuggestionsBox = forwardRef(({
         symbolSuggestions,
         searchHistorySuggestions,
         languageSuggestions,
+        searchContextSuggestions,
     ]);
 
     // When the list of suggestions change, reset the highlight index
