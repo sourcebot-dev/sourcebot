@@ -1,7 +1,7 @@
 import { createBitbucketCloudClient } from "@coderabbitai/bitbucket/cloud";
 import { createBitbucketServerClient } from "@coderabbitai/bitbucket/server";
 import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type";
-import type { ClientOptions, Client, ClientPathsWithMethod } from "openapi-fetch";
+import type { ClientOptions, ClientPathsWithMethod } from "openapi-fetch";
 import { createLogger } from "./logger.js";
 import { PrismaClient } from "@sourcebot/db";
 import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
@@ -12,7 +12,6 @@ import {
 import { SchemaRestRepository as ServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { processPromiseResults } from "./connectionUtils.js";
 import { throwIfAnyFailed } from "./connectionUtils.js";
-import { PaginatedResponse } from "@gitbeaker/rest";
 
 const logger = createLogger("Bitbucket");
 const BITBUCKET_CLOUD_GIT = 'https://bitbucket.org';
