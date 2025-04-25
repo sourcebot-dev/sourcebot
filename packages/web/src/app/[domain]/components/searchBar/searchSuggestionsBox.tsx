@@ -10,7 +10,6 @@ import {
     caseModeSuggestions,
     forkModeSuggestions,
     publicModeSuggestions,
-    refineModeSuggestions,
 } from "./constants";
 import { IconType } from "react-icons/lib";
 import { VscFile, VscFilter, VscRepo, VscSymbolMisc } from "react-icons/vsc";
@@ -18,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { KeyboardShortcutHint } from "../keyboardShortcutHint";
 import { useSyntaxGuide } from "@/app/[domain]/components/syntaxGuideProvider";
+import { useRefineModeSuggestions } from "./useRefineModeSuggestions";
 
 export type Suggestion = {
     value: string;
@@ -39,7 +39,8 @@ export type SuggestionMode =
     "symbol" |
     "content" |
     "repo" |
-    "searchHistory";
+    "searchHistory" |
+    "context";
 
 interface SearchSuggestionsBoxProps {
     query: string;
@@ -59,6 +60,7 @@ interface SearchSuggestionsBoxProps {
     symbolSuggestions: Suggestion[];
     languageSuggestions: Suggestion[];
     searchHistorySuggestions: Suggestion[];
+    searchContextSuggestions: Suggestion[];
 }
 
 const SearchSuggestionsBox = forwardRef(({
@@ -78,9 +80,11 @@ const SearchSuggestionsBox = forwardRef(({
     symbolSuggestions,
     languageSuggestions,
     searchHistorySuggestions,
+    searchContextSuggestions,
 }: SearchSuggestionsBoxProps, ref: Ref<HTMLDivElement>) => {
     const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0);
     const { onOpenChanged } = useSyntaxGuide();
+    const refineModeSuggestions = useRefineModeSuggestions();
 
     const { suggestions, isHighlightEnabled, descriptionPlacement, DefaultIcon, onSuggestionClicked } = useMemo(() => {
         if (!isEnabled) {
@@ -198,6 +202,13 @@ const SearchSuggestionsBox = forwardRef(({
                         },
                         descriptionPlacement: "right",
                     }
+                case "context":
+                    return {
+                        list: searchContextSuggestions,
+                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                        descriptionPlacement: "left",
+                        DefaultIcon: VscFilter,
+                    }
                 case "none":
                 case "revision":
                 case "content":
@@ -263,6 +274,7 @@ const SearchSuggestionsBox = forwardRef(({
         symbolSuggestions,
         searchHistorySuggestions,
         languageSuggestions,
+        searchContextSuggestions,
     ]);
 
     // When the list of suggestions change, reset the highlight index
@@ -287,6 +299,8 @@ const SearchSuggestionsBox = forwardRef(({
                 return "Languages";
             case "searchHistory":
                 return "Search history"
+            case "context":
+                return "Search contexts"
             default:
                 return "";
         }

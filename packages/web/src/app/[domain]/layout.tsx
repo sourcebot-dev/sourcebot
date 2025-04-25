@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { getOrgFromDomain } from "@/data/org";
 import { isServiceError } from "@/lib/utils";
 import { OnboardGuard } from "./components/onboardGuard";
-import { fetchSubscription } from "@/actions";
 import { UpgradeGuard } from "./components/upgradeGuard";
 import { cookies, headers } from "next/headers";
 import { getSelectorsByUserAgent } from "react-device-detect";
@@ -11,9 +10,11 @@ import { MobileUnsupportedSplashScreen } from "./components/mobileUnsupportedSpl
 import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "@/lib/constants";
 import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
-import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { env } from "@/env.mjs";
 import { notFound, redirect } from "next/navigation";
+import { getSubscriptionInfo } from "@/ee/features/billing/actions";
+
 interface LayoutProps {
     children: React.ReactNode,
     params: { domain: string }
@@ -58,7 +59,7 @@ export default async function Layout({
     }
 
     if (IS_BILLING_ENABLED) {
-        const subscription = await fetchSubscription(domain);
+        const subscription = await getSubscriptionInfo(domain);
         if (
             subscription &&
             (

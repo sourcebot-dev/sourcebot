@@ -7,6 +7,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "next-auth/react";
 import { env } from "@/env.mjs";
+import { PlanProvider } from "@/features/entitlements/planProvider";
+import { getPlan } from "@/features/entitlements/server";
 
 export const metadata: Metadata = {
     title: "Sourcebot",
@@ -27,20 +29,22 @@ export default function RootLayout({
             <body>
                 <Toaster />
                 <SessionProvider>
-                    <PostHogProvider disabled={env.SOURCEBOT_TELEMETRY_DISABLED === "true"}>
-                        <ThemeProvider
-                            attribute="class"
-                            defaultTheme="system"
-                            enableSystem
-                            disableTransitionOnChange
-                        >
-                            <QueryClientProvider>
-                                <TooltipProvider>
-                                    {children}
-                                </TooltipProvider>
-                            </QueryClientProvider>
-                        </ThemeProvider>
-                    </PostHogProvider>
+                    <PlanProvider plan={getPlan()}>
+                        <PostHogProvider disabled={env.SOURCEBOT_TELEMETRY_DISABLED === "true"}>
+                            <ThemeProvider
+                                attribute="class"
+                                defaultTheme="system"
+                                enableSystem
+                                disableTransitionOnChange
+                            >
+                                <QueryClientProvider>
+                                    <TooltipProvider>
+                                        {children}
+                                    </TooltipProvider>
+                                </QueryClientProvider>
+                            </ThemeProvider>
+                        </PostHogProvider>
+                    </PlanProvider>
                 </SessionProvider>
             </body>
         </html>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { splitQuery, SuggestionMode } from "./searchSuggestionsBox";
-import { suggestionModeMappings } from "./constants";
+import { useSuggestionModeMappings } from "./useSuggestionModeMappings";
 
 interface Props {
     isSuggestionsEnabled: boolean;
@@ -17,6 +17,8 @@ export const useSuggestionModeAndQuery = ({
     cursorPosition,
     query,
 }: Props) => {
+
+    const suggestionModeMappings = useSuggestionModeMappings();
 
     const { suggestionQuery, suggestionMode } = useMemo<{ suggestionQuery: string, suggestionMode: SuggestionMode }>(() => {
         // When suggestions are not enabled, fallback to using a sentinal
