@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Suggestion, SuggestionMode } from "./searchSuggestionsBox";
 import { getRepos, search } from "@/app/api/(client)/client";
+import { getSearchContexts } from "@/actions";
 import { useMemo } from "react";
 import { Symbol } from "@/lib/types";
 import { languageMetadataMap } from "@/lib/languageMetadata";
@@ -18,7 +19,7 @@ import {
     VscSymbolVariable
 } from "react-icons/vsc";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
-import { getDisplayTime } from "@/lib/utils";
+import { getDisplayTime, isServiceError } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 
 
@@ -56,6 +57,10 @@ export const useSuggestionsData = ({
             maxMatchDisplayCount: 15,
         }, domain),
         select: (data): Suggestion[] => {
+            if (isServiceError(data)) {
+                return [];
+            }
+
             return data.Result.Files?.map((file) => ({
                 value: file.FileName
             })) ?? [];
@@ -71,6 +76,10 @@ export const useSuggestionsData = ({
             maxMatchDisplayCount: 15,
         }, domain),
         select: (data): Suggestion[] => {
+            if (isServiceError(data)) {
+                return [];
+            }
+
             const symbols = data.Result.Files?.flatMap((file) => file.ChunkMatches).flatMap((chunk) => chunk.SymbolInfo ?? []);
             if (!symbols) {
                 return [];
@@ -88,6 +97,24 @@ export const useSuggestionsData = ({
         enabled: suggestionMode === "symbol",
     });
     const isLoadingSymbols = useMemo(() => suggestionMode === "symbol" && _isLoadingSymbols, [suggestionMode, _isLoadingSymbols]);
+
+    const { data: searchContextSuggestions, isLoading: _isLoadingSearchContexts } = useQuery({
+        queryKey: ["searchContexts"],
+        queryFn: () => getSearchContexts(domain),
+        select: (data): Suggestion[] => {
+            if (isServiceError(data)) {
+                return [];
+            }
+
+            return data.map((context) => ({
+                value: context.name,
+                description: context.description,
+            }));
+
+        },
+        enabled: suggestionMode === "context",
+    });
+    const isLoadingSearchContexts = useMemo(() => suggestionMode === "context" && _isLoadingSearchContexts, [_isLoadingSearchContexts, suggestionMode]);
 
     const languageSuggestions = useMemo((): Suggestion[] => {
         return Object.keys(languageMetadataMap).map((lang) => {
@@ -116,13 +143,14 @@ export const useSuggestionsData = ({
     }, [searchHistory]);
 
     const isLoadingSuggestions = useMemo(() => {
-        return isLoadingSymbols || isLoadingFiles || isLoadingRepos;
-    }, [isLoadingFiles, isLoadingRepos, isLoadingSymbols]);
+        return isLoadingSymbols || isLoadingFiles || isLoadingRepos || isLoadingSearchContexts;
+    }, [isLoadingFiles, isLoadingRepos, isLoadingSymbols, isLoadingSearchContexts]);
 
     return {
         repoSuggestions: repoSuggestions ?? [],
         fileSuggestions: fileSuggestions ?? [],
         symbolSuggestions: symbolSuggestions ?? [],
+        searchContextSuggestions: searchContextSuggestions ?? [],
         languageSuggestions,
         searchHistorySuggestions,
         isLoadingSuggestions,

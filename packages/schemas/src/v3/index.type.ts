@@ -15,6 +15,12 @@ export interface SourcebotConfig {
   $schema?: string;
   settings?: Settings;
   /**
+   * [Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/self-hosting/more/search-contexts
+   */
+  contexts?: {
+    [k: string]: SearchContext;
+  };
+  /**
    * Defines a collection of connections from varying code hosts that Sourcebot should sync with. This is only available in single-tenancy mode.
    */
   connections?: {
@@ -72,6 +78,29 @@ export interface Settings {
    * The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.
    */
   repoIndexTimeoutMs?: number;
+}
+/**
+ * Search context
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema definition
+ * via the `patternProperty` "^[a-zA-Z0-9_-]+$".
+ *
+ * This interface was referenced by `SourcebotConfig`'s JSON-Schema
+ * via the `definition` "SearchContext".
+ */
+export interface SearchContext {
+  /**
+   * List of repositories to include in the search context. Expected to be formatted as a URL without any leading http(s):// prefix (e.g., 'github.com/sourcebot-dev/sourcebot'). Glob patterns are supported.
+   */
+  include: string[];
+  /**
+   * List of repositories to exclude from the search context. Expected to be formatted as a URL without any leading http(s):// prefix (e.g., 'github.com/sourcebot-dev/sourcebot'). Glob patterns are supported.
+   */
+  exclude?: string[];
+  /**
+   * Optional description of the search context that surfaces in the UI.
+   */
+  description?: string;
 }
 export interface GithubConnectionConfig {
   /**

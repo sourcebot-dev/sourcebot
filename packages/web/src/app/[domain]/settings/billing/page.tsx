@@ -1,13 +1,15 @@
-import type { Metadata } from "next"
-import { CalendarIcon, DollarSign, Users } from "lucide-react"
+import { getCurrentUserRole } from "@/actions"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ManageSubscriptionButton } from "./manageSubscriptionButton"
-import { getSubscriptionData, getCurrentUserRole, getSubscriptionBillingEmail } from "@/actions"
-import { isServiceError } from "@/lib/utils"
-import { ChangeBillingEmailCard } from "./changeBillingEmailCard"
-import { notFound } from "next/navigation"
-import { IS_BILLING_ENABLED } from "@/lib/stripe"
+import { getSubscriptionBillingEmail, getSubscriptionInfo } from "@/ee/features/billing/actions"
+import { ChangeBillingEmailCard } from "@/ee/features/billing/components/changeBillingEmailCard"
+import { ManageSubscriptionButton } from "@/ee/features/billing/components/manageSubscriptionButton"
+import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe"
 import { ServiceErrorException } from "@/lib/serviceError"
+import { isServiceError } from "@/lib/utils"
+import { CalendarIcon, DollarSign, Users } from "lucide-react"
+import type { Metadata } from "next"
+import { notFound } from "next/navigation"
+
 export const metadata: Metadata = {
     title: "Billing | Settings",
     description: "Manage your subscription and billing information",
@@ -26,7 +28,7 @@ export default async function BillingPage({
         notFound();
     }
 
-    const subscription = await getSubscriptionData(domain)
+    const subscription = await getSubscriptionInfo(domain)
 
     if (isServiceError(subscription)) {
         throw new ServiceErrorException(subscription);

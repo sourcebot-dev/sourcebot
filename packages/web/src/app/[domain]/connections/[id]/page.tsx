@@ -96,7 +96,7 @@ export default async function ConnectionManagementPage({ params, searchParams }:
                 <DisplayNameSetting connectionId={connection.id} name={connection.name} disabled={!isOwner} />
                 <ConfigSetting
                     connectionId={connection.id}
-                    type={connection.connectionType}
+                    type={connection.connectionType as CodeHostType}
                     config={JSON.stringify(connection.config, null, 2)}
                     disabled={!isOwner}
                 />

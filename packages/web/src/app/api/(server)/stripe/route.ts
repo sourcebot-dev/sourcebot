@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/prisma';
 import { ConnectionSyncStatus, StripeSubscriptionStatus } from '@sourcebot/db';
-import { stripeClient } from '@/lib/stripe';
+import { stripeClient } from '@/ee/features/billing/stripe';
 import { env } from '@/env.mjs';
 
 export async function POST(req: NextRequest) {

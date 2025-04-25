@@ -10,7 +10,7 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { Repository, SearchQueryParams, SearchResultFile } from "@/lib/types";
-import { createPathWithQueryParams, measure } from "@/lib/utils";
+import { createPathWithQueryParams, measure, unwrapServiceError } from "@/lib/utils";
 import { InfoCircledIcon, SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -22,6 +22,7 @@ import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { useDomain } from "@/hooks/useDomain";
+import { useToast } from "@/components/hooks/use-toast";
 
 const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 10000;
 
@@ -44,20 +45,30 @@ const SearchPageInternal = () => {
     const { setSearchHistory } = useSearchHistory();
     const captureEvent = useCaptureEvent();
     const domain = useDomain();
+    const { toast } = useToast();
 
-    const { data: searchResponse, isLoading } = useQuery({
+    const { data: searchResponse, isLoading, error } = useQuery({
         queryKey: ["search", searchQuery, maxMatchDisplayCount],
-        queryFn: () => measure(() => search({
+        queryFn: () => measure(() => unwrapServiceError(search({
             query: searchQuery,
             maxMatchDisplayCount,
-        }, domain), "client.search"),
+        }, domain)), "client.search"),
         select: ({ data, durationMs }) => ({
             ...data,
             durationMs,
         }),
         enabled: searchQuery.length > 0,
         refetchOnWindowFocus: false,
+        retry: false,
     });
+
+    useEffect(() => {
+        if (error) {
+            toast({
+                description: `❌ Search failed. Reason: ${error.message}`,
+            });
+        }
+    }, [error, toast]);
 
 
     // Write the query to the search history

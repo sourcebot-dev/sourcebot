@@ -7,7 +7,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { InvitesList } from "./components/invitesList";
 import { getOrgInvites, getMe } from "@/actions";
-import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { ServiceErrorException } from "@/lib/serviceError";
 interface MembersSettingsPageProps {
     params: {

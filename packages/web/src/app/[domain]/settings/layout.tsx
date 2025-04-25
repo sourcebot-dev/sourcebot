@@ -2,7 +2,7 @@ import { Metadata } from "next"
 import { SidebarNav } from "./components/sidebar-nav"
 import { NavigationMenu } from "../components/navigationMenu"
 import { Header } from "./components/header";
-import { IS_BILLING_ENABLED } from "@/lib/stripe";
+import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 

@@ -5,40 +5,91 @@ import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, Search
 import { fileNotFound, invalidZoektResponse, ServiceError, unexpectedError } from "../serviceError";
 import { isServiceError } from "../utils";
 import { zoektFetch } from "./zoektClient";
+import { prisma } from "@/prisma";
+import { ErrorCode } from "../errorCodes";
+import { StatusCodes } from "http-status-codes";
 
 // List of supported query prefixes in zoekt.
 // @see : https://github.com/sourcebot-dev/zoekt/blob/main/query/parse.go#L417
 enum zoektPrefixes {
     archived = "archived:",
     branchShort = "b:",
-    branch =  "branch:",
-    caseShort =  "c:",
-    case =  "case:",
-    content =  "content:",
-    fileShort =  "f:",
-    file =  "file:",
-    fork =  "fork:",
-    public =  "public:",
-    repoShort =  "r:",
-    repo =  "repo:",
-    regex =  "regex:",
-    lang =  "lang:",
-    sym =  "sym:",
-    typeShort =  "t:",
-    type =  "type:",
+    branch = "branch:",
+    caseShort = "c:",
+    case = "case:",
+    content = "content:",
+    fileShort = "f:",
+    file = "file:",
+    fork = "fork:",
+    public = "public:",
+    repoShort = "r:",
+    repo = "repo:",
+    regex = "regex:",
+    lang = "lang:",
+    sym = "sym:",
+    typeShort = "t:",
+    type = "type:",
+    reposet = "reposet:",
 }
 
-// Mapping of additional "alias" prefixes to zoekt prefixes.
-const aliasPrefixMappings: Record<string, zoektPrefixes> = {
-    "rev:": zoektPrefixes.branch,
-    "revision:": zoektPrefixes.branch,
-}
+const transformZoektQuery = async (query: string, orgId: number): Promise<string | ServiceError> => {
+    const prevQueryParts = query.split(" ");
+    const newQueryParts = [];
 
-export const search = async ({ query, maxMatchDisplayCount, whole}: SearchRequest, orgId: number): Promise<SearchResponse | ServiceError> => {
-    // Replace any alias prefixes with their corresponding zoekt prefixes.
-    for (const [prefix, zoektPrefix] of Object.entries(aliasPrefixMappings)) {
-        query = query.replaceAll(prefix, zoektPrefix);
+    for (const part of prevQueryParts) {
+
+        // Handle mapping `rev:` and `revision:` to `branch:`
+        if (part.match(/^-?(rev|revision):.+$/)) {
+            const isNegated = part.startsWith("-");
+            const revisionName = part.slice(part.indexOf(":") + 1);
+            newQueryParts.push(`${isNegated ? "-" : ""}${zoektPrefixes.branch}${revisionName}`);
+        }
+
+        // Expand `context:` into `reposet:` atom.
+        else if (part.match(/^-?context:.+$/)) {
+            const isNegated = part.startsWith("-");
+            const contextName = part.slice(part.indexOf(":") + 1);
+
+            const context = await prisma.searchContext.findUnique({
+                where: {
+                    name_orgId: {
+                        name: contextName,
+                        orgId,
+                    }
+                },
+                include: {
+                    repos: true,
+                }
+            });
+
+            // If the context doesn't exist, return an error.
+            if (!context) {
+                return {
+                    errorCode: ErrorCode.SEARCH_CONTEXT_NOT_FOUND,
+                    message: `Search context "${contextName}" not found`,
+                    statusCode: StatusCodes.NOT_FOUND,
+                } satisfies ServiceError;
+            }
+
+            const names = context.repos.map((repo) => repo.name);
+            newQueryParts.push(`${isNegated ? "-" : ""}${zoektPrefixes.reposet}${names.join(",")}`);
+        }
+
+        // no-op: add the original part to the new query parts.
+        else {
+            newQueryParts.push(part);
+        }
     }
+
+    return newQueryParts.join(" ");
+}
+
+export const search = async ({ query, maxMatchDisplayCount, whole }: SearchRequest, orgId: number): Promise<SearchResponse | ServiceError> => {
+    const transformedQuery = await transformZoektQuery(query, orgId);
+    if (isServiceError(transformedQuery)) {
+        return transformedQuery;
+    }
+    query = transformedQuery;
 
     const isBranchFilteringEnabled = (
         query.includes(zoektPrefixes.branch) ||
@@ -100,7 +151,7 @@ export const search = async ({ query, maxMatchDisplayCount, whole}: SearchReques
 export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest, orgId: number): Promise<FileSourceResponse | ServiceError> => {
     const escapedFileName = escapeStringRegexp(fileName);
     const escapedRepository = escapeStringRegexp(repository);
-    
+
     let query = `file:${escapedFileName} repo:^${escapedRepository}$`;
     if (branch) {
         query = query.concat(` branch:${branch}`);

@@ -65,6 +65,46 @@ const schema = {
         }
       },
       "additionalProperties": false
+    },
+    "SearchContext": {
+      "type": "object",
+      "description": "Search context",
+      "properties": {
+        "include": {
+          "type": "array",
+          "description": "List of repositories to include in the search context. Expected to be formatted as a URL without any leading http(s):// prefix (e.g., 'github.com/sourcebot-dev/sourcebot'). Glob patterns are supported.",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "github.com/sourcebot-dev/**",
+              "gerrit.example.org/sub/path/**"
+            ]
+          ]
+        },
+        "exclude": {
+          "type": "array",
+          "description": "List of repositories to exclude from the search context. Expected to be formatted as a URL without any leading http(s):// prefix (e.g., 'github.com/sourcebot-dev/sourcebot'). Glob patterns are supported.",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "github.com/sourcebot-dev/sourcebot",
+              "gerrit.example.org/sub/path/**"
+            ]
+          ]
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of the search context that surfaces in the UI."
+        }
+      },
+      "required": [
+        "include"
+      ],
+      "additionalProperties": false
     }
   },
   "properties": {
@@ -73,6 +113,16 @@ const schema = {
     },
     "settings": {
       "$ref": "#/definitions/Settings"
+    },
+    "contexts": {
+      "type": "object",
+      "description": "[Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/self-hosting/more/search-contexts",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "$ref": "#/definitions/SearchContext"
+        }
+      },
+      "additionalProperties": false
     },
     "connections": {
       "type": "object",
