@@ -48,14 +48,14 @@
 
 # About
 
-Sourcebot is the open source Sourcegraph alternative. Index all your repos and branches across multiple code hosts (GitHub, GitLab, Gitea, or Gerrit) and search through them using a blazingly fast interface.
+Sourcebot is the open source Sourcegraph alternative. Index all your repos and branches across multiple code hosts (GitHub, GitLab, Bitbucket, Gitea, or Gerrit) and search through them using a blazingly fast interface.
 
 https://github.com/user-attachments/assets/ced355f3-967e-4f37-ae6e-74ab8c06b9ec
 
 
 ## Features
 - 💻 **One-command deployment**: Get started instantly using Docker on your own machine.
-- 🔍 **Multi-repo search**: Index and search through multiple public and private repositories and branches on GitHub, GitLab, Gitea, or Gerrit.
+- 🔍 **Multi-repo search**: Index and search through multiple public and private repositories and branches on GitHub, GitLab, Bitbucket, Gitea, or Gerrit.
 - ⚡**Lightning fast performance**: Built on top of the powerful [Zoekt](https://github.com/sourcegraph/zoekt) search engine.
 - 🎨 **Modern web app**: Enjoy a sleek interface with features like syntax highlighting, light/dark mode, and vim-style navigation 
 - 📂 **Full file visualization**: Instantly view the entire file when selecting any search result.
