@@ -32,7 +32,7 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
     return `${path}?${queryString}`;
 }
 
-export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit" | "bitbucket" | "bitbucket-cloud" | "bitbucket-data-center";
+export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit" | "bitbucket-cloud" | "bitbucket-server";
 
 type CodeHostInfo = {
     type: CodeHostType;
@@ -111,11 +111,21 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: s
                 iconClassName: className,
             }
         }
-        case "bitbucket-server": 
-        case "bitbucket-cloud": {
-            const { src, className } = getCodeHostIcon('bitbucket')!;
+        case "bitbucket-server": {
+            const { src, className } = getCodeHostIcon('bitbucket-server')!;
             return {
-                type: "bitbucket",
+                type: "bitbucket-server",
+                displayName: displayName,
+                codeHostName: "Bitbucket",
+                repoLink: cloneUrl,
+                icon: src,
+                iconClassName: className,
+            }
+        }
+        case "bitbucket-cloud": {
+            const { src, className } = getCodeHostIcon('bitbucket-cloud')!;
+            return {
+                type: "bitbucket-cloud",
                 displayName: displayName,
                 codeHostName: "Bitbucket",
                 repoLink: cloneUrl,
@@ -145,9 +155,8 @@ export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, clas
             return {
                 src: gerritLogo,
             }
-        case "bitbucket":
         case "bitbucket-cloud":
-        case "bitbucket-data-center":
+        case "bitbucket-server":
             return {
                 src: bitbucketLogo,
             }
@@ -161,9 +170,8 @@ export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean 
         case "github":
         case "gitlab":
         case "gitea":
-        case "bitbucket":
         case "bitbucket-cloud":
-        case "bitbucket-data-center":
+        case "bitbucket-server":
             return true;
         case "gerrit":
             return false;

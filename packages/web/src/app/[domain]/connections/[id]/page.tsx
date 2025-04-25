@@ -21,6 +21,9 @@ import { getOrgMembership } from "@/actions"
 import { isServiceError } from "@/lib/utils"
 import { notFound } from "next/navigation"
 import { OrgRole } from "@sourcebot/db"
+import { CodeHostType } from "@/lib/utils"
+import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type"
+
 interface ConnectionManagementPageProps {
     params: {
         domain: string

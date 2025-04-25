@@ -35,7 +35,7 @@ export const BitbucketCloudConnectionCreationForm = ({ onCreated }: BitbucketClo
 
     return (
         <SharedConnectionCreationForm<BitbucketConnectionConfig>
-            type="bitbucket"
+            type="bitbucket-cloud"
             title="Create a Bitbucket Cloud connection"
             defaultValues={{
                 config: JSON.stringify(defaultConfig, null, 2),

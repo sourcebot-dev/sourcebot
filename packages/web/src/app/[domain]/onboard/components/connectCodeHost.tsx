@@ -90,7 +90,7 @@ export const ConnectCodeHost = ({ nextStep, securityCardEnabled }: ConnectCodeHo
         )
     }
 
-    if (selectedCodeHost === "bitbucket-data-center") {
+    if (selectedCodeHost === "bitbucket-server") {
         return (
             <>
                 <BackButton onClick={onBack} />
@@ -129,7 +129,7 @@ const CodeHostSelection = ({ onSelect }: CodeHostSelectionProps) => {
             />
             <CodeHostIconButton
                 name="Bitbucket Cloud"
-                logo={getCodeHostIcon("bitbucket")!}
+                logo={getCodeHostIcon("bitbucket-cloud")!}
                 onClick={() => {
                     onSelect("bitbucket-cloud");
                     captureEvent("wa_onboard_bitbucket_cloud_selected", {});
@@ -137,10 +137,10 @@ const CodeHostSelection = ({ onSelect }: CodeHostSelectionProps) => {
             />
             <CodeHostIconButton
                 name="Bitbucket DC"
-                logo={getCodeHostIcon("bitbucket")!}
+                logo={getCodeHostIcon("bitbucket-server")!}
                 onClick={() => {
-                    onSelect("bitbucket-data-center");
-                    captureEvent("wa_onboard_bitbucket_data_center_selected", {});
+                    onSelect("bitbucket-server");
+                    captureEvent("wa_onboard_bitbucket_server_selected", {});
                 }}
             />
             <CodeHostIconButton

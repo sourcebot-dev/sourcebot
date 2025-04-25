@@ -43,7 +43,7 @@ export default function NewConnectionPage({
         return <BitbucketCloudConnectionCreationForm onCreated={onCreated} />;
     }
 
-    if (type === 'bitbucket-data-center') {
+    if (type === 'bitbucket-server') {
         return <BitbucketDataCenterConnectionCreationForm onCreated={onCreated} />;
     }
     

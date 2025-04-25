@@ -337,15 +337,20 @@ export const compileBitbucketConfig = async (
             throw new Error(`No clone links found for server repo ${repo.name}`);
         }
 
+        // In the cloud case we simply fetch the html link and use that as the clone url. For server we
+        // need to fetch the actual clone url
+        if (config.deploymentType === 'cloud') {
+            const htmlLink = repo.links.html as { href: string };
+            return htmlLink.href;
+        }
+
         const cloneLinks = repo.links.clone as {
             href: string;
             name: string;
         }[];
 
-        // Annoying difference between server and cloud (happens even if server is hosted with https)
-        const targetCloneType = config.deploymentType === 'cloud' ? 'https' : 'http';
         for (const link of cloneLinks) {
-            if (link.name === targetCloneType) {
+            if (link.name === 'http') {
                 return link.href;
             }
         }
@@ -374,7 +379,7 @@ export const compileBitbucketConfig = async (
 
     const repos = bitbucketRepos.map((repo) => {
         const isServer = config.deploymentType === 'server';
-        const codeHostType = isServer ? 'bitbucket-server' : 'bitbucket-cloud';
+        const codeHostType = isServer ? 'bitbucket-server' : 'bitbucket-cloud'; // zoekt expects bitbucket-server
         const displayName = isServer ? (repo as BitbucketServerRepository).name! : (repo as BitbucketCloudRepository).full_name!;
         const externalId = isServer ? (repo as BitbucketServerRepository).id!.toString() : (repo as BitbucketCloudRepository).uuid!;
         const isPublic = isServer ? (repo as BitbucketServerRepository).public : (repo as BitbucketCloudRepository).is_private === false;

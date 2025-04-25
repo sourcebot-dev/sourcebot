@@ -7,7 +7,7 @@ import { notAuthenticated, notFound, ServiceError, unexpectedError, orgInvalidSu
 import { prisma } from "@/prisma";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
-import { isServiceError } from "@/lib/utils";
+import { CodeHostType, isServiceError } from "@/lib/utils";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
@@ -444,10 +444,10 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
         }
         ), /* allowSingleTenantUnauthedAccess = */ true));
 
-export const createConnection = async (name: string, type: string, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
+export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
-            const parsedConfig = parseConnectionConfig(type, connectionConfig);
+            const parsedConfig = parseConnectionConfig(connectionConfig);
             if (isServiceError(parsedConfig)) {
                 return parsedConfig;
             }
@@ -533,7 +533,7 @@ export const updateConnectionConfigAndScheduleSync = async (connectionId: number
                 return notFound();
             }
 
-            const parsedConfig = parseConnectionConfig(connection.connectionType, config);
+            const parsedConfig = parseConnectionConfig(config);
             if (isServiceError(parsedConfig)) {
                 return parsedConfig;
             }
@@ -1476,7 +1476,7 @@ const _fetchSubscriptionForOrg = async (orgId: number, prisma: Prisma.Transactio
     return subscriptions.data[0];
 }
 
-const parseConnectionConfig = (connectionType: string, config: string) => {
+const parseConnectionConfig = (config: string) => {
     let parsedConfig: ConnectionConfig;
     try {
         parsedConfig = JSON.parse(config);
@@ -1488,6 +1488,7 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
         } satisfies ServiceError;
     }
 
+    const connectionType = parsedConfig.type;
     const schema = (() => {
         switch (connectionType) {
             case "github":
@@ -1529,7 +1530,7 @@ const parseConnectionConfig = (connectionType: string, config: string) => {
     }
 
     const { numRepos, hasToken } = (() => {
-        switch (parsedConfig.type) {
+        switch (connectionType) {
             case "gitea":
             case "github": 
             case "bitbucket": {

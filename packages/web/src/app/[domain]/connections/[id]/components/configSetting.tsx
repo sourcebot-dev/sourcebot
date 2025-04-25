@@ -13,7 +13,7 @@ import { createZodConnectionConfigValidator } from "../../utils";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GerritConnectionConfig } from "@sourcebot/schemas/v3/gerrit.type";
-import { githubQuickActions, gitlabQuickActions, giteaQuickActions, gerritQuickActions } from "../../quickActions";
+import { githubQuickActions, gitlabQuickActions, giteaQuickActions, gerritQuickActions, bitbucketCloudQuickActions, bitbucketDataCenterQuickActions } from "../../quickActions";
 import { Schema } from "ajv";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
@@ -27,11 +27,13 @@ import { useDomain } from "@/hooks/useDomain";
 import { SecretCombobox } from "@/app/[domain]/components/connectionCreationForms/secretCombobox";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import strings from "@/lib/strings";
+import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
+import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type";
 
 interface ConfigSettingProps {
     connectionId: number;
     config: string;
-    type: string;
+    type: CodeHostType;
     disabled?: boolean;
 }
 
@@ -53,6 +55,24 @@ export const ConfigSetting = (props: ConfigSettingProps) => {
             type="gitlab"
             quickActions={gitlabQuickActions}
             schema={gitlabSchema}
+        />;
+    }
+
+    if (type === 'bitbucket-cloud') {
+        return <ConfigSettingInternal<BitbucketConnectionConfig>
+            {...props}
+            type="bitbucket-cloud"
+            quickActions={bitbucketCloudQuickActions}
+            schema={bitbucketSchema}
+        />;
+    }
+
+    if (type === 'bitbucket-server') {
+        return <ConfigSettingInternal<BitbucketConnectionConfig>
+            {...props}
+            type="bitbucket-server"
+            quickActions={bitbucketDataCenterQuickActions}
+            schema={bitbucketSchema}
         />;
     }
 

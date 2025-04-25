@@ -34,7 +34,7 @@ export const BitbucketDataCenterConnectionCreationForm = ({ onCreated }: Bitbuck
 
     return (
         <SharedConnectionCreationForm<BitbucketConnectionConfig>
-            type="bitbucket"
+            type="bitbucket-server"
             title="Create a Bitbucket Data Center connection"
             defaultValues={{
                 config: JSON.stringify(defaultConfig, null, 2),

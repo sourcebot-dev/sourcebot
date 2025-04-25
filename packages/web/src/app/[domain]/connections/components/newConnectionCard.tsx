@@ -56,7 +56,7 @@ export const NewConnectionCard = ({ className, role }: NewConnectionCardProps) =
                     disabled={!isOwner}
                 />
                 <Card
-                    type="bitbucket-data-center"
+                    type="bitbucket-server"
                     title="Bitbucket Data Center"
                     subtitle="Fetch repos from a Bitbucket DC instance."
                     disabled={!isOwner}

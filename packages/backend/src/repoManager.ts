@@ -181,8 +181,8 @@ export class RepoManager implements IRepoManager {
             switch (repo.external_codeHostType) {
                 case 'gitlab':
                     return 'oauth2';
-                case 'bitbucket-server':
                 case 'bitbucket-cloud':
+                case 'bitbucket-server':
                 case 'github':
                 case 'gitea':
                 default:
