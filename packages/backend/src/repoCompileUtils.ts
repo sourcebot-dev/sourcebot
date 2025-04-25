@@ -378,6 +378,8 @@ export const compileBitbucketConfig = async (
         const displayName = isServer ? (repo as BitbucketServerRepository).name! : (repo as BitbucketCloudRepository).full_name!;
         const externalId = isServer ? (repo as BitbucketServerRepository).id!.toString() : (repo as BitbucketCloudRepository).uuid!;
         const isPublic = isServer ? (repo as BitbucketServerRepository).public : (repo as BitbucketCloudRepository).is_private === false;
+        const isArchived = isServer ? (repo as BitbucketServerRepository).archived === true : false;
+        const isFork = isServer ? (repo as BitbucketServerRepository).origin !== undefined : (repo as BitbucketCloudRepository).parent !== undefined;
         const repoName = path.join(repoNameRoot, displayName);
         const cloneUrl = getCloneUrl(repo);
         const webUrl = getWebUrl(repo);
@@ -390,8 +392,8 @@ export const compileBitbucketConfig = async (
             webUrl: webUrl,
             name: repoName,
             displayName: displayName,
-            isFork: false,
-            isArchived: false,
+            isFork: isFork,
+            isArchived: isArchived,
             org: {
                 connect: {
                     id: orgId,
@@ -407,8 +409,8 @@ export const compileBitbucketConfig = async (
                     'zoekt.web-url-type': codeHostType,
                     'zoekt.web-url': webUrl,
                     'zoekt.name': repoName,
-                    'zoekt.archived': marshalBool(false),
-                    'zoekt.fork': marshalBool(false),
+                    'zoekt.archived': marshalBool(isArchived),
+                    'zoekt.fork': marshalBool(isFork),
                     'zoekt.public': marshalBool(isPublic),
                     'zoekt.display-name': displayName,
                 },

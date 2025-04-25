@@ -190,7 +190,7 @@ export class RepoManager implements IRepoManager {
             }
         })();
 
-        let password: string = "";
+        let password: string | undefined = undefined;
         for (const repoConnection of repoConnections) {
             const connection = repoConnection.connection;
             if (connection.connectionType !== 'github' && connection.connectionType !== 'gitlab' && connection.connectionType !== 'gitea' && connection.connectionType !== 'bitbucket') {
@@ -201,7 +201,7 @@ export class RepoManager implements IRepoManager {
             if (config.token) {
                 password = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
                 if (password) {
-                    // If we're using a bitbucket connection, check to see if we're provided a username
+                    // If we're using a bitbucket connection we need to set the username to be able to clone the repo
                     if (connection.connectionType === 'bitbucket') {
                         const bitbucketConfig = config as BitbucketConnectionConfig;
                         username = bitbucketConfig.user ?? "x-token-auth";
@@ -211,7 +211,9 @@ export class RepoManager implements IRepoManager {
             }
         }
 
-        return { username, password };
+        return password
+            ? { username, password }
+            : undefined;
     }
 
     private async syncGitRepository(repo: RepoWithConnections, repoAlreadyInIndexingState: boolean) {

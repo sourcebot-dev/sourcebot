@@ -12,6 +12,7 @@ import {
 import { SchemaRestRepository as ServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { processPromiseResults } from "./connectionUtils.js";
 import { throwIfAnyFailed } from "./connectionUtils.js";
+import { PaginatedResponse } from "@gitbeaker/rest";
 
 const logger = createLogger("Bitbucket");
 const BITBUCKET_CLOUD_GIT = 'https://bitbucket.org';
@@ -27,7 +28,6 @@ interface BitbucketClient {
     apiClient: any;
     baseUrl: string;
     gitUrl: string;
-    getPaginated: <T, V extends CloudGetRequestPath | ServerGetRequestPath>(path: V, get: (url: V) => Promise<PaginatedResponse<T>>) => Promise<T[]>;
     getReposForWorkspace: (client: BitbucketClient, workspaces: string[]) => Promise<{validRepos: BitbucketRepository[], notFoundWorkspaces: string[]}>;
     getReposForProjects: (client: BitbucketClient, projects: string[]) => Promise<{validRepos: BitbucketRepository[], notFoundProjects: string[]}>;
     getRepos: (client: BitbucketClient, repos: string[]) => Promise<{validRepos: BitbucketRepository[], notFoundRepos: string[]}>;
@@ -40,13 +40,22 @@ type CloudGetRequestPath = ClientPathsWithMethod<CloudAPI, "get">;
 type ServerAPI = ReturnType<typeof createBitbucketServerClient>;
 type ServerGetRequestPath = ClientPathsWithMethod<ServerAPI, "get">;
 
-type PaginatedResponse<T> = {
+type CloudPaginatedResponse<T> = {
     readonly next?: string;
     readonly page?: number;
     readonly pagelen?: number;
     readonly previous?: string;
     readonly size?: number;
     readonly values?: readonly T[];
+}
+
+type ServerPaginatedResponse<T> = {
+    readonly size: number;
+    readonly limit: number;
+    readonly isLastPage: boolean;
+    readonly values: readonly T[];
+    readonly start: number;
+    readonly nextPageStart: number;
 }
 
 export const getBitbucketReposFromConfig = async (config: BitbucketConnectionConfig, orgId: number, db: PrismaClient) => {
@@ -82,7 +91,7 @@ export const getBitbucketReposFromConfig = async (config: BitbucketConnectionCon
     if (config.projects) {
         const { validRepos, notFoundProjects } = await client.getReposForProjects(client, config.projects);
         allRepos = allRepos.concat(validRepos);
-        notFound.repos = notFoundProjects;
+        notFound.orgs = notFoundProjects;
     }
 
     if (config.repos) {
@@ -103,12 +112,18 @@ export const getBitbucketReposFromConfig = async (config: BitbucketConnectionCon
 
 function cloudClient(user: string | undefined, token: string | undefined): BitbucketClient {
 
-    const authorizationString = !user || user == "x-token-auth" ? `Bearer ${token}` : `Basic ${Buffer.from(`${user}:${token}`).toString('base64')}`;
+    const authorizationString = 
+        token
+        ? !user || user == "x-token-auth"
+            ? `Bearer ${token}`
+            : `Basic ${Buffer.from(`${user}:${token}`).toString('base64')}`
+        : undefined;
+
     const clientOptions: ClientOptions = {
         baseUrl: BITBUCKET_CLOUD_API,
         headers: {
             Accept: "application/json",
-            Authorization: authorizationString,
+            ...(authorizationString ? { Authorization: authorizationString } : {}),
         },
     };
 
@@ -119,7 +134,6 @@ function cloudClient(user: string | undefined, token: string | undefined): Bitbu
         apiClient: apiClient,
         baseUrl: BITBUCKET_CLOUD_API,
         gitUrl: BITBUCKET_CLOUD_GIT,
-        getPaginated: getPaginatedCloud,
         getReposForWorkspace: cloudGetReposForWorkspace,
         getReposForProjects: cloudGetReposForProjects,
         getRepos: cloudGetRepos,
@@ -133,7 +147,10 @@ function cloudClient(user: string | undefined, token: string | undefined): Bitbu
 * We need to do `V extends CloudGetRequestPath` since we will need to call `apiClient.GET(url, ...)`, which
 * expects `url` to be of type `CloudGetRequestPath`. See example.
 **/
-const getPaginatedCloud = async <T, V extends CloudGetRequestPath | ServerGetRequestPath>(path: V, get: (url: V) => Promise<PaginatedResponse<T>>) => {
+const getPaginatedCloud = async <T>(
+    path: CloudGetRequestPath,
+    get: (url: CloudGetRequestPath) => Promise<CloudPaginatedResponse<T>>
+): Promise<T[]> => {
     const results: T[] = [];
     let url = path;
 
@@ -150,8 +167,7 @@ const getPaginatedCloud = async <T, V extends CloudGetRequestPath | ServerGetReq
             break;
         }
 
-        // cast required here since response.next is a string.
-        url = response.next as V;
+        url = response.next as CloudGetRequestPath;
     }
     return results;
 }
@@ -164,7 +180,7 @@ async function cloudGetReposForWorkspace(client: BitbucketClient, workspaces: st
 
             const path = `/repositories/${workspace}` as CloudGetRequestPath;
             const { durationMs, data } = await measure(async () => {
-                const fetchFn = () => client.getPaginated<CloudRepository, typeof path>(path, async (url) => {
+                const fetchFn = () => getPaginatedCloud<CloudRepository>(path, async (url) => {
                     const response = await client.apiClient.GET(url, {
                         params: {
                             path: {
@@ -223,9 +239,15 @@ async function cloudGetReposForProjects(client: BitbucketClient, projects: strin
 
         logger.debug(`Fetching all repos for project ${project} for workspace ${workspace}...`);
         try {
-            const path = `/repositories/${workspace}?q=project.key="${project_name}"` as CloudGetRequestPath;
-            const repos = await client.getPaginated<CloudRepository, typeof path>(path, async (url) => {
-                const response = await client.apiClient.GET(url);
+            const path = `/repositories/${workspace}` as CloudGetRequestPath;
+            const repos = await getPaginatedCloud<CloudRepository>(path, async (url) => {
+                const response = await client.apiClient.GET(url, {
+                    params: {
+                        query: {
+                            q: `project.key="${project_name}"`
+                        }
+                    }
+                });
                 const { data, error } = response;
                 if (error) {
                     throw new Error (`Failed to fetch projects for workspace ${workspace}: ${error.type}`);
@@ -317,6 +339,10 @@ function cloudShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConn
             return true;
         }
 
+        if (!!config.exclude?.archived) {
+            logger.warn(`Exclude archived repos flag provided in config but Bitbucket Cloud does not support archived repos. Ignoring...`);
+        }
+
         if (!!config.exclude?.forks && cloudRepo.parent !== undefined) {
             return true;
         }
@@ -358,7 +384,6 @@ function serverClient(url: string, user: string | undefined, token: string | und
         apiClient: apiClient,
         baseUrl: url,
         gitUrl: url,
-        getPaginated: getPaginatedServer,
         getReposForWorkspace: serverGetReposForWorkspace,
         getReposForProjects: serverGetReposForProjects,
         getRepos: serverGetRepos,
@@ -368,12 +393,15 @@ function serverClient(url: string, user: string | undefined, token: string | und
     return client;
 }
 
-const getPaginatedServer = async <T, V extends CloudGetRequestPath | ServerGetRequestPath>(path: V, get: (url: V) => Promise<PaginatedResponse<T>>) => {
+const getPaginatedServer = async <T>(
+    path: ServerGetRequestPath,
+    get: (url: ServerGetRequestPath, start?: number) => Promise<ServerPaginatedResponse<T>>
+): Promise<T[]> => {
     const results: T[] = [];
-    let url = path;
+    let nextStart: number | undefined;
 
     while (true) {
-        const response = await get(url);
+        const response = await get(path, nextStart);
 
         if (!response.values || response.values.length === 0) { 
             break;
@@ -381,12 +409,11 @@ const getPaginatedServer = async <T, V extends CloudGetRequestPath | ServerGetRe
 
         results.push(...response.values);
 
-        if (!response.next) {
+        if (response.isLastPage) {
             break;
         }
 
-        // cast required here since response.next is a string.
-        url = response.next as V;
+        nextStart = response.nextPageStart;
     }
     return results;
 }
@@ -406,8 +433,14 @@ async function serverGetReposForProjects(client: BitbucketClient, projects: stri
 
             const path = `/rest/api/1.0/projects/${project}/repos` as ServerGetRequestPath;
             const { durationMs, data } = await measure(async () => {
-                const fetchFn = () => client.getPaginated<ServerRepository, typeof path>(path, async (url) => {
-                    const response = await client.apiClient.GET(url);
+                const fetchFn = () => getPaginatedServer<ServerRepository>(path, async (url, start) => {
+                    const response = await client.apiClient.GET(url, {
+                        params: {
+                            query: {
+                                start,
+                            }
+                        }
+                    });
                     const { data, error } = response;
                     if (error) {
                         throw new Error(`Failed to fetch repos for project ${project}: ${JSON.stringify(error)}`);
@@ -504,8 +537,10 @@ function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketCon
             return true;
         }
 
-        // Note: Bitbucket Server doesn't have a direct way to check if a repo is a fork
-        // We'll need to check the origin property if it exists
+        if (!!config.exclude?.archived && serverRepo.archived) {
+            return true;
+        }
+
         if (!!config.exclude?.forks && serverRepo.origin !== undefined) {
             return true;
         }
