@@ -13,7 +13,8 @@
         "dev:web": "yarn with-env yarn workspace @sourcebot/web dev",
         "dev:prisma:migrate:dev": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:dev",
         "dev:prisma:studio": "yarn with-env yarn workspace @sourcebot/db prisma:studio",
-        "dev:prisma:migrate:reset": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:reset"
+        "dev:prisma:migrate:reset": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:reset",
+        "build:deps": "yarn workspaces foreach -R --from '{@sourcebot/schemas,@sourcebot/error,@sourcebot/crypto,@sourcebot/db}' run build"
     },
     "devDependencies": {
         "cross-env": "^7.0.3",

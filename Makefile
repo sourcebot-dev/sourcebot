@@ -5,6 +5,7 @@ ALL: $(CMDS)
 
 yarn:
 	yarn install
+	yarn build:deps
 
 zoekt:
 	mkdir -p bin
