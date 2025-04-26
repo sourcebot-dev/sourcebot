@@ -8,6 +8,8 @@ import { Filter } from "./filter";
 import Image from "next/image";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import { FileIcon } from "@/components/ui/fileIcon";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface FilePanelProps {
     matches: SearchResultFile[];
@@ -15,16 +17,26 @@ interface FilePanelProps {
     repoMetadata: Record<string, Repository>;
 }
 
+const LANGUAGES_QUERY_PARAM = "langs";
+const REPOS_QUERY_PARAM = "repos";
+
 export const FilterPanel = ({
     matches,
     onFilterChanged,
     repoMetadata,
 }: FilePanelProps) => {
-    const [repos, setRepos] = useState<Record<string, Entry>>({});
-    const [languages, setLanguages] = useState<Record<string, Entry>>({});
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
-    useEffect(() => {
-        const _repos = aggregateMatches(
+    // Helper to parse query params into sets
+    const getSelectedFromQuery = (param: string) => {
+        const value = searchParams.get(param);
+        return value ? new Set(value.split(',')) : new Set();
+    };
+
+    const [repos, setRepos] = useState<Record<string, Entry>>(() => {
+        const selectedRepos = getSelectedFromQuery(REPOS_QUERY_PARAM);
+        return aggregateMatches(
             "Repository",
             matches,
             (key) => {
@@ -44,17 +56,16 @@ export const FilterPanel = ({
                     key,
                     displayName: info?.displayName ?? key,
                     count: 0,
-                    isSelected: false,
+                    isSelected: selectedRepos.has(key),
                     Icon,
                 };
             }
         );
+    });
 
-        setRepos(_repos);
-    }, [matches, repoMetadata, setRepos]);
-
-    useEffect(() => {
-        const _languages = aggregateMatches(
+    const [languages, setLanguages] = useState<Record<string, Entry>>(() => {
+        const selectedLanguages = getSelectedFromQuery(LANGUAGES_QUERY_PARAM);
+        return aggregateMatches(
             "Language",
             matches,
             (key) => {
@@ -66,14 +77,12 @@ export const FilterPanel = ({
                     key,
                     displayName: key,
                     count: 0,
-                    isSelected: false,
+                    isSelected: selectedLanguages.has(key),
                     Icon: Icon,
                 } satisfies Entry;
             }
-        )
-
-        setLanguages(_languages);
-    }, [matches, setLanguages]);
+        );
+    });
 
     const onEntryClicked = useCallback((
         key: string,
@@ -88,18 +97,11 @@ export const FilterPanel = ({
         }));
     }, []);
 
+    // Calls `onFilterChanged` with the filtered list of matches
+    // whenever the filter state changes.
     useEffect(() => {
-        const selectedRepos = new Set(
-            Object.entries(repos)
-                .filter(([_, { isSelected }]) => isSelected)
-                .map(([key]) => key)
-        );
-
-        const selectedLanguages = new Set(
-            Object.entries(languages)
-                .filter(([_, { isSelected }]) => isSelected)
-                .map(([key]) => key)
-        );
+        const selectedRepos = new Set(Object.keys(repos).filter((key) => repos[key].isSelected));
+        const selectedLanguages = new Set(Object.keys(languages).filter((key) => languages[key].isSelected));
 
         const filteredMatches = matches.filter((match) =>
         (
@@ -107,9 +109,34 @@ export const FilterPanel = ({
             (selectedLanguages.size === 0 ? true : selectedLanguages.has(match.Language))
         )
         );
-
         onFilterChanged(filteredMatches);
-    }, [matches, repos, languages, onFilterChanged]);
+
+    }, [matches, repos, languages, onFilterChanged, searchParams, router]);
+
+    // Updates the query params when the filter state changes
+    useEffect(() => {
+        const selectedRepos = Object.keys(repos).filter((key) => repos[key].isSelected);
+        const selectedLanguages = Object.keys(languages).filter((key) => languages[key].isSelected);
+
+        const newParams = new URLSearchParams(searchParams.toString());
+
+        if (selectedRepos.length > 0) {
+            newParams.set(REPOS_QUERY_PARAM, selectedRepos.join(','));
+        } else {
+            newParams.delete(REPOS_QUERY_PARAM);
+        }
+
+        if (selectedLanguages.length > 0) {
+            newParams.set(LANGUAGES_QUERY_PARAM, selectedLanguages.join(','));
+        } else {
+            newParams.delete(LANGUAGES_QUERY_PARAM);
+        }
+
+        // Only push if params actually changed
+        if (newParams.toString() !== searchParams.toString()) {
+            router.replace(`?${newParams.toString()}`, { scroll: false });
+        }
+    }, [repos, languages, searchParams, router]);
 
     const numRepos = Object.keys(repos).length > 100 ? '100+' : Object.keys(repos).length;
     const numLanguages = Object.keys(languages).length > 100 ? '100+' : Object.keys(languages).length;

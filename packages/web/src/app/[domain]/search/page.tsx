@@ -47,7 +47,7 @@ const SearchPageInternal = () => {
     const domain = useDomain();
     const { toast } = useToast();
 
-    const { data: searchResponse, isLoading, error } = useQuery({
+    const { data: searchResponse, isLoading: isSearchLoading, error } = useQuery({
         queryKey: ["search", searchQuery, maxMatchDisplayCount],
         queryFn: () => measure(() => unwrapServiceError(search({
             query: searchQuery,
@@ -91,7 +91,7 @@ const SearchPageInternal = () => {
     // repository metadata (like host type, repo name, etc.)
     // Convert this into a map of repo name to repo metadata
     // for easy lookup.
-    const { data: repoMetadata } = useQuery({
+    const { data: repoMetadata, isLoading: isRepoMetadataLoading } = useQuery({
         queryKey: ["repos"],
         queryFn: () => getRepos(domain),
         select: (data): Record<string, Repository> =>
@@ -194,7 +194,7 @@ const SearchPageInternal = () => {
                 <Separator />
             </div>
 
-            {isLoading ? (
+            {(isSearchLoading || isRepoMetadataLoading) ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                     <SymbolIcon className="h-6 w-6 animate-spin" />
                     <p className="font-semibold text-center">Searching...</p>

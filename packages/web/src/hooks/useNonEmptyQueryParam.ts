@@ -17,11 +17,11 @@ import { useMemo } from "react";
  */
 export const useNonEmptyQueryParam = (param: string) => {
     const searchParams = useSearchParams();
-    const inviteId = useMemo(() => {
+    const paramValue = useMemo(() => {
         return getSearchParam(param, searchParams);
     }, [param, searchParams]);
 
-    return inviteId;
+    return paramValue;
 };
 
 /**
