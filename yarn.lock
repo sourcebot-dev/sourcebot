@@ -5226,6 +5226,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@sourcebot/mcp-server@workspace:packages/mcp-server":
+  version: 0.0.0-use.local
+  resolution: "@sourcebot/mcp-server@workspace:packages/mcp-server"
+  dependencies:
+    "@types/node": "npm:^20.0.0"
+    tsx: "npm:^4.0.0"
+    typescript: "npm:^5.0.0"
+  languageName: unknown
+  linkType: soft
+
 "@sourcebot/schemas@workspace:*, @sourcebot/schemas@workspace:packages/schemas":
   version: 0.0.0-use.local
   resolution: "@sourcebot/schemas@workspace:packages/schemas"
@@ -5707,6 +5717,15 @@ __metadata:
   dependencies:
     undici-types: "npm:~6.19.2"
   checksum: 10c0/9c9267ab1c4c4964a6d59076fa495321bbe69f36c4f4e95664c08f2712f401aa082fd41abfdd20d81df62377ce22f71f6de430af3f475f8a4de807b716480e08
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^20.0.0":
+  version: 20.17.32
+  resolution: "@types/node@npm:20.17.32"
+  dependencies:
+    undici-types: "npm:~6.19.2"
+  checksum: 10c0/2461df36f67704f68db64d33abc5ad00b4b35ac94e996adff88c7322f9572e3e60ddaeed7e9f34ae203120d2ba36cc931fd3a8ddddf0c63943e8600c365c6396
   languageName: node
   linkType: hard
 
@@ -14367,7 +14386,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsx@npm:^4.19.1, tsx@npm:^4.19.2":
+"tsx@npm:^4.0.0, tsx@npm:^4.19.1, tsx@npm:^4.19.2":
   version: 4.19.3
   resolution: "tsx@npm:4.19.3"
   dependencies:
@@ -14479,6 +14498,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typescript@npm:^5.0.0":
+  version: 5.8.3
+  resolution: "typescript@npm:5.8.3"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10c0/5f8bb01196e542e64d44db3d16ee0e4063ce4f3e3966df6005f2588e86d91c03e1fb131c2581baf0fb65ee79669eea6e161cd448178986587e9f6844446dbb48
+  languageName: node
+  linkType: hard
+
 "typescript@patch:typescript@npm%3A^5#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.6.2#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.7.3#optional!builtin<compat/typescript>":
   version: 5.8.2
   resolution: "typescript@patch:typescript@npm%3A5.8.2#optional!builtin<compat/typescript>::version=5.8.2&hash=5786d5"
@@ -14486,6 +14515,16 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10c0/5448a08e595cc558ab321e49d4cac64fb43d1fa106584f6ff9a8d8e592111b373a995a1d5c7f3046211c8a37201eb6d0f1566f15cdb7a62a5e3be01d087848e2
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@npm%3A^5.0.0#optional!builtin<compat/typescript>":
+  version: 5.8.3
+  resolution: "typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>::version=5.8.3&hash=5786d5"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10c0/39117e346ff8ebd87ae1510b3a77d5d92dae5a89bde588c747d25da5c146603a99c8ee588c7ef80faaf123d89ed46f6dbd918d534d641083177d5fac38b8a1cb
   languageName: node
   linkType: hard
 
