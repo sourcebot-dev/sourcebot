@@ -6,11 +6,18 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
-    "test": "echo 'No tests yet'"
+    "dev:watch": "tsc-watch --preserveWatchOutput --onSuccess \"yarn dev\""
   },
   "devDependencies": {
+    "@types/express": "^5.0.1",
     "@types/node": "^20.0.0",
+    "tsc-watch": "6.2.1",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "express": "^5.1.0",
+    "zod": "^3.24.3"
   }
 }
