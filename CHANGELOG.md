@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Changed the filter panel to embed the filter selection state in the query params. [#276](https://github.com/sourcebot-dev/sourcebot/pull/276)
+
 ## [3.1.0] - 2025-04-25
 
 ### Added
