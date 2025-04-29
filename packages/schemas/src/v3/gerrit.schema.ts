@@ -45,6 +45,16 @@ const schema = {
             ]
           ],
           "description": "List of specific projects to exclude from syncing."
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exclude read-only projects from syncing."
+        },
+        "hidden": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exclude hidden projects from syncing."
         }
       },
       "additionalProperties": false

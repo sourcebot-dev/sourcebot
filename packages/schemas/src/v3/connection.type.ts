@@ -234,6 +234,14 @@ export interface GerritConnectionConfig {
      * List of specific projects to exclude from syncing.
      */
     projects?: string[];
+    /**
+     * Exclude read-only projects from syncing.
+     */
+    readOnly?: boolean;
+    /**
+     * Exclude hidden projects from syncing.
+     */
+    hidden?: boolean;
   };
 }
 export interface BitbucketConnectionConfig {
