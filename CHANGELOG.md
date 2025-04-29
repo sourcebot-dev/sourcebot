@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added special `*` value for `rev:` to allow searching across all branches. [#281](https://github.com/sourcebot-dev/sourcebot/pull/281)
+
 ## [3.1.2] - 2025-04-30
 
 ### Added
