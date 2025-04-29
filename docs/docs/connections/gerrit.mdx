@@ -51,7 +51,13 @@ To connect to a gerrit instance, provide the `url` property to your config:
                 "projects": [
                     "project1/foo-project",
                     "project2/sub-project/some-sub-folder/**"
-                ]
+                ],
+
+                // projects that have state READ_ONLY
+                "readOnly": true,
+
+                // projects that have state HIDDEN
+                "hidden": true
             }
         }
         ```
@@ -110,6 +116,16 @@ To connect to a gerrit instance, provide the `url` property to your config:
             ]
           ],
           "description": "List of specific projects to exclude from syncing."
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exclude read-only projects from syncing."
+        },
+        "hidden": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exclude hidden projects from syncing."
         }
       },
       "additionalProperties": false

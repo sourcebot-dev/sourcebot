@@ -1,5 +1,5 @@
 import fetch from 'cross-fetch';
-import { GerritConfig } from "@sourcebot/schemas/v2/index.type"
+import { GerritConnectionConfig } from "@sourcebot/schemas/v3/index.type"
 import { createLogger } from './logger.js';
 import micromatch from "micromatch";
 import { measure, fetchWithRetry } from './utils.js';
@@ -12,16 +12,19 @@ interface GerritProjects {
    [projectName: string]: GerritProjectInfo;
 }
 
+// https://gerrit-review.googlesource.com/Documentation/rest-api-projects.html#:~:text=date%20upon%20submit.-,state,-optional
+type GerritProjectState = 'ACTIVE' | 'READ_ONLY' | 'HIDDEN';
+
 interface GerritProjectInfo {
    id: string;
-   state?: string;
+   state?: GerritProjectState;
    web_links?: GerritWebLink[];
 }
 
 interface GerritProject {
    name: string;
    id: string;
-   state?: string;
+   state?: GerritProjectState;
    web_links?: GerritWebLink[];
 }
 
@@ -32,7 +35,7 @@ interface GerritWebLink {
 
 const logger = createLogger('Gerrit');
 
-export const getGerritReposFromConfig = async (config: GerritConfig): Promise<GerritProject[]> => {
+export const getGerritReposFromConfig = async (config: GerritConnectionConfig): Promise<GerritProject[]> => {
    const url = config.url.endsWith('/') ? config.url : `${config.url}/`;
    const hostname = new URL(config.url).hostname;
 
@@ -57,24 +60,24 @@ export const getGerritReposFromConfig = async (config: GerritConfig): Promise<Ge
       throw e;
    }
 
-   // exclude "All-Projects" and "All-Users" projects
-   const excludedProjects = ['All-Projects', 'All-Users', 'All-Avatars', 'All-Archived-Projects'];
-   projects = projects.filter(project => !excludedProjects.includes(project.name));
-   
    // include repos by glob if specified in config
    if (config.projects) {
       projects = projects.filter((project) => {
          return micromatch.isMatch(project.name, config.projects!);
       });
    }
-   
-   if (config.exclude && config.exclude.projects) {
-      projects = projects.filter((project) => {
-         return !micromatch.isMatch(project.name, config.exclude!.projects!);
-      });
-   }
 
-   logger.debug(`Fetched ${Object.keys(projects).length} projects in ${durationMs}ms.`);
+   projects = projects
+      .filter((project) => {
+         const isExcluded = shouldExcludeProject({
+            project,
+            exclude: config.exclude,
+         });
+
+         return !isExcluded;
+      });
+
+   logger.debug(`Fetched ${projects.length} projects in ${durationMs}ms.`);
    return projects;
 };
 
@@ -137,3 +140,51 @@ const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
 
    return allProjects;
 };
+
+const shouldExcludeProject = ({
+   project,
+   exclude,
+}: {
+   project: GerritProject,
+   exclude?: GerritConnectionConfig['exclude'],
+}) => {
+   let reason = '';
+
+   const shouldExclude = (() => {
+      if ([
+            'All-Projects',
+            'All-Users',
+            'All-Avatars',
+            'All-Archived-Projects'
+         ].includes(project.name)) {
+         reason = `Project is a special project.`;
+         return true;
+      }
+
+      if (!!exclude?.readOnly && project.state === 'READ_ONLY') {
+         reason = `\`exclude.readOnly\` is true`;
+         return true;
+      }
+
+      if (!!exclude?.hidden && project.state === 'HIDDEN') {
+         reason = `\`exclude.hidden\` is true`;
+         return true;
+      }
+
+      if (exclude?.projects) {
+         if (micromatch.isMatch(project.name, exclude.projects)) {
+            reason = `\`exclude.projects\` contains ${project.name}`;
+            return true;
+         }
+      }
+
+      return false;
+   })();
+
+   if (shouldExclude) {
+      logger.debug(`Excluding project ${project.name}. Reason: ${reason}`);
+      return true;
+   }
+
+   return false;
+}
