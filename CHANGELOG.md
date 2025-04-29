@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `exclude.readOnly` and `exclude.hidden` options to Gerrit connection config. [#280](https://github.com/sourcebot-dev/sourcebot/pull/280)
+
 ## [3.1.1] - 2025-04-28
 
 ### Changed
