@@ -3,6 +3,8 @@ title: Linking code from Gerrit
 sidebarTitle: Gerrit
 ---
 
+import GerritSchema from '/snippets/schemas/v3/gerrit.schema.mdx'
+
 <Note>Authenticating with Gerrit is currently not supported. If you need this capability, please raise a [feature request](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas).</Note>
 
 Sourcebot can sync code from self-hosted gerrit instances.
@@ -66,76 +68,11 @@ To connect to a gerrit instance, provide the `url` property to your config:
 
 ## Schema reference
 
+{/* asdf */}
+
 <Accordion title="Reference">
 [schemas/v3/gerrit.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/gerrit.json)
 
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "title": "GerritConnectionConfig",
-  "properties": {
-    "type": {
-      "const": "gerrit",
-      "description": "Gerrit Configuration"
-    },
-    "url": {
-      "type": "string",
-      "format": "url",
-      "description": "The URL of the Gerrit host.",
-      "examples": [
-        "https://gerrit.example.com"
-      ],
-      "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
-    },
-    "projects": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "List of specific projects to sync. If not specified, all projects will be synced. Glob patterns are supported",
-      "examples": [
-        [
-          "project1/repo1",
-          "project2/**"
-        ]
-      ]
-    },
-    "exclude": {
-      "type": "object",
-      "properties": {
-        "projects": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "examples": [
-            [
-              "project1/repo1",
-              "project2/**"
-            ]
-          ],
-          "description": "List of specific projects to exclude from syncing."
-        },
-        "readOnly": {
-          "type": "boolean",
-          "default": false,
-          "description": "Exclude read-only projects from syncing."
-        },
-        "hidden": {
-          "type": "boolean",
-          "default": false,
-          "description": "Exclude hidden projects from syncing."
-        }
-      },
-      "additionalProperties": false
-    }
-  },
-  "required": [
-    "type",
-    "url"
-  ],
-  "additionalProperties": false
-}
-```
+<GerritSchema />
+
 </Accordion>
