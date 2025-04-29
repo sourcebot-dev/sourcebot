@@ -7,6 +7,15 @@ import { z } from 'zod';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types';
 import { randomUUID } from 'node:crypto';
 
+// todo: refactor this to the schemas package
+const searchRequestSchema = z.object({
+    query: z.string(),
+    maxMatchDisplayCount: z.number(),
+    whole: z.boolean().optional(),
+});
+
+type SearchRequest = z.infer<typeof searchRequestSchema>;
+
 // Create MCP server
 const server = new McpServer({
     name: 'sourcebot-mcp-server',
@@ -16,10 +25,10 @@ const server = new McpServer({
 
 // Add search_code tool
 server.tool(
-    "search_code_sb",
+    "search_code",
     "Search for code across the Sourcebot instance.",
     {
-        q: z
+        query: z
             .string()
             .describe(`
                 The Sourcebot search query.
@@ -83,10 +92,26 @@ server.tool(
                 '''
             `),
     },
-    async ({ q }) => {
-        console.log(`executing query: ${q}`);
+    async ({ query }) => {
+        console.log(`executing query: ${query}`);
+
+        const searchRequest: SearchRequest = {
+            query,
+            maxMatchDisplayCount: 100,
+        }
+
+        const response = await fetch('http://localhost:3000/api/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(searchRequest)
+        });
+
+        const searchResults = await response.json();
+
         return {
-            content: [{ type: "text", text: String(`executing query: ${q}`) }]
+            content: [{ type: "text", text: String(JSON.stringify(searchResults, null, 2)) }]
         }
     }
 );
