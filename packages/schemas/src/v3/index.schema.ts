@@ -6,7 +6,7 @@ const schema = {
   "definitions": {
     "Settings": {
       "type": "object",
-      "description": "Defines the globabl settings for Sourcebot.",
+      "description": "Defines the global settings for Sourcebot.",
       "properties": {
         "maxFileSize": {
           "type": "number",
