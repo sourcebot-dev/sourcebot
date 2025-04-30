@@ -41,7 +41,14 @@ const transformZoektQuery = async (query: string, orgId: number): Promise<string
         // Handle mapping `rev:` and `revision:` to `branch:`
         if (part.match(/^-?(rev|revision):.+$/)) {
             const isNegated = part.startsWith("-");
-            const revisionName = part.slice(part.indexOf(":") + 1);
+            let revisionName = part.slice(part.indexOf(":") + 1);
+
+            // Special case: `*` -> search all revisions.
+            // In zoekt, providing a blank string will match all branches.
+            // @see: https://github.com/sourcebot-dev/zoekt/blob/main/eval.go#L560-L562
+            if (revisionName === "*") {
+                revisionName = "";
+            }
             newQueryParts.push(`${isNegated ? "-" : ""}${zoektPrefixes.branch}${revisionName}`);
         }
 
