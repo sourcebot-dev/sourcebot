@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added `exclude.readOnly` and `exclude.hidden` options to Gerrit connection config. [#280](https://github.com/sourcebot-dev/sourcebot/pull/280)
 
+### Fixes
+- Fixes regression introduced in v3.1.0 that causes auth errors with GitHub. [#288](https://github.com/sourcebot-dev/sourcebot/pull/288)
+
 ## [3.1.1] - 2025-04-28
 
 ### Changed
