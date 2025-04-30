@@ -170,50 +170,54 @@ export class RepoManager implements IRepoManager {
     // fetch the token here using the connections from the repo. Multiple connections could be referencing this repo, and each
     // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
     // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referrencing.
-    private async getAuthForRepo(repo: RepoWithConnections, db: PrismaClient): Promise<{ username: string, password: string } | undefined> {
-        const repoConnections = repo.connections;
-        if (repoConnections.length === 0) {
-            this.logger.error(`Repo ${repo.id} has no connections`);
-            return undefined;
-        }
+    private async getCloneCredentialsForRepo(repo: RepoWithConnections, db: PrismaClient): Promise<{ username?: string, password: string } | undefined> {
 
-        let username = (() => {
-            switch (repo.external_codeHostType) {
-                case 'gitlab':
-                    return 'oauth2';
-                case 'bitbucket-cloud':
-                case 'bitbucket-server':
-                case 'github':
-                case 'gitea':
-                default:
-                    return '';
-            }
-        })();
-
-        let password: string | undefined = undefined;
-        for (const repoConnection of repoConnections) {
-            const connection = repoConnection.connection;
-            if (connection.connectionType !== 'github' && connection.connectionType !== 'gitlab' && connection.connectionType !== 'gitea' && connection.connectionType !== 'bitbucket') {
-                continue;
-            }
-
-            const config = connection.config as unknown as GithubConnectionConfig | GitlabConnectionConfig | GiteaConnectionConfig | BitbucketConnectionConfig;
-            if (config.token) {
-                password = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
-                if (password) {
-                    // If we're using a bitbucket connection we need to set the username to be able to clone the repo
-                    if (connection.connectionType === 'bitbucket') {
-                        const bitbucketConfig = config as BitbucketConnectionConfig;
-                        username = bitbucketConfig.user ?? "x-token-auth";
+        for (const { connection } of repo.connections) {
+            if (connection.connectionType === 'github') {
+                const config = connection.config as unknown as GithubConnectionConfig;
+                if (config.token) {
+                    const token = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
+                    return {
+                        password: token,
                     }
-                    break;
+                }
+            }
+
+            else if (connection.connectionType === 'gitlab') {
+                const config = connection.config as unknown as GitlabConnectionConfig;
+                if (config.token) {
+                    const token = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
+                    return {
+                        username: 'oauth2',
+                        password: token,
+                    }
+                }
+            }
+
+            else if (connection.connectionType === 'gitea') {
+                const config = connection.config as unknown as GiteaConnectionConfig;
+                if (config.token) {
+                    const token = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
+                    return {
+                        password: token,
+                    }
+                }
+            }
+
+            else if (connection.connectionType === 'bitbucket') {
+                const config = connection.config as unknown as BitbucketConnectionConfig;
+                if (config.token) {
+                    const token = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
+                    const username = config.user ?? 'x-token-auth';
+                    return {
+                        username,
+                        password: token,
+                    }
                 }
             }
         }
 
-        return password
-            ? { username, password }
-            : undefined;
+        return undefined;
     }
 
     private async syncGitRepository(repo: RepoWithConnections, repoAlreadyInIndexingState: boolean) {
@@ -244,12 +248,23 @@ export class RepoManager implements IRepoManager {
         } else {
             this.logger.info(`Cloning ${repo.displayName}...`);
 
-            const auth = await this.getAuthForRepo(repo, this.db);
+            const auth = await this.getCloneCredentialsForRepo(repo, this.db);
             const cloneUrl = new URL(repo.cloneUrl);
             if (auth) {
-                cloneUrl.username = auth.username;
-                cloneUrl.password = auth.password;
+                // @note: URL has a weird behavior where if you set the password but
+                // _not_ the username, the ":" delimiter will still be present in the
+                // URL (e.g., https://:password@example.com). To get around this, if
+                // we only have a password, we set the username to the password.
+                // @see: https://www.typescriptlang.org/play/?#code/MYewdgzgLgBArgJwDYwLwzAUwO4wKoBKAMgBQBEAFlFAA4QBcA9I5gB4CGAtjUpgHShOZADQBKANwAoREj412ECNhAIAJmhhl5i5WrJTQkELz5IQAcxIy+UEAGUoCAJZhLo0UA
+                if (!auth.username) {
+                    cloneUrl.username = auth.password;
+                } else {
+                    cloneUrl.username = auth.username;
+                    cloneUrl.password = auth.password;
+                }
             }
+
+            console.log(cloneUrl.toString());
 
             const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, ({ method, stage, progress }) => {
                 this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
