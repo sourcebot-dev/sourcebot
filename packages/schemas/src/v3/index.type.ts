@@ -28,7 +28,7 @@ export interface SourcebotConfig {
   };
 }
 /**
- * Defines the globabl settings for Sourcebot.
+ * Defines the global settings for Sourcebot.
  *
  * This interface was referenced by `SourcebotConfig`'s JSON-Schema
  * via the `definition` "Settings".

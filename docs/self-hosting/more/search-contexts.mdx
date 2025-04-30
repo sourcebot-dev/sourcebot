@@ -3,6 +3,8 @@ title: Search contexts
 sidebarTitle: Search contexts (EE)
 ---
 
+import SearchContextSchema from '/snippets/schemas/v3/searchContext.schema.mdx'
+
 <Note>
 This is only available in the Enterprise Edition. Please add your [license key](/self-hosting/license-key) to activate it.
 </Note>
@@ -108,46 +110,9 @@ See [this doc](/docs/more/syntax-reference) for more details on the search query
 ## Schema reference
 
 <Accordion title="Reference">
-```json
-{
-    "type": "object",
-    "description": "Search context",
-    "properties": {
-    "include": {
-        "type": "array",
-        "description": "List of repositories to include in the search context. Expected to be formatted as a URL without any leading http(s):// prefix (e.g., 'github.com/sourcebot-dev/sourcebot'). Glob patterns are supported.",
-        "items": {
-            "type": "string"
-        },
-        "examples": [
-            [
-                "github.com/sourcebot-dev/**",
-                "gerrit.example.org/sub/path/**"
-            ]
-        ]
-        },
-        "exclude": {
-            "type": "array",
-            "description": "List of repositories to exclude from the search context. Expected to be formatted as a URL without any leading http(s):// prefix (e.g., 'github.com/sourcebot-dev/sourcebot'). Glob patterns are supported.",
-            "items": {
-                "type": "string"
-            },
-            "examples": [
-                [
-                    "github.com/sourcebot-dev/sourcebot",
-                    "gerrit.example.org/sub/path/**"
-                ]
-            ]
-        },
-        "description": {
-            "type": "string",
-            "description": "Optional description of the search context that surfaces in the UI."
-        }
-    },
-    "required": [
-        "include"
-    ],
-    "additionalProperties": false
-}
-```
+
+[schemas/v3/searchContext.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/searchContext.json)
+
+<SearchContextSchema />
+
 </Accordion>
