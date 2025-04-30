@@ -59,7 +59,25 @@ For each repo defined in the connection, any branches or tags matching the patte
 
 ## Search syntax
 
-todo
+To search branches other than the default, the `rev:` prefix can be used followed by the branch (or tag) name:
+
+| Example | Explanation |
+| :--- | :--- |
+| `rev:feature/foo repo:A useEffect` | Search for `/useEffect/` on branch `feature/foo` in repo `A` |
+| `rev:feature/foo useEffect ` | Search for `/useEffect/` on branch `feature/foo` across all repos |
+| `rev:feature/ useEffect` | Search for `/useEffect/` on branches that contain `feature/` across all repos |
+| `rev:feature/a rev:feature/b foo` | Search for `/foo/` on branches `feature/a` and `feature/b` |
+| `rev:feature/ -rev:feature/a foo` | Search for `/foo/` on branches that contain `feature/` _except_ for `feature/a` across all repos |
+
+To search across **all** branches, `rev:*`:
+| Example | Explanation |
+| :--- | :--- |
+| `rev:* repo:A "error message"` | Search for `/error message/` across **all** branches in repo `A` |
+| `rev:* "error message"` | Search for `/error message/` across **all** branches and **all** repos |
+
+Additional info:
+- `refs/heads/` or `refs/tags/` can be included to fully qualify a branch or a tag, respectively. E.g., `rev:refs/heads/foo` will search the branch `foo`, while `rev:refs/tags/foo` will search the tag `foo`.
+- `rev:` does **not** support regular expressions or glob patterns. It uses a simple `contains` call between the branch name and the pattern. See [here](https://github.com/sourcebot-dev/zoekt/blob/7d1896215eea6f97af66c9549c9ec70436356b51/matchtree.go#L1067).
 
 
 ## Platform support
