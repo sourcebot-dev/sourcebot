@@ -264,8 +264,6 @@ export class RepoManager implements IRepoManager {
                 }
             }
 
-            console.log(cloneUrl.toString());
-
             const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, ({ method, stage, progress }) => {
                 this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
             }));
