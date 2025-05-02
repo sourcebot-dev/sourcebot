@@ -5244,11 +5244,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sourcebot/mcp-server@workspace:packages/mcp-server":
+"@sourcebot/mcp@workspace:packages/mcp":
   version: 0.0.0-use.local
-  resolution: "@sourcebot/mcp-server@workspace:packages/mcp-server"
+  resolution: "@sourcebot/mcp@workspace:packages/mcp"
   dependencies:
     "@modelcontextprotocol/sdk": "npm:^1.10.2"
+    "@t3-oss/env-core": "npm:^0.13.4"
     "@types/express": "npm:^5.0.1"
     "@types/node": "npm:^20.0.0"
     express: "npm:^5.1.0"
@@ -5488,6 +5489,25 @@ __metadata:
     zod:
       optional: true
   checksum: 10c0/b79d2c291b8996b008ef77fa9b3afb8fd7c4c59e271b65039a52a504a9cdb7492ec88b414e6b5691dc4c2c93077abfac85a5cea00dcfdd083ad94912efc5464b
+  languageName: node
+  linkType: hard
+
+"@t3-oss/env-core@npm:^0.13.4":
+  version: 0.13.4
+  resolution: "@t3-oss/env-core@npm:0.13.4"
+  peerDependencies:
+    arktype: ^2.1.0
+    typescript: ">=5.0.0"
+    valibot: ^1.0.0-beta.7 || ^1.0.0
+    zod: ^3.24.0 || ^4.0.0-beta.0
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+    valibot:
+      optional: true
+    zod:
+      optional: true
+  checksum: 10c0/3598c1582b4cd0aead095a492d60cb7656ffa308c0362744fe32f04ec6563601c04d898c0da7b5efb4dc7ace1d3b18a77f268a15a9e940a6997d9dd84f86a749
   languageName: node
   linkType: hard
 

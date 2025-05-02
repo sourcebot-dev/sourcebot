@@ -29,8 +29,8 @@ clean:
 		packages/crypto/dist \
 		packages/error/node_modules \
 		packages/error/dist \
-		packages/mcp-server/node_modules \
-		packages/mcp-server/dist \
+		packages/mcp/node_modules \
+		packages/mcp/dist \
 		.sourcebot
 
 soft-reset:

@@ -1,11 +1,8 @@
 // Entry point for the MCP server
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import express, { Request, Response } from 'express';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { isInitializeRequest } from '@modelcontextprotocol/sdk/types';
-import { randomUUID } from 'node:crypto';
+import { env } from './env.js';
 
 // todo: refactor this to the schemas package
 const searchRequestSchema = z.object({
@@ -21,7 +18,6 @@ const server = new McpServer({
     name: 'sourcebot-mcp-server',
     version: '0.1.0',
 });
-
 
 // Add search_code tool
 server.tool(
@@ -93,17 +89,18 @@ server.tool(
             `),
     },
     async ({ query }) => {
-        console.log(`executing query: ${query}`);
+        console.error(`executing query: ${query}`);
 
         const searchRequest: SearchRequest = {
             query,
             maxMatchDisplayCount: 100,
         }
 
-        const response = await fetch('http://localhost:3000/api/search', {
+        const response = await fetch(`${env.SOURCEBOT_HOST}/api/search`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-Org-Domain': '~'
             },
             body: JSON.stringify(searchRequest)
         });
@@ -116,101 +113,14 @@ server.tool(
     }
 );
 
-// Create Express app
-const app = express();
-app.use(express.json());
 
-
-// Store transports for each session type
-const transports = {
-    streamable: {} as Record<string, StreamableHTTPServerTransport>,
-    sse: {} as Record<string, SSEServerTransport>
-};
-
-app.all('/mcp', async (req: Request, res: Response) => {
-    // Check for existing session ID
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-    let transport: StreamableHTTPServerTransport;
-
-    if (sessionId && transports.streamable[sessionId]) {
-        transport = transports.streamable[sessionId];
-    } else if (!sessionId && isInitializeRequest(req.body)) {
-        transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: () => randomUUID(),
-            onsessioninitialized: (sessionId) => {
-                transports.streamable[sessionId] = transport;
-            }
-        });
-
-        transport.onclose = () => {
-            if (transport.sessionId) {
-                delete transports.streamable[transport.sessionId];
-            }
-        }
-
-        await server.connect(transport);
-    } else {
-        res.status(400).json({
-            jsonrpc: '2.0',
-            error: {
-                code: -32000,
-                message: 'Bad Request: No valid session ID provided',
-            },
-            id: null,
-        });
-        return;
-    }
-
-    await transport.handleRequest(req, res, req.body);
-});
-
-// Reusable handler for GET and DELETE requests
-const handleSessionRequest = async (req: express.Request, res: express.Response) => {
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-    if (!sessionId || !transports.streamable[sessionId]) {
-        res.status(400).send('Invalid or missing session ID');
-        return;
-    }
-
-    const transport = transports.streamable[sessionId];
-    await transport.handleRequest(req, res);
-};
-
-// Handle GET requests for server-to-client notifications via SSE
-app.get('/mcp', handleSessionRequest);
-
-// Handle DELETE requests for session termination
-app.delete('/mcp', handleSessionRequest);
-
-// Legacy message endpoint for older clients
-// @see: https://github.com/modelcontextprotocol/typescript-sdk?tab=readme-ov-file#server-side-compatibility
-app.get('/sse', async (_req: Request, res: Response) => {
-    // Create SSE transport for legacy clients
-    const transport = new SSEServerTransport('/messages', res);
-    transports.sse[transport.sessionId] = transport;
-
-    res.on("close", () => {
-        delete transports.sse[transport.sessionId];
-    });
-
+const runServer = async () => {
+    const transport = new StdioServerTransport();
     await server.connect(transport);
-});
+    console.error('Sourcebot MCP server ready');
+}
 
-// Legacy message endpoint for older clients
-// @see: https://github.com/modelcontextprotocol/typescript-sdk?tab=readme-ov-file#server-side-compatibility
-app.post('/messages', async (req, res) => {
-    const sessionId = req.query.sessionId as string;
-    const transport = transports.sse[sessionId];
-    if (transport) {
-        await transport.handlePostMessage(req, res, req.body);
-    } else {
-        res.status(400).send('No transport found for sessionId');
-    }
+runServer().catch((error) => {
+    console.error('Failed to start MCP server:', error);
+    process.exit(1);
 });
-
-// Start server
-const port = 6071;
-app.listen(port, () => {
-    console.log(`Sourcebot MCP server listening on port ${port}`);
-});
-

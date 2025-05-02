@@ -1,12 +1,13 @@
 {
-  "name": "@sourcebot/mcp-server",
+  "name": "@sourcebot/mcp",
   "version": "0.1.0",
   "main": "dist/index.js",
+  "type": "module",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/index.ts",
-    "dev:watch": "tsc-watch --preserveWatchOutput --onSuccess \"yarn dev\""
+    "dev": "node ./dist/index.js",
+    "build:watch": "tsc-watch"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
@@ -17,6 +18,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.10.2",
+    "@t3-oss/env-core": "^0.13.4",
     "express": "^5.1.0",
     "zod": "^3.24.3"
   }

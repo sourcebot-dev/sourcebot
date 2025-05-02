@@ -9,6 +9,7 @@ import { searchRequestSchema } from "@/features/search/schemas";
 import { SearchRequest } from "@/features/search/types";
 
 export const POST = async (request: NextRequest) => {
+    const domain = request.headers.get("X-Org-Domain")!;
     const body = await request.json();
     const parsed = await searchRequestSchema.safeParseAsync(body);
     if (!parsed.success) {
@@ -16,25 +17,18 @@ export const POST = async (request: NextRequest) => {
             schemaValidationError(parsed.error)
         );
     }
-
-    const response = await postSearch(parsed.data);
+    
+    const response = await postSearch(parsed.data, domain);
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }
     return Response.json(response);
 }
 
-// @nocheckin: need to handle auth
-// const postSearch = (request: SearchRequest, domain: string) => sew(() =>
-//     withAuth((session) =>
-//         withOrgMembership(session, domain, async ({ orgId }) => {
-//             const response = await search(request, orgId);
-//             return response;
-//         }
-//     ), /* allowSingleTenantUnauthedAccess */ true));
-
-const postSearch = (request: SearchRequest) => sew(async () => {
-    const response = await search(request, 1);
-    return response;
-});
-
+const postSearch = (request: SearchRequest, domain: string) => sew(() =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const response = await search(request, orgId);
+            return response;
+        }
+    ), /* allowSingleTenantUnauthedAccess */ true));
