@@ -42,6 +42,7 @@ export const env = createEnv({
         NODE_ENV: z.enum(["development", "test", "production"]),
         SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default('false'),
         DATABASE_URL: z.string().url(),
+        REDIS_URL: z.string().url(),
 
         SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
         SOURCEBOT_AUTH_ENABLED: booleanSchema.default('false'),
