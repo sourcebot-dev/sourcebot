@@ -52,6 +52,7 @@ export const env = createEnv({
 
         // EE License
         SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),
+        SOURCEBOT_EE_AUTH_DISABLED: booleanSchema.default('false'),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in
