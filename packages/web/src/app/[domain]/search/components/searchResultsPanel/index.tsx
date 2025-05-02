@@ -41,9 +41,8 @@ export const SearchResultsPanel = ({
 
             // Quick guesstimation ;) This needs to be quick since the virtualizer will
             // run this upfront for all items in the list.
-            const numCodeCells = fileMatch.ChunkMatches
-                .filter(match => !match.FileName)
-                .slice(0, showAllMatches ? fileMatch.ChunkMatches.length : MAX_MATCHES_TO_PREVIEW)
+            const numCodeCells = fileMatch.chunks
+                .slice(0, showAllMatches ? fileMatch.chunks.length : MAX_MATCHES_TO_PREVIEW)
                 .length;
 
             const estimatedSize =

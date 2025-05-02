@@ -1,6 +1,6 @@
 'use server';
 
-import { listRepositories } from "@/lib/server/searchService";
+import { listRepositories } from "@/features/search/listReposApi";
 import { NextRequest } from "next/server";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { isServiceError } from "@/lib/utils";

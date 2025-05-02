@@ -7,9 +7,8 @@ export type KeymapType = "default" | "vim";
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
 
-export type SearchResult = SearchResponse["Result"];
-export type SearchResultFile = NonNullable<SearchResult["Files"]>[number];
-export type SearchResultFileMatch = SearchResultFile["ChunkMatches"][number];
+export type SearchResultFile = SearchResponse["files"][number];
+export type SearchResultChunk = SearchResultFile["chunks"][number];
 export type SearchResultRange = z.infer<typeof rangeSchema>;
 export type SearchResultLocation = z.infer<typeof locationSchema>;
 
@@ -25,7 +24,7 @@ export type GetVersionResponse = z.infer<typeof getVersionResponseSchema>;
 
 export enum SearchQueryParams {
     query = "query",
-    maxMatchDisplayCount = "maxMatchDisplayCount",
+    matches = "matches",
 }
 
 export type TenancyMode = z.infer<typeof tenancyModeSchema>;

@@ -43,11 +43,11 @@ export const CodePreview = ({
 
                     const decorations = ranges
                         .sort((a, b) => {
-                            return a.Start.ByteOffset - b.Start.ByteOffset;
+                            return a.start.byteOffset - b.start.byteOffset;
                         })
-                        .filter(({ Start, End }) => {
-                            const startLine = Start.LineNumber - lineOffset;
-                            const endLine = End.LineNumber - lineOffset;
+                        .filter(({ start, end }) => {
+                            const startLine = start.lineNumber - lineOffset;
+                            const endLine = end.lineNumber - lineOffset;
 
                             if (
                                 startLine < 1 ||
@@ -59,12 +59,12 @@ export const CodePreview = ({
                             }
                             return true;
                         })
-                        .map(({ Start, End }) => {
-                            const startLine = Start.LineNumber - lineOffset;
-                            const endLine = End.LineNumber - lineOffset;
+                        .map(({ start, end }) => {
+                            const startLine = start.lineNumber - lineOffset;
+                            const endLine = end.lineNumber - lineOffset;
 
-                            const from = document.line(startLine).from + Start.Column - 1;
-                            const to = document.line(endLine).from + End.Column - 1;
+                            const from = document.line(startLine).from + start.column - 1;
+                            const to = document.line(endLine).from + end.column - 1;
                             return markDecoration.range(from, to);
                         })
                         .sort((a, b) => a.from - b.from);

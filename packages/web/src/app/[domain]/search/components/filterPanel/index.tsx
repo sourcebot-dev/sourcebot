@@ -36,7 +36,7 @@ export const FilterPanel = ({
     const repos = useMemo(() => {
         const selectedRepos = getSelectedFromQuery(REPOS_QUERY_PARAM);
         return aggregateMatches(
-            "Repository",
+            "repository",
             matches,
             (key) => {
                 const repo: Repository | undefined = repoMetadata[key];
@@ -65,7 +65,7 @@ export const FilterPanel = ({
     const languages = useMemo(() => {
         const selectedLanguages = getSelectedFromQuery(LANGUAGES_QUERY_PARAM);
         return aggregateMatches(
-            "Language",
+            "language",
             matches,
             (key) => {
                 const Icon = (
@@ -91,8 +91,8 @@ export const FilterPanel = ({
 
         const filteredMatches = matches.filter((match) =>
         (
-            (selectedRepos.size === 0 ? true : selectedRepos.has(match.Repository)) &&
-            (selectedLanguages.size === 0 ? true : selectedLanguages.has(match.Language))
+            (selectedRepos.size === 0 ? true : selectedRepos.has(match.repository)) &&
+            (selectedLanguages.size === 0 ? true : selectedLanguages.has(match.language))
         )
         );
         onFilterChanged(filteredMatches);
@@ -166,7 +166,7 @@ export const FilterPanel = ({
  * }
  */
 const aggregateMatches = (
-    propName: 'Repository' | 'Language',
+    propName: 'repository' | 'language',
     matches: SearchResultFile[],
     createEntry: (key: string) => Entry
 ) => {

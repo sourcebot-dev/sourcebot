@@ -3,91 +3,85 @@ import { RepoIndexingStatus } from "@sourcebot/db";
 import { z } from "zod";
 import { isServiceError } from "./utils";
 
-export const searchRequestSchema = z.object({
-    query: z.string(),
-    maxMatchDisplayCount: z.number(),
-    whole: z.boolean().optional(),
-});
-
-
-// @see : https://github.com/sourcebot-dev/zoekt/blob/main/api.go#L212
 export const locationSchema = z.object({
     // 0-based byte offset from the beginning of the file
-    ByteOffset: z.number(),
+    byteOffset: z.number(),
     // 1-based line number from the beginning of the file
-    LineNumber: z.number(),
+    lineNumber: z.number(),
     // 1-based column number (in runes) from the beginning of line
-    Column: z.number(),
+    column: z.number(),
 });
 
 export const rangeSchema = z.object({
-    Start: locationSchema,
-    End: locationSchema,
+    start: locationSchema,
+    end: locationSchema,
 });
-
-// @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L350
-export const searchResponseStats = {
-    ContentBytesLoaded: z.number(),
-    IndexBytesLoaded: z.number(),
-    Crashes: z.number(),
-    Duration: z.number(),
-    FileCount: z.number(),
-    ShardFilesConsidered: z.number(),
-    FilesConsidered: z.number(),
-    FilesLoaded: z.number(),
-    FilesSkipped: z.number(),
-    ShardsScanned: z.number(),
-    ShardsSkipped: z.number(),
-    ShardsSkippedFilter: z.number(),
-    MatchCount: z.number(),
-    NgramMatches: z.number(),
-    NgramLookups: z.number(),
-    Wait: z.number(),
-    MatchTreeConstruction: z.number(),
-    MatchTreeSearch: z.number(),
-    RegexpsConsidered: z.number(),
-    FlushReason: z.number(),
-}
 
 export const symbolSchema = z.object({
-    Sym: z.string(),
-    Kind: z.string(),
-    Parent: z.string(),
-    ParentKind: z.string(),
+    symbol: z.string(),
+    kind: z.string(),
 });
 
-// @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L497
-export const zoektSearchResponseSchema = z.object({
-    Result: z.object({
-        ...searchResponseStats,
-        Files: z.array(z.object({
-            FileName: z.string(),
-            Repository: z.string(),
-            Version: z.string().optional(),
-            Language: z.string(),
-            Branches: z.array(z.string()).optional(),
-            ChunkMatches: z.array(z.object({
-                Content: z.string(),
-                Ranges: z.array(rangeSchema),
-                FileName: z.boolean(),
-                ContentStart: locationSchema,
-                Score: z.number(),
-                SymbolInfo: z.array(symbolSchema).nullable(),
-            })),
-            Checksum: z.string(),
-            Score: z.number(),
-            // Set if `whole` is true.
-            Content: z.string().optional(),
-        })).nullable(),
-        RepoURLs: z.record(z.string(), z.string()),
-    }),
+export const searchRequestSchema = z.object({
+    // The zoekt query to execute.
+    query: z.string(),
+    // The number of matches to return.
+    matches: z.number(),
+    // The number of context lines to return.
+    contextLines: z.number().optional(),
+    // Whether to return the whole file as part of the response.
+    whole: z.boolean().optional(),
 });
 
 export const searchResponseSchema = z.object({
-    ...zoektSearchResponseSchema.shape,
-    // Flag when a branch filter was used (e.g., `branch:`, `revision:`, etc.).
+    zoektStats: z.object({
+        // The duration (in nanoseconds) of the search.
+        duration: z.number(),
+        fileCount: z.number(),
+        matchCount: z.number(),
+        filesSkipped: z.number(),
+        contentBytesLoaded: z.number(),
+        indexBytesLoaded: z.number(),
+        crashes: z.number(),
+        shardFilesConsidered: z.number(),
+        filesConsidered: z.number(),
+        filesLoaded: z.number(),
+        shardsScanned: z.number(),
+        shardsSkipped: z.number(),
+        shardsSkippedFilter: z.number(),
+        ngramMatches: z.number(),
+        ngramLookups: z.number(),
+        wait: z.number(),
+        matchTreeConstruction: z.number(),
+        matchTreeSearch: z.number(),
+        regexpsConsidered: z.number(),
+        flushReason: z.number(),
+    }),
+    files: z.array(z.object({
+        fileName: z.object({
+            // The name of the file
+            text: z.string(),
+            // Any matching ranges
+            matchRanges: z.array(rangeSchema),
+        }),
+        repository: z.string(),
+        language: z.string(),
+        chunks: z.array(z.object({
+            content: z.string(),
+            matchRanges: z.array(rangeSchema),
+            contentStart: locationSchema,
+            symbols: z.array(z.object({
+                ...symbolSchema.shape,
+                parent: symbolSchema.optional(),
+            })).optional(),
+        })),
+        branches: z.array(z.string()).optional(),
+        // Set if `whole` is true.
+        content: z.string().optional(),
+    })),
+    repoUrlTemplates: z.record(z.string(), z.string()),
     isBranchFilteringEnabled: z.boolean(),
-});
+})
 
 export const fileSourceRequestSchema = z.object({
     fileName: z.string(),

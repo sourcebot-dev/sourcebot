@@ -1,7 +1,7 @@
 'use server';
 
 import { fileSourceRequestSchema } from "@/lib/schemas";
-import { getFileSource } from "@/lib/server/searchService";
+import { getFileSource } from "@/features/search/fileSourceApi";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";

@@ -1,6 +1,6 @@
 'use server';
 
-import { search } from "@/lib/server/searchService";
+import { search } from "@/features/search/searchApi";
 import { searchRequestSchema } from "@/lib/schemas";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
