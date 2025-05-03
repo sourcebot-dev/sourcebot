@@ -6,7 +6,7 @@ import { cn, getRepoCodeHostInfo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Entry } from "./entry";
 import { Filter } from "./filter";
 
@@ -28,10 +28,10 @@ export const FilterPanel = ({
     const searchParams = useSearchParams();
 
     // Helper to parse query params into sets
-    const getSelectedFromQuery = (param: string) => {
+    const getSelectedFromQuery = useCallback((param: string) => {
         const value = searchParams.get(param);
         return value ? new Set(value.split(',')) : new Set();
-    };
+    }, [searchParams]);
 
     const repos = useMemo(() => {
         const selectedRepos = getSelectedFromQuery(REPOS_QUERY_PARAM);
@@ -60,7 +60,7 @@ export const FilterPanel = ({
                 };
             }
         )
-    }, [searchParams]);
+    }, [getSelectedFromQuery, matches, repoMetadata]);
 
     const languages = useMemo(() => {
         const selectedLanguages = getSelectedFromQuery(LANGUAGES_QUERY_PARAM);
@@ -81,7 +81,7 @@ export const FilterPanel = ({
                 } satisfies Entry;
             }
         );
-    }, [searchParams]);
+    }, [getSelectedFromQuery, matches]);
 
     // Calls `onFilterChanged` with the filtered list of matches
     // whenever the filter state changes.

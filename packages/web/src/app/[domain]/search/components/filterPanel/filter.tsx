@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { compareEntries, Entry } from "./entry";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import Fuse from "fuse.js";
 import { cn } from "@/lib/utils"
 

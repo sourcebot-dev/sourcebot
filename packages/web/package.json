@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "cross-env SKIP_ENV_VALIDATION=1 next lint",
     "test": "vitest",
     "dev:emails": "email dev --dir ./src/emails",
     "stripe:listen": "stripe listen --forward-to http://localhost:3000/api/stripe"
