@@ -118,8 +118,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             Whole: !!whole,
             TotalMaxMatchCount: env.TOTAL_MAX_MATCH_COUNT,
             ShardMaxMatchCount: env.SHARD_MAX_MATCH_COUNT,
-            // MaxDocDisplayCount: 100,
-            // MaxWallTime: env.ZOEKT_MAX_WALL_TIME_MS * 1000 * 1000, // zoekt expects a duration in nanoseconds
+            MaxWallTime: env.ZOEKT_MAX_WALL_TIME_MS * 1000 * 1000, // zoekt expects a duration in nanoseconds
         }
     });
 

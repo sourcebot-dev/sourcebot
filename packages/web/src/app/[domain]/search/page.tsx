@@ -289,7 +289,7 @@ const PanelGroup = ({
                     <InfoCircledIcon className="w-4 h-4 mr-2" />
                     {
                         fileMatches.length > 0 ? (
-                            <p className="text-sm font-medium">{`[${searchDurationMs} ms] Displaying ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
+                            <p className="text-sm font-medium">{`[${searchDurationMs} ms] Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
                         ) : (
                             <p className="text-sm font-medium">No results</p>
                         )
