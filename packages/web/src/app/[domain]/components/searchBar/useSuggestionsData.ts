@@ -5,7 +5,7 @@ import { Suggestion, SuggestionMode } from "./searchSuggestionsBox";
 import { getRepos, search } from "@/app/api/(client)/client";
 import { getSearchContexts } from "@/actions";
 import { useMemo } from "react";
-import { Symbol } from "@/features/search/types";
+import { SearchSymbol } from "@/features/search/types";
 import { languageMetadataMap } from "@/lib/languageMetadata";
 import {
     VscSymbolClass,
@@ -87,7 +87,7 @@ export const useSuggestionsData = ({
             }
 
             // De-duplicate on symbol name & kind.
-            const symbolMap = new Map<string, Symbol>(symbols.map((symbol: Symbol) => [`${symbol.kind}.${symbol.symbol}`, symbol]));
+            const symbolMap = new Map<string, SearchSymbol>(symbols.map((symbol: SearchSymbol) => [`${symbol.kind}.${symbol.symbol}`, symbol]));
             const suggestions = Array.from(symbolMap.values()).map((symbol) => ({
                 value: symbol.symbol,
                 Icon: getSymbolIcon(symbol),
@@ -158,7 +158,7 @@ export const useSuggestionsData = ({
     }
 }
 
-const getSymbolIcon = (symbol: Symbol) => {
+const getSymbolIcon = (symbol: SearchSymbol) => {
     switch (symbol.kind) {
         case "methodSpec":
         case "method":
