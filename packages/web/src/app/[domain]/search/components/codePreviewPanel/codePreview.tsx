@@ -3,12 +3,12 @@
 import { EditorContextMenu } from "@/app/[domain]/components/editorContextMenu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SearchResultChunk } from "@/features/search/types";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
 import { gutterWidthExtension } from "@/lib/extensions/gutterWidthExtension";
 import { highlightRanges, searchResultHighlightExtension } from "@/lib/extensions/searchResultHighlightExtension";
-import { SearchResultFileMatch } from "@/lib/types";
 import { search } from "@codemirror/search";
 import { EditorView } from "@codemirror/view";
 import { Cross1Icon, FileIcon } from "@radix-ui/react-icons";
@@ -22,7 +22,7 @@ export interface CodePreviewFile {
     content: string;
     filepath: string;
     link?: string;
-    matches: SearchResultFileMatch[];
+    matches: SearchResultChunk[];
     language: string;
     revision: string;
 }
@@ -84,7 +84,7 @@ export const CodePreview = ({
         }
 
         return file.matches.flatMap((match) => {
-            return match.Ranges;
+            return match.matchRanges;
         })
     }, [file]);
 

@@ -403,7 +403,7 @@ export const bitbucketCloudQuickActions: QuickAction<BitbucketConnectionConfig>[
         selectionText: "username",
         description: (
             <div className="flex flex-col">
-                <span>Username to use for authentication. This is only required if you're using an App Password (stored in <Code>token</Code>) for authentication.</span>
+                <span>Username to use for authentication. This is only required if you&apos;re using an App Password (stored in <Code>token</Code>) for authentication.</span>
             </div>
         )
     },

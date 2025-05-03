@@ -2,10 +2,10 @@
 
 import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { Separator } from "@/components/ui/separator";
-import { Repository, SearchResultFile } from "@/lib/types";
 import { DoubleArrowDownIcon, DoubleArrowUpIcon } from "@radix-ui/react-icons";
 import { useCallback, useMemo } from "react";
 import { FileMatch } from "./fileMatch";
+import { Repository, SearchResultFile } from "@/features/search/types";
 
 export const MAX_MATCHES_TO_PREVIEW = 3;
 
@@ -32,12 +32,12 @@ export const FileMatchContainer = ({
 }: FileMatchContainerProps) => {
 
     const matchCount = useMemo(() => {
-        return file.ChunkMatches.length;
+        return file.chunks.length;
     }, [file]);
 
     const matches = useMemo(() => {
-        const sortedMatches = file.ChunkMatches.sort((a, b) => {
-            return a.ContentStart.LineNumber - b.ContentStart.LineNumber;
+        const sortedMatches = file.chunks.sort((a, b) => {
+            return a.contentStart.lineNumber - b.contentStart.lineNumber;
         });
 
         if (!showAllMatches) {
@@ -48,18 +48,16 @@ export const FileMatchContainer = ({
     }, [file, showAllMatches]);
 
     const fileNameRange = useMemo(() => {
-        for (const match of matches) {
-            if (match.FileName && match.Ranges.length > 0) {
-                const range = match.Ranges[0];
-                return {
-                    from: range.Start.Column - 1,
-                    to: range.End.Column - 1,
-                }
+        if (file.fileName.matchRanges.length > 0) {
+            const range = file.fileName.matchRanges[0];
+            return {
+                from: range.start.column - 1,
+                to: range.end.column - 1,
             }
         }
 
         return undefined;
-    }, [matches]);
+    }, [file.fileName.matchRanges]);
 
     const isMoreContentButtonVisible = useMemo(() => {
         return matchCount > MAX_MATCHES_TO_PREVIEW;
@@ -67,19 +65,19 @@ export const FileMatchContainer = ({
 
     const onOpenMatch = useCallback((index: number) => {
         const matchIndex = matches.slice(0, index).reduce((acc, match) => {
-            return acc + match.Ranges.length;
+            return acc + match.matchRanges.length;
         }, 0);
         onOpenFile();
         onMatchIndexChanged(matchIndex);
     }, [matches, onMatchIndexChanged, onOpenFile]);
 
     const branches = useMemo(() => {
-        if (!file.Branches) {
+        if (!file.branches) {
             return [];
         }
 
-        return file.Branches;
-    }, [file.Branches]);
+        return file.branches;
+    }, [file.branches]);
 
     const branchDisplayName = useMemo(() => {
         if (!isBranchFilteringEnabled || branches.length === 0) {
@@ -103,8 +101,8 @@ export const FileMatchContainer = ({
                 }}
             >
                 <FileHeader
-                    repo={repoMetadata[file.Repository]}
-                    fileName={file.FileName}
+                    repo={repoMetadata[file.repository]}
+                    fileName={file.fileName.text}
                     fileNameHighlightRange={fileNameRange}
                     branchDisplayName={branchDisplayName}
                     branchDisplayTitle={branches.join(", ")}

@@ -69,7 +69,7 @@ export const useSuggestionModeAndQuery = ({
             suggestionQuery: part,
             suggestionMode: "refine",
         }
-    }, [cursorPosition, isSuggestionsEnabled, query, isHistorySearchEnabled]);
+    }, [cursorPosition, isSuggestionsEnabled, query, isHistorySearchEnabled, suggestionModeMappings]);
 
     // Debug logging for tracking mode transitions.
     const [prevSuggestionMode, setPrevSuggestionMode] = useState<SuggestionMode>("none");

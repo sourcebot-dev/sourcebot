@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
-import { Repository, SearchQueryParams, SearchResultFile } from "@/lib/types";
+import { SearchQueryParams } from "@/lib/types";
 import { createPathWithQueryParams, measure, unwrapServiceError } from "@/lib/utils";
 import { InfoCircledIcon, SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -23,8 +23,9 @@ import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
+import { Repository, SearchResultFile } from "@/features/search/types";
 
-const DEFAULT_MAX_MATCH_DISPLAY_COUNT = 10000;
+const DEFAULT_MATCH_COUNT = 10000;
 
 export default function SearchPage() {
     // We need a suspense boundary here since we are accessing query params
@@ -40,18 +41,20 @@ export default function SearchPage() {
 const SearchPageInternal = () => {
     const router = useRouter();
     const searchQuery = useNonEmptyQueryParam(SearchQueryParams.query) ?? "";
-    const _maxMatchDisplayCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.maxMatchDisplayCount) ?? `${DEFAULT_MAX_MATCH_DISPLAY_COUNT}`);
-    const maxMatchDisplayCount = isNaN(_maxMatchDisplayCount) ? DEFAULT_MAX_MATCH_DISPLAY_COUNT : _maxMatchDisplayCount;
+    const _matches = parseInt(useNonEmptyQueryParam(SearchQueryParams.matches) ?? `${DEFAULT_MATCH_COUNT}`);
+    const matches = isNaN(_matches) ? DEFAULT_MATCH_COUNT : _matches;
     const { setSearchHistory } = useSearchHistory();
     const captureEvent = useCaptureEvent();
     const domain = useDomain();
     const { toast } = useToast();
 
     const { data: searchResponse, isLoading: isSearchLoading, error } = useQuery({
-        queryKey: ["search", searchQuery, maxMatchDisplayCount],
+        queryKey: ["search", searchQuery, matches],
         queryFn: () => measure(() => unwrapServiceError(search({
             query: searchQuery,
-            maxMatchDisplayCount,
+            matches,
+            contextLines: 3,
+            whole: false,
         }, domain)), "client.search"),
         select: ({ data, durationMs }) => ({
             ...data,
@@ -95,12 +98,11 @@ const SearchPageInternal = () => {
         queryKey: ["repos"],
         queryFn: () => getRepos(domain),
         select: (data): Record<string, Repository> =>
-            data.List.Repos
-                .map(r => r.Repository)
+            data.repos
                 .reduce(
                     (acc, repo) => ({
                         ...acc,
-                        [repo.Name]: repo,
+                        [repo.name]: repo,
                     }),
                     {},
                 ),
@@ -112,29 +114,29 @@ const SearchPageInternal = () => {
             return;
         }
 
-        const fileLanguages = searchResponse.Result.Files?.map(file => file.Language) || [];
+        const fileLanguages = searchResponse.files?.map(file => file.language) || [];
 
         captureEvent("search_finished", {
-            contentBytesLoaded: searchResponse.Result.ContentBytesLoaded,
-            indexBytesLoaded: searchResponse.Result.IndexBytesLoaded,
-            crashes: searchResponse.Result.Crashes,
-            durationMs: searchResponse.Result.Duration / 1000000,
-            fileCount: searchResponse.Result.FileCount,
-            shardFilesConsidered: searchResponse.Result.ShardFilesConsidered,
-            filesConsidered: searchResponse.Result.FilesConsidered,
-            filesLoaded: searchResponse.Result.FilesLoaded,
-            filesSkipped: searchResponse.Result.FilesSkipped,
-            shardsScanned: searchResponse.Result.ShardsScanned,
-            shardsSkipped: searchResponse.Result.ShardsSkipped,
-            shardsSkippedFilter: searchResponse.Result.ShardsSkippedFilter,
-            matchCount: searchResponse.Result.MatchCount,
-            ngramMatches: searchResponse.Result.NgramMatches,
-            ngramLookups: searchResponse.Result.NgramLookups,
-            wait: searchResponse.Result.Wait,
-            matchTreeConstruction: searchResponse.Result.MatchTreeConstruction,
-            matchTreeSearch: searchResponse.Result.MatchTreeSearch,
-            regexpsConsidered: searchResponse.Result.RegexpsConsidered,
-            flushReason: searchResponse.Result.FlushReason,
+            durationMs: searchResponse.durationMs,
+            fileCount: searchResponse.zoektStats.fileCount,
+            matchCount: searchResponse.zoektStats.matchCount,
+            filesSkipped: searchResponse.zoektStats.filesSkipped,
+            contentBytesLoaded: searchResponse.zoektStats.contentBytesLoaded,
+            indexBytesLoaded: searchResponse.zoektStats.indexBytesLoaded,
+            crashes: searchResponse.zoektStats.crashes,
+            shardFilesConsidered: searchResponse.zoektStats.shardFilesConsidered,
+            filesConsidered: searchResponse.zoektStats.filesConsidered,
+            filesLoaded: searchResponse.zoektStats.filesLoaded,
+            shardsScanned: searchResponse.zoektStats.shardsScanned,
+            shardsSkipped: searchResponse.zoektStats.shardsSkipped,
+            shardsSkippedFilter: searchResponse.zoektStats.shardsSkippedFilter,
+            ngramMatches: searchResponse.zoektStats.ngramMatches,
+            ngramLookups: searchResponse.zoektStats.ngramLookups,
+            wait: searchResponse.zoektStats.wait,
+            matchTreeConstruction: searchResponse.zoektStats.matchTreeConstruction,
+            matchTreeSearch: searchResponse.zoektStats.matchTreeSearch,
+            regexpsConsidered: searchResponse.zoektStats.regexpsConsidered,
+            flushReason: searchResponse.zoektStats.flushReason,
             fileLanguages,
         });
     }, [captureEvent, searchQuery, searchResponse]);
@@ -151,24 +153,24 @@ const SearchPageInternal = () => {
         }
 
         return {
-            fileMatches: searchResponse.Result.Files ?? [],
+            fileMatches: searchResponse.files ?? [],
             searchDurationMs: Math.round(searchResponse.durationMs),
-            totalMatchCount: searchResponse.Result.MatchCount,
+            totalMatchCount: searchResponse.zoektStats.matchCount,
             isBranchFilteringEnabled: searchResponse.isBranchFilteringEnabled,
-            repoUrlTemplates: searchResponse.Result.RepoURLs,
+            repoUrlTemplates: searchResponse.repoUrlTemplates,
         }
     }, [searchResponse]);
 
     const isMoreResultsButtonVisible = useMemo(() => {
-        return totalMatchCount > maxMatchDisplayCount;
-    }, [totalMatchCount, maxMatchDisplayCount]);
+        return totalMatchCount > matches;
+    }, [totalMatchCount, matches]);
 
     const numMatches = useMemo(() => {
         // Accumualtes the number of matches across all files
         return fileMatches.reduce(
             (acc, file) =>
-                acc + file.ChunkMatches.reduce(
-                    (acc, chunk) => acc + chunk.Ranges.length,
+                acc + file.chunks.reduce(
+                    (acc, chunk) => acc + chunk.matchRanges.length,
                     0,
                 ),
             0,
@@ -178,10 +180,10 @@ const SearchPageInternal = () => {
     const onLoadMoreResults = useCallback(() => {
         const url = createPathWithQueryParams(`/${domain}/search`,
             [SearchQueryParams.query, searchQuery],
-            [SearchQueryParams.maxMatchDisplayCount, `${maxMatchDisplayCount * 2}`],
+            [SearchQueryParams.matches, `${matches * 2}`],
         )
         router.push(url);
-    }, [maxMatchDisplayCount, router, searchQuery, domain]);
+    }, [matches, router, searchQuery, domain]);
 
     return (
         <div className="flex flex-col h-screen overflow-clip">

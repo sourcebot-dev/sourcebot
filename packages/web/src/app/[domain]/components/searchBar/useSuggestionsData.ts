@@ -5,7 +5,7 @@ import { Suggestion, SuggestionMode } from "./searchSuggestionsBox";
 import { getRepos, search } from "@/app/api/(client)/client";
 import { getSearchContexts } from "@/actions";
 import { useMemo } from "react";
-import { Symbol } from "@/lib/types";
+import { SearchSymbol } from "@/features/search/types";
 import { languageMetadataMap } from "@/lib/languageMetadata";
 import {
     VscSymbolClass,
@@ -40,10 +40,9 @@ export const useSuggestionsData = ({
         queryKey: ["repoSuggestions"],
         queryFn: () => getRepos(domain),
         select: (data): Suggestion[] => {
-            return data.List.Repos
-                .map(r => r.Repository)
+            return data.repos
                 .map(r => ({
-                    value: r.Name
+                    value: r.name,
                 }));
         },
         enabled: suggestionMode === "repo",
@@ -54,16 +53,17 @@ export const useSuggestionsData = ({
         queryKey: ["fileSuggestions", suggestionQuery],
         queryFn: () => search({
             query: `file:${suggestionQuery}`,
-            maxMatchDisplayCount: 15,
+            matches: 15,
+            contextLines: 1,
         }, domain),
         select: (data): Suggestion[] => {
             if (isServiceError(data)) {
                 return [];
             }
 
-            return data.Result.Files?.map((file) => ({
-                value: file.FileName
-            })) ?? [];
+            return data.files.map((file) => ({
+                value: file.fileName.text,
+            }));
         },
         enabled: suggestionMode === "file"
     });
@@ -73,22 +73,23 @@ export const useSuggestionsData = ({
         queryKey: ["symbolSuggestions", suggestionQuery],
         queryFn: () => search({
             query: `sym:${suggestionQuery.length > 0 ? suggestionQuery : ".*"}`,
-            maxMatchDisplayCount: 15,
+            matches: 15,
+            contextLines: 1,
         }, domain),
         select: (data): Suggestion[] => {
             if (isServiceError(data)) {
                 return [];
             }
 
-            const symbols = data.Result.Files?.flatMap((file) => file.ChunkMatches).flatMap((chunk) => chunk.SymbolInfo ?? []);
+            const symbols = data.files.flatMap((file) => file.chunks).flatMap((chunk) => chunk.symbols ?? []);
             if (!symbols) {
                 return [];
             }
 
             // De-duplicate on symbol name & kind.
-            const symbolMap = new Map<string, Symbol>(symbols.map((symbol: Symbol) => [`${symbol.Kind}.${symbol.Sym}`, symbol]));
+            const symbolMap = new Map<string, SearchSymbol>(symbols.map((symbol: SearchSymbol) => [`${symbol.kind}.${symbol.symbol}`, symbol]));
             const suggestions = Array.from(symbolMap.values()).map((symbol) => ({
-                value: symbol.Sym,
+                value: symbol.symbol,
                 Icon: getSymbolIcon(symbol),
             } satisfies Suggestion));
 
@@ -157,8 +158,8 @@ export const useSuggestionsData = ({
     }
 }
 
-const getSymbolIcon = (symbol: Symbol) => {
-    switch (symbol.Kind) {
+const getSymbolIcon = (symbol: SearchSymbol) => {
+    switch (symbol.kind) {
         case "methodSpec":
         case "method":
         case "function":

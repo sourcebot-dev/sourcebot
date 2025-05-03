@@ -1,4 +1,4 @@
-import { Repository } from "@/lib/types";
+import { Repository } from "@/features/search/types";
 import { getRepoCodeHostInfo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";

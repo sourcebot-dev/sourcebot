@@ -1,0 +1,230 @@
+import { env } from "@/env.mjs";
+import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
+import { isServiceError } from "../../lib/utils";
+import { zoektFetch } from "./zoektClient";
+import { prisma } from "@/prisma";
+import { ErrorCode } from "../../lib/errorCodes";
+import { StatusCodes } from "http-status-codes";
+import { zoektSearchResponseSchema } from "./zoektSchema";
+import { SearchRequest, SearchResponse, SearchResultRange } from "./types";
+
+// List of supported query prefixes in zoekt.
+// @see : https://github.com/sourcebot-dev/zoekt/blob/main/query/parse.go#L417
+enum zoektPrefixes {
+    archived = "archived:",
+    branchShort = "b:",
+    branch = "branch:",
+    caseShort = "c:",
+    case = "case:",
+    content = "content:",
+    fileShort = "f:",
+    file = "file:",
+    fork = "fork:",
+    public = "public:",
+    repoShort = "r:",
+    repo = "repo:",
+    regex = "regex:",
+    lang = "lang:",
+    sym = "sym:",
+    typeShort = "t:",
+    type = "type:",
+    reposet = "reposet:",
+}
+
+const transformZoektQuery = async (query: string, orgId: number): Promise<string | ServiceError> => {
+    const prevQueryParts = query.split(" ");
+    const newQueryParts = [];
+
+    for (const part of prevQueryParts) {
+
+        // Handle mapping `rev:` and `revision:` to `branch:`
+        if (part.match(/^-?(rev|revision):.+$/)) {
+            const isNegated = part.startsWith("-");
+            let revisionName = part.slice(part.indexOf(":") + 1);
+
+            // Special case: `*` -> search all revisions.
+            // In zoekt, providing a blank string will match all branches.
+            // @see: https://github.com/sourcebot-dev/zoekt/blob/main/eval.go#L560-L562
+            if (revisionName === "*") {
+                revisionName = "";
+            }
+            newQueryParts.push(`${isNegated ? "-" : ""}${zoektPrefixes.branch}${revisionName}`);
+        }
+
+        // Expand `context:` into `reposet:` atom.
+        else if (part.match(/^-?context:.+$/)) {
+            const isNegated = part.startsWith("-");
+            const contextName = part.slice(part.indexOf(":") + 1);
+
+            const context = await prisma.searchContext.findUnique({
+                where: {
+                    name_orgId: {
+                        name: contextName,
+                        orgId,
+                    }
+                },
+                include: {
+                    repos: true,
+                }
+            });
+
+            // If the context doesn't exist, return an error.
+            if (!context) {
+                return {
+                    errorCode: ErrorCode.SEARCH_CONTEXT_NOT_FOUND,
+                    message: `Search context "${contextName}" not found`,
+                    statusCode: StatusCodes.NOT_FOUND,
+                } satisfies ServiceError;
+            }
+
+            const names = context.repos.map((repo) => repo.name);
+            newQueryParts.push(`${isNegated ? "-" : ""}${zoektPrefixes.reposet}${names.join(",")}`);
+        }
+
+        // no-op: add the original part to the new query parts.
+        else {
+            newQueryParts.push(part);
+        }
+    }
+
+    return newQueryParts.join(" ");
+}
+
+export const search = async ({ query, matches, contextLines, whole }: SearchRequest, orgId: number) => {
+    const transformedQuery = await transformZoektQuery(query, orgId);
+    if (isServiceError(transformedQuery)) {
+        return transformedQuery;
+    }
+    query = transformedQuery;
+
+    const isBranchFilteringEnabled = (
+        query.includes(zoektPrefixes.branch) ||
+        query.includes(zoektPrefixes.branchShort)
+    );
+
+    // We only want to show matches for the default branch when
+    // the user isn't explicitly filtering by branch.
+    if (!isBranchFilteringEnabled) {
+        query = query.concat(` branch:HEAD`);
+    }
+
+    const body = JSON.stringify({
+        q: query,
+        // @see: https://github.com/sourcebot-dev/zoekt/blob/main/api.go#L892
+        opts: {
+            ChunkMatches: true,
+            MaxMatchDisplayCount: matches,
+            NumContextLines: contextLines,
+            Whole: !!whole,
+            TotalMaxMatchCount: env.TOTAL_MAX_MATCH_COUNT,
+            ShardMaxMatchCount: env.SHARD_MAX_MATCH_COUNT,
+            MaxWallTime: env.ZOEKT_MAX_WALL_TIME_MS * 1000 * 1000, // zoekt expects a duration in nanoseconds
+        }
+    });
+
+    let header: Record<string, string> = {};
+    header = {
+        "X-Tenant-ID": orgId.toString()
+    };
+
+    const searchResponse = await zoektFetch({
+        path: "/api/search",
+        body,
+        header,
+        method: "POST",
+    });
+
+    if (!searchResponse.ok) {
+        return invalidZoektResponse(searchResponse);
+    }
+
+    const searchBody = await searchResponse.json();
+
+    const parser = zoektSearchResponseSchema.transform(({ Result }) => ({
+        zoektStats: {
+            duration: Result.Duration,
+            fileCount: Result.FileCount,
+            matchCount: Result.MatchCount,
+            filesSkipped: Result.FilesSkipped,
+            contentBytesLoaded: Result.ContentBytesLoaded,
+            indexBytesLoaded: Result.IndexBytesLoaded,
+            crashes: Result.Crashes,
+            shardFilesConsidered: Result.ShardFilesConsidered,
+            filesConsidered: Result.FilesConsidered,
+            filesLoaded: Result.FilesLoaded,
+            shardsScanned: Result.ShardsScanned,
+            shardsSkipped: Result.ShardsSkipped,
+            shardsSkippedFilter: Result.ShardsSkippedFilter,
+            ngramMatches: Result.NgramMatches,
+            ngramLookups: Result.NgramLookups,
+            wait: Result.Wait,
+            matchTreeConstruction: Result.MatchTreeConstruction,
+            matchTreeSearch: Result.MatchTreeSearch,
+            regexpsConsidered: Result.RegexpsConsidered,
+            flushReason: Result.FlushReason,
+        },
+        files: Result.Files?.map((file) => {
+            const fileNameChunks = file.ChunkMatches.filter((chunk) => chunk.FileName);
+            return {
+                fileName: {
+                    text: file.FileName,
+                    matchRanges: fileNameChunks.length === 1 ? fileNameChunks[0].Ranges.map((range) => ({
+                        start: {
+                            byteOffset: range.Start.ByteOffset,
+                            column: range.Start.Column,
+                            lineNumber: range.Start.LineNumber,
+                        },
+                        end: {
+                            byteOffset: range.End.ByteOffset,
+                            column: range.End.Column,
+                            lineNumber: range.End.LineNumber,
+                        }
+                    })) : [],
+                },
+                repository: file.Repository,
+                language: file.Language,
+                chunks: file.ChunkMatches
+                    .filter((chunk) => !chunk.FileName) // Filter out filename chunks.
+                    .map((chunk) => {
+                        return {
+                            content: chunk.Content,
+                            matchRanges: chunk.Ranges.map((range) => ({
+                                start: {
+                                    byteOffset: range.Start.ByteOffset,
+                                    column: range.Start.Column,
+                                    lineNumber: range.Start.LineNumber,
+                                },
+                                end: {
+                                    byteOffset: range.End.ByteOffset,
+                                    column: range.End.Column,
+                                    lineNumber: range.End.LineNumber,
+                                }
+                            }) satisfies SearchResultRange),
+                            contentStart: {
+                                byteOffset: chunk.ContentStart.ByteOffset,
+                                column: chunk.ContentStart.Column,
+                                lineNumber: chunk.ContentStart.LineNumber,
+                            },
+                            symbols: chunk.SymbolInfo?.map((symbol) => {
+                                return {
+                                    symbol: symbol.Sym,
+                                    kind: symbol.Kind,
+                                    parent: symbol.Parent.length > 0 ? {
+                                        symbol: symbol.Parent,
+                                        kind: symbol.ParentKind,
+                                    } : undefined,
+                                }
+                            }) ?? undefined,
+                        }
+                    }),
+                branches: file.Branches,
+                content: file.Content,
+            }
+        }
+        ) ?? [],
+        repoUrlTemplates: Result.RepoURLs,
+        isBranchFilteringEnabled: isBranchFilteringEnabled,
+    } satisfies SearchResponse));
+
+    return parser.parse(searchBody);
+}

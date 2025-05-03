@@ -1,7 +1,8 @@
 import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { TopBar } from "@/app/[domain]/components/topBar";
 import { Separator } from '@/components/ui/separator';
-import { getFileSource, listRepositories } from '@/lib/server/searchService';
+import { getFileSource } from '@/features/search/fileSourceApi';
+import { listRepositories } from '@/features/search/listReposApi';
 import { base64Decode, isServiceError } from "@/lib/utils";
 import { CodePreview } from "./codePreview";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -57,7 +58,7 @@ export default async function BrowsePage({
     if (isServiceError(reposResponse)) {
         throw new ServiceErrorException(reposResponse);
     }
-    const repo = reposResponse.List.Repos.find(r => r.Repository.Name === repoName);
+    const repo = reposResponse.repos.find(r => r.name === repoName);
 
     if (pathType === 'tree') {
         // @todo : proper tree handling
@@ -81,7 +82,7 @@ export default async function BrowsePage({
                         <div className="bg-accent py-1 px-2 flex flex-row">
                             <FileHeader
                                 fileName={path}
-                                repo={repo.Repository}
+                                repo={repo}
                                 branchDisplayName={revisionName}
                             />
                         </div>

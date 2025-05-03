@@ -2,12 +2,12 @@
 
 import { useMemo } from "react";
 import { CodePreview } from "./codePreview";
-import { SearchResultFile, SearchResultFileMatch } from "@/lib/types";
+import { SearchResultFile, SearchResultChunk } from "@/features/search/types";
 import { base64Decode } from "@/lib/utils";
 
 
 interface FileMatchProps {
-    match: SearchResultFileMatch;
+    match: SearchResultChunk;
     file: SearchResultFile;
     onOpen: () => void;
 }
@@ -18,11 +18,11 @@ export const FileMatch = ({
     onOpen,
 }: FileMatchProps) => {
     const content = useMemo(() => {
-        return base64Decode(match.Content);
-    }, [match.Content]);
+        return base64Decode(match.content);
+    }, [match.content]);
 
     // If it's just the title, don't show a code preview
-    if (match.FileName) {
+    if (match.matchRanges.length === 0) {
         return null;
     }
 
@@ -40,9 +40,9 @@ export const FileMatch = ({
         >
             <CodePreview
                 content={content}
-                language={file.Language}
-                ranges={match.Ranges}
-                lineOffset={match.ContentStart.LineNumber - 1}
+                language={file.language}
+                ranges={match.matchRanges}
+                lineOffset={match.contentStart.lineNumber - 1}
             />
         </div>
     );

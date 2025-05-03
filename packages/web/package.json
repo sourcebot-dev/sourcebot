@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "cross-env SKIP_ENV_VALIDATION=1 next lint",
     "test": "vitest",
     "dev:emails": "email dev --dir ./src/emails",
     "stripe:listen": "stripe listen --forward-to http://localhost:3000/api/stripe"
@@ -146,6 +146,7 @@
     "@types/react-dom": "^18",
     "@typescript-eslint/eslint-plugin": "^8.3.0",
     "@typescript-eslint/parser": "^8.3.0",
+    "cross-env": "^7.0.3",
     "eslint": "^8",
     "eslint-config-next": "14.2.6",
     "eslint-plugin-react": "^7.35.0",
