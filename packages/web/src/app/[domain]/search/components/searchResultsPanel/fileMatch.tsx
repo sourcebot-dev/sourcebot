@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { CodePreview } from "./codePreview";
-import { SearchResultFile, SearchResultChunk } from "@/lib/types";
+import { SearchResultFile, SearchResultChunk } from "@/features/search/types";
 import { base64Decode } from "@/lib/utils";
 
 

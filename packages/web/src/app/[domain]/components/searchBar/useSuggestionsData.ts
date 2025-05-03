@@ -5,7 +5,7 @@ import { Suggestion, SuggestionMode } from "./searchSuggestionsBox";
 import { getRepos, search } from "@/app/api/(client)/client";
 import { getSearchContexts } from "@/actions";
 import { useMemo } from "react";
-import { Symbol } from "@/lib/types";
+import { Symbol } from "@/features/search/types";
 import { languageMetadataMap } from "@/lib/languageMetadata";
 import {
     VscSymbolClass,
@@ -40,10 +40,9 @@ export const useSuggestionsData = ({
         queryKey: ["repoSuggestions"],
         queryFn: () => getRepos(domain),
         select: (data): Suggestion[] => {
-            return data.List.Repos
-                .map(r => r.Repository)
+            return data.repos
                 .map(r => ({
-                    value: r.Name
+                    value: r.name,
                 }));
         },
         enabled: suggestionMode === "repo",

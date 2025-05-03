@@ -73,3 +73,60 @@ export const zoektSearchResponseSchema = z.object({
         RepoURLs: z.record(z.string(), z.string()),
     }),
 });
+
+// @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L728
+const zoektRepoStatsSchema = z.object({
+    Repos: z.number(),
+    Shards: z.number(),
+    Documents: z.number(),
+    IndexBytes: z.number(),
+    ContentBytes: z.number(),
+    NewLinesCount: z.number(),
+    DefaultBranchNewLinesCount: z.number(),
+    OtherBranchesNewLinesCount: z.number(),
+});
+
+// @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L716
+const zoektIndexMetadataSchema = z.object({
+    IndexFormatVersion: z.number(),
+    IndexFeatureVersion: z.number(),
+    IndexMinReaderVersion: z.number(),
+    IndexTime: z.string(),
+    PlainASCII: z.boolean(),
+    LanguageMap: z.record(z.string(), z.number()),
+    ZoektVersion: z.string(),
+    ID: z.string(),
+});
+
+
+// @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L555
+export const zoektRepositorySchema = z.object({
+    Name: z.string(),
+    URL: z.string(),
+    Source: z.string(),
+    Branches: z.array(z.object({
+        Name: z.string(),
+        Version: z.string(),
+    })).nullable(),
+    CommitURLTemplate: z.string(),
+    FileURLTemplate: z.string(),
+    LineFragmentTemplate: z.string(),
+    RawConfig: z.record(z.string(), z.string()).nullable(),
+    Rank: z.number(),
+    IndexOptions: z.string(),
+    HasSymbols: z.boolean(),
+    Tombstone: z.boolean(),
+    LatestCommitDate: z.string(),
+    FileTombstones: z.string().optional(),
+});
+
+export const zoektListRepositoriesResponseSchema = z.object({
+    List: z.object({
+        Repos: z.array(z.object({
+            Repository: zoektRepositorySchema,
+            IndexMetadata: zoektIndexMetadataSchema,
+            Stats: zoektRepoStatsSchema,
+        })),
+        Stats: zoektRepoStatsSchema,
+    })
+});

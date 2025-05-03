@@ -1,12 +1,12 @@
 'use server';
 
 import { search } from "@/features/search/searchApi";
-import { searchRequestSchema } from "@/lib/schemas";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
-import { SearchRequest } from "@/lib/types";
+import { searchRequestSchema } from "@/features/search/schemas";
+import { SearchRequest } from "@/features/search/types";
 
 export const POST = async (request: NextRequest) => {
     const domain = request.headers.get("X-Org-Domain")!;

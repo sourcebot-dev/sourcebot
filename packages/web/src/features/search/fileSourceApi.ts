@@ -1,6 +1,6 @@
 import escapeStringRegexp from "escape-string-regexp";
 import { fileNotFound, ServiceError } from "../../lib/serviceError";
-import { FileSourceRequest, FileSourceResponse } from "../../lib/types";
+import { FileSourceRequest, FileSourceResponse } from "./types";
 import { isServiceError } from "../../lib/utils";
 import { search } from "./searchApi";
 
@@ -38,5 +38,5 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
     return {
         source,
         language,
-    }
+    } satisfies FileSourceResponse;
 }

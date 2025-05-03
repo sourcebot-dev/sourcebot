@@ -1,12 +1,12 @@
 'use server';
 
-import { fileSourceRequestSchema } from "@/lib/schemas";
 import { getFileSource } from "@/features/search/fileSourceApi";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 import { sew, withAuth, withOrgMembership } from "@/actions";
-import { FileSourceRequest } from "@/lib/types";
+import { fileSourceRequestSchema } from "@/features/search/schemas";
+import { FileSourceRequest } from "@/features/search/types";
 
 export const POST = async (request: NextRequest) => {
     const body = await request.json();

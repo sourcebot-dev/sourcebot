@@ -1,5 +1,4 @@
 import { env } from "@/env.mjs";
-import { SearchRequest, SearchResponse, SearchResultRange} from "../../lib/types";
 import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
 import { isServiceError } from "../../lib/utils";
 import { zoektFetch } from "./zoektClient";
@@ -7,6 +6,7 @@ import { prisma } from "@/prisma";
 import { ErrorCode } from "../../lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { zoektSearchResponseSchema } from "./zoektSchema";
+import { SearchRequest, SearchResponse, SearchResultRange } from "./types";
 
 // List of supported query prefixes in zoekt.
 // @see : https://github.com/sourcebot-dev/zoekt/blob/main/query/parse.go#L417
@@ -141,7 +141,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
 
     const searchBody = await searchResponse.json();
 
-    const parsed = zoektSearchResponseSchema.transform(({ Result }) => ({
+    const parser = zoektSearchResponseSchema.transform(({ Result }) => ({
         zoektStats: {
             duration: Result.Duration,
             fileCount: Result.FileCount,
@@ -227,6 +227,5 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
         isBranchFilteringEnabled: isBranchFilteringEnabled,
     } satisfies SearchResponse));
 
-    return parsed.parse(searchBody);
+    return parser.parse(searchBody);
 }
-

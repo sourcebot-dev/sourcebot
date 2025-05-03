@@ -2,7 +2,7 @@
 
 import { getCodemirrorLanguage } from "@/lib/codemirrorLanguage";
 import { lineOffsetExtension } from "@/lib/extensions/lineOffsetExtension";
-import { SearchResultRange } from "@/lib/types";
+import { SearchResultRange } from "@/features/search/types";
 import { EditorState, StateField, Transaction } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, lineNumbers } from "@codemirror/view";
 import { useMemo, useRef } from "react";

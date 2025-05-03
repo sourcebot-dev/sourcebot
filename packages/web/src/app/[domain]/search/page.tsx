@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
-import { Repository, SearchQueryParams, SearchResultFile } from "@/lib/types";
+import { SearchQueryParams } from "@/lib/types";
 import { createPathWithQueryParams, measure, unwrapServiceError } from "@/lib/utils";
 import { InfoCircledIcon, SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -23,6 +23,7 @@ import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
+import { Repository, SearchResultFile } from "@/features/search/types";
 
 const DEFAULT_MATCH_COUNT = 10000;
 
@@ -97,12 +98,11 @@ const SearchPageInternal = () => {
         queryKey: ["repos"],
         queryFn: () => getRepos(domain),
         select: (data): Record<string, Repository> =>
-            data.List.Repos
-                .map(r => r.Repository)
+            data.repos
                 .reduce(
                     (acc, repo) => ({
                         ...acc,
-                        [repo.Name]: repo,
+                        [repo.name]: repo,
                     }),
                     {},
                 ),
@@ -204,7 +204,6 @@ const SearchPageInternal = () => {
             ) : (
                 <PanelGroup
                     fileMatches={fileMatches}
-                    totalMatchCount={totalMatchCount}
                     isMoreResultsButtonVisible={isMoreResultsButtonVisible}
                     onLoadMoreResults={onLoadMoreResults}
                     isBranchFilteringEnabled={isBranchFilteringEnabled}
@@ -220,7 +219,6 @@ const SearchPageInternal = () => {
 
 interface PanelGroupProps {
     fileMatches: SearchResultFile[];
-    totalMatchCount: number;
     isMoreResultsButtonVisible?: boolean;
     onLoadMoreResults: () => void;
     isBranchFilteringEnabled: boolean;
@@ -232,7 +230,6 @@ interface PanelGroupProps {
 
 const PanelGroup = ({
     fileMatches,
-    totalMatchCount,
     isMoreResultsButtonVisible,
     onLoadMoreResults,
     isBranchFilteringEnabled,

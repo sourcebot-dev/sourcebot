@@ -6,7 +6,8 @@ import giteaLogo from "@/public/gitea.svg";
 import gerritLogo from "@/public/gerrit.svg";
 import bitbucketLogo from "@/public/bitbucket.svg";
 import { ServiceError } from "./serviceError";
-import { Repository, RepositoryQuery } from "./types";
+import { RepositoryQuery } from "./types";
+import { Repository } from "@/features/search/types";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -48,15 +49,15 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
         return undefined;
     }
 
-    if (!repo.RawConfig) {
+    if (!repo.rawConfig) {
         return undefined;
     }
 
     // @todo : use zod to validate config schema
-    const webUrlType = repo.RawConfig['web-url-type']!;
-    const displayName = repo.RawConfig['display-name'] ?? repo.RawConfig['name']!;
+    const webUrlType = repo.rawConfig['web-url-type']!;
+    const displayName = repo.rawConfig['display-name'] ?? repo.rawConfig['name']!;
 
-    return _getCodeHostInfoInternal(webUrlType, displayName, repo.URL);
+    return _getCodeHostInfoInternal(webUrlType, displayName, repo.url);
 }
 
 export const getRepoQueryCodeHostInfo = (repo: RepositoryQuery): CodeHostInfo | undefined => {

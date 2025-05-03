@@ -1,6 +1,6 @@
 'use client';
 
-import { Repository, SearchResultFile } from "@/lib/types";
+import { Repository, SearchResultFile } from "@/features/search/types";
 import { FileMatchContainer, MAX_MATCHES_TO_PREVIEW } from "./fileMatchContainer";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";

@@ -1,9 +1,21 @@
 'use client';
 
-import { fileSourceResponseSchema, getVersionResponseSchema, listRepositoriesResponseSchema, searchResponseSchema } from "@/lib/schemas";
+import { getVersionResponseSchema } from "@/lib/schemas";
 import { ServiceError } from "@/lib/serviceError";
-import { FileSourceRequest, FileSourceResponse, GetVersionResponse, ListRepositoriesResponse, SearchRequest, SearchResponse } from "@/lib/types";
+import { GetVersionResponse } from "@/lib/types";
 import { isServiceError } from "@/lib/utils";
+import {
+    FileSourceResponse,
+    FileSourceRequest,
+    ListRepositoriesResponse,
+    SearchRequest,
+    SearchResponse,
+} from "@/features/search/types";
+import {
+    fileSourceResponseSchema,
+    listRepositoriesResponseSchema,
+    searchResponseSchema,
+} from "@/features/search/schemas";
 
 export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {

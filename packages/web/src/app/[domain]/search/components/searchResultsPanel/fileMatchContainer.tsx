@@ -2,10 +2,10 @@
 
 import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { Separator } from "@/components/ui/separator";
-import { Repository, SearchResultFile } from "@/lib/types";
 import { DoubleArrowDownIcon, DoubleArrowUpIcon } from "@radix-ui/react-icons";
 import { useCallback, useMemo } from "react";
 import { FileMatch } from "./fileMatch";
+import { Repository, SearchResultFile } from "@/features/search/types";
 
 export const MAX_MATCHES_TO_PREVIEW = 3;
 

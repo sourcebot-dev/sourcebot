@@ -4,9 +4,10 @@ import { fetchFileSource } from "@/app/api/(client)/client";
 import { base64Decode } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { CodePreview, CodePreviewFile } from "./codePreview";
-import { SearchResultFile } from "@/lib/types";
+import { SearchResultFile } from "@/features/search/types";
 import { useDomain } from "@/hooks/useDomain";
 import { SymbolIcon } from "@radix-ui/react-icons";
+
 interface CodePreviewPanelProps {
     fileMatch?: SearchResultFile;
     onClose: () => void;

@@ -3,12 +3,12 @@
 import { EditorContextMenu } from "@/app/[domain]/components/editorContextMenu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SearchResultChunk } from "@/features/search/types";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
 import { gutterWidthExtension } from "@/lib/extensions/gutterWidthExtension";
 import { highlightRanges, searchResultHighlightExtension } from "@/lib/extensions/searchResultHighlightExtension";
-import { SearchResultChunk } from "@/lib/types";
 import { search } from "@codemirror/search";
 import { EditorView } from "@codemirror/view";
 import { Cross1Icon, FileIcon } from "@radix-ui/react-icons";
