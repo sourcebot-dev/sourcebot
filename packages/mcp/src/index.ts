@@ -2,16 +2,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { env } from './env.js';
-
-// todo: refactor this to the schemas package
-const searchRequestSchema = z.object({
-    query: z.string(),
-    maxMatchDisplayCount: z.number(),
-    whole: z.boolean().optional(),
-});
-
-type SearchRequest = z.infer<typeof searchRequestSchema>;
+import { env, numberSchema } from './env.js';
+import { searchResponseSchema } from './schemas.js';
+import { SearchRequest, SearchResponse } from './types.js';
+import { base64Decode } from './utils.js';
 
 // Create MCP server
 const server = new McpServer({
@@ -19,100 +13,104 @@ const server = new McpServer({
     version: '0.1.0',
 });
 
-// Add search_code tool
 server.tool(
     "search_code",
-    "Search for code across the Sourcebot instance.",
+    `Fetches code snippets that match the given keywords exactly. This is not a semantic search. Results are returned as an array of files, where each file contains a list of code snippets, as well as the file's URL, repository, and language. ALWAYS include the file's external URL when referencing a file.`,
     {
         query: z
             .string()
-            .describe(`
-                The Sourcebot search query.
-
-                The query syntax follows the following EBNF grammar:
-
-                '''
-                (* Top-level query definition *)
-                Query ::= Expression | Expression Query ;
-
-                (* Core expressions *)
-                Expression ::= SimpleExpression | ComplexExpression | BooleanExpression | ParenExpression ;
-
-                (* Simple expression is a regex match *)
-                SimpleExpression ::= RegexLiteral ;
-
-                (* Complex expressions with prefixes *)
-                ComplexExpression ::= Prefix RegexLiteral ;
-
-                *)
-                Prefix ::=
-                    "file:" | (* Include only results from filepaths matching the given search pattern. Must be a full path to a file. *)
-                    "repo:" | (* Include only results from the given repository. Must be a full repository url and regex-escaped. (e.g., "github\.com\/sourcebot\/sourcebot-dev") *)
-                    "lang:" | (* Include only results from the given language. The language must be formatted as a GitHub linguist language. *)
-                    "sym:" | (* Include only results from the given symbol. The symbol can be a function, class, variable, etc. *)
-                    "case:" | (* Include only results from the given case. Accepted values are "auto" (default), "yes", and "no". *)
-                    "archived:" | (* Include only results from archived repositories. Accepted values are "yes" and "no". *)
-                    "fork:" | (* Include only results from forked repositories. Accepted values are "yes" and "no". *)
-                    "public:" | (* Include only results from public repositories. Accepted values are "yes" and "no". *)
-                ;
-
-                (* Boolean expressions *)
-                BooleanExpression ::= NegatedExpression | DisjunctiveExpression ;
-
-                (* Negated expression with dash *)
-                NegatedExpression ::= "-" Expression ;
-
-                (* Disjunctive expression with OR *)
-                DisjunctiveExpression ::= Expression "or" Expression ;
-
-                (* Parenthesized expression for grouping *)
-                ParenExpression ::= "(" Query ")" ;
-
-                (* Regex literal can be quoted or unquoted *)
-                RegexLiteral ::= QuotedRegex | UnquotedRegex ;
-
-                (* Quoted regex is wrapped in double quotes *)
-                QuotedRegex ::= '"' RegexChar* '"' ;
-
-                (* Unquoted regex cannot contain spaces unless escaped *)
-                UnquotedRegex ::= (RegexCharNoSpace | EscapedSpace)+ ;
-
-                (* Regular regex character excluding spaces *)
-                RegexCharNoSpace ::= ? any character except space or " ? ;
-
-                (* Regular regex character including spaces when quoted *)
-                RegexChar ::= ? any character except " ? ;
-
-                (* Escaped space character *)
-                EscapedSpace ::= "\ " ;
-                '''
-            `),
+            .describe(`The regex pattern to search for.`),
+        repos: z
+            .array(z.string())
+            .describe(`Scope the search to the provided repositories.`)
+            .optional(),
+        languages: z
+            .array(z.string())
+            .describe(`Scope the search to the provided languages. The language MUST be formatted as a GitHub linguist language. Examples: Python, JavaScript, TypeScript, Java, C#, C++, PHP, Go, Rust, Ruby, Swift, Kotlin, Shell, C, Dart, HTML, CSS, PowerShell, SQL, R`)
+            .optional(),
+        maxTokens: numberSchema
+            .describe(`The maximum number of tokens to return (default: ${env.DEFAULT_MINIMUM_TOKENS}). Higher values provide more context but consume more tokens.`)
+            .transform((val) => (val < env.DEFAULT_MINIMUM_TOKENS ? env.DEFAULT_MINIMUM_TOKENS : val))
+            .optional(),
+        caseSensitive: z.boolean()
+            .describe(`Whether the search should be case sensitive (default: false).`)
+            .optional(),
     },
-    async ({ query }) => {
-        console.error(`executing query: ${query}`);
+    async ({
+        query: inputQuery,
+        repos = [],
+        languages = [],
+        maxTokens = env.DEFAULT_MINIMUM_TOKENS,
+        caseSensitive = false,
+    }) => {
+        let query = `"${inputQuery}"`;
 
-        const searchRequest: SearchRequest = {
-            query,
-            maxMatchDisplayCount: 100,
+        if (repos.length > 0) {
+            query += ` ( repo:${repos.join(' or repo:')} )`;
         }
 
-        const response = await fetch(`${env.SOURCEBOT_HOST}/api/search`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Org-Domain': '~'
-            },
-            body: JSON.stringify(searchRequest)
+        if (languages.length > 0) {
+            query += ` ( lang:${languages.join(' or lang:')} )`;
+        }
+
+        if (caseSensitive) {
+            query += ` case:yes`;
+        } else {
+            query += ` case:no`;
+        }
+
+        console.error(`Executing search request: ${query}`);
+
+        const response = await search({
+            query,
+            matches: env.DEFAULT_MATCHES,
+            contextLines: env.DEFAULT_CONTEXT_LINES,
         });
 
-        const searchResults = await response.json();
+        type TextContent = { type: "text", text: string };
+        const content: TextContent[] = [];
+        let totalTokens = 0;
+
+        for (const file of response.files) {
+            const snippets = file.chunks.map(chunk => {
+                const content = base64Decode(chunk.content);
+                return `\`\`\`\n${content}\n\`\`\``
+            }).join('\n');
+            const text = `file: ${file.url}\nrepository: ${file.repository}\nlanguage: ${file.language}\n${snippets}`;
+            // Rough estimate of the number of tokens in the text
+            // @see: https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them
+            const tokens = text.length / 4;
+
+            if ((totalTokens + tokens) > (maxTokens ?? env.DEFAULT_MINIMUM_TOKENS)) {
+                break;
+            }
+
+            totalTokens += tokens;
+            content.push({
+                type: "text",
+                text,
+            });
+        }
 
         return {
-            content: [{ type: "text", text: String(JSON.stringify(searchResults, null, 2)) }]
+            content,
         }
     }
 );
 
+const search = async (request: SearchRequest): Promise<SearchResponse> => {
+    console.error(`Executing search request: ${JSON.stringify(request, null, 2)}`);
+    const response = await fetch(`${env.SOURCEBOT_HOST}/api/search`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Org-Domain': '~'
+        },
+        body: JSON.stringify(request)
+    });
+
+    return searchResponseSchema.parse(await response.json());
+}
 
 const runServer = async () => {
     const transport = new StdioServerTransport();

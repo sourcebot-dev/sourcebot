@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "node ./dist/index.js",
-    "build:watch": "tsc-watch"
+    "build:watch": "tsc-watch --preserveWatchOutput"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
