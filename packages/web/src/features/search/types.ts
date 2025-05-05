@@ -1,3 +1,4 @@
+// @NOTE : Please keep this file in sync with @sourcebot/mcp/src/types.ts
 import {
     fileSourceResponseSchema,
     listRepositoriesResponseSchema,

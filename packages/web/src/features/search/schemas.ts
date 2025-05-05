@@ -1,3 +1,4 @@
+// @NOTE : Please keep this file in sync with @sourcebot/mcp/src/schemas.ts
 import { z } from "zod";
 
 export const locationSchema = z.object({
@@ -61,6 +62,7 @@ export const searchResponseSchema = z.object({
             // Any matching ranges
             matchRanges: z.array(rangeSchema),
         }),
+        url: z.string(),
         repository: z.string(),
         language: z.string(),
         chunks: z.array(z.object({
@@ -76,7 +78,6 @@ export const searchResponseSchema = z.object({
         // Set if `whole` is true.
         content: z.string().optional(),
     })),
-    repoUrlTemplates: z.record(z.string(), z.string()),
     isBranchFilteringEnabled: z.boolean(),
 });
 

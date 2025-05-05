@@ -79,7 +79,6 @@ export const searchResponseSchema = z.object({
         // Set if `whole` is true.
         content: z.string().optional(),
     })),
-    repoUrlTemplates: z.record(z.string(), z.string()),
     isBranchFilteringEnabled: z.boolean(),
 });
 
