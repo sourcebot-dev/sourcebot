@@ -80,45 +80,58 @@ export class RepoManager implements IRepoManager {
     ///////////////////////////
 
     private async scheduleRepoIndexingBulk(repos: RepoWithConnections[]) {
-        await this.db.$transaction(async (tx) => {
-            await tx.repo.updateMany({
-                where: { id: { in: repos.map(repo => repo.id) } },
-                data: { repoIndexingStatus: RepoIndexingStatus.IN_INDEX_QUEUE }
+        try {
+            await this.db.$transaction(async (tx) => {
+                await this.updateRepoStatuses(tx, repos);
+                const reposByOrg = this.groupReposByOrg(repos);
+                await this.addJobsToQueue(reposByOrg);
             });
-
-            const reposByOrg = repos.reduce<Record<number, RepoWithConnections[]>>((acc, repo) => {
-                if (!acc[repo.orgId]) {
-                    acc[repo.orgId] = [];
-                }
-                acc[repo.orgId].push(repo);
-                return acc;
-            }, {});
-
-            for (const orgId in reposByOrg) {
-                const orgRepos = reposByOrg[orgId];
-                // Set priority based on number of repos (more repos = lower priority)
-                // This helps prevent large orgs from overwhelming the indexQueue
-                const priority = Math.min(Math.ceil(orgRepos.length / 10), 2097152);
-
-                await this.indexQueue.addBulk(orgRepos.map(repo => ({
-                    name: 'repoIndexJob',
-                    data: { repo },
-                    opts: {
-                        priority: priority
-                    }
-                })));
-
-                // Increment pending jobs counter for each repo added
-                orgRepos.forEach(repo => {
-                    this.promClient.pendingRepoIndexingJobs.inc({ repo: repo.id.toString() });
-                });
-
-                this.logger.info(`Added ${orgRepos.length} jobs to indexQueue for org ${orgId} with priority ${priority}`);
-            }
-
-
-        }).catch((err: unknown) => {
+        } catch (err: unknown) {
             this.logger.error(`Failed to add jobs to indexQueue for repos ${repos.map(repo => repo.id).join(', ')}: ${err}`);
+        }
+    }
+
+    private async updateRepoStatuses(tx: PrismaClient, repos: RepoWithConnections[]) {
+        await tx.repo.updateMany({
+            where: { id: { in: repos.map(repo => repo.id) } },
+            data: { repoIndexingStatus: RepoIndexingStatus.IN_INDEX_QUEUE }
+        });
+    }
+
+    private groupReposByOrg(repos: RepoWithConnections[]): Record<number, RepoWithConnections[]> {
+        return repos.reduce<Record<number, RepoWithConnections[]>>((acc, repo) => {
+            if (!acc[repo.orgId]) {
+                acc[repo.orgId] = [];
+            }
+            acc[repo.orgId].push(repo);
+            return acc;
+        }, {});
+    }
+
+    private async addJobsToQueue(reposByOrg: Record<number, RepoWithConnections[]>) {
+        for (const [orgId, orgRepos] of Object.entries(reposByOrg)) {
+            const priority = this.calculatePriority(orgRepos.length);
+            await this.addBulkJobs(orgRepos, priority);
+            this.incrementPendingJobsCounter(orgRepos);
+            this.logger.info(`Added ${orgRepos.length} jobs to indexQueue for org ${orgId} with priority ${priority}`);
+        }
+    }
+
+    private calculatePriority(repoCount: number): number {
+        return Math.min(Math.ceil(repoCount / 10), 2097152);
+    }
+
+    private async addBulkJobs(repos: RepoWithConnections[], priority: number) {
+        await this.indexQueue.addBulk(repos.map(repo => ({
+            name: 'repoIndexJob',
+            data: { repo },
+            opts: { priority }
+        })));
+    }
+
+    private incrementPendingJobsCounter(repos: RepoWithConnections[]) {
+        repos.forEach(repo => {
+            this.promClient.pendingRepoIndexingJobs.inc({ repo: repo.id.toString() });
         });
     }
 
