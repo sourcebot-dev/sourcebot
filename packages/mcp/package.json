@@ -1,8 +1,8 @@
 {
   "name": "@sourcebot/mcp",
-  "version": "0.1.0",
-  "main": "dist/index.js",
+  "version": "0.1.1-rc.1",
   "type": "module",
+  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
@@ -22,5 +22,10 @@
     "escape-string-regexp": "^5.0.0",
     "express": "^5.1.0",
     "zod": "^3.24.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sourcebot-dev/sourcebot.git",
+    "directory": "packages/mcp"
   }
 }
