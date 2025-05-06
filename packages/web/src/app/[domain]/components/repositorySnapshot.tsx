@@ -29,10 +29,10 @@ export function RepositorySnapshot({
     const domain = useDomain();
 
     const { data: repos, isPending, isError } = useQuery({
-        queryKey: ['repos', initialRepos, domain],
+        queryKey: ['repos', domain],
         queryFn: () => unwrapServiceError(getRepos(domain)),
         refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
-        initialData: initialRepos,
+        placeholderData: initialRepos,
     });
 
     if (isPending || isError || !repos) {
