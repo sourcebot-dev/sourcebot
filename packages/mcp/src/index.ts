@@ -103,15 +103,21 @@ server.tool(
         let isResponseTruncated = false;
 
         for (const file of response.files) {
-            const snippets = file.chunks.map(chunk => {
-                const content = base64Decode(chunk.content);
-                return `\`\`\`\n${content}\n\`\`\``
-            }).join('\n');
             const numMatches = file.chunks.reduce(
                 (acc, chunk) => acc + chunk.matchRanges.length,
                 0,
             );
-            const text = `file: ${file.url}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}\n${includeCodeSnippets ? `snippets:\n${snippets}` : ''}`;
+            let text = `file: ${file.url}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}`;
+
+            if (includeCodeSnippets) {
+                const snippets = file.chunks.map(chunk => {
+                    const content = base64Decode(chunk.content);
+                    return `\`\`\`\n${content}\n\`\`\``
+                }).join('\n');
+                text += `\n\n${snippets}`;
+            }
+
+
             // Rough estimate of the number of tokens in the text
             // @see: https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them
             const tokens = text.length / 4;
