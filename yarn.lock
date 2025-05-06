@@ -5258,6 +5258,8 @@ __metadata:
     tsx: "npm:^4.0.0"
     typescript: "npm:^5.0.0"
     zod: "npm:^3.24.3"
+  bin:
+    sourcebot-mcp: ./dist/index.js
   languageName: unknown
   linkType: soft
 
