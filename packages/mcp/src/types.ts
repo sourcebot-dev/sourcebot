@@ -9,6 +9,7 @@ import {
     rangeSchema,
     fileSourceRequestSchema,
     symbolSchema,
+    serviceErrorSchema,
 } from "./schemas.js";
 import { z } from "zod";
 
@@ -25,3 +26,7 @@ export type Repository = ListRepositoriesResponse["repos"][number];
 
 export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
+
+export type TextContent = { type: "text", text: string };
+
+export type ServiceError = z.infer<typeof serviceErrorSchema>;

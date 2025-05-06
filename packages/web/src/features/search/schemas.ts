@@ -84,7 +84,6 @@ export const searchResponseSchema = z.object({
 export const repositorySchema = z.object({
     name: z.string(),
     url: z.string(),
-    source: z.string(),
     branches: z.array(z.string()),
     rawConfig: z.record(z.string(), z.string()).optional(),
 });

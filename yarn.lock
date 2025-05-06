@@ -5252,6 +5252,7 @@ __metadata:
     "@t3-oss/env-core": "npm:^0.13.4"
     "@types/express": "npm:^5.0.1"
     "@types/node": "npm:^20.0.0"
+    escape-string-regexp: "npm:^5.0.0"
     express: "npm:^5.1.0"
     tsc-watch: "npm:6.2.1"
     tsx: "npm:^4.0.0"

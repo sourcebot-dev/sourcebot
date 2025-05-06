@@ -3,9 +3,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { env, numberSchema } from './env.js';
-import { searchResponseSchema } from './schemas.js';
-import { SearchRequest, SearchResponse } from './types.js';
-import { base64Decode } from './utils.js';
+import { listRepositoriesResponseSchema, searchResponseSchema } from './schemas.js';
+import { ListRepositoriesResponse, SearchRequest, SearchResponse, TextContent, ServiceError } from './types.js';
+import { base64Decode, isServiceError } from './utils.js';
+import escapeStringRegexp from 'escape-string-regexp';
 
 // Create MCP server
 const server = new McpServer({
@@ -19,17 +20,20 @@ server.tool(
     {
         query: z
             .string()
-            .describe(`The regex pattern to search for.`),
-        repos: z
+            .describe(`The regex pattern to search for. RULES:
+            1. When a regex special character needs to be escaped, ALWAYS use a single backslash (\) (e.g., 'console\.log')
+            2. ALWAYS escape spaces with a single backslash (\) (e.g., 'console\ log')
+        `),
+        repoIds: z
             .array(z.string())
-            .describe(`Scope the search to the provided repositories.`)
+            .describe(`Scope the search to the provided repositories to the Sourcebot compatible repository IDs. Do not use this property if you want to search all repositories. You must call 'list_repos' first to obtain the exact repository ID.`)
             .optional(),
         languages: z
             .array(z.string())
             .describe(`Scope the search to the provided languages. The language MUST be formatted as a GitHub linguist language. Examples: Python, JavaScript, TypeScript, Java, C#, C++, PHP, Go, Rust, Ruby, Swift, Kotlin, Shell, C, Dart, HTML, CSS, PowerShell, SQL, R`)
             .optional(),
         maxTokens: numberSchema
-            .describe(`The maximum number of tokens to return (default: ${env.DEFAULT_MINIMUM_TOKENS}). Higher values provide more context but consume more tokens.`)
+            .describe(`The maximum number of tokens to return (default: ${env.DEFAULT_MINIMUM_TOKENS}). Higher values provide more context but consume more tokens. Values less than ${env.DEFAULT_MINIMUM_TOKENS} will be ignored.`)
             .transform((val) => (val < env.DEFAULT_MINIMUM_TOKENS ? env.DEFAULT_MINIMUM_TOKENS : val))
             .optional(),
         caseSensitive: z.boolean()
@@ -37,16 +41,14 @@ server.tool(
             .optional(),
     },
     async ({
-        query: inputQuery,
-        repos = [],
+        query,
+        repoIds = [],
         languages = [],
         maxTokens = env.DEFAULT_MINIMUM_TOKENS,
         caseSensitive = false,
     }) => {
-        let query = `"${inputQuery}"`;
-
-        if (repos.length > 0) {
-            query += ` ( repo:${repos.join(' or repo:')} )`;
+        if (repoIds.length > 0) {
+            query += ` ( repo:${repoIds.map(id => escapeStringRegexp(id)).join(' or repo:')} )`;
         }
 
         if (languages.length > 0) {
@@ -67,9 +69,27 @@ server.tool(
             contextLines: env.DEFAULT_CONTEXT_LINES,
         });
 
-        type TextContent = { type: "text", text: string };
+        if (isServiceError(response)) {
+            return {
+                content: [{
+                    type: "text",
+                    text: `Error searching code: ${response.message}`,
+                }],
+            };
+        }
+
+        if (response.files.length === 0) {
+            return {
+                content: [{
+                    type: "text",
+                    text: `No results found for the query: ${query}`,
+                }],
+            };
+        }
+
         const content: TextContent[] = [];
         let totalTokens = 0;
+        let isResponseTruncated = false;
 
         for (const file of response.files) {
             const snippets = file.chunks.map(chunk => {
@@ -82,6 +102,7 @@ server.tool(
             const tokens = text.length / 4;
 
             if ((totalTokens + tokens) > (maxTokens ?? env.DEFAULT_MINIMUM_TOKENS)) {
+                isResponseTruncated = true;
                 break;
             }
 
@@ -92,24 +113,78 @@ server.tool(
             });
         }
 
+        if (isResponseTruncated) {
+            content.push({
+                type: "text",
+                text: `The response was truncated because the number of tokens exceeded the maximum limit of ${maxTokens}.`,
+            });
+        }
+
         return {
             content,
         }
     }
 );
 
-const search = async (request: SearchRequest): Promise<SearchResponse> => {
+server.tool(
+    "list_repos",
+    "Lists all repositories in the organization.",
+    async () => {
+        const response = await listRepos();
+        if (isServiceError(response)) {
+            return {
+                content: [{
+                    type: "text",
+                    text: `Error listing repositories: ${response.message}`,
+                }],
+            };
+        }
+
+        const content: TextContent[] = response.repos.map(repo => {
+            return {
+                type: "text",
+                text: `id: ${repo.name}\nurl: ${repo.url}`,
+            }
+        });
+
+        return {
+            content,
+        };
+    }
+);
+
+const search = async (request: SearchRequest): Promise<SearchResponse | ServiceError> => {
     console.error(`Executing search request: ${JSON.stringify(request, null, 2)}`);
-    const response = await fetch(`${env.SOURCEBOT_HOST}/api/search`, {
+    const result = await fetch(`${env.SOURCEBOT_HOST}/api/search`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Org-Domain': '~'
         },
         body: JSON.stringify(request)
-    });
+    }).then(response => response.json());
 
-    return searchResponseSchema.parse(await response.json());
+    if (isServiceError(result)) {
+        return result;
+    }
+
+    return searchResponseSchema.parse(result);
+}
+
+const listRepos = async (): Promise<ListRepositoriesResponse | ServiceError> => {
+    const result = await fetch(`${env.SOURCEBOT_HOST}/api/repos`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Org-Domain': '~'
+        },
+    }).then(response => response.json());
+
+    if (isServiceError(result)) {
+        return result;
+    }
+
+    return listRepositoriesResponseSchema.parse(result);
 }
 
 const runServer = async () => {

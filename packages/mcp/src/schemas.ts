@@ -85,7 +85,6 @@ export const searchResponseSchema = z.object({
 export const repositorySchema = z.object({
     name: z.string(),
     url: z.string(),
-    source: z.string(),
     branches: z.array(z.string()),
     rawConfig: z.record(z.string(), z.string()).optional(),
 });
@@ -103,4 +102,10 @@ export const fileSourceRequestSchema = z.object({
 export const fileSourceResponseSchema = z.object({
     source: z.string(),
     language: z.string(),
+});
+
+export const serviceErrorSchema = z.object({
+    statusCode: z.number(),
+    errorCode: z.string(),
+    message: z.string(),
 });

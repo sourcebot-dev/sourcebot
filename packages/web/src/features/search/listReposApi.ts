@@ -34,7 +34,6 @@ export const listRepositories = async (orgId: number): Promise<ListRepositoriesR
         repos: List.Repos.map((repo) => ({
             name: repo.Repository.Name,
             url: repo.Repository.URL,
-            source: repo.Repository.Source,
             branches: repo.Repository.Branches?.map((branch) => branch.Name) ?? [],
             rawConfig: repo.Repository.RawConfig ?? undefined,
         }))
