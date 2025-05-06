@@ -15,14 +15,24 @@ import {
 } from "@/components/ui/carousel";
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { SymbolIcon } from "@radix-ui/react-icons";
+import { RepositoryQuery } from "@/lib/types";
 
-export function RepositorySnapshot({ authEnabled }: { authEnabled: boolean }) {
+interface RepositorySnapshotProps {
+    authEnabled: boolean;
+    repos: RepositoryQuery[];
+}
+
+export function RepositorySnapshot({
+    authEnabled,
+    repos: initialRepos,
+}: RepositorySnapshotProps) {
     const domain = useDomain();
 
     const { data: repos, isPending, isError } = useQuery({
-        queryKey: ['repos', domain],
+        queryKey: ['repos', initialRepos, domain],
         queryFn: () => unwrapServiceError(getRepos(domain)),
         refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
+        initialData: initialRepos,
     });
 
     if (isPending || isError || !repos) {
@@ -33,22 +43,30 @@ export function RepositorySnapshot({ authEnabled }: { authEnabled: boolean }) {
         )
     }
 
-    const numIndexedRepos = repos.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.INDEXED).length;
-    const numIndexingRepos = repos.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.INDEXING || repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE).length;
-    if (numIndexedRepos === 0 && numIndexingRepos > 0) {
-        return (
-            <div className="flex flex-row items-center gap-3">
-                <SymbolIcon className="h-4 w-4 animate-spin" />
-                <span className="text-sm">indexing in progress...</span>
-            </div>
-        )
-    } else if (numIndexedRepos == 0) {
-        return (
-            <EmptyRepoState domain={domain} authEnabled={authEnabled} />
-        )
+    // Use `indexedAt` to determine if a repo has __ever__ been indexed.
+    // The repo indexing status only tells us the repo's current indexing status.
+    const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
+
+    // If there are no indexed repos...
+    if (indexedRepos.length === 0) {
+
+        // ... show a loading state if repos are being indexed now
+        if (repos.some((repo) => repo.repoIndexingStatus === RepoIndexingStatus.INDEXING || repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE)) {
+            return (
+                <div className="flex flex-row items-center gap-3">
+                    <SymbolIcon className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">indexing in progress...</span>
+                </div>
+            )
+
+        // ... otherwise, show the empty state.
+        } else {
+            return (
+                <EmptyRepoState domain={domain} authEnabled={authEnabled} />
+            )
+        }
     }
  
-    const indexedRepos = repos.filter((repo) => repo.repoIndexingStatus === RepoIndexingStatus.INDEXED);
     return (
         <div className="flex flex-col items-center gap-3">
             <span className="text-sm">
@@ -57,7 +75,7 @@ export function RepositorySnapshot({ authEnabled }: { authEnabled: boolean }) {
                     href={`${domain}/repos`}
                     className="text-blue-500"
                 >
-                    {repos.length > 1 ? 'repositories' : 'repository'}
+                    {indexedRepos.length > 1 ? 'repositories' : 'repository'}
                 </Link>
             </span>
             <RepositoryCarousel repos={indexedRepos} />
