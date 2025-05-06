@@ -1,0 +1,172 @@
+---
+title: Sourcebot MCP server (@sourcebot/mcp)
+sidebarTitle: Sourcebot MCP server
+---
+
+<Note>
+This feature is only available when [self-hosting](/self-hosting) with [authentication](/self-hosting/more/authentication) disabled.
+</Note>
+
+The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) is a open standard for providing context to LLMs. The [@sourcebot/mcp](https://www.npmjs.com/package/@sourcebot/mcp) package is a MCP server that enables LLMs to interface with your Sourcebot instance, enabling MCP clients like Cursor, Vscode, and others to have context over your entire codebase.
+
+## Getting Started
+
+<Steps>
+    <Step title="Launch Sourcebot">
+        Follow the self-hosting [quick start guide](/self-hosting/overview#quick-start-guide) to launch Sourcebot and get your code indexed.
+    </Step>
+
+    <Step title="Install the MCP server">
+        <Note>
+            Ensure you have [Node.js](https://nodejs.org/en) >= v18.0.0 installed.
+        </Note>
+        Next, we can install the [@sourcebot/mcp](https://www.npmjs.com/package/@sourcebot/mcp) MCP server into any supported MCP client:
+        
+        <AccordionGroup>
+            <Accordion title="Cursor">
+                [Cursor MCP docs](https://docs.cursor.com/context/model-context-protocol)
+
+                Go to: `Settings` -> `Cursor Settings` -> `MCP` -> `Add new global MCP server`
+
+                Paste the following into your `~/.cursor/mcp.json` file. This will install Sourcebot globally within Cursor:
+
+                ```json
+                {
+                    "mcpServers": {
+                        "sourcebot": {
+                            "command": "npx",
+                            "args": ["-y", "@sourcebot/mcp@latest" ],
+                            "env": {
+                                "SOURCEBOT_HOST": "http://localhost:3000"
+                            }
+                        }
+                    }
+                }
+                ```
+
+                Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
+            </Accordion>
+            <Accordion title="Windsurf">
+                [Windsurf MCP docs](https://docs.windsurf.com/windsurf/mcp)
+
+                Go to: `Windsurf Settings` -> `Cascade` -> `Add Server` -> `Add Custom Server`
+
+                Paste the following into your `mcp_config.json` file:
+
+                ```json
+                {
+                    "mcpServers": {
+                        "sourcebot": {
+                            "command": "npx",
+                            "args": ["-y", "@sourcebot/mcp@latest" ],
+                            "env": {
+                                "SOURCEBOT_HOST": "http://localhost:3000"
+                            }
+                        }
+                    }
+                }
+                ```
+
+                Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
+
+            </Accordion>
+            <Accordion title="VS Code">
+                [VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers)
+
+                Add the following to your [settings.json](https://code.visualstudio.com/docs/copilot/chat/mcp-servers):
+                
+                ```json
+                {
+                    "mcp": {
+                        "servers": {
+                            "sourcebot": {
+                                "type": "stdio",
+                                "command": "npx",
+                                "args": ["-y", "@sourcebot/mcp@latest"]
+                            }
+                        }
+                    }
+                }
+                ```
+
+                Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
+            </Accordion>
+            <Accordion title="Claude Code">
+                [Claude Code MCP docs](https://docs.anthropic.com/en/docs/claude-code/tutorials#set-up-model-context-protocol-mcp)
+
+                Run the following command:
+
+                ```sh
+                claude mcp add sourcebot -e http://localhost:3000 -- npx -y @sourcebot/mcp@latest
+                ```
+
+                Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
+            </Accordion>
+            <Accordion title="Claude Desktop">
+                [Claude Desktop MCP docs](https://modelcontextprotocol.io/quickstart/user)
+
+                Add the following to your `claude_desktop_config.json`:
+
+                ```json
+                {
+                    "mcpServers": {
+                        "sourcebot": {
+                            "command": "npx",
+                            "args": ["-y", "@sourcebot/mcp@latest"],
+                            "env": {
+                                "SOURCEBOT_HOST": "http://localhost:3000"
+                            }
+                        }
+                    }
+                }
+                ```
+
+                Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
+            </Accordion>
+        </AccordionGroup>
+    </Step>
+
+</Steps>
+
+
+## Available Tools
+
+
+### `search_code`
+
+Fetches code that matches the provided regex pattern in `query`.
+
+Parameters:
+| Name                  | Required | Description                                                                                                                       |
+|:----------------------|:---------|:----------------------------------------------------------------------------------------------------------------------------------|
+| `query`               | yes      | Regex pattern to search for. Escape special characters and spaces with a single backslash (e.g., 'console\.log', 'console\ log'). |
+| `filterByRepoIds`     | no       | Restrict search to specific repository IDs (from 'list_repos'). Leave empty to search all.                                        |
+| `filterByLanguages`   | no       | Restrict search to specific languages (GitHub linguist format, e.g., Python, JavaScript).                                         |
+| `caseSensitive`       | no       | Case sensitive search (default: false).                                                                                           |
+| `includeCodeSnippets` | no       | Include code snippets in results (default: false).                                                                                |
+| `maxTokens`           | no       | Max tokens to return (default: env.DEFAULT_MINIMUM_TOKENS).                                                                       |
+
+
+### `list_repos`
+
+Lists all repositories indexed by Sourcebot.
+
+### `get_file_source`
+
+Fetches the source code for a given file.
+
+Parameters:
+| Name         | Required | Description                                                      |
+|:-------------|:---------|:-----------------------------------------------------------------|
+| `fileName`   | yes      | The file to fetch the source code for.                           |
+| `repoId`     | yes      | The Sourcebot repository ID.                                     |
+
+
+## Environment Variables
+
+| Name                     | Default                | Description                                       |
+|:-------------------------|:-----------------------|:--------------------------------------------------|
+| `SOURCEBOT_HOST`         | http://localhost:3000  | URL of your Sourcebot instance.                   |
+| `DEFAULT_MINIMUM_TOKENS` | 10000                  | Minimum number of tokens to return in responses.  |
+| `DEFAULT_MATCHES`        | 10000                  | Number of code matches to fetch per search.       |
+| `DEFAULT_CONTEXT_LINES`  | 5                      | Lines of context to include above/below matches.  |

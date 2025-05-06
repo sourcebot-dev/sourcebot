@@ -181,12 +181,12 @@ server.tool(
     "Fetches the source code for a given file.",
     {
         fileName: z.string().describe("The file to fetch the source code for."),
-        repository: z.string().describe("The repository to fetch the source code for. This is the Sourcebot compatible repository ID."),
+        repoId: z.string().describe("The repository to fetch the source code for. This is the Sourcebot compatible repository ID."),
     },
-    async ({ fileName, repository }) => {
+    async ({ fileName, repoId }) => {
         const response = await getFileSource({
             fileName,
-            repository,
+            repository: repoId,
         });
 
         if (isServiceError(response)) {
@@ -200,7 +200,7 @@ server.tool(
 
         const content: TextContent[] = [{
             type: "text",
-            text: `file: ${fileName}\nrepository: ${repository}\nlanguage: ${response.language}\nsource:\n${base64Decode(response.source)}`,
+            text: `file: ${fileName}\nrepository: ${repoId}\nlanguage: ${response.language}\nsource:\n${base64Decode(response.source)}`,
         }]
 
         return {
