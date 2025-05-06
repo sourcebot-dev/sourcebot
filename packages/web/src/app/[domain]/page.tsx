@@ -10,12 +10,16 @@ import { SourcebotLogo } from "../components/sourcebotLogo";
 import { RepositorySnapshot } from "./components/repositorySnapshot";
 import { SyntaxReferenceGuideHint } from "./components/syntaxReferenceGuideHint";
 import { env } from '@/env.mjs';
+import { getRepos } from "@/actions";
+import { isServiceError } from "@/lib/utils";
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
     if (!org) {
         return <PageNotFound />
     }
+
+    const repos = await getRepos(domain);
 
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
@@ -34,7 +38,10 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                     className="mt-4 w-full max-w-[800px]"
                 />
                 <div className="mt-8">
-                    <RepositorySnapshot authEnabled={env.SOURCEBOT_AUTH_ENABLED === 'true'} />
+                    <RepositorySnapshot
+                        authEnabled={env.SOURCEBOT_AUTH_ENABLED === 'true'}
+                        repos={isServiceError(repos) ? [] : repos}
+                    />
                 </div>
                 <div className="flex flex-col items-center w-fit gap-6">
                     <Separator className="mt-5" />
