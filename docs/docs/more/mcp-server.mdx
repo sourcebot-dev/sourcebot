@@ -13,7 +13,9 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP)
 
 <Steps>
     <Step title="Launch Sourcebot">
-        Follow the self-hosting [quick start guide](/self-hosting/overview#quick-start-guide) to launch Sourcebot and get your code indexed.
+        Follow the self-hosting [quick start guide](/self-hosting/overview#quick-start-guide) to launch Sourcebot and get your code indexed. The host url of your instance (e.g., `http://localhost:3000`) is passed to the MCP server via the `SOURCEBOT_HOST` url.
+
+        If a host is not provided, then the server will fallback to using the demo instance hosted at https://demo.sourcebot.dev. You can see the list of repositories indexed [here](https://demo.sourcebot.dev/~/repos). Add additional repositories by [opening a PR](https://github.com/sourcebot-dev/sourcebot/blob/main/demo-site-config.json).
     </Step>
 
     <Step title="Install the MCP server">
@@ -83,6 +85,9 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP)
                                 "type": "stdio",
                                 "command": "npx",
                                 "args": ["-y", "@sourcebot/mcp@latest"]
+                            },
+                            "env": {
+                                "SOURCEBOT_HOST": "http://localhost:3000"
                             }
                         }
                     }
@@ -97,7 +102,7 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP)
                 Run the following command:
 
                 ```sh
-                claude mcp add sourcebot -e http://localhost:3000 -- npx -y @sourcebot/mcp@latest
+                claude mcp add sourcebot -e SOURCEBOT_HOST=http://localhost:3000 -- npx -y @sourcebot/mcp@latest
                 ```
 
                 Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
@@ -124,6 +129,10 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP)
                 Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
             </Accordion>
         </AccordionGroup>
+    </Step>
+
+    <Step title="Prompt the LLM">
+        Tell your LLM to `use sourcebot` when prompting.
     </Step>
 
 </Steps>

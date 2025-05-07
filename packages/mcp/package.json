@@ -1,34 +1,41 @@
 {
-  "name": "@sourcebot/mcp",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "dev": "node ./dist/index.js",
-    "build:watch": "tsc-watch --preserveWatchOutput"
-  },
-  "devDependencies": {
-    "@types/express": "^5.0.1",
-    "@types/node": "^20.0.0",
-    "tsc-watch": "6.2.1",
-    "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.10.2",
-    "@t3-oss/env-core": "^0.13.4",
-    "escape-string-regexp": "^5.0.0",
-    "express": "^5.1.0",
-    "zod": "^3.24.3"
-  },
-  "bin": {
-    "sourcebot-mcp": "./dist/index.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/sourcebot-dev/sourcebot.git",
-    "directory": "packages/mcp"
-  }
+    "name": "@sourcebot/mcp",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "node ./dist/index.js",
+        "build:watch": "tsc-watch --preserveWatchOutput"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.1",
+        "@types/node": "^20.0.0",
+        "tsc-watch": "6.2.1",
+        "tsx": "^4.0.0",
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.10.2",
+        "@t3-oss/env-core": "^0.13.4",
+        "escape-string-regexp": "^5.0.0",
+        "express": "^5.1.0",
+        "zod": "^3.24.3"
+    },
+    "bin": {
+        "sourcebot-mcp": "./dist/index.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sourcebot-dev/sourcebot.git",
+        "directory": "packages/mcp"
+    },
+    "keywords": [
+        "mcp",
+        "modelcontextprotocol",
+        "code-search",
+        "sourcebot",
+        "code-intelligence"
+    ]
 }

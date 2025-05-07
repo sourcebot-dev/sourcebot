@@ -3,9 +3,11 @@ import { z } from "zod";
 
 export const numberSchema = z.coerce.number();
 
+const SOURCEBOT_DEMO_HOST = "https://demo.sourcebot.dev";
+
 export const env = createEnv({
     server: {
-        SOURCEBOT_HOST: z.string().url().default("http://localhost:3000"),
+        SOURCEBOT_HOST: z.string().url().default(SOURCEBOT_DEMO_HOST),
 
         // The minimum number of tokens to return
         DEFAULT_MINIMUM_TOKENS: numberSchema.default(10000),
