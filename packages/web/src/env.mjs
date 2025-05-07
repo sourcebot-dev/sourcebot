@@ -52,6 +52,10 @@ export const env = createEnv({
 
         // EE License
         SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),
+
+        // OpenAI
+        // @nocheckin : This should be optional
+        OPENAI_API_KEY: z.string(),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in
