@@ -97,11 +97,11 @@ The Sourcebot MCP server enables precise regular expression code search across r
                 "sourcebot": {
                     "type": "stdio",
                     "command": "npx",
-                    "args": ["-y", "@sourcebot/mcp@latest"]
-                },
-                // Optional - if not specified, https://demo.sourcebot.dev is used
-                "env": {
-                    "SOURCEBOT_HOST": "http://localhost:3000"
+                    "args": ["-y", "@sourcebot/mcp@latest"],
+                    // Optional - if not specified, https://demo.sourcebot.dev is used
+                    "env": {
+                        "SOURCEBOT_HOST": "http://localhost:3000"
+                    }
                 }
             }
         }
