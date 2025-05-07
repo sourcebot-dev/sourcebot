@@ -1,4 +1,5 @@
-// @NOTE : Please keep this file in sync with @sourcebot/mcp/src/types.ts
+// @NOTE : Please keep this file in sync with @sourcebot/web/src/features/search/types.ts
+// At some point, we should move these to a shared package...
 import {
     fileSourceResponseSchema,
     listRepositoriesResponseSchema,
@@ -8,7 +9,8 @@ import {
     rangeSchema,
     fileSourceRequestSchema,
     symbolSchema,
-} from "./schemas";
+    serviceErrorSchema,
+} from "./schemas.js";
 import { z } from "zod";
 
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
@@ -24,3 +26,7 @@ export type Repository = ListRepositoriesResponse["repos"][number];
 
 export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
+
+export type TextContent = { type: "text", text: string };
+
+export type ServiceError = z.infer<typeof serviceErrorSchema>;

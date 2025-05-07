@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added special `*` value for `rev:` to allow searching across all branches. [#281](https://github.com/sourcebot-dev/sourcebot/pull/281)
+- Added the Sourcebot Model Context Protocol (MCP) server in [packages/mcp](./packages/mcp/README.md) to allow LLMs to interface with Sourcebot. Checkout the npm package [here](https://www.npmjs.com/package/@sourcebot/mcp). [#292](https://github.com/sourcebot-dev/sourcebot/pull/292)
 
 ## [3.1.2] - 2025-04-30
 

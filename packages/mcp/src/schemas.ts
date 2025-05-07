@@ -1,4 +1,5 @@
-// @NOTE : Please keep this file in sync with @sourcebot/mcp/src/schemas.ts
+// @NOTE : Please keep this file in sync with @sourcebot/web/src/features/search/schemas.ts
+// At some point, we should move these to a shared package...
 import { z } from "zod";
 
 export const locationSchema = z.object({
@@ -62,9 +63,9 @@ export const searchResponseSchema = z.object({
             // Any matching ranges
             matchRanges: z.array(rangeSchema),
         }),
-        url: z.string(),
         repository: z.string(),
         language: z.string(),
+        url: z.string(),
         chunks: z.array(z.object({
             content: z.string(),
             matchRanges: z.array(rangeSchema),
@@ -101,4 +102,10 @@ export const fileSourceRequestSchema = z.object({
 export const fileSourceResponseSchema = z.object({
     source: z.string(),
     language: z.string(),
+});
+
+export const serviceErrorSchema = z.object({
+    statusCode: z.number(),
+    errorCode: z.string(),
+    message: z.string(),
 });

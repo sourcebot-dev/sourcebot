@@ -48,7 +48,9 @@
                         "pages": [
                             "docs/more/syntax-reference",
                             "docs/more/multi-branch-indexing",
-                            "docs/more/roles-and-permissions"
+                            "docs/more/roles-and-permissions",
+                            "docs/more/mcp-server",
+                            "docs/more/search-contexts"
                         ]
                     }
                 ]
@@ -71,8 +73,7 @@
                             "self-hosting/more/authentication",
                             "self-hosting/more/tenancy",
                             "self-hosting/more/transactional-emails",
-                            "self-hosting/more/declarative-config",
-                            "self-hosting/more/search-contexts"
+                            "self-hosting/more/declarative-config"
                         ]
                     },
                     {
