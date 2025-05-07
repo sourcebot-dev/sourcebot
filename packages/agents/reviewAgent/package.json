@@ -1,0 +1,37 @@
+{
+  "name": "review-agent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sourcebot-dev/review-agent.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sourcebot-dev/review-agent/issues"
+  },
+  "homepage": "https://github.com/sourcebot-dev/review-agent#readme",
+  "dependencies": {
+    "@octokit/webhooks": "^13.8.2",
+    "@octokit/webhooks-definitions": "octokit/webhooks",
+    "dotenv": "^16.5.0",
+    "octokit": "^4.1.3",
+    "openai": "^4.97.0",
+    "parse-diff": "^0.11.1",
+    "zod": "^3.24.4",
+    "zod-to-json-schema": "^3.24.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.8",
+    "smee-client": "^3.1.1",
+    "typescript": "^5.8.3"
+  }
+}
