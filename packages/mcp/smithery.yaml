@@ -1,0 +1,24 @@
+# Smithery configuration file: https://smithery.ai/docs/build/project-config
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required: []
+    properties:
+      sourcebotHost:
+        type: string
+        description: Optional URL of the Sourcebot server (e.g., http://localhost:3000).
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => {
+      const env = {};
+      if (config.sourcebotHost) {
+        env.SOURCEBOT_HOST = config.sourcebotHost;
+      }
+      return { command: 'node', args: ['dist/index.js'], env };
+    }
+  exampleConfig:
+    sourcebotHost: http://localhost:3000
