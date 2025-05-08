@@ -146,6 +146,14 @@ The Sourcebot MCP server enables precise regular expression code search across r
     }
     ```
     </details>
+    <br/>
+
+    Alternatively, you can install using via [Smithery](https://smithery.ai/server/@sourcebot-dev/sourcebot). For example:
+
+    ```bash
+    npx -y @smithery/cli install @sourcebot-dev/sourcebot --client claude
+    ```
+
 <br/>
 
 4. Tell your LLM to `use sourcebot` when prompting.
