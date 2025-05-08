@@ -22,7 +22,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import * as React from "react"
-
+import { PlusIcon } from "lucide-react"
+import { env } from "@/env.mjs"
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
@@ -60,7 +61,7 @@ export function DataTable<TData, TValue>({
 
     return (
         <div>
-            <div className="flex items-center py-4">
+            <div className="flex items-center justify-between py-4">
                 <Input
                     placeholder={searchPlaceholder}
                     value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
@@ -69,6 +70,22 @@ export function DataTable<TData, TValue>({
                     }
                     className="max-w-sm"
                 />
+                {/*
+                    Show a button on the demo site that allows users to add new repositories
+                    by updating the demo-site-config.json file and opening a PR.
+                */}
+                {env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo" && (
+                    <Button
+                        variant="default"
+                        size="default"
+                        onClick={() => {
+                            window.open("https://github.com/sourcebot-dev/sourcebot/edit/main/demo-site-config.json", "_blank");
+                        }}
+                    >
+                        <PlusIcon className="w-4 h-4" />
+                        Add repository
+                    </Button>
+                )}
             </div>
             <div className="rounded-md border">
                 <Table>

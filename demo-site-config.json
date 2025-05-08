@@ -1,7 +1,13 @@
+// This is the config file for https://demo.sourcebot.dev.
+// To add a new repository, edit this file and open a PR.
+// After the PR is merged, the deploy demo workflow will
+// run (see: https://github.com/sourcebot-dev/sourcebot/actions/workflows/deploy-demo.yml),
+// after which the changes will be reflected on the demo site.
 {
     "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
     "connections": {
-        // https://docs.sourcebot.dev/docs/connections/github
+        // Defines the GitHub repositories.
+        // See: https://docs.sourcebot.dev/docs/connections/github
         "github-repos": {
             "type": "github",
             "token": {
@@ -221,12 +227,10 @@
                 "envoyproxy/envoy"
             ]
         },
-        // https://docs.sourcebot.dev/docs/connections/gitlab
+        // Defines the GitLab repositories.
+        // See: https://docs.sourcebot.dev/docs/connections/gitlab
         "gitlab-repos": {
             "type": "gitlab",
-            "token": {
-                "env": "GITLAB_TOKEN"
-            },
             "projects": [
                 "gnachman/iterm2"
             ]
