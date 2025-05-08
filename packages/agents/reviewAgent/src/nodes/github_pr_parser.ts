@@ -6,6 +6,10 @@ import { Octokit } from "octokit";
 export const github_pr_parser = async (octokit: Octokit, payload: WebhookEventDefinition<"pull-request-opened"> | WebhookEventDefinition<"pull-request-synchronize">): Promise<sourcebot_pr_payload> => {
     console.log("Executing github_pr_parser");
 
+    if (!payload.installation) {
+        throw new Error("Installation not found in github payload");
+    }
+
     const diff = await octokit.request(payload.pull_request.patch_url);
     const parsedDiff: parse.File[] = parse(diff.data);
 

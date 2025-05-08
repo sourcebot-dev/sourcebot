@@ -21,11 +21,15 @@ export const invoke_diff_review_llm = async (prompt: string, filename: string): 
         const openaiResponse = completion.choices[0].message.content;
         console.log("OpenAI response: ", openaiResponse);
         
-        const diffReviewJson = JSON.parse(openaiResponse || '');
-        const diffReview = sourcebot_diff_review_schema.parse(diffReviewJson);
+        const diffReviewJson = JSON.parse(openaiResponse || '{}');
+        const diffReview = sourcebot_diff_review_schema.safeParse(diffReviewJson);
+
+        if (!diffReview.success) {
+            throw new Error(`Invalid diff review format: ${diffReview.error}`);
+        }
 
         console.log("Completed invoke_diff_review_llm");
-        return diffReview;
+        return diffReview.data;
     } catch (error) {
         console.error('Error calling OpenAI:', error);
         throw error;

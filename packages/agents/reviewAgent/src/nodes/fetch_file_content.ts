@@ -1,23 +1,14 @@
-import { sourcebot_context, sourcebot_pr_payload } from "../src/types.js";
-import { z } from "zod";
-
-// TODO: use original Sourcebot schemas instead of redefining here
-const fileSourceResponseSchema = z.object({
-    source: z.string(),
-    language: z.string(),
-});
-
-const base64Decode = (base64: string): string => {
-    const binString = atob(base64);
-    return Buffer.from(Uint8Array.from(binString, (m) => m.codePointAt(0)!).buffer).toString();
-}
+import { sourcebot_context, sourcebot_pr_payload } from "../types.js";
+import { fileSourceResponseSchema } from "@sourcebot/web/src/features/search/schemas.js"; 
+import { base64Decode } from "@sourcebot/web/src/lib/utils.js";
 
 export const fetch_file_content = async (pr_payload: sourcebot_pr_payload, filename: string): Promise<sourcebot_context> => {
     console.log("Executing fetch_file_content");
 
+    const repoPath = pr_payload.hostDomain + "/" + pr_payload.owner + "/" + pr_payload.repo;
     const fileSourceRequest = {
         fileName: filename,
-        repository: pr_payload.hostDomain + "/" + pr_payload.owner + "/" + pr_payload.repo,
+        repository: repoPath,
     }
     console.log(JSON.stringify(fileSourceRequest, null, 2));
 
@@ -31,7 +22,7 @@ export const fetch_file_content = async (pr_payload: sourcebot_pr_payload, filen
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch file content: ${response.statusText}`);
+        throw new Error(`Failed to fetch file content for ${filename} from ${repoPath}: ${response.statusText}`);
     }
 
     const responseData = await response.json();

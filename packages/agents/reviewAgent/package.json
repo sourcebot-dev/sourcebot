@@ -1,5 +1,5 @@
 {
-  "name": "review-agent",
+  "name": "@sourcebot/review-agent",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,17 +8,6 @@
     "build": "tsc",
     "start": "node dist/app.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/sourcebot-dev/review-agent.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/sourcebot-dev/review-agent/issues"
-  },
-  "homepage": "https://github.com/sourcebot-dev/review-agent#readme",
   "dependencies": {
     "@octokit/webhooks": "^13.8.2",
     "@octokit/webhooks-definitions": "octokit/webhooks",
