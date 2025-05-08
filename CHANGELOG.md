@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.3] - 2025-05-07
+
 ### Fixed
 - Fixes bug with repos not being visible in the homepage carousel when re-indexing. [#294](https://github.com/sourcebot-dev/sourcebot/pull/294)
 
