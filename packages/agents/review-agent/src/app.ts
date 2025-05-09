@@ -52,15 +52,11 @@ app.webhooks.onError((error) => {
     console.error(error);
 });
 
-
 const port = 3050;
-const host = 'localhost';
 const path = "/api/webhook";
-const localWebhookUrl = `http://${host}:${port}${path}`;
 
 const middleware = createNodeMiddleware(app.webhooks, { path });
 
 http.createServer(middleware).listen(port, () => {
-    console.log(`Server is listening for events at: ${localWebhookUrl}`);
-    console.log('Press Ctrl + C to quit.')
+    console.log(`Http server for review agent running on port ${port} ${path}`);
 });
