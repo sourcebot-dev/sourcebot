@@ -1,22 +1,37 @@
 'use server';
 
 import { NextRequest } from "next/server";
-import { App } from "octokit";
-import { WebhookEventDefinition } from "@octokit/webhooks/types";
+import { App, Octokit } from "octokit";
+import { WebhookEventDefinition} from "@octokit/webhooks/types";
+import { EndpointDefaults } from "@octokit/types";
 import { env } from "@/env.mjs";
 import { processGitHubPullRequest } from "@/features/agents/review-agent/app";
+import { throttling } from "@octokit/plugin-throttling";
 import fs from "fs";
 
 let githubApp: App | undefined;
 if (env.GITHUB_APP_ID && env.GITHUB_APP_WEBHOOK_SECRET && env.GITHUB_APP_PRIVATE_KEY_PATH) {
     try {
         const privateKey = fs.readFileSync(env.GITHUB_APP_PRIVATE_KEY_PATH, "utf8");
+
+        const throttledOctokit = Octokit.plugin(throttling);
         githubApp = new App({
             appId: env.GITHUB_APP_ID,
             privateKey: privateKey,
             webhooks: {
                 secret: env.GITHUB_APP_WEBHOOK_SECRET,
             },
+            Octokit: throttledOctokit,
+            throttle: {
+                onRateLimit: (retryAfter: number, options: Required<EndpointDefaults>, octokit: Octokit, retryCount: number) => {
+                    if (retryCount > 3) {
+                        console.log(`Rate limit exceeded: ${retryAfter} seconds`);
+                        return false;
+                    }
+
+                    return true;
+                },
+            }
         });
     } catch (error) {
         console.error(`Error initializing GitHub app: ${error}`);
