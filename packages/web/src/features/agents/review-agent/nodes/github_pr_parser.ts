@@ -1,4 +1,4 @@
-import { sourcebot_pr_payload, sourcebot_file_diff, sourcebot_diff } from "../types.js"
+import { sourcebot_pr_payload, sourcebot_file_diff, sourcebot_diff } from "@/features/agents/review-agent/types";
 import { WebhookEventDefinition } from "@octokit/webhooks/types";
 import parse from "parse-diff";
 import { Octokit } from "octokit";

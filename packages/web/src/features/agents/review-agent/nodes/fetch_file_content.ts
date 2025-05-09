@@ -1,6 +1,6 @@
-import { sourcebot_context, sourcebot_pr_payload } from "../types.js";
-import { fileSourceResponseSchema } from "@sourcebot/web/src/features/search/schemas.js"; 
-import { base64Decode } from "@sourcebot/web/src/lib/utils.js";
+import { sourcebot_context, sourcebot_pr_payload } from "@/features/agents/review-agent/types";
+import { fileSourceResponseSchema } from "@/features/search/schemas";
+import { base64Decode } from "@/lib/utils";
 
 export const fetch_file_content = async (pr_payload: sourcebot_pr_payload, filename: string): Promise<sourcebot_context> => {
     console.log("Executing fetch_file_content");

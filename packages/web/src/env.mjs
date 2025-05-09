@@ -52,6 +52,12 @@ export const env = createEnv({
 
         // EE License
         SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),
+
+        // GitHub app for review agent
+        GITHUB_APP_ID: z.string().optional(),
+        GITHUB_APP_WEBHOOK_SECRET: z.string().optional(),
+        GITHUB_APP_PRIVATE_KEY_PATH: z.string().optional(),
+        OPENAI_API_KEY: z.string().optional(),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in

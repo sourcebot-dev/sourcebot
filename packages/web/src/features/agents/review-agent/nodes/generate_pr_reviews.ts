@@ -1,7 +1,7 @@
-import { sourcebot_pr_payload, sourcebot_diff_review, sourcebot_file_diff_review, sourcebot_context } from "../types.js";
-import { generate_diff_review_prompt } from "./generate_diff_review_prompt.js";
-import { invoke_diff_review_llm } from "./invoke_diff_review_llm.js";
-import { fetch_file_content } from "./fetch_file_content.js";
+import { sourcebot_pr_payload, sourcebot_diff_review, sourcebot_file_diff_review, sourcebot_context } from "@/features/agents/review-agent/types";
+import { generate_diff_review_prompt } from "@/features/agents/review-agent/nodes/generate_diff_review_prompt";
+import { invoke_diff_review_llm } from "@/features/agents/review-agent/nodes/invoke_diff_review_llm";
+import { fetch_file_content } from "@/features/agents/review-agent/nodes/fetch_file_content";
 
 export const generate_pr_reviews = async (pr_payload: sourcebot_pr_payload, rules: string[]): Promise<sourcebot_file_diff_review[]> => {
     console.log("Executing generate_pr_reviews");
@@ -29,7 +29,7 @@ export const generate_pr_reviews = async (pr_payload: sourcebot_pr_payload, rule
 
                 const prompt = await generate_diff_review_prompt(diff, context, rules);
                 
-                const diffReview = await invoke_diff_review_llm(prompt, file_diff.to);
+                const diffReview = await invoke_diff_review_llm(prompt);
                 reviews.push(diffReview);
             } catch (error) {
                 console.error(`Error fetching file content for ${file_diff.to}: ${error}`);
