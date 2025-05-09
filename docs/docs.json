@@ -44,6 +44,13 @@
                         ]
                     },
                     {
+                        "group": "Agents",
+                        "pages": [
+                            "docs/agents/overview",
+                            "docs/agents/review-agent"
+                        ]
+                    },
+                    {
                         "group": "More",
                         "pages": [
                             "docs/more/syntax-reference",

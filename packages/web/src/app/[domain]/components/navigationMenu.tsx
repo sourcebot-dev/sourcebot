@@ -60,6 +60,13 @@ export const NavigationMenu = async ({
                                 </Link>
                             </NavigationMenuItem>
                             <NavigationMenuItem>
+                                <Link href={`/${domain}/agents`} legacyBehavior passHref>
+                                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                        Agents
+                                    </NavigationMenuLink>
+                                </Link>
+                            </NavigationMenuItem>
+                            <NavigationMenuItem>
                                 <Link href={`/${domain}/repos`} legacyBehavior passHref>
                                     <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                                         Repositories

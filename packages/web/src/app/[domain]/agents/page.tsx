@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { NavigationMenu } from "../components/navigationMenu";
 import { FaCogs } from "react-icons/fa";
-import { MdRocketLaunch } from "react-icons/md";
 import { env } from "@/env.mjs";
 
 const agents = [
