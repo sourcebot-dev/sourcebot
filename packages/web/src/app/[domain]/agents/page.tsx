@@ -1,19 +1,17 @@
-import { Header } from "../components/header";
 import Link from "next/link";
-import Image from "next/image";
 import { NavigationMenu } from "../components/navigationMenu";
-import { FaRobot, FaCogs } from "react-icons/fa";
+import { FaCogs } from "react-icons/fa";
 import { MdRocketLaunch } from "react-icons/md";
+import { env } from "@/env.mjs";
 
 const agents = [
   {
     id: "review-agent",
     name: "Review Agent",
     description: "An agent that reviews your PRs. Uses the code indexed on Sourcebot to provide codebase wide context.",
-    deployUrl: "/agents/review-agent/deploy",
-    configureUrl: "/agents/review-agent/configure",
+    requiredEnvVars: ["GITHUB_APP_ID", "GITHUB_APP_WEBHOOK_SECRET", "GITHUB_APP_PRIVATE_KEY_PATH", "OPENAI_API_KEY"],
+    configureUrl: "https://docs.sourcebot.dev/docs/agents/review-agent"
   },
-  // Add more agents here as needed
 ];
 
 export default function AgentsPage({ params: { domain } }: { params: { domain: string } }) {
@@ -47,19 +45,21 @@ export default function AgentsPage({ params: { domain } }: { params: { domain: s
                 </p>
               </div>
               {/* Actions */}
-              <div className="flex flex-row gap-4 justify-center w-full mt-2">
-                <Link
-                  href={agent.deployUrl}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-primary text-primary-foreground font-mono font-semibold text-base border border-primary shadow-sm hover:bg-primary/80 focus:outline-none focus:ring-2 focus:ring-primary/60 transition w-1/2"
-                >
-                  <MdRocketLaunch className="text-lg" /> Deploy
-                </Link>
-                <Link
-                  href={agent.configureUrl}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-muted text-foreground font-mono font-semibold text-base border border-border shadow-sm hover:bg-card/80 focus:outline-none focus:ring-2 focus:ring-border/60 transition w-1/2"
-                >
-                  <FaCogs className="text-lg" /> Configure
-                </Link>
+              <div className="flex flex-col items-center w-full mt-2">
+                {agent.requiredEnvVars.every(envVar => envVar in env && env[envVar as keyof typeof env] !== undefined) ? (
+                  <div className="text-green-500 font-semibold">
+                    Agent is configured and accepting requests on /api/webhook 
+                  </div>
+                ) : (
+                  <Link
+                    href={agent.configureUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-primary text-primary-foreground font-mono font-semibold text-base border border-primary shadow-sm hover:bg-primary/80 focus:outline-none focus:ring-2 focus:ring-primary/60 transition w-1/2"
+                  >
+                    <FaCogs className="text-lg" /> Configure
+                  </Link>
+                )}
               </div>
             </div>
           ))}
