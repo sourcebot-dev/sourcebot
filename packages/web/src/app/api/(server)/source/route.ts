@@ -27,7 +27,7 @@ export const POST = async (request: NextRequest) => {
 }
 
 
-const postSource = (request: FileSourceRequest, domain: string) => sew(() =>
+export const postSource = (request: FileSourceRequest, domain: string) => sew(() =>
     withAuth(async (session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
             const response = await getFileSource(request, orgId);

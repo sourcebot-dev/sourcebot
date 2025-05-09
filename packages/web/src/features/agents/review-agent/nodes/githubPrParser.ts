@@ -10,8 +10,14 @@ export const githubPrParser = async (octokit: Octokit, payload: WebhookEventDefi
         throw new Error("Installation not found in github payload");
     }
 
-    const diff = await octokit.request(payload.pull_request.patch_url);
-    const parsedDiff: parse.File[] = parse(diff.data);
+    let parsedDiff: parse.File[] = [];  
+    try {
+        const diff = await octokit.request(payload.pull_request.patch_url);
+        parsedDiff = parse(diff.data);
+    } catch (error) {
+        console.error("Error fetching diff: ", error);
+        throw error;
+    }
 
     const sourcebotFileDiffs: (sourcebot_file_diff | null)[] = parsedDiff.map((file) => {
         if (!file.from || !file.to) {
@@ -20,8 +26,8 @@ export const githubPrParser = async (octokit: Octokit, payload: WebhookEventDefi
         }
 
         const diffs: sourcebot_diff[] = file.chunks.map((chunk) => {
-            let oldSnippet = "";
-            let newSnippet = "";
+            let oldSnippet = `@@ -${chunk.oldStart},${chunk.oldLines} +${chunk.newStart},${chunk.newLines} @@\n`;
+            let newSnippet = `@@ -${chunk.oldStart},${chunk.oldLines} +${chunk.newStart},${chunk.newLines} @@\n`;
 
             for (const change of chunk.changes) {
                 if (change.type === "normal") {

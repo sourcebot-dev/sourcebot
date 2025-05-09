@@ -1,6 +1,8 @@
 import { sourcebot_context, sourcebot_pr_payload } from "@/features/agents/review-agent/types";
 import { fileSourceResponseSchema } from "@/features/search/schemas";
 import { base64Decode } from "@/lib/utils";
+import { postSource } from "@/app/api/(server)/source/route";
+import { isServiceError } from "@/lib/utils";
 
 export const fetchFileContent = async (pr_payload: sourcebot_pr_payload, filename: string): Promise<sourcebot_context> => {
     console.log("Executing fetch_file_content");
@@ -12,21 +14,12 @@ export const fetchFileContent = async (pr_payload: sourcebot_pr_payload, filenam
     }
     console.log(JSON.stringify(fileSourceRequest, null, 2));
 
-    const response = await fetch('http://localhost:3000/api/source', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Org-Domain': '~'
-        },
-        body: JSON.stringify(fileSourceRequest)
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch file content for ${filename} from ${repoPath}: ${response.statusText}`);
+    const response = await postSource(fileSourceRequest, "~");
+    if (isServiceError(response)) {
+        throw new Error(`Failed to fetch file content for ${filename} from ${repoPath}: ${response.message}`);
     }
 
-    const responseData = await response.json();
-    const fileSourceResponse = fileSourceResponseSchema.parse(responseData);
+    const fileSourceResponse = fileSourceResponseSchema.parse(response);
     const fileContent = base64Decode(fileSourceResponse.source);
 
     const fileContentContext: sourcebot_context = {
