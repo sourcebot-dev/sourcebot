@@ -3,15 +3,18 @@ import {
     fileSourceResponseSchema,
     listRepositoriesResponseSchema,
     locationSchema,
-    searchRequestSchema,
     searchResponseSchema,
     rangeSchema,
     fileSourceRequestSchema,
     symbolSchema,
+    regexSearchRequestSchema,
+    semanticSearchRequestSchema,
 } from "./schemas";
 import { z } from "zod";
 
-export type SearchRequest = z.infer<typeof searchRequestSchema>;
+export type RegexSearchRequest = z.infer<typeof regexSearchRequestSchema>;
+export type SemanticSearchRequest = z.infer<typeof semanticSearchRequestSchema>;
+
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
 export type SearchResultRange = z.infer<typeof rangeSchema>;
 export type SearchResultLocation = z.infer<typeof locationSchema>;

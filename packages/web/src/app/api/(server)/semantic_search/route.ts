@@ -1,17 +1,17 @@
 'use server';
 
-import { zoektRegexSearch } from "@/features/search/zoekt/searchApi";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
-import { regexSearchRequestSchema } from "@/features/search/schemas";
-import { RegexSearchRequest } from "@/features/search/types";
+import { semanticSearch } from "@/features/search/semantic";
+import { semanticSearchRequestSchema } from "@/features/search/schemas";
+import { SemanticSearchRequest } from "@/features/search/types";
 
 export const POST = async (request: NextRequest) => {
     const domain = request.headers.get("X-Org-Domain")!;
     const body = await request.json();
-    const parsed = await regexSearchRequestSchema.safeParseAsync(body);
+    const parsed = await semanticSearchRequestSchema.safeParseAsync(body);
     if (!parsed.success) {
         return serviceErrorResponse(
             schemaValidationError(parsed.error)
@@ -25,9 +25,9 @@ export const POST = async (request: NextRequest) => {
     return Response.json(response);
 }
 
-const postSearch = (request: RegexSearchRequest, domain: string) => sew(() =>
+const postSearch = (request: SemanticSearchRequest, domain: string) => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            return zoektRegexSearch(request, orgId);
+        withOrgMembership(session, domain, async () => {
+            return semanticSearch(request);
         }
     ), /* allowSingleTenantUnauthedAccess */ true));

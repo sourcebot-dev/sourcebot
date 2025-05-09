@@ -1,5 +1,5 @@
-import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
-import { ListRepositoriesResponse } from "./types";
+import { invalidZoektResponse, ServiceError } from "../../../lib/serviceError";
+import { ListRepositoriesResponse } from "../types";
 import { zoektFetch } from "./zoektClient";
 import { zoektListRepositoriesResponseSchema } from "./zoektSchema";
 

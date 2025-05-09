@@ -9,6 +9,7 @@ import { cloneRepository, fetchRepository, upsertGitConfig } from "./git.js";
 import { existsSync, readdirSync, promises } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import { PromClient } from './promClient.js';
+import { embedGitRepository } from "./embeddings.js";
 import * as Sentry from "@sentry/node";
 
 interface IRepoManager {
@@ -280,16 +281,15 @@ export class RepoManager implements IRepoManager {
             await upsertGitConfig(repoPath, metadata.gitConfig);
         }
 
-        this.logger.info(`Indexing ${repo.displayName}...`);
-        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, this.ctx));
-        const indexDuration_s = durationMs / 1000;
-        this.logger.info(`Indexed ${repo.displayName} in ${indexDuration_s}s`);
+        this.logger.info(`Building zoekt index for ${repo.displayName}...`);
+        const { durationMs: zoektIndexDurationMs } = await measure(() => indexGitRepository(repo, this.settings, this.ctx));
+        const zoektIndexDuration_s = zoektIndexDurationMs / 1000;
+        this.logger.info(`Indexed ${repo.displayName} in ${zoektIndexDuration_s}s`);
 
-        return {
-            fetchDuration_s,
-            cloneDuration_s,
-            indexDuration_s,
-        }
+        this.logger.info(`Embedding ${repo.displayName}...`);
+        const { durationMs: embeddingIndexDurationMs } = await measure(() => embedGitRepository(repo));
+        const embeddingIndexDuration_s = embeddingIndexDurationMs / 1000;
+        this.logger.info(`Embedded ${repo.displayName} in ${embeddingIndexDuration_s}s`);
     }
 
     private async runIndexJob(job: Job<RepoIndexingPayload>) {
@@ -323,17 +323,12 @@ export class RepoManager implements IRepoManager {
         this.promClient.activeRepoIndexingJobs.inc();
         this.promClient.pendingRepoIndexingJobs.dec({ repo: repo.id.toString() });
 
-        let indexDuration_s: number | undefined;
-        let fetchDuration_s: number | undefined;
-        let cloneDuration_s: number | undefined;
-
-        let stats;
         let attempts = 0;
         const maxAttempts = 3;
 
         while (attempts < maxAttempts) {
             try {
-                stats = await this.syncGitRepository(repo, repoAlreadyInIndexingState);
+                await this.syncGitRepository(repo, repoAlreadyInIndexingState);
                 break;
             } catch (error) {
                 Sentry.captureException(error);
@@ -350,10 +345,6 @@ export class RepoManager implements IRepoManager {
                 await new Promise(resolve => setTimeout(resolve, sleepDuration));
             }
         }
-
-        indexDuration_s = stats!.indexDuration_s;
-        fetchDuration_s = stats!.fetchDuration_s;
-        cloneDuration_s = stats!.cloneDuration_s;
     }
 
     private async onIndexJobCompleted(job: Job<RepoIndexingPayload>) {

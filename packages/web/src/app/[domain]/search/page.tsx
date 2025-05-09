@@ -116,27 +116,28 @@ const SearchPageInternal = () => {
 
         const fileLanguages = searchResponse.files?.map(file => file.language) || [];
 
+        // @nocheckin : we should handle when zoektStats is undefined.
         captureEvent("search_finished", {
             durationMs: searchResponse.durationMs,
-            fileCount: searchResponse.zoektStats.fileCount,
-            matchCount: searchResponse.zoektStats.matchCount,
-            filesSkipped: searchResponse.zoektStats.filesSkipped,
-            contentBytesLoaded: searchResponse.zoektStats.contentBytesLoaded,
-            indexBytesLoaded: searchResponse.zoektStats.indexBytesLoaded,
-            crashes: searchResponse.zoektStats.crashes,
-            shardFilesConsidered: searchResponse.zoektStats.shardFilesConsidered,
-            filesConsidered: searchResponse.zoektStats.filesConsidered,
-            filesLoaded: searchResponse.zoektStats.filesLoaded,
-            shardsScanned: searchResponse.zoektStats.shardsScanned,
-            shardsSkipped: searchResponse.zoektStats.shardsSkipped,
-            shardsSkippedFilter: searchResponse.zoektStats.shardsSkippedFilter,
-            ngramMatches: searchResponse.zoektStats.ngramMatches,
-            ngramLookups: searchResponse.zoektStats.ngramLookups,
-            wait: searchResponse.zoektStats.wait,
-            matchTreeConstruction: searchResponse.zoektStats.matchTreeConstruction,
-            matchTreeSearch: searchResponse.zoektStats.matchTreeSearch,
-            regexpsConsidered: searchResponse.zoektStats.regexpsConsidered,
-            flushReason: searchResponse.zoektStats.flushReason,
+            fileCount: searchResponse.zoektStats!.fileCount,
+            matchCount: searchResponse.zoektStats!.matchCount,
+            filesSkipped: searchResponse.zoektStats!.filesSkipped,
+            contentBytesLoaded: searchResponse.zoektStats!.contentBytesLoaded,
+            indexBytesLoaded: searchResponse.zoektStats!.indexBytesLoaded,
+            crashes: searchResponse.zoektStats!.crashes,
+            shardFilesConsidered: searchResponse.zoektStats!.shardFilesConsidered,
+            filesConsidered: searchResponse.zoektStats!.filesConsidered,
+            filesLoaded: searchResponse.zoektStats!.filesLoaded,
+            shardsScanned: searchResponse.zoektStats!.shardsScanned,
+            shardsSkipped: searchResponse.zoektStats!.shardsSkipped,
+            shardsSkippedFilter: searchResponse.zoektStats!.shardsSkippedFilter,
+            ngramMatches: searchResponse.zoektStats!.ngramMatches,
+            ngramLookups: searchResponse.zoektStats!.ngramLookups,
+            wait: searchResponse.zoektStats!.wait,
+            matchTreeConstruction: searchResponse.zoektStats!.matchTreeConstruction,
+            matchTreeSearch: searchResponse.zoektStats!.matchTreeSearch,
+            regexpsConsidered: searchResponse.zoektStats!.regexpsConsidered,
+            flushReason: searchResponse.zoektStats!.flushReason,
             fileLanguages,
         });
     }, [captureEvent, searchQuery, searchResponse]);
@@ -154,7 +155,7 @@ const SearchPageInternal = () => {
         return {
             fileMatches: searchResponse.files ?? [],
             searchDurationMs: Math.round(searchResponse.durationMs),
-            totalMatchCount: searchResponse.zoektStats.matchCount,
+            totalMatchCount: searchResponse.zoektStats!.matchCount,
             isBranchFilteringEnabled: searchResponse.isBranchFilteringEnabled,
         }
     }, [searchResponse]);

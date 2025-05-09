@@ -8,8 +8,8 @@ import {
     FileSourceResponse,
     FileSourceRequest,
     ListRepositoriesResponse,
-    SearchRequest,
     SearchResponse,
+    RegexSearchRequest,
 } from "@/features/search/types";
 import {
     fileSourceResponseSchema,
@@ -17,7 +17,7 @@ import {
     searchResponseSchema,
 } from "@/features/search/schemas";
 
-export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse | ServiceError> => {
+export const search = async (body: RegexSearchRequest, domain: string): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
         method: "POST",
         headers: {

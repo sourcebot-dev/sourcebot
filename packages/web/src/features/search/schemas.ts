@@ -20,7 +20,7 @@ export const symbolSchema = z.object({
     kind: z.string(),
 });
 
-export const searchRequestSchema = z.object({
+export const regexSearchRequestSchema = z.object({
     // The zoekt query to execute.
     query: z.string(),
     // The number of matches to return.
@@ -29,7 +29,12 @@ export const searchRequestSchema = z.object({
     contextLines: z.number().optional(),
     // Whether to return the whole file as part of the response.
     whole: z.boolean().optional(),
-});
+})
+
+export const semanticSearchRequestSchema = z.object({
+    // The zoekt query to execute.
+    query: z.string(),
+})
 
 export const searchResponseSchema = z.object({
     zoektStats: z.object({
@@ -54,7 +59,7 @@ export const searchResponseSchema = z.object({
         matchTreeSearch: z.number(),
         regexpsConsidered: z.number(),
         flushReason: z.number(),
-    }),
+    }).optional(),
     files: z.array(z.object({
         fileName: z.object({
             // The name of the file

@@ -1,6 +1,6 @@
 'use server';
 
-import { getFileSource } from "@/features/search/fileSourceApi";
+import { getFileSource } from "@/features/search/zoekt/fileSourceApi";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";

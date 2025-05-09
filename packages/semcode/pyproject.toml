@@ -1,0 +1,10 @@
+[project]
+name = "semcode"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10.13"
+dependencies = [
+    "torch>=2.7.0",
+    "transformers>=4.51.3",
+]

@@ -1,12 +1,12 @@
 import { env } from "@/env.mjs";
-import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
-import { isServiceError } from "../../lib/utils";
+import { invalidZoektResponse, ServiceError } from "../../../lib/serviceError";
+import { isServiceError } from "../../../lib/utils";
 import { zoektFetch } from "./zoektClient";
 import { prisma } from "@/prisma";
-import { ErrorCode } from "../../lib/errorCodes";
+import { ErrorCode } from "../../../lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { zoektSearchResponseSchema } from "./zoektSchema";
-import { SearchRequest, SearchResponse, SearchResultRange } from "./types";
+import { RegexSearchRequest, SearchResponse, SearchResultRange } from "../types";
 import assert from "assert";
 
 // List of supported query prefixes in zoekt.
@@ -121,7 +121,7 @@ function getRepositoryUrl(template: string, branch: string, fileName: string): s
     return encodeURI(url + optionalQueryParams);
 }
 
-export const search = async ({ query, matches, contextLines, whole }: SearchRequest, orgId: number) => {
+export const zoektRegexSearch = async ({ query, matches, contextLines, whole }: RegexSearchRequest, orgId: number) => {
     const transformedQuery = await transformZoektQuery(query, orgId);
     if (isServiceError(transformedQuery)) {
         return transformedQuery;

@@ -1,8 +1,8 @@
 import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { TopBar } from "@/app/[domain]/components/topBar";
 import { Separator } from '@/components/ui/separator';
-import { getFileSource } from '@/features/search/fileSourceApi';
-import { listRepositories } from '@/features/search/listReposApi';
+import { getFileSource } from '@/features/search/zoekt/fileSourceApi';
+import { listRepositories } from '@/features/search/zoekt/listReposApi';
 import { base64Decode, isServiceError } from "@/lib/utils";
 import { CodePreview } from "./codePreview";
 import { ErrorCode } from "@/lib/errorCodes";

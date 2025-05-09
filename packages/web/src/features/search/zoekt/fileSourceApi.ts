@@ -1,8 +1,8 @@
 import escapeStringRegexp from "escape-string-regexp";
-import { fileNotFound, ServiceError } from "../../lib/serviceError";
-import { FileSourceRequest, FileSourceResponse } from "./types";
-import { isServiceError } from "../../lib/utils";
-import { search } from "./searchApi";
+import { fileNotFound, ServiceError } from "../../../lib/serviceError";
+import { FileSourceRequest, FileSourceResponse } from "../types";
+import { isServiceError } from "../../../lib/utils";
+import { zoektRegexSearch } from "./searchApi";
 
 // @todo (bkellam) : We should really be using `git show <hash>:<path>` to fetch file contents here.
 // This will allow us to support permalinks to files at a specific revision that may not be indexed
@@ -16,7 +16,7 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
         query = query.concat(` branch:${branch}`);
     }
 
-    const searchResponse = await search({
+    const searchResponse = await zoektRegexSearch({
         query,
         matches: 1,
         whole: true,
