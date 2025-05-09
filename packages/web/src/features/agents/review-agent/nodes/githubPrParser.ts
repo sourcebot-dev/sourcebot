@@ -3,7 +3,7 @@ import { WebhookEventDefinition } from "@octokit/webhooks/types";
 import parse from "parse-diff";
 import { Octokit } from "octokit";
 
-export const github_pr_parser = async (octokit: Octokit, payload: WebhookEventDefinition<"pull-request-opened"> | WebhookEventDefinition<"pull-request-synchronize">): Promise<sourcebot_pr_payload> => {
+export const githubPrParser = async (octokit: Octokit, payload: WebhookEventDefinition<"pull-request-opened"> | WebhookEventDefinition<"pull-request-synchronize">): Promise<sourcebot_pr_payload> => {
     console.log("Executing github_pr_parser");
 
     if (!payload.installation) {
@@ -25,12 +25,12 @@ export const github_pr_parser = async (octokit: Octokit, payload: WebhookEventDe
 
             for (const change of chunk.changes) {
                 if (change.type === "normal") {
-                    oldSnippet += change.ln1 + ":" + change.content;
-                    newSnippet += change.ln2 + ":" + change.content;
+                    oldSnippet += change.ln1 + ":" + change.content + "\n";
+                    newSnippet += change.ln2 + ":" + change.content + "\n";
                 } else if (change.type === "add") {
-                    newSnippet += change.ln + ":" + change.content;
+                    newSnippet += change.ln + ":" + change.content + "\n";
                 } else if (change.type === "del") {
-                    oldSnippet += change.ln + ":" + change.content;
+                    oldSnippet += change.ln + ":" + change.content + "\n";
                 }
             }
 

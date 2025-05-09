@@ -1,9 +1,9 @@
 import { sourcebot_pr_payload, sourcebot_diff_review, sourcebot_file_diff_review, sourcebot_context } from "@/features/agents/review-agent/types";
-import { generate_diff_review_prompt } from "@/features/agents/review-agent/nodes/generate_diff_review_prompt";
-import { invoke_diff_review_llm } from "@/features/agents/review-agent/nodes/invoke_diff_review_llm";
-import { fetch_file_content } from "@/features/agents/review-agent/nodes/fetch_file_content";
+import { generateDiffReviewPrompt } from "@/features/agents/review-agent/nodes/generateDiffReviewPrompt";
+import { invokeDiffReviewLlm } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
+import { fetchFileContent } from "@/features/agents/review-agent/nodes/fetchFileContent";
 
-export const generate_pr_reviews = async (pr_payload: sourcebot_pr_payload, rules: string[]): Promise<sourcebot_file_diff_review[]> => {
+export const generatePrReviews = async (pr_payload: sourcebot_pr_payload, rules: string[]): Promise<sourcebot_file_diff_review[]> => {
     console.log("Executing generate_pr_reviews");
 
     const file_diff_reviews: sourcebot_file_diff_review[] = [];
@@ -12,7 +12,7 @@ export const generate_pr_reviews = async (pr_payload: sourcebot_pr_payload, rule
 
         for (const diff of file_diff.diffs) {
             try {
-                const fileContentContext = await fetch_file_content(pr_payload, file_diff.to);
+                const fileContentContext = await fetchFileContent(pr_payload, file_diff.to);
                 const context: sourcebot_context[] = [
                     {
                         type: "pr_title",
@@ -27,9 +27,9 @@ export const generate_pr_reviews = async (pr_payload: sourcebot_pr_payload, rule
                     fileContentContext,
                 ];
 
-                const prompt = await generate_diff_review_prompt(diff, context, rules);
+                const prompt = await generateDiffReviewPrompt(diff, context, rules);
                 
-                const diffReview = await invoke_diff_review_llm(prompt);
+                const diffReview = await invokeDiffReviewLlm(prompt);
                 reviews.push(diffReview);
             } catch (error) {
                 console.error(`Error fetching file content for ${file_diff.to}: ${error}`);

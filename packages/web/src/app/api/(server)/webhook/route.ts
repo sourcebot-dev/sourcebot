@@ -31,9 +31,6 @@ export const POST = async (request: NextRequest) => {
     const body = await request.json();
     const headers = Object.fromEntries(request.headers.entries());
 
-    console.log('Webhook request headers:', headers);
-    console.log('Webhook request body:', JSON.stringify(body, null, 2));
-
     const githubEvent = headers['x-github-event'];
     if (githubEvent) {
         console.log('GitHub event received:', githubEvent);
@@ -44,8 +41,6 @@ export const POST = async (request: NextRequest) => {
         }
 
         if (isPullRequestEvent(githubEvent, body)) {
-            console.log('Received pull request event:', body);
-
             if (!body.installation) {
                 console.error('Received github pull request event but installation is not present');
                 return Response.json({ status: 'ok' });

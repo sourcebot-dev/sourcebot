@@ -1,7 +1,7 @@
 import { Octokit } from "octokit";
 import { sourcebot_pr_payload, sourcebot_file_diff_review } from "@/features/agents/review-agent/types";
 
-export const github_push_pr_reviews = async (octokit: Octokit, pr_payload: sourcebot_pr_payload, file_diff_reviews: sourcebot_file_diff_review[]) => {
+export const githubPushPrReviews = async (octokit: Octokit, pr_payload: sourcebot_pr_payload, file_diff_reviews: sourcebot_file_diff_review[]) => {
     console.log("Executing github_push_pr_reviews");
 
     try {

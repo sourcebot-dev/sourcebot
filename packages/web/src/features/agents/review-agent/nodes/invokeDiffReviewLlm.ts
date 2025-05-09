@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { sourcebot_diff_review_schema, sourcebot_diff_review } from "@/features/agents/review-agent/types";
 import { env } from "@/env.mjs";
 
-export const invoke_diff_review_llm = async (prompt: string): Promise<sourcebot_diff_review> => {
+export const invokeDiffReviewLlm = async (prompt: string): Promise<sourcebot_diff_review> => {
     console.log("Executing invoke_diff_review_llm");
     
     if (!env.OPENAI_API_KEY) {
@@ -13,6 +13,8 @@ export const invoke_diff_review_llm = async (prompt: string): Promise<sourcebot_
     const openai = new OpenAI({
         apiKey: env.OPENAI_API_KEY,
     });
+
+    console.log("Prompt: ", prompt);
 
     try {
         const completion = await openai.chat.completions.create({

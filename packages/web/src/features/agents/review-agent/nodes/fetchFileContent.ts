@@ -2,7 +2,7 @@ import { sourcebot_context, sourcebot_pr_payload } from "@/features/agents/revie
 import { fileSourceResponseSchema } from "@/features/search/schemas";
 import { base64Decode } from "@/lib/utils";
 
-export const fetch_file_content = async (pr_payload: sourcebot_pr_payload, filename: string): Promise<sourcebot_context> => {
+export const fetchFileContent = async (pr_payload: sourcebot_pr_payload, filename: string): Promise<sourcebot_context> => {
     console.log("Executing fetch_file_content");
 
     const repoPath = pr_payload.hostDomain + "/" + pr_payload.owner + "/" + pr_payload.repo;

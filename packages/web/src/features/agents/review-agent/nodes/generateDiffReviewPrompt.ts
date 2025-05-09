@@ -1,7 +1,7 @@
 import { sourcebot_diff, sourcebot_context, sourcebot_diff_review_schema } from "@/features/agents/review-agent/types";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
-export const generate_diff_review_prompt = async (diff: sourcebot_diff, context: sourcebot_context[], rules: string[]) => {
+export const generateDiffReviewPrompt = async (diff: sourcebot_diff, context: sourcebot_context[], rules: string[]) => {
     console.log("Executing generate_diff_review_prompt");
         
     const prompt = `
