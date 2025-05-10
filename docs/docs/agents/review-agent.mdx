@@ -55,9 +55,10 @@ Before you get started, make sure you have an OpenAPI account that you can creat
         - `REVIEW_AGENT_AUTO_REVIEW_ENABLED` (default: `false`): If enabled, the review agent will automatically review any new or updated PR. If disabled, you must invoke it using the command defined by `REVIEW_AGENT_REVIEW_COMMAND`
         - `REVIEW_AGENT_REVIEW_COMMAND` (default: `review`): The command that invokes the review agent (ex. `/review`) when a user comments on the PR. Don't include the slash character in this value.
 
-        You can find an example docker compose file below. This docker compose file is placed in `~/sourcebot_review_agent_workspace`, and I'm mounting that directory to Sourcebot. The
-        config file and the app's private key file are also placed in this directory. The paths to these files are given to Sourcebot relative to `/data` since that's the directory
-        in Sourcebot that I'm mounting to. 
+        You can find an example docker compose file below. 
+        - This docker compose file is placed in `~/sourcebot_review_agent_workspace`, and I'm mounting that directory to Sourcebot
+        - The config and the app private key files are placed in this directory
+        - The paths to these files are given to Sourcebot relative to `/data` since that's the directory in Sourcebot that I'm mounting to
 
         ```yaml
         services:
