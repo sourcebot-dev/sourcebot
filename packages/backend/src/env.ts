@@ -27,6 +27,8 @@ export const env = createEnv({
         SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
         NEXT_PUBLIC_SOURCEBOT_VERSION: z.string().default("unknown"),
 
+        DATA_CACHE_DIR: z.string(),
+
         NEXT_PUBLIC_POSTHOG_PAPIK: z.string().optional(),
 
         FALLBACK_GITHUB_CLOUD_TOKEN: z.string().optional(),

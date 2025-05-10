@@ -1,9 +1,11 @@
 import { Octokit } from "octokit";
-import { WebhookEventDefinition } from "@octokit/webhooks/types";
 import { generatePrReviews } from "@/features/agents/review-agent/nodes/generatePrReview";
 import { githubPushPrReviews } from "@/features/agents/review-agent/nodes/githubPushPrReviews";
 import { githubPrParser } from "@/features/agents/review-agent/nodes/githubPrParser";
 import { env } from "@/env.mjs";
+import { GitHubPullRequest } from "@/features/agents/review-agent/types";
+import path from "path";
+import fs from "fs";
 
 const rules = [
     "Do NOT provide general feedback, summaries, explanations of changes, or praises for making good additions.",
@@ -15,15 +17,27 @@ const rules = [
     "If there are no issues found on a line range, do NOT respond with any comments. This includes comments such as \"No issues found\" or \"LGTM\"."
 ]
 
-export async function processGitHubPullRequest(octokit: Octokit, payload: WebhookEventDefinition<"pull-request-opened"> | WebhookEventDefinition<"pull-request-synchronize">) {
-    console.log(`Received a pull request event for #${payload.pull_request.number}`);
+export async function processGitHubPullRequest(octokit: Octokit, pullRequest: GitHubPullRequest) {
+    console.log(`Received a pull request event for #${pullRequest.number}`);
 
     if (!env.OPENAI_API_KEY) {
         console.error("OPENAI_API_KEY is not set, skipping review agent");
         return;
     }
 
-    const prPayload = await githubPrParser(octokit, payload);
-    const fileDiffReviews = await generatePrReviews(prPayload, rules);
+    let reviewAgentLogPath: string | undefined;
+    if (env.REVIEW_AGENT_LOGGING_ENABLED) {
+        const reviewAgentLogDir = path.join(env.DATA_CACHE_DIR, "review-agent");
+        if (!fs.existsSync(reviewAgentLogDir)) {
+            fs.mkdirSync(reviewAgentLogDir, { recursive: true });
+        }
+
+        const timestamp = new Date().toLocaleString().replace(/[/: ,]/g, '');
+        reviewAgentLogPath = path.join(reviewAgentLogDir, `review-agent-${pullRequest.number}-${timestamp}.log`);
+        console.log(`Review agent logging to ${reviewAgentLogPath}`);
+    }
+
+    const prPayload = await githubPrParser(octokit, pullRequest);
+    const fileDiffReviews = await generatePrReviews(reviewAgentLogPath, prPayload, rules);
     await githubPushPrReviews(octokit, prPayload, fileDiffReviews); 
 }

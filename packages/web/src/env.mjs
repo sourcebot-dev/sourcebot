@@ -27,6 +27,8 @@ export const env = createEnv({
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
 
+        DATA_CACHE_DIR: z.string(),
+
         // Email
         SMTP_CONNECTION_URL: z.string().url().optional(),
         EMAIL_FROM_ADDRESS: z.string().email().optional(),
@@ -58,6 +60,9 @@ export const env = createEnv({
         GITHUB_APP_WEBHOOK_SECRET: z.string().optional(),
         GITHUB_APP_PRIVATE_KEY_PATH: z.string().optional(),
         OPENAI_API_KEY: z.string().optional(),
+        REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
+        REVIEW_AGENT_AUTO_REVIEW_ENABLED: booleanSchema.default('false'),
+        REVIEW_AGENT_REVIEW_COMMAND: z.string().default('review'),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in

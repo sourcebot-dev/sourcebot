@@ -1,4 +1,7 @@
+import { components } from "@octokit/openapi-types";
 import { z } from "zod";
+
+export type GitHubPullRequest = components["schemas"]["pull-request"];
 
 export const sourcebot_diff_schema = z.object({
     oldSnippet: z.string(),
@@ -21,8 +24,7 @@ export const sourcebot_pr_payload_schema = z.object({
     repo: z.string(),
     file_diffs: z.array(sourcebot_file_diff_schema),
     number: z.number(),
-    head_sha: z.string(),
-    installation_id: z.number(),
+    head_sha: z.string()
 });
 export type sourcebot_pr_payload = z.infer<typeof sourcebot_pr_payload_schema>;
 

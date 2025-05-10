@@ -1,18 +1,14 @@
 import { sourcebot_pr_payload, sourcebot_file_diff, sourcebot_diff } from "@/features/agents/review-agent/types";
-import { WebhookEventDefinition } from "@octokit/webhooks/types";
 import parse from "parse-diff";
 import { Octokit } from "octokit";
+import { GitHubPullRequest } from "@/features/agents/review-agent/types";
 
-export const githubPrParser = async (octokit: Octokit, payload: WebhookEventDefinition<"pull-request-opened"> | WebhookEventDefinition<"pull-request-synchronize">): Promise<sourcebot_pr_payload> => {
+export const githubPrParser = async (octokit: Octokit, pullRequest: GitHubPullRequest): Promise<sourcebot_pr_payload> => {
     console.log("Executing github_pr_parser");
-
-    if (!payload.installation) {
-        throw new Error("Installation not found in github payload");
-    }
 
     let parsedDiff: parse.File[] = [];  
     try {
-        const diff = await octokit.request(payload.pull_request.patch_url);
+        const diff = await octokit.request(pullRequest.diff_url);
         parsedDiff = parse(diff.data);
     } catch (error) {
         console.error("Error fetching diff: ", error);
@@ -56,14 +52,13 @@ export const githubPrParser = async (octokit: Octokit, payload: WebhookEventDefi
 
     console.log("Completed github_pr_parser");
     return {
-        title: payload.pull_request.title,
-        description: payload.pull_request.body ?? "",
+        title: pullRequest.title,
+        description: pullRequest.body ?? "",
         hostDomain: "github.com",
-        owner: payload.repository.owner.login,
-        repo: payload.repository.name,
+        owner: pullRequest.base.repo.owner.login,
+        repo: pullRequest.base.repo.name,
         file_diffs: filteredSourcebotFileDiffs,
-        number: payload.pull_request.number,
-        head_sha: payload.pull_request.head.sha,
-        installation_id: payload.installation!.id,
+        number: pullRequest.number,
+        head_sha: pullRequest.head.sha
     }
 }

@@ -8,6 +8,7 @@ import path from 'path';
 import { AppContext } from "./types.js";
 import { main } from "./main.js"
 import { PrismaClient } from "@sourcebot/db";
+import { env } from "./env.js";
 
 // Register handler for normal exit
 process.on('exit', (code) => {
@@ -36,22 +37,9 @@ process.on('unhandledRejection', (reason, promise) => {
     process.exit(1);
 });
 
+console.log(process.cwd());
 
-const parser = new ArgumentParser({
-    description: "Sourcebot backend tool",
-});
-
-type Arguments = {
-    cacheDir: string;
-}
-
-parser.add_argument("--cacheDir", {
-    help: "Path to .sourcebot cache directory",
-    required: true,
-});
-const args = parser.parse_args() as Arguments;
-
-const cacheDir = args.cacheDir;
+const cacheDir = env.DATA_CACHE_DIR;
 const reposPath = path.join(cacheDir, 'repos');
 const indexPath = path.join(cacheDir, 'index');
 
