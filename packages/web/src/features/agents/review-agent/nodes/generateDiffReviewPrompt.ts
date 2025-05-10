@@ -1,4 +1,4 @@
-import { sourcebot_diff, sourcebot_context, sourcebot_diff_review_schema } from "@/features/agents/review-agent/types";
+import { sourcebot_diff, sourcebot_context, sourcebot_file_diff_review_schema } from "@/features/agents/review-agent/types";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 export const generateDiffReviewPrompt = async (diff: sourcebot_diff, context: sourcebot_context[], rules: string[]) => {
@@ -36,7 +36,7 @@ export const generateDiffReviewPrompt = async (diff: sourcebot_diff, context: so
     # Output Format (JSON Schema)
     The output must be a valid JSON object that conforms to the following JSON schema. Do NOT respond with anything other than the JSON object. Do NOT respond with
     the JSON object in a markdown code block.
-    ${JSON.stringify(zodToJsonSchema(sourcebot_diff_review_schema), null, 2)}
+    ${JSON.stringify(zodToJsonSchema(sourcebot_file_diff_review_schema), null, 2)}
     `;
 
     console.log("Completed generate_diff_review_prompt");

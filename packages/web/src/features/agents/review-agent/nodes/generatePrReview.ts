@@ -30,9 +30,9 @@ export const generatePrReviews = async (reviewAgentLogPath: string | undefined, 
                 const prompt = await generateDiffReviewPrompt(diff, context, rules);
                 
                 const diffReview = await invokeDiffReviewLlm(reviewAgentLogPath, prompt);
-                reviews.push(diffReview);
+                reviews.push(...diffReview.reviews);
             } catch (error) {
-                console.error(`Error fetching file content for ${file_diff.to}: ${error}`);
+                console.error(`Error generating review for ${file_diff.to}: ${error}`);
             }
         }
         
