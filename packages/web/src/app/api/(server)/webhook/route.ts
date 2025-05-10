@@ -51,7 +51,7 @@ export const POST = async (request: NextRequest) => {
     const body = await request.json();
     const headers = Object.fromEntries(request.headers.entries());
 
-    const githubEvent = headers['x-github-event'];
+    const githubEvent = headers['x-github-event'] || headers['X-GitHub-Event'];
     if (githubEvent) {
         console.log('GitHub event received:', githubEvent);
 

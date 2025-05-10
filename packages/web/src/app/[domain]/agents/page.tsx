@@ -7,7 +7,7 @@ const agents = [
   {
     id: "review-agent",
     name: "Review Agent",
-    description: "An agent that reviews your PRs. Uses the code indexed on Sourcebot to provide codebase wide context.",
+    description: "An AI code review agent that reviews your PRs. Uses the code indexed on Sourcebot to provide codebase-wide context.",
     requiredEnvVars: ["GITHUB_APP_ID", "GITHUB_APP_WEBHOOK_SECRET", "GITHUB_APP_PRIVATE_KEY_PATH", "OPENAI_API_KEY"],
     configureUrl: "https://docs.sourcebot.dev/docs/agents/review-agent"
   },
