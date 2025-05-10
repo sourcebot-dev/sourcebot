@@ -16,8 +16,12 @@ export const cloneRepository = async (cloneURL: string, path: string, onProgress
         await git.cwd({
             path,
         }).addConfig("remote.origin.fetch", "+refs/heads/*:refs/heads/*");
-    } catch (error) {
-        throw new Error(`Failed to clone repository`);
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            throw new Error(`Failed to clone repository: ${error.message}`);
+        } else {
+            throw new Error(`Failed to clone repository: ${error}`);
+        }
     }
 }
 
@@ -37,8 +41,12 @@ export const fetchRepository = async (path: string, onProgress?: (event: SimpleG
                 "--progress"
             ]
         );
-    } catch (error) {
-        throw new Error(`Failed to fetch repository ${path}`);
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            throw new Error(`Failed to fetch repository ${path}: ${error.message}`);
+        } else {
+            throw new Error(`Failed to fetch repository ${path}: ${error}`);
+        }
     }
 }
 
@@ -57,8 +65,12 @@ export const upsertGitConfig = async (path: string, gitConfig: Record<string, st
         for (const [key, value] of Object.entries(gitConfig)) {
             await git.addConfig(key, value);
         }
-    } catch (error) {
-        throw new Error(`Failed to set git config ${path}`);
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            throw new Error(`Failed to set git config ${path}: ${error.message}`);
+        } else {
+            throw new Error(`Failed to set git config ${path}: ${error}`);
+        }
     }
 }
 

@@ -141,14 +141,13 @@ const SearchPageInternal = () => {
         });
     }, [captureEvent, searchQuery, searchResponse]);
 
-    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled, repoUrlTemplates } = useMemo(() => {
+    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled } = useMemo(() => {
         if (!searchResponse) {
             return {
                 fileMatches: [],
                 searchDurationMs: 0,
                 totalMatchCount: 0,
                 isBranchFilteringEnabled: false,
-                repoUrlTemplates: {},
             };
         }
 
@@ -157,7 +156,6 @@ const SearchPageInternal = () => {
             searchDurationMs: Math.round(searchResponse.durationMs),
             totalMatchCount: searchResponse.zoektStats.matchCount,
             isBranchFilteringEnabled: searchResponse.isBranchFilteringEnabled,
-            repoUrlTemplates: searchResponse.repoUrlTemplates,
         }
     }, [searchResponse]);
 
@@ -207,7 +205,6 @@ const SearchPageInternal = () => {
                     isMoreResultsButtonVisible={isMoreResultsButtonVisible}
                     onLoadMoreResults={onLoadMoreResults}
                     isBranchFilteringEnabled={isBranchFilteringEnabled}
-                    repoUrlTemplates={repoUrlTemplates}
                     repoMetadata={repoMetadata ?? {}}
                     searchDurationMs={searchDurationMs}
                     numMatches={numMatches}
@@ -222,7 +219,6 @@ interface PanelGroupProps {
     isMoreResultsButtonVisible?: boolean;
     onLoadMoreResults: () => void;
     isBranchFilteringEnabled: boolean;
-    repoUrlTemplates: Record<string, string>;
     repoMetadata: Record<string, Repository>;
     searchDurationMs: number;
     numMatches: number;
@@ -233,7 +229,6 @@ const PanelGroup = ({
     isMoreResultsButtonVisible,
     onLoadMoreResults,
     isBranchFilteringEnabled,
-    repoUrlTemplates,
     repoMetadata,
     searchDurationMs,
     numMatches,
@@ -340,7 +335,6 @@ const PanelGroup = ({
                     onClose={() => setSelectedFile(undefined)}
                     selectedMatchIndex={selectedMatchIndex}
                     onSelectedMatchIndexChange={setSelectedMatchIndex}
-                    repoUrlTemplates={repoUrlTemplates}
                 />
             </ResizablePanel>
         </ResizablePanelGroup>

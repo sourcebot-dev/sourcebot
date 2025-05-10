@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.4] - 2025-05-10
+
+### Fixed
+- Added better error handling to git operations
+
+## [3.1.3] - 2025-05-07
+
 ### Fixed
 - Fixes bug with repos not being visible in the homepage carousel when re-indexing. [#294](https://github.com/sourcebot-dev/sourcebot/pull/294)
 
 ### Added
 - Added special `*` value for `rev:` to allow searching across all branches. [#281](https://github.com/sourcebot-dev/sourcebot/pull/281)
+- Added the Sourcebot Model Context Protocol (MCP) server in [packages/mcp](./packages/mcp/README.md) to allow LLMs to interface with Sourcebot. Checkout the npm package [here](https://www.npmjs.com/package/@sourcebot/mcp). [#292](https://github.com/sourcebot-dev/sourcebot/pull/292)
 
 ## [3.1.2] - 2025-04-30
 
