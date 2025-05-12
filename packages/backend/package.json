@@ -5,7 +5,7 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
-        "dev:watch": "tsc-watch --preserveWatchOutput --onSuccess \"yarn dev --cacheDir ../../.sourcebot\"",
+        "dev:watch": "tsc-watch --preserveWatchOutput --onSuccess \"yarn dev\"",
         "dev": "node ./dist/index.js",
         "build": "tsc",
         "test": "cross-env SKIP_ENV_VALIDATION=1 vitest --config ./vitest.config.ts"
