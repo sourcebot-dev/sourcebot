@@ -1,0 +1,93 @@
+---
+title: AI Code Review Agent
+sidebarTitle: AI Code Review Agent
+---
+
+<Note>
+This agent sends data to OpenAI (through an API key you supply) to perform code reviews. This data includes code from the PR being reviewed, as well as additional relevant context from your
+codebase that the agent may fetch to perform the review.
+</Note>
+
+This agent provides codebase-aware reviews for your PRs. For each diff, this agent fetches relevant context from Sourcebot and feeds it into an LLM for a detailed review of your changes.
+
+The AI Code Review Agent is open source and packaged in [Sourcebot](https://github.com/sourcebot-dev/sourcebot). To get started using this agent, [deploy Sourcebot](/self-hosting/overview)
+and then follow the configuration instructions below.
+
+![AI Code Review Agent Example](/images/review_agent_example.png)
+
+# Configure
+
+This agent currently only supports reviewing GitHub PRs. You configure the agent by creating a GitHub app, installing it into your GitHub organization, and then giving your app info to Sourcebot.
+
+Before you get started, make sure you have an OpenAPI account that you can create an OpenAPI key with.
+
+<Steps>
+    <Step title="Register a GitHub app">
+        Follow the official GitHub guide for [registering a GitHub app](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app)
+
+        - GitHub App name: You can make this whatever you want (ex. Sourcebot Review Agent)
+        - Homepage URL: You can make this whatever you want (ex. https://www.sourcebot.dev/)
+        - Webhook URL (**IMPORTANT**): You must set this to point to your Sourcebot deployment at /api/webhook (ex. https://sourcebot.aperture.com/api/webhook). Your Sourcebot deployment must be able to accept requests from GitHub
+        (either github.com or your self-hosted enterprise server) for this to work. If you're running Sourcebot locally, you can [use smee](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#step-2-get-a-webhook-proxy-url) to [forward webhooks](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#step-6-start-your-server) to your local deployment.
+        - Permissions
+            - Pull requests: Read & Write
+            - Issues: Read & Write
+            - Contents: Read
+        - Events:
+            - Pull request
+            - Issue comment
+    </Step>
+    <Step title="Install the GitHub app in your organization">
+        Navigate to your new [GitHub app's page](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings) and press `Install`
+    </Step>
+    <Step title="Configure the environment variables in Sourcebot">
+        Sourcebot requires the following environment variables to begin reviewing PRs through your new GitHub app:
+
+        - `GITHUB_APP_ID`: The client ID of your GitHub app. Can be found in your [app settings](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings)
+        - `GITHUB_APP_WEBHOOK_SECRET`: A random webhook secret that you've set in your [app settings](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings). This can be anything (ex. `python -c "import secrets; print(secrets.token_hex(10))"` to generate a random secret)
+        - `GITHUB_APP_PRIVATE_KEY_PATH`: The path to your app's private key. If you're running Sourcebot from a container, this is the path to this file from within your container
+        (ex `/data/review-agent-key.pem`). You must copy the private key file into the directory you mount to Sourcebot (similar to the config file). 
+        
+        You can generate a private key file for your app in the [app settings](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings). You must copy this private key file into the
+        directory that you mount to Sourcebot
+        ![GitHub App Private Key](/images/github_app_private_key.png)
+        - `OPENAI_API_KEY`: Your OpenAI API key
+        - `REVIEW_AGENT_AUTO_REVIEW_ENABLED` (default: `false`): If enabled, the review agent will automatically review any new or updated PR. If disabled, you must invoke it using the command defined by `REVIEW_AGENT_REVIEW_COMMAND`
+        - `REVIEW_AGENT_REVIEW_COMMAND` (default: `review`): The command that invokes the review agent (ex. `/review`) when a user comments on the PR. Don't include the slash character in this value.
+
+        You can find an example docker compose file below. 
+        - This docker compose file is placed in `~/sourcebot_review_agent_workspace`, and I'm mounting that directory to Sourcebot
+        - The config and the app private key files are placed in this directory
+        - The paths to these files are given to Sourcebot relative to `/data` since that's the directory in Sourcebot that I'm mounting to
+
+        ```yaml
+        services:
+            sourcebot:
+                image: ghcr.io/sourcebot-dev/sourcebot:latest
+                pull_policy: always
+                container_name: sourcebot
+                ports:
+                    - "3000:3000"
+                volumes:
+                    - "/Users/michael/sourcebot_review_agent_workspace:/data"
+                environment:
+                    CONFIG_PATH: "/data/config.json"
+                    GITHUB_APP_ID: "my-github-app-id"
+                    GITHUB_APP_WEBHOOK_SECRET: "my-github-app-webhook-secret"
+                    GITHUB_APP_PRIVATE_KEY_PATH: "/data/review-agent-key.pem"
+                    OPENAI_API_KEY: "sk-proj-my-open-api-key"
+        ```
+    </Step>
+    <Step title="Verify configuration">
+        Navigate to the agents page by pressing `Agents` in the Sourcebot nav menu. If you've configured your environment variables correctly you'll see the following:
+
+        ![Review Agent Configured](/images/review_agent_configured.png)
+    </Step>
+</Steps>
+
+# Using the agent
+
+The review agent will not automatically review your PRs by default. To enable this feature, set the `REVIEW_AGENT_AUTO_REVIEW_ENABLED` environment variable to true.
+
+You can invoke the review agent manually by commenting `/review` on the PR you'd like it to review. You can configure the command that triggers the agent by changing
+the `REVIEW_AGENT_REVIEW_COMMAND` environment variable. 
