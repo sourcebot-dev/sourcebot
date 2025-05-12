@@ -33,13 +33,21 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
     return `${path}?${queryString}`;
 }
 
-export type CodeHostType = "github" | "gitlab" | "gitea" | "gerrit" | "bitbucket-cloud" | "bitbucket-server";
+export type CodeHostType =
+    "github" |
+    "gitlab" |
+    "gitea" |
+    "gerrit" |
+    "bitbucket-cloud" |
+    "bitbucket-server" |
+    "generic-git-url" |
+    "generic-git-file";
 
 type CodeHostInfo = {
     type: CodeHostType;
     displayName: string;
     codeHostName: string;
-    repoLink: string;
+    repoLink?: string;
     icon: string;
     iconClassName?: string;
 }
@@ -62,10 +70,10 @@ export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined
 
 export const getRepoQueryCodeHostInfo = (repo: RepositoryQuery): CodeHostInfo | undefined => {
     const displayName = repo.repoDisplayName ?? repo.repoName;
-    return _getCodeHostInfoInternal(repo.codeHostType, displayName, repo.webUrl ?? repo.repoCloneUrl);
+    return _getCodeHostInfoInternal(repo.codeHostType, displayName, repo.webUrl);
 }
 
-const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: string): CodeHostInfo | undefined => {
+const _getCodeHostInfoInternal = (type: string, displayName: string, webUrl?: string): CodeHostInfo | undefined => {
     switch (type) {
         case 'github': {
             const { src, className } = getCodeHostIcon('github')!;
@@ -73,7 +81,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: s
                 type: "github",
                 displayName: displayName,
                 codeHostName: "GitHub",
-                repoLink: cloneUrl,
+                repoLink: webUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -84,7 +92,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: s
                 type: "gitlab",
                 displayName: displayName,
                 codeHostName: "GitLab",
-                repoLink: cloneUrl,
+                repoLink: webUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -95,7 +103,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: s
                 type: "gitea",
                 displayName: displayName,
                 codeHostName: "Gitea",
-                repoLink: cloneUrl,
+                repoLink: webUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -107,7 +115,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: s
                 type: "gerrit",
                 displayName: displayName,
                 codeHostName: "Gerrit",
-                repoLink: cloneUrl,
+                repoLink: webUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -118,7 +126,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: s
                 type: "bitbucket-server",
                 displayName: displayName,
                 codeHostName: "Bitbucket",
-                repoLink: cloneUrl,
+                repoLink: webUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -129,7 +137,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, cloneUrl: s
                 type: "bitbucket-cloud",
                 displayName: displayName,
                 codeHostName: "Bitbucket",
-                repoLink: cloneUrl,
+                repoLink: webUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -174,6 +182,8 @@ export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean 
         case "bitbucket-cloud":
         case "bitbucket-server":
             return true;
+        case "generic-git-file":
+        case "generic-git-url":
         case "gerrit":
             return false;
     }

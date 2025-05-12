@@ -65,7 +65,7 @@ export const searchResponseSchema = z.object({
         }),
         repository: z.string(),
         language: z.string(),
-        url: z.string(),
+        url: z.string().optional(),
         chunks: z.array(z.object({
             content: z.string(),
             matchRanges: z.array(rangeSchema),
@@ -84,7 +84,7 @@ export const searchResponseSchema = z.object({
 
 export const repositorySchema = z.object({
     name: z.string(),
-    url: z.string(),
+    url: z.string().optional(),
     branches: z.array(z.string()),
     rawConfig: z.record(z.string(), z.string()).optional(),
 });

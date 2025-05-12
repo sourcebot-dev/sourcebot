@@ -1230,6 +1230,12 @@ const parseConnectionConfig = (config: string) => {
                     hasToken: true, // gerrit doesn't use a token atm
                 }
             }
+            case "git": {
+                return {
+                    numRepos: 1,
+                    hasToken: false,
+                }
+            }
         }
     })();
 

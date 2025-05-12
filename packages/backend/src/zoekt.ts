@@ -15,7 +15,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
         'HEAD'
     ];
 
-    const repoPath = getRepoPath(repo, ctx);
+    const { path: repoPath } = getRepoPath(repo, ctx);
     const shardPrefix = getShardPrefix(repo.orgId, repo.id);
     const metadata = repoMetadataSchema.parse(repo.metadata);
 

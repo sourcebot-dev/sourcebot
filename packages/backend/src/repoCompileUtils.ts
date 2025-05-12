@@ -10,7 +10,7 @@ import { Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
 import { createLogger } from './logger.js';
-import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GitConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { RepoMetadata } from './types.js';
 import path from 'path';
 
@@ -433,4 +433,55 @@ export const compileBitbucketConfig = async (
         repoData: repos,
         notFound,
     };
+}
+
+export const compileGenericGitHostConfig = async (
+    config: GitConnectionConfig,
+    connectionId: number,
+    orgId: number,
+) => {
+
+    const cloneUrl = new URL(config.url);
+    const codeHostType = cloneUrl.protocol === 'file:' ? 'generic-git-file' : 'generic-git-url';
+
+    const repo: RepoData = {
+        external_id: cloneUrl.pathname.replace(/^\//, ''),
+        external_codeHostUrl: cloneUrl.origin,
+        external_codeHostType: codeHostType,
+        cloneUrl: cloneUrl.toString(),
+        name: config.url,
+        displayName: config.url,
+        isFork: false,
+        isArchived: false,
+        org: {
+            connect: {
+                id: orgId,
+            },
+        },
+        connections: {
+            create: {
+                connectionId: connectionId,
+            }
+        },
+        metadata: {
+            gitConfig: {
+                'zoekt.web-url-type': codeHostType,
+                'zoekt.archived': marshalBool(false),
+                'zoekt.fork': marshalBool(false),
+                'zoekt.public': marshalBool(true),
+                'zoekt.display-name': config.url,
+            },
+            branches: config.revisions?.branches ?? undefined,
+            tags: config.revisions?.tags ?? undefined,
+        } satisfies RepoMetadata,
+    }
+
+    return {
+        repoData: [repo],
+        notFound: {
+            users: [],
+            orgs: [],
+            repos: [],
+        }
+    }
 }

@@ -62,7 +62,7 @@ export const searchResponseSchema = z.object({
             // Any matching ranges
             matchRanges: z.array(rangeSchema),
         }),
-        url: z.string(),
+        url: z.string().optional(),
         repository: z.string(),
         language: z.string(),
         chunks: z.array(z.object({
@@ -83,8 +83,8 @@ export const searchResponseSchema = z.object({
 
 export const repositorySchema = z.object({
     name: z.string(),
-    url: z.string(),
     branches: z.array(z.string()),
+    url: z.string().optional(),
     rawConfig: z.record(z.string(), z.string()).optional(),
 });
 

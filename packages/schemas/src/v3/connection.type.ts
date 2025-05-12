@@ -5,7 +5,8 @@ export type ConnectionConfig =
   | GitlabConnectionConfig
   | GiteaConnectionConfig
   | GerritConnectionConfig
-  | BitbucketConnectionConfig;
+  | BitbucketConnectionConfig
+  | GitConnectionConfig;
 
 export interface GithubConnectionConfig {
   /**
@@ -303,5 +304,16 @@ export interface BitbucketConnectionConfig {
      */
     repos?: string[];
   };
+  revisions?: GitRevisions;
+}
+export interface GitConnectionConfig {
+  /**
+   * Git Configuration
+   */
+  type: "git";
+  /**
+   * The URL to the git repository.
+   */
+  url: string;
   revisions?: GitRevisions;
 }

@@ -1,0 +1,25 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "GitConnectionConfig",
+    "properties": {
+        "type": {
+            "const": "git",
+            "description": "Git Configuration"
+        },
+        "url": {
+            "type": "string",
+            "format": "url",
+            "description": "The URL to the git repository.",
+            "pattern": "^(https?:\\/\\/[^\\s/$.?#].[^\\s]*|file:\\/\\/[^\\s]+)$"
+        },
+        "revisions": {
+            "$ref": "./shared.json#/definitions/GitRevisions"
+        }
+    },
+    "required": [
+        "type",
+        "url"
+    ],
+    "additionalProperties": false
+}

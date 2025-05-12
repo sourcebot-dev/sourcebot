@@ -94,8 +94,19 @@ export const arraysEqualShallow = <T>(a?: readonly T[], b?: readonly T[]) => {
     return true;
 }
 
-export const getRepoPath = (repo: Repo, ctx: AppContext) => {
-    return path.join(ctx.reposPath, repo.id.toString());
+export const getRepoPath = (repo: Repo, ctx: AppContext): { path: string, isReadOnly: boolean } => {
+    if (repo.external_codeHostType === 'generic-git-file') {
+        const cloneUrl = new URL(repo.cloneUrl);
+        return {
+            path: cloneUrl.pathname,
+            isReadOnly: true,
+        }
+    }
+
+    return {
+        path: path.join(ctx.reposPath, repo.id.toString()),
+        isReadOnly: false,
+    }
 }
 
 export const getShardPrefix = (orgId: number, repoId: number) => {

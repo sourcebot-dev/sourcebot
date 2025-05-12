@@ -16,6 +16,9 @@
         },
         {
             "$ref": "./bitbucket.json"
+        },
+        {
+            "$ref": "./git.json"
         }
     ]
 }
