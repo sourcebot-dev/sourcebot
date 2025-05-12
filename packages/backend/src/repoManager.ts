@@ -392,7 +392,6 @@ export class RepoManager implements IRepoManager {
                 },
                 data: {
                     repoIndexingStatus: RepoIndexingStatus.FAILED,
-                    indexedAt: new Date(),
                 }
             })
         }
