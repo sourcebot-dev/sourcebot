@@ -1,7 +1,8 @@
 {
     "private": true,
     "workspaces": [
-        "packages/*"
+        "packages/*",
+        "packages/agents/*"
     ],
     "scripts": {
         "build": "cross-env SKIP_ENV_VALIDATION=1 yarn workspaces foreach -A run build",
@@ -11,6 +12,7 @@
         "dev:zoekt": "yarn with-env zoekt-webserver -index .sourcebot/index -rpc",
         "dev:backend": "yarn with-env yarn workspace @sourcebot/backend dev:watch",
         "dev:web": "yarn with-env yarn workspace @sourcebot/web dev",
+        "dev:review-agent": "yarn with-env yarn workspace @sourcebot/review-agent dev",
         "watch:mcp": "yarn workspace @sourcebot/mcp build:watch",
         "watch:schemas": "yarn workspace @sourcebot/schemas watch",
         "dev:prisma:migrate:dev": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:dev",

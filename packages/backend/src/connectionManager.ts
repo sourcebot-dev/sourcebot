@@ -334,7 +334,6 @@ export class ConnectionManager implements IConnectionManager {
                 },
                 data: {
                     syncStatus: ConnectionSyncStatus.FAILED,
-                    syncedAt: new Date(),
                     syncStatusMetadata: syncStatusMetadata as Prisma.InputJsonValue,
                 }
             });
