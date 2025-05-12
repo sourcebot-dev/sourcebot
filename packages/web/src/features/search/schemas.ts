@@ -31,6 +31,10 @@ export const searchRequestSchema = z.object({
     whole: z.boolean().optional(),
 });
 
+export const repositoryInfoSchema = z.object({
+    codeHostType: z.string(),
+})
+
 export const searchResponseSchema = z.object({
     zoektStats: z.object({
         // The duration (in nanoseconds) of the search.
@@ -64,6 +68,7 @@ export const searchResponseSchema = z.object({
         }),
         url: z.string().optional(),
         repository: z.string(),
+        repositoryId: z.number(),
         language: z.string(),
         chunks: z.array(z.object({
             content: z.string(),
@@ -78,6 +83,7 @@ export const searchResponseSchema = z.object({
         // Set if `whole` is true.
         content: z.string().optional(),
     })),
+    repositoryInfo: z.record(z.string(), repositoryInfoSchema),
     isBranchFilteringEnabled: z.boolean(),
 });
 

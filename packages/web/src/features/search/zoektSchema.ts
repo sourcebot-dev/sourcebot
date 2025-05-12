@@ -54,6 +54,7 @@ export const zoektSearchResponseSchema = z.object({
         Files: z.array(z.object({
             FileName: z.string(),
             Repository: z.string(),
+            RepositoryID: z.number().optional(),
             Version: z.string().optional(),
             Language: z.string(),
             Branches: z.array(z.string()).optional(),

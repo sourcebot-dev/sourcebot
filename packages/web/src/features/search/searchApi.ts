@@ -6,7 +6,8 @@ import { prisma } from "@/prisma";
 import { ErrorCode } from "../../lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { zoektSearchResponseSchema } from "./zoektSchema";
-import { SearchRequest, SearchResponse, SearchResultRange } from "./types";
+import { SearchRequest, SearchResponse, SearchResultRange, RepositoryInfo } from "./types";
+import { Repo } from "@sourcebot/db";
 
 // List of supported query prefixes in zoekt.
 // @see : https://github.com/sourcebot-dev/zoekt/blob/main/query/parse.go#L417
@@ -171,7 +172,40 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
 
     const searchBody = await searchResponse.json();
 
-    const parser = zoektSearchResponseSchema.transform(({ Result }) => {
+    const parser = zoektSearchResponseSchema.transform(async ({ Result }) => {
+
+        // @note (2025-05-12): todo
+        // @see: https://github.com/sourcebot-dev/zoekt/pull/6
+        const repoIdentifiers = new Set(Result.Files?.map((file) => file.RepositoryID ?? file.Repository) ?? []);
+        const repos = new Map<string | number, Repo>();
+        
+        for (const identifier of Array.from(repoIdentifiers)) {
+            if (typeof identifier === "number") {
+                const repo = await prisma.repo.findUnique({
+                    where: { id: identifier, orgId },
+                });
+                if (repo) {
+                    repos.set(identifier, repo);
+                }
+            } else {
+                const repo = await prisma.repo.findFirst({
+                    where: {
+                        name: identifier,
+                        orgId,
+                    }
+                });
+                if (repo) {
+                    repos.set(identifier, repo);
+                }
+            }
+        }
+
+        const repositoryInfo: Record<string, RepositoryInfo> = {};
+        repos.forEach((repo) => {
+            repositoryInfo[repo.id.toString()] = {
+                codeHostType: repo.external_codeHostType,
+            };
+        });
 
         return {
             zoektStats: {
@@ -211,6 +245,13 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                     return getRepositoryUrl(template, branch, file.FileName);
                 })();
 
+                const identifier = file.RepositoryID ?? file.Repository;
+                const repo = repos.get(identifier);
+
+                // @todo: better handling
+                if (!repo) {
+                    throw new Error(`Repository not found for identifier: ${identifier}`);
+                }
 
                 return {
                     fileName: {
@@ -228,7 +269,8 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                             }
                         })) : [],
                     },
-                    repository: file.Repository,
+                    repository: repo.name,
+                    repositoryId: repo.id,
                     url: url,
                     language: file.Language,
                     chunks: file.ChunkMatches
@@ -269,9 +311,10 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                     content: file.Content,
                 }
             }) ?? [],
+            repositoryInfo,
             isBranchFilteringEnabled: isBranchFilteringEnabled,
         } satisfies SearchResponse;
     });
 
-    return parser.parse(searchBody);
+    return parser.parseAsync(searchBody);
 }
