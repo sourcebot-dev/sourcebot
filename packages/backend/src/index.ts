@@ -1,7 +1,6 @@
 import "./instrument.js";
 
 import * as Sentry from "@sentry/node";
-import { ArgumentParser } from "argparse";
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import path from 'path';
@@ -36,8 +35,6 @@ process.on('unhandledRejection', (reason, promise) => {
     console.log(`Unhandled rejection at: ${promise}, reason: ${reason}`);
     process.exit(1);
 });
-
-console.log(process.cwd());
 
 const cacheDir = env.DATA_CACHE_DIR;
 const reposPath = path.join(cacheDir, 'repos');
