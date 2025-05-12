@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2025-05-12
+
+### Added
+- Added AI code review agent [#298](https://github.com/sourcebot-dev/sourcebot/pull/298). Checkout the [docs](https://docs.sourcebot.dev/docs/agents/review-agent) for more information.
+
 ### Fixed
 - Fixed issue with repos appearing in the carousel when they fail indexing for the first time. [#305](https://github.com/sourcebot-dev/sourcebot/pull/305)
+- Align gitea clone_url with gitea host url [#303](https://github.com/sourcebot-dev/sourcebot/pull/303)
 
 ## [3.1.4] - 2025-05-10
 
