@@ -41,6 +41,7 @@ model Repo {
   displayName        String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+  /// When the repo was last indexed successfully.
   indexedAt          DateTime?
   isFork             Boolean
   isArchived         Boolean
@@ -86,6 +87,7 @@ model Connection {
   isDeclarative      Boolean              @default(false)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
+  /// When the connection was last synced successfully.
   syncedAt           DateTime?
   repos              RepoToConnection[]
   syncStatus         ConnectionSyncStatus @default(SYNC_NEEDED)
