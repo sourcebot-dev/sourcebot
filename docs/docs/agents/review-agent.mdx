@@ -29,6 +29,7 @@ Before you get started, make sure you have an OpenAPI account that you can creat
         - Homepage URL: You can make this whatever you want (ex. https://www.sourcebot.dev/)
         - Webhook URL (**IMPORTANT**): You must set this to point to your Sourcebot deployment at /api/webhook (ex. https://sourcebot.aperture.com/api/webhook). Your Sourcebot deployment must be able to accept requests from GitHub
         (either github.com or your self-hosted enterprise server) for this to work. If you're running Sourcebot locally, you can [use smee](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#step-2-get-a-webhook-proxy-url) to [forward webhooks](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#step-6-start-your-server) to your local deployment.
+        - Webook Secret: This can be any string (ex. generate a random string `python -c "import secrets; print(secrets.token_hex(10))"`). You'll provide this to Sourcebot to be able to read webhook events from your app.
         - Permissions
             - Pull requests: Read & Write
             - Issues: Read & Write
@@ -44,7 +45,7 @@ Before you get started, make sure you have an OpenAPI account that you can creat
         Sourcebot requires the following environment variables to begin reviewing PRs through your new GitHub app:
 
         - `GITHUB_APP_ID`: The client ID of your GitHub app. Can be found in your [app settings](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings)
-        - `GITHUB_APP_WEBHOOK_SECRET`: A random webhook secret that you've set in your [app settings](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings). This can be anything (ex. `python -c "import secrets; print(secrets.token_hex(10))"` to generate a random secret)
+        - `GITHUB_APP_WEBHOOK_SECRET`: The webhook secret you defined in your GitHub app. Can be found in your [app settings](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings)
         - `GITHUB_APP_PRIVATE_KEY_PATH`: The path to your app's private key. If you're running Sourcebot from a container, this is the path to this file from within your container
         (ex `/data/review-agent-key.pem`). You must copy the private key file into the directory you mount to Sourcebot (similar to the config file). 
         
