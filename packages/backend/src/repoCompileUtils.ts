@@ -183,7 +183,9 @@ export const compileGiteaConfig = async (
         .replace(/^https?:\/\//, '');
 
     const repos = giteaRepos.map((repo) => {
+        const configUrl = new URL(hostUrl);
         const cloneUrl = new URL(repo.clone_url!);
+        cloneUrl.host = configUrl.host
         const repoDisplayName = repo.full_name!;
         const repoName = path.join(repoNameRoot, repoDisplayName);
 
