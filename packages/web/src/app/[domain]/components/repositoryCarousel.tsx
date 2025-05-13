@@ -6,7 +6,7 @@ import {
     CarouselItem,
 } from "@/components/ui/carousel";
 import Autoscroll from "embla-carousel-auto-scroll";
-import { getRepoQueryCodeHostInfo } from "@/lib/utils";
+import { getCodeHostInfoForRepo } from "@/lib/utils";
 import Image from "next/image";
 import { FileIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
@@ -57,7 +57,12 @@ const RepositoryBadge = ({
     repo
 }: RepositoryBadgeProps) => {
     const { repoIcon, displayName, repoLink } = (() => {
-        const info = getRepoQueryCodeHostInfo(repo);
+        const info = getCodeHostInfoForRepo({
+            codeHostType: repo.codeHostType,
+            name: repo.repoName,
+            displayName: repo.repoDisplayName,
+            webUrl: repo.webUrl,
+        });
 
         if (info) {
             return {

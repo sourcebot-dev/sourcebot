@@ -7,8 +7,6 @@ import gerritLogo from "@/public/gerrit.svg";
 import bitbucketLogo from "@/public/bitbucket.svg";
 import gitLogo from "@/public/git.svg";
 import { ServiceError } from "./serviceError";
-import { RepositoryQuery } from "./types";
-import { RepositoryInfo } from "@/features/search/types";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -53,26 +51,20 @@ type CodeHostInfo = {
     iconClassName?: string;
 }
 
-export const getRepoCodeHostInfo = (repo?: RepositoryInfo): CodeHostInfo | undefined => {
-    if (!repo) {
-        return undefined;
-    }
+export const getCodeHostInfoForRepo = (repo: {
+    codeHostType: string,
+    name: string,
+    displayName?: string,
+    webUrl?: string,
+}): CodeHostInfo | undefined => {
+    const { codeHostType, name, displayName, webUrl } = repo;
 
-    return _getCodeHostInfoInternal(repo.codeHostType, repo.displayName ?? repo.name, repo.webUrl);
-}
-
-export const getRepoQueryCodeHostInfo = (repo: RepositoryQuery): CodeHostInfo | undefined => {
-    const displayName = repo.repoDisplayName ?? repo.repoName;
-    return _getCodeHostInfoInternal(repo.codeHostType, displayName, repo.webUrl);
-}
-
-const _getCodeHostInfoInternal = (type: string, displayName: string, webUrl?: string): CodeHostInfo | undefined => {
-    switch (type) {
+    switch (codeHostType) {
         case 'github': {
             const { src, className } = getCodeHostIcon('github')!;
             return {
                 type: "github",
-                displayName: displayName,
+                displayName: displayName ?? name,
                 codeHostName: "GitHub",
                 repoLink: webUrl,
                 icon: src,
@@ -83,7 +75,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, webUrl?: st
             const { src, className } = getCodeHostIcon('gitlab')!;
             return {
                 type: "gitlab",
-                displayName: displayName,
+                displayName: displayName ?? name,
                 codeHostName: "GitLab",
                 repoLink: webUrl,
                 icon: src,
@@ -94,7 +86,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, webUrl?: st
             const { src, className } = getCodeHostIcon('gitea')!;
             return {
                 type: "gitea",
-                displayName: displayName,
+                displayName: displayName ?? name,
                 codeHostName: "Gitea",
                 repoLink: webUrl,
                 icon: src,
@@ -106,7 +98,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, webUrl?: st
             const { src, className } = getCodeHostIcon('gerrit')!;
             return {
                 type: "gerrit",
-                displayName: displayName,
+                displayName: displayName ?? name,
                 codeHostName: "Gerrit",
                 repoLink: webUrl,
                 icon: src,
@@ -117,7 +109,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, webUrl?: st
             const { src, className } = getCodeHostIcon('bitbucket-server')!;
             return {
                 type: "bitbucket-server",
-                displayName: displayName,
+                displayName: displayName ?? name,
                 codeHostName: "Bitbucket",
                 repoLink: webUrl,
                 icon: src,
@@ -128,7 +120,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, webUrl?: st
             const { src, className } = getCodeHostIcon('bitbucket-cloud')!;
             return {
                 type: "bitbucket-cloud",
-                displayName: displayName,
+                displayName: displayName ?? name,
                 codeHostName: "Bitbucket",
                 repoLink: webUrl,
                 icon: src,
@@ -139,7 +131,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, webUrl?: st
             const { src, className } = getCodeHostIcon('generic-git-file')!;
             return {
                 type: "generic-git-file",
-                displayName: displayName,
+                displayName: displayName ?? name,
                 codeHostName: "Generic Git Host (Local)",
                 repoLink: webUrl,
                 icon: src,
@@ -150,7 +142,7 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, webUrl?: st
             const { src, className } = getCodeHostIcon('generic-git-url')!;
             return {
                 type: "generic-git-url",
-                displayName: displayName,
+                displayName: displayName ?? name,
                 codeHostName: "Generic Git Host (Remote)",
                 repoLink: webUrl,
                 icon: src,

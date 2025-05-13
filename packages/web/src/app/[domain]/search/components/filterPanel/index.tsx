@@ -2,7 +2,7 @@
 
 import { FileIcon } from "@/components/ui/fileIcon";
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
-import { cn, getRepoCodeHostInfo } from "@/lib/utils";
+import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -40,7 +40,14 @@ export const FilterPanel = ({
             matches,
             ({ key, match }) => {
                 const repo: RepositoryInfo | undefined = repoInfo[match.repositoryId];
-                const info = getRepoCodeHostInfo(repo);
+
+                const info = repo ? getCodeHostInfoForRepo({
+                    name: repo.name,
+                    codeHostType: repo.codeHostType,
+                    displayName: repo.displayName,
+                    webUrl: repo.webUrl,
+                }) : undefined;
+
                 const Icon = info ? (
                     <Image
                         src={info.icon}

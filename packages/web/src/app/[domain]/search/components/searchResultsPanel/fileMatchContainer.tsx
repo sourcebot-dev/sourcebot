@@ -87,6 +87,10 @@ export const FileMatchContainer = ({
         return `${branches[0]}${branches.length > 1 ? ` +${branches.length - 1}` : ''}`;
     }, [isBranchFilteringEnabled, branches]);
 
+    const repo = useMemo(() => {
+        return repoInfo[file.repositoryId];
+    }, [repoInfo, file.repositoryId]);
+
 
     return (
         <div>
@@ -101,7 +105,12 @@ export const FileMatchContainer = ({
                 }}
             >
                 <FileHeader
-                    repoInfo={repoInfo[file.repositoryId]}
+                    repo={{
+                        name: repo.name,
+                        codeHostType: repo.codeHostType,
+                        displayName: repo.displayName,
+                        webUrl: repo.webUrl,
+                    }}
                     fileName={file.fileName.text}
                     fileNameHighlightRange={fileNameRange}
                     branchDisplayName={branchDisplayName}

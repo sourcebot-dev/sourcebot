@@ -443,6 +443,67 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
         }
         ), /* allowSingleTenantUnauthedAccess = */ true));
 
+export const getRepoInfoByName = async (repoName: string, domain: string) => sew(() =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            // @note: repo names are represented by their remote url
+            // on the code host. E.g.,:
+            // - github.com/sourcebot-dev/sourcebot
+            // - gitlab.com/gitlab-org/gitlab
+            // - gerrit.wikimedia.org/r/mediawiki/extensions/OnionsPorFavor
+            // etc.
+            //
+            // For most purposes, repo names are unique within an org, so using
+            // findFirst is equivalent to findUnique. Duplicates _can_ occur when
+            // a repository is specified by its remote url in a generic `git`
+            // connection. For example:
+            //
+            // ```json
+            // {
+            //     "connections": {
+            //         "connection-1": {
+            //             "type": "github",
+            //             "repos": [
+            //                 "sourcebot-dev/sourcebot"
+            //             ]
+            //         },
+            //         "connection-2": {
+            //             "type": "git",
+            //             "url": "file:///tmp/repos/sourcebot"
+            //         }
+            //     }
+            // }
+            // ```
+            //
+            // In this scenario, both repos will be named "github.com/sourcebot-dev/sourcebot".
+            // We will leave this as an edge case for now since it's unlikely to happen in practice.
+            //
+            // @v4-todo: we could add a unique contraint on repo name + orgId to help de-duplicate
+            // these cases.
+            // @see: repoCompileUtils.ts
+            const repo = await prisma.repo.findFirst({
+                where: {
+                    name: repoName,
+                    orgId,
+                },
+            });
+
+            if (!repo) {
+                return notFound();
+            }
+
+            return {
+                id: repo.id,
+                name: repo.name,
+                displayName: repo.displayName ?? undefined,
+                codeHostType: repo.external_codeHostType,
+                webUrl: repo.webUrl ?? undefined,
+                imageUrl: repo.imageUrl ?? undefined,
+                indexedAt: repo.indexedAt ?? undefined,
+                repoIndexingStatus: repo.repoIndexingStatus,
+            }
+        }), /* allowSingleTenantUnauthedAccess = */ true));
+
 export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
