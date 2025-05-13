@@ -28,6 +28,7 @@ import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/sch
 import { TenancyMode } from "./lib/types";
 import { decrementOrgSeatCount, getSubscriptionForOrg, incrementOrgSeatCount } from "./ee/features/billing/serverUtils";
 import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
+import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -1241,6 +1242,8 @@ const parseConnectionConfig = (config: string) => {
                 return gerritSchema;
             case 'bitbucket':
                 return bitbucketSchema;
+            case 'git':
+                return genericGitHostSchema;
         }
     })();
 

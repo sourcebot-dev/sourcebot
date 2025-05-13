@@ -39,8 +39,7 @@ export type CodeHostType =
     "gerrit" |
     "bitbucket-cloud" |
     "bitbucket-server" |
-    "generic-git-url" |
-    "generic-git-file";
+    "generic-git-host";
 
 type CodeHostInfo = {
     type: CodeHostType;
@@ -127,23 +126,12 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case "generic-git-file": {
-            const { src, className } = getCodeHostIcon('generic-git-file')!;
+        case "generic-git-host": {
+            const { src, className } = getCodeHostIcon('generic-git-host')!;
             return {
-                type: "generic-git-file",
+                type: "generic-git-host",
                 displayName: displayName ?? name,
-                codeHostName: "Generic Git Host (Local)",
-                repoLink: webUrl,
-                icon: src,
-                iconClassName: className,
-            }
-        }
-        case "generic-git-url": {
-            const { src, className } = getCodeHostIcon('generic-git-url')!;
-            return {
-                type: "generic-git-url",
-                displayName: displayName ?? name,
-                codeHostName: "Generic Git Host (Remote)",
+                codeHostName: "Generic Git Host",
                 repoLink: webUrl,
                 icon: src,
                 iconClassName: className,
@@ -176,8 +164,7 @@ export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, clas
             return {
                 src: bitbucketLogo,
             }
-        case "generic-git-url":
-        case "generic-git-file":
+        case "generic-git-host":
             return {
                 src: gitLogo,
             }
@@ -194,8 +181,7 @@ export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean 
         case "bitbucket-cloud":
         case "bitbucket-server":
             return true;
-        case "generic-git-file":
-        case "generic-git-url":
+        case "generic-git-host":
         case "gerrit":
             return false;
     }

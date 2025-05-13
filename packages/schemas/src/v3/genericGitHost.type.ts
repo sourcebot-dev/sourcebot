@@ -1,6 +1,6 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
-export interface GitConnectionConfig {
+export interface GenericGitHostConnectionConfig {
   /**
    * Git Configuration
    */

@@ -95,8 +95,10 @@ export const arraysEqualShallow = <T>(a?: readonly T[], b?: readonly T[]) => {
 }
 
 export const getRepoPath = (repo: Repo, ctx: AppContext): { path: string, isReadOnly: boolean } => {
-    if (repo.external_codeHostType === 'generic-git-file') {
-        const cloneUrl = new URL(repo.cloneUrl);
+    // If we are dealing with a local repository, then use that as the path.
+    // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
+    const cloneUrl = new URL(repo.cloneUrl);
+    if (repo.external_codeHostType === 'generic-git-host' && cloneUrl.protocol === 'file:') {
         return {
             path: cloneUrl.pathname,
             isReadOnly: true,

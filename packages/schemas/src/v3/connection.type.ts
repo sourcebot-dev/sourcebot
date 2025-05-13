@@ -6,7 +6,7 @@ export type ConnectionConfig =
   | GiteaConnectionConfig
   | GerritConnectionConfig
   | BitbucketConnectionConfig
-  | GitConnectionConfig;
+  | GenericGitHostConnectionConfig;
 
 export interface GithubConnectionConfig {
   /**
@@ -306,7 +306,7 @@ export interface BitbucketConnectionConfig {
   };
   revisions?: GitRevisions;
 }
-export interface GitConnectionConfig {
+export interface GenericGitHostConnectionConfig {
   /**
    * Git Configuration
    */

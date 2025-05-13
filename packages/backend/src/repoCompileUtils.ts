@@ -10,7 +10,7 @@ import { Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
 import { createLogger } from './logger.js';
-import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GitConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GenericGitHostConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { RepoMetadata } from './types.js';
 import path from 'path';
 import { glob } from 'glob';
@@ -439,7 +439,7 @@ export const compileBitbucketConfig = async (
 }
 
 export const compileGenericGitHostConfig = async (
-    config: GitConnectionConfig,
+    config: GenericGitHostConnectionConfig,
     connectionId: number,
     orgId: number,
 ) => {
@@ -457,7 +457,7 @@ export const compileGenericGitHostConfig = async (
 }
 
 export const compileGenericGitHostConfig_file = async (
-    config: GitConnectionConfig,
+    config: GenericGitHostConnectionConfig,
     orgId: number,
     connectionId: number,
 ) => {
@@ -502,7 +502,7 @@ export const compileGenericGitHostConfig_file = async (
         const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
 
         const repo: RepoData = {
-            external_codeHostType: 'generic-git-file',
+            external_codeHostType: 'generic-git-host',
             external_codeHostUrl: remoteUrl.origin,
             external_id: remoteUrl.toString(),
             cloneUrl: `file://${repoPath}`,
@@ -539,7 +539,7 @@ export const compileGenericGitHostConfig_file = async (
 }
 
 export const compileGenericGitHostConfig_url = async (
-    config: GitConnectionConfig,
+    config: GenericGitHostConnectionConfig,
     orgId: number,
     connectionId: number,
 ) => {
@@ -569,10 +569,9 @@ export const compileGenericGitHostConfig_url = async (
     // @note: matches the naming here:
     // https://github.com/sourcebot-dev/zoekt/blob/main/gitindex/index.go#L293
     const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
-    const codeHostType = 'generic-git-url';
 
     const repo: RepoData = {
-        external_codeHostType: codeHostType,
+        external_codeHostType: 'generic-git-host',
         external_codeHostUrl: remoteUrl.origin,
         external_id: remoteUrl.toString(),
         cloneUrl: remoteUrl.toString(),
