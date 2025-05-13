@@ -1,6 +1,8 @@
-import { simpleGit, SimpleGitProgressEvent } from 'simple-git';
+import { CheckRepoActions, GitConfigScope, simpleGit, SimpleGitProgressEvent } from 'simple-git';
 
-export const cloneRepository = async (cloneURL: string, path: string, onProgress?: (event: SimpleGitProgressEvent) => void) => {
+type onProgressFn = (event: SimpleGitProgressEvent) => void;
+
+export const cloneRepository = async (cloneURL: string, path: string, onProgress?: onProgressFn) => {
     const git = simpleGit({
         progress: onProgress,
     });
@@ -26,7 +28,7 @@ export const cloneRepository = async (cloneURL: string, path: string, onProgress
 }
 
 
-export const fetchRepository = async (path: string, onProgress?: (event: SimpleGitProgressEvent) => void) => {
+export const fetchRepository = async (path: string, onProgress?: onProgressFn) => {
     const git = simpleGit({
         progress: onProgress,
     });
@@ -56,7 +58,7 @@ export const fetchRepository = async (path: string, onProgress?: (event: SimpleG
  * that do not exist yet. It will _not_ remove any existing keys that are not
  * present in gitConfig.
  */
-export const upsertGitConfig = async (path: string, gitConfig: Record<string, string>, onProgress?: (event: SimpleGitProgressEvent) => void) => {
+export const upsertGitConfig = async (path: string, gitConfig: Record<string, string>, onProgress?: onProgressFn) => {
     const git = simpleGit({
         progress: onProgress,
     }).cwd(path);
@@ -70,6 +72,52 @@ export const upsertGitConfig = async (path: string, gitConfig: Record<string, st
             throw new Error(`Failed to set git config ${path}: ${error.message}`);
         } else {
             throw new Error(`Failed to set git config ${path}: ${error}`);
+        }
+    }
+}
+
+/**
+ * Returns true if `path` is the _root_ of a git repository.
+ */
+export const isPathAValidGitRepoRoot = async (path: string, onProgress?: onProgressFn) => {
+    const git = simpleGit({
+        progress: onProgress,
+    }).cwd(path);
+
+    try {
+        return git.checkIsRepo(CheckRepoActions.IS_REPO_ROOT);
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            throw new Error(`isPathAGitRepoRoot failed: ${error.message}`);
+        } else {
+            throw new Error(`isPathAGitRepoRoot failed: ${error}`);
+        }
+    }
+}
+
+export const isUrlAValidGitRepo = async (url: string) => {
+    const git = simpleGit();
+
+    // List the remote heads. If an exception is thrown, the URL is not a valid git repo.
+    try {
+        const result = await git.listRemote(['--heads', url]);
+        return result.trim().length > 0;
+    } catch (error: unknown) {
+        return false;
+    }
+}
+
+export const getOriginUrl = async (path: string) => {
+    const git = simpleGit().cwd(path);
+
+    try {
+        const remotes = await git.getConfig('remote.origin.url', GitConfigScope.local);
+        return remotes.value;
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            throw new Error(`Failed to get origin for ${path}: ${error.message}`);
+        } else {
+            throw new Error(`Failed to get origin for ${path}: ${error}`);
         }
     }
 }

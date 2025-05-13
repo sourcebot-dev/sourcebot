@@ -407,7 +407,7 @@ export interface GitConnectionConfig {
    */
   type: "git";
   /**
-   * The URL to the git repository.
+   * The URL to the git repository. Local paths are supported by prefixing with `file://`. They must be absolute paths. The path must point to the root of a git repository.
    */
   url: string;
   revisions?: GitRevisions;

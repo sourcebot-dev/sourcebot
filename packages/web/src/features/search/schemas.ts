@@ -32,7 +32,11 @@ export const searchRequestSchema = z.object({
 });
 
 export const repositoryInfoSchema = z.object({
+    id: z.number(),
     codeHostType: z.string(),
+    name: z.string(),
+    displayName: z.string().optional(),
+    webUrl: z.string().optional(),
 })
 
 export const searchResponseSchema = z.object({
@@ -66,7 +70,7 @@ export const searchResponseSchema = z.object({
             // Any matching ranges
             matchRanges: z.array(rangeSchema),
         }),
-        url: z.string().optional(),
+        webUrl: z.string().optional(),
         repository: z.string(),
         repositoryId: z.number(),
         language: z.string(),
@@ -83,7 +87,7 @@ export const searchResponseSchema = z.object({
         // Set if `whole` is true.
         content: z.string().optional(),
     })),
-    repositoryInfo: z.record(z.string(), repositoryInfoSchema),
+    repositoryInfo: z.array(repositoryInfoSchema),
     isBranchFilteringEnabled: z.boolean(),
 });
 

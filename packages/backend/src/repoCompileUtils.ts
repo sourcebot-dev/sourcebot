@@ -13,6 +13,9 @@ import { createLogger } from './logger.js';
 import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GitConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { RepoMetadata } from './types.js';
 import path from 'path';
+import { glob } from 'glob';
+import { getOriginUrl, isPathAValidGitRepoRoot, isUrlAValidGitRepo } from './git.js';
+import assert from 'assert';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 
@@ -440,17 +443,141 @@ export const compileGenericGitHostConfig = async (
     connectionId: number,
     orgId: number,
 ) => {
+    const configUrl = new URL(config.url);
+    if (configUrl.protocol === 'file:') {
+        return compileGenericGitHostConfig_file(config, orgId, connectionId);
+    }
+    else if (configUrl.protocol === 'http:' || configUrl.protocol === 'https:') {
+        return compileGenericGitHostConfig_url(config, orgId, connectionId);
+    }
+    else {
+        // Schema should prevent this, but throw an error just in case.
+        throw new Error(`Unsupported protocol: ${configUrl.protocol}`);
+    }
+}
 
-    const cloneUrl = new URL(config.url);
-    const codeHostType = cloneUrl.protocol === 'file:' ? 'generic-git-file' : 'generic-git-url';
+export const compileGenericGitHostConfig_file = async (
+    config: GitConnectionConfig,
+    orgId: number,
+    connectionId: number,
+) => {
+    const configUrl = new URL(config.url);
+    assert(configUrl.protocol === 'file:', 'config.url must be a file:// URL');
+
+    // Resolve the glob pattern to a list of repo-paths
+    const repoPaths = await glob(configUrl.pathname, {
+        absolute: true,
+    });
+
+    const repos: RepoData[] = [];
+    const notFound: {
+        users: string[],
+        orgs: string[],
+        repos: string[],
+    } = {
+        users: [],
+        orgs: [],
+        repos: [],
+    };
+    
+    await Promise.all(repoPaths.map(async (repoPath) => {
+        const isGitRepo = await isPathAValidGitRepoRoot(repoPath);
+        if (!isGitRepo) {
+            logger.warn(`Skipping ${repoPath} - not a git repository.`);
+            notFound.repos.push(repoPath);
+            return;
+        }
+
+        const origin = await getOriginUrl(repoPath);
+        if (!origin) {
+            logger.warn(`Skipping ${repoPath} - remote.origin.url not found in git config.`);
+            notFound.repos.push(repoPath);
+            return;
+        }
+
+        const remoteUrl = new URL(origin);
+
+        // @note: matches the naming here:
+        // https://github.com/sourcebot-dev/zoekt/blob/main/gitindex/index.go#L293
+        const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
+
+        const repo: RepoData = {
+            external_codeHostType: 'generic-git-file',
+            external_codeHostUrl: remoteUrl.origin,
+            external_id: remoteUrl.toString(),
+            cloneUrl: `file://${repoPath}`,
+            name: repoName,
+            displayName: repoName,
+            isFork: false,
+            isArchived: false,
+            org: {
+                connect: {
+                    id: orgId,
+                },
+            },
+            connections: {
+                create: {
+                    connectionId: connectionId,
+                }
+            },
+            metadata: {
+                branches: config.revisions?.branches ?? undefined,
+                tags: config.revisions?.tags ?? undefined,
+                // @NOTE: We don't set a gitConfig here since local repositories
+                // are readonly.
+                gitConfig: undefined,
+            } satisfies RepoMetadata,
+        }
+
+        repos.push(repo);
+    }));
+
+    return {
+        repoData: repos,
+        notFound,
+    }
+}
+
+export const compileGenericGitHostConfig_url = async (
+    config: GitConnectionConfig,
+    orgId: number,
+    connectionId: number,
+) => {
+    const remoteUrl = new URL(config.url);
+    assert(remoteUrl.protocol === 'http:' || remoteUrl.protocol === 'https:', 'config.url must be a http:// or https:// URL');
+
+    const notFound: {
+        users: string[],
+        orgs: string[],
+        repos: string[],
+    } = {
+        users: [],
+        orgs: [],
+        repos: [],
+    };
+
+    // Validate that we are dealing with a valid git repo.
+    const isGitRepo = await isUrlAValidGitRepo(remoteUrl.toString());
+    if (!isGitRepo) {
+        notFound.repos.push(remoteUrl.toString());
+        return {
+            repoData: [],
+            notFound,
+        }
+    }
+
+    // @note: matches the naming here:
+    // https://github.com/sourcebot-dev/zoekt/blob/main/gitindex/index.go#L293
+    const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
+    const codeHostType = 'generic-git-url';
 
     const repo: RepoData = {
-        external_id: cloneUrl.pathname.replace(/^\//, ''),
-        external_codeHostUrl: cloneUrl.origin,
         external_codeHostType: codeHostType,
-        cloneUrl: cloneUrl.toString(),
-        name: config.url,
-        displayName: config.url,
+        external_codeHostUrl: remoteUrl.origin,
+        external_id: remoteUrl.toString(),
+        cloneUrl: remoteUrl.toString(),
+        name: repoName,
+        displayName: repoName,
         isFork: false,
         isArchived: false,
         org: {
@@ -464,24 +591,13 @@ export const compileGenericGitHostConfig = async (
             }
         },
         metadata: {
-            gitConfig: {
-                'zoekt.web-url-type': codeHostType,
-                'zoekt.archived': marshalBool(false),
-                'zoekt.fork': marshalBool(false),
-                'zoekt.public': marshalBool(true),
-                'zoekt.display-name': config.url,
-            },
             branches: config.revisions?.branches ?? undefined,
             tags: config.revisions?.tags ?? undefined,
-        } satisfies RepoMetadata,
-    }
+        }
+    };
 
     return {
         repoData: [repo],
-        notFound: {
-            users: [],
-            orgs: [],
-            repos: [],
-        }
+        notFound,
     }
 }

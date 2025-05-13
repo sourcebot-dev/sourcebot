@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { DoubleArrowDownIcon, DoubleArrowUpIcon } from "@radix-ui/react-icons";
 import { useCallback, useMemo } from "react";
 import { FileMatch } from "./fileMatch";
-import { Repository, SearchResultFile } from "@/features/search/types";
+import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
 
 export const MAX_MATCHES_TO_PREVIEW = 3;
 
@@ -16,7 +16,7 @@ interface FileMatchContainerProps {
     showAllMatches: boolean;
     onShowAllMatchesButtonClicked: () => void;
     isBranchFilteringEnabled: boolean;
-    repoMetadata: Record<string, Repository>;
+    repoInfo: Record<number, RepositoryInfo>;
     yOffset: number;
 }
 
@@ -27,7 +27,7 @@ export const FileMatchContainer = ({
     showAllMatches,
     onShowAllMatchesButtonClicked,
     isBranchFilteringEnabled,
-    repoMetadata,
+    repoInfo,
     yOffset,
 }: FileMatchContainerProps) => {
 
@@ -101,7 +101,7 @@ export const FileMatchContainer = ({
                 }}
             >
                 <FileHeader
-                    repo={repoMetadata[file.repository]}
+                    repoInfo={repoInfo[file.repositoryId]}
                     fileName={file.fileName.text}
                     fileNameHighlightRange={fileNameRange}
                     branchDisplayName={branchDisplayName}

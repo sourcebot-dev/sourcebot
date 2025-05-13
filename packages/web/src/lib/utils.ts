@@ -5,9 +5,10 @@ import gitlabLogo from "@/public/gitlab.svg";
 import giteaLogo from "@/public/gitea.svg";
 import gerritLogo from "@/public/gerrit.svg";
 import bitbucketLogo from "@/public/bitbucket.svg";
+import gitLogo from "@/public/git.svg";
 import { ServiceError } from "./serviceError";
 import { RepositoryQuery } from "./types";
-import { Repository } from "@/features/search/types";
+import { RepositoryInfo } from "@/features/search/types";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -52,20 +53,12 @@ type CodeHostInfo = {
     iconClassName?: string;
 }
 
-export const getRepoCodeHostInfo = (repo?: Repository): CodeHostInfo | undefined => {
+export const getRepoCodeHostInfo = (repo?: RepositoryInfo): CodeHostInfo | undefined => {
     if (!repo) {
         return undefined;
     }
 
-    if (!repo.rawConfig) {
-        return undefined;
-    }
-
-    // @todo : use zod to validate config schema
-    const webUrlType = repo.rawConfig['web-url-type']!;
-    const displayName = repo.rawConfig['display-name'] ?? repo.rawConfig['name']!;
-
-    return _getCodeHostInfoInternal(webUrlType, displayName, repo.url);
+    return _getCodeHostInfoInternal(repo.codeHostType, repo.displayName ?? repo.name, repo.webUrl);
 }
 
 export const getRepoQueryCodeHostInfo = (repo: RepositoryQuery): CodeHostInfo | undefined => {
@@ -142,6 +135,28 @@ const _getCodeHostInfoInternal = (type: string, displayName: string, webUrl?: st
                 iconClassName: className,
             }
         }
+        case "generic-git-file": {
+            const { src, className } = getCodeHostIcon('generic-git-file')!;
+            return {
+                type: "generic-git-file",
+                displayName: displayName,
+                codeHostName: "Generic Git Host (Local)",
+                repoLink: webUrl,
+                icon: src,
+                iconClassName: className,
+            }
+        }
+        case "generic-git-url": {
+            const { src, className } = getCodeHostIcon('generic-git-url')!;
+            return {
+                type: "generic-git-url",
+                displayName: displayName,
+                codeHostName: "Generic Git Host (Remote)",
+                repoLink: webUrl,
+                icon: src,
+                iconClassName: className,
+            }
+        }
     }
 }
 
@@ -168,6 +183,11 @@ export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, clas
         case "bitbucket-server":
             return {
                 src: bitbucketLogo,
+            }
+        case "generic-git-url":
+        case "generic-git-file":
+            return {
+                src: gitLogo,
             }
         default:
             return null;
