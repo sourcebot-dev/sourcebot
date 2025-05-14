@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added support for indexing generic git hosts given a remote clone url or local path. [#307](https://github.com/sourcebot-dev/sourcebot/pull/307)
+
 ## [3.2.0] - 2025-05-12
 
 ### Added

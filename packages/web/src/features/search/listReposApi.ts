@@ -33,7 +33,7 @@ export const listRepositories = async (orgId: number): Promise<ListRepositoriesR
     const parser = zoektListRepositoriesResponseSchema.transform(({ List }) => ({
         repos: List.Repos.map((repo) => ({
             name: repo.Repository.Name,
-            url: repo.Repository.URL.length > 0 ? repo.Repository.URL : undefined,
+            webUrl: repo.Repository.URL.length > 0 ? repo.Repository.URL : undefined,
             branches: repo.Repository.Branches?.map((branch) => branch.Name) ?? [],
             rawConfig: repo.Repository.RawConfig ?? undefined,
         }))
