@@ -2,11 +2,11 @@
 
 export interface GenericGitHostConnectionConfig {
   /**
-   * Git Configuration
+   * Generic Git host configuration
    */
   type: "git";
   /**
-   * The URL to the git repository. Local paths are supported by prefixing with `file://`. They must be absolute paths. The path must point to the root of a git repository.
+   * The URL to the git repository. This can either be a remote URL (prefixed with `http://` or `https://`) or a absolute path to a directory on the local machine (prefixed with `file://`). If a local directory is specified, it must point to the root of a git repository. Local directories are treated as read-only modified. Local directories support glob patterns.
    */
   url: string;
   revisions?: GitRevisions;
