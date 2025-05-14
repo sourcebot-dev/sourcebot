@@ -48,9 +48,9 @@
                     {
                         "group": "Search",
                         "pages": [
-                            "docs/more/syntax-reference",
-                            "docs/more/multi-branch-indexing",
-                            "docs/more/search-contexts"
+                            "docs/search/syntax-reference",
+                            "docs/search/multi-branch-indexing",
+                            "docs/search/search-contexts"
                         ]
                     },
                     {
