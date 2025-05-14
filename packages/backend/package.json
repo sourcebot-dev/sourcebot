@@ -41,6 +41,7 @@
         "cross-fetch": "^4.0.0",
         "dotenv": "^16.4.5",
         "express": "^4.21.2",
+        "git-url-parse": "^16.1.0",
         "gitea-js": "^1.22.0",
         "glob": "^11.0.0",
         "ioredis": "^5.4.2",

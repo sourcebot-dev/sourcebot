@@ -251,11 +251,13 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                 const identifier = file.RepositoryID ?? file.Repository;
                 const repo = repos.get(identifier);
 
-                // This should never happen... but some instrumentation in case it does.
+                // This should never happen... but if it does, we skip the file.
                 if (!repo) {
-                    const error = new Error(`Repository not found for identifier: ${identifier}`);
-                    Sentry.captureException(error);
-                    throw error;
+                    Sentry.captureMessage(
+                        `Repository not found for identifier: ${identifier}; skipping file "${file.FileName}"`,
+                        'warning'
+                    );
+                    return undefined;
                 }
 
                 return {
@@ -315,7 +317,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                     branches: file.Branches,
                     content: file.Content,
                 }
-            }) ?? [],
+            }).filter((file) => file !== undefined) ?? [],
             repositoryInfo: Array.from(repos.values()).map((repo) => ({
                 id: repo.id,
                 codeHostType: repo.external_codeHostType,

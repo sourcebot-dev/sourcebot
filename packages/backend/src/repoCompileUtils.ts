@@ -16,6 +16,7 @@ import path from 'path';
 import { glob } from 'glob';
 import { getOriginUrl, isPathAValidGitRepoRoot, isUrlAValidGitRepo } from './git.js';
 import assert from 'assert';
+import GitUrlParse from 'git-url-parse';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 
@@ -495,7 +496,7 @@ export const compileGenericGitHostConfig_file = async (
             return;
         }
 
-        const remoteUrl = new URL(origin);
+        const remoteUrl = GitUrlParse(origin);
 
         // @note: matches the naming here:
         // https://github.com/sourcebot-dev/zoekt/blob/main/gitindex/index.go#L293
@@ -503,7 +504,7 @@ export const compileGenericGitHostConfig_file = async (
 
         const repo: RepoData = {
             external_codeHostType: 'generic-git-host',
-            external_codeHostUrl: remoteUrl.origin,
+            external_codeHostUrl: remoteUrl.resource,
             external_id: remoteUrl.toString(),
             cloneUrl: `file://${repoPath}`,
             name: repoName,
