@@ -1,12 +1,11 @@
-# Sourcebot MCP - Blazingly fast agentic code search for GitHub, GitLab, BitBucket, and more
+# Sourcebot MCP - Fetch code context from GitHub, GitLab, Bitbucket, and more
 
 [![Sourcebot](https://img.shields.io/badge/Website-sourcebot.dev-blue)](https://sourcebot.dev)
 [![GitHub](https://img.shields.io/badge/GitHub-sourcebot--dev%2Fsourcebot-green?logo=github)](https://github.com/sourcebot-dev/sourcebot)
 [![Docs](https://img.shields.io/badge/Docs-docs.sourcebot.dev-yellow)](https://docs.sourcebot.dev/docs/more/mcp-server)
 [![npm](https://img.shields.io/npm/v/@sourcebot/mcp)](https://www.npmjs.com/package/@sourcebot/mcp)
 
-
-The Sourcebot MCP server enables precise regular expression code search across repos hosted on [GitHub](https://docs.sourcebot.dev/docs/connections/github), [GitLab](https://docs.sourcebot.dev/docs/connections/gitlab), [BitBucket](https://docs.sourcebot.dev/docs/connections/bitbucket-cloud) and [more](#supported-code-hosts). This unlocks the capability for LLM agents to fetch code context for repositories that aren't checked out locally. Some use cases where precise search on a wider code context can help:
+The Sourcebot MCP server gives your LLM agents the ability to fetch code context across thousands of repos hosted on [GitHub](https://docs.sourcebot.dev/docs/connections/github), [GitLab](https://docs.sourcebot.dev/docs/connections/gitlab), [BitBucket](https://docs.sourcebot.dev/docs/connections/bitbucket-cloud) and [more](#supported-code-hosts). Ask your LLM a question, and the Sourcebot MCP server will fetch relevant context from its index and inject it into your chat session. Some use cases this unlocks include:
 
 - Enriching responses to user requests:
     - _"What repositories are using internal library X?"_
@@ -27,7 +26,7 @@ The Sourcebot MCP server enables precise regular expression code search across r
 
 1. Install Node.JS >= v18.0.0.
 
-2. (optional) Spin up a Sourcebot instance by following [this guide](https://docs.sourcebot.dev/self-hosting/overview). The host url of your instance (e.g., `http://localhost:3000`) is passed to the MCP server via the `SOURCEBOT_HOST` url.
+2. (optional) Spin up a Sourcebot instance by following [this guide](https://docs.sourcebot.dev/self-hosting/overview). The host url of your instance (e.g., `http://localhost:3000`) is passed to the MCP server via the `SOURCEBOT_HOST` url. This allows you to control which repos Sourcebot MCP fetches context from (including private repos). 
 
     If a host is not provided, then the server will fallback to using the demo instance hosted at https://demo.sourcebot.dev. You can see the list of repositories indexed [here](https://demo.sourcebot.dev/~/repos). Add additional repositories by [opening a PR](https://github.com/sourcebot-dev/sourcebot/blob/main/demo-site-config.json).
 
