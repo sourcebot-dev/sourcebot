@@ -38,9 +38,19 @@
                                     "docs/connections/bitbucket-data-center",
                                     "docs/connections/gitea",
                                     "docs/connections/gerrit",
+                                    "docs/connections/generic-git-host",
+                                    "docs/connections/local-repos",
                                     "docs/connections/request-new"
                                 ]
                             }
+                        ]
+                    },
+                    {
+                        "group": "Search",
+                        "pages": [
+                            "docs/more/syntax-reference",
+                            "docs/more/multi-branch-indexing",
+                            "docs/more/search-contexts"
                         ]
                     },
                     {
@@ -53,11 +63,8 @@
                     {
                         "group": "More",
                         "pages": [
-                            "docs/more/syntax-reference",
-                            "docs/more/multi-branch-indexing",
                             "docs/more/roles-and-permissions",
-                            "docs/more/mcp-server",
-                            "docs/more/search-contexts"
+                            "docs/more/mcp-server"
                         ]
                     }
                 ]

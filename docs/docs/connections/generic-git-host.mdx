@@ -1,0 +1,29 @@
+---
+title: Other Git hosts
+---
+
+import GenericGitHost from '/snippets/schemas/v3/genericGitHost.schema.mdx'
+
+Sourcebot can sync code from any Git host (by clone url). This is helpful when you want to search code that not in a [supported code host](/docs/connections/overview#supported-code-hosts).
+
+## Getting Started
+
+To connect to a Git host, create a new [connection](/docs/connections/overview) with type `git` and specify the clone url in the `url` property. For example:
+
+```json
+{
+    "type": "git",
+    "url": "https://github.com/sourcebot-dev/sourcebot"
+}
+```
+
+Note that only `http` & `https` URLs are supported at this time.
+
+## Schema reference
+
+<Accordion title="Reference">
+[schemas/v3/genericGitHost.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/genericGitHost.json)
+
+<GenericGitHost />
+
+</Accordion>

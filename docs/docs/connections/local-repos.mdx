@@ -1,0 +1,87 @@
+---
+title: Local Git repositories
+---
+
+import GenericGitHost from '/snippets/schemas/v3/genericGitHost.schema.mdx'
+
+<Note>
+This feature is only supported when [self-hosting](/self-hosting/overview).
+</Note>
+
+Sourcebot can sync code from generic git repositories stored in a local directory. This can be helpful in scenarios where you already have a large number of repos already checked out. Local repositories are treated as **read-only**, meaing Sourcebot will **not** `git fetch` new revisions.
+
+## Getting Started
+
+<Warning>
+Only folders containing git repositories at their root **and** have a `remote.origin.url` set in their git config are supported at this time. All other folders will be skipped.
+</Warning>
+
+Let's assume we have a `repos` directory located at `$(PWD)` with a collection of git repositories:
+
+```sh
+repos/
+├─ repo_1/
+├─ repo_2/
+├─ repo_3/
+├─ ...
+```
+
+To get Sourcebot to index these repositories:
+
+<Steps>
+    <Step title="Mount a volume">
+        We need to mount a docker volume to the `repos` directory so Sourcebot can read it's contents. Sourcebot will **not** write to local repositories, so we can mount a seperate **read-only** volume:
+
+        ``` bash
+        docker run \
+            -v $(pwd)/repos:/repos:ro \
+            /* additional args */ \
+            ghcr.io/sourcebot-dev/sourcebot:latest
+        ```
+    </Step>
+
+    <Step title="Create a connection">
+        We can now create a new git [connection](/docs/connections/overview), specifying local paths with the `file://` prefix. Glob patterns are supported. For example: 
+
+        ```json
+        {
+            "type": "git",
+            "url": "file:///repos/*"
+        }
+        ```
+
+        Sourcebot will expand this glob pattern into paths `/repos/repo_1`, `/repos/repo_2`, etc. and index all valid git repositories.
+    </Step>
+</Steps>
+
+## Examples
+
+
+<AccordionGroup>
+    <Accordion title="Sync individual repo">
+        ```json
+        {
+            "type": "git",
+            "url": "file:///path/to/git_repo"
+        }
+        ```
+    </Accordion>
+    <Accordion title="Sync multiple repos using glob patterns">
+        ```json
+        // Attempt to sync directories contained in `repos/` (non-recursive)
+        {
+            "type": "git",
+            "url": "file:///repos/*"
+        }
+        ```
+    </Accordion>
+</AccordionGroup>
+
+## Schema reference
+
+<Accordion title="Reference">
+[schemas/v3/genericGitHost.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/genericGitHost.json)
+
+<GenericGitHost />
+
+</Accordion>
