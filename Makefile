@@ -14,6 +14,9 @@ zoekt:
 	export CTAGS_COMMANDS=ctags
 
 clean:
+	redis-cli FLUSHALL
+	yarn dev:prisma:migrate:reset
+
 	rm -rf \
 		bin \
 		node_modules \
@@ -32,9 +35,6 @@ clean:
 		packages/mcp/node_modules \
 		packages/mcp/dist \
 		.sourcebot
-	
-	redis-cli FLUSHALL
-	yarn dev:prisma:migrate:reset
 
 soft-reset:
 	rm -rf .sourcebot
