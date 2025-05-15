@@ -1,8 +1,8 @@
 'use client';
 
 import { FileIcon } from "@/components/ui/fileIcon";
-import { Repository, SearchResultFile } from "@/features/search/types";
-import { cn, getRepoCodeHostInfo } from "@/lib/utils";
+import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
+import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,7 +13,7 @@ import { Filter } from "./filter";
 interface FilePanelProps {
     matches: SearchResultFile[];
     onFilterChanged: (filteredMatches: SearchResultFile[]) => void,
-    repoMetadata: Record<string, Repository>;
+    repoInfo: Record<number, RepositoryInfo>;
 }
 
 const LANGUAGES_QUERY_PARAM = "langs";
@@ -22,7 +22,7 @@ const REPOS_QUERY_PARAM = "repos";
 export const FilterPanel = ({
     matches,
     onFilterChanged,
-    repoMetadata,
+    repoInfo,
 }: FilePanelProps) => {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -38,9 +38,16 @@ export const FilterPanel = ({
         return aggregateMatches(
             "repository",
             matches,
-            (key) => {
-                const repo: Repository | undefined = repoMetadata[key];
-                const info = getRepoCodeHostInfo(repo);
+            ({ key, match }) => {
+                const repo: RepositoryInfo | undefined = repoInfo[match.repositoryId];
+
+                const info = repo ? getCodeHostInfoForRepo({
+                    name: repo.name,
+                    codeHostType: repo.codeHostType,
+                    displayName: repo.displayName,
+                    webUrl: repo.webUrl,
+                }) : undefined;
+
                 const Icon = info ? (
                     <Image
                         src={info.icon}
@@ -60,14 +67,14 @@ export const FilterPanel = ({
                 };
             }
         )
-    }, [getSelectedFromQuery, matches, repoMetadata]);
+    }, [getSelectedFromQuery, matches, repoInfo]);
 
     const languages = useMemo(() => {
         const selectedLanguages = getSelectedFromQuery(LANGUAGES_QUERY_PARAM);
         return aggregateMatches(
             "language",
             matches,
-            (key) => {
+            ({ key }) => {
                 const Icon = (
                     <FileIcon language={key} />
                 )
@@ -168,14 +175,14 @@ export const FilterPanel = ({
 const aggregateMatches = (
     propName: 'repository' | 'language',
     matches: SearchResultFile[],
-    createEntry: (key: string) => Entry
+    createEntry: (props: { key: string, match: SearchResultFile }) => Entry
 ) => {
     return matches
-        .map((match) => match[propName])
-        .filter((key) => key.length > 0)
-        .reduce((aggregation, key) => {
+        .map((match) => ({ key: match[propName], match }))
+        .filter(({ key }) => key.length > 0)
+        .reduce((aggregation, { key, match }) => {
             if (!aggregation[key]) {
-                aggregation[key] = createEntry(key);
+                aggregation[key] = createEntry({ key, match });
             }
             aggregation[key].count += 1;
             return aggregation;

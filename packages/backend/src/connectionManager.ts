@@ -4,7 +4,7 @@ import { Settings } from "./types.js";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { createLogger } from "./logger.js";
 import { Redis } from 'ioredis';
-import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig, compileBitbucketConfig } from "./repoCompileUtils.js";
+import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig, compileBitbucketConfig, compileGenericGitHostConfig } from "./repoCompileUtils.js";
 import { BackendError, BackendException } from "@sourcebot/error";
 import { captureEvent } from "./posthog.js";
 import { env } from "./env.js";
@@ -172,6 +172,9 @@ export class ConnectionManager implements IConnectionManager {
                     }
                     case 'bitbucket': {
                         return await compileBitbucketConfig(config, job.data.connectionId, orgId, this.db);
+                    }
+                    case 'git': {
+                        return await compileGenericGitHostConfig(config, job.data.connectionId, orgId);
                     }
                 }
             })();

@@ -9,13 +9,14 @@ export type ConnectionConfig =
   | GitlabConnectionConfig
   | GiteaConnectionConfig
   | GerritConnectionConfig
-  | BitbucketConnectionConfig;
+  | BitbucketConnectionConfig
+  | GenericGitHostConnectionConfig;
 
 export interface SourcebotConfig {
   $schema?: string;
   settings?: Settings;
   /**
-   * [Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/self-hosting/more/search-contexts
+   * [Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/docs/search/search-contexts
    */
   contexts?: {
     [k: string]: SearchContext;
@@ -398,5 +399,16 @@ export interface BitbucketConnectionConfig {
      */
     repos?: string[];
   };
+  revisions?: GitRevisions;
+}
+export interface GenericGitHostConnectionConfig {
+  /**
+   * Generic Git host configuration
+   */
+  type: "git";
+  /**
+   * The URL to the git repository. This can either be a remote URL (prefixed with `http://` or `https://`) or a absolute path to a directory on the local machine (prefixed with `file://`). If a local directory is specified, it must point to the root of a git repository. Local directories are treated as read-only modified. Local directories support glob patterns.
+   */
+  url: string;
   revisions?: GitRevisions;
 }

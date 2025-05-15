@@ -114,14 +114,112 @@ const schema = {
       "type": "string"
     },
     "settings": {
-      "$ref": "#/definitions/Settings"
+      "type": "object",
+      "description": "Defines the global settings for Sourcebot.",
+      "properties": {
+        "maxFileSize": {
+          "type": "number",
+          "description": "The maximum size of a file (in bytes) to be indexed. Files that exceed this maximum will not be indexed. Defaults to 2MB.",
+          "minimum": 1
+        },
+        "maxTrigramCount": {
+          "type": "number",
+          "description": "The maximum number of trigrams per document. Files that exceed this maximum will not be indexed. Default to 20000.",
+          "minimum": 1
+        },
+        "reindexIntervalMs": {
+          "type": "number",
+          "description": "The interval (in milliseconds) at which the indexer should re-index all repositories. Defaults to 1 hour.",
+          "minimum": 1
+        },
+        "resyncConnectionIntervalMs": {
+          "type": "number",
+          "description": "The interval (in milliseconds) at which the connection manager should check for connections that need to be re-synced. Defaults to 24 hours.",
+          "minimum": 1
+        },
+        "resyncConnectionPollingIntervalMs": {
+          "type": "number",
+          "description": "The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced. Defaults to 1 second.",
+          "minimum": 1
+        },
+        "reindexRepoPollingIntervalMs": {
+          "type": "number",
+          "description": "The polling rate (in milliseconds) at which the db should be checked for repos that should be re-indexed. Defaults to 1 second.",
+          "minimum": 1
+        },
+        "maxConnectionSyncJobConcurrency": {
+          "type": "number",
+          "description": "The number of connection sync jobs to run concurrently. Defaults to 8.",
+          "minimum": 1
+        },
+        "maxRepoIndexingJobConcurrency": {
+          "type": "number",
+          "description": "The number of repo indexing jobs to run concurrently. Defaults to 8.",
+          "minimum": 1
+        },
+        "maxRepoGarbageCollectionJobConcurrency": {
+          "type": "number",
+          "description": "The number of repo GC jobs to run concurrently. Defaults to 8.",
+          "minimum": 1
+        },
+        "repoGarbageCollectionGracePeriodMs": {
+          "type": "number",
+          "description": "The grace period (in milliseconds) for garbage collection. Used to prevent deleting shards while they're being loaded. Defaults to 10 seconds.",
+          "minimum": 1
+        },
+        "repoIndexTimeoutMs": {
+          "type": "number",
+          "description": "The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
     },
     "contexts": {
       "type": "object",
-      "description": "[Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/self-hosting/more/search-contexts",
+      "description": "[Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/docs/search/search-contexts",
       "patternProperties": {
         "^[a-zA-Z0-9_-]+$": {
-          "$ref": "#/definitions/SearchContext"
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "title": "SearchContext",
+          "description": "Search context",
+          "properties": {
+            "include": {
+              "type": "array",
+              "description": "List of repositories to include in the search context. Expected to be formatted as a URL without any leading http(s):// prefix (e.g., 'github.com/sourcebot-dev/sourcebot'). Glob patterns are supported.",
+              "items": {
+                "type": "string"
+              },
+              "examples": [
+                [
+                  "github.com/sourcebot-dev/**",
+                  "gerrit.example.org/sub/path/**"
+                ]
+              ]
+            },
+            "exclude": {
+              "type": "array",
+              "description": "List of repositories to exclude from the search context. Expected to be formatted as a URL without any leading http(s):// prefix (e.g., 'github.com/sourcebot-dev/sourcebot'). Glob patterns are supported.",
+              "items": {
+                "type": "string"
+              },
+              "examples": [
+                [
+                  "github.com/sourcebot-dev/sourcebot",
+                  "gerrit.example.org/sub/path/**"
+                ]
+              ]
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of the search context that surfaces in the UI."
+            }
+          },
+          "required": [
+            "include"
+          ],
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -357,11 +455,38 @@ const schema = {
                   "description": "GitLab Configuration"
                 },
                 "token": {
-                  "$ref": "#/properties/connections/patternProperties/%5E%5Ba-zA-Z0-9_-%5D%2B%24/oneOf/0/properties/token",
                   "description": "An authentication token.",
                   "examples": [
                     {
                       "secret": "SECRET_KEY"
+                    }
+                  ],
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "secret": {
+                          "type": "string",
+                          "description": "The name of the secret that contains the token."
+                        }
+                      },
+                      "required": [
+                        "secret"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "env": {
+                          "type": "string",
+                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                        }
+                      },
+                      "required": [
+                        "env"
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 },
@@ -476,7 +601,45 @@ const schema = {
                   "additionalProperties": false
                 },
                 "revisions": {
-                  "$ref": "#/properties/connections/patternProperties/%5E%5Ba-zA-Z0-9_-%5D%2B%24/oneOf/0/properties/revisions"
+                  "type": "object",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "properties": {
+                    "branches": {
+                      "type": "array",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "main",
+                          "release/*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    },
+                    "tags": {
+                      "type": "array",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "latest",
+                          "v2.*.*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -494,11 +657,38 @@ const schema = {
                   "description": "Gitea Configuration"
                 },
                 "token": {
-                  "$ref": "#/properties/connections/patternProperties/%5E%5Ba-zA-Z0-9_-%5D%2B%24/oneOf/0/properties/token",
                   "description": "A Personal Access Token (PAT).",
                   "examples": [
                     {
                       "secret": "SECRET_KEY"
+                    }
+                  ],
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "secret": {
+                          "type": "string",
+                          "description": "The name of the secret that contains the token."
+                        }
+                      },
+                      "required": [
+                        "secret"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "env": {
+                          "type": "string",
+                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                        }
+                      },
+                      "required": [
+                        "env"
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 },
@@ -571,7 +761,45 @@ const schema = {
                   "additionalProperties": false
                 },
                 "revisions": {
-                  "$ref": "#/properties/connections/patternProperties/%5E%5Ba-zA-Z0-9_-%5D%2B%24/oneOf/0/properties/revisions"
+                  "type": "object",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "properties": {
+                    "branches": {
+                      "type": "array",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "main",
+                          "release/*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    },
+                    "tags": {
+                      "type": "array",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "latest",
+                          "v2.*.*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -660,11 +888,38 @@ const schema = {
                   "description": "The username to use for authentication. Only needed if token is an app password."
                 },
                 "token": {
-                  "$ref": "#/properties/connections/patternProperties/%5E%5Ba-zA-Z0-9_-%5D%2B%24/oneOf/0/properties/token",
                   "description": "An authentication token.",
                   "examples": [
                     {
                       "secret": "SECRET_KEY"
+                    }
+                  ],
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "secret": {
+                          "type": "string",
+                          "description": "The name of the secret that contains the token."
+                        }
+                      },
+                      "required": [
+                        "secret"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "env": {
+                          "type": "string",
+                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                        }
+                      },
+                      "required": [
+                        "env"
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 },
@@ -738,7 +993,45 @@ const schema = {
                   "additionalProperties": false
                 },
                 "revisions": {
-                  "$ref": "#/properties/connections/patternProperties/%5E%5Ba-zA-Z0-9_-%5D%2B%24/oneOf/0/properties/revisions"
+                  "type": "object",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "properties": {
+                    "branches": {
+                      "type": "array",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "main",
+                          "release/*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    },
+                    "tags": {
+                      "type": "array",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "latest",
+                          "v2.*.*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -756,6 +1049,74 @@ const schema = {
                   "url"
                 ]
               },
+              "additionalProperties": false
+            },
+            {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "type": "object",
+              "title": "GenericGitHostConnectionConfig",
+              "properties": {
+                "type": {
+                  "const": "git",
+                  "description": "Generic Git host configuration"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "url",
+                  "description": "The URL to the git repository. This can either be a remote URL (prefixed with `http://` or `https://`) or a absolute path to a directory on the local machine (prefixed with `file://`). If a local directory is specified, it must point to the root of a git repository. Local directories are treated as read-only modified. Local directories support glob patterns.",
+                  "pattern": "^(https?:\\/\\/[^\\s/$.?#].[^\\s]*|file:\\/\\/\\/[^\\s]+)$",
+                  "examples": [
+                    "https://github.com/sourcebot-dev/sourcebot",
+                    "file:///path/to/repo",
+                    "file:///repos/*"
+                  ]
+                },
+                "revisions": {
+                  "type": "object",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "properties": {
+                    "branches": {
+                      "type": "array",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "main",
+                          "release/*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    },
+                    "tags": {
+                      "type": "array",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "latest",
+                          "v2.*.*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "type",
+                "url"
+              ],
               "additionalProperties": false
             }
           ]

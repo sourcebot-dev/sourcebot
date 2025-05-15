@@ -28,6 +28,7 @@ import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/sch
 import { TenancyMode } from "./lib/types";
 import { decrementOrgSeatCount, getSubscriptionForOrg, incrementOrgSeatCount } from "./ee/features/billing/serverUtils";
 import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
+import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -442,6 +443,67 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
             }));
         }
         ), /* allowSingleTenantUnauthedAccess = */ true));
+
+export const getRepoInfoByName = async (repoName: string, domain: string) => sew(() =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            // @note: repo names are represented by their remote url
+            // on the code host. E.g.,:
+            // - github.com/sourcebot-dev/sourcebot
+            // - gitlab.com/gitlab-org/gitlab
+            // - gerrit.wikimedia.org/r/mediawiki/extensions/OnionsPorFavor
+            // etc.
+            //
+            // For most purposes, repo names are unique within an org, so using
+            // findFirst is equivalent to findUnique. Duplicates _can_ occur when
+            // a repository is specified by its remote url in a generic `git`
+            // connection. For example:
+            //
+            // ```json
+            // {
+            //     "connections": {
+            //         "connection-1": {
+            //             "type": "github",
+            //             "repos": [
+            //                 "sourcebot-dev/sourcebot"
+            //             ]
+            //         },
+            //         "connection-2": {
+            //             "type": "git",
+            //             "url": "file:///tmp/repos/sourcebot"
+            //         }
+            //     }
+            // }
+            // ```
+            //
+            // In this scenario, both repos will be named "github.com/sourcebot-dev/sourcebot".
+            // We will leave this as an edge case for now since it's unlikely to happen in practice.
+            //
+            // @v4-todo: we could add a unique contraint on repo name + orgId to help de-duplicate
+            // these cases.
+            // @see: repoCompileUtils.ts
+            const repo = await prisma.repo.findFirst({
+                where: {
+                    name: repoName,
+                    orgId,
+                },
+            });
+
+            if (!repo) {
+                return notFound();
+            }
+
+            return {
+                id: repo.id,
+                name: repo.name,
+                displayName: repo.displayName ?? undefined,
+                codeHostType: repo.external_codeHostType,
+                webUrl: repo.webUrl ?? undefined,
+                imageUrl: repo.imageUrl ?? undefined,
+                indexedAt: repo.indexedAt ?? undefined,
+                repoIndexingStatus: repo.repoIndexingStatus,
+            }
+        }), /* allowSingleTenantUnauthedAccess = */ true));
 
 export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
     withAuth((session) =>
@@ -1180,6 +1242,8 @@ const parseConnectionConfig = (config: string) => {
                 return gerritSchema;
             case 'bitbucket':
                 return bitbucketSchema;
+            case 'git':
+                return genericGitHostSchema;
         }
     })();
 
@@ -1228,6 +1292,12 @@ const parseConnectionConfig = (config: string) => {
                 return {
                     numRepos: parsedConfig.projects?.length,
                     hasToken: true, // gerrit doesn't use a token atm
+                }
+            }
+            case "git": {
+                return {
+                    numRepos: 1,
+                    hasToken: false,
                 }
             }
         }

@@ -16,14 +16,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ImperativePanelHandle } from "react-resizable-panels";
-import { getRepos, search } from "../../api/(client)/client";
+import { search } from "../../api/(client)/client";
 import { TopBar } from "../components/topBar";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
-import { Repository, SearchResultFile } from "@/features/search/types";
+import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
 
 const DEFAULT_MATCH_COUNT = 10000;
 
@@ -90,25 +90,6 @@ const SearchPageInternal = () => {
         ])
     }, [searchQuery, setSearchHistory]);
 
-    // Use the /api/repos endpoint to get a useful list of
-    // repository metadata (like host type, repo name, etc.)
-    // Convert this into a map of repo name to repo metadata
-    // for easy lookup.
-    const { data: repoMetadata, isLoading: isRepoMetadataLoading } = useQuery({
-        queryKey: ["repos"],
-        queryFn: () => getRepos(domain),
-        select: (data): Record<string, Repository> =>
-            data.repos
-                .reduce(
-                    (acc, repo) => ({
-                        ...acc,
-                        [repo.name]: repo,
-                    }),
-                    {},
-                ),
-        refetchOnWindowFocus: false,
-    });
-
     useEffect(() => {
         if (!searchResponse) {
             return;
@@ -141,13 +122,14 @@ const SearchPageInternal = () => {
         });
     }, [captureEvent, searchQuery, searchResponse]);
 
-    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled } = useMemo(() => {
+    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled, repositoryInfo } = useMemo(() => {
         if (!searchResponse) {
             return {
                 fileMatches: [],
                 searchDurationMs: 0,
                 totalMatchCount: 0,
                 isBranchFilteringEnabled: false,
+                repositoryInfo: {},
             };
         }
 
@@ -156,6 +138,10 @@ const SearchPageInternal = () => {
             searchDurationMs: Math.round(searchResponse.durationMs),
             totalMatchCount: searchResponse.zoektStats.matchCount,
             isBranchFilteringEnabled: searchResponse.isBranchFilteringEnabled,
+            repositoryInfo: searchResponse.repositoryInfo.reduce((acc, repo) => {
+                acc[repo.id] = repo;
+                return acc;
+            }, {} as Record<number, RepositoryInfo>),
         }
     }, [searchResponse]);
 
@@ -194,7 +180,7 @@ const SearchPageInternal = () => {
                 <Separator />
             </div>
 
-            {(isSearchLoading || isRepoMetadataLoading) ? (
+            {(isSearchLoading) ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                     <SymbolIcon className="h-6 w-6 animate-spin" />
                     <p className="font-semibold text-center">Searching...</p>
@@ -205,7 +191,7 @@ const SearchPageInternal = () => {
                     isMoreResultsButtonVisible={isMoreResultsButtonVisible}
                     onLoadMoreResults={onLoadMoreResults}
                     isBranchFilteringEnabled={isBranchFilteringEnabled}
-                    repoMetadata={repoMetadata ?? {}}
+                    repoInfo={repositoryInfo}
                     searchDurationMs={searchDurationMs}
                     numMatches={numMatches}
                 />
@@ -219,7 +205,7 @@ interface PanelGroupProps {
     isMoreResultsButtonVisible?: boolean;
     onLoadMoreResults: () => void;
     isBranchFilteringEnabled: boolean;
-    repoMetadata: Record<string, Repository>;
+    repoInfo: Record<number, RepositoryInfo>;
     searchDurationMs: number;
     numMatches: number;
 }
@@ -229,7 +215,7 @@ const PanelGroup = ({
     isMoreResultsButtonVisible,
     onLoadMoreResults,
     isBranchFilteringEnabled,
-    repoMetadata,
+    repoInfo,
     searchDurationMs,
     numMatches,
 }: PanelGroupProps) => {
@@ -267,7 +253,7 @@ const PanelGroup = ({
                 <FilterPanel
                     matches={fileMatches}
                     onFilterChanged={onFilterChanged}
-                    repoMetadata={repoMetadata}
+                    repoInfo={repoInfo}
                 />
             </ResizablePanel>
             <ResizableHandle
@@ -310,7 +296,7 @@ const PanelGroup = ({
                         isLoadMoreButtonVisible={!!isMoreResultsButtonVisible}
                         onLoadMoreButtonClicked={onLoadMoreResults}
                         isBranchFilteringEnabled={isBranchFilteringEnabled}
-                        repoMetadata={repoMetadata}
+                        repoInfo={repoInfo}
                     />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full">

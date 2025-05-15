@@ -1,17 +1,22 @@
-import { Repository } from "@/features/search/types";
-import { getRepoCodeHostInfo } from "@/lib/utils";
+
+import { getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import Image from "next/image";
 import Link from "next/link";
 
 interface FileHeaderProps {
-    repo?: Repository;
     fileName: string;
     fileNameHighlightRange?: {
         from: number;
         to: number;
     }
+    repo: {
+        name: string;
+        codeHostType: string;
+        displayName?: string;
+        webUrl?: string;
+    },
     branchDisplayName?: string;
     branchDisplayTitle?: string;
 }
@@ -23,7 +28,12 @@ export const FileHeader = ({
     branchDisplayName,
     branchDisplayTitle,
 }: FileHeaderProps) => {
-    const info = getRepoCodeHostInfo(repo);
+    const info = getCodeHostInfoForRepo({
+        name: repo.name,
+        codeHostType: repo.codeHostType,
+        displayName: repo.displayName,
+        webUrl: repo.webUrl,
+    });
 
     return (
         <div className="flex flex-row gap-2 items-center w-full overflow-hidden">

@@ -15,7 +15,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
         'HEAD'
     ];
 
-    const repoPath = getRepoPath(repo, ctx);
+    const { path: repoPath } = getRepoPath(repo, ctx);
     const shardPrefix = getShardPrefix(repo.orgId, repo.id);
     const metadata = repoMetadataSchema.parse(repo.metadata);
 
@@ -65,6 +65,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
         `-file_limit ${settings.maxFileSize}`,
         `-branches ${revisions.join(',')}`,
         `-tenant_id ${repo.orgId}`,
+        `-repo_id ${repo.id}`,
         `-shard_prefix ${shardPrefix}`,
         repoPath
     ].join(' ');

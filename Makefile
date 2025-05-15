@@ -14,6 +14,9 @@ zoekt:
 	export CTAGS_COMMANDS=ctags
 
 clean:
+	redis-cli FLUSHALL
+	yarn dev:prisma:migrate:reset
+
 	rm -rf \
 		bin \
 		node_modules \

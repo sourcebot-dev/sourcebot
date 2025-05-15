@@ -2,7 +2,6 @@ import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { TopBar } from "@/app/[domain]/components/topBar";
 import { Separator } from '@/components/ui/separator';
 import { getFileSource } from '@/features/search/fileSourceApi';
-import { listRepositories } from '@/features/search/listReposApi';
 import { isServiceError } from "@/lib/utils";
 import { base64Decode } from "@/lib/utils";
 import { CodePreview } from "./codePreview";
@@ -11,6 +10,8 @@ import { LuFileX2, LuBookX } from "react-icons/lu";
 import { getOrgFromDomain } from "@/data/org";
 import { notFound } from "next/navigation";
 import { ServiceErrorException } from "@/lib/serviceError";
+import { getRepoInfoByName } from "@/actions";
+
 interface BrowsePageProps {
     params: {
         path: string[];
@@ -48,18 +49,10 @@ export default async function BrowsePage({
         }
     })();
 
-    const org = await getOrgFromDomain(params.domain);
-    if (!org) {
-        notFound();
+    const repoInfo = await getRepoInfoByName(repoName, params.domain);
+    if (isServiceError(repoInfo) && repoInfo.errorCode !== ErrorCode.NOT_FOUND) {
+        throw new ServiceErrorException(repoInfo);
     }
-
-    // @todo (bkellam) : We should probably have a endpoint to fetch repository metadata
-    // given it's name or id.
-    const reposResponse = await listRepositories(org.id);
-    if (isServiceError(reposResponse)) {
-        throw new ServiceErrorException(reposResponse);
-    }
-    const repo = reposResponse.repos.find(r => r.name === repoName);
 
     if (pathType === 'tree') {
         // @todo : proper tree handling
@@ -78,12 +71,17 @@ export default async function BrowsePage({
                     domain={params.domain}
                 />
                 <Separator />
-                {repo && (
+                {!isServiceError(repoInfo) && (
                     <>
                         <div className="bg-accent py-1 px-2 flex flex-row">
                             <FileHeader
                                 fileName={path}
-                                repo={repo}
+                                repo={{
+                                    name: repoInfo.name,
+                                    displayName: repoInfo.displayName,
+                                    webUrl: repoInfo.webUrl,
+                                    codeHostType: repoInfo.codeHostType,
+                                }}
                                 branchDisplayName={revisionName}
                             />
                         </div>
@@ -91,7 +89,7 @@ export default async function BrowsePage({
                     </>
                 )}
             </div>
-            {repo === undefined ? (
+            {isServiceError(repoInfo) ? (
                 <div className="flex h-full">
                     <div className="m-auto flex flex-col items-center gap-2">
                         <LuBookX className="h-12 w-12 text-secondary-foreground" />
@@ -101,9 +99,9 @@ export default async function BrowsePage({
             ) : (
                 <CodePreviewWrapper
                     path={path}
-                    repoName={repoName}
+                    repoName={repoInfo.name}
                     revisionName={revisionName ?? 'HEAD'}
-                    orgId={org.id}
+                    domain={params.domain}
                 />
             )}
         </div>
@@ -114,21 +112,21 @@ interface CodePreviewWrapper {
     path: string,
     repoName: string,
     revisionName: string,
-    orgId: number,
+    domain: string,
 }
 
 const CodePreviewWrapper = async ({
     path,
     repoName,
     revisionName,
-    orgId,
+    domain,
 }: CodePreviewWrapper) => {
     // @todo: this will depend on `pathType`.
     const fileSourceResponse = await getFileSource({
         fileName: path,
         repository: repoName,
         branch: revisionName,
-    }, orgId);
+    }, domain);
 
     if (isServiceError(fileSourceResponse)) {
         if (fileSourceResponse.errorCode === ErrorCode.FILE_NOT_FOUND) {

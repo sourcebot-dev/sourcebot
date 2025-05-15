@@ -221,31 +221,29 @@ export class RepoManager implements IRepoManager {
     }
 
     private async syncGitRepository(repo: RepoWithConnections, repoAlreadyInIndexingState: boolean) {
-        let fetchDuration_s: number | undefined = undefined;
-        let cloneDuration_s: number | undefined = undefined;
+        const { path: repoPath, isReadOnly } = getRepoPath(repo, this.ctx);
 
-        const repoPath = getRepoPath(repo, this.ctx);
         const metadata = repoMetadataSchema.parse(repo.metadata);
 
         // If the repo was already in the indexing state, this job was likely killed and picked up again. As a result,
         // to ensure the repo state is valid, we delete the repo if it exists so we get a fresh clone 
-        if (repoAlreadyInIndexingState && existsSync(repoPath)) {
+        if (repoAlreadyInIndexingState && existsSync(repoPath) && !isReadOnly) {
             this.logger.info(`Deleting repo directory ${repoPath} during sync because it was already in the indexing state`);
             await promises.rm(repoPath, { recursive: true, force: true });
         }
 
-        if (existsSync(repoPath)) {
+        if (existsSync(repoPath) && !isReadOnly) {
             this.logger.info(`Fetching ${repo.displayName}...`);
 
             const { durationMs } = await measure(() => fetchRepository(repoPath, ({ method, stage, progress }) => {
                 this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
             }));
-            fetchDuration_s = durationMs / 1000;
+            const fetchDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
             this.logger.info(`Fetched ${repo.displayName} in ${fetchDuration_s}s`);
 
-        } else {
+        } else if (!isReadOnly) {
             this.logger.info(`Cloning ${repo.displayName}...`);
 
             const auth = await this.getCloneCredentialsForRepo(repo, this.db);
@@ -267,7 +265,7 @@ export class RepoManager implements IRepoManager {
             const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, ({ method, stage, progress }) => {
                 this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
             }));
-            cloneDuration_s = durationMs / 1000;
+            const cloneDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
             this.logger.info(`Cloned ${repo.displayName} in ${cloneDuration_s}s`);
@@ -276,7 +274,7 @@ export class RepoManager implements IRepoManager {
         // Regardless of clone or fetch, always upsert the git config for the repo.
         // This ensures that the git config is always up to date for whatever we
         // have in the DB.
-        if (metadata.gitConfig) {
+        if (metadata.gitConfig && !isReadOnly) {
             await upsertGitConfig(repoPath, metadata.gitConfig);
         }
 
@@ -284,12 +282,6 @@ export class RepoManager implements IRepoManager {
         const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, this.ctx));
         const indexDuration_s = durationMs / 1000;
         this.logger.info(`Indexed ${repo.displayName} in ${indexDuration_s}s`);
-
-        return {
-            fetchDuration_s,
-            cloneDuration_s,
-            indexDuration_s,
-        }
     }
 
     private async runIndexJob(job: Job<RepoIndexingPayload>) {
@@ -323,17 +315,12 @@ export class RepoManager implements IRepoManager {
         this.promClient.activeRepoIndexingJobs.inc();
         this.promClient.pendingRepoIndexingJobs.dec({ repo: repo.id.toString() });
 
-        let indexDuration_s: number | undefined;
-        let fetchDuration_s: number | undefined;
-        let cloneDuration_s: number | undefined;
-
-        let stats;
         let attempts = 0;
         const maxAttempts = 3;
 
         while (attempts < maxAttempts) {
             try {
-                stats = await this.syncGitRepository(repo, repoAlreadyInIndexingState);
+                await this.syncGitRepository(repo, repoAlreadyInIndexingState);
                 break;
             } catch (error) {
                 Sentry.captureException(error);
@@ -350,10 +337,6 @@ export class RepoManager implements IRepoManager {
                 await new Promise(resolve => setTimeout(resolve, sleepDuration));
             }
         }
-
-        indexDuration_s = stats!.indexDuration_s;
-        fetchDuration_s = stats!.fetchDuration_s;
-        cloneDuration_s = stats!.cloneDuration_s;
     }
 
     private async onIndexJobCompleted(job: Job<RepoIndexingPayload>) {
@@ -489,8 +472,8 @@ export class RepoManager implements IRepoManager {
         });
 
         // delete cloned repo
-        const repoPath = getRepoPath(repo, this.ctx);
-        if (existsSync(repoPath)) {
+        const { path: repoPath, isReadOnly } = getRepoPath(repo, this.ctx);
+        if (existsSync(repoPath) && !isReadOnly) {
             this.logger.info(`Deleting repo directory ${repoPath}`);
             await promises.rm(repoPath, { recursive: true, force: true });
         }

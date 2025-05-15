@@ -46,7 +46,7 @@ export const CodePreviewPanel = ({
                         content: decodedSource,
                         filepath: fileMatch.fileName.text,
                         matches: fileMatch.chunks,
-                        link: fileMatch.url,
+                        link: fileMatch.webUrl,
                         language: fileMatch.language,
                         revision: branch ?? "HEAD",
                     };

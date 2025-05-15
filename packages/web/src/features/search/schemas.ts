@@ -31,6 +31,14 @@ export const searchRequestSchema = z.object({
     whole: z.boolean().optional(),
 });
 
+export const repositoryInfoSchema = z.object({
+    id: z.number(),
+    codeHostType: z.string(),
+    name: z.string(),
+    displayName: z.string().optional(),
+    webUrl: z.string().optional(),
+})
+
 export const searchResponseSchema = z.object({
     zoektStats: z.object({
         // The duration (in nanoseconds) of the search.
@@ -62,8 +70,9 @@ export const searchResponseSchema = z.object({
             // Any matching ranges
             matchRanges: z.array(rangeSchema),
         }),
-        url: z.string(),
+        webUrl: z.string().optional(),
         repository: z.string(),
+        repositoryId: z.number(),
         language: z.string(),
         chunks: z.array(z.object({
             content: z.string(),
@@ -78,13 +87,14 @@ export const searchResponseSchema = z.object({
         // Set if `whole` is true.
         content: z.string().optional(),
     })),
+    repositoryInfo: z.array(repositoryInfoSchema),
     isBranchFilteringEnabled: z.boolean(),
 });
 
 export const repositorySchema = z.object({
     name: z.string(),
-    url: z.string(),
     branches: z.array(z.string()),
+    webUrl: z.string().optional(),
     rawConfig: z.record(z.string(), z.string()).optional(),
 });
 

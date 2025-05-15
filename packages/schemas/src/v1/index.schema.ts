@@ -18,10 +18,108 @@ const schema = {
     "ZoektConfig": {
       "anyOf": [
         {
-          "$ref": "#/definitions/GitHubConfig"
+          "type": "object",
+          "properties": {
+            "Type": {
+              "const": "github"
+            },
+            "GitHubUrl": {
+              "type": "string",
+              "description": "GitHub Enterprise url. If not set github.com will be used as the host."
+            },
+            "GitHubUser": {
+              "type": "string",
+              "description": "The GitHub user to mirror"
+            },
+            "GitHubOrg": {
+              "type": "string",
+              "description": "The GitHub organization to mirror"
+            },
+            "Name": {
+              "type": "string",
+              "description": "Only clone repos whose name matches the given regexp.",
+              "format": "regexp",
+              "default": "^(foo|bar)$"
+            },
+            "Exclude": {
+              "type": "string",
+              "description": "Don't mirror repos whose names match this regexp.",
+              "format": "regexp",
+              "default": "^(fizz|buzz)$"
+            },
+            "CredentialPath": {
+              "type": "string",
+              "description": "Path to a file containing a GitHub access token.",
+              "default": "~/.github-token"
+            },
+            "Topics": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Only mirror repos that have one of the given topics"
+            },
+            "ExcludeTopics": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Don't mirror repos that have one of the given topics"
+            },
+            "NoArchived": {
+              "type": "boolean",
+              "description": "Mirror repos that are _not_ archived",
+              "default": false
+            },
+            "IncludeForks": {
+              "type": "boolean",
+              "description": "Also mirror forks",
+              "default": false
+            }
+          },
+          "required": [
+            "Type"
+          ],
+          "additionalProperties": false
         },
         {
-          "$ref": "#/definitions/GitLabConfig"
+          "type": "object",
+          "properties": {
+            "Type": {
+              "const": "gitlab"
+            },
+            "GitLabURL": {
+              "type": "string",
+              "description": "The GitLab API url.",
+              "default": "https://gitlab.com/api/v4/"
+            },
+            "Name": {
+              "type": "string",
+              "description": "Only clone repos whose name matches the given regexp.",
+              "format": "regexp",
+              "default": "^(foo|bar)$"
+            },
+            "Exclude": {
+              "type": "string",
+              "description": "Don't mirror repos whose names match this regexp.",
+              "format": "regexp",
+              "default": "^(fizz|buzz)$"
+            },
+            "OnlyPublic": {
+              "type": "boolean",
+              "description": "Only mirror public repos",
+              "default": false
+            },
+            "CredentialPath": {
+              "type": "string",
+              "description": "Path to a file containing a GitLab access token.",
+              "default": "~/.gitlab-token"
+            }
+          },
+          "required": [
+            "Type"
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -44,10 +142,16 @@ const schema = {
           "description": "The GitHub organization to mirror"
         },
         "Name": {
-          "$ref": "#/definitions/RepoNameRegexIncludeFilter"
+          "type": "string",
+          "description": "Only clone repos whose name matches the given regexp.",
+          "format": "regexp",
+          "default": "^(foo|bar)$"
         },
         "Exclude": {
-          "$ref": "#/definitions/RepoNameRegexExcludeFilter"
+          "type": "string",
+          "description": "Don't mirror repos whose names match this regexp.",
+          "format": "regexp",
+          "default": "^(fizz|buzz)$"
         },
         "CredentialPath": {
           "type": "string",
@@ -96,10 +200,16 @@ const schema = {
           "default": "https://gitlab.com/api/v4/"
         },
         "Name": {
-          "$ref": "#/definitions/RepoNameRegexIncludeFilter"
+          "type": "string",
+          "description": "Only clone repos whose name matches the given regexp.",
+          "format": "regexp",
+          "default": "^(foo|bar)$"
         },
         "Exclude": {
-          "$ref": "#/definitions/RepoNameRegexExcludeFilter"
+          "type": "string",
+          "description": "Don't mirror repos whose names match this regexp.",
+          "format": "regexp",
+          "default": "^(fizz|buzz)$"
         },
         "OnlyPublic": {
           "type": "boolean",
@@ -125,7 +235,112 @@ const schema = {
     "Configs": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/ZoektConfig"
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "Type": {
+                "const": "github"
+              },
+              "GitHubUrl": {
+                "type": "string",
+                "description": "GitHub Enterprise url. If not set github.com will be used as the host."
+              },
+              "GitHubUser": {
+                "type": "string",
+                "description": "The GitHub user to mirror"
+              },
+              "GitHubOrg": {
+                "type": "string",
+                "description": "The GitHub organization to mirror"
+              },
+              "Name": {
+                "type": "string",
+                "description": "Only clone repos whose name matches the given regexp.",
+                "format": "regexp",
+                "default": "^(foo|bar)$"
+              },
+              "Exclude": {
+                "type": "string",
+                "description": "Don't mirror repos whose names match this regexp.",
+                "format": "regexp",
+                "default": "^(fizz|buzz)$"
+              },
+              "CredentialPath": {
+                "type": "string",
+                "description": "Path to a file containing a GitHub access token.",
+                "default": "~/.github-token"
+              },
+              "Topics": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Only mirror repos that have one of the given topics"
+              },
+              "ExcludeTopics": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Don't mirror repos that have one of the given topics"
+              },
+              "NoArchived": {
+                "type": "boolean",
+                "description": "Mirror repos that are _not_ archived",
+                "default": false
+              },
+              "IncludeForks": {
+                "type": "boolean",
+                "description": "Also mirror forks",
+                "default": false
+              }
+            },
+            "required": [
+              "Type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "Type": {
+                "const": "gitlab"
+              },
+              "GitLabURL": {
+                "type": "string",
+                "description": "The GitLab API url.",
+                "default": "https://gitlab.com/api/v4/"
+              },
+              "Name": {
+                "type": "string",
+                "description": "Only clone repos whose name matches the given regexp.",
+                "format": "regexp",
+                "default": "^(foo|bar)$"
+              },
+              "Exclude": {
+                "type": "string",
+                "description": "Don't mirror repos whose names match this regexp.",
+                "format": "regexp",
+                "default": "^(fizz|buzz)$"
+              },
+              "OnlyPublic": {
+                "type": "boolean",
+                "description": "Only mirror public repos",
+                "default": false
+              },
+              "CredentialPath": {
+                "type": "string",
+                "description": "Path to a file containing a GitLab access token.",
+                "default": "~/.gitlab-token"
+              }
+            },
+            "required": [
+              "Type"
+            ],
+            "additionalProperties": false
+          }
+        ]
       }
     }
   },

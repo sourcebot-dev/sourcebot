@@ -109,7 +109,7 @@ server.tool(
                 (acc, chunk) => acc + chunk.matchRanges.length,
                 0,
             );
-            let text = `file: ${file.url}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}`;
+            let text = `file: ${file.webUrl}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}`;
 
             if (includeCodeSnippets) {
                 const snippets = file.chunks.map(chunk => {
@@ -166,7 +166,7 @@ server.tool(
         const content: TextContent[] = response.repos.map(repo => {
             return {
                 type: "text",
-                text: `id: ${repo.name}\nurl: ${repo.url}`,
+                text: `id: ${repo.name}\nurl: ${repo.webUrl}`,
             }
         });
 

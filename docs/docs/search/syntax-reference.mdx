@@ -32,4 +32,4 @@ Expressions can be prefixed with certain keywords to modify search behavior. Som
 | `rev:` | Filter results from a specific branch or tag. By default **only** the default branch is searched. | `rev:beta` - Filter results to branches that match regex `/beta/` |
 | `lang:` | Filter results by language (as defined by [linguist](https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml)). By default all languages are searched. | `lang:TypeScript` - Filter results to TypeScript files<br/>`-lang:YAML` - Ignore results from YAML files |
 | `sym:` | Match symbol definitions created by [universal ctags](https://ctags.io/) at index time. | `sym:\bmain\b` - Filter results to symbols that match regex `/\bmain\b/` |
-| `context:` | Filter results to a predefined [search context](/self-hosting/more/search-contexts). | `context:web` - Filter results to the web context<br/>`-context:pipelines` - Ignore results from the pipelines context |
+| `context:` | Filter results to a predefined [search context](/docs/search/search-contexts). | `context:web` - Filter results to the web context<br/>`-context:pipelines` - Ignore results from the pipelines context |

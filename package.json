@@ -1,8 +1,7 @@
 {
     "private": true,
     "workspaces": [
-        "packages/*",
-        "packages/agents/*"
+        "packages/*"
     ],
     "scripts": {
         "build": "cross-env SKIP_ENV_VALIDATION=1 yarn workspaces foreach -A run build",
