@@ -1,5 +1,5 @@
 import path, { dirname } from "path";
-import { mkdir, rm, writeFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import $RefParser from "@apidevtools/json-schema-ref-parser";
 import { compileFromFile } from "json-schema-to-typescript";
 import { glob } from "glob";
@@ -25,15 +25,15 @@ const BANNER_COMMENT = 'THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!';
         await mkdir(docsOutDir, { recursive: true });
 
         // Generate schema
-        const schema = JSON.stringify(await $RefParser.bundle(schemaPath), null, 2);
+        const schema = JSON.stringify(await $RefParser.dereference(schemaPath), null, 2);
 
         // Write to src
         await writeFile(
             path.join(srcOutDir, `${name}.schema.ts`),
             `// ${BANNER_COMMENT}\n` +
             'const schema = ' +
-                schema +
-                ` as const;\nexport { schema as ${name}Schema };`,
+            schema +
+            ` as const;\nexport { schema as ${name}Schema };`,
         );
 
         // Write to docs
