@@ -49,11 +49,6 @@ export default async function BrowsePage({
         }
     })();
 
-    const org = await getOrgFromDomain(params.domain);
-    if (!org) {
-        notFound();
-    }
-
     const repoInfo = await getRepoInfoByName(repoName, params.domain);
     if (isServiceError(repoInfo) && repoInfo.errorCode !== ErrorCode.NOT_FOUND) {
         throw new ServiceErrorException(repoInfo);
@@ -106,7 +101,7 @@ export default async function BrowsePage({
                     path={path}
                     repoName={repoInfo.name}
                     revisionName={revisionName ?? 'HEAD'}
-                    orgId={org.id}
+                    domain={params.domain}
                 />
             )}
         </div>
@@ -117,21 +112,21 @@ interface CodePreviewWrapper {
     path: string,
     repoName: string,
     revisionName: string,
-    orgId: number,
+    domain: string,
 }
 
 const CodePreviewWrapper = async ({
     path,
     repoName,
     revisionName,
-    orgId,
+    domain,
 }: CodePreviewWrapper) => {
     // @todo: this will depend on `pathType`.
     const fileSourceResponse = await getFileSource({
         fileName: path,
         repository: repoName,
         branch: revisionName,
-    }, orgId);
+    }, domain);
 
     if (isServiceError(fileSourceResponse)) {
         if (fileSourceResponse.errorCode === ErrorCode.FILE_NOT_FOUND) {

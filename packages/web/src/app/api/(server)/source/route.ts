@@ -4,9 +4,7 @@ import { getFileSource } from "@/features/search/fileSourceApi";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { sew, withAuth, withOrgMembership } from "@/actions";
 import { fileSourceRequestSchema } from "@/features/search/schemas";
-import { FileSourceRequest } from "@/features/search/types";
 
 export const POST = async (request: NextRequest) => {
     const body = await request.json();
@@ -18,19 +16,11 @@ export const POST = async (request: NextRequest) => {
     }
 
 
-    const response = await postSource(parsed.data, request.headers.get("X-Org-Domain")!);
+    
+    const response = await getFileSource(parsed.data, request.headers.get("X-Org-Domain")!);
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }
 
     return Response.json(response);
 }
-
-
-export const postSource = (request: FileSourceRequest, domain: string) => sew(() =>
-    withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const response = await getFileSource(request, orgId);
-            return response;
-        }
-    ), /* allowSingleTenantUnauthedAccess */ true));

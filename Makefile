@@ -32,6 +32,9 @@ clean:
 		packages/mcp/node_modules \
 		packages/mcp/dist \
 		.sourcebot
+	
+	redis-cli FLUSHALL
+	yarn dev:prisma:migrate:reset
 
 soft-reset:
 	rm -rf .sourcebot
