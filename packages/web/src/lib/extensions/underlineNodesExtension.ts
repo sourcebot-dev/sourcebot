@@ -1,4 +1,4 @@
-import { StateField } from "@codemirror/state";
+import { StateField, Range } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 
@@ -16,17 +16,15 @@ export function underlineNodesExtension(nodeTypeNames: string[]) {
     return StateField.define<DecorationSet>({
         create(state) {
             const tree = syntaxTree(state);
-            const decorations: any[] = [];
+            const decorations: Range<Decoration>[] = [];
 
-            const getTextAt = (from: number, to: number) => {
-                const doc = state.doc;
-                return doc.sliceString(from, to);
-            }
+            // const getTextAt = (from: number, to: number) => {
+            //     const doc = state.doc;
+            //     return doc.sliceString(from, to);
+            // }
 
             tree.iterate({
                 enter: (node) => {
-                    const text = getTextAt(node.from, node.to);
-                    console.log(node.type.name, text);
                     if (nodeTypeNames.includes(node.type.name)) {
                         decorations.push(underlineDecoration.range(node.from, node.to));
                     }
