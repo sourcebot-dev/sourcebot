@@ -139,3 +139,17 @@
   -ms-overflow-style: none; /* IE dan Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+.cm-underline-hover {
+  text-decoration: none;
+  transition: text-decoration 0.1s;
+}
+
+.cm-underline-hover:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  /* Optionally, customize color or thickness: */
+  /* text-decoration-color: #0070f3; */
+  /* text-decoration-thickness: 2px; */
+}
