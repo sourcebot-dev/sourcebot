@@ -9,7 +9,11 @@ import CodeMirror, { Decoration, DecorationSet, EditorSelection, EditorView, Rea
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContextMenu } from "../../components/editorContextMenu";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
-
+import { underlineNodesExtension } from "@/lib/extensions/underlineNodesExtension";
+import { useRouter } from "next/navigation";
+import { SearchQueryParams } from "@/lib/types";
+import { useDomain } from "@/hooks/useDomain";
+import { createPathWithQueryParams } from "@/lib/utils";
 interface CodePreviewProps {
     path: string;
     repoName: string;
@@ -30,6 +34,8 @@ export const CodePreview = ({
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
     const keymapExtension = useKeymapExtension(editorRef.current?.view);
     const [isEditorCreated, setIsEditorCreated] = useState(false);
+    const router = useRouter();
+    const domain = useDomain();
 
     const highlightRangeQuery = useNonEmptyQueryParam('highlightRange');
     const highlightRange = useMemo(() => {
@@ -61,7 +67,7 @@ export const CodePreview = ({
     const extensions = useMemo(() => {
         const highlightDecoration = Decoration.mark({
             class: "cm-searchMatch-selected",
-          });
+        });
 
         return [
             syntaxHighlighting,
@@ -94,6 +100,15 @@ export const CodePreview = ({
                 },
                 provide: (field) => EditorView.decorations.from(field),
             }),
+            underlineNodesExtension([
+                "VariableName",
+                "VariableDefinition",
+                "TypeDefinition",
+                "TypeName",
+                "PropertyName",
+                "PropertyDefinition",
+                "JSXIdentifier"
+            ]),
         ];
     }, [keymapExtension, syntaxHighlighting, highlightRange]);
 
@@ -118,6 +133,33 @@ export const CodePreview = ({
         // editor is created.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [highlightRange, isEditorCreated]);
+
+    useEffect(() => {
+        const view = editorRef.current?.view;
+        if (!view) return;
+
+        const handleClick = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (target.closest('[data-underline-node="true"]')) {
+                // You can get more info here, e.g., the text, position, etc.
+                // For example, get the text:
+                const text = target.textContent;
+                // Do something with the text or event
+                console.log("Clicked node:", text);
+
+                const query = `sym:${text}`;
+                const url = createPathWithQueryParams(`/${domain}/search`,
+                    [SearchQueryParams.query, query],
+                );
+                router.push(url);
+            }
+        };
+
+        view.dom.addEventListener("click", handleClick);
+        return () => {
+            view.dom.removeEventListener("click", handleClick);
+        };
+    }, [isEditorCreated]);
 
     const theme = useCodeMirrorTheme();
 
