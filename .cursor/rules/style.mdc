@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- Always use 4 spaces for indentation
+- Filenames should always be camelCase. Exception: if there are filenames in the same directory with a format other than camelCase, use that format to keep things consistent.
