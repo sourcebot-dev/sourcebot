@@ -108,7 +108,8 @@ export const CodePreview = ({
                 "TypeName",
                 "PropertyName",
                 "PropertyDefinition",
-                "JSXIdentifier"
+                "JSXIdentifier",
+                "Identifier"
             ]),
         ];
     }, [keymapExtension, syntaxHighlighting, highlightRange]);
@@ -181,7 +182,10 @@ export const CodePreview = ({
                 )}
             </CodeMirror>
             {editorRef && (
-                <SymbolHoverPopup editorRef={editorRef} />
+                <SymbolHoverPopup
+                    editorRef={editorRef}
+                    repoName={repoName}
+                />
             )}
         </ScrollArea>
     )
