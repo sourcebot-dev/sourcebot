@@ -6,7 +6,7 @@ import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
 import { search } from "@codemirror/search";
 import CodeMirror, { Decoration, DecorationSet, EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, StateField, ViewUpdate } from "@uiw/react-codemirror";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EditorContextMenu } from "../../components/editorContextMenu";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { underlineNodesExtension } from "@/lib/extensions/underlineNodesExtension";
@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation";
 import { SearchQueryParams } from "@/lib/types";
 import { useDomain } from "@/hooks/useDomain";
 import { createPathWithQueryParams } from "@/lib/utils";
+import { SymbolHoverPopup } from "./symbolHoverPopup";
+
 interface CodePreviewProps {
     path: string;
     repoName: string;
@@ -29,11 +31,10 @@ export const CodePreview = ({
     repoName,
     revisionName,
 }: CodePreviewProps) => {
-    const editorRef = useRef<ReactCodeMirrorRef>(null);
-    const syntaxHighlighting = useSyntaxHighlightingExtension(language, editorRef.current?.view);
+    const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
+    const syntaxHighlighting = useSyntaxHighlightingExtension(language, editorRef?.view);
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
-    const keymapExtension = useKeymapExtension(editorRef.current?.view);
-    const [isEditorCreated, setIsEditorCreated] = useState(false);
+    const keymapExtension = useKeymapExtension(editorRef?.view);
     const router = useRouter();
     const domain = useDomain();
 
@@ -113,29 +114,25 @@ export const CodePreview = ({
     }, [keymapExtension, syntaxHighlighting, highlightRange]);
 
     useEffect(() => {
-        if (!highlightRange || !editorRef.current || !editorRef.current.state) {
+        if (!highlightRange || !editorRef || !editorRef.state) {
             return;
         }
 
-        const doc = editorRef.current.state.doc;
+        const doc = editorRef.state.doc;
         const { start, end } = highlightRange;
         const from = doc.line(start.line).from + start.character - 1;
         const to = doc.line(end.line).from + end.character - 1;
         const selection = EditorSelection.range(from, to);
 
-        editorRef.current.view?.dispatch({
+        editorRef.view?.dispatch({
             effects: [
                 EditorView.scrollIntoView(selection, { y: "center" }),
             ]
         });
-        // @note: we need to include `isEditorCreated` in the dependency array since
-        // a race-condition can happen if the `highlightRange` is resolved before the
-        // editor is created.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [highlightRange, isEditorCreated]);
+    }, [editorRef, highlightRange]);
 
     useEffect(() => {
-        const view = editorRef.current?.view;
+        const view = editorRef?.view;
         if (!view) return;
 
         const handleClick = (event: MouseEvent) => {
@@ -159,7 +156,7 @@ export const CodePreview = ({
         return () => {
             view.dom.removeEventListener("click", handleClick);
         };
-    }, [isEditorCreated]);
+    }, [domain, router, editorRef]);
 
     const theme = useCodeMirrorTheme();
 
@@ -167,18 +164,15 @@ export const CodePreview = ({
         <ScrollArea className="h-full overflow-auto flex-1">
             <CodeMirror
                 className="relative"
-                ref={editorRef}
-                onCreateEditor={() => {
-                    setIsEditorCreated(true);
-                }}
+                ref={setEditorRef}
                 value={source}
                 extensions={extensions}
                 readOnly={true}
                 theme={theme}
             >
-                {editorRef.current && editorRef.current.view && currentSelection && (
+                {editorRef && editorRef.view && currentSelection && (
                     <EditorContextMenu
-                        view={editorRef.current.view}
+                        view={editorRef.view}
                         selection={currentSelection}
                         repoName={repoName}
                         path={path}
@@ -186,6 +180,9 @@ export const CodePreview = ({
                     />
                 )}
             </CodeMirror>
+            {editorRef && (
+                <SymbolHoverPopup editorRef={editorRef} />
+            )}
         </ScrollArea>
     )
 }
