@@ -10,10 +10,6 @@ import { useEffect, useMemo, useState } from "react";
 import { EditorContextMenu } from "../../components/editorContextMenu";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { underlineNodesExtension } from "@/lib/extensions/underlineNodesExtension";
-import { useRouter } from "next/navigation";
-import { SearchQueryParams } from "@/lib/types";
-import { useDomain } from "@/hooks/useDomain";
-import { createPathWithQueryParams } from "@/lib/utils";
 import { SymbolHoverPopup } from "./symbolHoverPopup";
 
 interface CodePreviewProps {
@@ -35,8 +31,6 @@ export const CodePreview = ({
     const syntaxHighlighting = useSyntaxHighlightingExtension(language, editorRef?.view);
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
     const keymapExtension = useKeymapExtension(editorRef?.view);
-    const router = useRouter();
-    const domain = useDomain();
 
     const highlightRangeQuery = useNonEmptyQueryParam('highlightRange');
     const highlightRange = useMemo(() => {
@@ -131,33 +125,6 @@ export const CodePreview = ({
             ]
         });
     }, [editorRef, highlightRange]);
-
-    useEffect(() => {
-        const view = editorRef?.view;
-        if (!view) return;
-
-        const handleClick = (event: MouseEvent) => {
-            const target = event.target as HTMLElement;
-            if (target.closest('[data-underline-node="true"]')) {
-                // You can get more info here, e.g., the text, position, etc.
-                // For example, get the text:
-                const text = target.textContent;
-                // Do something with the text or event
-                console.log("Clicked node:", text);
-
-                const query = `sym:${text}`;
-                const url = createPathWithQueryParams(`/${domain}/search`,
-                    [SearchQueryParams.query, query],
-                );
-                router.push(url);
-            }
-        };
-
-        view.dom.addEventListener("click", handleClick);
-        return () => {
-            view.dom.removeEventListener("click", handleClick);
-        };
-    }, [domain, router, editorRef]);
 
     const theme = useCodeMirrorTheme();
 

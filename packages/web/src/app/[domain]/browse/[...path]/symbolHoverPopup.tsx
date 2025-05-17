@@ -1,18 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
-import { search } from "@/app/api/(client)/client";
-import { useDomain } from "@/hooks/useDomain";
-import { base64Decode, isServiceError } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import CodeMirror, { EditorView, minimalSetup, ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import { javascript } from "@codemirror/lang-javascript";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import escapeStringRegexp from "escape-string-regexp";
-
+import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
+import CodeMirror, { EditorView, minimalSetup, ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import { Loader2, Router } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SymbolDefInfo, useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
+import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
+import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
+import { createPathWithQueryParams } from "@/lib/utils";
+import { useDomain } from "@/hooks/useDomain";
+import { useRouter } from "next/navigation";
 
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
@@ -25,6 +24,8 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     const [isSticky, setIsSticky] = useState(false);
+    const domain = useDomain();
+    const router = useRouter();
 
     const symbolInfo = useHoveredOverSymbolInfo({
         editorRef,
@@ -32,6 +33,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         repoName,
     });
 
+    // Positions the popup relative to the symbol
     useEffect(() => {
         if (!symbolInfo) {
             return;
@@ -67,6 +69,38 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         }
     }, [symbolInfo, editorRef]);
 
+    // If we resolve multiple matches, instead of navigating to the first match, we should
+    // instead popup the bottom sheet with the list of matches.
+    const onGotoDefinition = useCallback(() => {
+        if (!symbolInfo || !symbolInfo.symbolDefInfo) {
+            return;
+        }
+
+        const { symbolDefInfo } = symbolInfo;
+        const { fileName, repoName } = symbolDefInfo;
+        const { start, end } = symbolDefInfo.range;
+        const highlightRange = `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`;
+
+        const url = createPathWithQueryParams(`/${domain}/browse/${repoName}@HEAD/-/blob/${fileName}`,
+            ['highlightRange', highlightRange]
+        );
+        router.push(url);
+    }, [symbolInfo, domain, router]);
+
+    // @todo: We should probably make the behaviour s.t., the ctrl / cmd key needs to be held
+    // down to navigate to the definition. We should also only show the underline when the key
+    // is held, hover is active, and we have found the symbol definition.
+    useEffect(() => {
+        if (!symbolInfo) {
+            return;
+        }
+
+        symbolInfo.element.addEventListener("click", onGotoDefinition);
+        return () => {
+            symbolInfo.element.removeEventListener("click", onGotoDefinition);
+        }
+    }, [symbolInfo, onGotoDefinition]);
+
     return symbolInfo ? (
         <div
             ref={ref}
@@ -79,51 +113,21 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Loading...
                 </div>
-            ) :
-                symbolInfo.symbolDefInfo ? (
-                    <div className="flex flex-col gap-2 mb-2">
-                        <Tooltip
-                            delayDuration={100}
-                        >
-                            <TooltipTrigger
-                                disabled={true}
-                                className="mr-auto"
-                            >
-                                <Badge
-                                    variant="outline"
-                                    className="w-fit h-fit flex-shrink-0 select-none"
-                                >
-                                    Search Based
-                                </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                Search based on the symbol name.
-                            </TooltipContent>
-                        </Tooltip>
-                        <CodeMirror
-                            value={symbolInfo.symbolDefInfo.lineContent}
-                            extensions={[
-                                minimalSetup(),
-                                // @todo: this will need to depend on the language of the file
-                                javascript({ jsx: false, typescript: true }),
-                                EditorView.lineWrapping,
-                            ]}
-                            basicSetup={false}
-                        />
-                    </div>
-                ) : (
-                    <p className="text-sm font-medium text-muted-foreground">No hover info found</p>
-                )}
+            ) : symbolInfo.symbolDefInfo ? (
+                <SymbolDefinitionPreview
+                    symbolDefinition={symbolInfo.symbolDefInfo}
+                />
+            ) : (
+                <p className="text-sm font-medium text-muted-foreground">No hover info found</p>
+            )}
             <Separator />
             <div className="flex flex-row gap-2 mt-2">
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                        console.log("todo: find definition");
-                    }}
+                    onClick={onGotoDefinition}
                 >
-                    Find definition
+                    Go to definition
                 </Button>
                 <Button
                     variant="outline"
@@ -139,130 +143,57 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     ) : null;
 };
 
-interface UseHoveredOverSymbolInfoProps {
-    editorRef: ReactCodeMirrorRef;
-    isSticky: boolean;
-    repoName: string;
+interface SymbolDefinitionPreviewProps {
+    symbolDefinition: SymbolDefInfo;
 }
 
-interface HoveredOverSymbolInfo {
-    element: HTMLElement;
-    symbolName: string;
-    isSymbolDefInfoLoading: boolean;
-    symbolDefInfo?: {
-        lineContent: string;
-    }
-}
+export const SymbolDefinitionPreview = ({
+    symbolDefinition,
+}: SymbolDefinitionPreviewProps) => {
+    const { content: lineContent, language } = symbolDefinition;
+    const theme = useCodeMirrorTheme();
+    const editorRef = useRef<ReactCodeMirrorRef>(null);
 
-const SYMBOL_HOVER_POPUP_MOUSE_OVER_TIMEOUT = 500;
-const SYMBOL_HOVER_POPUP_MOUSE_OUT_TIMEOUT = 100;
+    const syntaxHighlighting = useSyntaxHighlightingExtension(language, editorRef.current?.view);
 
-const useHoveredOverSymbolInfo = ({
-    editorRef,
-    isSticky,
-    repoName,
-}: UseHoveredOverSymbolInfoProps): HoveredOverSymbolInfo | undefined => {
-    const mouseOverTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const mouseOutTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const extensions = useMemo(() => {
+        return [
+            minimalSetup(),
+            EditorView.lineWrapping,
+            syntaxHighlighting,
+        ]
+    }, [syntaxHighlighting]);
 
-    const domain = useDomain();
-    const [isVisible, setIsVisible] = useState(false);
-
-    const [symbolElement, setSymbolElement] = useState<HTMLElement | null>(null);
-    const symbolName = useMemo(() => {
-        return (symbolElement && symbolElement.textContent) ?? undefined;
-    }, [symbolElement]);
-
-    const { data, isPending: isSymbolDefinitionLoading } = useQuery({
-        queryKey: ["symbol-hover", symbolName],
-        queryFn: () => {
-            if (!symbolName) {
-                return null;
-            }
-            const query = `sym:\\b${symbolName}\\b repo:^${escapeStringRegexp(repoName)}$`;
-
-            return search({
-                query,
-                matches: 1,
-                contextLines: 0,
-            }, domain).then((result) => {
-                if (isServiceError(result)) {
-                    return null;
-                }
-
-                if (result.files.length > 0) {
-                    const file = result.files[0];
-                    const chunk = file.chunks[0];
-                    const content = base64Decode(chunk.content);
-                    return content.trim();
-                } else {
-                    return null;
-                }
-            });
-        },
-        staleTime: Infinity,
-    });
-
-    const clearTimers = useCallback(() => {
-        if (mouseOverTimerRef.current) {
-            clearTimeout(mouseOverTimerRef.current);
-        }
-
-        if (mouseOutTimerRef.current) {
-            clearTimeout(mouseOutTimerRef.current);
-        }
-    }, []);
-
-    useEffect(() => {
-        const view = editorRef.view;
-        if (!view) {
-            return;
-        }
-
-        const handleMouseOver = (event: MouseEvent) => {
-            const target = (event.target as HTMLElement).closest('[data-underline-node="true"]') as HTMLElement;
-            if (!target) {
-                return;
-            }
-            clearTimers();
-            setSymbolElement(target);
-
-            mouseOverTimerRef.current = setTimeout(() => {
-                setIsVisible(true);
-            }, SYMBOL_HOVER_POPUP_MOUSE_OVER_TIMEOUT);
-        };
-
-        const handleMouseOut = () => {
-            clearTimers();
-            
-            mouseOutTimerRef.current = setTimeout(() => {
-                setIsVisible(false);
-            }, SYMBOL_HOVER_POPUP_MOUSE_OUT_TIMEOUT);
-        };
-
-        view.dom.addEventListener("mouseover", handleMouseOver);
-        view.dom.addEventListener("mouseout", handleMouseOut);
-
-        return () => {
-            view.dom.removeEventListener("mouseover", handleMouseOver);
-            view.dom.removeEventListener("mouseout", handleMouseOut);
-        };
-    }, [editorRef, domain, clearTimers]);
-
-    if (!isVisible && !isSticky) {
-        return undefined;
-    }
-
-    if (!symbolElement || !symbolName) {
-        return undefined;
-    }
-
-    return {
-        element: symbolElement,
-        symbolName,
-        isSymbolDefInfoLoading: isSymbolDefinitionLoading,
-        symbolDefInfo: data ? {
-            lineContent: data,
-        } : undefined,
-    };
+    return (
+        <div className="flex flex-col gap-2 mb-2">
+            <Tooltip
+                delayDuration={100}
+            >
+                <TooltipTrigger
+                    disabled={true}
+                    className="mr-auto"
+                >
+                    <Badge
+                        variant="outline"
+                        className="w-fit h-fit flex-shrink-0 select-none"
+                    >
+                        Search Based
+                    </Badge>
+                </TooltipTrigger>
+                <TooltipContent
+                    side="top"
+                    align="start"
+                >
+                    Symbol definition found using a best-guess search heuristic.
+                </TooltipContent>
+            </Tooltip>
+            <CodeMirror
+                ref={editorRef}
+                value={lineContent}
+                extensions={extensions}
+                basicSetup={false}
+                theme={theme}
+            />
+        </div>
+    )
 }
