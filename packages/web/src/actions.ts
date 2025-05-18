@@ -2,7 +2,7 @@
 
 import { env } from "@/env.mjs";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notAuthenticated, notFound, secretAlreadyExists, ServiceError, unexpectedError } from "@/lib/serviceError";
+import { notFound, secretAlreadyExists, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
 import { CodeHostType, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
@@ -29,6 +29,7 @@ import { TenancyMode } from "./lib/types";
 import { decrementOrgSeatCount, getSubscriptionForOrg, incrementOrgSeatCount } from "./ee/features/billing/serverUtils";
 import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
 import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
+import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "./features/entitlements/server";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -702,6 +703,21 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
 export const createInvites = async (emails: string[], domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
+
+            const seats = getSeats();
+            const members = await getOrgMembers(domain);
+            if (isServiceError(members)) {
+                throw new ServiceErrorException(members);;
+            }
+
+            if (seats !== SOURCEBOT_UNLIMITED_SEATS && members.length >= seats) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
+                    message: "The organization has reached the maximum number of seats. Unable to create a new invite",
+                } satisfies ServiceError;
+            }
+
             // Check for existing invites
             const existingInvites = await prisma.invite.findMany({
                 where: {

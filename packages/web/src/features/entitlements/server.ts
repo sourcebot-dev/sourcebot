@@ -5,11 +5,13 @@ import { z } from "zod";
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 
 const eeLicenseKeyPrefix = "sourcebot_ee_";
+export const SOURCEBOT_UNLIMITED_SEATS = -1;
 
 const eeLicenseKeyPayloadSchema = z.object({
     id: z.string(),
+    seats: z.number(),
     // ISO 8601 date string
-    expiryDate: z.string().datetime().optional(),
+    expiryDate: z.string().datetime(),
 });
 
 const decodeLicenseKeyPayload = (payload: string) => {
@@ -30,7 +32,7 @@ export const getPlan = (): Plan => {
         try {
             const { expiryDate } = decodeLicenseKeyPayload(payload);
 
-            if (expiryDate && new Date(expiryDate).getTime() < new Date().getTime()) {
+            if (new Date(expiryDate).getTime() < new Date().getTime()) {
                 console.error(`The provided license key has expired. Falling back to oss plan. Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
                 return "oss";
             }
@@ -44,6 +46,17 @@ export const getPlan = (): Plan => {
     }
 
     return "oss";
+}
+
+export const getSeats = (): number => {
+    const licenseKey = env.SOURCEBOT_EE_LICENSE_KEY;
+    if (licenseKey && licenseKey.startsWith(eeLicenseKeyPrefix)) {
+        const payload = licenseKey.substring(eeLicenseKeyPrefix.length);
+        const { seats } = decodeLicenseKeyPayload(payload);
+        return seats;
+    }
+
+    return SOURCEBOT_UNLIMITED_SEATS;
 }
 
 export const hasEntitlement = (entitlement: Entitlement) => {

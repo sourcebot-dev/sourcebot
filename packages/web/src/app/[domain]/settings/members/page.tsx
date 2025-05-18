@@ -9,6 +9,8 @@ import { InvitesList } from "./components/invitesList";
 import { getOrgInvites, getMe } from "@/actions";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { ServiceErrorException } from "@/lib/serviceError";
+import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@/features/entitlements/server";
+
 interface MembersSettingsPageProps {
     params: {
         domain: string
@@ -46,16 +48,33 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
 
     const currentTab = tab || "members";
 
+    const seats = getSeats();
+    const usedSeats = members.length
+    const seatsAvailable = seats !== SOURCEBOT_UNLIMITED_SEATS && usedSeats < seats;
+
     return (
         <div className="flex flex-col gap-6">
-            <div>
-                <h3 className="text-lg font-medium">Members</h3>
-                <p className="text-sm text-muted-foreground">Invite and manage members of your organization.</p>
+            <div className="flex items-start justify-between">
+                <div>
+                    <h3 className="text-lg font-medium">Members</h3>
+                    <p className="text-sm text-muted-foreground">Invite and manage members of your organization.</p>
+                </div>
+                {seats && seats !== SOURCEBOT_UNLIMITED_SEATS && (
+                    <div className="bg-card px-4 py-2 rounded-md border shadow-sm">
+                        <div className="text-sm">
+                            <span className="text-foreground font-medium">{usedSeats}</span>
+                            <span className="text-muted-foreground"> of </span>
+                            <span className="text-foreground font-medium">{seats}</span>
+                            <span className="text-muted-foreground"> seats used</span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <InviteMemberCard
                 currentUserRole={userRoleInOrg}
                 isBillingEnabled={IS_BILLING_ENABLED}
+                seatsAvailable={seatsAvailable}
             />
 
             <Tabs value={currentTab}>
@@ -70,11 +89,11 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                     />
                 </div>
                 <TabsContent value="members">
-                        <MembersList
-                            members={members}
-                            currentUserId={me.id}
-                            currentUserRole={userRoleInOrg}
-                            orgName={org.name}
+                    <MembersList
+                        members={members}
+                        currentUserId={me.id}
+                        currentUserRole={userRoleInOrg}
+                        orgName={org.name}
                     />
                 </TabsContent>
 
