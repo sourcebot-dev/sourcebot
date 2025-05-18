@@ -12,8 +12,10 @@ interface LoginProps {
 }
 
 export default async function Login({ searchParams }: LoginProps) {
+    console.log("Login page loaded");
     const session = await auth();
     if (session) {
+        console.log("Session found in login page, redirecting to home");
         return redirect("/");
     }
 

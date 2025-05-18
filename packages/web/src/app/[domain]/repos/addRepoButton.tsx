@@ -16,10 +16,11 @@ import { ConnectionList } from "../connections/components/connectionList"
 import { useDomain } from "@/hooks/useDomain"
 import Link from "next/link";
 
-export function AddRepoButton({ isAddNewRepoButtonVisible }: { isAddNewRepoButtonVisible: boolean }) {
+export function AddRepoButton() {
     const [isOpen, setIsOpen] = useState(false)
     const domain = useDomain()
 
+    // TODO(auth): Figure out how to handle conneciton list disabled case here in public access case
     return (
         <>
           <Button
@@ -40,7 +41,7 @@ export function AddRepoButton({ isAddNewRepoButtonVisible }: { isAddNewRepoButto
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto p-6">
-                <ConnectionList className="w-full" isDisabled={!isAddNewRepoButtonVisible} />
+                <ConnectionList className="w-full" isDisabled={false} />
               </div>
               <DialogFooter className="flex justify-between items-center border-t p-4 px-6">
                 <Button asChild variant="default" className="bg-primary hover:bg-primary/90">

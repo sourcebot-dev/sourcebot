@@ -52,6 +52,9 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
 
 export const withAuth = async <T>(fn: (session: Session) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false) => {
     const session = await auth();
+
+    // TODO(auth): Figure out how to handle auth header here for public org case
+    /*
     if (!session) {
         if (
             env.SOURCEBOT_TENANCY_MODE === 'single' &&
@@ -72,7 +75,7 @@ export const withAuth = async <T>(fn: (session: Session) => Promise<T>, allowSin
         }
 
         return notAuthenticated();
-    }
+    }*/
     return fn(session);
 }
 

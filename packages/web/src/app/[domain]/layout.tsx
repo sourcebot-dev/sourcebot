@@ -11,7 +11,6 @@ import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "@/lib/co
 import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
-import { env } from "@/env.mjs";
 import { notFound, redirect } from "next/navigation";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 
@@ -30,24 +29,22 @@ export default async function Layout({
         return notFound();
     }
 
-    if (env.SOURCEBOT_AUTH_ENABLED === 'true') {
-        const session = await auth();
-        if (!session) {
-            redirect('/login');
-        }
+    const session = await auth();
+    if (!session) {
+        redirect('/login');
+    }
 
-        const membership = await prisma.userToOrg.findUnique({
-            where: {
-                orgId_userId: {
-                    orgId: org.id,
-                    userId: session.user.id
-                }
+    const membership = await prisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                orgId: org.id,
+                userId: session.user.id
             }
-        });
-
-        if (!membership) {
-            return notFound();
         }
+    });
+
+    if (!membership) {
+        return notFound();
     }
 
     if (!org.isOnboarded) {

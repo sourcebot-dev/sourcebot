@@ -140,11 +140,10 @@ export const getProviders = () => {
 }
 
 const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
-    // In single-tenant mode w/ auth, we assign the first user to sign
+    // In single-tenant mode, we assign the first user to sign
     // up as the owner of the default org.
     if (
-        env.SOURCEBOT_TENANCY_MODE === 'single' &&
-        env.SOURCEBOT_AUTH_ENABLED === 'true'
+        env.SOURCEBOT_TENANCY_MODE === 'single'
     ) {
         await prisma.$transaction(async (tx) => {
             const defaultOrg = await tx.org.findUnique({

@@ -15,10 +15,6 @@ const ajv = new Ajv({
     validateFormats: false,
 });
 
-if (env.SOURCEBOT_AUTH_ENABLED === 'false' && env.SOURCEBOT_TENANCY_MODE === 'multi') {
-    throw new Error('SOURCEBOT_AUTH_ENABLED must be true when SOURCEBOT_TENANCY_MODE is multi');
-}
-
 const isRemotePath = (path: string) => {
     return path.startsWith('https://') || path.startsWith('http://');
 }
@@ -146,11 +142,12 @@ const initSingleTenancy = async () => {
         create: {
             name: SINGLE_TENANT_ORG_NAME,
             domain: SINGLE_TENANT_ORG_DOMAIN,
-            id: SINGLE_TENANT_ORG_ID,
-            isOnboarded: env.SOURCEBOT_AUTH_ENABLED === 'false',
+            id: SINGLE_TENANT_ORG_ID
         }
     });
 
+    // TODO(auth): Figure out if we need to create a dummy user for public access
+    /*
     if (env.SOURCEBOT_AUTH_ENABLED === 'false') {
         // Default user for single tenancy unauthed access
         await prisma.user.upsert({
@@ -189,11 +186,23 @@ const initSingleTenancy = async () => {
             }
         });
     }
+    */
 
     // Load any connections defined declaratively in the config file.
     const configPath = env.CONFIG_PATH;
     if (configPath) {
         await syncDeclarativeConfig(configPath);
+
+        // If we're given a config file, mark the org as onboarded so we don't go through
+        // the UI conneciton onboarding flow
+        await prisma.org.update({
+            where: {
+                id: SINGLE_TENANT_ORG_ID,
+            },
+            data: {
+                isOnboarded: true,
+            }
+        });
 
         // watch for changes assuming it is a local file
         if (!isRemotePath(configPath)) {

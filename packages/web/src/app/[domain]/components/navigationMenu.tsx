@@ -27,6 +27,8 @@ export const NavigationMenu = async ({
 }: NavigationMenuProps) => {
     const subscription = IS_BILLING_ENABLED ? await getSubscriptionInfo(domain) : null;
 
+    // TODO(auth): Figure out how to handle settings drop down here for public case
+    // TODO(auth): Figure out how we want to hide certain nav items for public case
     return (
         <div className="flex flex-col w-screen h-fit bg-background">
             <div className="flex flex-row justify-between items-center py-1.5 px-3">
@@ -73,7 +75,6 @@ export const NavigationMenu = async ({
                                     </NavigationMenuLink>
                                 </Link>
                             </NavigationMenuItem>
-                            {env.SOURCEBOT_AUTH_ENABLED === 'true' && (
                                 <NavigationMenuItem>
                                     <Link href={`/${domain}/connections`} legacyBehavior passHref>
                                         <NavigationMenuLink className={navigationMenuTriggerStyle()}>
@@ -81,8 +82,6 @@ export const NavigationMenu = async ({
                                         </NavigationMenuLink>
                                     </Link>
                                 </NavigationMenuItem>
-                            )}
-                            {env.SOURCEBOT_AUTH_ENABLED === 'true' && (
                                 <NavigationMenuItem>
                                     <Link href={`/${domain}/settings`} legacyBehavior passHref>
                                         <NavigationMenuLink className={navigationMenuTriggerStyle()}>
@@ -90,7 +89,6 @@ export const NavigationMenu = async ({
                                         </NavigationMenuLink>
                                     </Link>
                                 </NavigationMenuItem>
-                            )}
                         </NavigationMenuList>
                     </NavigationMenuBase>
                 </div>
@@ -128,7 +126,7 @@ export const NavigationMenu = async ({
                             <GitHubLogoIcon className="w-4 h-4" />
                         </Button>
                     </form>
-                    <SettingsDropdown displaySettingsOption={env.SOURCEBOT_AUTH_ENABLED === 'true'} />
+                    <SettingsDropdown displaySettingsOption={true} />
                 </div>
             </div>
             <Separator />
