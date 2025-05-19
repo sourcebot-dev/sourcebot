@@ -300,7 +300,7 @@ export const createSecret = async (key: string, value: string, domain: string): 
                     iv: encrypted.iv,
                 }
             });
-            
+
 
             return {
                 success: true,
@@ -512,6 +512,14 @@ export const getRepoInfoByName = async (repoName: string, domain: string) => sew
 export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ orgId }) => {
+            if (env.CONFIG_PATH !== undefined) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.CONNECTION_CONFIG_PATH_SET,
+                    message: "A configuration file has been provided. New connections cannot be added through the web interface.",
+                } satisfies ServiceError;
+            }
+            
             const parsedConfig = parseConnectionConfig(connectionConfig);
             if (isServiceError(parsedConfig)) {
                 return parsedConfig;
@@ -1231,7 +1239,7 @@ export const getSearchContexts = async (domain: string) => sew(() =>
                 description: context.description ?? undefined,
             }));
         }
-    ), /* allowSingleTenantUnauthedAccess = */ true));
+        ), /* allowSingleTenantUnauthedAccess = */ true));
 
 
 ////// Helpers ///////
@@ -1294,7 +1302,7 @@ const parseConnectionConfig = (config: string) => {
     const { numRepos, hasToken } = (() => {
         switch (connectionType) {
             case "gitea":
-            case "github": 
+            case "github":
             case "bitbucket": {
                 return {
                     numRepos: parsedConfig.repos?.length,
