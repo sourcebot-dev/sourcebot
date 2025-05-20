@@ -7,6 +7,9 @@ import gerritLogo from "@/public/gerrit.svg";
 import bitbucketLogo from "@/public/bitbucket.svg";
 import gitLogo from "@/public/git.svg";
 import { ServiceError } from "./serviceError";
+import { StatusCodes } from "http-status-codes";
+import { ErrorCode } from "./errorCodes";
+import { NextRequest } from "next/server";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -286,4 +289,16 @@ export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>):
     }
 
     return data;
+}
+
+export const requiredQueryParamGuard = (request: NextRequest, param: string): ServiceError | string => {
+    const value = request.nextUrl.searchParams.get(param);
+    if (!value) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.MISSING_QUERY_PARAM,
+            message: `Missing required query param: ${param}`,
+        };
+    }
+    return value;
 }
