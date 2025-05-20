@@ -11,8 +11,9 @@ import { EditorContextMenu } from "../../components/editorContextMenu";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { underlineNodesExtension } from "@/lib/extensions/underlineNodesExtension";
 import { SymbolHoverPopup } from "./symbolHoverPopup";
+import { ResizablePanel } from "@/components/ui/resizable";
 
-interface CodePreviewProps {
+interface CodePreviewPanelProps {
     path: string;
     repoName: string;
     revisionName: string;
@@ -22,14 +23,14 @@ interface CodePreviewProps {
     onFindReferences: (symbolName: string) => void;
 }
 
-export const CodePreview = ({
+export const CodePreviewPanel = ({
     source,
     language,
     path,
     repoName,
     revisionName,
     onFindReferences,
-}: CodePreviewProps) => {
+}: CodePreviewPanelProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const syntaxHighlighting = useSyntaxHighlightingExtension(language, editorRef?.view);
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
@@ -132,33 +133,35 @@ export const CodePreview = ({
     const theme = useCodeMirrorTheme();
 
     return (
-        <ScrollArea className="h-full overflow-auto flex-1">
-            <CodeMirror
-                className="relative"
-                ref={setEditorRef}
-                value={source}
-                extensions={extensions}
-                readOnly={true}
-                theme={theme}
-            >
-                {editorRef && editorRef.view && currentSelection && (
-                    <EditorContextMenu
-                        view={editorRef.view}
-                        selection={currentSelection}
+        <ResizablePanel>
+            <ScrollArea className="h-full overflow-auto flex-1">
+                <CodeMirror
+                    className="relative"
+                    ref={setEditorRef}
+                    value={source}
+                    extensions={extensions}
+                    readOnly={true}
+                    theme={theme}
+                >
+                    {editorRef && editorRef.view && currentSelection && (
+                        <EditorContextMenu
+                            view={editorRef.view}
+                            selection={currentSelection}
+                            repoName={repoName}
+                            path={path}
+                            revisionName={revisionName}
+                        />
+                    )}
+                </CodeMirror>
+                {editorRef && (
+                    <SymbolHoverPopup
+                        editorRef={editorRef}
                         repoName={repoName}
-                        path={path}
-                        revisionName={revisionName}
+                        onFindReferences={onFindReferences}
                     />
                 )}
-            </CodeMirror>
-            {editorRef && (
-                <SymbolHoverPopup
-                    editorRef={editorRef}
-                    repoName={repoName}
-                    onFindReferences={onFindReferences}
-                />
-            )}
-        </ScrollArea>
+            </ScrollArea>
+        </ResizablePanel>
     )
 }
 
