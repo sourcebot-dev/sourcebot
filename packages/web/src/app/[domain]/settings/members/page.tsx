@@ -11,6 +11,7 @@ import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@/features/entitlements/server";
 import { RequestsList } from "./components/requestsList";
+import { OrgRole } from "@prisma/client";
 
 interface MembersSettingsPageProps {
     params: {
@@ -89,7 +90,8 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                         className="h-auto p-0 bg-transparent"
                         tabs={[
                             { label: "Team Members", value: "members" },
-                            { 
+                            ...(userRoleInOrg === OrgRole.OWNER ? [
+                            {
                                 label: (
                                     <div className="flex items-center gap-2">
                                         Pending Requests
@@ -99,10 +101,10 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                                             </span>
                                         )}
                                     </div>
-                                ), 
-                                value: "requests" 
+                                ),
+                                value: "requests"
                             },
-                            { 
+                            {
                                 label: (
                                     <div className="flex items-center gap-2">
                                         Pending Invites
@@ -112,9 +114,10 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                                             </span>
                                         )}
                                     </div>
-                                ), 
-                                value: "invites" 
-                            },
+                                ),
+                                    value: "invites"
+                                },
+                            ] : []),
                         ]}
                         currentTab={currentTab}
                     />
@@ -128,19 +131,23 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                     />
                 </TabsContent>
 
-                <TabsContent value="requests">
-                    <RequestsList
-                        requests={requests}
-                        currentUserRole={userRoleInOrg}
-                    />
-                </TabsContent>
+                {userRoleInOrg === OrgRole.OWNER && (
+                    <>
+                        <TabsContent value="requests">
+                            <RequestsList
+                                requests={requests}
+                                currentUserRole={userRoleInOrg}
+                            />
+                        </TabsContent>
 
-                <TabsContent value="invites">
-                    <InvitesList
-                        invites={invites}
-                        currentUserRole={userRoleInOrg}
-                    />
-                </TabsContent>
+                        <TabsContent value="invites">
+                            <InvitesList
+                                invites={invites}
+                                currentUserRole={userRoleInOrg}
+                            />
+                        </TabsContent>
+                    </>
+                )}
             </Tabs>
         </div>
     )
