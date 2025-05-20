@@ -30,14 +30,14 @@ export const getPlan = (): Plan => {
         const payload = licenseKey.substring(eeLicenseKeyPrefix.length);
 
         try {
-            const { expiryDate } = decodeLicenseKeyPayload(payload);
+            const { seats, expiryDate } = decodeLicenseKeyPayload(payload);
 
             if (new Date(expiryDate).getTime() < new Date().getTime()) {
                 console.error(`The provided license key has expired. Falling back to oss plan. Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
                 return "oss";
             }
 
-            return "self-hosted:enterprise";
+            return seats === SOURCEBOT_UNLIMITED_SEATS ? "self-hosted:enterprise-unlimited" : "self-hosted:enterprise";
         } catch (error) {
             console.error(`Failed to decode license key payload with error: ${error}`);
             console.info('Falling back to oss plan.');

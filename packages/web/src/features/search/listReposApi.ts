@@ -6,7 +6,7 @@ import { sew, withAuth, withOrgMembership } from "@/actions";
 
 export const listRepositories = async (domain: string): Promise<ListRepositoriesResponse | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const body = JSON.stringify({
                 opts: {
                     Field: 0,
@@ -15,7 +15,7 @@ export const listRepositories = async (domain: string): Promise<ListRepositories
 
             let header: Record<string, string> = {};
             header = {
-                "X-Tenant-ID": orgId.toString()
+                "X-Tenant-ID": org.id.toString()
             };
 
             const listResponse = await zoektFetch({

@@ -14,6 +14,8 @@ import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { notFound, redirect } from "next/navigation";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { PendingApprovalCard } from "./components/pendingApproval";
+import { hasEntitlement } from "@/features/entitlements/server";
+import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -30,34 +32,37 @@ export default async function Layout({
         return notFound();
     }
 
-    const session = await auth();
-    if (!session) {
-        redirect('/login');
-    }
-
-    const membership = await prisma.userToOrg.findUnique({
-        where: {
-            orgId_userId: {
-                orgId: org.id,
-                userId: session.user.id
-            }
-        }, 
-        include: {
-            user: true
+    const publicAccessEnabled = hasEntitlement("public-access") && await getPublicAccessStatus(domain);
+    if (!publicAccessEnabled) {
+        const session = await auth();
+        if (!session) {
+            redirect('/login');
         }
-    });
 
-    if (!membership) {
-        const user = await prisma.user.findUnique({
+        const membership = await prisma.userToOrg.findUnique({
             where: {
-                id: session.user.id
+                orgId_userId: {
+                    orgId: org.id,
+                    userId: session.user.id
+                }
+            }, 
+            include: {
+                user: true
             }
         });
-        
-        if (user?.pendingApproval) {
-            return <PendingApprovalCard domain={domain} />
-        } else {
-            return notFound();
+
+        if (!membership) {
+                const user = await prisma.user.findUnique({
+                    where: {
+                        id: session.user.id
+                    }
+                });
+                
+                if (user?.pendingApproval) {
+                    return <PendingApprovalCard domain={domain} />
+                } else {
+                    return notFound();
+                }
         }
     }
 

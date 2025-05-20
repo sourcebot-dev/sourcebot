@@ -15,17 +15,7 @@ import { getSubscriptionForOrg } from "./serverUtils";
 
 export const createOnboardingSubscription = async (domain: string) => sew(() =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
-
-            if (!org) {
-                return notFound();
-            }
-
+        withOrgMembership(session, domain, async ({ org }) => {
             const user = await getMe();
             if (isServiceError(user)) {
                 return user;
@@ -64,7 +54,7 @@ export const createOnboardingSubscription = async (domain: string) => sew(() =>
                 return customer.id;
             })();
 
-            const existingSubscription = await getSubscriptionForOrg(orgId, prisma);
+            const existingSubscription = await getSubscriptionForOrg(org.id, prisma);
             if (!isServiceError(existingSubscription)) {
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
@@ -120,14 +110,8 @@ export const createOnboardingSubscription = async (domain: string) => sew(() =>
 
 export const createStripeCheckoutSession = async (domain: string) => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
-
-            if (!org || !org.stripeCustomerId) {
+        withOrgMembership(session, domain, async ({ org }) => {
+            if (!org.stripeCustomerId) {
                 return notFound();
             }
 
@@ -137,7 +121,7 @@ export const createStripeCheckoutSession = async (domain: string) => sew(() =>
 
             const orgMembers = await prisma.userToOrg.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                 },
                 select: {
                     userId: true,
@@ -182,14 +166,8 @@ export const createStripeCheckoutSession = async (domain: string) => sew(() =>
 
 export const getCustomerPortalSessionLink = async (domain: string): Promise<string | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
-
-            if (!org || !org.stripeCustomerId) {
+        withOrgMembership(session, domain, async ({ org }) => {
+            if (!org.stripeCustomerId) {
                 return notFound();
             }
 
@@ -209,14 +187,8 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
 
 export const getSubscriptionBillingEmail = async (domain: string): Promise<string | ServiceError> => sew(() =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
-
-            if (!org || !org.stripeCustomerId) {
+        withOrgMembership(session, domain, async ({ org }) => {
+            if (!org.stripeCustomerId) {
                 return notFound();
             }
 
@@ -234,14 +206,8 @@ export const getSubscriptionBillingEmail = async (domain: string): Promise<strin
 
 export const changeSubscriptionBillingEmail = async (domain: string, newEmail: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
-
-            if (!org || !org.stripeCustomerId) {
+        withOrgMembership(session, domain, async ({ org }) => {
+            if (!org.stripeCustomerId) {
                 return notFound();
             }
 
@@ -261,8 +227,8 @@ export const changeSubscriptionBillingEmail = async (domain: string, newEmail: s
 
 export const getSubscriptionInfo = async (domain: string) => sew(() =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const subscription = await getSubscriptionForOrg(orgId, prisma);
+        withOrgMembership(session, domain, async ({ org }) => {
+            const subscription = await getSubscriptionForOrg(org.id, prisma);
 
             if (isServiceError(subscription)) {
                 return subscription;

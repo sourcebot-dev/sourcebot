@@ -14,6 +14,9 @@ import { TrialNavIndicator } from "./trialNavIndicator";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { env } from "@/env.mjs";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
+import { hasEntitlement } from "@/features/entitlements/server";
+import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
+import { auth } from "@/auth";
 
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
@@ -26,9 +29,9 @@ export const NavigationMenu = async ({
     domain,
 }: NavigationMenuProps) => {
     const subscription = IS_BILLING_ENABLED ? await getSubscriptionInfo(domain) : null;
+    const session = await auth();
+    const isAuthenticated = session?.user !== undefined;
 
-    // TODO(auth): Figure out how to handle settings drop down here for public case
-    // TODO(auth): Figure out how we want to hide certain nav items for public case
     return (
         <div className="flex flex-col w-screen h-fit bg-background">
             <div className="flex flex-row justify-between items-center py-1.5 px-3">
@@ -62,33 +65,37 @@ export const NavigationMenu = async ({
                                 </Link>
                             </NavigationMenuItem>
                             <NavigationMenuItem>
-                                <Link href={`/${domain}/agents`} legacyBehavior passHref>
-                                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                        Agents
-                                    </NavigationMenuLink>
-                                </Link>
-                            </NavigationMenuItem>
-                            <NavigationMenuItem>
                                 <Link href={`/${domain}/repos`} legacyBehavior passHref>
                                     <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                                         Repositories
                                     </NavigationMenuLink>
                                 </Link>
                             </NavigationMenuItem>
-                                <NavigationMenuItem>
-                                    <Link href={`/${domain}/connections`} legacyBehavior passHref>
-                                        <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                            Connections
-                                        </NavigationMenuLink>
-                                    </Link>
-                                </NavigationMenuItem>
-                                <NavigationMenuItem>
-                                    <Link href={`/${domain}/settings`} legacyBehavior passHref>
-                                        <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                            Settings
-                                        </NavigationMenuLink>
-                                    </Link>
-                                </NavigationMenuItem>
+                            {isAuthenticated && (
+                                <>
+                                    <NavigationMenuItem>
+                                        <Link href={`/${domain}/agents`} legacyBehavior passHref>
+                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                                Agents
+                                            </NavigationMenuLink>
+                                        </Link>
+                                    </NavigationMenuItem>
+                                    <NavigationMenuItem>
+                                        <Link href={`/${domain}/connections`} legacyBehavior passHref>
+                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                                Connections
+                                            </NavigationMenuLink>
+                                        </Link>
+                                    </NavigationMenuItem>
+                                    <NavigationMenuItem>
+                                        <Link href={`/${domain}/settings`} legacyBehavior passHref>
+                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                                Settings
+                                            </NavigationMenuLink>
+                                        </Link>
+                                    </NavigationMenuItem>
+                                </>
+                            )}
                         </NavigationMenuList>
                     </NavigationMenuBase>
                 </div>
@@ -126,7 +133,7 @@ export const NavigationMenu = async ({
                             <GitHubLogoIcon className="w-4 h-4" />
                         </Button>
                     </form>
-                    <SettingsDropdown displaySettingsOption={true} />
+                    <SettingsDropdown />
                 </div>
             </div>
             <Separator />

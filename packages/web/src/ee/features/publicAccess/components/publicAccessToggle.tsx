@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { OrgRole } from "@sourcebot/db";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { getPublicAccessStatus, flipPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
+import { getPublicAccessStatus, setPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -24,9 +24,10 @@ import { useEffect, useState } from "react";
 interface PublicAccessToggleProps {
     currentUserRole: OrgRole;
     domain: string;
+    hasPublicAccessEntitlement: boolean;
 }
 
-export function PublicAccessToggle({ currentUserRole, domain }: PublicAccessToggleProps) {
+export function PublicAccessToggle({ currentUserRole, domain, hasPublicAccessEntitlement }: PublicAccessToggleProps) {
     const [isPublicAccessEnabled, setIsPublicAccessEnabled] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -50,12 +51,10 @@ export function PublicAccessToggle({ currentUserRole, domain }: PublicAccessTogg
     const handleToggle = async () => {
         setIsLoading(true);
         try {
-            /*
-            const result = await flipPublicAccessStatus(domain);
+            const result = await setPublicAccessStatus(domain, !isPublicAccessEnabled);
             if (isServiceError(result)) {
                 throw new ServiceErrorException(result);
             }
-            */
             setIsPublicAccessEnabled(!isPublicAccessEnabled);
         } catch (error) {
             console.error("Failed to update public access status:", error);
@@ -72,8 +71,12 @@ export function PublicAccessToggle({ currentUserRole, domain }: PublicAccessTogg
                         <Switch
                             id="public-access"
                             checked={isPublicAccessEnabled}
-                            disabled={currentUserRole !== OrgRole.OWNER || isLoading}
-                            title={currentUserRole !== OrgRole.OWNER ? "Only organization owners can change public access settings" : undefined}
+                            disabled={currentUserRole !== OrgRole.OWNER || !hasPublicAccessEntitlement || isLoading}
+                            title={
+                                !hasPublicAccessEntitlement ? "Public access requires an enterprise license with unlimited seats" :
+                                currentUserRole !== OrgRole.OWNER ? "Only organization owners can change this setting" : 
+                                undefined
+                            }
                             className={isLoading ? "opacity-80" : ""}
                         />
                     </AlertDialogTrigger>

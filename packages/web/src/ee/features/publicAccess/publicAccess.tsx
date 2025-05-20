@@ -6,8 +6,12 @@ import { orgMetadataSchema } from "@/types";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "@/prisma";
+import { sew, withAuth, withOrgMembership } from "@/actions";
+import { getPlan, hasEntitlement } from "@/features/entitlements/server";
+import { SINGLE_TENANT_USER_EMAIL, SINGLE_TENANT_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
+import { OrgRole } from "@sourcebot/db";
 
-export async function getPublicAccessStatus(domain: string): Promise<boolean | ServiceError> {
+export const getPublicAccessStatus = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
     const org = await getOrgFromDomain(domain);
     if (!org) {
         return {
@@ -27,9 +31,48 @@ export async function getPublicAccessStatus(domain: string): Promise<boolean | S
     }
 
     return !!orgMetadata.data.publicAccessEnabled;
-}
+});
 
-export async function flipPublicAccessStatus(domain: string): Promise<boolean | ServiceError> {
+export const setPublicAccessStatus = async (domain: string, enabled: boolean): Promise<ServiceError | boolean> => sew(() =>
+    withAuth(async (session) =>
+        withOrgMembership(session, domain, async ({ org }) => {
+            const hasPublicAccessEntitlement = hasEntitlement("public-access");
+            if(!hasPublicAccessEntitlement) {
+                const plan = getPlan();
+                console.error(`Public access isn't supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+                return {
+                    statusCode: StatusCodes.FORBIDDEN,
+                    errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+                    message: "Public access is not supported in your current plan",
+                } satisfies ServiceError;
+            }
+
+            await prisma.org.update({
+                where: {
+                    id: org.id,
+                },
+                data: {
+                    metadata: {
+                        publicAccessEnabled: enabled,
+                    },
+                },
+            });
+
+            return true;
+        })
+    ));
+
+export const createGuestUser = async (domain: string) => sew(async () => {
+    const hasPublicAccessEntitlement = hasEntitlement("public-access");
+    if(!hasPublicAccessEntitlement) {
+        console.error(`Public access isn't supported in your current plan: ${getPlan()}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+        return {
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+            message: "Public access is not supported in your current plan",
+        } satisfies ServiceError;
+    }
+
     const org = await getOrgFromDomain(domain);
     if (!org) {
         return {
@@ -39,25 +82,40 @@ export async function flipPublicAccessStatus(domain: string): Promise<boolean | 
         } satisfies ServiceError;
     }
 
-    const orgMetadata = orgMetadataSchema.safeParse(org.metadata);
-    if (!orgMetadata.success) {
-        return {
-            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-            errorCode: ErrorCode.INVALID_ORG_METADATA,
-            message: "Invalid organization metadata",
-        } satisfies ServiceError;
-    }
+    const user = await prisma.user.upsert({
+        where: {
+            id: SINGLE_TENANT_USER_ID,
+        },
+        update: {},
+        create: {
+            id: SINGLE_TENANT_USER_ID,
+            name: "Guest",
+            email: SINGLE_TENANT_USER_EMAIL,
+        },
+    });
 
     await prisma.org.update({
         where: {
             id: org.id,
         },
         data: {
-            metadata: {
-                publicAccessEnabled: !orgMetadata.data.publicAccessEnabled,
+            members: {
+                upsert: {
+                    where: {
+                        orgId_userId: {
+                            orgId: org.id,
+                            userId: user.id,
+                        },
+                    },
+                    update: {},
+                    create: {
+                        role: OrgRole.GUEST,
+                        user: {
+                            connect: { id: user.id },
+                        },
+                    },
+                },
             },
         },
     });
-
-    return !orgMetadata.data.publicAccessEnabled;
-}
+});

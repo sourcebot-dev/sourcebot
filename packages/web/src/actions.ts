@@ -2,13 +2,13 @@
 
 import { env } from "@/env.mjs";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, secretAlreadyExists, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
+import { notAuthenticated, notFound, secretAlreadyExists, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
 import { CodeHostType, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
 import { decrypt, encrypt } from "@sourcebot/crypto";
-import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
+import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus, Org } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
@@ -23,13 +23,15 @@ import { auth } from "./auth";
 import { getConnection } from "./data/connection";
 import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
-import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_USER_EMAIL, SINGLE_TENANT_USER_ID } from "./lib/constants";
+import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_USER_EMAIL, SINGLE_TENANT_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { TenancyMode } from "./lib/types";
 import { decrementOrgSeatCount, getSubscriptionForOrg, incrementOrgSeatCount } from "./ee/features/billing/serverUtils";
 import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
 import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
-import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "./features/entitlements/server";
+import { getPlan, getSeats, SOURCEBOT_UNLIMITED_SEATS } from "./features/entitlements/server";
+import { hasEntitlement } from "./features/entitlements/server";
+import { getPublicAccessStatus } from "./ee/features/publicAccess/publicAccess";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -54,18 +56,20 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
 export const withAuth = async <T>(fn: (session: Session) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false) => {
     const session = await auth();
 
-    // TODO(auth): Figure out how to handle auth header here for public org case
-    /*
     if (!session) {
+        const publicAccessEnabled = await getPublicAccessStatus(SINGLE_TENANT_ORG_DOMAIN);
         if (
             env.SOURCEBOT_TENANCY_MODE === 'single' &&
-            env.SOURCEBOT_AUTH_ENABLED === 'false' &&
-            allowSingleTenantUnauthedAccess === true
+            allowSingleTenantUnauthedAccess &&
+            publicAccessEnabled
         ) {
-            // To allow for unauthed acccess in single-tenant mode, we can
-            // create a fake session with the default user. This user has membership
-            // in the default org.
-            // @see: initialize.ts
+            if(!hasEntitlement("public-access")) {
+                const plan = getPlan();
+                console.error(`Public access isn't supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+                return notAuthenticated();
+            }
+
+            // To support unauthed access a guest user is created in initialize.ts, which we return here
             return fn({
                 user: {
                     id: SINGLE_TENANT_USER_ID,
@@ -76,11 +80,11 @@ export const withAuth = async <T>(fn: (session: Session) => Promise<T>, allowSin
         }
 
         return notAuthenticated();
-    }*/
+    }
     return fn(session);
 }
 
-export const withOrgMembership = async <T>(session: Session, domain: string, fn: (params: { orgId: number, userRole: OrgRole }) => Promise<T>, minRequiredRole: OrgRole = OrgRole.MEMBER) => {
+export const withOrgMembership = async <T>(session: Session, domain: string, fn: (params: { userRole: OrgRole, org: Org }) => Promise<T>, minRequiredRole: OrgRole = OrgRole.MEMBER) => {
     const org = await prisma.org.findUnique({
         where: {
             domain,
@@ -123,7 +127,7 @@ export const withOrgMembership = async <T>(session: Session, domain: string, fn:
     }
 
     return fn({
-        orgId: org.id,
+        org: org,
         userRole: membership.role,
     });
 }
@@ -168,7 +172,7 @@ export const createOrg = (name: string, domain: string): Promise<{ id: number } 
 
 export const updateOrgName = async (name: string, domain: string) => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const { success } = orgNameSchema.safeParse(name);
             if (!success) {
                 return {
@@ -179,7 +183,7 @@ export const updateOrgName = async (name: string, domain: string) => sew(() =>
             }
 
             await prisma.org.update({
-                where: { id: orgId },
+                where: { id: org.id },
                 data: { name },
             });
 
@@ -192,7 +196,7 @@ export const updateOrgName = async (name: string, domain: string) => sew(() =>
 export const updateOrgDomain = async (newDomain: string, existingDomain: string) => sew(() =>
     withTenancyModeEnforcement('multi', () =>
         withAuth((session) =>
-            withOrgMembership(session, existingDomain, async ({ orgId }) => {
+            withOrgMembership(session, existingDomain, async ({ org }) => {
                 const { success } = await orgDomainSchema.safeParseAsync(newDomain);
                 if (!success) {
                     return {
@@ -203,7 +207,7 @@ export const updateOrgDomain = async (newDomain: string, existingDomain: string)
                 }
 
                 await prisma.org.update({
-                    where: { id: orgId },
+                    where: { id: org.id },
                     data: { domain: newDomain },
                 });
 
@@ -215,19 +219,11 @@ export const updateOrgDomain = async (newDomain: string, existingDomain: string)
 
 export const completeOnboarding = async (domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const org = await prisma.org.findUnique({
-                where: { id: orgId },
-            });
-
-            if (!org) {
-                return notFound();
-            }
-
+        withOrgMembership(session, domain, async ({ org }) => {
             // If billing is not enabled, we can just mark the org as onboarded.
             if (!IS_BILLING_ENABLED) {
                 await prisma.org.update({
-                    where: { id: orgId },
+                    where: { id: org.id },
                     data: {
                         isOnboarded: true,
                     }
@@ -235,13 +231,13 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
 
                 // Else, validate that the org has an active subscription.
             } else {
-                const subscriptionOrError = await getSubscriptionForOrg(orgId, prisma);
+                const subscriptionOrError = await getSubscriptionForOrg(org.id, prisma);
                 if (isServiceError(subscriptionOrError)) {
                     return subscriptionOrError;
                 }
 
                 await prisma.org.update({
-                    where: { id: orgId },
+                    where: { id: org.id },
                     data: {
                         isOnboarded: true,
                         stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
@@ -258,10 +254,10 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
 
 export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const secrets = await prisma.secret.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                 },
                 select: {
                     key: true,
@@ -277,12 +273,12 @@ export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: stri
 
 export const createSecret = async (key: string, value: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const encrypted = encrypt(value);
             const existingSecret = await prisma.secret.findUnique({
                 where: {
                     orgId_key: {
-                        orgId,
+                        orgId: org.id,
                         key,
                     }
                 }
@@ -294,7 +290,7 @@ export const createSecret = async (key: string, value: string, domain: string): 
 
             await prisma.secret.create({
                 data: {
-                    orgId,
+                    orgId: org.id,
                     key,
                     encryptedValue: encrypted.encryptedData,
                     iv: encrypted.iv,
@@ -309,11 +305,11 @@ export const createSecret = async (key: string, value: string, domain: string): 
 
 export const checkIfSecretExists = async (key: string, domain: string): Promise<boolean | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const secret = await prisma.secret.findUnique({
                 where: {
                     orgId_key: {
-                        orgId,
+                        orgId: org.id,
                         key,
                     }
                 }
@@ -324,11 +320,11 @@ export const checkIfSecretExists = async (key: string, domain: string): Promise<
 
 export const deleteSecret = async (key: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             await prisma.secret.delete({
                 where: {
                     orgId_key: {
-                        orgId,
+                        orgId: org.id,
                         key,
                     }
                 }
@@ -342,10 +338,10 @@ export const deleteSecret = async (key: string, domain: string): Promise<{ succe
 
 export const getConnections = async (domain: string, filter: { status?: ConnectionSyncStatus[] } = {}) => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const connections = await prisma.connection.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                     ...(filter.status ? {
                         syncStatus: { in: filter.status }
                     } : {}),
@@ -377,11 +373,11 @@ export const getConnections = async (domain: string, filter: { status?: Connecti
 
 export const getConnectionInfo = async (connectionId: number, domain: string) => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const connection = await prisma.connection.findUnique({
                 where: {
                     id: connectionId,
-                    orgId,
+                    orgId: org.id,
                 },
                 include: {
                     repos: true,
@@ -406,10 +402,10 @@ export const getConnectionInfo = async (connectionId: number, domain: string) =>
 
 export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const repos = await prisma.repo.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                     ...(filter.status ? {
                         repoIndexingStatus: { in: filter.status }
                     } : {}),
@@ -450,7 +446,7 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
 
 export const getRepoInfoByName = async (repoName: string, domain: string) => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             // @note: repo names are represented by their remote url
             // on the code host. E.g.,:
             // - github.com/sourcebot-dev/sourcebot
@@ -489,7 +485,7 @@ export const getRepoInfoByName = async (repoName: string, domain: string) => sew
             const repo = await prisma.repo.findFirst({
                 where: {
                     name: repoName,
-                    orgId,
+                    orgId: org.id,
                 },
             });
 
@@ -511,7 +507,7 @@ export const getRepoInfoByName = async (repoName: string, domain: string) => sew
 
 export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             if (env.CONFIG_PATH !== undefined) {
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
@@ -528,7 +524,7 @@ export const createConnection = async (name: string, type: CodeHostType, connect
             const existingConnectionWithName = await prisma.connection.findUnique({
                 where: {
                     name_orgId: {
-                        orgId,
+                        orgId: org.id,
                         name,
                     }
                 }
@@ -544,7 +540,7 @@ export const createConnection = async (name: string, type: CodeHostType, connect
 
             const connection = await prisma.connection.create({
                 data: {
-                    orgId,
+                    orgId: org.id,
                     name,
                     config: parsedConfig as unknown as Prisma.InputJsonValue,
                     connectionType: type,
@@ -559,8 +555,8 @@ export const createConnection = async (name: string, type: CodeHostType, connect
 
 export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
+        withOrgMembership(session, domain, async ({ org }) => {
+            const connection = await getConnection(connectionId, org.id);
             if (!connection) {
                 return notFound();
             }
@@ -568,7 +564,7 @@ export const updateConnectionDisplayName = async (connectionId: number, name: st
             const existingConnectionWithName = await prisma.connection.findUnique({
                 where: {
                     name_orgId: {
-                        orgId,
+                        orgId: org.id,
                         name,
                     }
                 }
@@ -585,7 +581,7 @@ export const updateConnectionDisplayName = async (connectionId: number, name: st
             await prisma.connection.update({
                 where: {
                     id: connectionId,
-                    orgId,
+                    orgId: org.id,
                 },
                 data: {
                     name,
@@ -600,8 +596,8 @@ export const updateConnectionDisplayName = async (connectionId: number, name: st
 
 export const updateConnectionConfigAndScheduleSync = async (connectionId: number, config: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
+        withOrgMembership(session, domain, async ({ org }) => {
+            const connection = await getConnection(connectionId, org.id);
             if (!connection) {
                 return notFound();
             }
@@ -624,7 +620,7 @@ export const updateConnectionConfigAndScheduleSync = async (connectionId: number
             await prisma.connection.update({
                 where: {
                     id: connectionId,
-                    orgId,
+                    orgId: org.id,
                 },
                 data: {
                     config: parsedConfig as unknown as Prisma.InputJsonValue,
@@ -640,9 +636,9 @@ export const updateConnectionConfigAndScheduleSync = async (connectionId: number
 
 export const flagConnectionForSync = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
-            if (!connection || connection.orgId !== orgId) {
+        withOrgMembership(session, domain, async ({ org }) => {
+            const connection = await getConnection(connectionId, org.id);
+            if (!connection || connection.orgId !== org.id) {
                 return notFound();
             }
 
@@ -663,11 +659,11 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
 
 export const flagReposForIndex = async (repoIds: number[], domain: string) => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             await prisma.repo.updateMany({
                 where: {
                     id: { in: repoIds },
-                    orgId,
+                    orgId: org.id,
                 },
                 data: {
                     repoIndexingStatus: RepoIndexingStatus.NEW,
@@ -682,8 +678,8 @@ export const flagReposForIndex = async (repoIds: number[], domain: string) => se
 
 export const deleteConnection = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
+        withOrgMembership(session, domain, async ({ org }) => {
+            const connection = await getConnection(connectionId, org.id);
             if (!connection) {
                 return notFound();
             }
@@ -691,7 +687,7 @@ export const deleteConnection = async (connectionId: number, domain: string): Pr
             await prisma.connection.delete({
                 where: {
                     id: connectionId,
-                    orgId,
+                    orgId: org.id,
                 }
             });
 
@@ -705,17 +701,17 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ userRole }) => {
             return userRole;
-        })
-    ));
+        }), /* allowSingleTenantUnauthedAccess = */ true)
+    );
 
 export const createInvites = async (emails: string[], domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
 
             const seats = getSeats();
             const members = await getOrgMembers(domain);
             if (isServiceError(members)) {
-                throw new ServiceErrorException(members);;
+                throw new ServiceErrorException(members);
             }
 
             if (seats !== SOURCEBOT_UNLIMITED_SEATS && members.length >= seats) {
@@ -732,7 +728,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                     recipientEmail: {
                         in: emails
                     },
-                    orgId,
+                    orgId: org.id,
                 }
             });
 
@@ -752,7 +748,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                             in: emails,
                         }
                     },
-                    orgId,
+                    orgId: org.id,
                 },
             });
 
@@ -768,7 +764,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                 data: emails.map((email) => ({
                     recipientEmail: email,
                     hostUserId: session.user.id,
-                    orgId,
+                    orgId: org.id,
                 })),
                 skipDuplicates: true,
             });
@@ -781,7 +777,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                         where: {
                             recipientEmail_orgId: {
                                 recipientEmail: email,
-                                orgId,
+                                orgId: org.id,
                             },
                         },
                         include: {
@@ -838,11 +834,11 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
 
 export const cancelInvite = async (inviteId: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const invite = await prisma.invite.findUnique({
                 where: {
                     id: inviteId,
-                    orgId,
+                    orgId: org.id,
                 },
             });
 
@@ -1004,7 +1000,7 @@ export const getInviteInfo = async (inviteId: string) => sew(() =>
 
 export const transferOwnership = async (newOwnerId: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const currentUserId = session.user.id;
 
             if (newOwnerId === currentUserId) {
@@ -1019,7 +1015,7 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
                 where: {
                     orgId_userId: {
                         userId: newOwnerId,
-                        orgId,
+                        orgId: org.id,
                     },
                 },
             });
@@ -1037,7 +1033,7 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
                     where: {
                         orgId_userId: {
                             userId: newOwnerId,
-                            orgId,
+                            orgId: org.id,
                         },
                     },
                     data: {
@@ -1048,7 +1044,7 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
                     where: {
                         orgId_userId: {
                             userId: currentUserId,
-                            orgId,
+                            orgId: org.id,
                         },
                     },
                     data: {
@@ -1076,11 +1072,11 @@ export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | 
 
 export const removeMemberFromOrg = async (memberId: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const targetMember = await prisma.userToOrg.findUnique({
                 where: {
                     orgId_userId: {
-                        orgId,
+                        orgId: org.id,
                         userId: memberId,
                     }
                 }
@@ -1090,28 +1086,18 @@ export const removeMemberFromOrg = async (memberId: string, domain: string): Pro
                 return notFound();
             }
 
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
-
-            if (!org) {
-                return notFound();
-            }
-
             await prisma.$transaction(async (tx) => {
                 await tx.userToOrg.delete({
                     where: {
                         orgId_userId: {
-                            orgId,
+                            orgId: org.id,
                             userId: memberId,
                         }
                     }
                 });
 
                 if (IS_BILLING_ENABLED) {
-                    const result = await decrementOrgSeatCount(orgId, tx);
+                    const result = await decrementOrgSeatCount(org.id, tx);
                     if (isServiceError(result)) {
                         throw result;
                     }
@@ -1126,7 +1112,7 @@ export const removeMemberFromOrg = async (memberId: string, domain: string): Pro
 
 export const leaveOrg = async (domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId, userRole }) => {
+        withOrgMembership(session, domain, async ({ org, userRole }) => {
             if (userRole === OrgRole.OWNER) {
                 return {
                     statusCode: StatusCodes.FORBIDDEN,
@@ -1135,28 +1121,18 @@ export const leaveOrg = async (domain: string): Promise<{ success: boolean } | S
                 } satisfies ServiceError;
             }
 
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
-
-            if (!org) {
-                return notFound();
-            }
-
             await prisma.$transaction(async (tx) => {
                 await tx.userToOrg.delete({
                     where: {
                         orgId_userId: {
-                            orgId,
+                            orgId: org.id,
                             userId: session.user.id,
                         }
                     }
                 });
 
                 if (IS_BILLING_ENABLED) {
-                    const result = await decrementOrgSeatCount(orgId, tx);
+                    const result = await decrementOrgSeatCount(org.id, tx);
                     if (isServiceError(result)) {
                         throw result;
                     }
@@ -1171,11 +1147,11 @@ export const leaveOrg = async (domain: string): Promise<{ success: boolean } | S
 
 export const getOrgMembership = async (domain: string) => sew(() =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const membership = await prisma.userToOrg.findUnique({
                 where: {
                     orgId_userId: {
-                        orgId,
+                        orgId: org.id,
                         userId: session.user.id,
                     }
                 }
@@ -1191,10 +1167,10 @@ export const getOrgMembership = async (domain: string) => sew(() =>
 
 export const getOrgMembers = async (domain: string) => sew(() =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const members = await prisma.userToOrg.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                 },
                 include: {
                     user: true,
@@ -1214,10 +1190,10 @@ export const getOrgMembers = async (domain: string) => sew(() =>
 
 export const getOrgInvites = async (domain: string) => sew(() =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const invites = await prisma.invite.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                 },
             });
 
@@ -1231,10 +1207,10 @@ export const getOrgInvites = async (domain: string) => sew(() =>
 
 export const getOrgAccountRequests = async (domain: string) => sew(() =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const requests = await prisma.accountRequest.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                 },
                 include: {
                     requestedBy: true,
@@ -1299,31 +1275,25 @@ export const createAccountRequest = async (userId: string, domain: string) => se
 
 export const approveAccountRequest = async (requestId: string, domain: string) => sew(() =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const request = await prisma.accountRequest.findUnique({
                 where: {
                     id: requestId,
                 },
             });
 
-            if (!request || request.orgId !== orgId) {
+            if (!request || request.orgId !== org.id) {
                 return notFound();
             }
 
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-                include: {
-                    members: true,
-                },
-            });
-            if (!org) {
-                return notFound();
+
+            const members = await getOrgMembers(domain);
+            if (isServiceError(members)) {
+                throw new ServiceErrorException(members);
             }
 
             const maxSeats = getSeats()
-            const memberCount = org.members.length;
+            const memberCount = members.length;
 
             if (memberCount >= maxSeats) {
                 return {
@@ -1346,7 +1316,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                 prisma.userToOrg.create({
                     data: {
                         userId: request.requestedById,
-                        orgId,
+                        orgId: org.id,
                         role: "MEMBER",
                     },
                 }),
@@ -1366,14 +1336,14 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
 
 export const rejectAccountRequest = async (requestId: string, domain: string) => sew(() =>
     withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const request = await prisma.accountRequest.findUnique({
                 where: {
                     id: requestId,
                 },
             });
 
-            if (!request || request.orgId !== orgId) {
+            if (!request || request.orgId !== org.id) {
                 return notFound();
             }
 
@@ -1396,10 +1366,10 @@ export const dismissMobileUnsupportedSplashScreen = async () => sew(async () => 
 
 export const getSearchContexts = async (domain: string) => sew(() =>
     withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+        withOrgMembership(session, domain, async ({ org }) => {
             const searchContexts = await prisma.searchContext.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                 },
             });
 

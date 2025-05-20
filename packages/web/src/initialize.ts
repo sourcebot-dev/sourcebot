@@ -10,6 +10,11 @@ import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
 import Ajv from 'ajv';
 import { syncSearchContexts } from '@/ee/features/searchContexts/syncSearchContexts';
+import { hasEntitlement } from '@/features/entitlements/server';
+import { createGuestUser } from '@/ee/features/publicAccess/publicAccess';
+import { isServiceError } from './lib/utils';
+import { ServiceErrorException } from './lib/serviceError';
+import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -146,47 +151,13 @@ const initSingleTenancy = async () => {
         }
     });
 
-    // TODO(auth): Figure out if we need to create a dummy user for public access
-    /*
-    if (env.SOURCEBOT_AUTH_ENABLED === 'false') {
-        // Default user for single tenancy unauthed access
-        await prisma.user.upsert({
-            where: {
-                id: SINGLE_TENANT_USER_ID,
-            },
-            update: {},
-            create: {
-                id: SINGLE_TENANT_USER_ID,
-                email: SINGLE_TENANT_USER_EMAIL,
-            },
-        });
-
-        await prisma.org.update({
-            where: {
-                id: SINGLE_TENANT_ORG_ID,
-            },
-            data: {
-                members: {
-                    upsert: {
-                        where: {
-                            orgId_userId: {
-                                orgId: SINGLE_TENANT_ORG_ID,
-                                userId: SINGLE_TENANT_USER_ID,
-                            }
-                        },
-                        update: {},
-                        create: {
-                            role: OrgRole.MEMBER,
-                            user: {
-                                connect: { id: SINGLE_TENANT_USER_ID }
-                            }
-                        }
-                    }
-                }
-            }
-        });
+    const hasPublicAccessEntitlement = hasEntitlement("public-access");
+    if (hasPublicAccessEntitlement) {
+        const res = await createGuestUser(SINGLE_TENANT_ORG_DOMAIN);
+        if (isServiceError(res)) {
+            throw new ServiceErrorException(res);
+        }
     }
-    */
 
     // Load any connections defined declaratively in the config file.
     const configPath = env.CONFIG_PATH;
@@ -214,8 +185,20 @@ const initSingleTenancy = async () => {
     }
 }
 
+const initMultiTenancy = async () => {
+    const hasMultiTenancyEntitlement = hasEntitlement("multi-tenancy");
+    if (!hasMultiTenancyEntitlement) {
+        console.error(`SOURCEBOT_TENANCY_MODE is set to ${env.SOURCEBOT_TENANCY_MODE} but your license doesn't have multi-tenancy entitlement. Please contact ${SOURCEBOT_SUPPORT_EMAIL} to request a license upgrade.`);
+        process.exit(1);
+    }
+}
+
 (async () => {
     if (env.SOURCEBOT_TENANCY_MODE === 'single') {
         await initSingleTenancy();
+    } else if (env.SOURCEBOT_TENANCY_MODE === 'multi') {
+        await initMultiTenancy();
+    } else {
+        throw new Error(`Invalid SOURCEBOT_TENANCY_MODE: ${env.SOURCEBOT_TENANCY_MODE}`);
     }
 })();

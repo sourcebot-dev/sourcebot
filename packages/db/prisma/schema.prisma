@@ -179,6 +179,7 @@ model Org {
 enum OrgRole {
   OWNER
   MEMBER
+  GUEST
 }
 
 model UserToOrg {

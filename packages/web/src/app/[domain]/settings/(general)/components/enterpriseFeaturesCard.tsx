@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrgRole } from "@sourcebot/db";
 import { PublicAccessToggle } from "@/ee/features/publicAccess/components/publicAccessToggle";
+import { hasEntitlement } from "@/features/entitlements/server";
 
 interface EnterpriseFeaturesCardProps {
     currentUserRole: OrgRole;
@@ -8,6 +9,7 @@ interface EnterpriseFeaturesCardProps {
 }
 
 export function EnterpriseFeaturesCard({ currentUserRole, domain }: EnterpriseFeaturesCardProps) {
+    const hasPublicAccessEntitlement = hasEntitlement("public-access");
     return (
         <Card>
             <CardHeader className="flex flex-col gap-4">
@@ -20,7 +22,7 @@ export function EnterpriseFeaturesCard({ currentUserRole, domain }: EnterpriseFe
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <PublicAccessToggle currentUserRole={currentUserRole} domain={domain} />
+                <PublicAccessToggle currentUserRole={currentUserRole} domain={domain} hasPublicAccessEntitlement={hasPublicAccessEntitlement}/>
             </CardContent>
         </Card>
     );
