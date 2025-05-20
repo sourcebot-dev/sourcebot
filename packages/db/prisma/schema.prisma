@@ -148,6 +148,7 @@ model Org {
   secrets     Secret[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
+  metadata    Json?       // For schema see orgMetadataSchema in packages/web/src/types.ts
 
   stripeCustomerId         String?
   stripeSubscriptionStatus StripeSubscriptionStatus?

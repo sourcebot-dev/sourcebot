@@ -519,7 +519,7 @@ export const createConnection = async (name: string, type: CodeHostType, connect
                     message: "A configuration file has been provided. New connections cannot be added through the web interface.",
                 } satisfies ServiceError;
             }
-            
+
             const parsedConfig = parseConnectionConfig(connectionConfig);
             if (isServiceError(parsedConfig)) {
                 return parsedConfig;
