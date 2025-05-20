@@ -3,25 +3,29 @@
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogClose,
-    DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import { useState } from "react"
 import { ConnectionList } from "../connections/components/connectionList"
 import { useDomain } from "@/hooks/useDomain"
 import Link from "next/link";
+import { useSession } from "next-auth/react"
 
 export function AddRepoButton() {
-    const [isOpen, setIsOpen] = useState(false)
-    const domain = useDomain()
+  const [isOpen, setIsOpen] = useState(false)
+  const domain = useDomain()
+  const { data: session, update } = useSession();
 
-    // TODO(auth): Figure out how to handle conneciton list disabled case here in public access case
-    return (
+  // TODO(auth): Figure out how to handle conneciton list disabled case here in public access case
+  return (
+    <>
+      {session?.user && (
         <>
           <Button
             onClick={() => setIsOpen(true)}
@@ -31,7 +35,7 @@ export function AddRepoButton() {
           >
             <PlusCircle className="h-4 w-4" />
           </Button>
-    
+
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
               <DialogHeader className="px-6 py-4 border-b">
@@ -55,4 +59,7 @@ export function AddRepoButton() {
           </Dialog>
         </>
       )
+      }
+    </>
+  )
 } 
