@@ -4,12 +4,12 @@ import { Separator } from '@/components/ui/separator';
 import { getFileSource } from '@/features/search/fileSourceApi';
 import { isServiceError } from "@/lib/utils";
 import { base64Decode } from "@/lib/utils";
-import { CodePreview } from "./codePreview";
 import { ErrorCode } from "@/lib/errorCodes";
 import { LuFileX2, LuBookX } from "react-icons/lu";
 import { notFound } from "next/navigation";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getRepoInfoByName } from "@/actions";
+import { Workbench } from "./workbench";
 
 interface BrowsePageProps {
     params: {
@@ -49,7 +49,18 @@ export default async function BrowsePage({
     })();
 
     const repoInfo = await getRepoInfoByName(repoName, params.domain);
-    if (isServiceError(repoInfo) && repoInfo.errorCode !== ErrorCode.NOT_FOUND) {
+    if (isServiceError(repoInfo)) {
+        if (repoInfo.errorCode === ErrorCode.NOT_FOUND) {
+            return (
+                <div className="flex h-full">
+                    <div className="m-auto flex flex-col items-center gap-2">
+                        <LuBookX className="h-12 w-12 text-secondary-foreground" />
+                        <span className="font-medium text-secondary-foreground">Repository not found</span>
+                    </div>
+                </div>
+            );
+        }
+
         throw new ServiceErrorException(repoInfo);
     }
 
@@ -62,70 +73,11 @@ export default async function BrowsePage({
         )
     }
 
-    return (
-        <div className="flex flex-col h-screen">
-            <div className='sticky top-0 left-0 right-0 z-10'>
-                <TopBar
-                    defaultSearchQuery={`repo:${repoName}${revisionName ? ` rev:${revisionName}` : ''} `}
-                    domain={params.domain}
-                />
-                <Separator />
-                {!isServiceError(repoInfo) && (
-                    <>
-                        <div className="bg-accent py-1 px-2 flex flex-row">
-                            <FileHeader
-                                fileName={path}
-                                repo={{
-                                    name: repoInfo.name,
-                                    displayName: repoInfo.displayName,
-                                    webUrl: repoInfo.webUrl,
-                                    codeHostType: repoInfo.codeHostType,
-                                }}
-                                branchDisplayName={revisionName}
-                            />
-                        </div>
-                        <Separator />
-                    </>
-                )}
-            </div>
-            {isServiceError(repoInfo) ? (
-                <div className="flex h-full">
-                    <div className="m-auto flex flex-col items-center gap-2">
-                        <LuBookX className="h-12 w-12 text-secondary-foreground" />
-                        <span className="font-medium text-secondary-foreground">Repository not found</span>
-                    </div>
-                </div>
-            ) : (
-                <CodePreviewWrapper
-                    path={path}
-                    repoName={repoInfo.name}
-                    revisionName={revisionName ?? 'HEAD'}
-                    domain={params.domain}
-                />
-            )}
-        </div>
-    )
-}
-
-interface CodePreviewWrapper {
-    path: string,
-    repoName: string,
-    revisionName: string,
-    domain: string,
-}
-
-const CodePreviewWrapper = async ({
-    path,
-    repoName,
-    revisionName,
-    domain,
-}: CodePreviewWrapper) => {
-    // @todo: this will depend on `pathType`.
     const fileSourceResponse = await getFileSource({
         fileName: path,
         repository: repoName,
-        branch: revisionName,
-    }, domain);
+        branch: revisionName ?? 'HEAD',
+    }, params.domain);
 
     if (isServiceError(fileSourceResponse)) {
         if (fileSourceResponse.errorCode === ErrorCode.FILE_NOT_FOUND) {
@@ -143,12 +95,38 @@ const CodePreviewWrapper = async ({
     }
 
     return (
-        <CodePreview
-            source={base64Decode(fileSourceResponse.source)}
-            language={fileSourceResponse.language}
-            repoName={repoName}
-            path={path}
-            revisionName={revisionName}
-        />
+        <div className="flex flex-col h-screen">
+            <div className='sticky top-0 left-0 right-0 z-10'>
+                <TopBar
+                    defaultSearchQuery={`repo:${repoName}${revisionName ? ` rev:${revisionName}` : ''} `}
+                    domain={params.domain}
+                />
+                <Separator />
+                <div className="bg-accent py-1 px-2 flex flex-row">
+                    <FileHeader
+                        fileName={path}
+                        repo={{
+                            name: repoInfo.name,
+                            displayName: repoInfo.displayName,
+                            webUrl: repoInfo.webUrl,
+                            codeHostType: repoInfo.codeHostType,
+                        }}
+                        branchDisplayName={revisionName}
+                    />
+                </div>
+                <Separator />
+            </div>
+            <Workbench
+                repo={{
+                    name: repoInfo.name,
+                }}
+                file={{
+                    path,
+                    source: base64Decode(fileSourceResponse.source),
+                    language: fileSourceResponse.language,
+                    revision: revisionName ?? 'HEAD',
+                }}
+            />
+        </div>
     )
 }

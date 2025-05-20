@@ -1,26 +1,29 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import CodeMirror, { EditorView, minimalSetup, ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import { Loader2, Router } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SymbolDefInfo, useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
+import { Button } from "@/components/ui/button";
 import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 import { useRouter } from "next/navigation";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
     repoName: string;
+    onFindReferences: (symbolName: string) => void;
 }
 
 export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     editorRef,
-    repoName
+    repoName,
+    onFindReferences,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     const [isSticky, setIsSticky] = useState(false);
@@ -122,19 +125,22 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
             )}
             <Separator />
             <div className="flex flex-row gap-2 mt-2">
-                <Button
+                <LoadingButton
+                    loading={symbolInfo.isSymbolDefInfoLoading}
+                    disabled={symbolInfo.symbolDefInfo === undefined}
                     variant="outline"
                     size="sm"
                     onClick={onGotoDefinition}
                 >
-                    Go to definition
-                </Button>
+                    {!symbolInfo.isSymbolDefInfoLoading && !symbolInfo.symbolDefInfo ?
+                        "No definition found" :
+                        "Go to definition"
+                    }
+                </LoadingButton>
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                        console.log("todo: find references");
-                    }}
+                    onClick={() => onFindReferences(symbolInfo.symbolName)}
                 >
                     Find references
                 </Button>
