@@ -11,7 +11,7 @@ import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
 import Ajv from 'ajv';
 import { syncSearchContexts } from '@/ee/features/searchContexts/syncSearchContexts';
 import { hasEntitlement } from '@/features/entitlements/server';
-import { createGuestUser } from '@/ee/features/publicAccess/publicAccess';
+import { createGuestUser, setPublicAccessStatus } from '@/ee/features/publicAccess/publicAccess';
 import { isServiceError } from './lib/utils';
 import { ServiceErrorException } from './lib/serviceError';
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
@@ -113,7 +113,7 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
     }
 }
 
-const syncDeclarativeConfig = async (configPath: string) => {
+const readConfig = async (configPath: string): Promise<SourcebotConfig> => {
     const configContent = await (async () => {
         if (isRemotePath(configPath)) {
             const response = await fetch(configPath);
@@ -132,6 +132,24 @@ const syncDeclarativeConfig = async (configPath: string) => {
     const isValidConfig = ajv.validate(indexSchema, config);
     if (!isValidConfig) {
         throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
+    }
+    return config;
+}
+
+const syncDeclarativeConfig = async (configPath: string) => {
+    const config = await readConfig(configPath);
+
+    const hasPublicAccessEntitlement = hasEntitlement("public-access");
+    const enablePublicAccess = config.settings?.enablePublicAccess;
+    if (enablePublicAccess !== undefined && !hasPublicAccessEntitlement) {
+        console.error(`Public access flag is set in the config file but your license doesn't have public access entitlement. Please contact ${SOURCEBOT_SUPPORT_EMAIL} to request a license upgrade.`);
+        process.exit(1);
+    }
+
+    console.log(`Setting public access status to ${!!enablePublicAccess} for org ${SINGLE_TENANT_ORG_DOMAIN}`);
+    const res = await setPublicAccessStatus(SINGLE_TENANT_ORG_DOMAIN, !!enablePublicAccess);
+    if (isServiceError(res)) {
+        throw new ServiceErrorException(res);
     }
 
     await syncConnections(config.connections);

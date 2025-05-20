@@ -1,7 +1,15 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrgRole } from "@sourcebot/db";
-import { PublicAccessToggle } from "@/ee/features/publicAccess/components/publicAccessToggle";
-import { hasEntitlement } from "@/features/entitlements/server";
+import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { isServiceError } from "@/lib/utils";
+import { ServiceErrorException } from "@/lib/serviceError";
+import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
+import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface EnterpriseFeaturesCardProps {
     currentUserRole: OrgRole;
@@ -9,7 +17,27 @@ interface EnterpriseFeaturesCardProps {
 }
 
 export function EnterpriseFeaturesCard({ currentUserRole, domain }: EnterpriseFeaturesCardProps) {
-    const hasPublicAccessEntitlement = hasEntitlement("public-access");
+    const hasPublicAccessEntitlement = useHasEntitlement("public-access");
+    const [isPublicAccessEnabled, setIsPublicAccessEnabled] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchStatus() {
+            try {
+                const status = await getPublicAccessStatus(domain);
+                if (isServiceError(status)) {
+                    throw new ServiceErrorException(status);
+                }
+                setIsPublicAccessEnabled(status);
+            } catch (error) {
+                console.error("Failed to fetch public access status:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        fetchStatus();
+    }, [domain]);
+
     return (
         <Card>
             <CardHeader className="flex flex-col gap-4">
@@ -21,8 +49,26 @@ export function EnterpriseFeaturesCard({ currentUserRole, domain }: EnterpriseFe
                     or would like to request a trial, reach out to us using our <a href="https://sourcebot.dev/contact" target="_blank" rel="noopener noreferrer" className="text-primary">contact form</a>.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
-                <PublicAccessToggle currentUserRole={currentUserRole} domain={domain} hasPublicAccessEntitlement={hasPublicAccessEntitlement}/>
+            <CardContent className="flex flex-col gap-6">
+                <div className="flex items-center space-x-4 mt-4 pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                        <Checkbox 
+                            checked={isPublicAccessEnabled}
+                            disabled={true}
+                            id="public-access-status"
+                            className={isLoading ? "opacity-80" : ""}
+                        />
+                        {isLoading && (
+                            <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+                        )}
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="public-access-status">Public Access</Label>
+                        <p className="text-sm text-muted-foreground">
+                            When enabled, enables unauthenticated access to your Sourcebot deployment. Requires an enterprise license with an unlimited number of seats.
+                        </p>
+                    </div>
+                </div>
             </CardContent>
         </Card>
     );

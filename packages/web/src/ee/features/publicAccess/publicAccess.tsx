@@ -33,38 +33,44 @@ export const getPublicAccessStatus = async (domain: string): Promise<boolean | S
     return !!orgMetadata.data.publicAccessEnabled;
 });
 
-export const setPublicAccessStatus = async (domain: string, enabled: boolean): Promise<ServiceError | boolean> => sew(() =>
-    withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
-            const hasPublicAccessEntitlement = hasEntitlement("public-access");
-            if(!hasPublicAccessEntitlement) {
-                const plan = getPlan();
-                console.error(`Public access isn't supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
-                return {
-                    statusCode: StatusCodes.FORBIDDEN,
-                    errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
-                    message: "Public access is not supported in your current plan",
-                } satisfies ServiceError;
-            }
+export const setPublicAccessStatus = async (domain: string, enabled: boolean): Promise<ServiceError | boolean> => sew(async () => {
+    const hasPublicAccessEntitlement = hasEntitlement("public-access");
+    if (!hasPublicAccessEntitlement) {
+        const plan = getPlan();
+        console.error(`Public access isn't supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+        return {
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+            message: "Public access is not supported in your current plan",
+        } satisfies ServiceError;
+    }
 
-            await prisma.org.update({
-                where: {
-                    id: org.id,
-                },
-                data: {
-                    metadata: {
-                        publicAccessEnabled: enabled,
-                    },
-                },
-            });
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        return {
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "Organization not found",
+        } satisfies ServiceError;
+    }
 
-            return true;
-        })
-    ));
+    await prisma.org.update({
+        where: {
+            id: org.id,
+        },
+        data: {
+            metadata: {
+                publicAccessEnabled: enabled,
+            },
+        },
+    });
+
+    return true;
+});
 
 export const createGuestUser = async (domain: string) => sew(async () => {
     const hasPublicAccessEntitlement = hasEntitlement("public-access");
-    if(!hasPublicAccessEntitlement) {
+    if (!hasPublicAccessEntitlement) {
         console.error(`Public access isn't supported in your current plan: ${getPlan()}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
         return {
             statusCode: StatusCodes.FORBIDDEN,

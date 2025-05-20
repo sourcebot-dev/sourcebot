@@ -22,7 +22,6 @@ export function AddRepoButton() {
   const domain = useDomain()
   const { data: session, update } = useSession();
 
-  // TODO(auth): Figure out how to handle conneciton list disabled case here in public access case
   return (
     <>
       {session?.user && (
