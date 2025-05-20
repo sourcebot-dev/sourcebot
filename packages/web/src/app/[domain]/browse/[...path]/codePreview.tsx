@@ -18,6 +18,8 @@ interface CodePreviewProps {
     revisionName: string;
     source: string;
     language: string;
+
+    onFindReferences: (symbolName: string) => void;
 }
 
 export const CodePreview = ({
@@ -26,6 +28,7 @@ export const CodePreview = ({
     path,
     repoName,
     revisionName,
+    onFindReferences,
 }: CodePreviewProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const syntaxHighlighting = useSyntaxHighlightingExtension(language, editorRef?.view);
@@ -152,6 +155,7 @@ export const CodePreview = ({
                 <SymbolHoverPopup
                     editorRef={editorRef}
                     repoName={repoName}
+                    onFindReferences={onFindReferences}
                 />
             )}
         </ScrollArea>
