@@ -1,7 +1,7 @@
 'use client';
 
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { CodePreview } from "./codePreview";
+import { ResizableHandle, ResizablePanelGroup } from "@/components/ui/resizable";
+import { CodePreviewPanel } from "./codePreviewPanel";
 import { BottomPanel } from "./bottomPanel";
 import { useState } from "react";
 
@@ -28,18 +28,14 @@ export const Workbench = ({
         <ResizablePanelGroup
             direction="vertical"
         >
-            <ResizablePanel
-                minSize={10}
-            >
-                <CodePreview
-                    source={file.source}
-                    language={file.language}
-                    repoName={repo.name}
-                    path={file.path}
-                    revisionName={file.revision}
-                    onFindReferences={(symbol) => setSelectedSymbol(symbol)}
-                />
-            </ResizablePanel>
+            <CodePreviewPanel
+                source={file.source}
+                language={file.language}
+                repoName={repo.name}
+                path={file.path}
+                revisionName={file.revision}
+                onFindReferences={(symbol) => setSelectedSymbol(symbol)}
+            />
             <ResizableHandle />
             <BottomPanel
                 selectedSymbol={selectedSymbol}

@@ -6,8 +6,10 @@ import { useDomain } from "@/hooks/useDomain";
 import { base64Decode, isServiceError, unwrapServiceError } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { findSearchBasedSymbolReferences } from "@/features/codeNav/actions";
-import { Reference } from "@/features/codeNav/types";
-
+import { FindSearchBasedSymbolReferencesResponse } from "@/features/codeNav/types";
+import { RepositoryInfo } from "@/features/search/types";
+import { useMemo } from "react";
+import { FileHeader } from "../../components/fileHeader";
 
 interface BottomPanelProps {
     selectedSymbol: string | null;
@@ -30,9 +32,8 @@ export const BottomPanel = ({
 
     return (
         <ResizablePanel
-            minSize={20}
+            minSize={10}
             maxSize={30}
-            collapsedSize={5}
             collapsible={true}
         >
             {!selectedSymbol ? (
@@ -45,36 +46,55 @@ export const BottomPanel = ({
                         <p>Error loading references</p>
                     ) : (
                         <ReferenceList
-                            references={response.references}
+                            data={response}
                         />
                     )}
         </ResizablePanel>
     )
 }
 
-const ReferenceList = ({ references }: { references: Reference[] }) => {
+interface ReferenceListProps {
+    data: FindSearchBasedSymbolReferencesResponse;
+}
 
-    const aggregatedReferences = references.reduce((acc, reference) => {
-        const key = reference.fileName;
-        acc[key] = [...(acc[key] || []), reference];
-        return acc;
-    }, {} as Record<string, Reference[]>);
+const ReferenceList = ({
+    data
+}: ReferenceListProps) => {
+    const repoInfoMap = useMemo(() => {
+        return data.repositoryInfo.reduce((acc, repo) => {
+            acc[repo.id] = repo;
+            return acc;
+        }, {} as Record<number, RepositoryInfo>);
+    }, [data.repositoryInfo]);
 
-    console.log(aggregatedReferences);
-    
     return (
         <ScrollArea className="h-full">
-            {Object.entries(aggregatedReferences).map(([fileName, references], index) => (
-                <div key={index}>
-                    <p className="text-sm font-bold">{fileName}</p>
-                    {references.map((reference, index) => (
-                        <div key={index}>
-                            <p>{reference.repository}</p>
-                            <p>{base64Decode(reference.lineContent)}</p>
+            {data.files.map((file, index) => {
+                const repoInfo = repoInfoMap[file.repositoryId];
+
+                return (
+                    <div key={index}>
+                        <div className="bg-accent py-1 px-2 flex flex-row">
+                            <FileHeader
+                                repo={{
+                                    name: repoInfo.name,
+                                    displayName: repoInfo.displayName,
+                                    codeHostType: repoInfo.codeHostType,
+                                    webUrl: repoInfo.webUrl,
+                                }}
+                                fileName={file.fileName}
+                            />
                         </div>
-                    ))}
-                </div>
-            ))}
+                        {file.references.map((reference, index) => (
+                            <div
+                                key={index}
+                            >
+                                <p>{base64Decode(reference.lineContent)}</p>
+                            </div>
+                        ))}
+                    </div>
+                )
+            })}
         </ScrollArea>
     )
-}   
+}

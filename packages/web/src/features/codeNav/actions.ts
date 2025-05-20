@@ -5,7 +5,7 @@ import { searchResponseSchema } from "@/features/search/schemas";
 import { search } from "@/features/search/searchApi";
 import { isServiceError } from "@/lib/utils";
 import escapeStringRegexp from "escape-string-regexp";
-import { FindSearchBasedSymbolReferencesResponse, Reference } from "./types";
+import { FindSearchBasedSymbolReferencesResponse } from "./types";
 import { ServiceError } from "@/lib/serviceError";
 
 /**
@@ -35,23 +35,25 @@ export const findSearchBasedSymbolReferences = async (
             }
 
             const parser = searchResponseSchema.transform(async ({ files }) => ({
-                references: files.flatMap((file) => {
+                files: files.flatMap((file) => {
                     const chunks = file.chunks;
 
-                    return chunks.flatMap((chunk) => {
-                        return chunk.matchRanges.map((range): Reference => ({
-                            fileName: file.fileName.text,
-                            lineContent: chunk.content,
-                            repository: file.repository,
-                            repositoryId: file.repositoryId,
-                            webUrl: file.webUrl,
-                            language: file.language,
-                            matchRange: range,
-                        }))
-                    });
+                    return {
+                        fileName: file.fileName.text,
+                        repository: file.repository,
+                        repositoryId: file.repositoryId,
+                        webUrl: file.webUrl,
+                        language: file.language,
+                        references: chunks.flatMap((chunk) => {
+                            return chunk.matchRanges.map((range) => ({
+                                lineContent: chunk.content,
+                                range: range,
+                            }))
+                        })
+                    }
                 }),
                 repositoryInfo: searchResult.repositoryInfo
-            } satisfies FindSearchBasedSymbolReferencesResponse));
+            }));
 
             return parser.parseAsync(searchResult);
 
