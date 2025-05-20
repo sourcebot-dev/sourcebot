@@ -88,7 +88,7 @@ export const withOrgMembership = async <T>(session: Session, domain: string, fn:
     });
 
     if (!org) {
-        return notFound();
+        return notFound("Organization not found");
     }
 
     const membership = await prisma.userToOrg.findUnique({
@@ -101,7 +101,7 @@ export const withOrgMembership = async <T>(session: Session, domain: string, fn:
     });
 
     if (!membership) {
-        return notFound();
+        return notFound("User not a member of this organization");
     }
 
     const getAuthorizationPrecendence = (role: OrgRole): number => {
@@ -928,6 +928,15 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
                 }
             });
 
+            await tx.user.update({
+                where: {
+                    id: user.id,
+                },
+                data: {
+                    pendingApproval: false,
+                }
+            });
+
             await tx.invite.delete({
                 where: {
                     id: invite.id,
@@ -1218,6 +1227,166 @@ export const getOrgInvites = async (domain: string) => sew(() =>
                 createdAt: invite.createdAt,
             }));
         })
+    ));
+
+export const getOrgAccountRequests = async (domain: string) => sew(() =>
+    withAuth(async (session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const requests = await prisma.accountRequest.findMany({
+                where: {
+                    orgId,
+                },
+                include: {
+                    requestedBy: true,
+                },
+            });
+
+            return requests.map((request) => ({
+                id: request.id,
+                email: request.requestedBy.email!,
+                createdAt: request.createdAt,
+                name: request.requestedBy.name ?? undefined,
+            }));
+        })
+    ));
+
+export const createAccountRequest = async (userId: string, domain: string) => sew(() =>
+    withAuth(async (session) => {
+        const user = await prisma.user.findUnique({
+            where: {
+                id: userId,
+            },
+        });
+
+        if (!user) {
+            return notFound("User not found");
+        }
+
+        const org = await prisma.org.findUnique({
+            where: {
+                domain,
+            },
+        });
+        
+        if (!org) {
+            return notFound("Organization not found");
+        }
+
+        const existingRequest = await prisma.accountRequest.findUnique({
+            where: {
+                requestedById_orgId: {
+                    requestedById: userId,
+                    orgId: org.id,
+                },
+            },
+        });
+
+        if (!existingRequest) {
+            await prisma.accountRequest.create({
+                data: {
+                    requestedById: userId,
+                    orgId: org.id,
+                },
+            });
+        }
+
+        return {
+            success: true,
+        }
+    })
+);
+
+
+export const approveAccountRequest = async (requestId: string, domain: string) => sew(() =>
+    withAuth(async (session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const request = await prisma.accountRequest.findUnique({
+                where: {
+                    id: requestId,
+                },
+            });
+
+            if (!request || request.orgId !== orgId) {
+                return notFound();
+            }
+
+            const org = await prisma.org.findUnique({
+                where: {
+                    id: orgId,
+                },
+                include: {
+                    members: true,
+                },
+            });
+            if (!org) {
+                return notFound();
+            }
+
+            const maxSeats = getSeats()
+            const memberCount = org.members.length;
+
+            if (memberCount >= maxSeats) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
+                    message: "Organization is at max capacity",
+                } satisfies ServiceError;
+            }
+
+            await prisma.$transaction([
+                prisma.user.update({
+                    where: {
+                        id: request.requestedById,
+                    },
+                    data: {
+                        pendingApproval: false,
+                    },
+                }),
+
+                prisma.userToOrg.create({
+                    data: {
+                        userId: request.requestedById,
+                        orgId,
+                        role: "MEMBER",
+                    },
+                }),
+
+                prisma.accountRequest.delete({
+                    where: {
+                        id: requestId,
+                    },
+                }),
+            ]);
+
+            return {
+                success: true,
+            }
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    ));
+
+export const rejectAccountRequest = async (requestId: string, domain: string) => sew(() =>
+    withAuth(async (session) =>
+        withOrgMembership(session, domain, async ({ orgId }) => {
+            const request = await prisma.accountRequest.findUnique({
+                where: {
+                    id: requestId,
+                },
+            });
+
+            if (!request || request.orgId !== orgId) {
+                return notFound();
+            }
+
+            await prisma.accountRequest.delete({
+                where: {
+                    id: requestId,
+                },
+            });
+
+            return {
+                success: true,
+            }
+        }, /* minRequiredRole = */ OrgRole.OWNER)
     ));
 
 export const dismissMobileUnsupportedSplashScreen = async () => sew(async () => {

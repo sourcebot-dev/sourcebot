@@ -6,10 +6,11 @@ import { InviteMemberCard } from "./components/inviteMemberCard";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { InvitesList } from "./components/invitesList";
-import { getOrgInvites, getMe } from "@/actions";
+import { getOrgInvites, getMe, getOrgAccountRequests } from "@/actions";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@/features/entitlements/server";
+import { RequestsList } from "./components/requestsList";
 
 interface MembersSettingsPageProps {
     params: {
@@ -44,6 +45,11 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
     const invites = await getOrgInvites(domain);
     if (isServiceError(invites)) {
         throw new ServiceErrorException(invites);
+    }
+
+    const requests = await getOrgAccountRequests(domain);
+    if (isServiceError(requests)) {
+        throw new ServiceErrorException(requests);
     }
 
     const currentTab = tab || "members";
@@ -83,7 +89,32 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                         className="h-auto p-0 bg-transparent"
                         tabs={[
                             { label: "Team Members", value: "members" },
-                            { label: "Pending Invites", value: "invites" },
+                            { 
+                                label: (
+                                    <div className="flex items-center gap-2">
+                                        Pending Requests
+                                        {requests.length > 0 && (
+                                            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
+                                                {requests.length}
+                                            </span>
+                                        )}
+                                    </div>
+                                ), 
+                                value: "requests" 
+                            },
+                            { 
+                                label: (
+                                    <div className="flex items-center gap-2">
+                                        Pending Invites
+                                        {invites.length > 0 && (
+                                            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
+                                                {invites.length}
+                                            </span>
+                                        )}
+                                    </div>
+                                ), 
+                                value: "invites" 
+                            },
                         ]}
                         currentTab={currentTab}
                     />
@@ -94,6 +125,13 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                         currentUserId={me.id}
                         currentUserRole={userRoleInOrg}
                         orgName={org.name}
+                    />
+                </TabsContent>
+
+                <TabsContent value="requests">
+                    <RequestsList
+                        requests={requests}
+                        currentUserRole={userRoleInOrg}
                     />
                 </TabsContent>
 

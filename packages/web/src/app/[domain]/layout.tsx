@@ -13,6 +13,7 @@ import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { notFound, redirect } from "next/navigation";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
+import { PendingApprovalCard } from "./components/pendingApproval";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -40,11 +41,24 @@ export default async function Layout({
                 orgId: org.id,
                 userId: session.user.id
             }
+        }, 
+        include: {
+            user: true
         }
     });
 
     if (!membership) {
-        return notFound();
+        const user = await prisma.user.findUnique({
+            where: {
+                id: session.user.id
+            }
+        });
+        
+        if (user?.pendingApproval) {
+            return <PendingApprovalCard domain={domain} />
+        } else {
+            return notFound();
+        }
     }
 
     if (!org.isOnboarded) {

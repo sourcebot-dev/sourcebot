@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ReactNode } from "react"
 
 interface TabSwitcherProps {
-  tabs: { value: string; label: string }[]
+  tabs: { value: string; label: ReactNode }[]
   currentTab: string
   className?: string
 }

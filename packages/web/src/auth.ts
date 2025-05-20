@@ -14,8 +14,9 @@ import { verifyCredentialsRequestSchema } from './lib/schemas';
 import { createTransport } from 'nodemailer';
 import { render } from '@react-email/render';
 import MagicLinkEmail from './emails/magicLinkEmail';
-import { SINGLE_TENANT_ORG_ID } from './lib/constants';
+import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID } from './lib/constants';
 import bcrypt from 'bcryptjs';
+import { createAccountRequest } from './actions';
 
 export const runtime = 'nodejs';
 
@@ -155,8 +156,13 @@ const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                 }
             });
 
+            if (!defaultOrg) {
+                throw new Error("Default org not found on single tenant user creation");
+            }
+
             // Only the first user to sign up will be an owner of the default org.
-            if (defaultOrg?.members.length === 0) {
+            const isFirstUser = defaultOrg.members.length === 0;
+            if (isFirstUser) {
                 await tx.org.update({
                     where: {
                         id: SINGLE_TENANT_ORG_ID,
@@ -174,6 +180,18 @@ const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                         }
                     }
                 });
+
+                await tx.user.update({
+                    where: {
+                        id: user.id,
+                    },
+                    data: {
+                        pendingApproval: false,
+                    }
+                });
+            } else {
+                // TODO(auth): handle multi tenant case
+                await createAccountRequest(user.id!, SINGLE_TENANT_ORG_DOMAIN);
             }
         });
     }

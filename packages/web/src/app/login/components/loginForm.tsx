@@ -58,9 +58,11 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
                 />
                 <h2 className="text-lg font-bold text-center">Sign in to your account</h2>
             </div>
-            <div className="w-full sm:w-[500px] max-w-[500px]">
-                <DemoCard />
-            </div>
+            {env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined && (
+                <div className="w-full sm:w-[500px] max-w-[500px]">
+                    <DemoCard />
+                </div>
+            )}
             <Card className="flex flex-col items-center border p-6 sm:p-12 rounded-lg gap-4 sm:gap-6 w-full sm:w-[500px] max-w-[500px] bg-background">
                 {error && (
                     <div className="text-sm text-destructive text-center text-wrap border p-2 rounded-md border-destructive">
