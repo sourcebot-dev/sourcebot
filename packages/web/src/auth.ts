@@ -17,6 +17,9 @@ import MagicLinkEmail from './emails/magicLinkEmail';
 import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID } from './lib/constants';
 import bcrypt from 'bcryptjs';
 import { createAccountRequest } from './actions';
+import { getSSOProviders } from '@/ee/auth/providers';
+import { hasEntitlement } from '@/features/entitlements/server';
+
 
 export const runtime = 'nodejs';
 
@@ -37,18 +40,8 @@ declare module 'next-auth/jwt' {
 export const getProviders = () => {
     const providers: Provider[] = [];
 
-    if (env.AUTH_GITHUB_CLIENT_ID && env.AUTH_GITHUB_CLIENT_SECRET) {
-        providers.push(GitHub({
-            clientId: env.AUTH_GITHUB_CLIENT_ID,
-            clientSecret: env.AUTH_GITHUB_CLIENT_SECRET,
-        }));
-    }
-
-    if (env.AUTH_GOOGLE_CLIENT_ID && env.AUTH_GOOGLE_CLIENT_SECRET) {
-        providers.push(Google({
-            clientId: env.AUTH_GOOGLE_CLIENT_ID,
-            clientSecret: env.AUTH_GOOGLE_CLIENT_SECRET,
-        }));
+    if (hasEntitlement("sso")) {
+        providers.push(...getSSOProviders());
     }
 
     if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {

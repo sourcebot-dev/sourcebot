@@ -20,12 +20,27 @@ export const env = createEnv({
         
         // Auth
         AUTH_SECRET: z.string(),
-        AUTH_GITHUB_CLIENT_ID: z.string().optional(),
-        AUTH_GITHUB_CLIENT_SECRET: z.string().optional(),
-        AUTH_GOOGLE_CLIENT_ID: z.string().optional(),
-        AUTH_GOOGLE_CLIENT_SECRET: z.string().optional(),
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
+
+        // Enterprise Auth
+        AUTH_EE_GITHUB_CLIENT_ID: z.string().optional(),
+        AUTH_EE_GITHUB_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
+        AUTH_EE_GITLAB_CLIENT_ID: z.string().optional(),
+        AUTH_EE_GITLAB_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_GITLAB_BASE_URL: z.string().optional(),
+        AUTH_EE_ATLASSIAN_CLIENT_ID: z.string().optional(),
+        AUTH_EE_ATLASSIAN_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_ATLASSIAN_BASE_URL: z.string().optional(),
+        AUTH_EE_GOOGLE_CLIENT_ID: z.string().optional(),
+        AUTH_EE_GOOGLE_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_OKTA_CLIENT_ID: z.string().optional(),
+        AUTH_EE_OKTA_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_OKTA_ISSUER: z.string().optional(),
+        AUTH_EE_KEYCLOAK_CLIENT_ID: z.string().optional(),
+        AUTH_EE_KEYCLOAK_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_KEYCLOAK_ISSUER: z.string().optional(),
 
         DATA_CACHE_DIR: z.string(),
 
