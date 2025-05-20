@@ -57,7 +57,7 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
 
     const seats = getSeats();
     const usedSeats = members.length
-    const seatsAvailable = seats !== SOURCEBOT_UNLIMITED_SEATS && usedSeats < seats;
+    const seatsAvailable = seats === SOURCEBOT_UNLIMITED_SEATS || usedSeats < seats;
 
     return (
         <div className="flex flex-col gap-6">

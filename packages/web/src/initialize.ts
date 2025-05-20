@@ -146,10 +146,12 @@ const syncDeclarativeConfig = async (configPath: string) => {
         process.exit(1);
     }
 
-    console.log(`Setting public access status to ${!!enablePublicAccess} for org ${SINGLE_TENANT_ORG_DOMAIN}`);
-    const res = await setPublicAccessStatus(SINGLE_TENANT_ORG_DOMAIN, !!enablePublicAccess);
-    if (isServiceError(res)) {
-        throw new ServiceErrorException(res);
+    if (hasPublicAccessEntitlement) {
+        console.log(`Setting public access status to ${!!enablePublicAccess} for org ${SINGLE_TENANT_ORG_DOMAIN}`);
+        const res = await setPublicAccessStatus(SINGLE_TENANT_ORG_DOMAIN, !!enablePublicAccess);
+        if (isServiceError(res)) {
+            throw new ServiceErrorException(res);
+        }
     }
 
     await syncConnections(config.connections);

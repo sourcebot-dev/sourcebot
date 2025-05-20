@@ -97,6 +97,7 @@ export const createGuestUser = async (domain: string) => sew(async () => {
             id: SINGLE_TENANT_USER_ID,
             name: "Guest",
             email: SINGLE_TENANT_USER_EMAIL,
+            pendingApproval: false,
         },
     });
 

@@ -17,8 +17,6 @@ export const PendingApprovalCard = async ({ domain }: PendingApprovalCardProps) 
         return null
     }
 
-    console.log(`userId: ${userId} domain: ${domain}`)
-
     return (
         <div className="flex flex-col items-center justify-center min-h-screen py-24 bg-background text-foreground relative">
             <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />

@@ -17,9 +17,10 @@ import MagicLinkEmail from './emails/magicLinkEmail';
 import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID } from './lib/constants';
 import bcrypt from 'bcryptjs';
 import { createAccountRequest } from './actions';
-import { getSSOProviders } from '@/ee/auth/providers';
+import { getSSOProviders, handleJITProvisioning } from '@/ee/sso/sso';
 import { hasEntitlement } from '@/features/entitlements/server';
-
+import { isServiceError } from './lib/utils';
+import { ServiceErrorException } from './lib/serviceError';
 
 export const runtime = 'nodejs';
 
@@ -139,23 +140,29 @@ const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
     if (
         env.SOURCEBOT_TENANCY_MODE === 'single'
     ) {
-        await prisma.$transaction(async (tx) => {
-            const defaultOrg = await tx.org.findUnique({
-                where: {
-                    id: SINGLE_TENANT_ORG_ID,
+        const defaultOrg = await prisma.org.findUnique({
+            where: {
+                id: SINGLE_TENANT_ORG_ID,
+            },
+            include: {
+                members: {
+                    where: {
+                        role: {
+                            not: OrgRole.GUEST,
+                        }
+                    }
                 },
-                include: {
-                    members: true,
-                }
-            });
-
-            if (!defaultOrg) {
-                throw new Error("Default org not found on single tenant user creation");
             }
+        });
 
-            // Only the first user to sign up will be an owner of the default org.
-            const isFirstUser = defaultOrg.members.length === 0;
-            if (isFirstUser) {
+        if (!defaultOrg) {
+            throw new Error("Default org not found on single tenant user creation");
+        }
+
+        // Only the first user to sign up will be an owner of the default org.
+        const isFirstUser = defaultOrg.members.length === 0;
+        if (isFirstUser) {
+            await prisma.$transaction(async (tx) => {
                 await tx.org.update({
                     where: {
                         id: SINGLE_TENANT_ORG_ID,
@@ -182,11 +189,19 @@ const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                         pendingApproval: false,
                     }
                 });
+            });
+        } else {
+            // TODO(auth): handle multi tenant case
+            if (env.AUTH_EE_ENABLE_JIT_PROVISIONING === 'true' && hasEntitlement("sso")) {
+                const res = await handleJITProvisioning(user.id!, SINGLE_TENANT_ORG_DOMAIN);
+                if (isServiceError(res)) {
+                    console.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
+                    throw new ServiceErrorException(res);
+                }
             } else {
-                // TODO(auth): handle multi tenant case
                 await createAccountRequest(user.id!, SINGLE_TENANT_ORG_DOMAIN);
             }
-        });
+        }
     }
 }
 

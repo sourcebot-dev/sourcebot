@@ -1171,6 +1171,9 @@ export const getOrgMembers = async (domain: string) => sew(() =>
             const members = await prisma.userToOrg.findMany({
                 where: {
                     orgId: org.id,
+                    role: {
+                        not: OrgRole.GUEST,
+                    }
                 },
                 include: {
                     user: true,

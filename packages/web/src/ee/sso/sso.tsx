@@ -6,6 +6,15 @@ import Okta from "next-auth/providers/okta";
 import Keycloak from "next-auth/providers/keycloak";
 import Gitlab from "next-auth/providers/gitlab";
 import Atlassian from "next-auth/providers/atlassian";
+import { prisma } from "@/prisma";
+import { notFound, ServiceError } from "@/lib/serviceError";
+import { OrgRole } from "@sourcebot/db";
+import { isServiceError } from "@/lib/utils";
+import { getOrgMembers } from "@/actions";
+import { ServiceErrorException } from "@/lib/serviceError";
+import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@/features/entitlements/server";
+import { StatusCodes } from "http-status-codes";
+import { ErrorCode } from "@/lib/errorCodes";
 
 export const getSSOProviders = (): Provider[] => {
     const providers: Provider[] = [];
@@ -95,3 +104,68 @@ export const getSSOProviders = (): Provider[] => {
 
     return providers;
 }
+
+export const handleJITProvisioning = async (userId: string, domain: string): Promise<ServiceError | boolean> => {
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+        include: {
+            members: {
+                where: {
+                    role: {
+                        not: OrgRole.GUEST,
+                    }
+                }
+            }
+        }
+    });
+
+    if (!org) {
+        return notFound(`Org ${domain} not found`);
+    }
+
+    const user = await prisma.user.findUnique({
+        where: {
+            id: userId,
+        },
+    });
+
+    if (!user) {
+        return notFound(`User ${userId} not found`);
+    }
+
+
+    const seats = await getSeats();
+    const memberCount = org.members.length;
+
+    if (seats != SOURCEBOT_UNLIMITED_SEATS && memberCount >= seats) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
+            message: "Failed to provision user since the organization is at max capacity",
+        } satisfies ServiceError;
+    }
+
+    await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+            where: {
+                id: userId,
+            },
+            data: {
+                pendingApproval: false,
+            },
+        });
+
+        await tx.userToOrg.create({
+            data: {
+                userId,
+                orgId: org.id,
+                role: OrgRole.MEMBER,
+            },
+        });
+    });
+
+    return true;
+}
+
