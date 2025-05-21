@@ -7,7 +7,7 @@ import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExt
 import { search } from "@codemirror/search";
 import CodeMirror, { Decoration, DecorationSet, EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, StateField, ViewUpdate } from "@uiw/react-codemirror";
 import { useEffect, useMemo, useState } from "react";
-import { EditorContextMenu } from "../../components/editorContextMenu";
+import { EditorContextMenu } from "../../../components/editorContextMenu";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { underlineNodesExtension } from "@/lib/extensions/underlineNodesExtension";
 import { SymbolHoverPopup } from "./symbolHoverPopup";
@@ -152,14 +152,15 @@ export const CodePreviewPanel = ({
                             revisionName={revisionName}
                         />
                     )}
+                    {editorRef && (
+                        <SymbolHoverPopup
+                            editorRef={editorRef}
+                            repoName={repoName}
+                            onFindReferences={onFindReferences}
+                        />
+                    )}
                 </CodeMirror>
-                {editorRef && (
-                    <SymbolHoverPopup
-                        editorRef={editorRef}
-                        repoName={repoName}
-                        onFindReferences={onFindReferences}
-                    />
-                )}
+                
             </ScrollArea>
         </ResizablePanel>
     )

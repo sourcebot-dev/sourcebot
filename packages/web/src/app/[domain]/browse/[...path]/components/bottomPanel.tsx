@@ -9,8 +9,8 @@ import { findSearchBasedSymbolReferences } from "@/features/codeNav/actions";
 import { FindSearchBasedSymbolReferencesResponse } from "@/features/codeNav/types";
 import { RepositoryInfo } from "@/features/search/types";
 import { useMemo } from "react";
-import { FileHeader } from "../../components/fileHeader";
-import { ReadOnlyCodeBlock } from "./readonlyCodeBlock";
+import { FileHeader } from "@/app/[domain]/components/fileHeader";
+import { ReadOnlyCodeBlock } from "@/app/[domain]/components/readOnlyCodeBlock";
 import { darkHighlightStyle, lightHighlightStyle } from "@/hooks/useCodeMirrorTheme";
 import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 
