@@ -40,6 +40,10 @@ export default async function SettingsLayout({
         {
             title: "Secrets",
             href: `/${domain}/settings/secrets`,
+        },
+        {
+            title: "API Keys",
+            href: `/${domain}/settings/apiKeys`,
         }
     ]
 

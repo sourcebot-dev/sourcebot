@@ -160,6 +160,7 @@ model Org {
   connections Connection[]
   repos       Repo[]
   secrets     Secret[]
+  apiKeys     ApiKey[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
   metadata    Json?       // For schema see orgMetadataSchema in packages/web/src/types.ts
@@ -211,6 +212,22 @@ model Secret {
   @@id([orgId, key])
 }
 
+model ApiKey {
+  name            String
+  prefix          String
+
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String
+
+  @@id([prefix, createdById])
+}
+
 // @see : https://authjs.dev/concepts/database-models#user
 model User {
   id              String      @id @default(cuid())
@@ -226,6 +243,8 @@ model User {
 
   /// List of pending invites that the user has created
   invites Invite[]
+
+  apiKeys ApiKey[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

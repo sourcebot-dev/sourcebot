@@ -124,9 +124,9 @@ const getFileWebUrl = (template: string, branch: string, fileName: string): stri
     return encodeURI(url + optionalQueryParams);
 }
 
-export const search = async ({ query, matches, contextLines, whole }: SearchRequest, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+export const search = async ({ query, matches, contextLines, whole }: SearchRequest, domain: string, apiKey: string | undefined = undefined) => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const transformedQuery = await transformZoektQuery(query, org.id);
             if (isServiceError(transformedQuery)) {
                 return transformedQuery;
@@ -333,5 +333,5 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             });
 
             return parser.parseAsync(searchBody);
-        }), /* allowSingleTenantUnauthedAccess = */ true)
+        }), /* allowSingleTenantUnauthedAccess = */ true, apiKey)
 )

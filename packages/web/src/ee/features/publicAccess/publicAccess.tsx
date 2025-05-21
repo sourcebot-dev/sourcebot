@@ -6,9 +6,9 @@ import { orgMetadataSchema } from "@/types";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "@/prisma";
-import { sew, withAuth, withOrgMembership } from "@/actions";
+import { sew } from "@/actions";
 import { getPlan, hasEntitlement } from "@/features/entitlements/server";
-import { SINGLE_TENANT_USER_EMAIL, SINGLE_TENANT_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
+import { SOURCEBOT_GUEST_USER_EMAIL, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { OrgRole } from "@sourcebot/db";
 
 export const getPublicAccessStatus = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
@@ -90,13 +90,13 @@ export const createGuestUser = async (domain: string) => sew(async () => {
 
     const user = await prisma.user.upsert({
         where: {
-            id: SINGLE_TENANT_USER_ID,
+            id: SOURCEBOT_GUEST_USER_ID,
         },
         update: {},
         create: {
-            id: SINGLE_TENANT_USER_ID,
+            id: SOURCEBOT_GUEST_USER_ID,
             name: "Guest",
-            email: SINGLE_TENANT_USER_EMAIL,
+            email: SOURCEBOT_GUEST_USER_EMAIL,
             pendingApproval: false,
         },
     });

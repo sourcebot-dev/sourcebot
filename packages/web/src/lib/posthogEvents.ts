@@ -260,6 +260,8 @@ export type PosthogEventMap = {
     wa_requests_list_reject_request_fail: {
         error: string,
     },
+    //////////////////////////////////////////////////////////////////
+    wa_api_key_created: {},
+    wa_api_key_creation_fail: {},
 } 
-
 export type PosthogEvent = keyof PosthogEventMap;

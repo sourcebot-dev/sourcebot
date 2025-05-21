@@ -4,9 +4,9 @@ import { zoektFetch } from "./zoektClient";
 import { zoektListRepositoriesResponseSchema } from "./zoektSchema";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 
-export const listRepositories = async (domain: string): Promise<ListRepositoriesResponse | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+export const listRepositories = async (domain: string, apiKey: string | undefined = undefined): Promise<ListRepositoriesResponse | ServiceError> => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const body = JSON.stringify({
                 opts: {
                     Field: 0,
@@ -42,5 +42,5 @@ export const listRepositories = async (domain: string): Promise<ListRepositories
             } satisfies ListRepositoriesResponse));
 
             return parser.parse(listBody);
-        }), /* allowSingleTenantUnauthedAccess = */ true)
+        }), /* allowSingleTenantUnauthedAccess = */ true, apiKey)
 );

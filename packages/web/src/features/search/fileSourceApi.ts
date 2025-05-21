@@ -8,9 +8,9 @@ import { sew, withAuth, withOrgMembership } from "@/actions";
 // @todo (bkellam) : We should really be using `git show <hash>:<path>` to fetch file contents here.
 // This will allow us to support permalinks to files at a specific revision that may not be indexed
 // by zoekt.
-export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest, domain: string): Promise<FileSourceResponse | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async () => {
+export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest, domain: string, apiKey: string | undefined = undefined): Promise<FileSourceResponse | ServiceError> => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async () => {
             const escapedFileName = escapeStringRegexp(fileName);
             const escapedRepository = escapeStringRegexp(repository);
 
@@ -23,7 +23,7 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
                 query,
                 matches: 1,
                 whole: true,
-            }, domain);
+            }, domain, apiKey);
 
             if (isServiceError(searchResponse)) {
                 return searchResponse;
@@ -42,5 +42,5 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
                 source,
                 language,
             } satisfies FileSourceResponse;
-        }), /* allowSingleTenantUnauthedAccess = */ true)
+        }), /* allowSingleTenantUnauthedAccess = */ true, apiKey)
 );

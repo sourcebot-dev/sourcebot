@@ -1,7 +1,7 @@
 import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus } from '@sourcebot/db';
 import { env } from './env.mjs';
 import { prisma } from "@/prisma";
-import { SINGLE_TENANT_USER_ID, SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_NAME, SINGLE_TENANT_USER_EMAIL } from './lib/constants';
+import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_NAME } from './lib/constants';
 import { readFile } from 'fs/promises';
 import { watch } from 'fs';
 import stripJsonComments from 'strip-json-comments';

@@ -14,8 +14,8 @@ import { headers } from "next/headers";
 import { getSubscriptionForOrg } from "./serverUtils";
 
 export const createOnboardingSubscription = async (domain: string) => sew(() =>
-    withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const user = await getMe();
             if (isServiceError(user)) {
                 return user;
@@ -109,8 +109,8 @@ export const createOnboardingSubscription = async (domain: string) => sew(() =>
     ));
 
 export const createStripeCheckoutSession = async (domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             if (!org.stripeCustomerId) {
                 return notFound();
             }
@@ -165,8 +165,8 @@ export const createStripeCheckoutSession = async (domain: string) => sew(() =>
     ));
 
 export const getCustomerPortalSessionLink = async (domain: string): Promise<string | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             if (!org.stripeCustomerId) {
                 return notFound();
             }
@@ -186,8 +186,8 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
     ));
 
 export const getSubscriptionBillingEmail = async (domain: string): Promise<string | ServiceError> => sew(() =>
-    withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             if (!org.stripeCustomerId) {
                 return notFound();
             }
@@ -205,8 +205,8 @@ export const getSubscriptionBillingEmail = async (domain: string): Promise<strin
     ));
 
 export const changeSubscriptionBillingEmail = async (domain: string, newEmail: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             if (!org.stripeCustomerId) {
                 return notFound();
             }
@@ -226,8 +226,8 @@ export const changeSubscriptionBillingEmail = async (domain: string, newEmail: s
     ));
 
 export const getSubscriptionInfo = async (domain: string) => sew(() =>
-    withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const subscription = await getSubscriptionForOrg(org.id, prisma);
 
             if (isServiceError(subscription)) {
