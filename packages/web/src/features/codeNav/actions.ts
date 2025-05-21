@@ -51,7 +51,7 @@ export const findSearchBasedSymbolReferences = async (
                             }))
                         })
                     }
-                }),
+                }).filter((file) => file.references.length > 0),
                 repositoryInfo: searchResult.repositoryInfo
             }));
 

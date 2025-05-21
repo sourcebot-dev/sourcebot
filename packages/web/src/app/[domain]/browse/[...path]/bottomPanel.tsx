@@ -10,6 +10,9 @@ import { FindSearchBasedSymbolReferencesResponse } from "@/features/codeNav/type
 import { RepositoryInfo } from "@/features/search/types";
 import { useMemo } from "react";
 import { FileHeader } from "../../components/fileHeader";
+import { ReadOnlyCodeBlock } from "./readonlyCodeBlock";
+import { darkHighlightStyle, lightHighlightStyle } from "@/hooks/useCodeMirrorTheme";
+import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 
 interface BottomPanelProps {
     selectedSymbol: string | null;
@@ -27,8 +30,6 @@ export const BottomPanel = ({
         queryFn: () => unwrapServiceError(findSearchBasedSymbolReferences(selectedSymbol!, repoName, domain)),
         enabled: !!selectedSymbol,
     });
-
-    console.log(response);
 
     return (
         <ResizablePanel
@@ -67,6 +68,8 @@ const ReferenceList = ({
         }, {} as Record<number, RepositoryInfo>);
     }, [data.repositoryInfo]);
 
+    const { theme } = useThemeNormalized();
+
     return (
         <ScrollArea className="h-full">
             {data.files.map((file, index) => {
@@ -85,13 +88,26 @@ const ReferenceList = ({
                                 fileName={file.fileName}
                             />
                         </div>
-                        {file.references.map((reference, index) => (
-                            <div
-                                key={index}
-                            >
-                                <p>{base64Decode(reference.lineContent)}</p>
-                            </div>
-                        ))}
+                        {file.references
+                            .sort((a, b) => a.range.start.lineNumber - b.range.start.lineNumber)
+                            .map((reference, index) => (
+                                <div
+                                    key={index}
+                                >
+                                    <ReadOnlyCodeBlock
+                                        language="JavaScript"
+                                        theme={theme === 'dark' ? darkHighlightStyle : lightHighlightStyle}
+                                        highlightRanges={[
+                                            {
+                                                from: reference.range.start.column - 1,
+                                                to: reference.range.end.column - 1,
+                                            }
+                                        ]}
+                                    >
+                                        {base64Decode(reference.lineContent)}
+                                    </ReadOnlyCodeBlock>
+                                </div>
+                            ))}
                     </div>
                 )
             })}
