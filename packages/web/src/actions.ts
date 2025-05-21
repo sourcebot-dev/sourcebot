@@ -381,7 +381,7 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
                 return {
                     statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
                     errorCode: ErrorCode.API_KEY_ALREADY_EXISTS,
-                    message: `Failed to create API key ${name} for user ${userId}`,
+                    message: `Failed to create API key ${name} for user ${userId}: ${e}`,
                 } satisfies ServiceError;
             }
         })));
@@ -779,11 +779,15 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
 export const createInvites = async (emails: string[], domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
-
             const seats = getSeats();
             const members = await getOrgMembers(domain);
             if (isServiceError(members)) {
                 throw new ServiceErrorException(members);
+            }
+
+            const user = await getMe();
+            if (isServiceError(user)) {
+                throw new ServiceErrorException(user);
             }
 
             if (seats !== SOURCEBOT_UNLIMITED_SEATS && members.length >= seats) {
@@ -871,9 +875,9 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                     const html = await render(InviteUserEmail({
                         baseUrl: origin,
                         host: {
-                            name: session.user.name ?? undefined,
-                            email: session.user.email!,
-                            avatarUrl: session.user.image ?? undefined,
+                            name: user.name ?? undefined,
+                            email: user.email!,
+                            avatarUrl: user.image ?? undefined,
                         },
                         recipient: {
                             name: recipient?.name ?? undefined,
@@ -953,6 +957,7 @@ export const getMe = async () => sew(() =>
             id: user.id,
             email: user.email,
             name: user.name,
+            image: user.image,
             memberships: user.orgs.map((org) => ({
                 id: org.orgId,
                 role: org.role,
