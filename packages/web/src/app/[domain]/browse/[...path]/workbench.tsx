@@ -1,8 +1,8 @@
 'use client';
 
 import { ResizableHandle, ResizablePanelGroup } from "@/components/ui/resizable";
-import { CodePreviewPanel } from "./codePreviewPanel";
-import { BottomPanel } from "./bottomPanel";
+import { CodePreviewPanel } from "./components/codePreviewPanel";
+import { BottomPanel } from "./components/bottomPanel";
 import { useState } from "react";
 
 interface WorkbenchProps {

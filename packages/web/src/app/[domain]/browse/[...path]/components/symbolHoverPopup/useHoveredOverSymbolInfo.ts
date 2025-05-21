@@ -48,6 +48,7 @@ export const useHoveredOverSymbolInfo = ({
         return (symbolElement && symbolElement.textContent) ?? undefined;
     }, [symbolElement]);
 
+    // @todo: refactor this into a server action.
     const { data: symbolDefInfo, isPending: isSymbolDefinitionLoading } = useQuery({
         queryKey: ["symbol-hover", symbolName],
         queryFn: () => {
@@ -83,7 +84,7 @@ export const useHoveredOverSymbolInfo = ({
                 const content = base64Decode(chunk.content);
 
                 return {
-                    content: content.trim(),
+                    content: content,
                     language: file.language,
                     fileName: file.fileName.text,
                     repoName: repoName,

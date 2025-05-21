@@ -1,18 +1,15 @@
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
-import CodeMirror, { EditorView, minimalSetup, ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SymbolDefInfo, useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
-import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { Button } from "@/components/ui/button";
-import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
-import { createPathWithQueryParams } from "@/lib/utils";
-import { useDomain } from "@/hooks/useDomain";
-import { useRouter } from "next/navigation";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { Separator } from "@/components/ui/separator";
+import { useDomain } from "@/hooks/useDomain";
+import { createPathWithQueryParams } from "@/lib/utils";
+import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
+import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
+import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
 
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
@@ -148,58 +145,3 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         </div>
     ) : null;
 };
-
-interface SymbolDefinitionPreviewProps {
-    symbolDefinition: SymbolDefInfo;
-}
-
-export const SymbolDefinitionPreview = ({
-    symbolDefinition,
-}: SymbolDefinitionPreviewProps) => {
-    const { content: lineContent, language } = symbolDefinition;
-    const theme = useCodeMirrorTheme();
-    const editorRef = useRef<ReactCodeMirrorRef>(null);
-
-    const syntaxHighlighting = useSyntaxHighlightingExtension(language, editorRef.current?.view);
-
-    const extensions = useMemo(() => {
-        return [
-            minimalSetup(),
-            EditorView.lineWrapping,
-            syntaxHighlighting,
-        ]
-    }, [syntaxHighlighting]);
-
-    return (
-        <div className="flex flex-col gap-2 mb-2">
-            <Tooltip
-                delayDuration={100}
-            >
-                <TooltipTrigger
-                    disabled={true}
-                    className="mr-auto"
-                >
-                    <Badge
-                        variant="outline"
-                        className="w-fit h-fit flex-shrink-0 select-none"
-                    >
-                        Search Based
-                    </Badge>
-                </TooltipTrigger>
-                <TooltipContent
-                    side="top"
-                    align="start"
-                >
-                    Symbol definition found using a best-guess search heuristic.
-                </TooltipContent>
-            </Tooltip>
-            <CodeMirror
-                ref={editorRef}
-                value={lineContent}
-                extensions={extensions}
-                basicSetup={false}
-                theme={theme}
-            />
-        </div>
-    )
-}

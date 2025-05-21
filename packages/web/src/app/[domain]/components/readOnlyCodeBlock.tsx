@@ -86,40 +86,83 @@ async function highlightCode<Output>(
 ): Promise<Output[]> {
     const parser = await getCodeParser(languageName, fallbackLanguage, languages);
 
+    /**
+     * Converts a range to a series of highlighted subranges.
+     */
+    const convertRangeToHighlightedSubranges = (
+        from: number,
+        to: number,
+        classes: string | null,
+        cb: (from: number, to: number, classes: string | null) => void,
+    ) => {
+        type HighlightRange = {
+            from: number,
+            to: number,
+            isHighlighted: boolean,
+        }
+    
+        const highlightClasses = classes ? `${classes} matchHighlight` : 'matchHighlight';
+    
+        let currentRange: HighlightRange | null = null;
+        for (let i = from; i < to; i++) {
+            const isHighlighted = isIndexHighlighted(i, highlightRanges);
+            
+            if (currentRange) {
+                if (currentRange.isHighlighted === isHighlighted) {
+                    currentRange.to = i + 1;
+                } else {
+                    cb(
+                        currentRange.from,
+                        currentRange.to,
+                        currentRange.isHighlighted ? highlightClasses : classes,
+                    )
+                    
+                    currentRange = { from: i, to: i + 1, isHighlighted };
+                }
+            } else {
+                currentRange = { from: i, to: i + 1, isHighlighted };
+            }
+        }
+    
+        if (currentRange) {
+            cb(
+                currentRange.from,
+                currentRange.to,
+                currentRange.isHighlighted ? highlightClasses : classes,
+            )
+        }
+    }
+    
+
     if (parser) {
         const tree = parser.parse(input)
         const output: Array<Output> = [];
 
-        // @see: https://discuss.codemirror.net/t/static-highlighting-using-cm-v6/3420/2
         let pos = 0;
-        // eslint-disable-next-line no-debugger
         highlightTree(tree, highlighter, (from, to, classes) => {
+            // `highlightTree` only calls this callback when at least one style/class
+            // is applied to the text (i.e., `classes` is not empty). This means that
+            // any unstyled regions will be skipped (e.g., whitespace, `=`. `;`. etc).
+            // This check ensures that we process these unstyled regions as well.
+            // @see: https://discuss.codemirror.net/t/static-highlighting-using-cm-v6/3420/2
             if (from > pos) {
-                const { output: highlightRangesOutput } = splitRangeByHighlightRanges({ from: pos, to: from }, highlightRanges);
-                for (const range of highlightRangesOutput) {
-                    const className = range.isHighlighted ? `matchHighlight` : null;
-                    output.push(callback(input.slice(range.from, range.to), className, range.from, range.to));
-                }
+                convertRangeToHighlightedSubranges(pos, from, null, (from, to, classes) => {
+                    output.push(callback(input.slice(from, to), classes, from, to));
+                })
             }
 
-            const { output: highlightRangesOutput } = splitRangeByHighlightRanges({ from, to }, highlightRanges);
-            for (const range of highlightRangesOutput) {
-                const className = range.isHighlighted ? `${classes} matchHighlight` : classes;
-                output.push(callback(input.slice(range.from, range.to), className, range.from, range.to));
-            }
+            convertRangeToHighlightedSubranges(from, to, classes, (from, to, classes) => {
+                output.push(callback(input.slice(from, to), classes, from, to));
+            })
 
             pos = to;
-        })
-        if (pos != tree.length) {
-            const { output: highlightRangesOutput } = splitRangeByHighlightRanges({
-                from: pos,
-                to: tree.length,
-            }, highlightRanges);
+        });
 
-            for (const range of highlightRangesOutput) {
-                const className = range.isHighlighted ? `matchHighlight` : null;
-                output.push(callback(input.slice(range.from, range.to), className, range.from, range.to));
-            }
+        // Process any remaining unstyled regions.
+        if (pos != tree.length) {
+            convertRangeToHighlightedSubranges(pos, tree.length, null, (from, to, classes) => {
+                output.push(callback(input.slice(from, to), classes, from, to));
+            })
         }
         return output;
     } else {
@@ -127,52 +170,6 @@ async function highlightCode<Output>(
     }
 }
 
-const isIndexHighlighted = (ranges: { from: number, to: number }[], index: number) => {
+const isIndexHighlighted = (index: number, ranges: { from: number, to: number }[]) => {
     return ranges.some(range => index >= range.from && index < range.to);
-}
-
-const splitRangeByHighlightRanges = (
-    range: { from: number, to: number },
-    highlightRanges: { from: number, to: number }[]
-) => {
-    type HighlightRange = {
-        from: number,
-        to: number,
-        isHighlighted: boolean,
-    }
-
-    const output: HighlightRange[] = [];
-
-    let currentRange: HighlightRange | null = null;
-    for (let i = range.from; i < range.to; i++) {
-        const isHighlighted = isIndexHighlighted(highlightRanges, i);
-        
-        if (currentRange) {
-            if (currentRange.isHighlighted === isHighlighted) {
-                currentRange.to = i + 1;
-            } else {
-                output.push({
-                    from: currentRange.from,
-                    to: currentRange.to,
-                    isHighlighted: currentRange.isHighlighted,
-                });
-                
-                currentRange = { from: i, to: i + 1, isHighlighted };
-            }
-        } else {
-            currentRange = { from: i, to: i + 1, isHighlighted };
-        }
-    }
-
-    if (currentRange) {
-        output.push({
-            from: currentRange.from,
-            to: currentRange.to,
-            isHighlighted: currentRange.isHighlighted,
-        });
-    }
-
-    return {
-        output,
-    }
 }
