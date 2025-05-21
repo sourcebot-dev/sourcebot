@@ -7,7 +7,7 @@ import { ErrorCode } from "../../lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { zoektSearchResponseSchema } from "./zoektSchema";
 import { SearchRequest, SearchResponse, SearchResultRange } from "./types";
-import { Repo } from "@sourcebot/db";
+import { OrgRole, Repo } from "@sourcebot/db";
 import * as Sentry from "@sentry/nextjs";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 
@@ -333,5 +333,5 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             });
 
             return parser.parseAsync(searchBody);
-        }), /* allowSingleTenantUnauthedAccess = */ true, apiKey)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey)
 )

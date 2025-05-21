@@ -91,7 +91,7 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
             !isServiceError(publicAccessEnabled) &&
             publicAccessEnabled
         ) {
-            if(!hasEntitlement("public-access")) {
+            if (!hasEntitlement("public-access")) {
                 const plan = getPlan();
                 console.error(`Public access isn't supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
                 return notAuthenticated();
@@ -439,7 +439,8 @@ export const getConnections = async (domain: string, filter: { status?: Connecti
                     repoIndexingStatus: repo.repoIndexingStatus,
                 })),
             }));
-        }), /* allowSingleTenantUnauthedAccess = */ true));
+        })
+    ));
 
 export const getConnectionInfo = async (connectionId: number, domain: string) => sew(() =>
     withAuth((userId) =>
@@ -511,8 +512,8 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,
             }));
-        }
-        ), /* allowSingleTenantUnauthedAccess = */ true));
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+    ));
 
 export const getRepoInfoByName = async (repoName: string, domain: string) => sew(() =>
     withAuth((userId) =>
@@ -573,7 +574,8 @@ export const getRepoInfoByName = async (repoName: string, domain: string) => sew
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,
             }
-        }), /* allowSingleTenantUnauthedAccess = */ true));
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+    ));
 
 export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
     withAuth((userId) =>
@@ -771,8 +773,8 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ userRole }) => {
             return userRole;
-        }), /* allowSingleTenantUnauthedAccess = */ true)
-    );
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+    ));
 
 export const createInvites = async (emails: string[], domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
@@ -1316,7 +1318,7 @@ export const createAccountRequest = async (userId: string, domain: string) => se
                 domain,
             },
         });
-        
+
         if (!org) {
             return notFound("Organization not found");
         }
@@ -1450,8 +1452,8 @@ export const getSearchContexts = async (domain: string) => sew(() =>
                 name: context.name,
                 description: context.description ?? undefined,
             }));
-        }
-        ), /* allowSingleTenantUnauthedAccess = */ true));
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+    ));
 
 
 ////// Helpers ///////

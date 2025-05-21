@@ -1,3 +1,4 @@
+import { OrgRole } from "@sourcebot/db";
 import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
 import { ListRepositoriesResponse } from "./types";
 import { zoektFetch } from "./zoektClient";
@@ -42,5 +43,5 @@ export const listRepositories = async (domain: string, apiKey: string | undefine
             } satisfies ListRepositoriesResponse));
 
             return parser.parse(listBody);
-        }), /* allowSingleTenantUnauthedAccess = */ true, apiKey)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey)
 );

@@ -193,10 +193,22 @@ const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         } else {
             // TODO(auth): handle multi tenant case
             if (env.AUTH_EE_ENABLE_JIT_PROVISIONING === 'true' && hasEntitlement("sso")) {
-                const res = await handleJITProvisioning(user.id!, SINGLE_TENANT_ORG_DOMAIN);
-                if (isServiceError(res)) {
-                    console.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
-                    throw new ServiceErrorException(res);
+                const accounts = await prisma.account.findMany({
+                    where: {
+                        userId: user.id,
+                    }
+                });
+
+                // Accounts are created by authjs when a user is created using an OAuth provider (GitHub, etc). We only perform
+                // JIT provisioning if the user has authed through one of these OAuth providers.
+                if (accounts.length === 0) {
+                    await createAccountRequest(user.id!, SINGLE_TENANT_ORG_DOMAIN);
+                } else {
+                    const res = await handleJITProvisioning(user.id!, SINGLE_TENANT_ORG_DOMAIN);
+                    if (isServiceError(res)) {
+                        console.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
+                        throw new ServiceErrorException(res);
+                    }
                 }
             } else {
                 await createAccountRequest(user.id!, SINGLE_TENANT_ORG_DOMAIN);
