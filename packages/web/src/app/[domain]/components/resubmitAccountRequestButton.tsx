@@ -16,7 +16,7 @@ export function ResubmitAccountRequestButton({ domain, userId }: ResubmitButtonP
     const { toast } = useToast()
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const handleSubmit = async (formData: FormData) => {
+    const handleSubmit = async () => {
         setIsSubmitting(true)
         const result = await createAccountRequest(userId, domain)
         if (!isServiceError(result)) {

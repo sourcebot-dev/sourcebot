@@ -1301,51 +1301,56 @@ export const getOrgAccountRequests = async (domain: string) => sew(() =>
         })
     ));
 
-export const createAccountRequest = async (userId: string, domain: string) => sew(() =>
-    withAuth(async (userId) => {
-        const user = await prisma.user.findUnique({
-            where: {
-                id: userId,
-            },
-        });
+export const createAccountRequest = async (userId: string, domain: string) => {
+    const user = await prisma.user.findUnique({
+        where: {
+            id: userId,
+        },
+    });
 
-        if (!user) {
-            return notFound("User not found");
-        }
+    if (!user) {
+        return notFound("User not found");
+    }
 
-        const org = await prisma.org.findUnique({
-            where: {
-                domain,
-            },
-        });
-
-        if (!org) {
-            return notFound("Organization not found");
-        }
-
-        const existingRequest = await prisma.accountRequest.findUnique({
-            where: {
-                requestedById_orgId: {
-                    requestedById: userId,
-                    orgId: org.id,
-                },
-            },
-        });
-
-        if (!existingRequest) {
-            await prisma.accountRequest.create({
-                data: {
-                    requestedById: userId,
-                    orgId: org.id,
-                },
-            });
-        }
-
+    if (user.pendingApproval == false) {
+        console.warn(`User ${userId} is already pending approval. Skipping account request creation.`);
         return {
             success: true,
         }
-    })
-);
+    }
+
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (!org) {
+        return notFound("Organization not found");
+    }
+
+    const existingRequest = await prisma.accountRequest.findUnique({
+        where: {
+            requestedById_orgId: {
+                requestedById: userId,
+                orgId: org.id,
+            },
+        },
+    });
+
+    if (!existingRequest) {
+        await prisma.accountRequest.create({
+            data: {
+                requestedById: userId,
+                orgId: org.id,
+            },
+        });
+    }
+
+    return {
+        success: true,
+    }
+};
 
 
 export const approveAccountRequest = async (requestId: string, domain: string) => sew(() =>
@@ -1370,7 +1375,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
             const maxSeats = getSeats()
             const memberCount = members.length;
 
-            if (memberCount >= maxSeats) {
+            if (maxSeats !== SOURCEBOT_UNLIMITED_SEATS && memberCount >= maxSeats) {
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,

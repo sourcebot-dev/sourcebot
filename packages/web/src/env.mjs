@@ -24,7 +24,7 @@ export const env = createEnv({
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
 
         // Enterprise Auth
-        AUTH_EE_ENABLE_JIT_PROVISIONING: booleanSchema.default('true'),
+        AUTH_EE_ENABLE_JIT_PROVISIONING: booleanSchema.default('false'),
         AUTH_EE_GITHUB_CLIENT_ID: z.string().optional(),
         AUTH_EE_GITHUB_CLIENT_SECRET: z.string().optional(),
         AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
