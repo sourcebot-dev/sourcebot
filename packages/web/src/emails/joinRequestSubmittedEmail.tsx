@@ -17,28 +17,27 @@ import {
 import { EmailFooter } from './emailFooter';
 import { SOURCEBOT_LOGO_LIGHT_LARGE_URL, SOURCEBOT_ARROW_IMAGE_URL, SOURCEBOT_PLACEHOLDER_AVATAR_URL } from './constants';
 
-interface InviteUserEmailProps {
-    inviteLink: string;
-    host: {
+interface JoinRequestSubmittedEmailProps {
+    baseUrl: string;
+    requestor: {
         email: string;
         name?: string;
         avatarUrl?: string;
     },
-    recipient: {
-        name?: string;
-    },
     orgName: string;
+    orgDomain: string;
     orgImageUrl?: string;
 }
 
-export const InviteUserEmail = ({
-    host,
-    recipient,
+export const JoinRequestSubmittedEmail = ({
+    baseUrl,
+    requestor,
     orgName,
+    orgDomain,
     orgImageUrl,
-    inviteLink,
-}: InviteUserEmailProps) => {
-    const previewText = `Join ${host.name ?? host.email} on Sourcebot`;
+}: JoinRequestSubmittedEmailProps) => {
+    const previewText = `${requestor.name ?? requestor.email} has requested to join ${orgName} on Sourcebot`;
+    const reviewLink = `${baseUrl}/${orgDomain}/settings/members`;
 
     return (
         <Html>
@@ -57,23 +56,23 @@ export const InviteUserEmail = ({
                             />
                         </Section>
                         <Heading className="text-black text-[24px] font-normal text-center p-0 my-[30px] mx-0">
-                            Join <strong>{orgName}</strong> on <strong>Sourcebot</strong>
+                            New Join Request for <strong>{orgName}</strong>
                         </Heading>
                         <Text className="text-black text-[14px] leading-[24px]">
-                            {`Hello${recipient.name ? ` ${recipient.name.split(' ')[0]}` : ''},`}
+                            Hello,
                         </Text>
                         <Text className="text-black text-[14px] leading-[24px]">
-                            <InvitedByText email={host.email} name={host.name} /> has invited you to the <strong>{orgName}</strong> organization on{' '}
-                            <strong>Sourcebot</strong>.
+                            <RequestorInfo email={requestor.email} name={requestor.name} /> has requested to join your organization <strong>{orgName}</strong> on Sourcebot.
                         </Text>
                         <Section>
                             <Row>
                                 <Column align="right">
                                     <Img
                                         className="rounded-full"
-                                        src={host.avatarUrl ? host.avatarUrl : SOURCEBOT_PLACEHOLDER_AVATAR_URL}
+                                        src={requestor.avatarUrl ? requestor.avatarUrl : SOURCEBOT_PLACEHOLDER_AVATAR_URL}
                                         width="64"
                                         height="64"
+                                        alt="Requestor avatar"
                                     />
                                 </Column>
                                 <Column align="center">
@@ -81,7 +80,7 @@ export const InviteUserEmail = ({
                                         src={SOURCEBOT_ARROW_IMAGE_URL}
                                         width="12"
                                         height="9"
-                                        alt="invited you to"
+                                        alt="requesting to join"
                                     />
                                 </Column>
                                 <Column align="left">
@@ -90,6 +89,7 @@ export const InviteUserEmail = ({
                                         src={orgImageUrl ? orgImageUrl : SOURCEBOT_PLACEHOLDER_AVATAR_URL}
                                         width="64"
                                         height="64"
+                                        alt="Organization avatar"
                                     />
                                 </Column>
                             </Row>
@@ -97,15 +97,15 @@ export const InviteUserEmail = ({
                         <Section className="text-center mt-[32px] mb-[32px]">
                             <Button
                                 className="bg-[#000000] rounded text-white text-[12px] font-semibold no-underline text-center px-5 py-3"
-                                href={inviteLink}
+                                href={reviewLink}
                             >
-                                Join the organization
+                                Review join request
                             </Button>
                         </Section>
                         <Text className="text-black text-[14px] leading-[24px]">
                             or copy and paste this URL into your browser:{' '}
-                            <Link href={inviteLink} className="text-blue-600 no-underline">
-                                {inviteLink}
+                            <Link href={reviewLink} className="text-blue-600 no-underline">
+                                {reviewLink}
                             </Link>
                         </Text>
                         <EmailFooter />
@@ -116,29 +116,26 @@ export const InviteUserEmail = ({
     );
 };
 
-const InvitedByText = ({ email, name }: { email: string, name?: string }) => {
+const RequestorInfo = ({ email, name }: { email: string, name?: string }) => {
     const emailElement = <Link href={`mailto:${email}`} className="text-blue-600 no-underline">{email}</Link>;
 
     if (name) {
-        const firstName = name.split(' ')[0];
-        return <span><strong>{firstName}</strong> ({emailElement})</span>;
+        return <span><strong>{name}</strong> ({emailElement})</span>;
     }
 
     return emailElement;
 }
 
-InviteUserEmail.PreviewProps = {
-    host: {
+JoinRequestSubmittedEmail.PreviewProps = {
+    baseUrl: 'http://localhost:3000',
+    requestor: {
         name: 'Alan Turing',
         email: 'alan.turing@example.com',
-        avatarUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
-    },
-    recipient: {
-        // name: 'alanturing',
+        avatarUrl: `http://localhost:3000/placeholder_avatar.png`,
     },
     orgName: 'Enigma',
-    orgImageUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
-    inviteLink: 'https://localhost:3000/redeem?invite_id=1234',
-} satisfies InviteUserEmailProps;
+    orgDomain: '~',
+    orgImageUrl: `http://localhost:3000/placeholder_avatar.png`,
+} satisfies JoinRequestSubmittedEmailProps;
 
-export default InviteUserEmail;
+export default JoinRequestSubmittedEmail;

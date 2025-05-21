@@ -31,6 +31,8 @@ import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schem
 import { getPlan, getSeats, SOURCEBOT_UNLIMITED_SEATS } from "./features/entitlements/server";
 import { hasEntitlement } from "./features/entitlements/server";
 import { getPublicAccessStatus } from "./ee/features/publicAccess/publicAccess";
+import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
+import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -873,7 +875,6 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                     const inviteLink = `${origin}/redeem?invite_id=${invite.id}`;
                     const transport = createTransport(env.SMTP_CONNECTION_URL);
                     const html = await render(InviteUserEmail({
-                        baseUrl: origin,
                         host: {
                             name: user.name ?? undefined,
                             email: user.email!,
@@ -1173,6 +1174,18 @@ export const removeMemberFromOrg = async (memberId: string, domain: string): Pro
                     }
                 });
 
+                // TODO: The fact that pendingApproval is set in the user is a bit weird here, since it will prevent approval from working in the multi-tenant case.
+                // We need to set pendingApproval to be true here though so that if the user tries to sign into the deployment again it will send another request. Without
+                // this, the user will never be able to request to join the org again.
+                await tx.user.update({
+                    where: {
+                        id: memberId,
+                    },
+                    data: {
+                        pendingApproval: true,
+                    }
+                });
+
                 if (IS_BILLING_ENABLED) {
                     const result = await decrementOrgSeatCount(org.id, tx);
                     if (isServiceError(result)) {
@@ -1350,6 +1363,51 @@ export const createAccountRequest = async (userId: string, domain: string) => {
                 orgId: org.id,
             },
         });
+
+        if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+            const origin = (await headers()).get('origin')!;
+
+            const owner = await prisma.user.findFirst({
+                where: {
+                    orgs: {
+                        some: {
+                            orgId: org.id,
+                            role: "OWNER",
+                        },
+                    },
+                },
+            });
+
+            if (!owner) {
+                console.error(`Failed to find owner for org ${org.id} when drafting email for account request from ${userId}`);
+            } else {
+                const html = await render(JoinRequestSubmittedEmail({
+                    baseUrl: origin,
+                    requestor: {
+                        name: user.name ?? undefined,
+                        email: user.email!,
+                        avatarUrl: user.image ?? undefined,
+                    },
+                    orgName: org.name,
+                    orgDomain: org.domain,
+                    orgImageUrl: org.imageUrl ?? undefined,
+                }));
+                
+                const transport = createTransport(env.SMTP_CONNECTION_URL);
+                const result = await transport.sendMail({
+                    to: owner.email!,
+                    from: env.EMAIL_FROM_ADDRESS,
+                    subject: `New account request for ${org.name} on Sourcebot`,
+                    html,
+                    text: `New account request for ${org.name} on Sourcebot by ${user.name ?? user.email}`,
+                });
+                
+                const failed = result.rejected.concat(result.pending).filter(Boolean);
+                if (failed.length > 0) {
+                    console.error(`Failed to send account request email to ${owner.email}: ${failed}`);
+                }
+            }
+        }
     }
 
     return {
@@ -1364,6 +1422,9 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
             const request = await prisma.accountRequest.findUnique({
                 where: {
                     id: requestId,
+                },
+                include: {
+                    requestedBy: true,
                 },
             });
 
@@ -1412,6 +1473,37 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                     },
                 }),
             ]);
+
+            // Send approval email to the user
+            if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+                const origin = (await headers()).get('origin')!;
+                
+                const html = await render(JoinRequestApprovedEmail({
+                    baseUrl: origin,
+                    user: {
+                        name: request.requestedBy.name ?? undefined,
+                        email: request.requestedBy.email!,
+                        avatarUrl: request.requestedBy.image ?? undefined,
+                    },
+                    orgName: org.name,
+                    orgDomain: org.domain,
+                    orgImageUrl: org.imageUrl ?? undefined,
+                }));
+                
+                const transport = createTransport(env.SMTP_CONNECTION_URL);
+                const result = await transport.sendMail({
+                    to: request.requestedBy.email!,
+                    from: env.EMAIL_FROM_ADDRESS,
+                    subject: `Your request to join ${org.name} has been approved`,
+                    html,
+                    text: `Your request to join ${org.name} on Sourcebot has been approved. You can now access the organization at ${origin}/${org.domain}`,
+                });
+                
+                const failed = result.rejected.concat(result.pending).filter(Boolean);
+                if (failed.length > 0) {
+                    console.error(`Failed to send approval email to ${request.requestedBy.email}: ${failed}`);
+                }
+            }
 
             return {
                 success: true,

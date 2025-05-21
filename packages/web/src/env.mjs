@@ -22,6 +22,7 @@ export const env = createEnv({
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
+        AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.default('false'),
 
         // Enterprise Auth
         AUTH_EE_ENABLE_JIT_PROVISIONING: booleanSchema.default('false'),

@@ -45,7 +45,7 @@ export const getProviders = () => {
         providers.push(...getSSOProviders());
     }
 
-    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
         providers.push(EmailProvider({
             server: env.SMTP_CONNECTION_URL,
             from: env.EMAIL_FROM_ADDRESS,
@@ -54,10 +54,9 @@ export const getProviders = () => {
                 const token = String(Math.floor(100000 + Math.random() * 900000));
                 return token;
             },
-            sendVerificationRequest: async ({ identifier, provider, token, request }) => {
-                const origin = request.headers.get('origin')!;
+            sendVerificationRequest: async ({ identifier, provider, token }) => {
                 const transport = createTransport(provider.server);
-                const html = await render(MagicLinkEmail({ baseUrl: origin, token: token }));
+                const html = await render(MagicLinkEmail({ token: token }));
                 const result = await transport.sendMail({
                     to: identifier,
                     from: provider.from,
