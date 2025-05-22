@@ -1,7 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { darkHighlightStyle, lightHighlightStyle } from "@/hooks/useCodeMirrorTheme";
-import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 import { ReadOnlyCodeBlock } from "@/app/[domain]/components/readOnlyCodeBlock";
 import { SymbolDefInfo } from "./useHoveredOverSymbolInfo";
 
@@ -13,7 +11,6 @@ export const SymbolDefinitionPreview = ({
     symbolDefinition,
 }: SymbolDefinitionPreviewProps) => {
     const { content: lineContent, language, range } = symbolDefinition;
-    const { theme } = useThemeNormalized();
 
     return (
         <div className="flex flex-col gap-2 mb-2">
@@ -40,7 +37,6 @@ export const SymbolDefinitionPreview = ({
             </Tooltip>
             <ReadOnlyCodeBlock
                 language={language}
-                theme={theme === 'dark' ? darkHighlightStyle : lightHighlightStyle}
                 highlightRanges={[
                     {
                         from: range.start.column - 1,

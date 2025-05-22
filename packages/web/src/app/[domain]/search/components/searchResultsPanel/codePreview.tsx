@@ -86,5 +86,4 @@ export const CodePreview = ({
             extensions={extensions}
         />
     )
-
 }

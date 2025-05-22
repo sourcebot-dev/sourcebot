@@ -3,11 +3,11 @@ import { Language, LanguageDescription } from '@codemirror/language'
 import { Highlighter, highlightTree } from '@lezer/highlight'
 import { languages as builtinLanguages } from '@codemirror/language-data'
 import { memo, useEffect, useState } from 'react'
+import { useCodeMirrorHighlighter } from '@/hooks/useCodeMirrorHighlighter'
 
 interface ReadOnlyCodeBlockProps {
     language: string;
     children: string;
-    theme: Highlighter;
     fallbackLanguage?: Language;
     languages?: LanguageDescription[];
     highlightRanges?: { from: number, to: number }[];
@@ -17,18 +17,19 @@ export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCo
     const {
         language,
         children: code,
-        theme,
         fallbackLanguage,
         languages,
         highlightRanges,
     } = props
-    const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[] | null>(null)
+    const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[] | null>(null);
+
+    const highlightStyle = useCodeMirrorHighlighter();
 
     useEffect(() => {
         highlightCode(
             language,
             code,
-            theme,
+            highlightStyle,
             fallbackLanguage,
             languages,
             highlightRanges,
@@ -43,9 +44,15 @@ export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCo
                 )
             }
         ).then(setHighlightedCode)
-    }, [language, code, theme, fallbackLanguage, languages, highlightRanges])
+    }, [language, code, fallbackLanguage, languages, highlightRanges, highlightStyle])
 
-    return <div className="font-mono text-sm">{highlightedCode || code}</div>
+    return (
+        <div
+            className="font-mono text-sm"
+        >
+            {highlightedCode || code}
+        </div>
+    )
 })
 
 ReadOnlyCodeBlock.displayName = 'ReadOnlyCodeBlock';

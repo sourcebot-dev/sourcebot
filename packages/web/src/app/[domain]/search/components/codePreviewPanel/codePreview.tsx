@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SearchResultChunk } from "@/features/search/types";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
-import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
+import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
 import { gutterWidthExtension } from "@/lib/extensions/gutterWidthExtension";
 import { highlightRanges, searchResultHighlightExtension } from "@/lib/extensions/searchResultHighlightExtension";
 import { search } from "@codemirror/search";
@@ -48,14 +48,14 @@ export const CodePreview = ({
     const theme = useCodeMirrorTheme();
 
     const keymapExtension = useKeymapExtension(editorRef?.view);
-    const syntaxHighlighting = useSyntaxHighlightingExtension(file?.language ?? '', editorRef?.view);
+    const languageExtension = useCodeMirrorLanguageExtension(file?.language ?? '', editorRef?.view);
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
 
     const extensions = useMemo(() => {
         return [
             keymapExtension,
             gutterWidthExtension,
-            syntaxHighlighting,
+            languageExtension,
             EditorView.lineWrapping,
             searchResultHighlightExtension(),
             search({
@@ -76,7 +76,7 @@ export const CodePreview = ({
                 }
             })
         ];
-    }, [keymapExtension, syntaxHighlighting]);
+    }, [keymapExtension, languageExtension]);
 
     const ranges = useMemo(() => {
         if (!file || !file.matches.length) {
