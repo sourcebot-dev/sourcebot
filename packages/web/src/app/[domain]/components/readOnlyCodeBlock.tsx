@@ -2,15 +2,22 @@ import { Parser } from '@lezer/common'
 import { Language, LanguageDescription } from '@codemirror/language'
 import { Highlighter, highlightTree } from '@lezer/highlight'
 import { languages as builtinLanguages } from '@codemirror/language-data'
-import { memo, useEffect, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import { useCodeMirrorHighlighter } from '@/hooks/useCodeMirrorHighlighter'
+import tailwind from '@/tailwind'
+import { measure } from '@/lib/utils'
+import { SourceRange } from '@/features/search/types'
 
 interface ReadOnlyCodeBlockProps {
     language: string;
     children: string;
     fallbackLanguage?: Language;
     languages?: LanguageDescription[];
-    highlightRanges?: { from: number, to: number }[];
+    /* 1-based highlight ranges */
+    highlightRanges?: SourceRange[];
+    lineNumbers?: boolean;
+    /* 1-based line number offset */
+    lineNumbersOffset?: number;
 }
 
 export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCodeBlockProps) => {
@@ -20,37 +27,97 @@ export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCo
         fallbackLanguage,
         languages,
         highlightRanges,
-    } = props
-    const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[] | null>(null);
+        lineNumbers = false,
+        lineNumbersOffset = 1,
+    } = props;
+
+    const unhighlightedLines = useMemo(() => {
+        return code.split('\n').filter(line => line.length > 0);
+    }, [code]);
+
+
+    const [highlightedLines, setHighlightedLines] = useState<React.ReactNode[] | null>(null);
 
     const highlightStyle = useCodeMirrorHighlighter();
 
     useEffect(() => {
-        highlightCode(
-            language,
-            code,
-            highlightStyle,
-            fallbackLanguage,
-            languages,
-            highlightRanges,
-            (text: string, style: string | null, from: number) => {
-                return (
-                    <span
-                        key={from}
-                        className={`${style || ''}`}
-                    >
-                        {text}
-                    </span>
-                )
-            }
-        ).then(setHighlightedCode)
-    }, [language, code, fallbackLanguage, languages, highlightRanges, highlightStyle])
+        measure(() => Promise.all(
+            unhighlightedLines
+                .map(async (line, index) => {
+                    const lineNumber = index + lineNumbersOffset;
+
+                    // @todo: we will need to handle the case where a range spans multiple lines.
+                    const ranges = highlightRanges?.filter(range => {
+                        return range.start.lineNumber === lineNumber || range.end.lineNumber === lineNumber;
+                    }).map(range => ({
+                        from: range.start.column - 1,
+                        to: range.end.column - 1,
+                    }));
+
+                    const snippets = await highlightCode(
+                        language,
+                        line,
+                        highlightStyle,
+                        fallbackLanguage,
+                        languages,
+                        ranges,
+                        (text: string, style: string | null, from: number) => {
+                            return (
+                                <span
+                                    key={from}
+                                    className={`${style || ''}`}
+                                >
+                                    {text}
+                                </span>
+                            )
+                        }
+                    );
+
+                    return <span key={index}>{snippets}</span>
+                })
+        ).then(highlightedLines => {
+            setHighlightedLines(highlightedLines);
+        }), 'highlightCode');
+    }, [language, code, fallbackLanguage, languages, highlightRanges, highlightStyle, unhighlightedLines, lineNumbersOffset]);
+
+    const lineCount = (highlightedLines ?? unhighlightedLines).length + lineNumbersOffset;
+    const lineNumberDigits = String(lineCount).length;
+    const lineNumberWidth = `${lineNumberDigits + 1}ch`; // +1 for padding
 
     return (
         <div
-            className="font-mono text-sm"
+            style={{
+                fontFamily: tailwind.theme.fontFamily.editor,
+                fontSize: tailwind.theme.fontSize.editor,
+            }}
         >
-            {highlightedCode || code}
+            {(highlightedLines ?? unhighlightedLines).map((line, index) => (
+                <div
+                    key={index}
+                    className="flex"
+                >
+                    {lineNumbers && (
+                        <span
+                            style={{
+                                width: lineNumberWidth,
+                                minWidth: lineNumberWidth,
+                                display: 'inline-block',
+                                textAlign: 'left',
+                                marginLeft: '3px',
+                                marginRight: '3px',
+                                userSelect: 'none',
+                                fontFamily: tailwind.theme.fontFamily.editor,
+                                color: tailwind.theme.colors.editor.gutterForeground,
+                            }}
+                        >
+                            {index + lineNumbersOffset}
+                        </span>
+                    )}
+                    <span className="cm-line" style={{ flex: 1 }}>
+                        {line}
+                    </span>
+                </div>
+            ))}
         </div>
     )
 })
@@ -107,13 +174,13 @@ async function highlightCode<Output>(
             to: number,
             isHighlighted: boolean,
         }
-    
+
         const highlightClasses = classes ? `${classes} matchHighlight` : 'matchHighlight';
-    
+
         let currentRange: HighlightRange | null = null;
         for (let i = from; i < to; i++) {
             const isHighlighted = isIndexHighlighted(i, highlightRanges);
-            
+
             if (currentRange) {
                 if (currentRange.isHighlighted === isHighlighted) {
                     currentRange.to = i + 1;
@@ -123,14 +190,14 @@ async function highlightCode<Output>(
                         currentRange.to,
                         currentRange.isHighlighted ? highlightClasses : classes,
                     )
-                    
+
                     currentRange = { from: i, to: i + 1, isHighlighted };
                 }
             } else {
                 currentRange = { from: i, to: i + 1, isHighlighted };
             }
         }
-    
+
         if (currentRange) {
             cb(
                 currentRange.from,
@@ -139,7 +206,7 @@ async function highlightCode<Output>(
             )
         }
     }
-    
+
 
     if (parser) {
         const tree = parser.parse(input)

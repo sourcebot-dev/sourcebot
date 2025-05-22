@@ -1,5 +1,5 @@
 import { search } from "@/app/api/(client)/client";
-import { SearchResultRange } from "@/features/search/types";
+import { SourceRange } from "@/features/search/types";
 import { useDomain } from "@/hooks/useDomain";
 import { base64Decode, isServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -19,7 +19,7 @@ export interface SymbolDefInfo {
     language: string;
     fileName: string;
     repoName: string;
-    range: SearchResultRange;
+    range: SourceRange;
 }
 
 interface HoveredOverSymbolInfo {

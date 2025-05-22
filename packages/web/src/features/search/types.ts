@@ -14,7 +14,6 @@ import { z } from "zod";
 
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
-export type SearchResultRange = z.infer<typeof rangeSchema>;
 export type SearchResultLocation = z.infer<typeof locationSchema>;
 export type SearchResultFile = SearchResponse["files"][number];
 export type SearchResultChunk = SearchResultFile["chunks"][number];
@@ -27,3 +26,4 @@ export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
 
 export type RepositoryInfo = z.infer<typeof repositoryInfoSchema>;
+export type SourceRange = z.infer<typeof rangeSchema>;

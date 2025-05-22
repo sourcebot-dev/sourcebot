@@ -3,14 +3,15 @@
 import { ResizablePanel } from "@/components/ui/resizable";
 import { useQuery } from "@tanstack/react-query";
 import { useDomain } from "@/hooks/useDomain";
-import { base64Decode, isServiceError, unwrapServiceError } from "@/lib/utils";
+import { base64Decode, createPathWithQueryParams, isServiceError, unwrapServiceError } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { findSearchBasedSymbolReferences } from "@/features/codeNav/actions";
 import { FindSearchBasedSymbolReferencesResponse } from "@/features/codeNav/types";
-import { RepositoryInfo } from "@/features/search/types";
+import { RepositoryInfo, SourceRange } from "@/features/search/types";
 import { useMemo } from "react";
 import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { ReadOnlyCodeBlock } from "@/app/[domain]/components/readOnlyCodeBlock";
+import { useRouter } from "next/navigation";
 
 interface BottomPanelProps {
     selectedSymbol: string | null;
@@ -32,7 +33,7 @@ export const BottomPanel = ({
     return (
         <ResizablePanel
             minSize={10}
-            maxSize={30}
+            maxSize={40}
             collapsible={true}
         >
             {!selectedSymbol ? (
@@ -57,7 +58,7 @@ interface ReferenceListProps {
 }
 
 const ReferenceList = ({
-    data
+    data,
 }: ReferenceListProps) => {
     const repoInfoMap = useMemo(() => {
         return data.repositoryInfo.reduce((acc, repo) => {
@@ -65,6 +66,9 @@ const ReferenceList = ({
             return acc;
         }, {} as Record<number, RepositoryInfo>);
     }, [data.repositoryInfo]);
+
+    const router = useRouter();
+    const domain = useDomain();
 
     return (
         <ScrollArea className="h-full">
@@ -84,28 +88,62 @@ const ReferenceList = ({
                                 fileName={file.fileName}
                             />
                         </div>
-                        {file.references
-                            .sort((a, b) => a.range.start.lineNumber - b.range.start.lineNumber)
-                            .map((reference, index) => (
-                                <div
-                                    key={index}
-                                >
-                                    <ReadOnlyCodeBlock
-                                        language="JavaScript"
-                                        highlightRanges={[
-                                            {
-                                                from: reference.range.start.column - 1,
-                                                to: reference.range.end.column - 1,
-                                            }
-                                        ]}
-                                    >
-                                        {base64Decode(reference.lineContent)}
-                                    </ReadOnlyCodeBlock>
-                                </div>
-                            ))}
+                        <div className="divide-y">
+                            {file.references
+                                .sort((a, b) => a.range.start.lineNumber - b.range.start.lineNumber)
+                                .map((reference, index) => (
+                                    <ReferenceListItem
+                                        key={index}
+                                        lineContent={reference.lineContent}
+                                        range={reference.range}
+                                        onClick={() => {
+                                            const { start, end } = reference.range;
+                                            const highlightRange = `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`;
+
+                                            const url = createPathWithQueryParams(`/${domain}/browse/${file.repository}@HEAD/-/blob/${file.fileName}`,
+                                                ['highlightRange', highlightRange]
+                                            );
+                                            router.push(url);
+                                        }}
+                                    />
+                                ))}
+                        </div>
                     </div>
                 )
             })}
         </ScrollArea>
+    )
+}
+
+
+interface ReferenceListItemProps {
+    lineContent: string;
+    range: SourceRange;
+    onClick: () => void;
+}
+
+const ReferenceListItem = ({
+    lineContent,
+    range,
+    onClick,
+}: ReferenceListItemProps) => {
+    const decodedLineContent = useMemo(() => {
+        return base64Decode(lineContent);
+    }, [lineContent]);
+
+    return (
+        <div
+            className="w-full hover:bg-accent py-1 cursor-pointer"
+            onClick={onClick}
+        >
+            <ReadOnlyCodeBlock
+                language="JavaScript"
+                highlightRanges={[range]}
+                lineNumbers={true}
+                lineNumbersOffset={range.start.lineNumber}
+            >
+                {decodedLineContent}
+            </ReadOnlyCodeBlock>
+        </div>
     )
 }

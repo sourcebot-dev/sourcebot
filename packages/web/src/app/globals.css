@@ -57,6 +57,9 @@
     --editor-tag-name: #e06c75;
     --editor-tag-variable-definition: #00f;
     --editor-tag-property-definition: #00c;
+
+    --editor-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --editor-font-size: 13px;
   }
  
   .dark {
