@@ -31,7 +31,7 @@ export const NavigationMenu = async ({
     const isAuthenticated = session?.user !== undefined;
 
     return (
-        <div className="flex flex-col w-screen h-fit bg-background">
+        <div className="flex flex-col w-full h-fit bg-background">
             <div className="flex flex-row justify-between items-center py-1.5 px-3">
                 <div className="flex flex-row items-center">
                     <Link

@@ -403,6 +403,39 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
             }
         })));
 
+export const deleteApiKey = async (name: string, prefix: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const apiKey = await prisma.apiKey.findFirst({
+                where: {
+                    name,
+                    prefix,
+                    createdById: userId,
+                },
+            });
+
+            if (!apiKey) {
+                return {
+                    statusCode: StatusCodes.NOT_FOUND,
+                    errorCode: ErrorCode.API_KEY_NOT_FOUND,
+                    message: `API key ${name} with prefix ${prefix} not found for user ${userId}`,
+                } satisfies ServiceError;
+            }
+
+            await prisma.apiKey.delete({
+                where: {
+                    prefix_createdById: {
+                        prefix,
+                        createdById: userId,
+                    },
+                },
+            });
+
+            return {
+                success: true,
+            }
+        })));
+
 export const getUserApiKeys = async (domain: string): Promise<{ name: string; createdAt: Date; lastUsedAt: Date | null }[] | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
