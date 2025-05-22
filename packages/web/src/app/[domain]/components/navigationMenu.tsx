@@ -71,13 +71,15 @@ export const NavigationMenu = async ({
                             </NavigationMenuItem>
                             {isAuthenticated && (
                                 <>
-                                    <NavigationMenuItem>
-                                        <Link href={`/${domain}/agents`} legacyBehavior passHref>
-                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                                Agents
-                                            </NavigationMenuLink>
-                                        </Link>
-                                    </NavigationMenuItem>
+                                    {env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined && (
+                                        <NavigationMenuItem>
+                                            <Link href={`/${domain}/agents`} legacyBehavior passHref>
+                                                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                                    Agents
+                                                </NavigationMenuLink>
+                                            </Link>
+                                        </NavigationMenuItem>
+                                    )}
                                     <NavigationMenuItem>
                                         <Link href={`/${domain}/connections`} legacyBehavior passHref>
                                             <NavigationMenuLink className={navigationMenuTriggerStyle()}>

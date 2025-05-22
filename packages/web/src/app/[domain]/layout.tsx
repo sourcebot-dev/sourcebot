@@ -16,6 +16,7 @@ import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { hasEntitlement } from "@/features/entitlements/server";
 import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
+import { env } from "@/env.mjs";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -58,7 +59,8 @@ export default async function Layout({
                     }
                 });
                 
-                if (user?.pendingApproval) {
+                // TODO: Organization join requests are only supported in single-tenant mode
+                if (env.SOURCEBOT_TENANCY_MODE === "single" && user?.pendingApproval) {
                     return <PendingApprovalCard domain={domain} />
                 } else {
                     return notFound();

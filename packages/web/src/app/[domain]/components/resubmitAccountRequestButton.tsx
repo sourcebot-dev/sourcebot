@@ -20,11 +20,19 @@ export function ResubmitAccountRequestButton({ domain, userId }: ResubmitButtonP
         setIsSubmitting(true)
         const result = await createAccountRequest(userId, domain)
         if (!isServiceError(result)) {
-            toast({
-                title: "Request Resubmitted",
-                description: "Your request to join the organization has been resubmitted.",
-                variant: "default",
-            })
+            if (result.existingRequest) {
+                toast({
+                    title: "Request Already Submitted",
+                    description: "Your request to join the organization has already been submitted. Please wait for it to be approved.",
+                    variant: "default",
+                })
+            } else {
+                toast({
+                    title: "Request Resubmitted",
+                    description: "Your request to join the organization has been resubmitted.",
+                    variant: "default",
+                })
+            }
         } else {
             toast({
                 title: "Failed to Resubmit",

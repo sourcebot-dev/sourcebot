@@ -107,6 +107,35 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
     return fn(session.user.id);
 }
 
+export const orgHasAvailability = async (domain: string): Promise<boolean> => {
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (!org) {
+        return false;
+    }
+    const members = await prisma.userToOrg.findMany({
+        where: {
+            orgId: org.id,
+            role: {
+                not: OrgRole.GUEST,
+            },
+        },
+    });
+
+    const maxSeats = getSeats();
+    const memberCount = members.length;
+
+    if (maxSeats !== SOURCEBOT_UNLIMITED_SEATS && memberCount >= maxSeats) {
+        return false;
+    }
+
+    return true;
+}
+
 export const withOrgMembership = async <T>(userId: string, domain: string, fn: (params: { userRole: OrgRole, org: Org }) => Promise<T>, minRequiredRole: OrgRole = OrgRole.MEMBER) => {
     const org = await prisma.org.findUnique({
         where: {
@@ -370,7 +399,7 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
                         name,
                     },
                 });
-                
+
                 if (existingApiKey) {
                     return {
                         statusCode: StatusCodes.BAD_REQUEST,
@@ -828,18 +857,13 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
 export const createInvites = async (emails: string[], domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
-            const seats = getSeats();
-            const members = await getOrgMembers(domain);
-            if (isServiceError(members)) {
-                throw new ServiceErrorException(members);
-            }
-
             const user = await getMe();
             if (isServiceError(user)) {
                 throw new ServiceErrorException(user);
             }
 
-            if (seats !== SOURCEBOT_UNLIMITED_SEATS && members.length >= seats) {
+            const hasAvailability = await orgHasAvailability(domain);
+            if (!hasAvailability) {
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
@@ -1033,6 +1057,15 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         const user = await getMe();
         if (isServiceError(user)) {
             return user;
+        }
+
+        const hasAvailability = await orgHasAvailability(invite.org.domain);
+        if (!hasAvailability) {
+            return {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
+                message: "Organization is at max capacity",
+            } satisfies ServiceError;
         }
 
         // Check if the user is the recipient of the invite
@@ -1282,6 +1315,7 @@ export const leaveOrg = async (domain: string): Promise<{ success: boolean } | S
         })
     ));
 
+
 export const getOrgMembership = async (domain: string) => sew(() =>
     withAuth(async (userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
@@ -1378,9 +1412,10 @@ export const createAccountRequest = async (userId: string, domain: string) => {
     }
 
     if (user.pendingApproval == false) {
-        console.warn(`User ${userId} is already pending approval. Skipping account request creation.`);
+        console.warn(`User ${userId} isn't pending approval. Skipping account request creation.`);
         return {
             success: true,
+            existingRequest: false,
         }
     }
 
@@ -1402,6 +1437,14 @@ export const createAccountRequest = async (userId: string, domain: string) => {
             },
         },
     });
+
+    if (existingRequest) {
+        console.warn(`User ${userId} already has an account request for org ${org.id}. Skipping account request creation.`);
+        return {
+            success: true,
+            existingRequest: true,
+        }
+    }
 
     if (!existingRequest) {
         await prisma.accountRequest.create({
@@ -1439,7 +1482,7 @@ export const createAccountRequest = async (userId: string, domain: string) => {
                     orgDomain: org.domain,
                     orgImageUrl: org.imageUrl ?? undefined,
                 }));
-                
+
                 const transport = createTransport(env.SMTP_CONNECTION_URL);
                 const result = await transport.sendMail({
                     to: owner.email!,
@@ -1448,7 +1491,7 @@ export const createAccountRequest = async (userId: string, domain: string) => {
                     html,
                     text: `New account request for ${org.name} on Sourcebot by ${user.name ?? user.email}`,
                 });
-                
+
                 const failed = result.rejected.concat(result.pending).filter(Boolean);
                 if (failed.length > 0) {
                     console.error(`Failed to send account request email to ${owner.email}: ${failed}`);
@@ -1459,9 +1502,9 @@ export const createAccountRequest = async (userId: string, domain: string) => {
 
     return {
         success: true,
+        existingRequest: false,
     }
 };
-
 
 export const approveAccountRequest = async (requestId: string, domain: string) => sew(() =>
     withAuth(async (userId) =>
@@ -1479,16 +1522,8 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                 return notFound();
             }
 
-
-            const members = await getOrgMembers(domain);
-            if (isServiceError(members)) {
-                throw new ServiceErrorException(members);
-            }
-
-            const maxSeats = getSeats()
-            const memberCount = members.length;
-
-            if (maxSeats !== SOURCEBOT_UNLIMITED_SEATS && memberCount >= maxSeats) {
+            const hasAvailability = await orgHasAvailability(domain);
+            if (!hasAvailability) {
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
@@ -1524,7 +1559,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
             // Send approval email to the user
             if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
                 const origin = (await headers()).get('origin')!;
-                
+
                 const html = await render(JoinRequestApprovedEmail({
                     baseUrl: origin,
                     user: {
@@ -1535,7 +1570,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                     orgName: org.name,
                     orgDomain: org.domain
                 }));
-                
+
                 const transport = createTransport(env.SMTP_CONNECTION_URL);
                 const result = await transport.sendMail({
                     to: request.requestedBy.email!,
@@ -1544,7 +1579,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                     html,
                     text: `Your request to join ${org.name} on Sourcebot has been approved. You can now access the organization at ${origin}/${org.domain}`,
                 });
-                
+
                 const failed = result.rejected.concat(result.pending).filter(Boolean);
                 if (failed.length > 0) {
                     console.error(`Failed to send approval email to ${request.requestedBy.email}: ${failed}`);
