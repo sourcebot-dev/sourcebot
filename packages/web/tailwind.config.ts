@@ -82,7 +82,13 @@ const config = {
 						'variable-definition': 'var(--editor-tag-variable-definition)',
 						name: 'var(--editor-tag-name)',
 					}
-				}
+				},
+			},
+			fontSize: {
+				editor: 'var(--editor-font-size)'
+			},
+			fontFamily: {
+				editor: 'var(--editor-font-family)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

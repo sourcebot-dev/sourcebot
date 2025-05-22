@@ -2,7 +2,7 @@
 
 import { getCodemirrorLanguage } from "@/lib/codemirrorLanguage";
 import { lineOffsetExtension } from "@/lib/extensions/lineOffsetExtension";
-import { SearchResultRange } from "@/features/search/types";
+import { SourceRange } from "@/features/search/types";
 import { EditorState, StateField, Transaction } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, lineNumbers } from "@codemirror/view";
 import { useMemo, useRef } from "react";
@@ -16,7 +16,7 @@ const markDecoration = Decoration.mark({
 interface CodePreviewProps {
     content: string,
     language: string,
-    ranges: SearchResultRange[],
+    ranges: SourceRange[],
     lineOffset: number,
 }
 

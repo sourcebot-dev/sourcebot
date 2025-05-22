@@ -1,6 +1,5 @@
 'use client';
 
-import { useTailwind } from "./useTailwind";
 import { useMemo } from "react";
 import { useThemeNormalized } from "./useThemeNormalized";
 import {
@@ -10,9 +9,9 @@ import { EditorView } from "@codemirror/view";
 import { syntaxHighlighting } from "@codemirror/language";
 import type { StyleSpec } from 'style-mod';
 import { Extension } from "@codemirror/state";
+import tailwind from "@/tailwind";
 
 export const useCodeMirrorTheme = () => {
-    const tailwind = useTailwind();
     const { theme } = useThemeNormalized();
     const highlightStyle = useCodeMirrorHighlighter();
 
@@ -44,11 +43,13 @@ export const useCodeMirrorTheme = () => {
                     gutterBorder,
                     gutterActiveForeground,
                     lineHighlight,
+                    fontFamily: tailwind.theme.fontFamily.editor,
+                    fontSize: tailwind.theme.fontSize.editor,
                 }
             }),
             syntaxHighlighting(highlightStyle)
         ]
-    }, [highlightStyle, tailwind.theme.colors.editor, theme]);
+    }, [highlightStyle, theme]);
 
     return cmTheme;
 }

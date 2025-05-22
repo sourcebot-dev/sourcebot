@@ -1,7 +1,6 @@
 'use client';
 
 import { useClickListener } from "@/hooks/useClickListener";
-import { useTailwind } from "@/hooks/useTailwind";
 import { SearchQueryParams } from "@/lib/types";
 import { cn, createPathWithQueryParams } from "@/lib/utils";
 import {
@@ -44,6 +43,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Toggle } from "@/components/ui/toggle";
 import { useDomain } from "@/hooks/useDomain";
 import { KeyboardShortcutHint } from "../keyboardShortcutHint";
+import tailwind from "@/tailwind";
 
 interface SearchBarProps {
     className?: string;
@@ -95,7 +95,6 @@ export const SearchBar = ({
 }: SearchBarProps) => {
     const router = useRouter();
     const domain = useDomain();
-    const tailwind = useTailwind();
     const suggestionBoxRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     const [cursorPosition, setCursorPosition] = useState(0);
@@ -161,7 +160,7 @@ export const SearchBar = ({
                 },
             ],
         });
-    }, [tailwind]);
+    }, []);
 
     const extensions = useMemo(() => {
         return [

@@ -6,7 +6,7 @@ import { prisma } from "@/prisma";
 import { ErrorCode } from "../../lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { zoektSearchResponseSchema } from "./zoektSchema";
-import { SearchRequest, SearchResponse, SearchResultRange } from "./types";
+import { SearchRequest, SearchResponse, SourceRange } from "./types";
 import { OrgRole, Repo } from "@sourcebot/db";
 import * as Sentry from "@sentry/nextjs";
 import { sew, withAuth, withOrgMembership } from "@/actions";
@@ -299,7 +299,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                                                 column: range.End.Column,
                                                 lineNumber: range.End.LineNumber,
                                             }
-                                        }) satisfies SearchResultRange),
+                                        }) satisfies SourceRange),
                                         contentStart: {
                                             byteOffset: chunk.ContentStart.ByteOffset,
                                             column: chunk.ContentStart.Column,

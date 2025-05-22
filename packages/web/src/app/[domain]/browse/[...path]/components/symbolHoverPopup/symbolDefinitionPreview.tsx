@@ -37,12 +37,9 @@ export const SymbolDefinitionPreview = ({
             </Tooltip>
             <ReadOnlyCodeBlock
                 language={language}
-                highlightRanges={[
-                    {
-                        from: range.start.column - 1,
-                        to: range.end.column - 1,
-                    }
-                ]}
+                highlightRanges={[range]}
+                lineNumbers={false}
+                lineNumbersOffset={range.start.lineNumber}
             >
                 {lineContent}
             </ReadOnlyCodeBlock>
