@@ -77,7 +77,6 @@
                         "group": "Getting Started",
                         "pages": [
                             "self-hosting/overview",
-                            "self-hosting/configuration",
                             "self-hosting/license-key"
                         ]
                     },
