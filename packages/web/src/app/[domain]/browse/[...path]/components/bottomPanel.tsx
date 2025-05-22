@@ -11,8 +11,6 @@ import { RepositoryInfo } from "@/features/search/types";
 import { useMemo } from "react";
 import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { ReadOnlyCodeBlock } from "@/app/[domain]/components/readOnlyCodeBlock";
-import { darkHighlightStyle, lightHighlightStyle } from "@/hooks/useCodeMirrorTheme";
-import { useThemeNormalized } from "@/hooks/useThemeNormalized";
 
 interface BottomPanelProps {
     selectedSymbol: string | null;
@@ -68,8 +66,6 @@ const ReferenceList = ({
         }, {} as Record<number, RepositoryInfo>);
     }, [data.repositoryInfo]);
 
-    const { theme } = useThemeNormalized();
-
     return (
         <ScrollArea className="h-full">
             {data.files.map((file, index) => {
@@ -96,7 +92,6 @@ const ReferenceList = ({
                                 >
                                     <ReadOnlyCodeBlock
                                         language="JavaScript"
-                                        theme={theme === 'dark' ? darkHighlightStyle : lightHighlightStyle}
                                         highlightRanges={[
                                             {
                                                 from: reference.range.start.column - 1,

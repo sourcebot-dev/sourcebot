@@ -4,7 +4,7 @@ import { EditorView } from "@codemirror/view";
 import { useExtensionWithDependency } from "./useExtensionWithDependency";
 import { getCodemirrorLanguage } from "@/lib/codemirrorLanguage";
 
-export const useSyntaxHighlightingExtension = (linguistLanguage: string, view: EditorView | undefined) => {
+export const useCodeMirrorLanguageExtension = (linguistLanguage: string, view: EditorView | undefined) => {
     const extension = useExtensionWithDependency(
         view ?? null,
         () => {

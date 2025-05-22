@@ -3,7 +3,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
-import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
+import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
 import { search } from "@codemirror/search";
 import CodeMirror, { Decoration, DecorationSet, EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, StateField, ViewUpdate } from "@uiw/react-codemirror";
 import { useEffect, useMemo, useState } from "react";
@@ -32,7 +32,7 @@ export const CodePreviewPanel = ({
     onFindReferences,
 }: CodePreviewPanelProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
-    const syntaxHighlighting = useSyntaxHighlightingExtension(language, editorRef?.view);
+    const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
     const keymapExtension = useKeymapExtension(editorRef?.view);
 
@@ -69,7 +69,7 @@ export const CodePreviewPanel = ({
         });
 
         return [
-            syntaxHighlighting,
+            languageExtension,
             EditorView.lineWrapping,
             keymapExtension,
             search({
@@ -110,7 +110,7 @@ export const CodePreviewPanel = ({
                 "Identifier"
             ]),
         ];
-    }, [keymapExtension, syntaxHighlighting, highlightRange]);
+    }, [keymapExtension, languageExtension, highlightRange]);
 
     useEffect(() => {
         if (!highlightRange || !editorRef || !editorRef.state) {
