@@ -20,7 +20,7 @@ import { useSession } from "next-auth/react"
 export function AddRepoButton() {
   const [isOpen, setIsOpen] = useState(false)
   const domain = useDomain()
-  const { data: session, update } = useSession();
+  const { data: session } = useSession();
 
   return (
     <>

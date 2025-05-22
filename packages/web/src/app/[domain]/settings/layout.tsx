@@ -80,6 +80,10 @@ export default async function SettingsLayout({
         {
             title: "API Keys",
             href: `/${domain}/settings/apiKeys`,
+        },
+        {
+            title: "Enterprise License",
+            href: `/${domain}/settings/enterpriseLicense`,
         }
     ]
 

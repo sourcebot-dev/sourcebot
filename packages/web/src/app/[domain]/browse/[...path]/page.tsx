@@ -7,7 +7,6 @@ import { base64Decode } from "@/lib/utils";
 import { CodePreview } from "./codePreview";
 import { ErrorCode } from "@/lib/errorCodes";
 import { LuFileX2, LuBookX } from "react-icons/lu";
-import { getOrgFromDomain } from "@/data/org";
 import { notFound } from "next/navigation";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getRepoInfoByName } from "@/actions";

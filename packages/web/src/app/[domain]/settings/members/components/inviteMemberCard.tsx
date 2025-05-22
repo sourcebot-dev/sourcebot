@@ -100,7 +100,7 @@ export const InviteMemberCard = ({ currentUserRole, isBillingEnabled, seatsAvail
                                     Maximum seats reached
                                 </p>
                                 <p className="text-xs mt-1 text-gray-300">
-                                    You've reached the maximum number of seats for your license. Upgrade your plan to invite additional members.
+                                    You&apos;ve reached the maximum number of seats for your license. Upgrade your plan to invite additional members.
                                 </p>
                             </div>
                         </div>

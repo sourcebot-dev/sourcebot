@@ -14,8 +14,6 @@ import { TrialNavIndicator } from "./trialNavIndicator";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { env } from "@/env.mjs";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
-import { hasEntitlement } from "@/features/entitlements/server";
-import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
 import { auth } from "@/auth";
 
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";

@@ -1,8 +1,6 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { OrgRole } from "@sourcebot/db";
-import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { isServiceError } from "@/lib/utils";
@@ -12,12 +10,10 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface EnterpriseFeaturesCardProps {
-    currentUserRole: OrgRole;
     domain: string;
 }
 
-export function EnterpriseFeaturesCard({ currentUserRole, domain }: EnterpriseFeaturesCardProps) {
-    const hasPublicAccessEntitlement = useHasEntitlement("public-access");
+export function EnterpriseFeaturesCard({ domain }: EnterpriseFeaturesCardProps) {
     const [isPublicAccessEnabled, setIsPublicAccessEnabled] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 

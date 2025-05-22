@@ -40,7 +40,6 @@ export const TopBar = ({
             </div>
             <SettingsDropdown
                 menuButtonClassName="w-8 h-8"
-                displaySettingsOption={false}
             />
         </div>
     )

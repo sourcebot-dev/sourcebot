@@ -1486,8 +1486,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                         avatarUrl: request.requestedBy.image ?? undefined,
                     },
                     orgName: org.name,
-                    orgDomain: org.domain,
-                    orgImageUrl: org.imageUrl ?? undefined,
+                    orgDomain: org.domain
                 }));
                 
                 const transport = createTransport(env.SMTP_CONNECTION_URL);

@@ -14,7 +14,9 @@ const eeLicenseKeyPayloadSchema = z.object({
     expiryDate: z.string().datetime(),
 });
 
-const decodeLicenseKeyPayload = (payload: string) => {
+type LicenseKeyPayload = z.infer<typeof eeLicenseKeyPayloadSchema>;
+
+const decodeLicenseKeyPayload = (payload: string): LicenseKeyPayload => {
     const decodedPayload = base64Decode(payload);
     const payloadJson = JSON.parse(decodedPayload);
     return eeLicenseKeyPayloadSchema.parse(payloadJson);
@@ -57,6 +59,16 @@ export const getSeats = (): number => {
     }
 
     return SOURCEBOT_UNLIMITED_SEATS;
+}
+
+export const getLicenseKey = (): LicenseKeyPayload | null => {
+    const licenseKey = env.SOURCEBOT_EE_LICENSE_KEY;
+    if (licenseKey && licenseKey.startsWith(eeLicenseKeyPrefix)) {
+        const payload = licenseKey.substring(eeLicenseKeyPrefix.length);
+        const decodedPayload = decodeLicenseKeyPayload(payload);
+        return decodedPayload;
+    }
+    return null;
 }
 
 export const hasEntitlement = (entitlement: Entitlement) => {

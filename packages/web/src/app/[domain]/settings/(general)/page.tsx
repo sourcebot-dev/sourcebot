@@ -49,7 +49,6 @@ export default async function GeneralSettingsPage({ params: { domain } }: Genera
             />
 
             <EnterpriseFeaturesCard
-                currentUserRole={currentUserRole}
                 domain={domain}
             />
         </div>

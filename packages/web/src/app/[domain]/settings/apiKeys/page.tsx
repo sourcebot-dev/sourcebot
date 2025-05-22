@@ -2,14 +2,17 @@
 
 import { createApiKey, getUserApiKeys } from "@/actions";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { isServiceError } from "@/lib/utils";
-import { Key, Copy, Check, AlertTriangle, Loader2, Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Copy, Check, AlertTriangle, Loader2, Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { DataTable } from "@/components/ui/data-table";
+import { columns, ApiKeyColumnInfo } from "./columns";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ApiKeysPage() {
     const domain = useDomain();
@@ -23,12 +26,15 @@ export default function ApiKeysPage() {
     const [isCreatingKey, setIsCreatingKey] = useState(false);
     const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
     const [copySuccess, setCopySuccess] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const loadApiKeys = useCallback(async () => {
         setIsLoading(true);
+        setError(null);
         try {
             const keys = await getUserApiKeys(domain);
             if (isServiceError(keys)) {
+                setError("Failed to load API keys");
                 toast({
                     title: "Error",
                     description: "Failed to load API keys",
@@ -39,6 +45,7 @@ export default function ApiKeysPage() {
             setApiKeys(keys);
         } catch (error) {
             console.error(error);
+            setError("Failed to load API keys");
             toast({
                 title: "Error",
                 description: "Failed to load API keys",
@@ -117,19 +124,61 @@ export default function ApiKeysPage() {
         setCopySuccess(false);
     };
 
-    const getDisplayTime = (date: Date | null) => {
-        if (!date) return 'Never';
-        return new Date(date).toLocaleString();
-    };
+    const tableData = useMemo(() => {
+        if (isLoading) return Array(4).fill(null).map(() => ({
+            name: "",
+            createdAt: "",
+            lastUsedAt: null,
+        }));
+
+        if (!apiKeys) return [];
+        
+        return apiKeys.map((key): ApiKeyColumnInfo => ({
+            name: key.name,
+            createdAt: key.createdAt.toISOString(),
+            lastUsedAt: key.lastUsedAt?.toISOString() ?? null,
+        })).sort((a, b) => {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+    }, [apiKeys, isLoading]);
+
+    const tableColumns = useMemo(() => {
+        if (isLoading) {
+            return columns().map((column) => {
+                if ('accessorKey' in column && column.accessorKey === "name") {
+                    return {
+                        ...column,
+                        cell: () => (
+                            <div className="flex items-center gap-2">
+                                <Skeleton className="h-4 w-4 rounded-md" /> {/* Icon skeleton */}
+                                <Skeleton className="h-4 w-48" /> {/* Name skeleton */}
+                            </div>
+                        ),
+                    }
+                }
+
+                return {
+                    ...column,
+                    cell: () => <Skeleton className="h-4 w-24" />,
+                }
+            })
+        }
+
+        return columns();
+    }, [isLoading]);
+
+    if (error) {
+        return <div>Error loading API keys</div>;
+    }
 
     return (
         <div className="flex flex-col gap-6">
-            <div>
-                <h3 className="text-lg font-medium">API Keys</h3>
-                <p className="text-sm text-muted-foreground">Create and manage API keys for programmatic access to Sourcebot.</p>
-            </div>
+            <div className="flex flex-row items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-medium">API Keys</h3>
+                    <p className="text-sm text-muted-foreground">Create and manage API keys for programmatic access to Sourcebot.</p>
+                </div>
 
-            <div className="flex justify-end">
                 <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                     <DialogTrigger asChild>
                         <Button onClick={() => {
@@ -151,7 +200,7 @@ export default function ApiKeysPage() {
                                 <div className="flex items-center gap-2 p-3 border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 rounded-md text-yellow-700 dark:text-yellow-400">
                                     <AlertTriangle className="h-5 w-5 flex-shrink-0" />
                                     <p className="text-sm">
-                                        This is the only time you'll see this API key. Make sure to copy it now.
+                                        This is the only time you&apos;ll see this API key. Make sure to copy it now.
                                     </p>
                                 </div>
                                 
@@ -207,40 +256,12 @@ export default function ApiKeysPage() {
                 </Dialog>
             </div>
 
-            <div className="border rounded-lg overflow-hidden">
-                <div className="bg-muted p-4 border-b">
-                    <div className="grid grid-cols-3 gap-4 font-medium text-sm">
-                        <div>Name</div>
-                        <div>Created</div>
-                        <div>Last used</div>
-                    </div>
-                </div>
-                
-                <div className="max-h-[600px] overflow-y-auto divide-y">
-                    {isLoading ? (
-                        <div className="flex flex-col items-center justify-center h-48 p-4">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                            <p className="text-sm text-muted-foreground mt-2">Loading API keys...</p>
-                        </div>
-                    ) : apiKeys.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-48 p-4">
-                            <Key className="h-8 w-8 text-muted-foreground mb-2" />
-                            <p className="font-medium text-sm">No API Keys Found</p>
-                            <p className="text-sm text-muted-foreground mt-2">
-                                Create an API key to get started.
-                            </p>
-                        </div>
-                    ) : (
-                        apiKeys.map((key) => (
-                            <div key={key.name} className="grid grid-cols-3 gap-4 p-4 bg-background text-sm">
-                                <div className="font-medium">{key.name}</div>
-                                <div className="text-muted-foreground">{getDisplayTime(key.createdAt)}</div>
-                                <div className="text-muted-foreground">{getDisplayTime(key.lastUsedAt)}</div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
+            <DataTable
+                columns={tableColumns}
+                data={tableData}
+                searchKey="name"
+                searchPlaceholder="Search API keys..."
+            />
         </div>
     );
 }

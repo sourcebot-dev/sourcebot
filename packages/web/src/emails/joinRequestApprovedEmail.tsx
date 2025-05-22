@@ -1,7 +1,6 @@
 import {
     Body,
     Button,
-    Column,
     Container,
     Head,
     Heading,
@@ -9,7 +8,6 @@ import {
     Img,
     Link,
     Preview,
-    Row,
     Section,
     Tailwind,
     Text,
@@ -26,7 +24,6 @@ interface JoinRequestApprovedEmailProps {
     },
     orgName: string;
     orgDomain: string;
-    orgImageUrl?: string;
 }
 
 export const JoinRequestApprovedEmail = ({
@@ -34,7 +31,6 @@ export const JoinRequestApprovedEmail = ({
     user,
     orgName,
     orgDomain,
-    orgImageUrl,
 }: JoinRequestApprovedEmailProps) => {
     const previewText = `Your request to join ${orgName} on Sourcebot has been approved`;
     const orgLink = `${baseUrl}/${orgDomain}`;
@@ -95,7 +91,6 @@ JoinRequestApprovedEmail.PreviewProps = {
     },
     orgName: 'Enigma',
     orgDomain: '~',
-    orgImageUrl: `http://localhost:3000/placeholder_avatar.png`,
 } satisfies JoinRequestApprovedEmailProps;
 
 export default JoinRequestApprovedEmail; 

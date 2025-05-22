@@ -1,7 +1,5 @@
 import 'next-auth/jwt';
 import NextAuth, { DefaultSession, User as AuthJsUser } from "next-auth"
-import GitHub from "next-auth/providers/github"
-import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter"
