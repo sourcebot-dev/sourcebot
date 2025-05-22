@@ -76,7 +76,7 @@ export default function ApiKeysPage() {
             if (isServiceError(result)) {
                 toast({
                     title: "Error",
-                    description: "Failed to create API key. A key with this name already exists.",
+                    description: `Failed to create API key: ${result.message}`,
                     variant: "destructive",
                 });
                 captureEvent('wa_api_key_creation_fail', {});
@@ -91,7 +91,7 @@ export default function ApiKeysPage() {
             console.error(error);
             toast({
                 title: "Error",
-                description: "Failed to create API key",
+                description: `Failed to create API key: ${error}`,
                 variant: "destructive",
             });
             captureEvent('wa_api_key_creation_fail', {});

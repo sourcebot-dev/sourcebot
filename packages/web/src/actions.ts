@@ -364,6 +364,21 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             try {
+                const existingApiKey = await prisma.apiKey.findFirst({
+                    where: {
+                        createdById: userId,
+                        name,
+                    },
+                });
+                
+                if (existingApiKey) {
+                    return {
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.API_KEY_ALREADY_EXISTS,
+                        message: `API key ${name} already exists`,
+                    } satisfies ServiceError;
+                }
+
                 const key = generateApiKey(userId);
                 const prefix = getApiKeyPrefix(key);
 
