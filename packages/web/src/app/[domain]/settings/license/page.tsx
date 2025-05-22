@@ -1,31 +1,32 @@
-import { getLicenseKey, getPlan, SOURCEBOT_UNLIMITED_SEATS } from "@/features/entitlements/server";
+import { getEntitlements, getLicenseKey, getPlan, SOURCEBOT_UNLIMITED_SEATS } from "@/features/entitlements/server";
 import { Button } from "@/components/ui/button";
 import { Info, Mail } from "lucide-react";
 import { getOrgMembers } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
 
-interface EnterpriseLicensePageProps {
+interface LicensePageProps {
     params: {
         domain: string;
     }
 }
 
-export default async function EnterpriseLicensePage({ params: { domain } }: EnterpriseLicensePageProps) {
+export default async function LicensePage({ params: { domain } }: LicensePageProps) {
     const licenseKey = await getLicenseKey();
+    const entitlements = await getEntitlements();
     const plan = await getPlan();
 
     if (!licenseKey) {
         return (
             <div className="flex flex-col gap-6">
                 <div>
-                    <h3 className="text-lg font-medium">Enterprise License</h3>
+                    <h3 className="text-lg font-medium">License</h3>
                     <p className="text-sm text-muted-foreground">View your license details.</p>
                 </div>
 
                 <div className="flex flex-col items-center justify-center p-8 border rounded-md bg-card">
                     <Info className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No Enterprise License Found</h3>
+                    <h3 className="text-lg font-medium mb-2">No License Found</h3>
                     <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
                         Check out the <a href="https://docs.sourcebot.dev/self-hosting/license-key" className="text-primary">docs</a> for more information.
                     </p>
@@ -61,12 +62,12 @@ export default async function EnterpriseLicensePage({ params: { domain } }: Ente
         <div className="flex flex-col gap-6">
             <div className="flex items-start justify-between">
                 <div>
-                    <h3 className="text-lg font-medium">Enterprise License</h3>
+                    <h3 className="text-lg font-medium">License</h3>
                     <p className="text-sm text-muted-foreground">View your license details.</p>
                 </div>
 
                 <Button asChild>
-                    <a href={`mailto:enterprise@sourcebot.dev?subject=Enterprise License Support - ${licenseKey.id}&body=License ID: ${licenseKey.id}`}>
+                    <a href={`mailto:support@sourcebot.dev?subject=License Support - ${licenseKey.id}&body=License ID: ${licenseKey.id}`}>
                         <Mail className="h-4 w-4 mr-2" />
                         Contact Support
                     </a>
@@ -86,6 +87,11 @@ export default async function EnterpriseLicensePage({ params: { domain } }: Ente
                         <div className="grid grid-cols-2 gap-4">
                             <div className="text-sm text-muted-foreground">Plan</div>
                             <div className="text-sm font-mono">{plan}</div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="text-sm text-muted-foreground">Entitlements</div>
+                            <div className="text-sm font-mono">{entitlements?.join(", ") || "None"}</div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
