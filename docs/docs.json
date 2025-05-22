@@ -82,12 +82,12 @@
                         ]
                     },
                     {
-                        "group": "More",
+                        "group": "Configuration",
                         "pages": [
-                            "self-hosting/more/authentication",
-                            "self-hosting/more/tenancy",
-                            "self-hosting/more/transactional-emails",
-                            "self-hosting/more/declarative-config"
+                            "self-hosting/configuration/environment-variables",
+                            "self-hosting/configuration/authentication",
+                            "self-hosting/configuration/transactional-emails",
+                            "self-hosting/configuration/declarative-config"
                         ]
                     },
                     {

@@ -31,7 +31,7 @@ export default async function EnterpriseLicensePage({ params: { domain } }: Ente
                     </p>
                     <div className="mb-8 max-w-md rounded-lg bg-slate-50 p-4 dark:bg-slate-800">
                         <p className="text-base text-center">
-                            Want to try out Sourcebot's enterprise features? Reach out to us and we'll get back to you within
+                            Want to try out Sourcebot&apos;s enterprise features? Reach out to us and we&apos;ll get back to you within
                             a couple hours with a trial license.
                         </p>
                     </div>

@@ -22,7 +22,54 @@ export type ApiKeyColumnInfo = {
     name: string
     createdAt: string
     lastUsedAt: string | null
-    prefix: string
+}
+
+// Component for the actions cell to properly use React hooks
+function ApiKeyActions({ apiKey }: { apiKey: ApiKeyColumnInfo }) {
+    const params = useParams<{ domain: string }>()
+    const [isPending, setIsPending] = useState(false)
+    
+    const handleDelete = async () => {
+        setIsPending(true)
+        try {
+            await deleteApiKey(apiKey.name, params.domain)
+            window.location.reload()
+        } catch (error) {
+            console.error("Failed to delete API key", error)
+        } finally {
+            setIsPending(false)
+        }
+    }
+    
+    return (
+        <div className="flex justify-end">
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete API Key</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete the API key <span className="font-semibold text-foreground">{apiKey.name}</span>? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleDelete} 
+                            disabled={isPending}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isPending ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
+    )
 }
 
 export const columns = (): ColumnDef<ApiKeyColumnInfo>[] => [
@@ -101,52 +148,6 @@ export const columns = (): ColumnDef<ApiKeyColumnInfo>[] => [
     },
     {
         id: "actions",
-        cell: ({ row }) => {
-            const apiKey = row.original
-            const params = useParams<{ domain: string }>()
-            const [isPending, setIsPending] = useState(false)
-            
-            const handleDelete = async () => {
-                setIsPending(true)
-                try {
-                    await deleteApiKey(apiKey.name, params.domain)
-                    window.location.reload()
-                } catch (error) {
-                    console.error("Failed to delete API key", error)
-                } finally {
-                    setIsPending(false)
-                }
-            }
-            
-            return (
-                <div className="flex justify-end">
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Delete API Key</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Are you sure you want to delete the API key <span className="font-semibold text-foreground">{apiKey.name}</span>? This action cannot be undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                    onClick={handleDelete} 
-                                    disabled={isPending}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                    {isPending ? "Deleting..." : "Delete"}
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-            )
-        }
+        cell: ({ row }) => <ApiKeyActions apiKey={row.original} />
     }
 ] 

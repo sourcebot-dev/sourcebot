@@ -5,7 +5,6 @@ import Google from "next-auth/providers/google";
 import Okta from "next-auth/providers/okta";
 import Keycloak from "next-auth/providers/keycloak";
 import Gitlab from "next-auth/providers/gitlab";
-import Atlassian from "next-auth/providers/atlassian";
 import { prisma } from "@/prisma";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { OrgRole } from "@sourcebot/db";
@@ -17,61 +16,39 @@ export const getSSOProviders = (): Provider[] => {
     const providers: Provider[] = [];
 
     if (env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
-        const authUrl = env.AUTH_EE_GITHUB_BASE_URL ?? "https://github.com";
         providers.push(GitHub({
             clientId: env.AUTH_EE_GITHUB_CLIENT_ID,
             clientSecret: env.AUTH_EE_GITHUB_CLIENT_SECRET,
             authorization: {
-                url: `${authUrl}/oauth/authorize`,
+                url: `${env.AUTH_EE_GITHUB_BASE_URL}/oauth/authorize`,
                 params: {
                     scope: "read_user",
                 },
             },
             token: {
-                url: `${authUrl}/oauth/token`,
+                url: `${env.AUTH_EE_GITHUB_BASE_URL}/oauth/token`,
             },
             userinfo: {
-                url: `${authUrl}/api/v4/user`,
+                url: `${env.AUTH_EE_GITHUB_BASE_URL}/api/v4/user`,
             },
         }));
     }
 
     if (env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
-        const authUrl = env.AUTH_EE_GITLAB_BASE_URL ?? "https://gitlab.com";
         providers.push(Gitlab({
             clientId: env.AUTH_EE_GITLAB_CLIENT_ID,
             clientSecret: env.AUTH_EE_GITLAB_CLIENT_SECRET,
             authorization: {
-                url: `${authUrl}/oauth/authorize`,
+                url: `${env.AUTH_EE_GITLAB_BASE_URL}/oauth/authorize`,
                 params: {
                     scope: "read_user",
                 },
             },
             token: {
-                url: `${authUrl}/oauth/token`,
+                url: `${env.AUTH_EE_GITLAB_BASE_URL}/oauth/token`,
             },
             userinfo: {
-                url: `${authUrl}/api/v4/user`,
-            },
-        }));
-    }
-
-    if (env.AUTH_EE_ATLASSIAN_CLIENT_ID && env.AUTH_EE_ATLASSIAN_CLIENT_SECRET) {
-        const authUrl = env.AUTH_EE_ATLASSIAN_BASE_URL ?? "https://atlassian.com";
-        providers.push(Atlassian({
-            clientId: env.AUTH_EE_ATLASSIAN_CLIENT_ID,
-            clientSecret: env.AUTH_EE_ATLASSIAN_CLIENT_SECRET,
-            authorization: {
-                url: `${authUrl}/oauth/authorize`,
-                params: {
-                    scope: "read_user",
-                },
-            },
-            token: {
-                url: `${authUrl}/oauth/token`,
-            },
-            userinfo: {
-                url: `${authUrl}/api/2.0/user`,
+                url: `${env.AUTH_EE_GITLAB_BASE_URL}/api/v4/user`,
             },
         }));
     }

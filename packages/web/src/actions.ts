@@ -405,7 +405,7 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
 
 export const deleteApiKey = async (name: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
+        withOrgMembership(userId, domain, async () => {
             const apiKey = await prisma.apiKey.findFirst({
                 where: {
                     name,
