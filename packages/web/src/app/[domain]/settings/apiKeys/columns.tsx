@@ -13,11 +13,11 @@ export type ApiKeyColumnInfo = {
 export const columns = (): ColumnDef<ApiKeyColumnInfo>[] => [
     {
         accessorKey: "name",
-        header: () => <div className="w-[300px]">Name</div>,
+        header: () => <div className="flex items-center w-[300px]">Name</div>,
         cell: ({ row }) => {
             const name = row.original.name
             return (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 py-2">
                     <Key className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{name}</span>
                 </div>
@@ -31,7 +31,7 @@ export const columns = (): ColumnDef<ApiKeyColumnInfo>[] => [
                 <Button
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="font-medium"
+                    className="px-0 font-medium"
                 >
                     Created
                     <ArrowUpDown className="ml-2 h-3.5 w-3.5 text-muted-foreground" />
@@ -40,11 +40,11 @@ export const columns = (): ColumnDef<ApiKeyColumnInfo>[] => [
         ),
         cell: ({ row }) => {
             if (!row.original.createdAt) {
-                return <div className="text-muted-foreground">—</div>
+                return <div className="py-2">—</div>
             }
             const date = new Date(row.original.createdAt)
             return (
-                <div className="text-muted-foreground">
+                <div className="py-2 text-muted-foreground">
                     {date.toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -61,7 +61,7 @@ export const columns = (): ColumnDef<ApiKeyColumnInfo>[] => [
                 <Button
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="font-medium"
+                    className="px-0 font-medium"
                 >
                     Last Used
                     <ArrowUpDown className="ml-2 h-3.5 w-3.5 text-muted-foreground" />
@@ -70,11 +70,11 @@ export const columns = (): ColumnDef<ApiKeyColumnInfo>[] => [
         ),
         cell: ({ row }) => {
             if (!row.original.lastUsedAt) {
-                return <div className="text-muted-foreground">Never</div>
+                return <div className="py-2 text-muted-foreground">Never</div>
             }
             const date = new Date(row.original.lastUsedAt)
             return (
-                <div className="text-muted-foreground">
+                <div className="py-2 text-muted-foreground">
                     {date.toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
