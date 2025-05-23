@@ -72,7 +72,7 @@ export const setPublicAccessStatus = async (domain: string, enabled: boolean): P
     return true;
 });
 
-export const createGuestUser = async (domain: string) => sew(async () => {
+export const createGuestUser = async (domain: string): Promise<ServiceError | boolean> => sew(async () => {
     const hasPublicAccessEntitlement = hasEntitlement("public-access");
     if (!hasPublicAccessEntitlement) {
         console.error(`Public access isn't supported in your current plan: ${getPlan()}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
@@ -129,4 +129,6 @@ export const createGuestUser = async (domain: string) => sew(async () => {
             },
         },
     });
+
+    return true;
 });

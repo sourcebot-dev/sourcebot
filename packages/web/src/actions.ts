@@ -407,7 +407,7 @@ export const verifyApiKey = async (key: string): Promise<{ apiKey: ApiKey } | Se
             hash,
         },
     });
-    
+
     if (!apiKey) {
         return {
             statusCode: StatusCodes.UNAUTHORIZED,
@@ -425,41 +425,33 @@ export const verifyApiKey = async (key: string): Promise<{ apiKey: ApiKey } | Se
 export const createApiKey = async (name: string, domain: string): Promise<{ key: string } | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
-            try {
-                const existingApiKey = await prisma.apiKey.findFirst({
-                    where: {
-                        createdById: userId,
-                        name,
-                    },
-                });
+            const existingApiKey = await prisma.apiKey.findFirst({
+                where: {
+                    createdById: userId,
+                    name,
+                },
+            });
 
-                if (existingApiKey) {
-                    return {
-                        statusCode: StatusCodes.BAD_REQUEST,
-                        errorCode: ErrorCode.API_KEY_ALREADY_EXISTS,
-                        message: `API key ${name} already exists`,
-                    } satisfies ServiceError;
-                }
-
-                const { key, hash } = generateApiKey();
-                await prisma.apiKey.create({
-                    data: {
-                        name,
-                        hash,
-                        orgId: org.id,
-                        createdById: userId,
-                    }
-                });
-
+            if (existingApiKey) {
                 return {
-                    key,
-                }
-            } catch (e) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.API_KEY_ALREADY_EXISTS,
-                    message: `Failed to create API key ${name} for user ${userId}: ${e}`,
+                    message: `API key ${name} already exists`,
                 } satisfies ServiceError;
+            }
+
+            const { key, hash } = generateApiKey();
+            await prisma.apiKey.create({
+                data: {
+                    name,
+                    hash,
+                    orgId: org.id,
+                    createdById: userId,
+                }
+            });
+
+            return {
+                key,
             }
         })));
 

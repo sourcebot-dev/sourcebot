@@ -66,14 +66,8 @@ export const getPlan = (): Plan => {
 }
 
 export const getSeats = (): number => {
-    const licenseKey = env.SOURCEBOT_EE_LICENSE_KEY;
-    if (licenseKey && licenseKey.startsWith(eeLicenseKeyPrefix)) {
-        const payload = licenseKey.substring(eeLicenseKeyPrefix.length);
-        const { seats } = decodeLicenseKeyPayload(payload);
-        return seats;
-    }
-
-    return SOURCEBOT_UNLIMITED_SEATS;
+    const licenseKey = getLicenseKey();
+    return licenseKey?.seats ?? SOURCEBOT_UNLIMITED_SEATS;``
 }
 
 export const hasEntitlement = (entitlement: Entitlement) => {
