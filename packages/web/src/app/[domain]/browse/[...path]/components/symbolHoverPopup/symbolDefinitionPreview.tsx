@@ -1,7 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ReadOnlyCodeBlock } from "@/app/[domain]/components/readOnlyCodeBlock";
+import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { SymbolDefInfo } from "./useHoveredOverSymbolInfo";
+import { useMemo } from "react";
 
 interface SymbolDefinitionPreviewProps {
     symbolDefinition: SymbolDefInfo;
@@ -11,6 +12,7 @@ export const SymbolDefinitionPreview = ({
     symbolDefinition,
 }: SymbolDefinitionPreviewProps) => {
     const { content: lineContent, language, range } = symbolDefinition;
+    const highlightRanges = useMemo(() => [range], [range]);
 
     return (
         <div className="flex flex-col gap-2 mb-2">
@@ -35,16 +37,16 @@ export const SymbolDefinitionPreview = ({
                     Symbol definition found using a best-guess search heuristic.
                 </TooltipContent>
             </Tooltip>
-            <ReadOnlyCodeBlock
+            <LightweightCodeHighlighter
                 language={language}
-                highlightRanges={[range]}
+                highlightRanges={highlightRanges}
                 lineNumbers={false}
                 lineNumbersOffset={range.start.lineNumber}
                 removeTrailingNewline={true}
                 renderWhitespace={false}
             >
                 {lineContent}
-            </ReadOnlyCodeBlock>
+            </LightweightCodeHighlighter>
         </div>
     )
 }
