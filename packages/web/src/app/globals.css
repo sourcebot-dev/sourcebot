@@ -40,6 +40,9 @@
     --sidebar-border: hsl(220 13% 91%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
 
+    --editor-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --editor-font-size: 13px;
+
     --editor-background: var(--background);
     --editor-foreground: var(--foreground);
     --editor-caret: #3b4252;
@@ -50,17 +53,38 @@
     --editor-gutter-border: none;
     --editor-gutter-active-foreground: #abb2bf;
     --editor-line-highlight: #02255f11;
-    --editor-tag-comment: #940;
-    --editor-tag-keyword: #708;
-    --editor-tag-name: #e06c75;
-    --editor-tag-variable-definition: #00f;
-    --editor-tag-property-definition: #00c;
     --editor-match-highlight: hsl(180, 70%, 40%);
 
-    --editor-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    --editor-font-size: 13px;
+    --editor-tag-keyword: #708;
+    --editor-tag-name: #256;
+    --editor-tag-function: #00f;
+    --editor-tag-label: #219;
+    --editor-tag-constant: #219;
+    --editor-tag-definition: #00c;
+    --editor-tag-brace: #219;
+    --editor-tag-type: #085;
+    --editor-tag-operator: #708;
+    --editor-tag-tag: #167;
+    --editor-tag-bracket-square: #219;
+    --editor-tag-bracket-angle: #219;
+    --editor-tag-attribute: #00c;
+    --editor-tag-string: #a11;
+    --editor-tag-link: inherit;
+    --editor-tag-meta: #404740;
+    --editor-tag-comment: #940;
+    --editor-tag-emphasis: inherit;
+    --editor-tag-heading: inherit;
+    --editor-tag-atom: #219;
+    --editor-tag-processing: #164;
+    --editor-tag-separator: #219;
+    --editor-tag-invalid: #f00;
+    --editor-tag-quote: #a11;
+    --editor-tag-annotation-special: #f00;
+    --editor-tag-number: #219;
+    --editor-tag-regexp: #e40;
+    --editor-tag-variable-local: #30a;
   }
- 
+
   .dark {
     --background: hsl(222.2 84% 4.9%);
     --background-secondary: hsl(222.2 84% 4.9%);
@@ -107,12 +131,36 @@
     --editor-gutter-border: none;
     --editor-gutter-active-foreground: #abb2bf;
     --editor-line-highlight: hsl(219, 14%, 20%);
-    --editor-tag-comment: #7d8799;
-    --editor-tag-keyword: #c678dd;
-    --editor-tag-variable-definition: #61afef;
-    --editor-tag-property-definition: #61afef;
-    --editor-tag-name: #e06c75;
     --editor-match-highlight: hsl(180, 70%, 30%);
+
+    --editor-tag-keyword: #c678dd;
+    --editor-tag-name: #e06c75;
+    --editor-tag-function: #61afef;
+    --editor-tag-label: #61afef;
+    --editor-tag-constant: #d19a66;
+    --editor-tag-definition: #abb2bf;
+    --editor-tag-brace: #56b6c2;
+    --editor-tag-type: #e5c07b;
+    --editor-tag-operator: #56b6c2;
+    --editor-tag-tag: #e06c75;
+    --editor-tag-bracket-square: #56b6c2;
+    --editor-tag-bracket-angle: #56b6c2;
+    --editor-tag-attribute: #e5c07b;
+    --editor-tag-string: #98c379;
+    --editor-tag-link: #7d8799;
+    --editor-tag-meta: #7d8799;
+    --editor-tag-comment: #7d8799;
+    --editor-tag-emphasis: #e06c75;
+    --editor-tag-heading: #e06c75;
+    --editor-tag-atom: #d19a66;
+    --editor-tag-processing: #98c379;
+    --editor-tag-separator: #abb2bf;
+    --editor-tag-invalid: #ffffff;
+    --editor-tag-quote: #7d8799;
+    --editor-tag-annotation-special: #e5c07b;
+    --editor-tag-number: #e5c07b;
+    --editor-tag-regexp: #56b6c2;
+    --editor-tag-variable-local: #61afef;
   }
 }
 
@@ -120,6 +168,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -139,16 +188,14 @@
   background: color-mix(in srgb, var(--editor-match-highlight) 25%, transparent);
   border: 1px dashed var(--editor-match-highlight);
   border-radius: 2px;
-  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.03);
-  transition: background 0.15s, border 0.15s;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
 }
 
 .searchMatch-selected {
   background: color-mix(in srgb, var(--editor-match-highlight) 60%, transparent);
   border: 1.5px solid var(--editor-match-highlight);
   border-radius: 2px;
-  box-shadow: 0 2px 6px 0 rgba(0,0,0,0.06);
-  transition: background 0.15s, border 0.15s;
+  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.06);
 }
 
 .cm-editor.cm-focused {
@@ -169,6 +216,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -180,8 +228,10 @@
 }
 
 .no-scrollbar {
-  -ms-overflow-style: none; /* IE dan Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE dan Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .cm-underline-hover {
