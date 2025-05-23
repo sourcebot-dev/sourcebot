@@ -238,7 +238,7 @@ export const getDisplayTime = (date: Date) => {
     }
 }
 
-export const measureSync = <T>(cb: () => T, measureName: string) => {
+export const measureSync = <T>(cb: () => T, measureName: string, outputLog: boolean = false) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;
 
@@ -248,7 +248,9 @@ export const measureSync = <T>(cb: () => T, measureName: string) => {
 
     const measure = performance.measure(measureName, startMark, endMark);
     const durationMs = measure.duration;
-    console.debug(`[${measureName}] took ${durationMs}ms`);
+    if (outputLog) {
+        console.debug(`[${measureName}] took ${durationMs}ms`);
+    }
 
     return {
         data,
@@ -256,7 +258,7 @@ export const measureSync = <T>(cb: () => T, measureName: string) => {
     }
 }
 
-export const measure = async <T>(cb: () => Promise<T>, measureName: string) => {
+export const measure = async <T>(cb: () => Promise<T>, measureName: string, outputLog: boolean = false) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;
 
@@ -266,7 +268,9 @@ export const measure = async <T>(cb: () => Promise<T>, measureName: string) => {
 
     const measure = performance.measure(measureName, startMark, endMark);
     const durationMs = measure.duration;
-    console.debug(`[${measureName}] took ${durationMs}ms`);
+    if (outputLog) {
+        console.debug(`[${measureName}] took ${durationMs}ms`);
+    }
 
     return {
         data,
