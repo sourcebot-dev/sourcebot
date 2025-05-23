@@ -40,6 +40,8 @@ export const SymbolDefinitionPreview = ({
                 highlightRanges={[range]}
                 lineNumbers={false}
                 lineNumbersOffset={range.start.lineNumber}
+                removeTrailingNewline={true}
+                renderWhitespace={false}
             >
                 {lineContent}
             </ReadOnlyCodeBlock>

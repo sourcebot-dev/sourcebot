@@ -207,6 +207,8 @@ const ReferenceListItem = ({
                 highlightRanges={highlightRanges}
                 lineNumbers={true}
                 lineNumbersOffset={range.start.lineNumber}
+                removeTrailingNewline={true}
+                renderWhitespace={false}
             >
                 {decodedLineContent}
             </ReadOnlyCodeBlock>
