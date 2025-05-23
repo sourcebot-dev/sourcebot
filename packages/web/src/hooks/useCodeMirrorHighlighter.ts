@@ -55,10 +55,7 @@ export const useCodeMirrorHighlighter = () => {
             { tag: [t.regexp], class: 'text-editor-tag-constant' },
 
             // Links
-            {
-                tag: t.link,
-                class: 'text-editor-tag-link underline',
-            },
+            { tag: t.link, class: 'text-editor-tag-link underline' },
 
             // Meta and comments
             { tag: [t.meta], class: 'text-editor-tag-meta' },
