@@ -20,6 +20,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { Separator } from "@/components/ui/separator";
 import { FaChevronDown } from "react-icons/fa";
 import { Loader2 } from "lucide-react";
+import { VscSymbolMisc } from "react-icons/vsc";
 
 export const BottomPanel = () => {
     const domain = useDomain();
@@ -44,13 +45,13 @@ export const BottomPanel = () => {
         enabled: !!selectedSymbolInfo,
     });
 
-    useHotkeys("mod+b", (event) => {
+    useHotkeys("shift+mod+e", (event) => {
         event.preventDefault();
         updateBrowseState({ isBottomPanelCollapsed: !isBottomPanelCollapsed });
     }, {
         enableOnFormTags: true,
         enableOnContentEditable: true,
-        description: "Open References",
+        description: "Open Explore Panel",
     });
 
     return (
@@ -65,8 +66,8 @@ export const BottomPanel = () => {
                         })
                     }}
                 >
-                    <KeyboardShortcutHint shortcut="⌘ B" />
-                    References
+                    <KeyboardShortcutHint shortcut="⇧ ⌘ E" />
+                    Explore
                 </Button>
 
                 {!isBottomPanelCollapsed && (
@@ -95,8 +96,9 @@ export const BottomPanel = () => {
                 id={"bottom-panel"}
             >
                 {!selectedSymbolInfo ? (
-                    <div className="flex flex-col items-center justify-center h-full">
-                        <p>No symbol selected</p>
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                        <VscSymbolMisc className="w-6 h-6 mb-2" />
+                        <p className="text-sm">No symbol selected</p>
                     </div>
                 ) :
                     isLoading ? (
@@ -142,7 +144,7 @@ const ReferenceList = ({
 
                 return (
                     <div key={index}>
-                        <div className="bg-accent py-1 px-2 flex flex-row">
+                        <div className="bg-accent py-1 px-2 flex flex-row sticky top-0 z-10">
                             <FileHeader
                                 repo={{
                                     name: repoInfo.name,
