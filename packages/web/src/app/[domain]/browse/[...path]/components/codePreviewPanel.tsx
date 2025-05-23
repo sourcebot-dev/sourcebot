@@ -12,6 +12,7 @@ import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { underlineNodesExtension } from "@/lib/extensions/underlineNodesExtension";
 import { SymbolHoverPopup } from "./symbolHoverPopup";
 import { ResizablePanel } from "@/components/ui/resizable";
+import { useBrowseState } from "../../useBrowseState";
 
 interface CodePreviewPanelProps {
     path: string;
@@ -19,8 +20,6 @@ interface CodePreviewPanelProps {
     revisionName: string;
     source: string;
     language: string;
-
-    onFindReferences: (symbolName: string) => void;
 }
 
 export const CodePreviewPanel = ({
@@ -29,7 +28,6 @@ export const CodePreviewPanel = ({
     path,
     repoName,
     revisionName,
-    onFindReferences,
 }: CodePreviewPanelProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
@@ -131,9 +129,12 @@ export const CodePreviewPanel = ({
     }, [editorRef, highlightRange]);
 
     const theme = useCodeMirrorTheme();
+    const { updateBrowseState } = useBrowseState();
 
     return (
-        <ResizablePanel>
+        <ResizablePanel
+            order={1}
+        >
             <ScrollArea className="h-full overflow-auto flex-1">
                 <CodeMirror
                     className="relative"
@@ -156,7 +157,15 @@ export const CodePreviewPanel = ({
                         <SymbolHoverPopup
                             editorRef={editorRef}
                             repoName={repoName}
-                            onFindReferences={onFindReferences}
+                            onFindReferences={(symbolName) => {
+                                updateBrowseState({
+                                    selectedSymbolInfo: {
+                                        repoName,
+                                        symbolName,
+                                    },
+                                    isBottomPanelCollapsed: false
+                                })
+                            }}
                         />
                     )}
                 </CodeMirror>

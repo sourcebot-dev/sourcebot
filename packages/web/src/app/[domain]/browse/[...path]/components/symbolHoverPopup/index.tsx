@@ -2,11 +2,10 @@ import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Separator } from "@/components/ui/separator";
 import { useDomain } from "@/hooks/useDomain";
-import { createPathWithQueryParams } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
 import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
@@ -69,6 +68,8 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         }
     }, [symbolInfo, editorRef]);
 
+    const searchParams = useSearchParams();
+
     // If we resolve multiple matches, instead of navigating to the first match, we should
     // instead popup the bottom sheet with the list of matches.
     const onGotoDefinition = useCallback(() => {
@@ -81,11 +82,11 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         const { start, end } = symbolDefInfo.range;
         const highlightRange = `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`;
 
-        const url = createPathWithQueryParams(`/${domain}/browse/${repoName}@HEAD/-/blob/${fileName}`,
-            ['highlightRange', highlightRange]
-        );
-        router.push(url);
-    }, [symbolInfo, domain, router]);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('highlightRange', highlightRange);
+
+        router.push(`/${domain}/browse/${repoName}@HEAD/-/blob/${fileName}?${params.toString()}`);
+    }, [symbolInfo, searchParams, router, domain]);
 
     // @todo: We should probably make the behaviour s.t., the ctrl / cmd key needs to be held
     // down to navigate to the definition. We should also only show the underline when the key

@@ -77,7 +77,7 @@ export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCo
                 })
         ).then(highlightedLines => {
             setHighlightedLines(highlightedLines);
-        }), 'highlightCode');
+        }), 'highlightCode', /* outputLog = */ false);
     }, [language, code, fallbackLanguage, languages, highlightRanges, highlightStyle, unhighlightedLines, lineNumbersOffset]);
 
     const lineCount = (highlightedLines ?? unhighlightedLines).length + lineNumbersOffset;

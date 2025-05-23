@@ -9,7 +9,7 @@ import { LuFileX2, LuBookX } from "react-icons/lu";
 import { notFound } from "next/navigation";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getRepoInfoByName } from "@/actions";
-import { Workbench } from "./workbench";
+import { CodePreviewPanel } from "./components/codePreviewPanel";
 
 interface BrowsePageProps {
     params: {
@@ -95,7 +95,7 @@ export default async function BrowsePage({
     }
 
     return (
-        <div className="flex flex-col h-screen">
+        <>
             <div className='sticky top-0 left-0 right-0 z-10'>
                 <TopBar
                     defaultSearchQuery={`repo:${repoName}${revisionName ? ` rev:${revisionName}` : ''} `}
@@ -116,17 +116,13 @@ export default async function BrowsePage({
                 </div>
                 <Separator />
             </div>
-            <Workbench
-                repo={{
-                    name: repoInfo.name,
-                }}
-                file={{
-                    path,
-                    source: base64Decode(fileSourceResponse.source),
-                    language: fileSourceResponse.language,
-                    revision: revisionName ?? 'HEAD',
-                }}
+            <CodePreviewPanel
+                source={base64Decode(fileSourceResponse.source)}
+                language={fileSourceResponse.language}
+                repoName={repoInfo.name}
+                path={path}
+                revisionName={revisionName ?? 'HEAD'}
             />
-        </div>
+        </>
     )
 }
