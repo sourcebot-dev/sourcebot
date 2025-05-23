@@ -42,14 +42,8 @@ export const getPlan = (): Plan => {
         return "cloud:team";
     }
 
-    const licenseKey = env.SOURCEBOT_EE_LICENSE_KEY;
-    if (licenseKey && licenseKey.startsWith(eeLicenseKeyPrefix)) {
-        const licenseKey = getLicenseKey();
-        if (!licenseKey) {
-            console.error(`Failed to parse license key in entitlements check. Falling back to oss plan.`);
-            return "oss";
-        }
-
+    const licenseKey = getLicenseKey();
+    if (licenseKey) {
         const expiryDate = new Date(licenseKey.expiryDate);
         if (expiryDate.getTime() < new Date().getTime()) {
             console.error(`The provided license key has expired (${expiryDate.toLocaleString()}). Falling back to oss plan. Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
@@ -60,9 +54,10 @@ export const getPlan = (): Plan => {
             return "self-hosted:enterprise-custom";
         }
         return licenseKey.seats === SOURCEBOT_UNLIMITED_SEATS ? "self-hosted:enterprise-unlimited" : "self-hosted:enterprise";
+    } else {
+        console.info(`No valid license key found. Falling back to oss plan.`);
+        return "oss"; 
     }
-
-    return "oss";
 }
 
 export const getSeats = (): number => {
