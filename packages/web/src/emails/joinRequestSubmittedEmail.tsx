@@ -37,7 +37,7 @@ export const JoinRequestSubmittedEmail = ({
     orgImageUrl,
 }: JoinRequestSubmittedEmailProps) => {
     const previewText = `${requestor.name ?? requestor.email} has requested to join ${orgName} on Sourcebot`;
-    const reviewLink = `${baseUrl}/${orgDomain}/settings/members`;
+    const reviewLink = `${baseUrl}/${encodeURIComponent(orgDomain)}/settings/members`;
 
     return (
         <Html>

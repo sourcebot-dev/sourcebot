@@ -54,14 +54,18 @@ export const setPublicAccessStatus = async (domain: string, enabled: boolean): P
         } satisfies ServiceError;
     }
 
+    const currentMetadata = orgMetadataSchema.safeParse(org.metadata);
+    const mergedMetadata = {
+        ...(currentMetadata.success ? currentMetadata.data : {}),
+        publicAccessEnabled: enabled,
+    };
+
     await prisma.org.update({
         where: {
             id: org.id,
         },
         data: {
-            metadata: {
-                publicAccessEnabled: enabled,
-            },
+            metadata: mergedMetadata,
         },
     });
 

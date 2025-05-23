@@ -18,17 +18,21 @@ const eeLicenseKeyPayloadSchema = z.object({
 type LicenseKeyPayload = z.infer<typeof eeLicenseKeyPayloadSchema>;
 
 const decodeLicenseKeyPayload = (payload: string): LicenseKeyPayload => {
-    const decodedPayload = base64Decode(payload);
-    const payloadJson = JSON.parse(decodedPayload);
-    return eeLicenseKeyPayloadSchema.parse(payloadJson);
+    try {
+        const decodedPayload = base64Decode(payload);
+        const payloadJson = JSON.parse(decodedPayload);
+        return eeLicenseKeyPayloadSchema.parse(payloadJson);
+    } catch (error) {
+        console.error(`Failed to decode license key payload: ${error}`);
+        process.exit(1);
+    }
 }
 
 export const getLicenseKey = (): LicenseKeyPayload | null => {
     const licenseKey = env.SOURCEBOT_EE_LICENSE_KEY;
     if (licenseKey && licenseKey.startsWith(eeLicenseKeyPrefix)) {
         const payload = licenseKey.substring(eeLicenseKeyPrefix.length);
-        const decodedPayload = decodeLicenseKeyPayload(payload);
-        return decodedPayload;
+        return decodeLicenseKeyPayload(payload);
     }
     return null;
 }
@@ -42,7 +46,7 @@ export const getPlan = (): Plan => {
     if (licenseKey && licenseKey.startsWith(eeLicenseKeyPrefix)) {
         const licenseKey = getLicenseKey();
         if (!licenseKey) {
-            console.error(`Failed to parse license key in entitlements check. Returning false.`);
+            console.error(`Failed to parse license key in entitlements check. Falling back to oss plan.`);
             return "oss";
         }
 

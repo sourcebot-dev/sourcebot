@@ -7,8 +7,8 @@ import { CodeHostType, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
-import { decrypt, encrypt, generateApiKey, getApiKeyPrefix } from "@sourcebot/crypto";
-import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus, Org } from "@sourcebot/db";
+import { decrypt, encrypt, generateApiKey, hashSecret } from "@sourcebot/crypto";
+import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus, Org, ApiKey } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
@@ -62,22 +62,15 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
         // then this is an invalid unauthed request and we return a 401.
         const publicAccessEnabled = await getPublicAccessStatus(SINGLE_TENANT_ORG_DOMAIN);
         if (apiKey) {
-            const prefix = getApiKeyPrefix(apiKey);
-
-            const apiKeyDb = await prisma.apiKey.findFirst({
-                where: {
-                    prefix,
-                },
-            });
-
-            if (!apiKeyDb) {
-                console.error(`No API key found for prefix: ${prefix}`);
+            const apiKeyOrError = await verifyApiKey(apiKey);
+            if (isServiceError(apiKeyOrError)) {
+                console.error(`Invalid API key: ${apiKey}`);
                 return notAuthenticated();
             }
 
             const user = await prisma.user.findUnique({
                 where: {
-                    id: apiKeyDb.createdById,
+                    id: apiKeyOrError.apiKey.createdById,
                 },
             });
 
@@ -85,6 +78,15 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
                 console.error(`No user found for API key: ${apiKey}`);
                 return notAuthenticated();
             }
+
+            await prisma.apiKey.update({
+                where: {
+                    hash: apiKeyOrError.apiKey.hash,
+                },
+                data: {
+                    lastUsedAt: new Date(),
+                },
+            });
 
             return fn(user.id);
         } else if (
@@ -389,6 +391,37 @@ export const deleteSecret = async (key: string, domain: string): Promise<{ succe
             }
         })));
 
+export const verifyApiKey = async (key: string): Promise<{ apiKey: ApiKey } | ServiceError> => sew(async () => {
+    const parts = key.split("-");
+    if (parts.length !== 2 || parts[0] !== "sourcebot") {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_API_KEY,
+            message: "Invalid API key",
+        } satisfies ServiceError;
+    }
+
+    const hash = hashSecret(parts[1])
+    const apiKey = await prisma.apiKey.findUnique({
+        where: {
+            hash,
+        },
+    });
+    
+    if (!apiKey) {
+        return {
+            statusCode: StatusCodes.UNAUTHORIZED,
+            errorCode: ErrorCode.INVALID_API_KEY,
+            message: "Invalid API key",
+        } satisfies ServiceError;
+    }
+
+    return {
+        apiKey,
+    }
+});
+
+
 export const createApiKey = async (name: string, domain: string): Promise<{ key: string } | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
@@ -408,13 +441,11 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
                     } satisfies ServiceError;
                 }
 
-                const key = generateApiKey(userId);
-                const prefix = getApiKeyPrefix(key);
-
+                const { key, hash } = generateApiKey();
                 await prisma.apiKey.create({
                     data: {
                         name,
-                        prefix,
+                        hash,
                         orgId: org.id,
                         createdById: userId,
                     }
@@ -452,10 +483,7 @@ export const deleteApiKey = async (name: string, domain: string): Promise<{ succ
 
             await prisma.apiKey.delete({
                 where: {
-                    prefix_createdById: {
-                        prefix: apiKey.prefix,
-                        createdById: userId,
-                    },
+                    hash: apiKey.hash,
                 },
             });
 
@@ -1257,6 +1285,7 @@ export const removeMemberFromOrg = async (memberId: string, domain: string): Pro
                 // TODO: The fact that pendingApproval is set in the user is a bit weird here, since it will prevent approval from working in the multi-tenant case.
                 // We need to set pendingApproval to be true here though so that if the user tries to sign into the deployment again it will send another request. Without
                 // this, the user will never be able to request to join the org again.
+                // TODO(multitenant): Handle this better
                 await tx.user.update({
                     where: {
                         id: memberId,
@@ -1400,7 +1429,7 @@ export const getOrgAccountRequests = async (domain: string) => sew(() =>
         })
     ));
 
-export const createAccountRequest = async (userId: string, domain: string) => {
+export const createAccountRequest = async (userId: string, domain: string) => sew(async () => {
     const user = await prisma.user.findUnique({
         where: {
             id: userId,
@@ -1504,7 +1533,7 @@ export const createAccountRequest = async (userId: string, domain: string) => {
         success: true,
         existingRequest: false,
     }
-};
+});
 
 export const approveAccountRequest = async (requestId: string, domain: string) => sew(() =>
     withAuth(async (userId) =>

@@ -11,6 +11,7 @@ import { OrgRole } from "@sourcebot/db";
 import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@/features/entitlements/server";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
+import { sew } from "@/actions";
 
 export const getSSOProviders = (): Provider[] => {
     const providers: Provider[] = [];
@@ -79,7 +80,7 @@ export const getSSOProviders = (): Provider[] => {
     return providers;
 }
 
-export const handleJITProvisioning = async (userId: string, domain: string): Promise<ServiceError | boolean> => {
+export const handleJITProvisioning = async (userId: string, domain: string): Promise<ServiceError | boolean> => sew(async () => {
     const org = await prisma.org.findUnique({
         where: {
             domain,
@@ -109,6 +110,17 @@ export const handleJITProvisioning = async (userId: string, domain: string): Pro
         return notFound(`User ${userId} not found`);
     }
 
+    const userToOrg = await prisma.userToOrg.findFirst({
+        where: {
+            userId,
+            orgId: org.id,
+        }
+    });
+
+    if (userToOrg) {
+        console.warn(`JIT provisioning skipped for user ${userId} since they're already a member of org ${domain}`);
+        return true;
+    }
 
     const seats = await getSeats();
     const memberCount = org.members.length;
@@ -141,5 +153,5 @@ export const handleJITProvisioning = async (userId: string, domain: string): Pro
     });
 
     return true;
-}
+});
 

@@ -17,6 +17,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useState } from "react"
+import { useToast } from "@/components/hooks/use-toast"
 
 export type ApiKeyColumnInfo = {
     name: string
@@ -28,6 +29,7 @@ export type ApiKeyColumnInfo = {
 function ApiKeyActions({ apiKey }: { apiKey: ApiKeyColumnInfo }) {
     const params = useParams<{ domain: string }>()
     const [isPending, setIsPending] = useState(false)
+    const { toast } = useToast()
     
     const handleDelete = async () => {
         setIsPending(true)
@@ -36,6 +38,11 @@ function ApiKeyActions({ apiKey }: { apiKey: ApiKeyColumnInfo }) {
             window.location.reload()
         } catch (error) {
             console.error("Failed to delete API key", error)
+            toast({
+                title: "Failed to Delete API Key",
+                description: `There was an error deleting the API key: ${error}`,
+                variant: "destructive",
+            })
         } finally {
             setIsPending(false)
         }

@@ -214,7 +214,7 @@ model Secret {
 
 model ApiKey {
   name            String
-  prefix          String
+  hash            String @id @unique
 
   createdAt DateTime @default(now())
   lastUsedAt DateTime?
@@ -225,7 +225,6 @@ model ApiKey {
   createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdById String
 
-  @@id([prefix, createdById])
 }
 
 // @see : https://authjs.dev/concepts/database-models#user

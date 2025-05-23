@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface EnterpriseFeaturesCardProps {
@@ -16,10 +16,12 @@ interface EnterpriseFeaturesCardProps {
 export function EnterpriseFeaturesCard({ domain }: EnterpriseFeaturesCardProps) {
     const [isPublicAccessEnabled, setIsPublicAccessEnabled] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         async function fetchStatus() {
             try {
+                setError(null);
                 const status = await getPublicAccessStatus(domain);
                 if (isServiceError(status)) {
                     throw new ServiceErrorException(status);
@@ -27,6 +29,7 @@ export function EnterpriseFeaturesCard({ domain }: EnterpriseFeaturesCardProps) 
                 setIsPublicAccessEnabled(status);
             } catch (error) {
                 console.error("Failed to fetch public access status:", error);
+                setError(error instanceof Error ? error.message : "Failed to fetch public access status");
             } finally {
                 setIsLoading(false);
             }
@@ -46,6 +49,12 @@ export function EnterpriseFeaturesCard({ domain }: EnterpriseFeaturesCardProps) 
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
+                {error && (
+                    <div className="p-3 bg-destructive/15 text-destructive rounded-md flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <p className="text-sm">{error}</p>
+                    </div>
+                )}
                 <div className="flex items-center space-x-4 mt-4 pt-4 border-t">
                     <div className="flex items-center gap-2">
                         <Checkbox 

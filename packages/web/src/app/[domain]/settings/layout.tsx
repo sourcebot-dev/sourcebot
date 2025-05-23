@@ -43,11 +43,14 @@ export default async function SettingsLayout({
         throw new Error("User role not found");
     }
 
-    const requests = await getOrgAccountRequests(domain);
-    if (isServiceError(requests)) {
-        throw new ServiceErrorException(requests);
+    let numJoinRequests: number | undefined;
+    if (userRoleInOrg === OrgRole.OWNER) {
+        const requests = await getOrgAccountRequests(domain);
+        if (isServiceError(requests)) {
+            throw new ServiceErrorException(requests);
+        }
+        numJoinRequests = requests.length;
     }
-    const numRequests = requests.length;
 
     const sidebarNavItems = [
         {
@@ -64,9 +67,9 @@ export default async function SettingsLayout({
             title: (
                 <div className="flex items-center gap-2">
                     Members
-                    {userRoleInOrg === OrgRole.OWNER && numRequests > 0 && (
+                    {userRoleInOrg === OrgRole.OWNER && numJoinRequests !== undefined && numJoinRequests > 0 && (
                         <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
-                            {numRequests}
+                            {numJoinRequests}
                         </span>
                     )}
                 </div>

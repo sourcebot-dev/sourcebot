@@ -45,7 +45,10 @@ export function ResubmitAccountRequestButton({ domain, userId }: ResubmitButtonP
     }
 
     return (
-        <form action={handleSubmit}>
+        <form onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+        }}>
             <input type="hidden" name="domain" value={domain} />
             <Button
                 type="submit"
