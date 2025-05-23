@@ -1,6 +1,6 @@
 'use client';
 
-import { ReadOnlyCodeBlock } from "@/app/[domain]/components/readOnlyCodeBlock";
+import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { SourceRange } from "@/features/search/types";
 
 interface CodePreviewProps {
@@ -18,7 +18,7 @@ export const CodePreview = ({
 }: CodePreviewProps) => {
     
     return (
-        <ReadOnlyCodeBlock
+        <LightweightCodeHighlighter
             language={language}
             highlightRanges={ranges}
             lineNumbers={true}
@@ -26,6 +26,6 @@ export const CodePreview = ({
             renderWhitespace={true}
         >
             {content}
-        </ReadOnlyCodeBlock>
+        </LightweightCodeHighlighter>
     )
 }

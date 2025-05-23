@@ -10,7 +10,7 @@ import { FindSearchBasedSymbolReferencesResponse } from "@/features/codeNav/type
 import { RepositoryInfo, SourceRange } from "@/features/search/types";
 import { useEffect, useMemo, useRef } from "react";
 import { FileHeader } from "@/app/[domain]/components/fileHeader";
-import { ReadOnlyCodeBlock } from "@/app/[domain]/components/readOnlyCodeBlock";
+import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useBrowseState } from "../useBrowseState";
 import { ImperativePanelHandle } from "react-resizable-panels";
@@ -202,7 +202,7 @@ const ReferenceListItem = ({
             className="w-full hover:bg-accent py-1 cursor-pointer"
             onClick={onClick}
         >
-            <ReadOnlyCodeBlock
+            <LightweightCodeHighlighter
                 language="JavaScript"
                 highlightRanges={highlightRanges}
                 lineNumbers={true}
@@ -211,7 +211,7 @@ const ReferenceListItem = ({
                 renderWhitespace={false}
             >
                 {decodedLineContent}
-            </ReadOnlyCodeBlock>
+            </LightweightCodeHighlighter>
         </div>
     )
 }

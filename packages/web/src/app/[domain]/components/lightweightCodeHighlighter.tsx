@@ -8,7 +8,7 @@ import tailwind from '@/tailwind'
 import { measure } from '@/lib/utils'
 import { SourceRange } from '@/features/search/types'
 
-interface ReadOnlyCodeBlockProps {
+interface LightweightCodeHighlighter {
     language: string;
     children: string;
     fallbackLanguage?: Language;
@@ -22,7 +22,7 @@ interface ReadOnlyCodeBlockProps {
     removeTrailingNewline?: boolean;
 }
 
-export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCodeBlockProps) => {
+export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((props: LightweightCodeHighlighter) => {
     const {
         language,
         children: code,
@@ -146,7 +146,7 @@ export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCo
     )
 })
 
-ReadOnlyCodeBlock.displayName = 'ReadOnlyCodeBlock';
+LightweightCodeHighlighter.displayName = 'LightweightCodeHighlighter';
 
 async function getCodeParser(
     languageName: string,
