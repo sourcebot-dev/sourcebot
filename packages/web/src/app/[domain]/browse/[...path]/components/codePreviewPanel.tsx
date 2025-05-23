@@ -63,7 +63,7 @@ export const CodePreviewPanel = ({
 
     const extensions = useMemo(() => {
         const highlightDecoration = Decoration.mark({
-            class: "cm-searchMatch-selected",
+            class: "searchMatch-selected",
         });
 
         return [

@@ -81,6 +81,7 @@ const config = {
 						keyword: 'var(--editor-tag-keyword)',
 						'variable-definition': 'var(--editor-tag-variable-definition)',
 						name: 'var(--editor-tag-name)',
+						'property-definition': 'var(--editor-tag-property-definition)',
 					}
 				},
 			},

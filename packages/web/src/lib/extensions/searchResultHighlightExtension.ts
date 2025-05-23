@@ -46,10 +46,10 @@ const matchHighlighter = StateField.define<DecorationSet>({
 });
 
 const matchMark = Decoration.mark({
-    class: "cm-searchMatch"
+    class: "searchMatch"
 });
 const selectedMatchMark = Decoration.mark({
-    class: "cm-searchMatch-selected"
+    class: "searchMatch-selected"
 });
 
 export const highlightRanges = (selectedMatchIndex: number, ranges: SourceRange[], view: EditorView) => {

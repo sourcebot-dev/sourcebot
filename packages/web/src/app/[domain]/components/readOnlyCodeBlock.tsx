@@ -18,6 +18,8 @@ interface ReadOnlyCodeBlockProps {
     lineNumbers?: boolean;
     /* 1-based line number offset */
     lineNumbersOffset?: number;
+    renderWhitespace?: boolean;
+    removeTrailingNewline?: boolean;
 }
 
 export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCodeBlockProps) => {
@@ -29,11 +31,17 @@ export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCo
         highlightRanges,
         lineNumbers = false,
         lineNumbersOffset = 1,
+        renderWhitespace = false,
+        removeTrailingNewline = false,
     } = props;
 
     const unhighlightedLines = useMemo(() => {
-        return code.split('\n').filter(line => line.length > 0);
-    }, [code]);
+        let lines = code.split('\n');
+        if (removeTrailingNewline) {
+            lines = lines[lines.length - 1] === '' ? lines.slice(0, -1) : lines;
+        }
+        return lines;
+    }, [code, removeTrailingNewline]);
 
 
     const [highlightedLines, setHighlightedLines] = useState<React.ReactNode[] | null>(null);
@@ -91,13 +99,14 @@ export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCo
 
     const lineCount = (highlightedLines ?? unhighlightedLines).length + lineNumbersOffset;
     const lineNumberDigits = String(lineCount).length;
-    const lineNumberWidth = `${lineNumberDigits + 1}ch`; // +1 for padding
+    const lineNumberWidth = `${lineNumberDigits + 2}ch`; // +2 for padding
 
     return (
         <div
             style={{
                 fontFamily: tailwind.theme.fontFamily.editor,
                 fontSize: tailwind.theme.fontSize.editor,
+                whiteSpace: renderWhitespace ? 'pre-wrap' : 'none',
             }}
         >
             {(highlightedLines ?? unhighlightedLines).map((line, index) => (
@@ -112,8 +121,7 @@ export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCo
                                 minWidth: lineNumberWidth,
                                 display: 'inline-block',
                                 textAlign: 'left',
-                                marginLeft: '3px',
-                                marginRight: '3px',
+                                paddingLeft: '5px',
                                 userSelect: 'none',
                                 fontFamily: tailwind.theme.fontFamily.editor,
                                 color: tailwind.theme.colors.editor.gutterForeground,
@@ -122,7 +130,14 @@ export const ReadOnlyCodeBlock = memo<ReadOnlyCodeBlockProps>((props: ReadOnlyCo
                             {index + lineNumbersOffset}
                         </span>
                     )}
-                    <span className="cm-line" style={{ flex: 1 }}>
+                    <span
+                        className="cm-line"
+                        style={{
+                            flex: 1,
+                            paddingLeft: '6px',
+                            paddingRight: '2px',
+                        }}
+                    >
                         {line}
                     </span>
                 </div>
@@ -184,7 +199,7 @@ async function highlightCode<Output>(
             isHighlighted: boolean,
         }
 
-        const highlightClasses = classes ? `${classes} matchHighlight` : 'matchHighlight';
+        const highlightClasses = classes ? `${classes} searchMatch-selected` : 'searchMatch-selected';
 
         let currentRange: HighlightRange | null = null;
         for (let i = from; i < to; i++) {
