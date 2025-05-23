@@ -67,7 +67,7 @@ export const getPlan = (): Plan => {
 
 export const getSeats = (): number => {
     const licenseKey = getLicenseKey();
-    return licenseKey?.seats ?? SOURCEBOT_UNLIMITED_SEATS;``
+    return licenseKey?.seats ?? SOURCEBOT_UNLIMITED_SEATS;
 }
 
 export const hasEntitlement = (entitlement: Entitlement) => {

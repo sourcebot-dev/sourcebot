@@ -8,7 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "next-auth/react";
 import { env } from "@/env.mjs";
 import { PlanProvider } from "@/features/entitlements/planProvider";
-import { getEntitlements, getPlan } from "@/features/entitlements/server";
+import { getEntitlements } from "@/features/entitlements/server";
 
 export const metadata: Metadata = {
     title: "Sourcebot",

@@ -63,6 +63,7 @@
                     {
                         "group": "More",
                         "pages": [
+                            "docs/more/api-keys",
                             "docs/more/roles-and-permissions",
                             "docs/more/mcp-server"
                         ]
