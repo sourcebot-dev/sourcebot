@@ -92,6 +92,7 @@ export const BottomPanel = () => {
                 onCollapse={() => updateBrowseState({ isBottomPanelCollapsed: true })}
                 onExpand={() => updateBrowseState({ isBottomPanelCollapsed: false })}
                 order={2}
+                id={"bottom-panel"}
             >
                 {!selectedSymbolInfo ? (
                     <div className="flex flex-col items-center justify-center h-full">
@@ -194,6 +195,8 @@ const ReferenceListItem = ({
         return base64Decode(lineContent);
     }, [lineContent]);
 
+    const highlightRanges = useMemo(() => [range], [range]);
+
     return (
         <div
             className="w-full hover:bg-accent py-1 cursor-pointer"
@@ -201,7 +204,7 @@ const ReferenceListItem = ({
         >
             <ReadOnlyCodeBlock
                 language="JavaScript"
-                highlightRanges={[range]}
+                highlightRanges={highlightRanges}
                 lineNumbers={true}
                 lineNumbersOffset={range.start.lineNumber}
             >
