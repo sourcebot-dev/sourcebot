@@ -3,6 +3,8 @@ title: Overview
 sidebarTitle: Overview
 ---
 
+import SupportedPlatforms from '/snippets/platform-support.mdx'
+
 To connect your code to Sourcebot you create **connections**. A **connection** is a configuration object that describes how Sourcebot should fetch information from a supported code host.
 
 There are two ways to define connections:
@@ -23,15 +25,6 @@ There are two ways to define connections:
 
 ### Supported code hosts
 
-<CardGroup cols={2}>
-    <Card horizontal title="GitHub" icon="github" href="/docs/connections/github" />
-    <Card horizontal title="GitLab" icon="gitlab" href="/docs/connections/gitlab" />
-    <Card horizontal title="Bitbucket Cloud" icon="bitbucket" href="/docs/connections/bitbucket-cloud" />
-    <Card horizontal title="Bitbucket Data Center" icon="bitbucket" href="/docs/connections/bitbucket-data-center" />
-    <Card horizontal title="Gitea" href="/docs/connections/gitea" />
-    <Card horizontal title="Gerrit" href="/docs/connections/gerrit" />
-    <Card horizontal title="Other Git hosts" icon="git-alt" href="/docs/connections/generic-git-host" />
-    <Card horizontal title="Local Git repos" icon="folder" href="/docs/connections/local-repos" />
-</CardGroup>
+<SupportedPlatforms />
 
 <Note>Missing your code host? [Submit a feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas).</Note>

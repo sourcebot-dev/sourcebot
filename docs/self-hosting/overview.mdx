@@ -3,6 +3,8 @@ title: Self-host Sourcebot
 sidebarTitle: Overview
 ---
 
+import SupportedPlatforms from '/snippets/platform-support.mdx'
+
 <Note>Want a managed solution? Checkout [Sourcebot Cloud](/docs/getting-started).</Note>
 
 Sourcebot is open source and can be self-hosted using our official [Docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot).
@@ -85,16 +87,7 @@ Sourcebot is open source and can be self-hosted using our official [Docker image
     <Step title="Link your code">
         Sourcebot supports indexing public & private code on the following code hosts:
 
-        <CardGroup cols={2}>
-            <Card horizontal title="GitHub" icon="github" href="/docs/connections/github" />
-            <Card horizontal title="GitLab" icon="gitlab" href="/docs/connections/gitlab" />
-            <Card horizontal title="Bitbucket Cloud" icon="bitbucket" href="/docs/connections/bitbucket-cloud" />
-            <Card horizontal title="Bitbucket Data Center" icon="bitbucket" href="/docs/connections/bitbucket-data-center" />
-            <Card horizontal title="Gitea" href="/docs/connections/gitea" />
-            <Card horizontal title="Gerrit" href="/docs/connections/gerrit" />
-            <Card horizontal title="Other Git hosts" icon="git-alt" href="/docs/connections/generic-git-host" />
-            <Card horizontal title="Local Git repos" icon="folder" href="/docs/connections/local-repos" />
-        </CardGroup>
+        <SupportedPlatforms />
 
         <Note>Missing your code host? [Submit a feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas).</Note>
     </Step>
