@@ -164,7 +164,8 @@ export const CodePreviewPanel = ({
                                         repoName,
                                         symbolName,
                                     },
-                                    isBottomPanelCollapsed: false
+                                    isBottomPanelCollapsed: false,
+                                    activeExploreMenuTab: "references",
                                 })
                             }}
                         />

@@ -8,11 +8,13 @@ interface BrowseStateProvider {
         repoName: string
     }
     isBottomPanelCollapsed: boolean;
+    activeExploreMenuTab: "references" | "definitions";
 }
 
 const defaultState: BrowseStateProvider = {
     selectedSymbolInfo: undefined,
     isBottomPanelCollapsed: true,
+    activeExploreMenuTab: "references",
 };
 
 export const BrowseStateContext = createContext<{
