@@ -1,4 +1,4 @@
 import { z } from "zod";
-import { findSearchBasedSymbolReferencesResponseSchema } from "./schemas";
+import { findRelatedSymbolsResponseSchema } from "./schemas";
 
-export type FindSearchBasedSymbolReferencesResponse = z.infer<typeof findSearchBasedSymbolReferencesResponseSchema>;
+export type FindRelatedSymbolsResponse = z.infer<typeof findRelatedSymbolsResponseSchema>;
