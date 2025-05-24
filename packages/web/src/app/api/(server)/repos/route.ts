@@ -9,6 +9,7 @@ import { ErrorCode } from "@/lib/errorCodes";
 
 export const GET = async (request: NextRequest) => {
     const domain = request.headers.get("X-Org-Domain");
+    const apiKey = request.headers.get("X-Sourcebot-Api-Key") ?? undefined;
     if (!domain) {
         return serviceErrorResponse({
             statusCode: StatusCodes.BAD_REQUEST,
@@ -17,7 +18,7 @@ export const GET = async (request: NextRequest) => {
         });
     }
 
-    const response = await listRepositories(domain);
+    const response = await listRepositories(domain, apiKey);
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }

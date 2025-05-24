@@ -11,26 +11,28 @@ import { OrgRole } from "@sourcebot/db"
 interface NewConnectionCardProps {
     className?: string
     role: OrgRole
+    configPathProvided: boolean
 }
 
-export const NewConnectionCard = ({ className, role }: NewConnectionCardProps) => {
+export const NewConnectionCard = ({ className, role, configPathProvided }: NewConnectionCardProps) => {
     const isOwner = role === OrgRole.OWNER
+    const isDisabled = !isOwner || configPathProvided
 
     return (
         <div
             className={cn(
                 "flex flex-col border rounded-lg p-4 h-fit relative",
-                !isOwner && "bg-muted/10 border-muted cursor-not-allowed",
+                isDisabled && "bg-muted/10 border-muted cursor-not-allowed",
                 className,
             )}
         >
-            {!isOwner && (
+            {isDisabled && (
                 <div className="absolute right-3 top-3">
                     <LockIcon className="w-4 h-4 text-muted-foreground" />
                 </div>
             )}
-            <BlocksIcon className={cn("mx-auto w-7 h-7", !isOwner && "text-muted-foreground")} />
-            <h2 className={cn("mx-auto mt-4 font-medium text-lg", !isOwner && "text-muted-foreground")}>
+            <BlocksIcon className={cn("mx-auto w-7 h-7", isDisabled && "text-muted-foreground")} />
+            <h2 className={cn("mx-auto mt-4 font-medium text-lg", isDisabled && "text-muted-foreground")}>
                 Connect to a Code Host
             </h2>
             <p className="mx-auto text-center text-sm text-muted-foreground font-light">
@@ -41,42 +43,44 @@ export const NewConnectionCard = ({ className, role }: NewConnectionCardProps) =
                     type="github"
                     title="GitHub"
                     subtitle="Cloud or Enterprise supported."
-                    disabled={!isOwner} 
+                    disabled={isDisabled} 
                 />
                 <Card
                     type="gitlab" 
                     title="GitLab"
                     subtitle="Cloud and Self-Hosted supported."
-                    disabled={!isOwner}
+                    disabled={isDisabled}
                 />
                 <Card
                     type="bitbucket-cloud"
                     title="Bitbucket Cloud"
                     subtitle="Fetch repos from Bitbucket Cloud."
-                    disabled={!isOwner}
+                    disabled={isDisabled}
                 />
                 <Card
                     type="bitbucket-server"
                     title="Bitbucket Data Center"
                     subtitle="Fetch repos from a Bitbucket DC instance."
-                    disabled={!isOwner}
+                    disabled={isDisabled}
                 />
                 <Card
                     type="gitea"
                     title="Gitea" 
                     subtitle="Cloud and Self-Hosted supported."
-                    disabled={!isOwner}
+                    disabled={isDisabled}
                 />
                 <Card
                     type="gerrit"
                     title="Gerrit"
                     subtitle="Cloud and Self-Hosted supported."
-                    disabled={!isOwner}
+                    disabled={isDisabled}
                 />
             </div>
-            {!isOwner && (
+            {isDisabled && (
                 <p className="mt-4 text-xs text-center text-muted-foreground">
-                    Only organization owners can manage connections.
+                    {configPathProvided 
+                        ? "Connections are managed through the configuration file."
+                        : "Only organization owners can manage connections."}
                 </p>
             )}
         </div>

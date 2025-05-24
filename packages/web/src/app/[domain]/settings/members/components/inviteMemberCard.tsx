@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useCallback, useState } from "react";
 import { z } from "zod";
-import { PlusCircleIcon, Loader2 } from "lucide-react";
+import { PlusCircleIcon, Loader2, AlertCircle } from "lucide-react";
 import { OrgRole } from "@prisma/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { createInvites } from "@/actions";
@@ -30,9 +30,10 @@ export const inviteMemberFormSchema = z.object({
 interface InviteMemberCardProps {
     currentUserRole: OrgRole;
     isBillingEnabled: boolean;
+    seatsAvailable?: boolean;
 }
 
-export const InviteMemberCard = ({ currentUserRole, isBillingEnabled }: InviteMemberCardProps) => {
+export const InviteMemberCard = ({ currentUserRole, isBillingEnabled, seatsAvailable = true }: InviteMemberCardProps) => {
     const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const domain = useDomain();
@@ -81,13 +82,30 @@ export const InviteMemberCard = ({ currentUserRole, isBillingEnabled }: InviteMe
             });
     }, [domain, form, toast, router, captureEvent]);
 
+    const isDisabled = !seatsAvailable || currentUserRole !== OrgRole.OWNER || isLoading;
+
     return (
         <>
-            <Card>
+            <Card className={!seatsAvailable ? "opacity-70" : ""}>
                 <CardHeader>
                     <CardTitle>Invite Member</CardTitle>
                     <CardDescription>Invite new members to your organization.</CardDescription>
                 </CardHeader>
+                {!seatsAvailable && (
+                    <div className="px-6 mb-4">
+                        <div className="flex items-start space-x-2.5 p-3 rounded-md border border-gray-700 bg-gray-800/50 text-gray-200 shadow-md">
+                            <AlertCircle className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                                <p className="text-sm font-medium leading-tight text-white">
+                                    Maximum seats reached
+                                </p>
+                                <p className="text-xs mt-1 text-gray-300">
+                                    You&apos;ve reached the maximum number of seats for your license. Upgrade your plan to invite additional members.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(() => setIsInviteDialogOpen(true))}>
                         <CardContent className="space-y-4">
@@ -104,6 +122,7 @@ export const InviteMemberCard = ({ currentUserRole, isBillingEnabled }: InviteMe
                                                     {...field}
                                                     className="max-w-md"
                                                     placeholder="melissa@example.com"
+                                                    disabled={isDisabled}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -119,6 +138,7 @@ export const InviteMemberCard = ({ currentUserRole, isBillingEnabled }: InviteMe
                                 variant="outline"
                                 size="sm"
                                 onClick={addEmailField}
+                                disabled={isDisabled}
                             >
                                 <PlusCircleIcon className="w-4 h-4 mr-0.5" />
                                 Add more
@@ -128,7 +148,7 @@ export const InviteMemberCard = ({ currentUserRole, isBillingEnabled }: InviteMe
                             <Button
                                 size="sm"
                                 type="submit"
-                                disabled={currentUserRole !== OrgRole.OWNER || isLoading}
+                                disabled={isDisabled}
                             >
                                 {isLoading && <Loader2 className="w-4 h-4 mr-0.5 animate-spin" />}
                                 Invite

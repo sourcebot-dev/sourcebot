@@ -11,9 +11,12 @@ import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "@/lib/co
 import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
-import { env } from "@/env.mjs";
 import { notFound, redirect } from "next/navigation";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
+import { PendingApprovalCard } from "./components/pendingApproval";
+import { hasEntitlement } from "@/features/entitlements/server";
+import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
+import { env } from "@/env.mjs";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -30,7 +33,8 @@ export default async function Layout({
         return notFound();
     }
 
-    if (env.SOURCEBOT_AUTH_ENABLED === 'true') {
+    const publicAccessEnabled = hasEntitlement("public-access") && await getPublicAccessStatus(domain);
+    if (!publicAccessEnabled) {
         const session = await auth();
         if (!session) {
             redirect('/login');
@@ -42,11 +46,25 @@ export default async function Layout({
                     orgId: org.id,
                     userId: session.user.id
                 }
+            }, 
+            include: {
+                user: true
             }
         });
 
         if (!membership) {
-            return notFound();
+                const user = await prisma.user.findUnique({
+                    where: {
+                        id: session.user.id
+                    }
+                });
+                
+                // TODO: Organization join requests are only supported in single-tenant mode
+                if (env.SOURCEBOT_TENANCY_MODE === "single" && user?.pendingApproval) {
+                    return <PendingApprovalCard domain={domain} />
+                } else {
+                    return notFound();
+                }
         }
     }
 

@@ -2,13 +2,12 @@ import { RepositoryTable } from "./repositoryTable";
 import { getOrgFromDomain } from "@/data/org";
 import { PageNotFound } from "../components/pageNotFound";
 import { Header } from "../components/header";
-import { env } from "@/env.mjs";
 
 export default async function ReposPage({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
     if (!org) {
         return <PageNotFound />
-    }
+}
 
     return (
         <div>
@@ -17,9 +16,7 @@ export default async function ReposPage({ params: { domain } }: { params: { doma
             </Header>
             <div className="flex flex-col items-center">
                 <div className="w-full">
-                    <RepositoryTable
-                        isAddNewRepoButtonVisible={env.SOURCEBOT_AUTH_ENABLED === 'true'}
-                    />
+                    <RepositoryTable />
                 </div>
             </div>
         </div>

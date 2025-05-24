@@ -22,6 +22,7 @@ import { isServiceError } from "@/lib/utils"
 import { notFound } from "next/navigation"
 import { OrgRole } from "@sourcebot/db"
 import { CodeHostType } from "@/lib/utils"
+import { env } from "@/env.mjs"
 
 interface ConnectionManagementPageProps {
     params: {
@@ -45,6 +46,7 @@ export default async function ConnectionManagementPage({ params, searchParams }:
     }
 
     const isOwner = membership.role === OrgRole.OWNER;
+    const isDisabled = !isOwner || env.CONFIG_PATH !== undefined;
     const currentTab = searchParams.tab || "overview";
 
     return (
@@ -92,14 +94,14 @@ export default async function ConnectionManagementPage({ params, searchParams }:
                 value="settings"
                 className="flex flex-col gap-6"
             >
-                <DisplayNameSetting connectionId={connection.id} name={connection.name} disabled={!isOwner} />
+                <DisplayNameSetting connectionId={connection.id} name={connection.name} disabled={isDisabled} />
                 <ConfigSetting
                     connectionId={connection.id}
                     type={connection.connectionType as CodeHostType}
                     config={JSON.stringify(connection.config, null, 2)}
-                    disabled={!isOwner}
+                    disabled={isDisabled}
                 />
-                <DeleteConnectionSetting connectionId={connection.id} disabled={!isOwner} />
+                <DeleteConnectionSetting connectionId={connection.id} disabled={isDisabled} />
             </TabsContent>
         </Tabs>
     )

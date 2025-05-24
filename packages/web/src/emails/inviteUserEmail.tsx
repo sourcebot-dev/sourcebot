@@ -15,9 +15,10 @@ import {
     Text,
 } from '@react-email/components';
 import { EmailFooter } from './emailFooter';
+import { SOURCEBOT_LOGO_LIGHT_LARGE_URL, SOURCEBOT_ARROW_IMAGE_URL, SOURCEBOT_PLACEHOLDER_AVATAR_URL } from './constants';
+
 interface InviteUserEmailProps {
     inviteLink: string;
-    baseUrl: string;
     host: {
         email: string;
         name?: string;
@@ -31,7 +32,6 @@ interface InviteUserEmailProps {
 }
 
 export const InviteUserEmail = ({
-    baseUrl,
     host,
     recipient,
     orgName,
@@ -49,7 +49,7 @@ export const InviteUserEmail = ({
                     <Container className="border border-solid border-[#eaeaea] rounded my-[40px] mx-auto p-[20px] max-w-[465px]">
                         <Section className="mt-[32px]">
                             <Img
-                                src={`${baseUrl}/sb_logo_light_large.png`}
+                                src={SOURCEBOT_LOGO_LIGHT_LARGE_URL}
                                 width="auto"
                                 height="60"
                                 alt="Sourcebot Logo"
@@ -71,14 +71,14 @@ export const InviteUserEmail = ({
                                 <Column align="right">
                                     <Img
                                         className="rounded-full"
-                                        src={host.avatarUrl ? host.avatarUrl : `${baseUrl}/placeholder_avatar.png`}
+                                        src={host.avatarUrl ? host.avatarUrl : SOURCEBOT_PLACEHOLDER_AVATAR_URL}
                                         width="64"
                                         height="64"
                                     />
                                 </Column>
                                 <Column align="center">
                                     <Img
-                                        src={`${baseUrl}/arrow.png`}
+                                        src={SOURCEBOT_ARROW_IMAGE_URL}
                                         width="12"
                                         height="9"
                                         alt="invited you to"
@@ -87,7 +87,7 @@ export const InviteUserEmail = ({
                                 <Column align="left">
                                     <Img
                                         className="rounded-full"
-                                        src={orgImageUrl ? orgImageUrl : `${baseUrl}/placeholder_avatar.png`}
+                                        src={orgImageUrl ? orgImageUrl : SOURCEBOT_PLACEHOLDER_AVATAR_URL}
                                         width="64"
                                         height="64"
                                     />
@@ -128,17 +128,16 @@ const InvitedByText = ({ email, name }: { email: string, name?: string }) => {
 }
 
 InviteUserEmail.PreviewProps = {
-    baseUrl: 'http://localhost:3000',
     host: {
         name: 'Alan Turing',
         email: 'alan.turing@example.com',
-        // avatarUrl: `http://localhost:3000/arrow.png`,
+        avatarUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
     },
     recipient: {
         // name: 'alanturing',
     },
     orgName: 'Enigma',
-    orgImageUrl: `http://localhost:3000/arrow.png`,
+    orgImageUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
     inviteLink: 'https://localhost:3000/redeem?invite_id=1234',
 } satisfies InviteUserEmailProps;
 

@@ -7,7 +7,7 @@ import { ErrorCode } from "../../lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { zoektSearchResponseSchema } from "./zoektSchema";
 import { SearchRequest, SearchResponse, SearchResultRange } from "./types";
-import { Repo } from "@sourcebot/db";
+import { OrgRole, Repo } from "@sourcebot/db";
 import * as Sentry from "@sentry/nextjs";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 
@@ -124,10 +124,10 @@ const getFileWebUrl = (template: string, branch: string, fileName: string): stri
     return encodeURI(url + optionalQueryParams);
 }
 
-export const search = async ({ query, matches, contextLines, whole }: SearchRequest, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const transformedQuery = await transformZoektQuery(query, orgId);
+export const search = async ({ query, matches, contextLines, whole }: SearchRequest, domain: string, apiKey: string | undefined = undefined) => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const transformedQuery = await transformZoektQuery(query, org.id);
             if (isServiceError(transformedQuery)) {
                 return transformedQuery;
             }
@@ -160,7 +160,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
 
             let header: Record<string, string> = {};
             header = {
-                "X-Tenant-ID": orgId.toString()
+                "X-Tenant-ID": org.id.toString()
             };
 
             const searchResponse = await zoektFetch({
@@ -200,7 +200,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                         id: {
                             in: Array.from(repoIdentifiers).filter((id) => typeof id === "number"),
                         },
-                        orgId,
+                        orgId: org.id,
                     }
                 })).forEach(repo => repos.set(repo.id, repo));
 
@@ -209,7 +209,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                         name: {
                             in: Array.from(repoIdentifiers).filter((id) => typeof id === "string"),
                         },
-                        orgId,
+                        orgId: org.id,
                     }
                 })).forEach(repo => repos.set(repo.name, repo));
 
@@ -333,5 +333,5 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             });
 
             return parser.parseAsync(searchBody);
-        }), /* allowSingleTenantUnauthedAccess = */ true)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey)
 )

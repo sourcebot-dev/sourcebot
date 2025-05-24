@@ -24,8 +24,8 @@ export const TEAM_FEATURES = [
 
 export const MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME = 'sb.mobile-unsupported-splash-screen-dismissed';
 
-export const SINGLE_TENANT_USER_ID = '1';
-export const SINGLE_TENANT_USER_EMAIL = 'default@sourcebot.dev';
+export const SOURCEBOT_GUEST_USER_ID = '1';
+export const SOURCEBOT_GUEST_USER_EMAIL = 'guest@sourcebot.dev';
 export const SINGLE_TENANT_ORG_ID = 1;
 export const SINGLE_TENANT_ORG_DOMAIN = '~';
 export const SINGLE_TENANT_ORG_NAME = 'default';

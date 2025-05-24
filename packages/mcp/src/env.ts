@@ -9,6 +9,8 @@ export const env = createEnv({
     server: {
         SOURCEBOT_HOST: z.string().url().default(SOURCEBOT_DEMO_HOST),
 
+        SOURCEBOT_API_KEY: z.string().optional(),
+
         // The minimum number of tokens to return
         DEFAULT_MINIMUM_TOKENS: numberSchema.default(10000),
 

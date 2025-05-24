@@ -180,7 +180,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
                     </Button>
                 )}
             </div>
-            <ScrollArea className="mt-4 max-h-96 overflow-scroll">
+            <ScrollArea className="mt-4 h-96 pr-4">
                 {isReposPending ? (
                     <div className="flex flex-col gap-4">
                         {Array.from({ length: 3 }).map((_, i) => (

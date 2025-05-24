@@ -71,6 +71,7 @@ export function DataTable<TData, TValue>({
                     className="max-w-sm"
                 />
                 {/*
+                    TODO(auth): Combine this logic with existing add repo button logic in AddRepoButton component
                     Show a button on the demo site that allows users to add new repositories
                     by updating the demo-site-config.json file and opening a PR.
                 */}

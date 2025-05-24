@@ -93,13 +93,13 @@ const StatusIndicator = ({ status }: { status: RepoIndexingStatus }) => {
     )
 }
 
-export const columns = (domain: string, isAddNewRepoButtonVisible: boolean): ColumnDef<RepositoryColumnInfo>[] => [
+export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
     {
         accessorKey: "name",
         header: () => (
             <div className="flex items-center w-[400px]">
                 <span>Repository</span>
-                {isAddNewRepoButtonVisible && <AddRepoButton isAddNewRepoButtonVisible={isAddNewRepoButtonVisible} />}
+                <AddRepoButton />
             </div>
         ),
         cell: ({ row }) => {
@@ -182,7 +182,7 @@ export const columns = (domain: string, isAddNewRepoButtonVisible: boolean): Col
                         <DropdownMenuTrigger asChild>
                             <Button 
                                 variant={currentFilter ? "secondary" : "ghost"}
-                                className="font-medium"
+                                className="px-0 font-medium"
                             >
                                 Status
                                 <ListFilter className={cn(
@@ -227,7 +227,7 @@ export const columns = (domain: string, isAddNewRepoButtonVisible: boolean): Col
                 <Button
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="font-medium"
+                    className="px-0 font-medium"
                 >
                     Last Indexed
                     <ArrowUpDown className="ml-2 h-3.5 w-3.5 text-muted-foreground" />

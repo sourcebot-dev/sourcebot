@@ -8,7 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "next-auth/react";
 import { env } from "@/env.mjs";
 import { PlanProvider } from "@/features/entitlements/planProvider";
-import { getPlan } from "@/features/entitlements/server";
+import { getEntitlements } from "@/features/entitlements/server";
 
 export const metadata: Metadata = {
     title: "Sourcebot",
@@ -29,7 +29,7 @@ export default function RootLayout({
             <body>
                 <Toaster />
                 <SessionProvider>
-                    <PlanProvider plan={getPlan()}>
+                    <PlanProvider entitlements={getEntitlements()}>
                         <PostHogProvider disabled={env.SOURCEBOT_TELEMETRY_DISABLED === "true"}>
                             <ThemeProvider
                                 attribute="class"

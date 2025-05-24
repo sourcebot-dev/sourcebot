@@ -10,6 +10,7 @@ import { StatusCodes } from "http-status-codes";
 
 export const POST = async (request: NextRequest) => {
     const domain = request.headers.get("X-Org-Domain");
+    const apiKey = request.headers.get("X-Sourcebot-Api-Key") ?? undefined;
     if (!domain) {
         return serviceErrorResponse({
             statusCode: StatusCodes.BAD_REQUEST,
@@ -25,10 +26,8 @@ export const POST = async (request: NextRequest) => {
             schemaValidationError(parsed.error)
         );
     }
-
-
     
-    const response = await getFileSource(parsed.data, domain);
+    const response = await getFileSource(parsed.data, domain, apiKey);
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }

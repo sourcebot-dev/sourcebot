@@ -10,13 +10,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Enable these domains when auth is enabled.
-    if (env.SOURCEBOT_AUTH_ENABLED === 'true' &&
-        (
-            url.pathname.startsWith('/login') ||
-            url.pathname.startsWith('/redeem')
-        )
-    ) {
+    if (url.pathname.startsWith('/login') || url.pathname.startsWith('/redeem')) {
         return NextResponse.next();
     }
 

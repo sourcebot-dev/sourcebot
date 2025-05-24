@@ -9,7 +9,8 @@ export const search = async (request: SearchRequest): Promise<SearchResponse | S
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Org-Domain': '~'
+            'X-Org-Domain': '~',
+            ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
         body: JSON.stringify(request)
     }).then(response => response.json());
@@ -26,7 +27,8 @@ export const listRepos = async (): Promise<ListRepositoriesResponse | ServiceErr
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'X-Org-Domain': '~'
+            'X-Org-Domain': '~',
+            ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
     }).then(response => response.json());
 
@@ -42,7 +44,8 @@ export const getFileSource = async (request: FileSourceRequest): Promise<FileSou
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Org-Domain': '~'
+            'X-Org-Domain': '~',
+            ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
         body: JSON.stringify(request)
     }).then(response => response.json());

@@ -3,6 +3,8 @@ import { getFileSource } from "@/features/search/fileSourceApi";
 import { fileSourceResponseSchema } from "@/features/search/schemas";
 import { base64Decode } from "@/lib/utils";
 import { isServiceError } from "@/lib/utils";
+import { env } from "@/env.mjs";
+
 
 export const fetchFileContent = async (pr_payload: sourcebot_pr_payload, filename: string): Promise<sourcebot_context> => {
     console.log("Executing fetch_file_content");
@@ -14,7 +16,7 @@ export const fetchFileContent = async (pr_payload: sourcebot_pr_payload, filenam
     }
     console.log(JSON.stringify(fileSourceRequest, null, 2));
 
-    const response = await getFileSource(fileSourceRequest, "~");
+    const response = await getFileSource(fileSourceRequest, "~", env.REVIEW_AGENT_API_KEY);
     if (isServiceError(response)) {
         throw new Error(`Failed to fetch file content for ${filename} from ${repoPath}: ${response.message}`);
     }

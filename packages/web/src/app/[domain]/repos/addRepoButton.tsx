@@ -3,24 +3,28 @@
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogClose,
-    DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import { useState } from "react"
 import { ConnectionList } from "../connections/components/connectionList"
 import { useDomain } from "@/hooks/useDomain"
 import Link from "next/link";
+import { useSession } from "next-auth/react"
 
-export function AddRepoButton({ isAddNewRepoButtonVisible }: { isAddNewRepoButtonVisible: boolean }) {
-    const [isOpen, setIsOpen] = useState(false)
-    const domain = useDomain()
+export function AddRepoButton() {
+  const [isOpen, setIsOpen] = useState(false)
+  const domain = useDomain()
+  const { data: session } = useSession();
 
-    return (
+  return (
+    <>
+      {session?.user && (
         <>
           <Button
             onClick={() => setIsOpen(true)}
@@ -30,7 +34,7 @@ export function AddRepoButton({ isAddNewRepoButtonVisible }: { isAddNewRepoButto
           >
             <PlusCircle className="h-4 w-4" />
           </Button>
-    
+
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
               <DialogHeader className="px-6 py-4 border-b">
@@ -40,7 +44,7 @@ export function AddRepoButton({ isAddNewRepoButtonVisible }: { isAddNewRepoButto
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto p-6">
-                <ConnectionList className="w-full" isDisabled={!isAddNewRepoButtonVisible} />
+                <ConnectionList className="w-full" isDisabled={false} />
               </div>
               <DialogFooter className="flex justify-between items-center border-t p-4 px-6">
                 <Button asChild variant="default" className="bg-primary hover:bg-primary/90">
@@ -54,4 +58,7 @@ export function AddRepoButton({ isAddNewRepoButtonVisible }: { isAddNewRepoButto
           </Dialog>
         </>
       )
+      }
+    </>
+  )
 } 
