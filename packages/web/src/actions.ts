@@ -1476,7 +1476,9 @@ export const createAccountRequest = async (userId: string, domain: string) => se
         });
 
         if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
-            const origin = (await headers()).get('origin')!;
+            // TODO: This is needed because we can't fetch the origin from the request headers when this is called
+            // on user creation (the header isn't set when next-auth calls onCreateUser for some reason)
+            const deploymentUrl = env.AUTH_URL;
 
             const owner = await prisma.user.findFirst({
                 where: {
@@ -1493,7 +1495,7 @@ export const createAccountRequest = async (userId: string, domain: string) => se
                 console.error(`Failed to find owner for org ${org.id} when drafting email for account request from ${userId}`);
             } else {
                 const html = await render(JoinRequestSubmittedEmail({
-                    baseUrl: origin,
+                    baseUrl: deploymentUrl,
                     requestor: {
                         name: user.name ?? undefined,
                         email: user.email!,
