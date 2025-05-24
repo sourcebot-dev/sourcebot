@@ -47,7 +47,7 @@ export const getPlan = (): Plan => {
         const expiryDate = new Date(licenseKey.expiryDate);
         if (expiryDate.getTime() < new Date().getTime()) {
             console.error(`The provided license key has expired (${expiryDate.toLocaleString()}). Falling back to oss plan. Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
-            return "oss";
+            process.exit(1);
         }
 
         if (licenseKey.customEntitlements) {
@@ -80,7 +80,7 @@ export const getEntitlements = (): Entitlement[] => {
     if (plan === "self-hosted:enterprise-custom") {
         const customEntitlements = licenseKey.customEntitlements;
         if (!customEntitlements) {
-            console.error(`The provided license key is under the self-hosted:enterprise plan but has no custom entitlements. Returning oss entitlements.`);
+            console.error(`The provided license key is under the self-hosted:enterprise-custom plan but has no custom entitlements. Returning oss entitlements.`);
             return entitlementsByPlan["oss"];
         }
 
