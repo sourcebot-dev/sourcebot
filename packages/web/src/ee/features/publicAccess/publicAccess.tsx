@@ -21,6 +21,11 @@ export const getPublicAccessStatus = async (domain: string): Promise<boolean | S
         } satisfies ServiceError;
     }
 
+    // If no metadata is set we don't try to parse it since it'll result in a parse error
+    if (org.metadata === null) {
+        return false;
+    }
+
     const orgMetadata = orgMetadataSchema.safeParse(org.metadata);
     if (!orgMetadata.success) {
         return {
