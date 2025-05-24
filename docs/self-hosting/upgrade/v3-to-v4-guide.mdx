@@ -1,0 +1,68 @@
+---
+title: V3 to V4 Guide
+sidebarTitle: V3 to V4 guide
+---
+
+This guide will walk you through upgrading your Sourcebot deployment from v3 to v4. 
+
+<Warning>
+Please note that the following features are no longer supported in v4:
+- Multi-tenancy mode
+- Unauthorized access to a Sourcebot deployment. Authentication is now required, and unauthorized access requires an unlimited seat [enterprise license](/self-hosting/license-key) 
+</Warning>
+
+<Warning>
+If your Sourcebot deployment doesn't have authentication enabled, or uses multi-tenancy mode, you'll need to reindex all your repos
+</Warning>
+
+### If your deployment doesn't have authentication enabled (i.e. `SOURCEBOT_AUTH_ENABLED`)
+<Steps>
+    <Step title="Spin down deployment">
+    </Step>
+    <Step title="Reset Sourcebot data">
+        Delete your Sourcebot cache (`.sourcebot`) directory. If you're using Sourcebot with an external postgres instance, reset the database in your instance used by Sourcebot.
+    </Step>
+    <Step title="Set AUTH_URL environment variable if needed">
+        If your Sourcebot instance is deployed behind a domain (ex. `https://sourcebot.yourcompany.com`) you **must** set the `AUTH_URL` environment variable to your deployment domain.
+    </Step>
+    <Step title="Spin up v4 deployment and create owner account">
+        When you visit your new deployment you'll be presented with a sign-in page. Sourcebot now requires authentication, and all users must register and sign-in to the deployment.
+
+        The first account that's registered will be made the owner. By default, you can register using basic credentials which will be stored encrypted within the postgres DB connected to Sourcebot. Check out
+        the [auth docs](/self-hosting/configuration/authentication) to setup additional auth providers.
+
+        <img width="600" height="500" style={{ borderRadius: '0.5rem' }} src="/images/login_basic.png" />
+    </Step>
+    <Step title="(Optional) Configure transactional emails">
+        Emails can be sent on organization join request/approval by configuring [transactional emails](/self-hosting/configuration/transactional-emails)
+
+        <img width="500" height="600" style={{ borderRadius: '0.5rem' }} src="/images/join_request_email.png" />
+    </Step>
+    <Step title="Approve additional users onto your deployment">
+        After the first account is created, all new account registrations must be approved by the owner. When new users register onto the deployment they'll be presented with the following request approval page:
+
+        ![Pending Approval Page](/images/pending_approval.png)
+
+        The owner can view and approve join requests by navigating to **Settings -> Members**
+
+    </Step>
+    <Step title="You're done!">
+        Congrats, you've successfully migrated to v4! Please let us know what you think of the new features by reaching out on our [discord](https://discord.gg/6Fhp27x7Pb) or [GitHub discussion](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support)
+    </Step>
+</Steps>
+
+### If your deployment has authentication enabled
+
+The only change that's required if your deployment has authentication enabled is to unset the `SOURCEBOT_AUTH_ENABLED` environment variable. New user registrations will now submit a request to join the organization which can be approved by the owner by 
+navigating to **Settings -> Members**. Emails can be sent on organization join request/approval by configuring [transactional emails](/self-hosting/configuration/transactional-emails)
+
+### If your deployment uses multi-tenancy mode
+
+Unfortunately, multi-tenancy mode is no longer officially supported in v4. To upgrade to v4, you'll need to unset the `SOURCEBOT_TENANCY_MODE` environment variable. You can then follow the [instructions above](/self-hosting/upgrade/v3-to-v4-guide#if-your-deployment-doesnt-have-authentication-enabled-i-e-sourcebot-auth-enabled)
+to finish upgrading to v4 in single-tenant mode.
+
+## Troubleshooting
+- If you're hitting issues with sigining into your Sourcebot instance, make sure you're setting `AUTH_URL` correctly to your deployment domain (ex. `https://sourcebot.yourcompany.com`)
+
+
+Having troubles migrating from v3 to v4? Reach out to us on [discord](https://discord.gg/6Fhp27x7Pb) or [GitHub discussion](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) and we'll try our best to help

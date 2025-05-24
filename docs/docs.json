@@ -98,7 +98,8 @@
                     {
                         "group": "Upgrade",
                         "pages": [
-                            "self-hosting/upgrade/v2-to-v3-guide"
+                            "self-hosting/upgrade/v2-to-v3-guide",
+                            "self-hosting/upgrade/v3-to-v4-guide"
                         ]
                     }
                 ]
