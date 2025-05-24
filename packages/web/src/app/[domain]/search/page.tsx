@@ -25,7 +25,7 @@ import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
 
-const DEFAULT_MATCH_COUNT = 10000;
+const DEFAULT_MAX_MATCH_COUNT = 10000;
 
 export default function SearchPage() {
     // We need a suspense boundary here since we are accessing query params
@@ -41,18 +41,20 @@ export default function SearchPage() {
 const SearchPageInternal = () => {
     const router = useRouter();
     const searchQuery = useNonEmptyQueryParam(SearchQueryParams.query) ?? "";
-    const _matches = parseInt(useNonEmptyQueryParam(SearchQueryParams.matches) ?? `${DEFAULT_MATCH_COUNT}`);
-    const matches = isNaN(_matches) ? DEFAULT_MATCH_COUNT : _matches;
     const { setSearchHistory } = useSearchHistory();
     const captureEvent = useCaptureEvent();
     const domain = useDomain();
     const { toast } = useToast();
 
+    // Encodes the number of matches to return in the search response.
+    const _maxMatchCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.matches) ?? `${DEFAULT_MAX_MATCH_COUNT}`);
+    const maxMatchCount = isNaN(_maxMatchCount) ? DEFAULT_MAX_MATCH_COUNT : _maxMatchCount;
+
     const { data: searchResponse, isLoading: isSearchLoading, error } = useQuery({
-        queryKey: ["search", searchQuery, matches],
+        queryKey: ["search", searchQuery, maxMatchCount],
         queryFn: () => measure(() => unwrapServiceError(search({
             query: searchQuery,
-            matches,
+            matches: maxMatchCount,
             contextLines: 3,
             whole: false,
         }, domain)), "client.search"),
@@ -122,7 +124,7 @@ const SearchPageInternal = () => {
         });
     }, [captureEvent, searchQuery, searchResponse]);
 
-    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled, repositoryInfo } = useMemo(() => {
+    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled, repositoryInfo, matchCount } = useMemo(() => {
         if (!searchResponse) {
             return {
                 fileMatches: [],
@@ -130,6 +132,7 @@ const SearchPageInternal = () => {
                 totalMatchCount: 0,
                 isBranchFilteringEnabled: false,
                 repositoryInfo: {},
+                matchCount: 0,
             };
         }
 
@@ -142,32 +145,21 @@ const SearchPageInternal = () => {
                 acc[repo.id] = repo;
                 return acc;
             }, {} as Record<number, RepositoryInfo>),
+            matchCount: searchResponse.stats.matchCount,
         }
     }, [searchResponse]);
 
     const isMoreResultsButtonVisible = useMemo(() => {
-        return totalMatchCount > matches;
-    }, [totalMatchCount, matches]);
-
-    const numMatches = useMemo(() => {
-        // Accumualtes the number of matches across all files
-        return fileMatches.reduce(
-            (acc, file) =>
-                acc + file.chunks.reduce(
-                    (acc, chunk) => acc + chunk.matchRanges.length,
-                    0,
-                ),
-            0,
-        );
-    }, [fileMatches]);
+        return totalMatchCount > maxMatchCount;
+    }, [totalMatchCount, maxMatchCount]);
 
     const onLoadMoreResults = useCallback(() => {
         const url = createPathWithQueryParams(`/${domain}/search`,
             [SearchQueryParams.query, searchQuery],
-            [SearchQueryParams.matches, `${matches * 2}`],
+            [SearchQueryParams.matches, `${maxMatchCount * 2}`],
         )
         router.push(url);
-    }, [matches, router, searchQuery, domain]);
+    }, [maxMatchCount, router, searchQuery, domain]);
 
     return (
         <div className="flex flex-col h-screen overflow-clip">
@@ -193,7 +185,7 @@ const SearchPageInternal = () => {
                     isBranchFilteringEnabled={isBranchFilteringEnabled}
                     repoInfo={repositoryInfo}
                     searchDurationMs={searchDurationMs}
-                    numMatches={numMatches}
+                    numMatches={matchCount}
                 />
             )}
         </div>
