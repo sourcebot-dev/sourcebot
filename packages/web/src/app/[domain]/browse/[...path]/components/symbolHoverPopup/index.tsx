@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
 import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
+import { useBrowseState } from "@/app/[domain]/browse/useBrowseState";
 
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
@@ -31,6 +32,8 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         isSticky,
         repoName,
     });
+
+    const { updateBrowseState } = useBrowseState();
 
     // Positions the popup relative to the symbol
     useEffect(() => {
@@ -73,20 +76,32 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     // If we resolve multiple matches, instead of navigating to the first match, we should
     // instead popup the bottom sheet with the list of matches.
     const onGotoDefinition = useCallback(() => {
-        if (!symbolInfo || !symbolInfo.symbolDefInfo) {
+        if (!symbolInfo || !symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0) {
             return;
         }
 
-        const { symbolDefInfo } = symbolInfo;
-        const { fileName, repoName } = symbolDefInfo;
-        const { start, end } = symbolDefInfo.range;
-        const highlightRange = `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`;
+        const { symbolDefinitions } = symbolInfo;
+        if (symbolDefinitions.length === 1) {
+            const symbolDefinition = symbolDefinitions[0];
+            const { fileName, repoName } = symbolDefinition;
+            const { start, end } = symbolDefinition.range;
+            const highlightRange = `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`;
 
-        const params = new URLSearchParams(searchParams.toString());
-        params.set('highlightRange', highlightRange);
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('highlightRange', highlightRange);
 
-        router.push(`/${domain}/browse/${repoName}@HEAD/-/blob/${fileName}?${params.toString()}`);
-    }, [symbolInfo, searchParams, router, domain]);
+            router.push(`/${domain}/browse/${repoName}@HEAD/-/blob/${fileName}?${params.toString()}`);
+        } else {
+            updateBrowseState({
+                selectedSymbolInfo: {
+                    symbolName: symbolInfo.symbolName,
+                    repoName,
+                },
+                activeExploreMenuTab: "definitions",
+                isBottomPanelCollapsed: false,
+            })
+        }
+    }, [symbolInfo, searchParams, router, domain, updateBrowseState, repoName]);
 
     // @todo: We should probably make the behaviour s.t., the ctrl / cmd key needs to be held
     // down to navigate to the definition. We should also only show the underline when the key
@@ -109,14 +124,14 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
             onMouseOver={() => setIsSticky(true)}
             onMouseOut={() => setIsSticky(false)}
         >
-            {symbolInfo.isSymbolDefInfoLoading ? (
+            {symbolInfo.isSymbolDefinitionsLoading ? (
                 <div className="flex flex-row items-center gap-2 text-sm">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Loading...
                 </div>
-            ) : symbolInfo.symbolDefInfo ? (
+            ) : symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 0 ? (
                 <SymbolDefinitionPreview
-                    symbolDefinition={symbolInfo.symbolDefInfo}
+                    symbolDefinition={symbolInfo.symbolDefinitions[0]}
                 />
             ) : (
                 <p className="text-sm font-medium text-muted-foreground">No hover info found</p>
@@ -124,15 +139,16 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
             <Separator />
             <div className="flex flex-row gap-2 mt-2">
                 <LoadingButton
-                    loading={symbolInfo.isSymbolDefInfoLoading}
-                    disabled={symbolInfo.symbolDefInfo === undefined}
+                    loading={symbolInfo.isSymbolDefinitionsLoading}
+                    disabled={!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0}
                     variant="outline"
                     size="sm"
                     onClick={onGotoDefinition}
                 >
-                    {!symbolInfo.isSymbolDefInfoLoading && !symbolInfo.symbolDefInfo ?
-                        "No definition found" :
-                        "Go to definition"
+                    {
+                        !symbolInfo.isSymbolDefinitionsLoading && (!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0) ?
+                            "No definition found" :
+                            `Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`
                     }
                 </LoadingButton>
                 <Button

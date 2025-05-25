@@ -1,10 +1,10 @@
-import { search } from "@/app/api/(client)/client";
+import { findSearchBasedSymbolDefinitions } from "@/features/codeNav/actions";
 import { SourceRange } from "@/features/search/types";
 import { useDomain } from "@/hooks/useDomain";
-import { base64Decode, isServiceError } from "@/lib/utils";
+import { useSearchBasedSymbolDefinitions } from "@/hooks/useSearchBasedSymbolDefinitions";
+import { unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import escapeStringRegexp from "escape-string-regexp";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 
@@ -14,19 +14,17 @@ interface UseHoveredOverSymbolInfoProps {
     repoName: string;
 }
 
-export interface SymbolDefInfo {
-    content: string;
-    language: string;
-    fileName: string;
-    repoName: string;
-    range: SourceRange;
-}
-
 interface HoveredOverSymbolInfo {
     element: HTMLElement;
     symbolName: string;
-    isSymbolDefInfoLoading: boolean;
-    symbolDefInfo?: SymbolDefInfo;
+    isSymbolDefinitionsLoading: boolean;
+    symbolDefinitions?: {
+        lineContent: string;
+        language: string;
+        fileName: string;
+        repoName: string;
+        range: SourceRange;
+    }[];
 }
 
 const SYMBOL_HOVER_POPUP_MOUSE_OVER_TIMEOUT = 500;
@@ -48,52 +46,26 @@ export const useHoveredOverSymbolInfo = ({
         return (symbolElement && symbolElement.textContent) ?? undefined;
     }, [symbolElement]);
 
-    // @todo: refactor this into a server action.
-    const { data: symbolDefInfo, isPending: isSymbolDefinitionLoading } = useQuery({
-        queryKey: ["symbol-hover", symbolName],
-        queryFn: () => {
-            if (!symbolName) {
-                return null;
-            }
-            const query = `sym:\\b${symbolName}\\b repo:^${escapeStringRegexp(repoName)}$`;
+    const { data: symbolDefinitions, isLoading: isSymbolDefinitionsLoading } = useQuery({
+        queryKey: ["definitions", symbolName, repoName, domain],
+        queryFn: () => unwrapServiceError(findSearchBasedSymbolDefinitions(symbolName!, repoName, domain)),
+        select: ((data) => {
+            return data.files.flatMap((file) => {
+                return file.matches.map((match) => {
+                    return {
+                        lineContent: match.lineContent,
+                        language: file.language,
+                        fileName: file.fileName,
+                        repoName: file.repository,
+                        range: match.range,
+                    }
+                })
+            })
 
-            return search({
-                query,
-                matches: 1,
-                contextLines: 0,
-            }, domain).then((result): SymbolDefInfo | null => {
-                if (isServiceError(result) || !editorRef.state) {
-                    return null;
-                }
-
-                if (result.files.length === 0) {
-                    return null;
-                }
-                const file = result.files[0];
-
-                if (file.chunks.length === 0) {
-                    return null;
-                }
-                const chunk = file.chunks[0];
-
-                if (chunk.matchRanges.length === 0) {
-                    return null;
-                }
-
-                const matchRange = chunk.matchRanges[0];
-                const content = base64Decode(chunk.content);
-
-                return {
-                    content: content,
-                    language: file.language,
-                    fileName: file.fileName.text,
-                    repoName: repoName,
-                    range: matchRange,
-                };
-            });
-        },
+        }),
+        enabled: !!symbolName,
         staleTime: Infinity,
-    });
+    })
 
     const clearTimers = useCallback(() => {
         if (mouseOverTimerRef.current) {
@@ -152,7 +124,7 @@ export const useHoveredOverSymbolInfo = ({
     return {
         element: symbolElement,
         symbolName,
-        isSymbolDefInfoLoading: isSymbolDefinitionLoading,
-        symbolDefInfo: symbolDefInfo ?? undefined,
+        isSymbolDefinitionsLoading: isSymbolDefinitionsLoading,
+        symbolDefinitions,
     };
 }

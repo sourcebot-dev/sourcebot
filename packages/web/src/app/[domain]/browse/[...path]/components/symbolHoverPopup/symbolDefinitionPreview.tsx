@@ -1,18 +1,29 @@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
-import { SymbolDefInfo } from "./useHoveredOverSymbolInfo";
 import { useMemo } from "react";
+import { SourceRange } from "@/features/search/types";
+import { base64Decode } from "@/lib/utils";
 
 interface SymbolDefinitionPreviewProps {
-    symbolDefinition: SymbolDefInfo;
+    symbolDefinition: {
+        lineContent: string;
+        language: string;
+        fileName: string;
+        repoName: string;
+        range: SourceRange;
+    };
 }
 
 export const SymbolDefinitionPreview = ({
     symbolDefinition,
 }: SymbolDefinitionPreviewProps) => {
-    const { content: lineContent, language, range } = symbolDefinition;
+    const { lineContent, language, range } = symbolDefinition;
     const highlightRanges = useMemo(() => [range], [range]);
+
+    const decodedLineContent = useMemo(() => {
+        return base64Decode(lineContent);
+    }, [lineContent]);
 
     return (
         <div className="flex flex-col gap-2 mb-2">
@@ -45,7 +56,7 @@ export const SymbolDefinitionPreview = ({
                 removeTrailingNewline={true}
                 renderWhitespace={false}
             >
-                {lineContent}
+                {decodedLineContent}
             </LightweightCodeHighlighter>
         </div>
     )

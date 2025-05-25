@@ -132,7 +132,7 @@ const ExploreMenu = ({
         isPending: isReferencesResponsePending,
         isLoading: isReferencesResponseLoading,
     } = useQuery({
-        queryKey: ["references", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName],
+        queryKey: ["references", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, domain],
         queryFn: () => unwrapServiceError(findSearchBasedSymbolReferences(selectedSymbolInfo!.symbolName, selectedSymbolInfo!.repoName, domain)),
         enabled: !!selectedSymbolInfo,
     });
@@ -143,7 +143,7 @@ const ExploreMenu = ({
         isPending: isDefinitionsResponsePending,
         isLoading: isDefinitionsResponseLoading,
     } = useQuery({
-        queryKey: ["definitions", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName],
+        queryKey: ["definitions", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, domain],
         queryFn: () => unwrapServiceError(findSearchBasedSymbolDefinitions(selectedSymbolInfo!.symbolName, selectedSymbolInfo!.repoName, domain)),
         enabled: !!selectedSymbolInfo,
     });
@@ -168,6 +168,10 @@ const ExploreMenu = ({
             </div>
         )
     }
+
+    const data = activeExploreMenuTab === "references" ?
+        referencesResponse :
+        definitionsResponse;
 
     return (
         <ResizablePanelGroup
@@ -221,9 +225,16 @@ const ExploreMenu = ({
             </ResizablePanel>
             <ResizableHandle />
             <ResizablePanel>
-                <ReferenceList
-                    data={activeExploreMenuTab === "references" ? referencesResponse : definitionsResponse}
-                />
+                {data.files.length > 0 ? (
+                    <ReferenceList
+                        data={data}
+                    />
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                        <VscSymbolMisc className="w-6 h-6 mb-2" />
+                        <p className="text-sm">No {activeExploreMenuTab} found</p>
+                    </div>
+                )}
             </ResizablePanel>
         </ResizablePanelGroup>
 
