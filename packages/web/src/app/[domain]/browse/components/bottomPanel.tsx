@@ -29,7 +29,7 @@ export const BottomPanel = () => {
     const panelRef = useRef<ImperativePanelHandle>(null);
 
     const {
-        state: { selectedSymbolInfo, isBottomPanelCollapsed },
+        state: { selectedSymbolInfo, isBottomPanelCollapsed, bottomPanelSize },
         updateBrowseState,
     } = useBrowseState();
 
@@ -85,12 +85,17 @@ export const BottomPanel = () => {
             <Separator />
             <ResizablePanel
                 minSize={20}
-                maxSize={40}
+                maxSize={50}
                 collapsible={true}
                 ref={panelRef}
-                defaultSize={isBottomPanelCollapsed ? 0 : undefined}
+                defaultSize={isBottomPanelCollapsed ? 0 : bottomPanelSize}
                 onCollapse={() => updateBrowseState({ isBottomPanelCollapsed: true })}
                 onExpand={() => updateBrowseState({ isBottomPanelCollapsed: false })}
+                onResize={(size) => {
+                    if (!isBottomPanelCollapsed) {
+                        updateBrowseState({ bottomPanelSize: size });
+                    }
+                }}
                 order={2}
                 id={"bottom-panel"}
             >
@@ -113,6 +118,7 @@ interface ExploreMenuProps {
     selectedSymbolInfo: {
         symbolName: string;
         repoName: string;
+        revisionName: string;
     }
 }
 
@@ -132,9 +138,15 @@ const ExploreMenu = ({
         isPending: isReferencesResponsePending,
         isLoading: isReferencesResponseLoading,
     } = useQuery({
-        queryKey: ["references", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, domain],
-        queryFn: () => unwrapServiceError(findSearchBasedSymbolReferences(selectedSymbolInfo!.symbolName, selectedSymbolInfo!.repoName, domain)),
-        enabled: !!selectedSymbolInfo,
+        queryKey: ["references", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, domain],
+        queryFn: () => unwrapServiceError(
+            findSearchBasedSymbolReferences(
+                selectedSymbolInfo.symbolName,
+                selectedSymbolInfo.repoName,
+                domain,
+                selectedSymbolInfo.revisionName,
+            )
+        ),
     });
 
     const {
@@ -143,9 +155,15 @@ const ExploreMenu = ({
         isPending: isDefinitionsResponsePending,
         isLoading: isDefinitionsResponseLoading,
     } = useQuery({
-        queryKey: ["definitions", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, domain],
-        queryFn: () => unwrapServiceError(findSearchBasedSymbolDefinitions(selectedSymbolInfo!.symbolName, selectedSymbolInfo!.repoName, domain)),
-        enabled: !!selectedSymbolInfo,
+        queryKey: ["definitions", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, domain],
+        queryFn: () => unwrapServiceError(
+            findSearchBasedSymbolDefinitions(
+                selectedSymbolInfo.symbolName,
+                selectedSymbolInfo.repoName,
+                domain,
+                selectedSymbolInfo.revisionName,
+            )
+        ),
     });
 
     const isPending = isReferencesResponsePending || isDefinitionsResponsePending;
@@ -228,6 +246,7 @@ const ExploreMenu = ({
                 {data.files.length > 0 ? (
                     <ReferenceList
                         data={data}
+                        revisionName={selectedSymbolInfo.revisionName}
                     />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -285,11 +304,13 @@ const Entry = ({
 }
 
 interface ReferenceListProps {
-    data: FindRelatedSymbolsResponse
+    data: FindRelatedSymbolsResponse;
+    revisionName: string;
 }
 
 const ReferenceList = ({
     data,
+    revisionName,
 }: ReferenceListProps) => {
     const repoInfoMap = useMemo(() => {
         return data.repositoryInfo.reduce((acc, repo) => {
@@ -318,6 +339,7 @@ const ReferenceList = ({
                                     webUrl: repoInfo.webUrl,
                                 }}
                                 fileName={file.fileName}
+                                branchDisplayName={revisionName === "HEAD" ? undefined : revisionName}
                             />
                         </div>
                         <div className="divide-y">
@@ -334,7 +356,7 @@ const ReferenceList = ({
 
                                             const params = new URLSearchParams(searchParams.toString());
                                             params.set('highlightRange', highlightRange);
-                                            router.push(`/${domain}/browse/${file.repository}@HEAD/-/blob/${file.fileName}?${params.toString()}`);
+                                            router.push(`/${domain}/browse/${file.repository}@${revisionName}/-/blob/${file.fileName}?${params.toString()}`);
                                         }}
                                     />
                                 ))}

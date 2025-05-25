@@ -1,7 +1,6 @@
 import { findSearchBasedSymbolDefinitions } from "@/features/codeNav/actions";
 import { SourceRange } from "@/features/search/types";
 import { useDomain } from "@/hooks/useDomain";
-import { useSearchBasedSymbolDefinitions } from "@/hooks/useSearchBasedSymbolDefinitions";
 import { unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
@@ -12,6 +11,7 @@ interface UseHoveredOverSymbolInfoProps {
     editorRef: ReactCodeMirrorRef;
     isSticky: boolean;
     repoName: string;
+    revisionName: string;
 }
 
 interface HoveredOverSymbolInfo {
@@ -34,6 +34,7 @@ export const useHoveredOverSymbolInfo = ({
     editorRef,
     isSticky,
     repoName,
+    revisionName,
 }: UseHoveredOverSymbolInfoProps): HoveredOverSymbolInfo | undefined => {
     const mouseOverTimerRef = useRef<NodeJS.Timeout | null>(null);
     const mouseOutTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -47,8 +48,10 @@ export const useHoveredOverSymbolInfo = ({
     }, [symbolElement]);
 
     const { data: symbolDefinitions, isLoading: isSymbolDefinitionsLoading } = useQuery({
-        queryKey: ["definitions", symbolName, repoName, domain],
-        queryFn: () => unwrapServiceError(findSearchBasedSymbolDefinitions(symbolName!, repoName, domain)),
+        queryKey: ["definitions", symbolName, repoName, revisionName, domain],
+        queryFn: () => unwrapServiceError(
+            findSearchBasedSymbolDefinitions(symbolName!, repoName, domain, revisionName)
+        ),
         select: ((data) => {
             return data.files.flatMap((file) => {
                 return file.matches.map((match) => {

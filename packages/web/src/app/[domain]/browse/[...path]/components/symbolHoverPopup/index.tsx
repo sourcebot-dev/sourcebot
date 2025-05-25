@@ -14,12 +14,14 @@ import { useBrowseState } from "@/app/[domain]/browse/useBrowseState";
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
     repoName: string;
+    revisionName: string;
     onFindReferences: (symbolName: string) => void;
 }
 
 export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     editorRef,
     repoName,
+    revisionName,
     onFindReferences,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
@@ -31,6 +33,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         editorRef,
         isSticky,
         repoName,
+        revisionName
     });
 
     const { updateBrowseState } = useBrowseState();
@@ -90,18 +93,19 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
             const params = new URLSearchParams(searchParams.toString());
             params.set('highlightRange', highlightRange);
 
-            router.push(`/${domain}/browse/${repoName}@HEAD/-/blob/${fileName}?${params.toString()}`);
+            router.push(`/${domain}/browse/${repoName}@${revisionName}/-/blob/${fileName}?${params.toString()}`);
         } else {
             updateBrowseState({
                 selectedSymbolInfo: {
                     symbolName: symbolInfo.symbolName,
                     repoName,
+                    revisionName,
                 },
                 activeExploreMenuTab: "definitions",
                 isBottomPanelCollapsed: false,
             })
         }
-    }, [symbolInfo, searchParams, router, domain, updateBrowseState, repoName]);
+    }, [symbolInfo, searchParams, router, domain, updateBrowseState, repoName, revisionName]);
 
     // @todo: We should probably make the behaviour s.t., the ctrl / cmd key needs to be held
     // down to navigate to the definition. We should also only show the underline when the key

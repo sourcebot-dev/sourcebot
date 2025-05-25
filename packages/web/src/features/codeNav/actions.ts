@@ -12,24 +12,16 @@ import { SearchResponse } from "../search/types";
 // The maximum number of matches to return from the search API.
 const MAX_REFERENCE_COUNT = 1000;
 
-/**
- * Finds references to a symbol in a repository using a search-based approach.
- * 
- * @param symbolName The name of the symbol to find references to.
- * @param repoName The name of the repository to search in.
- * @param domain The domain of the organization to search in.
- * 
- * @returns A list of references to the symbol.
- */
 export const findSearchBasedSymbolReferences = async (
     symbolName: string,
     repoName: string,
-    domain: string
+    domain: string,
+    revisionName: string = "HEAD",
 ): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
     withAuth((session) =>
         withOrgMembership(session, domain, async () => {
             const searchResult = await search({
-                query: `${symbolName} repo:^${escapeStringRegexp(repoName)}$`,
+                query: `${symbolName} repo:^${escapeStringRegexp(repoName)}$ rev:${revisionName}`,
                 matches: MAX_REFERENCE_COUNT,
                 contextLines: 0,
             }, domain);
@@ -46,12 +38,13 @@ export const findSearchBasedSymbolReferences = async (
 export const findSearchBasedSymbolDefinitions = async (
     symbolName: string,
     repoName: string,
-    domain: string
+    domain: string,
+    revisionName: string = "HEAD",
 ): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
     withAuth((session) =>
         withOrgMembership(session, domain, async () => {
             const searchResult = await search({
-                query: `sym:\\b${symbolName}\\b repo:^${escapeStringRegexp(repoName)}$`,
+                query: `sym:\\b${symbolName}\\b repo:^${escapeStringRegexp(repoName)}$ rev:${revisionName}`,
                 matches: MAX_REFERENCE_COUNT,
                 contextLines: 0,
             }, domain);

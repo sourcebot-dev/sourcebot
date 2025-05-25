@@ -5,16 +5,19 @@ import { createContext, useCallback, useState } from "react";
 interface BrowseStateProvider {
     selectedSymbolInfo?: {
         symbolName: string;
-        repoName: string
+        repoName: string;
+        revisionName: string;
     }
     isBottomPanelCollapsed: boolean;
     activeExploreMenuTab: "references" | "definitions";
+    bottomPanelSize: number;
 }
 
 const defaultState: BrowseStateProvider = {
     selectedSymbolInfo: undefined,
     isBottomPanelCollapsed: true,
     activeExploreMenuTab: "references",
+    bottomPanelSize: 30,
 };
 
 export const BrowseStateContext = createContext<{

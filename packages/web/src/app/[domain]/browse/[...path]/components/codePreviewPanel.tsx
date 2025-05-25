@@ -158,11 +158,13 @@ export const CodePreviewPanel = ({
                         <SymbolHoverPopup
                             editorRef={editorRef}
                             repoName={repoName}
+                            revisionName={revisionName}
                             onFindReferences={(symbolName) => {
                                 updateBrowseState({
                                     selectedSymbolInfo: {
                                         repoName,
                                         symbolName,
+                                        revisionName,
                                     },
                                     isBottomPanelCollapsed: false,
                                     activeExploreMenuTab: "references",
