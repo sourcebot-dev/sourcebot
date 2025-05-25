@@ -11,5 +11,10 @@ export enum SearchQueryParams {
     matches = "matches",
 }
 
+export type ApiKeyPayload = {
+    apiKey: string;
+    domain: string;
+};
+
 export type TenancyMode = z.infer<typeof tenancyModeSchema>;
 export type RepositoryQuery = z.infer<typeof repositoryQuerySchema>;

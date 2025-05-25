@@ -43,5 +43,5 @@ export const listRepositories = async (domain: string, apiKey: string | undefine
             } satisfies ListRepositoriesResponse));
 
             return parser.parse(listBody);
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 );

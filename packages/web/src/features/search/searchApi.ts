@@ -333,5 +333,5 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             });
 
             return parser.parseAsync(searchBody);
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 )

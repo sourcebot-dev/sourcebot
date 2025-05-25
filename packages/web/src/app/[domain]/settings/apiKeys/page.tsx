@@ -176,7 +176,9 @@ export default function ApiKeysPage() {
             <div className="flex flex-row items-center justify-between">
                 <div>
                     <h3 className="text-lg font-medium">API Keys</h3>
-                    <p className="text-sm text-muted-foreground">Create and manage API keys for programmatic access to Sourcebot.</p>
+                    <p className="text-sm text-muted-foreground max-w-lg">
+                        Create and manage API keys for programmatic access to Sourcebot. All API keys are scoped to the user who created them.
+                    </p>
                 </div>
 
                 <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>

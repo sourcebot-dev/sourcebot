@@ -24,7 +24,7 @@ import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
-import { TenancyMode } from "./lib/types";
+import { TenancyMode, ApiKeyPayload } from "./lib/types";
 import { decrementOrgSeatCount, getSubscriptionForOrg, incrementOrgSeatCount } from "./ee/features/billing/serverUtils";
 import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
 import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
@@ -54,7 +54,7 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
     }
 }
 
-export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false, apiKey: string | undefined = undefined) => {
+export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false, apiKey: ApiKeyPayload | undefined = undefined) => {
     const session = await auth();
 
     if (!session) {
@@ -64,7 +64,7 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
         if (apiKey) {
             const apiKeyOrError = await verifyApiKey(apiKey);
             if (isServiceError(apiKeyOrError)) {
-                console.error(`Invalid API key: ${apiKey}`);
+                console.error(`Invalid API key: ${JSON.stringify(apiKey)}. Error: ${JSON.stringify(apiKeyOrError)}`);
                 return notAuthenticated();
             }
 
@@ -391,8 +391,8 @@ export const deleteSecret = async (key: string, domain: string): Promise<{ succe
             }
         })));
 
-export const verifyApiKey = async (key: string): Promise<{ apiKey: ApiKey } | ServiceError> => sew(async () => {
-    const parts = key.split("-");
+export const verifyApiKey = async (apiKeyPayload: ApiKeyPayload): Promise<{ apiKey: ApiKey } | ServiceError> => sew(async () => {
+    const parts = apiKeyPayload.apiKey.split("-");
     if (parts.length !== 2 || parts[0] !== "sourcebot") {
         return {
             statusCode: StatusCodes.BAD_REQUEST,
@@ -413,6 +413,28 @@ export const verifyApiKey = async (key: string): Promise<{ apiKey: ApiKey } | Se
             statusCode: StatusCodes.UNAUTHORIZED,
             errorCode: ErrorCode.INVALID_API_KEY,
             message: "Invalid API key",
+        } satisfies ServiceError;
+    }
+
+    const apiKeyTargetOrg = await prisma.org.findUnique({
+        where: {
+            domain: apiKeyPayload.domain,
+        },
+    });
+
+    if (!apiKeyTargetOrg) {
+        return {
+            statusCode: StatusCodes.UNAUTHORIZED,
+            errorCode: ErrorCode.INVALID_API_KEY,
+            message: `Invalid API key payload. Provided domain ${apiKeyPayload.domain} does not exist.`,
+        } satisfies ServiceError;
+    }
+
+    if (apiKey.orgId !== apiKeyTargetOrg.id) {
+        return {
+            statusCode: StatusCodes.UNAUTHORIZED,
+            errorCode: ErrorCode.INVALID_API_KEY,
+            message: `Invalid API key payload. Provided domain ${apiKeyPayload.domain} does not match the API key's org.`,
         } satisfies ServiceError;
     }
 
