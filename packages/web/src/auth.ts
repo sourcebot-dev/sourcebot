@@ -156,8 +156,18 @@ const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
             throw new Error("Default org not found on single tenant user creation");
         }
 
+        // We can't use the getOrgMembers action here because we're not authed yet
+        const members = await prisma.userToOrg.findMany({
+            where: {
+                orgId: SINGLE_TENANT_ORG_ID,
+                role: {
+                    not: OrgRole.GUEST,
+                }
+            },
+        });
+
         // Only the first user to sign up will be an owner of the default org.
-        const isFirstUser = defaultOrg.members.length === 0;
+        const isFirstUser = members.length === 0;
         if (isFirstUser) {
             await prisma.$transaction(async (tx) => {
                 await tx.org.update({

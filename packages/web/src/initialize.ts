@@ -1,7 +1,7 @@
-import { ConnectionSyncStatus, Prisma, RepoIndexingStatus } from '@sourcebot/db';
+import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus } from '@sourcebot/db';
 import { env } from './env.mjs';
 import { prisma } from "@/prisma";
-import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_NAME } from './lib/constants';
+import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_NAME, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
 import { readFile } from 'fs/promises';
 import { watch } from 'fs';
 import stripJsonComments from 'strip-json-comments';
@@ -158,6 +158,31 @@ const syncDeclarativeConfig = async (configPath: string) => {
     await syncSearchContexts(config.contexts);
 }
 
+const pruneOldGuestUser = async () => {
+    // The old guest user doesn't have the GUEST role
+    const guestUser = await prisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                orgId: SINGLE_TENANT_ORG_ID,
+                userId: SOURCEBOT_GUEST_USER_ID,
+            },
+            role: {
+                not: OrgRole.GUEST,
+            }
+        },
+    });
+
+    if (guestUser) {
+        await prisma.user.delete({
+            where: {
+                id: guestUser.userId,
+            },
+        });
+
+        console.log(`Deleted old guest user ${guestUser.userId}`);
+    }
+}
+
 const initSingleTenancy = async () => {
     await prisma.org.upsert({
         where: {
@@ -170,6 +195,10 @@ const initSingleTenancy = async () => {
             id: SINGLE_TENANT_ORG_ID
         }
     });
+
+    // This is needed because v4 introduces the GUEST org role as well as making authentication required. 
+    // To keep things simple, we'll just delete the old guest user if it exists in the DB
+    await pruneOldGuestUser();
 
     const hasPublicAccessEntitlement = hasEntitlement("public-access");
     if (hasPublicAccessEntitlement) {
