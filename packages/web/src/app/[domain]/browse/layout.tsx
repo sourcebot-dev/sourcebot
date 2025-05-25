@@ -1,6 +1,7 @@
-import { ResizableHandle, ResizablePanelGroup } from "@/components/ui/resizable";
+import { ResizablePanelGroup } from "@/components/ui/resizable";
 import { BottomPanel } from "./components/bottomPanel";
 import { BrowseStateProvider } from "./browseStateProvider";
+import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -16,7 +17,7 @@ export default function Layout({
                     direction="vertical"
                 >
                     {children}
-                    <ResizableHandle />
+                    <AnimatedResizableHandle />
                     <BottomPanel />
                 </ResizablePanelGroup>
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useQuery } from "@tanstack/react-query";
 import { useDomain } from "@/hooks/useDomain";
 import { base64Decode, unwrapServiceError } from "@/lib/utils";
@@ -24,6 +24,7 @@ import { VscSymbolMisc, VscReferences } from "react-icons/vsc";
 import { Badge } from "@/components/ui/badge";
 import clsx from "clsx";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 
 export const BottomPanel = () => {
     const panelRef = useRef<ImperativePanelHandle>(null);
@@ -241,7 +242,7 @@ const ExploreMenu = ({
                     </div>
                 </div>
             </ResizablePanel>
-            <ResizableHandle />
+            <AnimatedResizableHandle />
             <ResizablePanel>
                 {data.files.length > 0 ? (
                     <ReferenceList

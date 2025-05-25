@@ -1,7 +1,6 @@
 'use client';
 
 import {
-    ResizableHandle,
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
@@ -24,6 +23,7 @@ import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
+import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 
 const DEFAULT_MAX_MATCH_COUNT = 10000;
 
@@ -248,9 +248,7 @@ const PanelGroup = ({
                     repoInfo={repoInfo}
                 />
             </ResizablePanel>
-            <ResizableHandle
-                className="w-[1px] bg-accent transition-colors delay-50 data-[resize-handle-state=drag]:bg-accent-foreground data-[resize-handle-state=hover]:bg-accent-foreground"
-            />
+            <AnimatedResizableHandle />
 
             {/* ~~ Search results ~~ */}
             <ResizablePanel
@@ -296,9 +294,7 @@ const PanelGroup = ({
                     </div>
                 )}
             </ResizablePanel>
-            <ResizableHandle
-                className="mt-7 w-[1px] bg-accent transition-colors delay-50 data-[resize-handle-state=drag]:bg-accent-foreground data-[resize-handle-state=hover]:bg-accent-foreground"
-            />
+            <AnimatedResizableHandle />
 
             {/* ~~ Code preview ~~ */}
             <ResizablePanel
