@@ -145,6 +145,7 @@
     "zod-to-json-schema": "^3.24.5"
   },
   "devDependencies": {
+    "@tanstack/eslint-plugin-query": "^5.74.7",
     "@types/micromatch": "^4.0.9",
     "@types/node": "^20",
     "@types/nodemailer": "^6.4.17",

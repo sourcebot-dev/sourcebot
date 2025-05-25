@@ -7,6 +7,7 @@ import { CodePreview, CodePreviewFile } from "./codePreview";
 import { SearchResultFile } from "@/features/search/types";
 import { useDomain } from "@/hooks/useDomain";
 import { SymbolIcon } from "@radix-ui/react-icons";
+import { useMemo } from "react";
 
 interface CodePreviewPanelProps {
     fileMatch?: SearchResultFile;
@@ -23,16 +24,22 @@ export const CodePreviewPanel = ({
 }: CodePreviewPanelProps) => {
     const domain = useDomain();
 
+    // If there are multiple branches pointing to the same revision of this file, it doesn't
+    // matter which branch we use here, so use the first one.
+    const branch = useMemo(() => {
+        if (!fileMatch) {
+            return undefined;
+        }
+
+        return fileMatch.branches && fileMatch.branches.length > 0 ? fileMatch.branches[0] : undefined;
+    }, [fileMatch]);
+
     const { data: file, isLoading } = useQuery({
-        queryKey: ["source", fileMatch?.fileName, fileMatch?.repository, fileMatch?.branches],
+        queryKey: ["source", fileMatch, branch, domain],
         queryFn: async (): Promise<CodePreviewFile | undefined> => {
             if (!fileMatch) {
                 return undefined;
             }
-
-            // If there are multiple branches pointing to the same revision of this file, it doesn't
-            // matter which branch we use here, so use the first one.
-            const branch = fileMatch.branches && fileMatch.branches.length > 0 ? fileMatch.branches[0] : undefined;
 
             return fetchFileSource({
                 fileName: fileMatch.fileName.text,
