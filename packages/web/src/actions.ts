@@ -1580,30 +1580,50 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                 } satisfies ServiceError;
             }
 
-            await prisma.$transaction([
-                prisma.user.update({
+            const res = await prisma.$transaction(async (tx) => {
+                await tx.user.update({
                     where: {
                         id: request.requestedById,
                     },
                     data: {
                         pendingApproval: false,
                     },
-                }),
+                });
 
-                prisma.userToOrg.create({
+                await tx.userToOrg.create({
                     data: {
                         userId: request.requestedById,
                         orgId: org.id,
                         role: "MEMBER",
                     },
-                }),
+                });
 
-                prisma.accountRequest.delete({
+                await tx.accountRequest.delete({
                     where: {
                         id: requestId,
                     },
-                }),
-            ]);
+                });
+
+                const invites = await tx.invite.findMany({
+                    where: {
+                        recipientEmail: request.requestedBy.email!,
+                        orgId: org.id,
+                    },
+                })
+
+                for (const invite of invites) {
+                    console.log(`Account request approved. Deleting invite ${invite.id} for ${request.requestedBy.email}`);
+                    await tx.invite.delete({
+                        where: {
+                            id: invite.id,
+                        },
+                    });
+                }
+            });
+
+            if (isServiceError(res)) {
+                return res;
+            }
 
             // Send approval email to the user
             if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
