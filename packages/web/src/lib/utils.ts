@@ -238,7 +238,7 @@ export const getDisplayTime = (date: Date) => {
     }
 }
 
-export const measureSync = <T>(cb: () => T, measureName: string, outputLog: boolean = false) => {
+export const measureSync = <T>(cb: () => T, measureName: string, outputLog: boolean = true) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;
 
@@ -258,7 +258,7 @@ export const measureSync = <T>(cb: () => T, measureName: string, outputLog: bool
     }
 }
 
-export const measure = async <T>(cb: () => Promise<T>, measureName: string, outputLog: boolean = false) => {
+export const measure = async <T>(cb: () => Promise<T>, measureName: string, outputLog: boolean = true) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;
 

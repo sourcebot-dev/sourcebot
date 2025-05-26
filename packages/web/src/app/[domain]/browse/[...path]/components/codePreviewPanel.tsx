@@ -6,13 +6,17 @@ import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
 import { search } from "@codemirror/search";
 import CodeMirror, { Decoration, DecorationSet, EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, StateField, ViewUpdate } from "@uiw/react-codemirror";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { EditorContextMenu } from "../../../components/editorContextMenu";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
-import { underlineNodesExtension } from "@/lib/extensions/underlineNodesExtension";
-import { SymbolHoverPopup } from "./symbolHoverPopup";
+import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/symbolHoverTargetsExtension";
+import { SymbolHoverPopup } from "@/ee/features/codeNav/components/symbolHoverPopup";
 import { ResizablePanel } from "@/components/ui/resizable";
 import { useBrowseState } from "../../useBrowseState";
+import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
+import { SymbolDefinition } from "@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useDomain } from "@/hooks/useDomain";
 
 interface CodePreviewPanelProps {
     path: string;
@@ -33,6 +37,11 @@ export const CodePreviewPanel = ({
     const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
     const keymapExtension = useKeymapExtension(editorRef?.view);
+    const hasCodeNavEntitlement = useHasEntitlement("code-nav");
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const domain = useDomain();
+    const { updateBrowseState } = useBrowseState();
 
     const highlightRangeQuery = useNonEmptyQueryParam('highlightRange');
     const highlightRange = useMemo(() => {
@@ -97,18 +106,14 @@ export const CodePreviewPanel = ({
                 },
                 provide: (field) => EditorView.decorations.from(field),
             }),
-            underlineNodesExtension([
-                "VariableName",
-                "VariableDefinition",
-                "TypeDefinition",
-                "TypeName",
-                "PropertyName",
-                "PropertyDefinition",
-                "JSXIdentifier",
-                "Identifier"
-            ]),
+            hasCodeNavEntitlement ? symbolHoverTargetsExtension : [],
         ];
-    }, [keymapExtension, languageExtension, highlightRange]);
+    }, [
+        keymapExtension,
+        languageExtension,
+        highlightRange,
+        hasCodeNavEntitlement,
+    ]);
 
     useEffect(() => {
         if (!highlightRange || !editorRef || !editorRef.state) {
@@ -128,8 +133,50 @@ export const CodePreviewPanel = ({
         });
     }, [editorRef, highlightRange]);
 
+    const onFindReferences = useCallback((symbolName: string) => {
+        updateBrowseState({
+            selectedSymbolInfo: {
+                repoName,
+                symbolName,
+                revisionName,
+            },
+            isBottomPanelCollapsed: false,
+            activeExploreMenuTab: "references",
+        })
+    }, [updateBrowseState, repoName, revisionName]);
+
+
+    // If we resolve multiple matches, instead of navigating to the first match, we should
+    // instead popup the bottom sheet with the list of matches.
+    const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
+        if (symbolDefinitions.length === 0) {
+            return;
+        }
+
+        if (symbolDefinitions.length === 1) {
+            const symbolDefinition = symbolDefinitions[0];
+            const { fileName, repoName } = symbolDefinition;
+            const { start, end } = symbolDefinition.range;
+            const highlightRange = `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`;
+
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('highlightRange', highlightRange);
+
+            router.push(`/${domain}/browse/${repoName}@${revisionName}/-/blob/${fileName}?${params.toString()}`);
+        } else {
+            updateBrowseState({
+                selectedSymbolInfo: {
+                    symbolName,
+                    repoName,
+                    revisionName,
+                },
+                activeExploreMenuTab: "definitions",
+                isBottomPanelCollapsed: false,
+            })
+        }
+    }, [searchParams, router, domain, updateBrowseState, repoName, revisionName]);
+
     const theme = useCodeMirrorTheme();
-    const { updateBrowseState } = useBrowseState();
 
     return (
         <ResizablePanel
@@ -154,22 +201,13 @@ export const CodePreviewPanel = ({
                             revisionName={revisionName}
                         />
                     )}
-                    {editorRef && (
+                    {editorRef && hasCodeNavEntitlement && (
                         <SymbolHoverPopup
                             editorRef={editorRef}
                             repoName={repoName}
                             revisionName={revisionName}
-                            onFindReferences={(symbolName) => {
-                                updateBrowseState({
-                                    selectedSymbolInfo: {
-                                        repoName,
-                                        symbolName,
-                                        revisionName,
-                                    },
-                                    isBottomPanelCollapsed: false,
-                                    activeExploreMenuTab: "references",
-                                })
-                            }}
+                            onFindReferences={onFindReferences}
+                            onGotoDefinition={onGotoDefinition}
                         />
                     )}
                 </CodeMirror>

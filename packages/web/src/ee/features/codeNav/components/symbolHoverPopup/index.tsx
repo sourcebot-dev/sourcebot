@@ -1,21 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Separator } from "@/components/ui/separator";
-import { useDomain } from "@/hooks/useDomain";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { Loader2 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
+import { SymbolDefinition, useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
 import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
-import { useBrowseState } from "@/app/[domain]/browse/useBrowseState";
 
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
     repoName: string;
     revisionName: string;
     onFindReferences: (symbolName: string) => void;
+    onGotoDefinition: (symbolName: string, symbolDefinitions: SymbolDefinition[]) => void;
 }
 
 export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
@@ -23,11 +21,10 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     repoName,
     revisionName,
     onFindReferences,
+    onGotoDefinition: _onGotoDefinition,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     const [isSticky, setIsSticky] = useState(false);
-    const domain = useDomain();
-    const router = useRouter();
 
     const symbolInfo = useHoveredOverSymbolInfo({
         editorRef,
@@ -35,8 +32,6 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         repoName,
         revisionName
     });
-
-    const { updateBrowseState } = useBrowseState();
 
     // Positions the popup relative to the symbol
     useEffect(() => {
@@ -74,44 +69,19 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         }
     }, [symbolInfo, editorRef]);
 
-    const searchParams = useSearchParams();
-
-    // If we resolve multiple matches, instead of navigating to the first match, we should
-    // instead popup the bottom sheet with the list of matches.
     const onGotoDefinition = useCallback(() => {
-        if (!symbolInfo || !symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0) {
+        if (!symbolInfo || !symbolInfo.symbolDefinitions) {
             return;
         }
 
-        const { symbolDefinitions } = symbolInfo;
-        if (symbolDefinitions.length === 1) {
-            const symbolDefinition = symbolDefinitions[0];
-            const { fileName, repoName } = symbolDefinition;
-            const { start, end } = symbolDefinition.range;
-            const highlightRange = `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`;
-
-            const params = new URLSearchParams(searchParams.toString());
-            params.set('highlightRange', highlightRange);
-
-            router.push(`/${domain}/browse/${repoName}@${revisionName}/-/blob/${fileName}?${params.toString()}`);
-        } else {
-            updateBrowseState({
-                selectedSymbolInfo: {
-                    symbolName: symbolInfo.symbolName,
-                    repoName,
-                    revisionName,
-                },
-                activeExploreMenuTab: "definitions",
-                isBottomPanelCollapsed: false,
-            })
-        }
-    }, [symbolInfo, searchParams, router, domain, updateBrowseState, repoName, revisionName]);
+        _onGotoDefinition(symbolInfo.symbolName, symbolInfo.symbolDefinitions);
+    }, [symbolInfo, _onGotoDefinition]);
 
     // @todo: We should probably make the behaviour s.t., the ctrl / cmd key needs to be held
     // down to navigate to the definition. We should also only show the underline when the key
     // is held, hover is active, and we have found the symbol definition.
     useEffect(() => {
-        if (!symbolInfo) {
+        if (!symbolInfo || !symbolInfo.symbolDefinitions) {
             return;
         }
 

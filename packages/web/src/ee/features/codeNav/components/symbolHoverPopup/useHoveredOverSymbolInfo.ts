@@ -5,7 +5,7 @@ import { unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
+import { SYMBOL_HOVER_TARGET_DATA_ATTRIBUTE } from "../../symbolHoverTargetsExtension";
 
 interface UseHoveredOverSymbolInfoProps {
     editorRef: ReactCodeMirrorRef;
@@ -14,21 +14,23 @@ interface UseHoveredOverSymbolInfoProps {
     revisionName: string;
 }
 
+export type SymbolDefinition = {
+    lineContent: string;
+    language: string;
+    fileName: string;
+    repoName: string;
+    range: SourceRange;
+}
+
 interface HoveredOverSymbolInfo {
     element: HTMLElement;
     symbolName: string;
     isSymbolDefinitionsLoading: boolean;
-    symbolDefinitions?: {
-        lineContent: string;
-        language: string;
-        fileName: string;
-        repoName: string;
-        range: SourceRange;
-    }[];
+    symbolDefinitions?: SymbolDefinition[];
 }
 
-const SYMBOL_HOVER_POPUP_MOUSE_OVER_TIMEOUT = 500;
-const SYMBOL_HOVER_POPUP_MOUSE_OUT_TIMEOUT = 100;
+const SYMBOL_HOVER_POPUP_MOUSE_OVER_TIMEOUT_MS = 500;
+const SYMBOL_HOVER_POPUP_MOUSE_OUT_TIMEOUT_MS = 100;
 
 export const useHoveredOverSymbolInfo = ({
     editorRef,
@@ -87,7 +89,7 @@ export const useHoveredOverSymbolInfo = ({
         }
 
         const handleMouseOver = (event: MouseEvent) => {
-            const target = (event.target as HTMLElement).closest('[data-underline-node="true"]') as HTMLElement;
+            const target = (event.target as HTMLElement).closest(`[${SYMBOL_HOVER_TARGET_DATA_ATTRIBUTE}="true"]`) as HTMLElement;
             if (!target) {
                 return;
             }
@@ -96,7 +98,7 @@ export const useHoveredOverSymbolInfo = ({
 
             mouseOverTimerRef.current = setTimeout(() => {
                 setIsVisible(true);
-            }, SYMBOL_HOVER_POPUP_MOUSE_OVER_TIMEOUT);
+            }, SYMBOL_HOVER_POPUP_MOUSE_OVER_TIMEOUT_MS);
         };
 
         const handleMouseOut = () => {
@@ -104,7 +106,7 @@ export const useHoveredOverSymbolInfo = ({
             
             mouseOutTimerRef.current = setTimeout(() => {
                 setIsVisible(false);
-            }, SYMBOL_HOVER_POPUP_MOUSE_OUT_TIMEOUT);
+            }, SYMBOL_HOVER_POPUP_MOUSE_OUT_TIMEOUT_MS);
         };
 
         view.dom.addEventListener("mouseover", handleMouseOver);
