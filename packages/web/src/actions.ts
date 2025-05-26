@@ -1014,6 +1014,8 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                         console.error(`Failed to send invite email to ${email}: ${failed}`);
                     }
                 }));
+            } else {
+                console.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping invite email to ${emails.join(", ")}`);
             }
 
             return {
@@ -1542,6 +1544,8 @@ export const createAccountRequest = async (userId: string, domain: string) => se
                     console.error(`Failed to send account request email to ${owner.email}: ${failed}`);
                 }
             }
+        } else {
+            console.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping account request email to owner`);
         }
     }
 
@@ -1629,6 +1633,8 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                 if (failed.length > 0) {
                     console.error(`Failed to send approval email to ${request.requestedBy.email}: ${failed}`);
                 }
+            } else {
+                console.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping approval email to ${request.requestedBy.email}`);
             }
 
             return {
