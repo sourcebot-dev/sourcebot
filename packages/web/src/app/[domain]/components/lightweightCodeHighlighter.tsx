@@ -1,5 +1,5 @@
 import { Parser } from '@lezer/common'
-import { Language, LanguageDescription } from '@codemirror/language'
+import { LanguageDescription, StreamLanguage } from '@codemirror/language'
 import { Highlighter, highlightTree } from '@lezer/highlight'
 import { languages as builtinLanguages } from '@codemirror/language-data'
 import { memo, useEffect, useMemo, useState } from 'react'
@@ -8,11 +8,17 @@ import tailwind from '@/tailwind'
 import { measure } from '@/lib/utils'
 import { SourceRange } from '@/features/search/types'
 
+// Define a plain text language
+const plainTextLanguage = StreamLanguage.define({
+    token(stream) {
+        stream.next();
+        return null;
+    }
+});
+
 interface LightweightCodeHighlighter {
     language: string;
     children: string;
-    fallbackLanguage?: Language;
-    languages?: LanguageDescription[];
     /* 1-based highlight ranges */
     highlightRanges?: SourceRange[];
     lineNumbers?: boolean;
@@ -21,12 +27,18 @@ interface LightweightCodeHighlighter {
     renderWhitespace?: boolean;
 }
 
+/**
+ * Lightweight code highlighter that uses the Lezer parser to highlight code.
+ * This is helpful in scenarios where we need to highlight a ton of code snippets
+ * (e.g., code nav, search results, etc)., but can't use the full-blown CodeMirror
+ * editor because of perf issues.
+ * 
+ * Inspired by: https://github.com/craftzdog/react-codemirror-runmode
+ */
 export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((props: LightweightCodeHighlighter) => {
     const {
         language,
         children: code,
-        fallbackLanguage,
-        languages,
         highlightRanges,
         lineNumbers = false,
         lineNumbersOffset = 1,
@@ -60,8 +72,6 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
                         language,
                         line,
                         highlightStyle,
-                        fallbackLanguage,
-                        languages,
                         ranges,
                         (text: string, style: string | null, from: number) => {
                             return (
@@ -83,8 +93,6 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
     }, [
         language,
         code,
-        fallbackLanguage,
-        languages,
         highlightRanges,
         highlightStyle,
         unhighlightedLines,
@@ -144,30 +152,36 @@ LightweightCodeHighlighter.displayName = 'LightweightCodeHighlighter';
 
 async function getCodeParser(
     languageName: string,
-    fallbackLanguage?: Language,
-    languages: LanguageDescription[] = builtinLanguages
-): Promise<Parser | null> {
+): Promise<Parser> {
     if (languageName) {
-        const found = LanguageDescription.matchLanguageName(
-            languages,
-            languageName,
-            true
-        )
-        if (found instanceof LanguageDescription) {
-            if (!found.support) await found.load()
-            return found.support ? found.support.language.parser : null
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } else if (found) return (found as unknown as any).parser
+        const parser = await (async () => {
+            const found = LanguageDescription.matchLanguageName(
+                builtinLanguages,
+                languageName,
+                true
+            );
+
+            if (!found) {
+                return null;
+            }
+
+            if (!found.support) { 
+                await found.load();
+            }
+            return found.support ? found.support.language.parser : null;
+        })();
+
+        if (parser) {
+            return parser;
+        }
     }
-    return fallbackLanguage ? fallbackLanguage.parser : null
+    return plainTextLanguage.parser;
 }
 
 async function highlightCode<Output>(
     languageName: string,
     input: string,
     highlighter: Highlighter,
-    fallbackLanguage: Language | undefined,
-    languages: LanguageDescription[] | undefined,
     highlightRanges: { from: number, to: number }[] = [],
     callback: (
         text: string,
@@ -176,7 +190,7 @@ async function highlightCode<Output>(
         to: number
     ) => Output,
 ): Promise<Output[]> {
-    const parser = await getCodeParser(languageName, fallbackLanguage, languages);
+    const parser = await getCodeParser(languageName);
 
     /**
      * Converts a range to a series of highlighted subranges.
@@ -225,41 +239,36 @@ async function highlightCode<Output>(
         }
     }
 
+    const tree = parser.parse(input)
+    const output: Array<Output> = [];
 
-    if (parser) {
-        const tree = parser.parse(input)
-        const output: Array<Output> = [];
-
-        let pos = 0;
-        highlightTree(tree, highlighter, (from, to, classes) => {
-            // `highlightTree` only calls this callback when at least one style/class
-            // is applied to the text (i.e., `classes` is not empty). This means that
-            // any unstyled regions will be skipped (e.g., whitespace, `=`. `;`. etc).
-            // This check ensures that we process these unstyled regions as well.
-            // @see: https://discuss.codemirror.net/t/static-highlighting-using-cm-v6/3420/2
-            if (from > pos) {
-                convertRangeToHighlightedSubranges(pos, from, null, (from, to, classes) => {
-                    output.push(callback(input.slice(from, to), classes, from, to));
-                })
-            }
-
-            convertRangeToHighlightedSubranges(from, to, classes, (from, to, classes) => {
-                output.push(callback(input.slice(from, to), classes, from, to));
-            })
-
-            pos = to;
-        });
-
-        // Process any remaining unstyled regions.
-        if (pos != tree.length) {
-            convertRangeToHighlightedSubranges(pos, tree.length, null, (from, to, classes) => {
+    let pos = 0;
+    highlightTree(tree, highlighter, (from, to, classes) => {
+        // `highlightTree` only calls this callback when at least one style/class
+        // is applied to the text (i.e., `classes` is not empty). This means that
+        // any unstyled regions will be skipped (e.g., whitespace, `=`. `;`. etc).
+        // This check ensures that we process these unstyled regions as well.
+        // @see: https://discuss.codemirror.net/t/static-highlighting-using-cm-v6/3420/2
+        if (from > pos) {
+            convertRangeToHighlightedSubranges(pos, from, null, (from, to, classes) => {
                 output.push(callback(input.slice(from, to), classes, from, to));
             })
         }
-        return output;
-    } else {
-        return [callback(input, null, 0, input.length)]
+
+        convertRangeToHighlightedSubranges(from, to, classes, (from, to, classes) => {
+            output.push(callback(input.slice(from, to), classes, from, to));
+        })
+
+        pos = to;
+    });
+
+    // Process any remaining unstyled regions.
+    if (pos != tree.length) {
+        convertRangeToHighlightedSubranges(pos, tree.length, null, (from, to, classes) => {
+            output.push(callback(input.slice(from, to), classes, from, to));
+        })
     }
+    return output;
 }
 
 const isIndexHighlighted = (index: number, ranges: { from: number, to: number }[]) => {

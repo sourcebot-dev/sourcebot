@@ -54,6 +54,7 @@ export const ReferenceList = ({
                                         key={index}
                                         lineContent={match.lineContent}
                                         range={match.range}
+                                        language={file.language}
                                         onClick={() => {
                                             navigateToPath({
                                                 repoName: file.repository,
@@ -77,12 +78,14 @@ export const ReferenceList = ({
 interface ReferenceListItemProps {
     lineContent: string;
     range: SourceRange;
+    language: string;
     onClick: () => void;
 }
 
 const ReferenceListItem = ({
     lineContent,
     range,
+    language,
     onClick,
 }: ReferenceListItemProps) => {
     const decodedLineContent = useMemo(() => {
@@ -97,7 +100,7 @@ const ReferenceListItem = ({
             onClick={onClick}
         >
             <LightweightCodeHighlighter
-                language="JavaScript"
+                language={language}
                 highlightRanges={highlightRanges}
                 lineNumbers={true}
                 lineNumbersOffset={range.start.lineNumber}

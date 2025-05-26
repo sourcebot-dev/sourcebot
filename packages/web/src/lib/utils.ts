@@ -134,7 +134,7 @@ export const getCodeHostInfoForRepo = (repo: {
             return {
                 type: "generic-git-host",
                 displayName: displayName ?? name,
-                codeHostName: "Generic Git Host",
+                codeHostName: "Git Host",
                 repoLink: webUrl,
                 icon: src,
                 iconClassName: className,

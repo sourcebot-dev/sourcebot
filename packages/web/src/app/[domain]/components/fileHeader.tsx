@@ -47,7 +47,7 @@ export const FileHeader = ({
                 <LaptopIcon className="w-4 h-4" />
             )}
             <Link
-                className={clsx("font-medium", {
+                className={clsx("font-medium cursor-default", {
                     "cursor-pointer hover:underline": info?.repoLink,
                 })}
                 href={info?.repoLink ?? ""}
