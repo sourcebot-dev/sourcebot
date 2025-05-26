@@ -1,3 +1,5 @@
+'use server';
+
 import escapeStringRegexp from "escape-string-regexp";
 import { fileNotFound, ServiceError } from "../../lib/serviceError";
 import { FileSourceRequest, FileSourceResponse } from "./types";
@@ -41,6 +43,7 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
             return {
                 source,
                 language,
+                webUrl: file.webUrl,
             } satisfies FileSourceResponse;
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 );

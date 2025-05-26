@@ -1,25 +1,46 @@
 'use client';
 
-import { useMemo } from "react";
-import { CodePreview } from "./codePreview";
+import { useCallback, useMemo } from "react";
 import { SearchResultFile, SearchResultChunk } from "@/features/search/types";
 import { base64Decode } from "@/lib/utils";
+import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 
 
 interface FileMatchProps {
     match: SearchResultChunk;
     file: SearchResultFile;
-    onOpen: () => void;
 }
 
 export const FileMatch = ({
     match,
     file,
-    onOpen,
 }: FileMatchProps) => {
+    const { navigateToPath } = useBrowseNavigation();
+
     const content = useMemo(() => {
         return base64Decode(match.content);
     }, [match.content]);
+
+    const onOpen = useCallback(() => {
+        const startLineNumber = match.contentStart.lineNumber;
+        const endLineNumber = content.trimEnd().split('\n').length + startLineNumber - 1;
+
+        navigateToPath({
+            repoName: file.repository,
+            revisionName: file.branches?.[0] ?? 'HEAD',
+            path: file.fileName.text,
+            pathType: 'blob',
+            highlightRange: {
+                start: {
+                    lineNumber: startLineNumber,
+                },
+                end: {
+                    lineNumber: endLineNumber,
+                }
+            }
+        })
+    }, []);
 
     // If it's just the title, don't show a code preview
     if (match.matchRanges.length === 0) {
@@ -38,12 +59,15 @@ export const FileMatch = ({
             }}
             onClick={onOpen}
         >
-            <CodePreview
-                content={content}
+            <LightweightCodeHighlighter
                 language={file.language}
-                ranges={match.matchRanges}
-                lineOffset={match.contentStart.lineNumber - 1}
-            />
+                highlightRanges={match.matchRanges}
+                lineNumbers={true}
+                lineNumbersOffset={match.contentStart.lineNumber}
+                renderWhitespace={true}
+            >
+                {content}
+            </LightweightCodeHighlighter>
         </div>
     );
 }

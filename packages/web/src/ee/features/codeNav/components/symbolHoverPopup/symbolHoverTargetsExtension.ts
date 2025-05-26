@@ -1,6 +1,6 @@
 import { StateField, Range } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
-import { ensureSyntaxTree, syntaxTree } from "@codemirror/language";
+import { ensureSyntaxTree } from "@codemirror/language";
 import { measureSync } from "@/lib/utils";
 
 export const SYMBOL_HOVER_TARGET_DATA_ATTRIBUTE = "data-symbol-hover-target";

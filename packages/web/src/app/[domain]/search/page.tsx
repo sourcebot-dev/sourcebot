@@ -13,8 +13,7 @@ import { createPathWithQueryParams, measure, unwrapServiceError } from "@/lib/ut
 import { InfoCircledIcon, SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ImperativePanelHandle } from "react-resizable-panels";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { search } from "../../api/(client)/client";
 import { TopBar } from "../components/topBar";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
@@ -65,6 +64,7 @@ const SearchPageInternal = () => {
         enabled: searchQuery.length > 0,
         refetchOnWindowFocus: false,
         retry: false,
+        staleTime: Infinity,
     });
 
     useEffect(() => {
@@ -212,17 +212,8 @@ const PanelGroup = ({
     numMatches,
 }: PanelGroupProps) => {
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
-    const [selectedFile, setSelectedFile] = useState<SearchResultFile | undefined>(undefined);
+    const [previewedFile, setPreviewedFile] = useState<SearchResultFile | undefined>(undefined);
     const [filteredFileMatches, setFilteredFileMatches] = useState<SearchResultFile[]>(fileMatches);
-
-    const codePreviewPanelRef = useRef<ImperativePanelHandle>(null);
-    useEffect(() => {
-        if (selectedFile) {
-            codePreviewPanelRef.current?.expand();
-        } else {
-            codePreviewPanelRef.current?.collapse();
-        }
-    }, [selectedFile]);
 
     const onFilterChanged = useCallback((matches: SearchResultFile[]) => {
         setFilteredFileMatches(matches);
@@ -277,11 +268,8 @@ const PanelGroup = ({
                 {filteredFileMatches.length > 0 ? (
                     <SearchResultsPanel
                         fileMatches={filteredFileMatches}
-                        onOpenFileMatch={(fileMatch) => {
-                            setSelectedFile(fileMatch);
-                        }}
-                        onMatchIndexChanged={(matchIndex) => {
-                            setSelectedMatchIndex(matchIndex);
+                        onOpenFilePreview={(fileMatch) => {
+                            setPreviewedFile(fileMatch);
                         }}
                         isLoadMoreButtonVisible={!!isMoreResultsButtonVisible}
                         onLoadMoreButtonClicked={onLoadMoreResults}
@@ -294,23 +282,27 @@ const PanelGroup = ({
                     </div>
                 )}
             </ResizablePanel>
-            <AnimatedResizableHandle />
 
-            {/* ~~ Code preview ~~ */}
-            <ResizablePanel
-                ref={codePreviewPanelRef}
-                minSize={10}
-                collapsible={true}
-                id={'code-preview-panel'}
-                order={3}
-            >
-                <CodePreviewPanel
-                    fileMatch={selectedFile}
-                    onClose={() => setSelectedFile(undefined)}
-                    selectedMatchIndex={selectedMatchIndex}
-                    onSelectedMatchIndexChange={setSelectedMatchIndex}
-                />
-            </ResizablePanel>
+            {previewedFile && (
+                <>
+                    <AnimatedResizableHandle />
+
+                    {/* ~~ Code preview ~~ */}
+                    <ResizablePanel
+                        minSize={10}
+                        collapsible={true}
+                        id={'code-preview-panel'}
+                        order={3}
+                    >
+                        <CodePreviewPanel
+                            previewedFile={previewedFile}
+                            onClose={() => setPreviewedFile(undefined)}
+                            selectedMatchIndex={selectedMatchIndex}
+                            onSelectedMatchIndexChange={setSelectedMatchIndex}
+                        />
+                    </ResizablePanel>
+                </>
+            )}
         </ResizablePanelGroup>
     )
 }

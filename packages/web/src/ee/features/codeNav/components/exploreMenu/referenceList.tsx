@@ -1,13 +1,12 @@
 'use client';
 
+import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FindRelatedSymbolsResponse } from "@/features/codeNav/types";
 import { RepositoryInfo, SourceRange } from "@/features/search/types";
-import { useDomain } from "@/hooks/useDomain";
 import { base64Decode } from "@/lib/utils";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 
 interface ReferenceListProps {
@@ -26,9 +25,7 @@ export const ReferenceList = ({
         }, {} as Record<number, RepositoryInfo>);
     }, [data.repositoryInfo]);
 
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const domain = useDomain();
+    const { navigateToPath } = useBrowseNavigation();
 
     return (
         <ScrollArea className="h-full">
@@ -58,12 +55,13 @@ export const ReferenceList = ({
                                         lineContent={match.lineContent}
                                         range={match.range}
                                         onClick={() => {
-                                            const { start, end } = match.range;
-                                            const highlightRange = `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`;
-
-                                            const params = new URLSearchParams(searchParams.toString());
-                                            params.set('highlightRange', highlightRange);
-                                            router.push(`/${domain}/browse/${file.repository}@${revisionName}/-/blob/${file.fileName}?${params.toString()}`);
+                                            navigateToPath({
+                                                repoName: file.repository,
+                                                revisionName,
+                                                path: file.fileName,
+                                                pathType: 'blob',
+                                                highlightRange: match.range,
+                                            })
                                         }}
                                     />
                                 ))}
@@ -103,7 +101,6 @@ const ReferenceListItem = ({
                 highlightRanges={highlightRanges}
                 lineNumbers={true}
                 lineNumbersOffset={range.start.lineNumber}
-                removeTrailingNewline={true}
                 renderWhitespace={false}
             >
                 {decodedLineContent}

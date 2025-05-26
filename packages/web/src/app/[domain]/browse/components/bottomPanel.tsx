@@ -10,7 +10,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { FaChevronDown } from "react-icons/fa";
 import { VscReferences, VscSymbolMisc } from "react-icons/vsc";
 import { ImperativePanelHandle } from "react-resizable-panels";
-import { useBrowseState } from "../useBrowseState";
+import { useBrowseState } from "../hooks/useBrowseState";
 import { ExploreMenu } from "@/ee/features/codeNav/components/exploreMenu";
 
 export const BottomPanel = () => {

@@ -2,7 +2,7 @@ import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { TopBar } from "@/app/[domain]/components/topBar";
 import { Separator } from '@/components/ui/separator';
 import { getFileSource } from '@/features/search/fileSourceApi';
-import { isServiceError } from "@/lib/utils";
+import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
 import { base64Decode } from "@/lib/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { LuFileX2, LuBookX } from "react-icons/lu";
@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getRepoInfoByName } from "@/actions";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
+import Image from "next/image";
 
 interface BrowsePageProps {
     params: {
@@ -94,6 +95,13 @@ export default async function BrowsePage({
         throw new ServiceErrorException(fileSourceResponse);
     }
 
+    const codeHostInfo = getCodeHostInfoForRepo({
+        codeHostType: repoInfo.codeHostType,
+        name: repoInfo.name,
+        displayName: repoInfo.displayName,
+        webUrl: repoInfo.webUrl,
+    });
+
     return (
         <>
             <div className='sticky top-0 left-0 right-0 z-10'>
@@ -102,7 +110,7 @@ export default async function BrowsePage({
                     domain={params.domain}
                 />
                 <Separator />
-                <div className="bg-accent py-1 px-2 flex flex-row">
+                <div className="bg-accent py-1 px-2 flex flex-row items-center">
                     <FileHeader
                         fileName={path}
                         repo={{
@@ -113,6 +121,21 @@ export default async function BrowsePage({
                         }}
                         branchDisplayName={revisionName}
                     />
+                    {(fileSourceResponse.webUrl && codeHostInfo) && (
+                        <a
+                            href={fileSourceResponse.webUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex flex-row items-center gap-2 px-2 py-0.5 rounded-md flex-shrink-0"
+                        >
+                            <Image
+                                src={codeHostInfo.icon}
+                                alt={codeHostInfo.codeHostName}
+                                className={cn('w-4 h-4 flex-shrink-0', codeHostInfo.iconClassName)}
+                            />
+                            <span className="text-sm font-medium">Open in {codeHostInfo.codeHostName}</span>
+                        </a>
+                    )}
                 </div>
                 <Separator />
             </div>

@@ -5,7 +5,7 @@ import { unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SYMBOL_HOVER_TARGET_DATA_ATTRIBUTE } from "../../symbolHoverTargetsExtension";
+import { SYMBOL_HOVER_TARGET_DATA_ATTRIBUTE } from "./symbolHoverTargetsExtension";
 
 interface UseHoveredOverSymbolInfoProps {
     editorRef: ReactCodeMirrorRef;

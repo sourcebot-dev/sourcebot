@@ -1,6 +1,6 @@
 'use client';
 
-import { useBrowseState } from "@/app/[domain]/browse/useBrowseState";
+import { useBrowseState } from "@/app/[domain]/browse/hooks/useBrowseState";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 import { Badge } from "@/components/ui/badge";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";

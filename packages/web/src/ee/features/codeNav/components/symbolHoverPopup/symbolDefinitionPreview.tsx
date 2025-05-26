@@ -53,7 +53,6 @@ export const SymbolDefinitionPreview = ({
                 highlightRanges={highlightRanges}
                 lineNumbers={false}
                 lineNumbersOffset={range.start.lineNumber}
-                removeTrailingNewline={true}
                 renderWhitespace={false}
             >
                 {decodedLineContent}

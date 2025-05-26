@@ -19,7 +19,6 @@ interface LightweightCodeHighlighter {
     /* 1-based line number offset */
     lineNumbersOffset?: number;
     renderWhitespace?: boolean;
-    removeTrailingNewline?: boolean;
 }
 
 export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((props: LightweightCodeHighlighter) => {
@@ -32,16 +31,11 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
         lineNumbers = false,
         lineNumbersOffset = 1,
         renderWhitespace = false,
-        removeTrailingNewline = false,
     } = props;
 
     const unhighlightedLines = useMemo(() => {
-        let lines = code.split('\n');
-        if (removeTrailingNewline) {
-            lines = lines[lines.length - 1] === '' ? lines.slice(0, -1) : lines;
-        }
-        return lines;
-    }, [code, removeTrailingNewline]);
+        return code.trimEnd().split('\n');
+    }, [code]);
 
 
     const [highlightedLines, setHighlightedLines] = useState<React.ReactNode[] | null>(null);

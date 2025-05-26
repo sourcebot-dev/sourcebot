@@ -114,4 +114,5 @@ export const fileSourceRequestSchema = z.object({
 export const fileSourceResponseSchema = z.object({
     source: z.string(),
     language: z.string(),
+    webUrl: z.string().optional(),
 });

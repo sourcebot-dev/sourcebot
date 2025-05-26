@@ -1,22 +1,24 @@
 'use client';
 
+import { ResizablePanel } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SymbolHoverPopup } from "@/ee/features/codeNav/components/symbolHoverPopup";
+import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
+import { SymbolDefinition } from "@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo";
+import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
+import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
+import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
+import { useDomain } from "@/hooks/useDomain";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
-import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
 import { search } from "@codemirror/search";
-import CodeMirror, { Decoration, DecorationSet, EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, StateField, ViewUpdate } from "@uiw/react-codemirror";
+import CodeMirror, { EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, ViewUpdate } from "@uiw/react-codemirror";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EditorContextMenu } from "../../../components/editorContextMenu";
-import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
-import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/symbolHoverTargetsExtension";
-import { SymbolHoverPopup } from "@/ee/features/codeNav/components/symbolHoverPopup";
-import { ResizablePanel } from "@/components/ui/resizable";
-import { useBrowseState } from "../../useBrowseState";
-import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
-import { SymbolDefinition } from "@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useDomain } from "@/hooks/useDomain";
+import { BrowseHighlightRange, HIGHLIGHT_RANGE_QUERY_PARAM, useBrowseNavigation } from "../../hooks/useBrowseNavigation";
+import { useBrowseState } from "../../hooks/useBrowseState";
+import { rangeHighlightingExtension } from "./rangeHighlightingExtension";
 
 interface CodePreviewPanelProps {
     path: string;
@@ -42,39 +44,56 @@ export const CodePreviewPanel = ({
     const router = useRouter();
     const domain = useDomain();
     const { updateBrowseState } = useBrowseState();
+    const { navigateToPath } = useBrowseNavigation();
 
-    const highlightRangeQuery = useNonEmptyQueryParam('highlightRange');
-    const highlightRange = useMemo(() => {
+    const highlightRangeQuery = useNonEmptyQueryParam(HIGHLIGHT_RANGE_QUERY_PARAM);
+    const highlightRange = useMemo((): BrowseHighlightRange | undefined => {
         if (!highlightRangeQuery) {
             return;
         }
 
-        const rangeRegex = /^\d+:\d+,\d+:\d+$/;
+        // Highlight ranges can be formatted in two ways:
+        // 1. start_line,end_line                            (no column specified)
+        // 2. start_line:start_column,end_line:end_column    (column specified)
+        const rangeRegex = /^(\d+:\d+,\d+:\d+|\d+,\d+)$/;
         if (!rangeRegex.test(highlightRangeQuery)) {
             return;
         }
 
         const [start, end] = highlightRangeQuery.split(',').map((range) => {
-            return range.split(':').map((val) => parseInt(val, 10));
+            if (range.includes(':')) {
+                return range.split(':').map((val) => parseInt(val, 10));
+            }
+            // For line-only format, use column 1 for start and last column for end
+            const line = parseInt(range, 10);
+            return [line];
         });
 
-        return {
-            start: {
-                line: start[0],
-                character: start[1],
-            },
-            end: {
-                line: end[0],
-                character: end[1],
+        if (start.length === 1 || end.length === 1) {
+            return {
+                start: {
+                    lineNumber: start[0],
+                },
+                end: {
+                    lineNumber: end[0],
+                }
+            }
+        } else {
+            return {
+                start: {
+                    lineNumber: start[0],
+                    column: start[1],
+                },
+                end: {
+                    lineNumber: end[0],
+                    column: end[1],
+                }
             }
         }
+
     }, [highlightRangeQuery]);
 
     const extensions = useMemo(() => {
-        const highlightDecoration = Decoration.mark({
-            class: "searchMatch-selected",
-        });
-
         return [
             languageExtension,
             EditorView.lineWrapping,
@@ -87,25 +106,7 @@ export const CodePreviewPanel = ({
                     setCurrentSelection(update.state.selection.main);
                 }
             }),
-            StateField.define<DecorationSet>({
-                create(state) {
-                    if (!highlightRange) {
-                        return Decoration.none;
-                    }
-
-                    const { start, end } = highlightRange;
-                    const from = state.doc.line(start.line).from + start.character - 1;
-                    const to = state.doc.line(end.line).from + end.character - 1;
-
-                    return Decoration.set([
-                        highlightDecoration.range(from, to),
-                    ]);
-                },
-                update(deco, tr) {
-                    return deco.map(tr.changes);
-                },
-                provide: (field) => EditorView.decorations.from(field),
-            }),
+            highlightRange ? rangeHighlightingExtension(highlightRange) : [],
             hasCodeNavEntitlement ? symbolHoverTargetsExtension : [],
         ];
     }, [
@@ -115,6 +116,7 @@ export const CodePreviewPanel = ({
         hasCodeNavEntitlement,
     ]);
 
+    // Scroll the highlighted range into view.
     useEffect(() => {
         if (!highlightRange || !editorRef || !editorRef.state) {
             return;
@@ -122,9 +124,10 @@ export const CodePreviewPanel = ({
 
         const doc = editorRef.state.doc;
         const { start, end } = highlightRange;
-        const from = doc.line(start.line).from + start.character - 1;
-        const to = doc.line(end.line).from + end.character - 1;
-        const selection = EditorSelection.range(from, to);
+        const selection = EditorSelection.range(
+            doc.line(start.lineNumber).from,
+            doc.line(end.lineNumber).from,
+        );
 
         editorRef.view?.dispatch({
             effects: [
@@ -156,13 +159,14 @@ export const CodePreviewPanel = ({
         if (symbolDefinitions.length === 1) {
             const symbolDefinition = symbolDefinitions[0];
             const { fileName, repoName } = symbolDefinition;
-            const { start, end } = symbolDefinition.range;
-            const highlightRange = `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`;
 
-            const params = new URLSearchParams(searchParams.toString());
-            params.set('highlightRange', highlightRange);
-
-            router.push(`/${domain}/browse/${repoName}@${revisionName}/-/blob/${fileName}?${params.toString()}`);
+            navigateToPath({
+                repoName,
+                revisionName,
+                path: fileName,
+                pathType: 'blob',
+                highlightRange: symbolDefinition.range,
+            })
         } else {
             updateBrowseState({
                 selectedSymbolInfo: {
@@ -211,7 +215,7 @@ export const CodePreviewPanel = ({
                         />
                     )}
                 </CodeMirror>
-                
+
             </ScrollArea>
         </ResizablePanel>
     )

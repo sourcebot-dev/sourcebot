@@ -14,9 +14,9 @@ import { EditorView } from "@codemirror/view";
 import { Cross1Icon, FileIcon } from "@radix-ui/react-icons";
 import { Scrollbar } from "@radix-ui/react-scroll-area";
 import CodeMirror, { ReactCodeMirrorRef, SelectionRange } from '@uiw/react-codemirror';
-import clsx from "clsx";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 
 export interface CodePreviewFile {
     content: string;
@@ -28,8 +28,8 @@ export interface CodePreviewFile {
 }
 
 interface CodePreviewProps {
-    file?: CodePreviewFile;
-    repoName?: string;
+    file: CodePreviewFile;
+    repoName: string;
     selectedMatchIndex: number;
     onSelectedMatchIndexChange: (index: number) => void;
     onClose: () => void;
@@ -43,6 +43,7 @@ export const CodePreview = ({
     onClose,
 }: CodePreviewProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
+    const { navigateToPath } = useBrowseNavigation();
 
     const [gutterWidth, setGutterWidth] = useState(0);
     const theme = useCodeMirrorTheme();
@@ -79,7 +80,7 @@ export const CodePreview = ({
     }, [keymapExtension, languageExtension]);
 
     const ranges = useMemo(() => {
-        if (!file || !file.matches.length) {
+        if (!file.matches.length) {
             return [];
         }
 
@@ -89,7 +90,7 @@ export const CodePreview = ({
     }, [file]);
 
     useEffect(() => {
-        if (!file || !editorRef?.view) {
+        if (!editorRef?.view) {
             return;
         }
 
@@ -121,23 +122,24 @@ export const CodePreview = ({
                 {/* File path */}
                 <div className="flex-1 overflow-hidden">
                     <span
-                        className={clsx("block truncate-start text-sm font-mono", {
-                            "cursor-pointer text-blue-500 hover:underline": file?.link
-                        })}
+                        className="block truncate-start text-sm font-mono cursor-pointer text-blue-500 hover:underline"
                         onClick={() => {
-                            if (file?.link) {
-                                window.open(file.link, "_blank");
-                            }
+                            navigateToPath({
+                                repoName,
+                                path: file.filepath,
+                                pathType: 'blob',
+                                revisionName: file.revision,
+                            });
                         }}
-                        title={file?.filepath}
+                        title={file.filepath}
                     >
-                        {file?.filepath}
+                        {file.filepath}
                     </span>
                 </div>
 
                 <div className="flex flex-row gap-1 items-center pl-2">
                     {/* Match selector */}
-                    {file && file.matches.length > 0 && (
+                    {file.matches.length > 0 && (
                         <>
                             <p className="text-sm">{`${selectedMatchIndex + 1} of ${ranges.length}`}</p>
                             <Button
@@ -154,7 +156,7 @@ export const CodePreview = ({
                                 size="icon"
                                 className="h-6 w-6"
                                 onClick={onDownClicked}
-                                disabled={file ? selectedMatchIndex === ranges.length - 1 : true}
+                                disabled={selectedMatchIndex === ranges.length - 1}
                             >
                                 <ArrowDown className="h-4 w-4" />
                             </Button>

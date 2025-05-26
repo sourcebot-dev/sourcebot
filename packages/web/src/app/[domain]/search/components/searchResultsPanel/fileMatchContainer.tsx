@@ -3,16 +3,16 @@
 import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { Separator } from "@/components/ui/separator";
 import { DoubleArrowDownIcon, DoubleArrowUpIcon } from "@radix-ui/react-icons";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { FileMatch } from "./fileMatch";
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
+import { Button } from "@/components/ui/button";
 
 export const MAX_MATCHES_TO_PREVIEW = 3;
 
 interface FileMatchContainerProps {
     file: SearchResultFile;
-    onOpenFile: () => void;
-    onMatchIndexChanged: (matchIndex: number) => void;
+    onOpenFilePreview: () => void;
     showAllMatches: boolean;
     onShowAllMatchesButtonClicked: () => void;
     isBranchFilteringEnabled: boolean;
@@ -22,15 +22,13 @@ interface FileMatchContainerProps {
 
 export const FileMatchContainer = ({
     file,
-    onOpenFile,
-    onMatchIndexChanged,
+    onOpenFilePreview,
     showAllMatches,
     onShowAllMatchesButtonClicked,
     isBranchFilteringEnabled,
     repoInfo,
     yOffset,
 }: FileMatchContainerProps) => {
-
     const matchCount = useMemo(() => {
         return file.chunks.length;
     }, [file]);
@@ -63,14 +61,6 @@ export const FileMatchContainer = ({
         return matchCount > MAX_MATCHES_TO_PREVIEW;
     }, [matchCount]);
 
-    const onOpenMatch = useCallback((index: number) => {
-        const matchIndex = matches.slice(0, index).reduce((acc, match) => {
-            return acc + match.matchRanges.length;
-        }, 0);
-        onOpenFile();
-        onMatchIndexChanged(matchIndex);
-    }, [matches, onMatchIndexChanged, onOpenFile]);
-
     const branches = useMemo(() => {
         if (!file.branches) {
             return [];
@@ -96,12 +86,9 @@ export const FileMatchContainer = ({
         <div>
             {/* Title */}
             <div
-                className="bg-accent primary-foreground px-2 py-0.5 flex flex-row items-center justify-between cursor-pointer sticky top-0 z-10"
+                className="bg-accent primary-foreground px-2 py-0.5 flex flex-row items-center justify-between sticky top-0 z-10"
                 style={{
                     top: `-${yOffset}px`,
-                }}
-                onClick={() => {
-                    onOpenFile();
                 }}
             >
                 <FileHeader
@@ -116,6 +103,15 @@ export const FileMatchContainer = ({
                     branchDisplayName={branchDisplayName}
                     branchDisplayTitle={branches.join(", ")}
                 />
+                <Button
+                    variant="link"
+                    className="text-blue-500 h-5"
+                    onClick={() => {
+                        onOpenFilePreview();
+                    }}
+                >
+                    Preview
+                </Button>
             </div>
 
             {/* Matches */}
@@ -126,9 +122,6 @@ export const FileMatchContainer = ({
                     <FileMatch
                         match={match}
                         file={file}
-                        onOpen={() => {
-                            onOpenMatch(index);
-                        }}
                     />
                     {(index !== matches.length - 1 || isMoreContentButtonVisible) && (
                         <Separator className="bg-accent" />

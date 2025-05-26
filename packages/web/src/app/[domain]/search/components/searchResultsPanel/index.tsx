@@ -7,8 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 
 interface SearchResultsPanelProps {
     fileMatches: SearchResultFile[];
-    onOpenFileMatch: (fileMatch: SearchResultFile) => void;
-    onMatchIndexChanged: (matchIndex: number) => void;
+    onOpenFilePreview: (fileMatch: SearchResultFile) => void;
     isLoadMoreButtonVisible: boolean;
     onLoadMoreButtonClicked: () => void;
     isBranchFilteringEnabled: boolean;
@@ -21,8 +20,7 @@ const ESTIMATED_MATCH_CONTAINER_HEIGHT_PX = 30;
 
 export const SearchResultsPanel = ({
     fileMatches,
-    onOpenFileMatch,
-    onMatchIndexChanged,
+    onOpenFilePreview,
     isLoadMoreButtonVisible,
     onLoadMoreButtonClicked,
     isBranchFilteringEnabled,
@@ -140,11 +138,8 @@ export const SearchResultsPanel = ({
                         >
                             <FileMatchContainer
                                 file={file}
-                                onOpenFile={() => {
-                                    onOpenFileMatch(file);
-                                }}
-                                onMatchIndexChanged={(matchIndex) => {
-                                    onMatchIndexChanged(matchIndex);
+                                onOpenFilePreview={() => {
+                                    onOpenFilePreview(file);
                                 }}
                                 showAllMatches={showAllMatchesStates[virtualRow.index]}
                                 onShowAllMatchesButtonClicked={() => {
