@@ -17,6 +17,10 @@ import CodeMirror, { ReactCodeMirrorRef, SelectionRange } from '@uiw/react-codem
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { SymbolHoverPopup } from "@/ee/features/codeNav/components/symbolHoverPopup";
+import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
+import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
+import { SymbolDefinition } from "@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo";
 
 export interface CodePreviewFile {
     content: string;
@@ -44,6 +48,7 @@ export const CodePreview = ({
 }: CodePreviewProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const { navigateToPath } = useBrowseNavigation();
+    const hasCodeNavEntitlement = useHasEntitlement("code-nav");
 
     const [gutterWidth, setGutterWidth] = useState(0);
     const theme = useCodeMirrorTheme();
@@ -75,9 +80,10 @@ export const CodePreview = ({
                 if (update.selectionSet || update.docChanged) {
                     setCurrentSelection(update.state.selection.main);
                 }
-            })
+            }),
+            hasCodeNavEntitlement ? symbolHoverTargetsExtension : [],
         ];
-    }, [keymapExtension, languageExtension]);
+    }, [hasCodeNavEntitlement, keymapExtension, languageExtension]);
 
     const ranges = useMemo(() => {
         if (!file.matches.length) {
@@ -104,6 +110,59 @@ export const CodePreview = ({
     const onDownClicked = useCallback(() => {
         onSelectedMatchIndexChange(selectedMatchIndex + 1);
     }, [onSelectedMatchIndexChange, selectedMatchIndex]);
+
+    const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
+        if (symbolDefinitions.length === 0) {
+            return;
+        }
+
+        if (symbolDefinitions.length === 1) {
+            const symbolDefinition = symbolDefinitions[0];
+            const { fileName, repoName } = symbolDefinition;
+
+            navigateToPath({
+                repoName,
+                revisionName: file.revision,
+                path: fileName,
+                pathType: 'blob',
+                highlightRange: symbolDefinition.range,
+            })
+        } else {
+            navigateToPath({
+                repoName,
+                revisionName: file.revision,
+                path: file.filepath,
+                pathType: 'blob',
+                setBrowseState: {
+                    selectedSymbolInfo: {
+                        symbolName,
+                        repoName,
+                        revisionName: file.revision,
+                    },
+                    activeExploreMenuTab: "definitions",
+                    isBottomPanelCollapsed: false,
+                }
+            });
+        }
+    }, [file.filepath, file.revision, navigateToPath, repoName]);
+    
+    const onFindReferences = useCallback((symbolName: string) => {
+        navigateToPath({
+            repoName,
+            revisionName: file.revision,
+            path: file.filepath,
+            pathType: 'blob',
+            setBrowseState: {
+                selectedSymbolInfo: {
+                    repoName,
+                    symbolName,
+                    revisionName: file.revision,
+                },
+                activeExploreMenuTab: "references",
+                isBottomPanelCollapsed: false,
+            }
+        })
+    }, [file.filepath, file.revision, navigateToPath, repoName]);
 
     return (
         <div className="flex flex-col h-full">
@@ -198,6 +257,16 @@ export const CodePreview = ({
                             />
                         )
                     }
+
+                    {editorRef && hasCodeNavEntitlement && (
+                        <SymbolHoverPopup
+                            editorRef={editorRef}
+                            repoName={repoName}
+                            revisionName={file.revision}
+                            onFindReferences={onFindReferences}
+                            onGotoDefinition={onGotoDefinition}
+                        />
+                    )}
                 </CodeMirror>
                 <Scrollbar orientation="vertical" />
                 <Scrollbar orientation="horizontal" />

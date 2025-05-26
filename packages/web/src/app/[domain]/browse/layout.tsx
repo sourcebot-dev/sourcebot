@@ -1,7 +1,7 @@
 import { ResizablePanelGroup } from "@/components/ui/resizable";
 import { BottomPanel } from "./components/bottomPanel";
-import { BrowseStateProvider } from "./browseStateProvider";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
+import { BrowseStateProvider } from "./browseStateProvider";
 
 interface LayoutProps {
     children: React.ReactNode;

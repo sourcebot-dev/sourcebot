@@ -8,12 +8,10 @@ import { SymbolDefinition } from "@/ee/features/codeNav/components/symbolHoverPo
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
-import { useDomain } from "@/hooks/useDomain";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { search } from "@codemirror/search";
 import CodeMirror, { EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, ViewUpdate } from "@uiw/react-codemirror";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EditorContextMenu } from "../../../components/editorContextMenu";
 import { BrowseHighlightRange, HIGHLIGHT_RANGE_QUERY_PARAM, useBrowseNavigation } from "../../hooks/useBrowseNavigation";
@@ -40,9 +38,6 @@ export const CodePreviewPanel = ({
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
     const keymapExtension = useKeymapExtension(editorRef?.view);
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const domain = useDomain();
     const { updateBrowseState } = useBrowseState();
     const { navigateToPath } = useBrowseNavigation();
 
@@ -178,7 +173,7 @@ export const CodePreviewPanel = ({
                 isBottomPanelCollapsed: false,
             })
         }
-    }, [searchParams, router, domain, updateBrowseState, repoName, revisionName]);
+    }, [navigateToPath, revisionName, updateBrowseState, repoName]);
 
     const theme = useCodeMirrorTheme();
 
