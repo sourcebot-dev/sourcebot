@@ -39,7 +39,7 @@ export default async function LicensePage({ params: { domain } }: LicensePagePro
                     <Button asChild>
                         <a href={`https://sourcebot.dev/contact`} target="_blank" rel="noopener noreferrer">
                             <Mail className="h-4 w-4 mr-2" />
-                            Contact Us
+                            Request a trial license
                         </a>
                     </Button>
                 </div>
