@@ -5,6 +5,7 @@ import Google from "next-auth/providers/google";
 import Okta from "next-auth/providers/okta";
 import Keycloak from "next-auth/providers/keycloak";
 import Gitlab from "next-auth/providers/gitlab";
+import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { prisma } from "@/prisma";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { OrgRole } from "@sourcebot/db";
@@ -74,6 +75,14 @@ export const getSSOProviders = (): Provider[] => {
             clientId: env.AUTH_EE_KEYCLOAK_CLIENT_ID,
             clientSecret: env.AUTH_EE_KEYCLOAK_CLIENT_SECRET,
             issuer: env.AUTH_EE_KEYCLOAK_ISSUER,
+        }));
+    }
+
+    if (env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID && env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET && env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER) {
+        providers.push(MicrosoftEntraID({
+            clientId: env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID,
+            clientSecret: env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET,
+            issuer: env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER,
         }));
     }
 

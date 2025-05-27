@@ -40,6 +40,9 @@ export const env = createEnv({
         AUTH_EE_KEYCLOAK_CLIENT_ID: z.string().optional(),
         AUTH_EE_KEYCLOAK_CLIENT_SECRET: z.string().optional(),
         AUTH_EE_KEYCLOAK_ISSUER: z.string().optional(),
+        AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID: z.string().optional(),
+        AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER: z.string().optional(),
 
         DATA_CACHE_DIR: z.string(),
 
