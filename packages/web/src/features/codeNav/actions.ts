@@ -21,7 +21,7 @@ export const findSearchBasedSymbolReferences = async (
     withAuth((session) =>
         withOrgMembership(session, domain, async () => {
             const searchResult = await search({
-                query: `${symbolName} repo:^${escapeStringRegexp(repoName)}$ rev:${revisionName}`,
+                query: `\\b${symbolName}\\b repo:^${escapeStringRegexp(repoName)}$ rev:${revisionName}`,
                 matches: MAX_REFERENCE_COUNT,
                 contextLines: 0,
             }, domain);
