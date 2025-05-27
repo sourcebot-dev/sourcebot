@@ -73,8 +73,8 @@ export const BottomPanel = () => {
             </div>
             <Separator />
             <ResizablePanel
-                minSize={20}
-                maxSize={50}
+                minSize={35}
+                maxSize={65}
                 collapsible={true}
                 ref={panelRef}
                 defaultSize={isBottomPanelCollapsed ? 0 : bottomPanelSize}
