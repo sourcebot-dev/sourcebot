@@ -50,7 +50,7 @@ export const FileMatch = ({
     return (
         <div
             tabIndex={0}
-            className="cursor-pointer focus:ring-inset focus:ring-4 bg-background hover:bg-accent"
+            className="cursor-pointer focus:ring-inset focus:ring-4 bg-background hover:bg-editor-lineHighlight"
             onKeyDown={(e) => {
                 if (e.key !== "Enter") {
                     return;
