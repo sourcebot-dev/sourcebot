@@ -1,9 +1,11 @@
+'use client';
 
 import { getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import Image from "next/image";
 import Link from "next/link";
+import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation";
 
 interface FileHeaderProps {
     fileName: string;
@@ -35,6 +37,8 @@ export const FileHeader = ({
         webUrl: repo.webUrl,
     });
 
+    const { navigateToPath } = useBrowseNavigation();
+
     return (
         <div className="flex flex-row gap-2 items-center w-full overflow-hidden">
             {info?.icon ? (
@@ -47,7 +51,7 @@ export const FileHeader = ({
                 <LaptopIcon className="w-4 h-4" />
             )}
             <Link
-                className={clsx("font-medium cursor-default", {
+                className={clsx("font-medium", {
                     "cursor-pointer hover:underline": info?.repoLink,
                 })}
                 href={info?.repoLink ?? ""}
@@ -70,7 +74,17 @@ export const FileHeader = ({
             <div
                 className="flex-1 flex items-center overflow-hidden mt-0.5"
             >
-                <span className="inline-block w-full truncate-start font-mono text-sm">
+                <span
+                    className="inline-block w-full truncate-start font-mono text-sm cursor-pointer hover:underline"
+                    onClick={() => {
+                        navigateToPath({
+                            repoName: repo.name,
+                            path: fileName,
+                            pathType: 'blob',
+                            revisionName: branchDisplayName,
+                        });
+                    }}
+                >
                     {!fileNameHighlightRange ?
                         fileName
                         : (

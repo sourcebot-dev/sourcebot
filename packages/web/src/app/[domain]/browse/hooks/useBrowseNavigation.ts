@@ -1,4 +1,4 @@
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useDomain } from "@/hooks/useDomain";
 import { useCallback } from "react";
 import { BrowseState, SET_BROWSE_STATE_QUERY_PARAM } from "../browseStateProvider";
@@ -24,7 +24,6 @@ interface NavigateToPathOptions {
 
 export const useBrowseNavigation = () => {
     const router = useRouter();
-    const searchParams = useSearchParams();
     const domain = useDomain();
 
     const navigateToPath = useCallback(({
@@ -35,7 +34,7 @@ export const useBrowseNavigation = () => {
         highlightRange,
         setBrowseState,
     }: NavigateToPathOptions) => {
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams();
 
         if (highlightRange) {
             const { start, end } = highlightRange;
@@ -52,7 +51,7 @@ export const useBrowseNavigation = () => {
         }
 
         router.push(`/${domain}/browse/${repoName}@${revisionName}/-/${pathType}/${path}?${params.toString()}`);
-    }, [domain, router, searchParams]);
+    }, [domain, router]);
 
     return {
         navigateToPath,
