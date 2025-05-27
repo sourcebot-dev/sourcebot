@@ -34,21 +34,18 @@ export interface CodePreviewFile {
 interface CodePreviewProps {
     file: CodePreviewFile;
     repoName: string;
-    selectedMatchIndex: number;
-    onSelectedMatchIndexChange: (index: number) => void;
     onClose: () => void;
 }
 
 export const CodePreview = ({
     file,
     repoName,
-    selectedMatchIndex,
-    onSelectedMatchIndexChange,
     onClose,
 }: CodePreviewProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const { navigateToPath } = useBrowseNavigation();
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
+    const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
 
     const [gutterWidth, setGutterWidth] = useState(0);
     const theme = useCodeMirrorTheme();
@@ -104,12 +101,12 @@ export const CodePreview = ({
     }, [ranges, selectedMatchIndex, file, editorRef]);
 
     const onUpClicked = useCallback(() => {
-        onSelectedMatchIndexChange(selectedMatchIndex - 1);
-    }, [onSelectedMatchIndexChange, selectedMatchIndex]);
+        setSelectedMatchIndex((prev) => prev - 1);
+    }, []);
 
     const onDownClicked = useCallback(() => {
-        onSelectedMatchIndexChange(selectedMatchIndex + 1);
-    }, [onSelectedMatchIndexChange, selectedMatchIndex]);
+        setSelectedMatchIndex((prev) => prev + 1);
+    }, []);
 
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
         if (symbolDefinitions.length === 0) {

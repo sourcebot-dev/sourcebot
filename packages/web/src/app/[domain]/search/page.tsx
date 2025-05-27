@@ -211,7 +211,6 @@ const PanelGroup = ({
     searchDurationMs,
     numMatches,
 }: PanelGroupProps) => {
-    const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
     const [previewedFile, setPreviewedFile] = useState<SearchResultFile | undefined>(undefined);
     const [filteredFileMatches, setFilteredFileMatches] = useState<SearchResultFile[]>(fileMatches);
 
@@ -297,8 +296,6 @@ const PanelGroup = ({
                         <CodePreviewPanel
                             previewedFile={previewedFile}
                             onClose={() => setPreviewedFile(undefined)}
-                            selectedMatchIndex={selectedMatchIndex}
-                            onSelectedMatchIndexChange={setSelectedMatchIndex}
                         />
                     </ResizablePanel>
                 </>

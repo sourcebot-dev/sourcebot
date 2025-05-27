@@ -13,15 +13,11 @@ import { unwrapServiceError } from "@/lib/utils";
 interface CodePreviewPanelProps {
     previewedFile: SearchResultFile;
     onClose: () => void;
-    selectedMatchIndex: number;
-    onSelectedMatchIndexChange: (index: number) => void;
 }
 
 export const CodePreviewPanel = ({
     previewedFile,
     onClose,
-    selectedMatchIndex,
-    onSelectedMatchIndexChange,
 }: CodePreviewPanelProps) => {
     const domain = useDomain();
 
@@ -72,8 +68,6 @@ export const CodePreviewPanel = ({
             file={file}
             repoName={previewedFile.repository}
             onClose={onClose}
-            selectedMatchIndex={selectedMatchIndex}
-            onSelectedMatchIndexChange={onSelectedMatchIndexChange}
         />
     )
 }
