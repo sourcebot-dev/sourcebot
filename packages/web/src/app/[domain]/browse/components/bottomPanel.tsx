@@ -13,6 +13,9 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 import { useBrowseState } from "../hooks/useBrowseState";
 import { ExploreMenu } from "@/ee/features/codeNav/components/exploreMenu";
 
+export const BOTTOM_PANEL_MIN_SIZE = 35;
+export const BOTTOM_PANEL_MAX_SIZE = 65;
+
 export const BottomPanel = () => {
     const panelRef = useRef<ImperativePanelHandle>(null);
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
@@ -73,8 +76,8 @@ export const BottomPanel = () => {
             </div>
             <Separator />
             <ResizablePanel
-                minSize={35}
-                maxSize={65}
+                minSize={BOTTOM_PANEL_MIN_SIZE}
+                maxSize={BOTTOM_PANEL_MAX_SIZE}
                 collapsible={true}
                 ref={panelRef}
                 defaultSize={isBottomPanelCollapsed ? 0 : bottomPanelSize}

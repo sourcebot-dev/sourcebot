@@ -2,6 +2,7 @@
 
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { createContext, useCallback, useEffect, useState } from "react";
+import { BOTTOM_PANEL_MIN_SIZE } from "./components/bottomPanel";
 
 export interface BrowseState {
     selectedSymbolInfo?: {
@@ -18,7 +19,7 @@ const defaultState: BrowseState = {
     selectedSymbolInfo: undefined,
     isBottomPanelCollapsed: true,
     activeExploreMenuTab: "references",
-    bottomPanelSize: 30,
+    bottomPanelSize: BOTTOM_PANEL_MIN_SIZE,
 };
 
 export const SET_BROWSE_STATE_QUERY_PARAM = "setBrowseState";

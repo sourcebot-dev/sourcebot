@@ -133,7 +133,7 @@ export const FileMatchContainer = ({
             {isMoreContentButtonVisible && (
                 <div
                     tabIndex={0}
-                    className="px-4 bg-accent p-0.5"
+                    className="px-4 bg-accent p-0.5 group focus:outline-none"
                     onKeyDown={(e) => {
                         if (e.key !== "Enter") {
                             return;
@@ -143,7 +143,7 @@ export const FileMatchContainer = ({
                     onClick={onShowAllMatchesButtonClicked}
                 >
                     <p
-                        className="text-blue-500 cursor-pointer text-sm flex flex-row items-center gap-2"
+                        className="text-blue-500 w-fit cursor-pointer text-sm flex flex-row items-center gap-2 group-focus:ring-2 group-focus:ring-blue-500 rounded-sm"
                     >
                         {showAllMatches ? <DoubleArrowUpIcon className="w-3 h-3" /> : <DoubleArrowDownIcon className="w-3 h-3" />}
                         {showAllMatches ? `Show fewer matches` : `Show ${matchCount - MAX_MATCHES_TO_PREVIEW} more matches`}

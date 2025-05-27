@@ -292,6 +292,7 @@ const PanelGroup = ({
                         collapsible={true}
                         id={'code-preview-panel'}
                         order={3}
+                        onCollapse={() => setPreviewedFile(undefined)}
                     >
                         <CodePreviewPanel
                             previewedFile={previewedFile}

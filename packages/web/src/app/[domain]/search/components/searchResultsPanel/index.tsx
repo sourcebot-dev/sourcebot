@@ -3,8 +3,8 @@
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
 import { FileMatchContainer, MAX_MATCHES_TO_PREVIEW } from "./fileMatchContainer";
 import { useVirtualizer, VirtualItem } from "@tanstack/react-virtual";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useDebounce } from "@uidotdev/usehooks";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useDebounce, usePrevious } from "@uidotdev/usehooks";
 
 interface SearchResultsPanelProps {
     fileMatches: SearchResultFile[];
@@ -34,7 +34,6 @@ export const SearchResultsPanel = ({
     repoInfo,
 }: SearchResultsPanelProps) => {
     const parentRef = useRef<HTMLDivElement>(null);
-    const [lastShowAllMatchesButtonClickIndex, setLastShowAllMatchesButtonClickIndex] = useState(-1);
 
     // Restore the scroll offset, measurements cache, and other state from the history
     // state. This enables us to restore the scroll offset when the user navigates back
@@ -67,25 +66,6 @@ export const SearchResultsPanel = ({
 
             return estimatedSize;
         },
-        measureElement: (element, _entry, instance) => {
-            // @note : Stutters were appearing when scrolling upwards. The workaround is
-            // to use the cached height of the element when scrolling up.
-            // @see : https://github.com/TanStack/virtual/issues/659
-            const isCacheDirty = element.hasAttribute("data-cache-dirty");
-            element.removeAttribute("data-cache-dirty");
-            const direction = instance.scrollDirection;
-            if (direction === "forward" || direction === null || isCacheDirty) {
-                return element.scrollHeight;
-            } else {
-                const indexKey = Number(element.getAttribute("data-index"));
-                // Unfortunately, the cache is a private property, so we need to
-                // hush the TS compiler.
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                const cacheMeasurement = instance.itemSizeCache.get(indexKey);
-                return cacheMeasurement;
-            }
-        },
         initialOffset: restoreOffset,
         initialMeasurementsCache: restoreMeasurementsCache,
         enabled: true,
@@ -93,8 +73,21 @@ export const SearchResultsPanel = ({
         debug: false,
     });
 
-    const debouncedScrollOffset = useDebounce(virtualizer.scrollOffset, 100);
+    // When the number of file matches changes, we need to reset our scroll state.
+    const prevFileMatches = usePrevious(fileMatches);
+    useEffect(() => {
+        if (!prevFileMatches) {
+            return;
+        }
 
+        if (prevFileMatches.length !== fileMatches.length) {
+            setShowAllMatchesStates(Array(fileMatches.length).fill(false));
+            virtualizer.scrollToIndex(0);
+        }
+    }, [prevFileMatches]);
+
+    // Save the scroll state to the history stack.
+    const debouncedScrollOffset = useDebounce(virtualizer.scrollOffset, 100);
     useEffect(() => {
         history.replaceState(
             {
@@ -109,28 +102,19 @@ export const SearchResultsPanel = ({
 
     const onShowAllMatchesButtonClicked = useCallback((index: number) => {
         const states = [...showAllMatchesStates];
-        states[index] = !states[index];
+        const wasShown = states[index];
+        states[index] = !wasShown;
         setShowAllMatchesStates(states);
-        setLastShowAllMatchesButtonClickIndex(index);
+
+        // When collapsing, scroll to the top of the file match container. This ensures
+        // that the focused "show fewer matches" button is visible.
+        if (wasShown) {
+            virtualizer.scrollToIndex(index, {
+                align: 'start'
+            });
+        }
     }, [showAllMatchesStates]);
 
-    // After the "show N more/less matches" button is clicked, the FileMatchContainer's
-    // size can change considerably. In cases where N > 3 or 4 cells when collapsing,
-    // a visual artifact can appear where there is a large gap between the now collapsed
-    // container and the next container. This is because the container's height was not
-    // re-calculated. To get arround this, we force a re-measure of the element AFTER
-    // it was re-rendered (hence the useLayoutEffect).
-    useLayoutEffect(() => {
-        if (lastShowAllMatchesButtonClickIndex < 0) {
-            return;
-        }
-
-        const element = virtualizer.elementsCache.get(lastShowAllMatchesButtonClickIndex);
-        element?.setAttribute('data-cache-dirty', 'true');
-        virtualizer.measureElement(element);
-
-        setLastShowAllMatchesButtonClickIndex(-1);
-    }, [lastShowAllMatchesButtonClickIndex, virtualizer]);
 
     return (
         <div
