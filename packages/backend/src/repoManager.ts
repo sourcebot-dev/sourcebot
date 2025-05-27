@@ -165,7 +165,9 @@ export class RepoManager implements IRepoManager {
         });
 
         if (repos.length > 0) {
-            await this.scheduleRepoIndexingBulk(repos);
+            for (let i = 0; i < repos.length; i += 100) {
+                await this.scheduleRepoIndexingBulk(repos.slice(i, i + 100));
+            }
         }
     }
 

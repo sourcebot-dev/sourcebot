@@ -920,15 +920,17 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
 export const flagReposForIndex = async (repoIds: number[], domain: string) => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
-            await prisma.repo.updateMany({
-                where: {
-                    id: { in: repoIds },
-                    orgId: org.id,
-                },
-                data: {
-                    repoIndexingStatus: RepoIndexingStatus.NEW,
-                }
-            });
+            for (let i = 0; i < repoIds.length; i += 1000) {
+                await prisma.repo.updateMany({
+                    where: {
+                        id: { in: repoIds.slice(i, i + 1000) },
+                        orgId: org.id,
+                    },
+                    data: {
+                        repoIndexingStatus: RepoIndexingStatus.NEW,
+                    }
+                });
+            }
 
             return {
                 success: true,

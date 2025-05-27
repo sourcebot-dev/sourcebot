@@ -67,16 +67,18 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
             // Re-try any repos that failed to index.
             const failedRepos = currentConnection?.repos.filter(repo => repo.repo.repoIndexingStatus === RepoIndexingStatus.FAILED).map(repo => repo.repo.id) ?? [];
             if (failedRepos.length > 0) {
-                await prisma.repo.updateMany({
-                    where: {
-                        id: {
-                            in: failedRepos,
+                for (let i = 0; i < failedRepos.length; i += 100) {
+                    await prisma.repo.updateMany({
+                        where: {
+                            id: {
+                                in: failedRepos.slice(i, i + 100),
+                            }
+                        },
+                        data: {
+                            repoIndexingStatus: RepoIndexingStatus.NEW,
                         }
-                    },
-                    data: {
-                        repoIndexingStatus: RepoIndexingStatus.NEW,
-                    }
-                })
+                    })
+                }
             }
         }
     }

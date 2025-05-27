@@ -7,6 +7,7 @@ import { PrismaClient } from "@sourcebot/db";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
 import { env } from "./env.js";
+import { log } from "console";
 
 const logger = createLogger('gitlab');
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
@@ -45,15 +46,27 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
     if (config.all === true) {
         if (hostname !== GITLAB_CLOUD_HOSTNAME) {
             try {
-                logger.debug(`Fetching all projects visible in ${config.url}...`);
-                const { durationMs, data: _projects } = await measure(async () => {
-                    const fetchFn = () => api.Projects.all({
-                        perPage: 100,
-                    });
-                    return fetchWithRetry(fetchFn, `all projects in ${config.url}`, logger);
+                // Fetch all groups
+                logger.debug(`Fetching all groups visible in ${config.url}...`);
+                const { durationMs: groupsDuration, data: _groups } = await measure(async () => {
+                    const fetchFn = () => api.Groups.all({ perPage: 100, allAvailable: true });
+                    return fetchWithRetry(fetchFn, `all groups in ${config.url}`, logger);
                 });
-                logger.debug(`Found ${_projects.length} projects in ${durationMs}ms.`);
-                allRepos = allRepos.concat(_projects);
+                logger.debug(`Found ${_groups.length} groups in ${groupsDuration}ms.`);
+
+                config.groups = _groups.map(g => g.full_path);
+                
+                logger.debug(`Found these groups: ${config.groups.join('\n')}`);
+
+                // Fetch all users - too much for sourcebot/gitlab
+                logger.debug(`Fetching all users visible in ${config.url}...`);
+                const { durationMs: usersDuration, data: _users } = await measure(async () => {
+                    const fetchFn = () => api.Users.all({ perPage: 100, withoutProjects: false });
+                    return fetchWithRetry(fetchFn, `all users in ${config.url}`, logger);
+                });
+                logger.debug(`Found ${_users.length} users in ${usersDuration}ms.`);
+
+                config.users = _users.map(u => u.username);
             } catch (e) {
                 Sentry.captureException(e);
                 logger.error(`Failed to fetch all projects visible in ${config.url}.`, e);
@@ -65,76 +78,96 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
     }
 
     if (config.groups) {
-        const results = await Promise.allSettled(config.groups.map(async (group) => {
-            try {
-                logger.debug(`Fetching project info for group ${group}...`);
-                const { durationMs, data } = await measure(async () => {
-                    const fetchFn = () => api.Groups.allProjects(group, {
-                        perPage: 100,
-                        includeSubgroups: true
+        const batchSize = 10;
+        const allResults = [];
+        
+        // Process groups in batches of 10
+        for (let i = 0; i < config.groups.length; i += batchSize) {
+            const batch = config.groups.slice(i, i + batchSize);
+            logger.debug(`Processing batch ${i/batchSize + 1} of ${Math.ceil(config.groups.length/batchSize)} (${batch.length} groups)`);
+            
+            const batchResults = await Promise.allSettled(batch.map(async (group) => {
+                try {
+                    logger.debug(`Fetching project info for group ${group}...`);
+                    const { durationMs, data } = await measure(async () => {
+                        const fetchFn = () => api.Groups.allProjects(group, {
+                            perPage: 100,
+                            includeSubgroups: true
+                        });
+                        return fetchWithRetry(fetchFn, `group ${group}`, logger);
                     });
-                    return fetchWithRetry(fetchFn, `group ${group}`, logger);
-                });
-                logger.debug(`Found ${data.length} projects in group ${group} in ${durationMs}ms.`);
-                return {
-                    type: 'valid' as const,
-                    data
-                };
-            } catch (e: any) {
-                Sentry.captureException(e);
-                logger.error(`Failed to fetch projects for group ${group}.`, e);
-
-                const status = e?.cause?.response?.status;
-                if (status === 404) {
-                    logger.error(`Group ${group} not found or no access`);
+                    logger.debug(`Found ${data.length} projects in group ${group} in ${durationMs}ms.`);
                     return {
-                        type: 'notFound' as const,
-                        value: group
+                        type: 'valid' as const,
+                        data
                     };
-                }
-                throw e;
-            }
-        }));
+                } catch (e: any) {
+                    Sentry.captureException(e);
+                    logger.error(`Failed to fetch projects for group ${group}.`, e);
 
-        throwIfAnyFailed(results);
-        const { validItems: validRepos, notFoundItems: notFoundOrgs } = processPromiseResults(results);
+                    const status = e?.cause?.response?.status;
+                    if (status === 404) {
+                        logger.error(`Group ${group} not found or no access`);
+                        return {
+                            type: 'notFound' as const,
+                            value: group
+                        };
+                    }
+                    throw e;
+                }
+            }));
+            allResults.push(...batchResults);
+        }
+        const { validItems: validRepos, notFoundItems: notFoundOrgs } = processPromiseResults(allResults);
         allRepos = allRepos.concat(validRepos);
         notFound.orgs = notFoundOrgs;
+        logger.debug(`Found ${validRepos.length} valid repositories in groups.`);
+        logger.debug(`Not found groups: ${notFoundOrgs.join(', ')}`);
+        logger.debug(`These repositories will be downloaded: ${allRepos.map(repo => repo.path_with_namespace).join('\n')}`);
     }
 
     if (config.users) {
-        const results = await Promise.allSettled(config.users.map(async (user) => {
-            try {
-                logger.debug(`Fetching project info for user ${user}...`);
-                const { durationMs, data } = await measure(async () => {
-                    const fetchFn = () => api.Users.allProjects(user, {
-                        perPage: 100,
+        const batchSize = 10;
+        const allResults = [];
+        
+        // Process users in batches of 10
+        for (let i = 0; i < config.users.length; i += batchSize) {
+            const batch = config.users.slice(i, i + batchSize);
+            logger.debug(`Processing batch ${i/batchSize + 1} of ${Math.ceil(config.users.length/batchSize)} (${batch.length} users)`);
+            
+            const batchResults = await Promise.allSettled(batch.map(async (user) => {
+                try {
+                    logger.debug(`Fetching project info for user ${user}...`);
+                    const { durationMs, data } = await measure(async () => {
+                        const fetchFn = () => api.Users.allProjects(user, {
+                            perPage: 100,
+                        });
+                        return fetchWithRetry(fetchFn, `user ${user}`, logger);
                     });
-                    return fetchWithRetry(fetchFn, `user ${user}`, logger);
-                });
-                logger.debug(`Found ${data.length} projects owned by user ${user} in ${durationMs}ms.`);
-                return {
-                    type: 'valid' as const,
-                    data
-                };
-            } catch (e: any) {
-                Sentry.captureException(e);
-                logger.error(`Failed to fetch projects for user ${user}.`, e);
-
-                const status = e?.cause?.response?.status;
-                if (status === 404) {
-                    logger.error(`User ${user} not found or no access`);
+                    logger.debug(`Found ${data.length} projects owned by user ${user} in ${durationMs}ms.`);
                     return {
-                        type: 'notFound' as const,
-                        value: user
+                        type: 'valid' as const,
+                        data
                     };
-                }
-                throw e;
-            }
-        }));
+                } catch (e: any) {
+                    Sentry.captureException(e);
+                    logger.error(`Failed to fetch projects for user ${user}.`, e);
 
-        throwIfAnyFailed(results);
-        const { validItems: validRepos, notFoundItems: notFoundUsers } = processPromiseResults(results);
+                    const status = e?.cause?.response?.status;
+                    if (status === 404) {
+                        logger.error(`User ${user} not found or no access`);
+                        return {
+                            type: 'notFound' as const,
+                            value: user
+                        };
+                    }
+                    throw e;
+                }
+            }));
+            
+            allResults.push(...batchResults);
+        }
+        const { validItems: validRepos, notFoundItems: notFoundUsers } = processPromiseResults(allResults);
         allRepos = allRepos.concat(validRepos);
         notFound.users = notFoundUsers;
     }
@@ -169,7 +202,6 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
             }
         }));
 
-        throwIfAnyFailed(results);
         const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults(results);
         allRepos = allRepos.concat(validRepos);
         notFound.repos = notFoundRepos;
