@@ -6,7 +6,6 @@ import { ChangeOrgDomainCard } from "./components/changeOrgDomainCard";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { ErrorCode } from "@/lib/errorCodes";
 import { headers } from "next/headers";
-import { EnterpriseFeaturesCard } from "./components/enterpriseFeaturesCard";
 
 interface GeneralSettingsPageProps {
     params: {
@@ -46,10 +45,6 @@ export default async function GeneralSettingsPage({ params: { domain } }: Genera
                 orgDomain={org.domain}
                 currentUserRole={currentUserRole}
                 rootDomain={host}
-            />
-
-            <EnterpriseFeaturesCard
-                domain={domain}
             />
         </div>
     )
