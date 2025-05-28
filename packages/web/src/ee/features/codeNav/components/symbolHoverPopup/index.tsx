@@ -11,6 +11,7 @@ import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
     repoName: string;
+    language: string;
     revisionName: string;
     onFindReferences: (symbolName: string) => void;
     onGotoDefinition: (symbolName: string, symbolDefinitions: SymbolDefinition[]) => void;
@@ -20,6 +21,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     editorRef,
     repoName,
     revisionName,
+    language,
     onFindReferences,
     onGotoDefinition: _onGotoDefinition,
 }) => {
@@ -30,7 +32,8 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         editorRef,
         isSticky,
         repoName,
-        revisionName
+        revisionName,
+        language,
     });
 
     // Positions the popup relative to the symbol

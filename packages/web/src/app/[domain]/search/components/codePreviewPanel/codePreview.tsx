@@ -135,13 +135,14 @@ export const CodePreview = ({
                         symbolName,
                         repoName,
                         revisionName: file.revision,
+                        language: file.language,
                     },
                     activeExploreMenuTab: "definitions",
                     isBottomPanelCollapsed: false,
                 }
             });
         }
-    }, [file.filepath, file.revision, navigateToPath, repoName]);
+    }, [file.filepath, file.language, file.revision, navigateToPath, repoName]);
     
     const onFindReferences = useCallback((symbolName: string) => {
         navigateToPath({
@@ -154,12 +155,13 @@ export const CodePreview = ({
                     repoName,
                     symbolName,
                     revisionName: file.revision,
+                    language: file.language,
                 },
                 activeExploreMenuTab: "references",
                 isBottomPanelCollapsed: false,
             }
         })
-    }, [file.filepath, file.revision, navigateToPath, repoName]);
+    }, [file.filepath, file.language, file.revision, navigateToPath, repoName]);
 
     return (
         <div className="flex flex-col h-full">
@@ -259,6 +261,7 @@ export const CodePreview = ({
                         <SymbolHoverPopup
                             editorRef={editorRef}
                             repoName={repoName}
+                            language={file.language}
                             revisionName={file.revision}
                             onFindReferences={onFindReferences}
                             onGotoDefinition={onGotoDefinition}

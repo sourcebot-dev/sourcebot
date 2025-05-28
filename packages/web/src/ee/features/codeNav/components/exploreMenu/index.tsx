@@ -20,6 +20,7 @@ interface ExploreMenuProps {
         symbolName: string;
         repoName: string;
         revisionName: string;
+        language: string;
     }
 }
 
@@ -39,14 +40,14 @@ export const ExploreMenu = ({
         isPending: isReferencesResponsePending,
         isLoading: isReferencesResponseLoading,
     } = useQuery({
-        queryKey: ["references", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, domain],
+        queryKey: ["references", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, domain],
         queryFn: () => unwrapServiceError(
-            findSearchBasedSymbolReferences(
-                selectedSymbolInfo.symbolName,
-                selectedSymbolInfo.repoName,
-                domain,
-                selectedSymbolInfo.revisionName,
-            )
+            findSearchBasedSymbolReferences({
+                symbolName: selectedSymbolInfo.symbolName,
+                repoName: selectedSymbolInfo.repoName,
+                language: selectedSymbolInfo.language,
+                revisionName: selectedSymbolInfo.revisionName,
+            }, domain)
         ),
     });
 
@@ -56,14 +57,14 @@ export const ExploreMenu = ({
         isPending: isDefinitionsResponsePending,
         isLoading: isDefinitionsResponseLoading,
     } = useQuery({
-        queryKey: ["definitions", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, domain],
+        queryKey: ["definitions", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, domain],
         queryFn: () => unwrapServiceError(
-            findSearchBasedSymbolDefinitions(
-                selectedSymbolInfo.symbolName,
-                selectedSymbolInfo.repoName,
-                domain,
-                selectedSymbolInfo.revisionName,
-            )
+            findSearchBasedSymbolDefinitions({
+                symbolName: selectedSymbolInfo.symbolName,
+                repoName: selectedSymbolInfo.repoName,
+                language: selectedSymbolInfo.language,
+                revisionName: selectedSymbolInfo.revisionName,
+            }, domain)
         ),
     });
 

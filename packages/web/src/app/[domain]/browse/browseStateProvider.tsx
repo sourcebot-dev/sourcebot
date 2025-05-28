@@ -9,6 +9,7 @@ export interface BrowseState {
         symbolName: string;
         repoName: string;
         revisionName: string;
+        language: string;
     }
     isBottomPanelCollapsed: boolean;
     activeExploreMenuTab: "references" | "definitions";

@@ -16,7 +16,6 @@ export const useFilteredMatches = (
 
     const filteredMatches = useMemo(() => {
         const selectedRepos = getSelectedFromQuery(REPOS_QUERY_PARAM);
-        console.log('selectedRepos', selectedRepos);
         const selectedLanguages = getSelectedFromQuery(LANGUAGES_QUERY_PARAM);
 
         const isInRepoSet = (repo: string) => selectedRepos.size === 0 || selectedRepos.has(repo);

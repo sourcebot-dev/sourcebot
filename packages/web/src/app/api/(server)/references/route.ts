@@ -23,7 +23,14 @@ export const GET = async (request: NextRequest) => {
     const repoName = requiredQueryParamGuard(request, "repoName");
     if (isServiceError(repoName)) return serviceErrorResponse(repoName);
 
-    const references = await findSearchBasedSymbolReferences(symbolName, repoName, domain);
+    const language = requiredQueryParamGuard(request, "language");
+    if (isServiceError(language)) return serviceErrorResponse(language);
+
+    const references = await findSearchBasedSymbolReferences({
+        symbolName,
+        repoName,
+        language,
+    }, domain);
     if (isServiceError(references)) return serviceErrorResponse(references);
 
     return Response.json(references);

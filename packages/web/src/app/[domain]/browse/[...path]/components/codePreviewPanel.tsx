@@ -137,11 +137,12 @@ export const CodePreviewPanel = ({
                 repoName,
                 symbolName,
                 revisionName,
+                language,
             },
             isBottomPanelCollapsed: false,
             activeExploreMenuTab: "references",
         })
-    }, [updateBrowseState, repoName, revisionName]);
+    }, [updateBrowseState, repoName, revisionName, language]);
 
 
     // If we resolve multiple matches, instead of navigating to the first match, we should
@@ -168,12 +169,13 @@ export const CodePreviewPanel = ({
                     symbolName,
                     repoName,
                     revisionName,
+                    language,
                 },
                 activeExploreMenuTab: "definitions",
                 isBottomPanelCollapsed: false,
             })
         }
-    }, [navigateToPath, revisionName, updateBrowseState, repoName]);
+    }, [navigateToPath, revisionName, updateBrowseState, repoName, language]);
 
     const theme = useCodeMirrorTheme();
 
@@ -205,6 +207,7 @@ export const CodePreviewPanel = ({
                             editorRef={editorRef}
                             repoName={repoName}
                             revisionName={revisionName}
+                            language={language}
                             onFindReferences={onFindReferences}
                             onGotoDefinition={onGotoDefinition}
                         />

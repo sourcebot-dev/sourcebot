@@ -13,15 +13,27 @@ import { SearchResponse } from "../search/types";
 const MAX_REFERENCE_COUNT = 1000;
 
 export const findSearchBasedSymbolReferences = async (
-    symbolName: string,
-    repoName: string,
+    props: {
+        symbolName: string,
+        repoName: string,
+        language: string,
+        revisionName?: string,
+    },
     domain: string,
-    revisionName: string = "HEAD",
 ): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
     withAuth((session) =>
         withOrgMembership(session, domain, async () => {
+            const {
+                symbolName,
+                repoName,
+                language,
+                revisionName = "HEAD",
+            } = props;
+
+            const query = `\\b${symbolName}\\b repo:^${escapeStringRegexp(repoName)}$ rev:${revisionName} lang:${language}`
+
             const searchResult = await search({
-                query: `\\b${symbolName}\\b repo:^${escapeStringRegexp(repoName)}$ rev:${revisionName}`,
+                query,
                 matches: MAX_REFERENCE_COUNT,
                 contextLines: 0,
             }, domain);
@@ -36,15 +48,27 @@ export const findSearchBasedSymbolReferences = async (
 
 
 export const findSearchBasedSymbolDefinitions = async (
-    symbolName: string,
-    repoName: string,
+    props: {
+        symbolName: string,
+        repoName: string,
+        language: string,
+        revisionName?: string,
+    },
     domain: string,
-    revisionName: string = "HEAD",
 ): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
     withAuth((session) =>
         withOrgMembership(session, domain, async () => {
+            const {
+                symbolName,
+                repoName,
+                language,
+                revisionName = "HEAD",
+            } = props;
+
+            const query = `sym:\\b${symbolName}\\b repo:^${escapeStringRegexp(repoName)}$ rev:${revisionName} lang:${language}`
+
             const searchResult = await search({
-                query: `sym:\\b${symbolName}\\b repo:^${escapeStringRegexp(repoName)}$ rev:${revisionName}`,
+                query,
                 matches: MAX_REFERENCE_COUNT,
                 contextLines: 0,
             }, domain);

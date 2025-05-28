@@ -84,7 +84,7 @@ export const SearchResultsPanel = ({
             setShowAllMatchesStates(Array(fileMatches.length).fill(false));
             virtualizer.scrollToIndex(0);
         }
-    }, [prevFileMatches]);
+    }, [fileMatches.length, prevFileMatches, virtualizer]);
 
     // Save the scroll state to the history stack.
     const debouncedScrollOffset = useDebounce(virtualizer.scrollOffset, 100);
@@ -113,7 +113,7 @@ export const SearchResultsPanel = ({
                 align: 'start'
             });
         }
-    }, [showAllMatchesStates]);
+    }, [showAllMatchesStates, virtualizer]);
 
 
     return (

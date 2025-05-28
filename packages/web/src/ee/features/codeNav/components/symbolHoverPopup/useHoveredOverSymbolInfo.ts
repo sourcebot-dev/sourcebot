@@ -12,6 +12,7 @@ interface UseHoveredOverSymbolInfoProps {
     isSticky: boolean;
     repoName: string;
     revisionName: string;
+    language: string;
 }
 
 export type SymbolDefinition = {
@@ -37,6 +38,7 @@ export const useHoveredOverSymbolInfo = ({
     isSticky,
     repoName,
     revisionName,
+    language,
 }: UseHoveredOverSymbolInfoProps): HoveredOverSymbolInfo | undefined => {
     const mouseOverTimerRef = useRef<NodeJS.Timeout | null>(null);
     const mouseOutTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -50,9 +52,14 @@ export const useHoveredOverSymbolInfo = ({
     }, [symbolElement]);
 
     const { data: symbolDefinitions, isLoading: isSymbolDefinitionsLoading } = useQuery({
-        queryKey: ["definitions", symbolName, repoName, revisionName, domain],
+        queryKey: ["definitions", symbolName, repoName, revisionName, language, domain],
         queryFn: () => unwrapServiceError(
-            findSearchBasedSymbolDefinitions(symbolName!, repoName, domain, revisionName)
+            findSearchBasedSymbolDefinitions({
+                symbolName: symbolName!,
+                repoName,
+                language,
+                revisionName,
+            }, domain)
         ),
         select: ((data) => {
             return data.files.flatMap((file) => {
