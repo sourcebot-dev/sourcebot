@@ -9,11 +9,36 @@ import SearchContextSchema from '/snippets/schemas/v3/searchContext.schema.mdx'
 This feature is only available with an active Enterprise license. Please add your [license key](/self-hosting/license-key) to activate it.
 </Note>
 
-**Code navigation** allows you to jump between symbol definition and references when viewing source files in Sourcebot.
+**Code navigation** allows you to jump between symbol definition and references when viewing source files in Sourcebot. This feature is enabled **automatically** when a valid license key is present and works with all popular programming languages.
 
 
 <video src="https://framerusercontent.com/assets/B9ZxrlsUeO9NJyzkKyvVV2KSU4.mp4" className="w-full aspect-video" controls></video>
 
 ## Features
 
-todo
+| Feature | Description |
+|:--------|:------------|
+| **Hover popover** | Hovering over a symbol reveals the symbol's definition signature as a inline preview. |
+| **Go to definition** | Clicking the "go to definition" button in the popover or clicking the symbol name navigates to the symbol's definition. |
+| **Find references** | Clicking the "find all references" button in the popover lists all references in the explore panel. |
+| **Explore panel** | Lists all references and definitions for the symbol selected in the popover. |
+
+## How does it work?
+
+Code navigation is **search-based**, meaning it uses the same code search engine and [query language](/docs/search/syntax-reference) to estimate a symbol's references and definitions. We refer to these estimations as "search heuristics". We have two search heuristics to enable the following operations:
+
+### Find references
+Given a `symbolName`, along with information about the file the symbol is contained within (`git_revision`, and `language`), runs the following search:
+
+```bash
+\\b{symbolName}\\b rev:{git_revision} lang:{language}
+```
+
+### Find definitions
+Given a `symbolName`, along with information about the file the symbol is contained within (`git_revision`, and `language`), runs the following search:
+
+```bash
+sym:\\b{symbolName}\\b rev:{git_revision} lang:{language}
+```
+
+Note that the `sym:` prefix is used to filter the search by symbol definitions. These are created at index time by [universal ctags](https://ctags.io/).
