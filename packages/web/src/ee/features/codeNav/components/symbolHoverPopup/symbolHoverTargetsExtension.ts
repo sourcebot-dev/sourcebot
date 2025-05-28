@@ -11,6 +11,7 @@ const decoration = Decoration.mark({
 });
 
 const NODE_TYPES = [
+    // Typescript + Python
     "VariableName",
     "VariableDefinition",
     "TypeDefinition",
@@ -18,7 +19,32 @@ const NODE_TYPES = [
     "PropertyName",
     "PropertyDefinition",
     "JSXIdentifier",
-    "Identifier"
+    "Identifier",
+    // C#
+    "VarName",
+    "TypeIdentifier",
+    "PropertyName",
+    "MethodName",
+    "Ident",
+    "ParamName",
+    "AttrsNamedArg",
+    // C/C++
+    "Identifier",
+    "NamespaceIdentifier",
+    "FieldIdentifier",
+    // Objective-C
+    "variableName",
+    "variableName.definition",
+    // Java
+    "Definition",
+    // Rust
+    "BoundIdentifier",
+    // Go
+    "DefName",
+    "FieldName",
+    // PHP
+    "ClassMemberName",
+    "Name"
 ]
 
 export const symbolHoverTargetsExtension = StateField.define<DecorationSet>({
