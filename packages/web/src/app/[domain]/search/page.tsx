@@ -23,6 +23,7 @@ import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
+import { useFilteredMatches } from "./components/filterPanel/useFilterMatches";
 
 const DEFAULT_MAX_MATCH_COUNT = 10000;
 
@@ -212,11 +213,7 @@ const PanelGroup = ({
     numMatches,
 }: PanelGroupProps) => {
     const [previewedFile, setPreviewedFile] = useState<SearchResultFile | undefined>(undefined);
-    const [filteredFileMatches, setFilteredFileMatches] = useState<SearchResultFile[]>(fileMatches);
-
-    const onFilterChanged = useCallback((matches: SearchResultFile[]) => {
-        setFilteredFileMatches(matches);
-    }, []);
+    const filteredFileMatches = useFilteredMatches(fileMatches);
 
     return (
         <ResizablePanelGroup
@@ -234,7 +231,6 @@ const PanelGroup = ({
             >
                 <FilterPanel
                     matches={fileMatches}
-                    onFilterChanged={onFilterChanged}
                     repoInfo={repoInfo}
                 />
             </ResizablePanel>

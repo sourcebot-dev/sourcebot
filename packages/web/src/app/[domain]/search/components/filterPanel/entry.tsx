@@ -8,6 +8,8 @@ export type Entry = {
     displayName: string;
     count: number;
     isSelected: boolean;
+    isHidden: boolean;
+    isDisabled: boolean;
     Icon?: React.ReactNode;
 }
 
@@ -22,6 +24,7 @@ export const Entry = ({
         displayName,
         count,
         Icon,
+        isDisabled,
     },
     onClicked,
 }: EntryProps) => {
@@ -36,6 +39,7 @@ export const Entry = ({
                 {
                     "hover:bg-gray-200 dark:hover:bg-gray-700": !isSelected,
                     "bg-blue-200 dark:bg-blue-400": isSelected,
+                    "opacity-50": isDisabled,
                 }
             )}
             onClick={() => onClicked()}
