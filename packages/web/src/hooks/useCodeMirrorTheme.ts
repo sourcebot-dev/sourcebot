@@ -1,78 +1,154 @@
 'use client';
 
-import { useTailwind } from "./useTailwind";
 import { useMemo } from "react";
 import { useThemeNormalized } from "./useThemeNormalized";
-import createTheme from "@uiw/codemirror-themes";
-import { defaultLightThemeOption } from "@uiw/react-codemirror";
-import { tags as t } from '@lezer/highlight';
+import {
+    useCodeMirrorHighlighter,
+} from "./useCodeMirrorHighlighter";
+import { EditorView } from "@codemirror/view";
 import { syntaxHighlighting } from "@codemirror/language";
-import { defaultHighlightStyle } from "@codemirror/language";
-
-// From: https://github.com/codemirror/theme-one-dark/blob/main/src/one-dark.ts
-const chalky = "#e5c07b",
-    coral = "#e06c75",
-    cyan = "#56b6c2",
-    invalid = "#ffffff",
-    ivory = "#abb2bf",
-    stone = "#7d8799",
-    malibu = "#61afef",
-    sage = "#98c379",
-    whiskey = "#d19a66",
-    violet = "#c678dd",
-    highlightBackground = "#2c313aaa",
-    background = "#282c34",
-    selection = "#3E4451",
-    cursor = "#528bff";
-
+import type { StyleSpec } from 'style-mod';
+import { Extension } from "@codemirror/state";
+import tailwind from "@/tailwind";
 
 export const useCodeMirrorTheme = () => {
-    const tailwind = useTailwind();
     const { theme } = useThemeNormalized();
-
-    const darkTheme = useMemo(() => {
-        return createTheme({
-            theme: 'dark',
-            settings: {
-                background: tailwind.theme.colors.background,
-                foreground: ivory,
-                caret: cursor,
-                selection: selection,
-                selectionMatch: "#aafe661a", // for matching selections
-                gutterBackground: background,
-                gutterForeground: stone,
-                gutterBorder: 'none',
-                gutterActiveForeground: ivory,
-                lineHighlight: highlightBackground,
-            },
-            styles: [
-                { tag: t.comment, color: stone },
-                { tag: t.keyword, color: violet },
-                { tag: [t.name, t.deleted, t.character, t.propertyName, t.macroName], color: coral },
-                { tag: [t.function(t.variableName), t.labelName], color: malibu },
-                { tag: [t.color, t.constant(t.name), t.standard(t.name)], color: whiskey },
-                { tag: [t.definition(t.name), t.separator], color: ivory },
-                { tag: [t.typeName, t.className, t.number, t.changed, t.annotation, t.modifier, t.self, t.namespace], color: chalky },
-                { tag: [t.operator, t.operatorKeyword, t.url, t.escape, t.regexp, t.link, t.special(t.string)], color: cyan },
-                { tag: [t.meta], color: stone },
-                { tag: t.strong, fontWeight: 'bold' },
-                { tag: t.emphasis, fontStyle: 'italic' },
-                { tag: t.strikethrough, textDecoration: 'line-through' },
-                { tag: t.link, color: stone, textDecoration: 'underline' },
-                { tag: t.heading, fontWeight: 'bold', color: coral },
-                { tag: [t.atom, t.bool, t.special(t.variableName)], color: whiskey },
-                { tag: [t.processingInstruction, t.string, t.inserted], color: sage },
-                { tag: t.invalid, color: invalid }
-            ]
-        });
-    }, [tailwind.theme.colors.background]);
+    const highlightStyle = useCodeMirrorHighlighter();
 
     const cmTheme = useMemo(() => {
-        return theme === 'dark' ? darkTheme : [
-            defaultLightThemeOption,
-            syntaxHighlighting(defaultHighlightStyle),
+        const {
+            background,
+            foreground,
+            caret,
+            selection,
+            selectionMatch,
+            gutterBackground,
+            gutterForeground,
+            gutterBorder,
+            gutterActiveForeground,
+            lineHighlight,
+        } = tailwind.theme.colors.editor;
+
+        return [
+            createThemeExtension({
+                theme: theme === 'dark' ? 'dark' : 'light',
+                settings: {
+                    background,
+                    foreground,
+                    caret,
+                    selection,
+                    selectionMatch,
+                    gutterBackground,
+                    gutterForeground,
+                    gutterBorder,
+                    gutterActiveForeground,
+                    lineHighlight,
+                    fontFamily: tailwind.theme.fontFamily.editor,
+                    fontSize: tailwind.theme.fontSize.editor,
+                }
+            }),
+            syntaxHighlighting(highlightStyle)
         ]
-    }, [theme, darkTheme]);
+    }, [highlightStyle, theme]);
 
     return cmTheme;
+}
+
+
+// @see: https://github.com/uiwjs/react-codemirror/blob/e365f7d1f8a0ec2cd88455b7a248f6338c859cc7/themes/theme/src/index.tsx
+const createThemeExtension = ({ theme, settings = {} }: CreateThemeOptions): Extension => {
+    const themeOptions: Record<string, StyleSpec> = {
+        '.cm-gutters': {},
+    };
+    const baseStyle: StyleSpec = {};
+    if (settings.background) {
+        baseStyle.backgroundColor = settings.background;
+    }
+    if (settings.backgroundImage) {
+        baseStyle.backgroundImage = settings.backgroundImage;
+    }
+    if (settings.foreground) {
+        baseStyle.color = settings.foreground;
+    }
+    if (settings.fontSize) {
+        baseStyle.fontSize = settings.fontSize;
+    }
+    if (settings.background || settings.foreground) {
+        themeOptions['&'] = baseStyle;
+    }
+
+    if (settings.fontFamily) {
+        themeOptions['&.cm-editor .cm-scroller'] = {
+            fontFamily: settings.fontFamily,
+        };
+    }
+    if (settings.gutterBackground) {
+        themeOptions['.cm-gutters'].backgroundColor = settings.gutterBackground;
+    }
+    if (settings.gutterForeground) {
+        themeOptions['.cm-gutters'].color = settings.gutterForeground;
+    }
+    if (settings.gutterBorder) {
+        themeOptions['.cm-gutters'].borderRightColor = settings.gutterBorder;
+    }
+
+    if (settings.caret) {
+        themeOptions['.cm-content'] = {
+            caretColor: settings.caret,
+        };
+        themeOptions['.cm-cursor, .cm-dropCursor'] = {
+            borderLeftColor: settings.caret,
+        };
+    }
+
+    const activeLineGutterStyle: StyleSpec = {};
+    if (settings.gutterActiveForeground) {
+        activeLineGutterStyle.color = settings.gutterActiveForeground;
+    }
+    if (settings.lineHighlight) {
+        themeOptions['.cm-activeLine'] = {
+            backgroundColor: settings.lineHighlight,
+        };
+        activeLineGutterStyle.backgroundColor = settings.lineHighlight;
+    }
+    themeOptions['.cm-activeLineGutter'] = activeLineGutterStyle;
+
+    if (settings.selection) {
+        themeOptions[
+            '&.cm-focused .cm-selectionBackground, & .cm-line::selection, & .cm-selectionLayer .cm-selectionBackground, .cm-content ::selection'
+        ] = {
+            background: settings.selection + ' !important',
+        };
+    }
+    if (settings.selectionMatch) {
+        themeOptions['& .cm-selectionMatch'] = {
+            backgroundColor: settings.selectionMatch,
+        };
+    }
+    const themeExtension = EditorView.theme(themeOptions, {
+        dark: theme === 'dark',
+    });
+
+    return themeExtension;
+};
+
+interface CreateThemeOptions {
+    theme: 'light' | 'dark';
+    settings: Settings;
+}
+
+interface Settings {
+    background?: string;
+    backgroundImage?: string;
+    foreground?: string;
+    caret?: string;
+    selection?: string;
+    selectionMatch?: string;
+    lineHighlight?: string;
+    gutterBackground?: string;
+    gutterForeground?: string;
+    gutterActiveForeground?: string;
+    gutterBorder?: string;
+    fontFamily?: string;
+    fontSize?: StyleSpec['fontSize'];
 }

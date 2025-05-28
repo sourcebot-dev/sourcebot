@@ -1,7 +1,5 @@
 import 'next-auth/jwt';
 import NextAuth, { DefaultSession, User as AuthJsUser } from "next-auth"
-import GitHub from "next-auth/providers/github"
-import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter"
@@ -14,8 +12,13 @@ import { verifyCredentialsRequestSchema } from './lib/schemas';
 import { createTransport } from 'nodemailer';
 import { render } from '@react-email/render';
 import MagicLinkEmail from './emails/magicLinkEmail';
-import { SINGLE_TENANT_ORG_ID } from './lib/constants';
+import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID } from './lib/constants';
 import bcrypt from 'bcryptjs';
+import { createAccountRequest } from './actions';
+import { getSSOProviders, handleJITProvisioning } from '@/ee/sso/sso';
+import { hasEntitlement } from '@/features/entitlements/server';
+import { isServiceError } from './lib/utils';
+import { ServiceErrorException } from './lib/serviceError';
 
 export const runtime = 'nodejs';
 
@@ -36,21 +39,11 @@ declare module 'next-auth/jwt' {
 export const getProviders = () => {
     const providers: Provider[] = [];
 
-    if (env.AUTH_GITHUB_CLIENT_ID && env.AUTH_GITHUB_CLIENT_SECRET) {
-        providers.push(GitHub({
-            clientId: env.AUTH_GITHUB_CLIENT_ID,
-            clientSecret: env.AUTH_GITHUB_CLIENT_SECRET,
-        }));
+    if (hasEntitlement("sso")) {
+        providers.push(...getSSOProviders());
     }
 
-    if (env.AUTH_GOOGLE_CLIENT_ID && env.AUTH_GOOGLE_CLIENT_SECRET) {
-        providers.push(Google({
-            clientId: env.AUTH_GOOGLE_CLIENT_ID,
-            clientSecret: env.AUTH_GOOGLE_CLIENT_SECRET,
-        }));
-    }
-
-    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
         providers.push(EmailProvider({
             server: env.SMTP_CONNECTION_URL,
             from: env.EMAIL_FROM_ADDRESS,
@@ -59,10 +52,9 @@ export const getProviders = () => {
                 const token = String(Math.floor(100000 + Math.random() * 900000));
                 return token;
             },
-            sendVerificationRequest: async ({ identifier, provider, token, request }) => {
-                const origin = request.headers.get('origin')!;
+            sendVerificationRequest: async ({ identifier, provider, token }) => {
                 const transport = createTransport(provider.server);
-                const html = await render(MagicLinkEmail({ baseUrl: origin, token: token }));
+                const html = await render(MagicLinkEmail({ token: token }));
                 const result = await transport.sendMail({
                     to: identifier,
                     from: provider.from,
@@ -140,24 +132,44 @@ export const getProviders = () => {
 }
 
 const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
-    // In single-tenant mode w/ auth, we assign the first user to sign
+    // In single-tenant mode, we assign the first user to sign
     // up as the owner of the default org.
     if (
-        env.SOURCEBOT_TENANCY_MODE === 'single' &&
-        env.SOURCEBOT_AUTH_ENABLED === 'true'
+        env.SOURCEBOT_TENANCY_MODE === 'single'
     ) {
-        await prisma.$transaction(async (tx) => {
-            const defaultOrg = await tx.org.findUnique({
-                where: {
-                    id: SINGLE_TENANT_ORG_ID,
+        const defaultOrg = await prisma.org.findUnique({
+            where: {
+                id: SINGLE_TENANT_ORG_ID,
+            },
+            include: {
+                members: {
+                    where: {
+                        role: {
+                            not: OrgRole.GUEST,
+                        }
+                    }
                 },
-                include: {
-                    members: true,
-                }
-            });
+            }
+        });
 
-            // Only the first user to sign up will be an owner of the default org.
-            if (defaultOrg?.members.length === 0) {
+        if (!defaultOrg) {
+            throw new Error("Default org not found on single tenant user creation");
+        }
+
+        // We can't use the getOrgMembers action here because we're not authed yet
+        const members = await prisma.userToOrg.findMany({
+            where: {
+                orgId: SINGLE_TENANT_ORG_ID,
+                role: {
+                    not: OrgRole.GUEST,
+                }
+            },
+        });
+
+        // Only the first user to sign up will be an owner of the default org.
+        const isFirstUser = members.length === 0;
+        if (isFirstUser) {
+            await prisma.$transaction(async (tx) => {
                 await tx.org.update({
                     where: {
                         id: SINGLE_TENANT_ORG_ID,
@@ -175,8 +187,32 @@ const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                         }
                     }
                 });
+
+                await tx.user.update({
+                    where: {
+                        id: user.id,
+                    },
+                    data: {
+                        pendingApproval: false,
+                    }
+                });
+            });
+        } else {
+            // TODO(auth): handle multi tenant case
+            if (env.AUTH_EE_ENABLE_JIT_PROVISIONING === 'true' && hasEntitlement("sso")) {
+                const res = await handleJITProvisioning(user.id!, SINGLE_TENANT_ORG_DOMAIN);
+                if (isServiceError(res)) {
+                    console.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
+                    throw new ServiceErrorException(res);
+                }
+            } else {
+                const res = await createAccountRequest(user.id!, SINGLE_TENANT_ORG_DOMAIN);
+                if (isServiceError(res)) {
+                    console.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
+                    throw new ServiceErrorException(res);
+                }
             }
-        });
+        }
     }
 }
 

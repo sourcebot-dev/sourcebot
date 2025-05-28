@@ -1,12 +1,13 @@
+import { OrgRole } from "@sourcebot/db";
 import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
 import { ListRepositoriesResponse } from "./types";
 import { zoektFetch } from "./zoektClient";
 import { zoektListRepositoriesResponseSchema } from "./zoektSchema";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 
-export const listRepositories = async (domain: string): Promise<ListRepositoriesResponse | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+export const listRepositories = async (domain: string, apiKey: string | undefined = undefined): Promise<ListRepositoriesResponse | ServiceError> => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const body = JSON.stringify({
                 opts: {
                     Field: 0,
@@ -15,7 +16,7 @@ export const listRepositories = async (domain: string): Promise<ListRepositories
 
             let header: Record<string, string> = {};
             header = {
-                "X-Tenant-ID": orgId.toString()
+                "X-Tenant-ID": org.id.toString()
             };
 
             const listResponse = await zoektFetch({
@@ -42,5 +43,5 @@ export const listRepositories = async (domain: string): Promise<ListRepositories
             } satisfies ListRepositoriesResponse));
 
             return parser.parse(listBody);
-        }), /* allowSingleTenantUnauthedAccess = */ true)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 );

@@ -5,6 +5,7 @@ import { getConnections, getOrgMembership } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { notFound, ServiceErrorException } from "@/lib/serviceError";
 import { OrgRole } from "@sourcebot/db";
+import { env } from "@/env.mjs";
 
 export default async function ConnectionsPage({ params: { domain } }: { params: { domain: string } }) {
     const connections = await getConnections(domain);
@@ -30,6 +31,7 @@ export default async function ConnectionsPage({ params: { domain } }: { params: 
                 <NewConnectionCard
                     className="md:w-1/4"
                     role={membership.role}
+                    configPathProvided={env.CONFIG_PATH !== undefined}
                 />
             </div>
         </div>

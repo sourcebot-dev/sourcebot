@@ -18,12 +18,10 @@ import { SymbolIcon } from "@radix-ui/react-icons";
 import { RepositoryQuery } from "@/lib/types";
 
 interface RepositorySnapshotProps {
-    authEnabled: boolean;
     repos: RepositoryQuery[];
 }
 
 export function RepositorySnapshot({
-    authEnabled,
     repos: initialRepos,
 }: RepositorySnapshotProps) {
     const domain = useDomain();
@@ -59,14 +57,14 @@ export function RepositorySnapshot({
                 </div>
             )
 
-        // ... otherwise, show the empty state.
+            // ... otherwise, show the empty state.
         } else {
             return (
-                <EmptyRepoState domain={domain} authEnabled={authEnabled} />
+                <EmptyRepoState />
             )
         }
     }
- 
+
     return (
         <div className="flex flex-col items-center gap-3">
             <span className="text-sm">
@@ -83,7 +81,7 @@ export function RepositorySnapshot({
     )
 }
 
-function EmptyRepoState({ domain, authEnabled }: { domain: string, authEnabled: boolean }) {
+function EmptyRepoState() {
     return (
         <div className="flex flex-col items-center gap-3">
             <span className="text-sm">No repositories found</span>
@@ -91,23 +89,13 @@ function EmptyRepoState({ domain, authEnabled }: { domain: string, authEnabled: 
             <div className="w-full max-w-lg">
                 <div className="flex flex-row items-center gap-2 border rounded-md p-4 justify-center">
                     <span className="text-sm text-muted-foreground">
-                        {authEnabled ? (
-                            <>
-                                Create a{" "}
-                                <Link href={`/${domain}/connections`} className="text-blue-500 hover:underline inline-flex items-center gap-1">
-                                    connection
-                                </Link>{" "}
-                                to start indexing repositories
-                            </>
-                        ) : (
-                            <>
-                                Create a {" "}
-                                <Link href={`https://docs.sourcebot.dev/self-hosting`} className="text-blue-500 hover:underline inline-flex items-center gap-1" target="_blank">
-                                    configuration file
-                                </Link>{" "}
-                                to start indexing repositories
-                            </>
-                        )}
+                        <>
+                            Create a{" "}
+                            <Link href={`https://docs.sourcebot.dev/docs/connections/overview`} className="text-blue-500 hover:underline inline-flex items-center gap-1">
+                                connection
+                            </Link>{" "}
+                            to start indexing repositories
+                        </>
                     </span>
                 </div>
             </div>

@@ -6,39 +6,49 @@ import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Entry } from "./entry";
 import { Filter } from "./filter";
+import { LANGUAGES_QUERY_PARAM, REPOS_QUERY_PARAM, useFilteredMatches } from "./useFilterMatches";
+import { useGetSelectedFromQuery } from "./useGetSelectedFromQuery";
 
 interface FilePanelProps {
     matches: SearchResultFile[];
-    onFilterChanged: (filteredMatches: SearchResultFile[]) => void,
     repoInfo: Record<number, RepositoryInfo>;
 }
 
-const LANGUAGES_QUERY_PARAM = "langs";
-const REPOS_QUERY_PARAM = "repos";
-
+/**
+ * FilterPanel Component
+ * 
+ * A bidirectional filtering component that allows users to filter search results by repository and language.
+ * The filtering is bidirectional, meaning:
+ * 1. When repositories are selected, the language filter will only show languages that exist in those repositories
+ * 2. When languages are selected, the repository filter will only show repositories that contain those languages
+ * 
+ * This prevents users from selecting filter combinations that would yield no results. For example:
+ * - If Repository A only contains Python and JavaScript files, selecting it will only enable these languages
+ * - If Language Python is selected, only repositories containing Python files will be enabled
+ * 
+ * @param matches - Array of search result files to filter
+ * @param repoInfo - Information about repositories including their display names and icons
+ */
 export const FilterPanel = ({
     matches,
-    onFilterChanged,
     repoInfo,
 }: FilePanelProps) => {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // Helper to parse query params into sets
-    const getSelectedFromQuery = useCallback((param: string) => {
-        const value = searchParams.get(param);
-        return value ? new Set(value.split(',')) : new Set();
-    }, [searchParams]);
+    const { getSelectedFromQuery } = useGetSelectedFromQuery();
+    const matchesFilteredByRepository = useFilteredMatches(matches, 'repository');
+    const matchesFilteredByLanguage = useFilteredMatches(matches, 'language');
 
     const repos = useMemo(() => {
         const selectedRepos = getSelectedFromQuery(REPOS_QUERY_PARAM);
         return aggregateMatches(
             "repository",
             matches,
-            ({ key, match }) => {
+            /* createEntry = */ ({ key: repository, match }) => {
                 const repo: RepositoryInfo | undefined = repoInfo[match.repositoryId];
 
                 const info = repo ? getCodeHostInfoForRepo({
@@ -58,63 +68,72 @@ export const FilterPanel = ({
                     <LaptopIcon className="w-4 h-4 flex-shrink-0" />
                 );
 
+                const isSelected = selectedRepos.has(repository);
+
+                // If the matches filtered by language don't contain this repository, then this entry is disabled
+                const isDisabled = !matchesFilteredByLanguage.some((match) => match.repository === repository);
+                const isHidden = isDisabled && !isSelected;
+
                 return {
-                    key,
-                    displayName: info?.displayName ?? key,
+                    key: repository,
+                    displayName: info?.displayName ?? repository,
                     count: 0,
-                    isSelected: selectedRepos.has(key),
+                    isSelected,
+                    isDisabled,
+                    isHidden,
                     Icon,
                 };
+            },
+            /* shouldCount = */ ({ match }) => {
+                return matchesFilteredByLanguage.some((value) => value.language === match.language)
             }
         )
-    }, [getSelectedFromQuery, matches, repoInfo]);
+    }, [getSelectedFromQuery, matches, repoInfo, matchesFilteredByLanguage]);
 
     const languages = useMemo(() => {
         const selectedLanguages = getSelectedFromQuery(LANGUAGES_QUERY_PARAM);
         return aggregateMatches(
             "language",
             matches,
-            ({ key }) => {
+            /* createEntry = */ ({ key: language }) => {
                 const Icon = (
-                    <FileIcon language={key} />
+                    <FileIcon language={language} />
                 )
 
+                const isSelected = selectedLanguages.has(language);
+
+                // If the matches filtered by repository don't contain this language, then this entry is disabled
+                const isDisabled = !matchesFilteredByRepository.some((match) => match.language === language);
+                const isHidden = isDisabled && !isSelected;
+
                 return {
-                    key,
-                    displayName: key,
+                    key: language,
+                    displayName: language,
                     count: 0,
-                    isSelected: selectedLanguages.has(key),
+                    isSelected,
+                    isDisabled,
+                    isHidden,
                     Icon: Icon,
                 } satisfies Entry;
+            },
+            /* shouldCount = */ ({ match }) => {
+                return matchesFilteredByRepository.some((value) => value.repository === match.repository)
             }
         );
-    }, [getSelectedFromQuery, matches]);
+    }, [getSelectedFromQuery, matches, matchesFilteredByRepository]);
 
-    // Calls `onFilterChanged` with the filtered list of matches
-    // whenever the filter state changes.
-    useEffect(() => {
-        const selectedRepos = new Set(Object.keys(repos).filter((key) => repos[key].isSelected));
-        const selectedLanguages = new Set(Object.keys(languages).filter((key) => languages[key].isSelected));
+    const visibleRepos = useMemo(() => Object.values(repos).filter((entry) => !entry.isHidden), [repos]);
+    const visibleLanguages = useMemo(() => Object.values(languages).filter((entry) => !entry.isHidden), [languages]);
 
-        const filteredMatches = matches.filter((match) =>
-        (
-            (selectedRepos.size === 0 ? true : selectedRepos.has(match.repository)) &&
-            (selectedLanguages.size === 0 ? true : selectedLanguages.has(match.language))
-        )
-        );
-        onFilterChanged(filteredMatches);
-
-    }, [matches, repos, languages, onFilterChanged, searchParams, router]);
-
-    const numRepos = useMemo(() => Object.keys(repos).length > 100 ? '100+' : Object.keys(repos).length, [repos]);
-    const numLanguages = useMemo(() => Object.keys(languages).length > 100 ? '100+' : Object.keys(languages).length, [languages]);
+    const numRepos = useMemo(() => visibleRepos.length > 100 ? '100+' : visibleRepos.length, [visibleRepos]);
+    const numLanguages = useMemo(() => visibleLanguages.length > 100 ? '100+' : visibleLanguages.length, [visibleLanguages]);
 
     return (
         <div className="p-3 flex flex-col gap-3 h-full">
             <Filter
                 title="Filter By Repository"
                 searchPlaceholder={`Filter ${numRepos} repositories`}
-                entries={Object.values(repos)}
+                entries={visibleRepos}
                 onEntryClicked={(key) => {
                     const newRepos = { ...repos };
                     newRepos[key].isSelected = !newRepos[key].isSelected;
@@ -136,7 +155,7 @@ export const FilterPanel = ({
             <Filter
                 title="Filter By Language"
                 searchPlaceholder={`Filter ${numLanguages} languages`}
-                entries={Object.values(languages)}
+                entries={visibleLanguages}
                 onEntryClicked={(key) => {
                     const newLanguages = { ...languages };
                     newLanguages[key].isSelected = !newLanguages[key].isSelected;
@@ -175,7 +194,8 @@ export const FilterPanel = ({
 const aggregateMatches = (
     propName: 'repository' | 'language',
     matches: SearchResultFile[],
-    createEntry: (props: { key: string, match: SearchResultFile }) => Entry
+    createEntry: (props: { key: string, match: SearchResultFile }) => Entry,
+    shouldCount: (props: { key: string, match: SearchResultFile }) => boolean,
 ) => {
     return matches
         .map((match) => ({ key: match[propName], match }))
@@ -184,7 +204,11 @@ const aggregateMatches = (
             if (!aggregation[key]) {
                 aggregation[key] = createEntry({ key, match });
             }
-            aggregation[key].count += 1;
+
+            if (!aggregation[key].isDisabled && shouldCount({ key, match })) {
+                aggregation[key].count += 1;
+            }
+
             return aggregation;
         }, {} as Record<string, Entry>)
 }

@@ -20,12 +20,29 @@ export const env = createEnv({
         
         // Auth
         AUTH_SECRET: z.string(),
-        AUTH_GITHUB_CLIENT_ID: z.string().optional(),
-        AUTH_GITHUB_CLIENT_SECRET: z.string().optional(),
-        AUTH_GOOGLE_CLIENT_ID: z.string().optional(),
-        AUTH_GOOGLE_CLIENT_SECRET: z.string().optional(),
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
+        AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.default('false'),
+
+        // Enterprise Auth
+        AUTH_EE_ENABLE_JIT_PROVISIONING: booleanSchema.default('false'),
+        AUTH_EE_GITHUB_CLIENT_ID: z.string().optional(),
+        AUTH_EE_GITHUB_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
+        AUTH_EE_GITLAB_CLIENT_ID: z.string().optional(),
+        AUTH_EE_GITLAB_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_GITLAB_BASE_URL: z.string().default("https://gitlab.com"),
+        AUTH_EE_GOOGLE_CLIENT_ID: z.string().optional(),
+        AUTH_EE_GOOGLE_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_OKTA_CLIENT_ID: z.string().optional(),
+        AUTH_EE_OKTA_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_OKTA_ISSUER: z.string().optional(),
+        AUTH_EE_KEYCLOAK_CLIENT_ID: z.string().optional(),
+        AUTH_EE_KEYCLOAK_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_KEYCLOAK_ISSUER: z.string().optional(),
+        AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID: z.string().optional(),
+        AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER: z.string().optional(),
 
         DATA_CACHE_DIR: z.string(),
 
@@ -46,7 +63,6 @@ export const env = createEnv({
         DATABASE_URL: z.string().url(),
 
         SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
-        SOURCEBOT_AUTH_ENABLED: booleanSchema.default('false'),
         CONFIG_PATH: z.string().optional(),
 
         // Misc UI flags
@@ -60,6 +76,7 @@ export const env = createEnv({
         GITHUB_APP_WEBHOOK_SECRET: z.string().optional(),
         GITHUB_APP_PRIVATE_KEY_PATH: z.string().optional(),
         OPENAI_API_KEY: z.string().optional(),
+        REVIEW_AGENT_API_KEY: z.string().optional(),
         REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
         REVIEW_AGENT_AUTO_REVIEW_ENABLED: booleanSchema.default('false'),
         REVIEW_AGENT_REVIEW_COMMAND: z.string().default('review'),

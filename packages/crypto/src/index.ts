@@ -24,6 +24,28 @@ export function encrypt(text: string): { iv: string; encryptedData: string } {
     return { iv: iv.toString('hex'), encryptedData: encrypted };
 }
 
+export function hashSecret(text: string): string {
+    if (!SOURCEBOT_ENCRYPTION_KEY) {
+        throw new Error('Encryption key is not set');
+    }
+
+    return crypto.createHmac('sha256', SOURCEBOT_ENCRYPTION_KEY).update(text).digest('hex');
+}
+
+export function generateApiKey(): { key: string; hash: string } {
+    if (!SOURCEBOT_ENCRYPTION_KEY) {
+        throw new Error('Encryption key is not set');
+    }
+
+    const secret = crypto.randomBytes(32).toString('hex');
+    const hash = hashSecret(secret);
+
+    return {
+        key: `sourcebot-${secret}`,
+        hash,
+    };
+}
+
 export function decrypt(iv: string, encryptedText: string): string {
     if (!SOURCEBOT_ENCRYPTION_KEY) {
         throw new Error('Encryption key is not set');

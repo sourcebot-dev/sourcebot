@@ -1,7 +1,6 @@
 'use client';
 
 import { useClickListener } from "@/hooks/useClickListener";
-import { useTailwind } from "@/hooks/useTailwind";
 import { SearchQueryParams } from "@/lib/types";
 import { cn, createPathWithQueryParams } from "@/lib/utils";
 import {
@@ -43,7 +42,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Toggle } from "@/components/ui/toggle";
 import { useDomain } from "@/hooks/useDomain";
-import { KeyboardShortcutHint } from "../keyboardShortcutHint";
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import tailwind from "@/tailwind";
 
 interface SearchBarProps {
     className?: string;
@@ -95,7 +95,6 @@ export const SearchBar = ({
 }: SearchBarProps) => {
     const router = useRouter();
     const domain = useDomain();
-    const tailwind = useTailwind();
     const suggestionBoxRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     const [cursorPosition, setCursorPosition] = useState(0);
@@ -161,7 +160,7 @@ export const SearchBar = ({
                 },
             ],
         });
-    }, [tailwind]);
+    }, []);
 
     const extensions = useMemo(() => {
         return [
@@ -267,7 +266,18 @@ export const SearchBar = ({
                 indentWithTab={false}
                 autoFocus={autoFocus ?? false}
             />
-            <KeyboardShortcutHint shortcut="/" />
+            <Tooltip
+                delayDuration={100}
+            >
+                <TooltipTrigger asChild>
+                    <div>
+                        <KeyboardShortcutHint shortcut="/" />
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
+                    Focus search bar
+                </TooltipContent>
+            </Tooltip>
             <SearchSuggestionsBox
                 ref={suggestionBoxRef}
                 query={query}

@@ -6,6 +6,7 @@ import { ChangeOrgDomainCard } from "./components/changeOrgDomainCard";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { ErrorCode } from "@/lib/errorCodes";
 import { headers } from "next/headers";
+
 interface GeneralSettingsPageProps {
     params: {
         domain: string;

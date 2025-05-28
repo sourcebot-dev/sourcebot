@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SearchResultChunk } from "@/features/search/types";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
-import { useSyntaxHighlightingExtension } from "@/hooks/useSyntaxHighlightingExtension";
+import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
 import { gutterWidthExtension } from "@/lib/extensions/gutterWidthExtension";
 import { highlightRanges, searchResultHighlightExtension } from "@/lib/extensions/searchResultHighlightExtension";
 import { search } from "@codemirror/search";
@@ -14,9 +14,14 @@ import { EditorView } from "@codemirror/view";
 import { Cross1Icon, FileIcon } from "@radix-ui/react-icons";
 import { Scrollbar } from "@radix-ui/react-scroll-area";
 import CodeMirror, { ReactCodeMirrorRef, SelectionRange } from '@uiw/react-codemirror';
-import clsx from "clsx";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
+import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { SymbolHoverPopup } from "@/ee/features/codeNav/components/symbolHoverPopup";
+import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
+import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
+import { SymbolDefinition } from "@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 export interface CodePreviewFile {
     content: string;
@@ -28,10 +33,10 @@ export interface CodePreviewFile {
 }
 
 interface CodePreviewProps {
-    file?: CodePreviewFile;
-    repoName?: string;
+    file: CodePreviewFile;
+    repoName: string;
     selectedMatchIndex: number;
-    onSelectedMatchIndexChange: (index: number) => void;
+    onSelectedMatchIndexChange: Dispatch<SetStateAction<number>>;
     onClose: () => void;
 }
 
@@ -43,19 +48,23 @@ export const CodePreview = ({
     onClose,
 }: CodePreviewProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
+    const { navigateToPath } = useBrowseNavigation();
+    const hasCodeNavEntitlement = useHasEntitlement("code-nav");
 
     const [gutterWidth, setGutterWidth] = useState(0);
     const theme = useCodeMirrorTheme();
 
     const keymapExtension = useKeymapExtension(editorRef?.view);
-    const syntaxHighlighting = useSyntaxHighlightingExtension(file?.language ?? '', editorRef?.view);
+    const languageExtension = useCodeMirrorLanguageExtension(file?.language ?? '', editorRef?.view);
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
+
+    const captureEvent = useCaptureEvent();
 
     const extensions = useMemo(() => {
         return [
             keymapExtension,
             gutterWidthExtension,
-            syntaxHighlighting,
+            languageExtension,
             EditorView.lineWrapping,
             searchResultHighlightExtension(),
             search({
@@ -74,12 +83,13 @@ export const CodePreview = ({
                 if (update.selectionSet || update.docChanged) {
                     setCurrentSelection(update.state.selection.main);
                 }
-            })
+            }),
+            hasCodeNavEntitlement ? symbolHoverTargetsExtension : [],
         ];
-    }, [keymapExtension, syntaxHighlighting]);
+    }, [hasCodeNavEntitlement, keymapExtension, languageExtension]);
 
     const ranges = useMemo(() => {
-        if (!file || !file.matches.length) {
+        if (!file.matches.length) {
             return [];
         }
 
@@ -89,7 +99,7 @@ export const CodePreview = ({
     }, [file]);
 
     useEffect(() => {
-        if (!file || !editorRef?.view) {
+        if (!editorRef?.view) {
             return;
         }
 
@@ -97,12 +107,71 @@ export const CodePreview = ({
     }, [ranges, selectedMatchIndex, file, editorRef]);
 
     const onUpClicked = useCallback(() => {
-        onSelectedMatchIndexChange(selectedMatchIndex - 1);
-    }, [onSelectedMatchIndexChange, selectedMatchIndex]);
+        onSelectedMatchIndexChange((prev) => prev - 1);
+    }, [onSelectedMatchIndexChange]);
 
     const onDownClicked = useCallback(() => {
-        onSelectedMatchIndexChange(selectedMatchIndex + 1);
-    }, [onSelectedMatchIndexChange, selectedMatchIndex]);
+        onSelectedMatchIndexChange((prev) => prev + 1);
+    }, [onSelectedMatchIndexChange]);
+
+    const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
+        captureEvent('wa_preview_panel_goto_definition_pressed', {});
+
+        if (symbolDefinitions.length === 0) {
+            return;
+        }
+
+        if (symbolDefinitions.length === 1) {
+            const symbolDefinition = symbolDefinitions[0];
+            const { fileName, repoName } = symbolDefinition;
+
+            navigateToPath({
+                repoName,
+                revisionName: file.revision,
+                path: fileName,
+                pathType: 'blob',
+                highlightRange: symbolDefinition.range,
+            })
+        } else {
+            navigateToPath({
+                repoName,
+                revisionName: file.revision,
+                path: file.filepath,
+                pathType: 'blob',
+                setBrowseState: {
+                    selectedSymbolInfo: {
+                        symbolName,
+                        repoName,
+                        revisionName: file.revision,
+                        language: file.language,
+                    },
+                    activeExploreMenuTab: "definitions",
+                    isBottomPanelCollapsed: false,
+                }
+            });
+        }
+    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName]);
+    
+    const onFindReferences = useCallback((symbolName: string) => {
+        captureEvent('wa_preview_panel_find_references_pressed', {});
+
+        navigateToPath({
+            repoName,
+            revisionName: file.revision,
+            path: file.filepath,
+            pathType: 'blob',
+            setBrowseState: {
+                selectedSymbolInfo: {
+                    repoName,
+                    symbolName,
+                    revisionName: file.revision,
+                    language: file.language,
+                },
+                activeExploreMenuTab: "references",
+                isBottomPanelCollapsed: false,
+            }
+        })
+    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName]);
 
     return (
         <div className="flex flex-col h-full">
@@ -121,23 +190,24 @@ export const CodePreview = ({
                 {/* File path */}
                 <div className="flex-1 overflow-hidden">
                     <span
-                        className={clsx("block truncate-start text-sm font-mono", {
-                            "cursor-pointer text-blue-500 hover:underline": file?.link
-                        })}
+                        className="block truncate-start text-sm font-mono cursor-pointer hover:underline"
                         onClick={() => {
-                            if (file?.link) {
-                                window.open(file.link, "_blank");
-                            }
+                            navigateToPath({
+                                repoName,
+                                path: file.filepath,
+                                pathType: 'blob',
+                                revisionName: file.revision,
+                            });
                         }}
-                        title={file?.filepath}
+                        title={file.filepath}
                     >
-                        {file?.filepath}
+                        {file.filepath}
                     </span>
                 </div>
 
                 <div className="flex flex-row gap-1 items-center pl-2">
                     {/* Match selector */}
-                    {file && file.matches.length > 0 && (
+                    {file.matches.length > 0 && (
                         <>
                             <p className="text-sm">{`${selectedMatchIndex + 1} of ${ranges.length}`}</p>
                             <Button
@@ -154,7 +224,7 @@ export const CodePreview = ({
                                 size="icon"
                                 className="h-6 w-6"
                                 onClick={onDownClicked}
-                                disabled={file ? selectedMatchIndex === ranges.length - 1 : true}
+                                disabled={selectedMatchIndex === ranges.length - 1}
                             >
                                 <ArrowDown className="h-4 w-4" />
                             </Button>
@@ -196,6 +266,16 @@ export const CodePreview = ({
                             />
                         )
                     }
+
+                    {editorRef && hasCodeNavEntitlement && (
+                        <SymbolHoverPopup
+                            editorRef={editorRef}
+                            language={file.language}
+                            revisionName={file.revision}
+                            onFindReferences={onFindReferences}
+                            onGotoDefinition={onGotoDefinition}
+                        />
+                    )}
                 </CodeMirror>
                 <Scrollbar orientation="vertical" />
                 <Scrollbar orientation="horizontal" />

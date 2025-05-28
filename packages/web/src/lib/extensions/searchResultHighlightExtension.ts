@@ -1,13 +1,13 @@
 import { EditorSelection, Extension, StateEffect, StateField, Text, Transaction } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
-import { SearchResultRange } from "@/features/search/types";
+import { SourceRange } from "@/features/search/types";
 
 const setMatchState = StateEffect.define<{
     selectedMatchIndex: number,
-    ranges: SearchResultRange[],
+    ranges: SourceRange[],
 }>();
 
-const convertToCodeMirrorRange = (range: SearchResultRange, document: Text) => {
+const convertToCodeMirrorRange = (range: SourceRange, document: Text) => {
     const { start, end } = range;
     const from = document.line(start.lineNumber).from + start.column - 1;
     const to = document.line(end.lineNumber).from + end.column - 1;
@@ -46,13 +46,13 @@ const matchHighlighter = StateField.define<DecorationSet>({
 });
 
 const matchMark = Decoration.mark({
-    class: "cm-searchMatch"
+    class: "searchMatch"
 });
 const selectedMatchMark = Decoration.mark({
-    class: "cm-searchMatch-selected"
+    class: "searchMatch-selected"
 });
 
-export const highlightRanges = (selectedMatchIndex: number, ranges: SearchResultRange[], view: EditorView) => {
+export const highlightRanges = (selectedMatchIndex: number, ranges: SourceRange[], view: EditorView) => {
     const setState = setMatchState.of({
         selectedMatchIndex,
         ranges,

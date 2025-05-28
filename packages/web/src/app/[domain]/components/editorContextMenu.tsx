@@ -9,6 +9,7 @@ import { Link2Icon } from "@radix-ui/react-icons";
 import { EditorView, SelectionRange } from "@uiw/react-codemirror";
 import { useCallback, useEffect, useRef } from "react";
 import { useDomain } from "@/hooks/useDomain";
+import { HIGHLIGHT_RANGE_QUERY_PARAM } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 
 interface ContextMenuProps {
     view: EditorView;
@@ -107,7 +108,7 @@ export const EditorContextMenu = ({
 
         const basePath = `${window.location.origin}/${domain}/browse`;
         const url = createPathWithQueryParams(`${basePath}/${repoName}@${revisionName}/-/blob/${path}`,
-            ['highlightRange', `${from?.line}:${from?.column},${to?.line}:${to?.column}`],
+            [HIGHLIGHT_RANGE_QUERY_PARAM, `${from?.line}:${from?.column},${to?.line}:${to?.column}`],
         );
 
         navigator.clipboard.writeText(url);

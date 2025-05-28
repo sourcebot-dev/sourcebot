@@ -9,7 +9,6 @@ import { Footer } from "@/app/components/footer";
 import { SourcebotLogo } from "../components/sourcebotLogo";
 import { RepositorySnapshot } from "./components/repositorySnapshot";
 import { SyntaxReferenceGuideHint } from "./components/syntaxReferenceGuideHint";
-import { env } from '@/env.mjs';
 import { getRepos } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 
@@ -39,7 +38,6 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                 />
                 <div className="mt-8">
                     <RepositorySnapshot
-                        authEnabled={env.SOURCEBOT_AUTH_ENABLED === 'true'}
                         repos={isServiceError(repos) ? [] : repos}
                     />
                 </div>

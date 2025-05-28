@@ -88,11 +88,11 @@ export const notAuthenticated = (): ServiceError => {
     }
 }
 
-export const notFound = (): ServiceError => {
+export const notFound = (message?: string): ServiceError => {
     return {
         statusCode: StatusCodes.NOT_FOUND,
         errorCode: ErrorCode.NOT_FOUND,
-        message: "Not found",
+        message: message ?? "Not found",
     }
 }
 

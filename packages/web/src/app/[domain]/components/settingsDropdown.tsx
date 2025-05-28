@@ -3,6 +3,7 @@
 import {
     CodeIcon,
     Laptop,
+    LogIn,
     LogOut,
     Moon,
     Settings,
@@ -37,12 +38,10 @@ import { useDomain } from "@/hooks/useDomain";
 
 interface SettingsDropdownProps {
     menuButtonClassName?: string;
-    displaySettingsOption: boolean;
 }
 
 export const SettingsDropdown = ({
     menuButtonClassName,
-    displaySettingsOption,
 }: SettingsDropdownProps) => {
 
     const { theme: _theme, setTheme } = useTheme();
@@ -82,7 +81,7 @@ export const SettingsDropdown = ({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-64">
-                {session?.user && (
+                {session?.user ? (
                     <DropdownMenuGroup>
                         <div className="flex flex-row items-center gap-1 p-2">
                             <Avatar>
@@ -107,9 +106,18 @@ export const SettingsDropdown = ({
                             <LogOut className="mr-2 h-4 w-4" />
                             <span>Log out</span>
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
                     </DropdownMenuGroup>
+                ) : (
+                    <DropdownMenuItem
+                        onClick={() => {
+                            window.location.href = "/login";
+                        }}
+                    >
+                        <LogIn className="mr-2 h-4 w-4" />
+                        <span>Sign in</span>
+                    </DropdownMenuItem>
                 )}
+                <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                     <DropdownMenuSub>
                         <DropdownMenuSubTrigger>
@@ -150,7 +158,7 @@ export const SettingsDropdown = ({
                             </DropdownMenuSubContent>
                         </DropdownMenuPortal>
                     </DropdownMenuSub>
-                    {displaySettingsOption && (
+                    {session?.user && (
                         <DropdownMenuItem asChild>
                             <a href={`/${domain}/settings`}>
                                 <Settings className="h-4 w-4 mr-2" />

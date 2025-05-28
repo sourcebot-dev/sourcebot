@@ -62,6 +62,11 @@ const schema = {
           "type": "number",
           "description": "The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.",
           "minimum": 1
+        },
+        "enablePublicAccess": {
+          "type": "boolean",
+          "description": "[Sourcebot EE] When enabled, allows unauthenticated users to access Sourcebot. Requires an enterprise license with an unlimited number of seats.",
+          "default": false
         }
       },
       "additionalProperties": false
@@ -171,6 +176,11 @@ const schema = {
           "type": "number",
           "description": "The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.",
           "minimum": 1
+        },
+        "enablePublicAccess": {
+          "type": "boolean",
+          "description": "[Sourcebot EE] When enabled, allows unauthenticated users to access Sourcebot. Requires an enterprise license with an unlimited number of seats.",
+          "default": false
         }
       },
       "additionalProperties": false

@@ -3,16 +3,17 @@
 import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { Separator } from "@/components/ui/separator";
 import { DoubleArrowDownIcon, DoubleArrowUpIcon } from "@radix-ui/react-icons";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { FileMatch } from "./fileMatch";
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
+import { Button } from "@/components/ui/button";
+import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 
 export const MAX_MATCHES_TO_PREVIEW = 3;
 
 interface FileMatchContainerProps {
     file: SearchResultFile;
-    onOpenFile: () => void;
-    onMatchIndexChanged: (matchIndex: number) => void;
+    onOpenFilePreview: (matchIndex?: number) => void;
     showAllMatches: boolean;
     onShowAllMatchesButtonClicked: () => void;
     isBranchFilteringEnabled: boolean;
@@ -22,18 +23,17 @@ interface FileMatchContainerProps {
 
 export const FileMatchContainer = ({
     file,
-    onOpenFile,
-    onMatchIndexChanged,
+    onOpenFilePreview,
     showAllMatches,
     onShowAllMatchesButtonClicked,
     isBranchFilteringEnabled,
     repoInfo,
     yOffset,
 }: FileMatchContainerProps) => {
-
     const matchCount = useMemo(() => {
         return file.chunks.length;
     }, [file]);
+    const { navigateToPath } = useBrowseNavigation();
 
     const matches = useMemo(() => {
         const sortedMatches = file.chunks.sort((a, b) => {
@@ -63,14 +63,6 @@ export const FileMatchContainer = ({
         return matchCount > MAX_MATCHES_TO_PREVIEW;
     }, [matchCount]);
 
-    const onOpenMatch = useCallback((index: number) => {
-        const matchIndex = matches.slice(0, index).reduce((acc, match) => {
-            return acc + match.matchRanges.length;
-        }, 0);
-        onOpenFile();
-        onMatchIndexChanged(matchIndex);
-    }, [matches, onMatchIndexChanged, onOpenFile]);
-
     const branches = useMemo(() => {
         if (!file.branches) {
             return [];
@@ -91,17 +83,13 @@ export const FileMatchContainer = ({
         return repoInfo[file.repositoryId];
     }, [repoInfo, file.repositoryId]);
 
-
     return (
         <div>
             {/* Title */}
             <div
-                className="bg-accent primary-foreground px-2 py-0.5 flex flex-row items-center justify-between cursor-pointer sticky top-0 z-10"
+                className="bg-accent primary-foreground px-2 py-0.5 flex flex-row items-center justify-between sticky top-0 z-10"
                 style={{
                     top: `-${yOffset}px`,
-                }}
-                onClick={() => {
-                    onOpenFile();
                 }}
             >
                 <FileHeader
@@ -116,6 +104,15 @@ export const FileMatchContainer = ({
                     branchDisplayName={branchDisplayName}
                     branchDisplayTitle={branches.join(", ")}
                 />
+                    <Button
+                        variant="link"
+                        className="text-blue-500 h-5"
+                        onClick={() => {
+                            onOpenFilePreview();
+                        }}
+                    >
+                        Preview
+                    </Button>
             </div>
 
             {/* Matches */}
@@ -126,8 +123,28 @@ export const FileMatchContainer = ({
                     <FileMatch
                         match={match}
                         file={file}
-                        onOpen={() => {
-                            onOpenMatch(index);
+                        onOpen={(startLineNumber, endLineNumber, isCtrlKeyPressed) => {
+                            if (isCtrlKeyPressed) {
+                                const matchIndex = matches.slice(0, index).reduce((acc, match) => {
+                                    return acc + match.matchRanges.length;
+                                }, 0);
+                                onOpenFilePreview(matchIndex);
+                            } else {
+                                navigateToPath({
+                                    repoName: file.repository,
+                                    revisionName: file.branches?.[0] ?? 'HEAD',
+                                    path: file.fileName.text,
+                                    pathType: 'blob',
+                                    highlightRange: {
+                                        start: {
+                                            lineNumber: startLineNumber,
+                                        },
+                                        end: {
+                                            lineNumber: endLineNumber,
+                                        }
+                                    }
+                                });
+                            }
                         }}
                     />
                     {(index !== matches.length - 1 || isMoreContentButtonVisible) && (
@@ -140,7 +157,7 @@ export const FileMatchContainer = ({
             {isMoreContentButtonVisible && (
                 <div
                     tabIndex={0}
-                    className="px-4 bg-accent p-0.5"
+                    className="px-4 bg-accent p-0.5 group focus:outline-none"
                     onKeyDown={(e) => {
                         if (e.key !== "Enter") {
                             return;
@@ -150,7 +167,7 @@ export const FileMatchContainer = ({
                     onClick={onShowAllMatchesButtonClicked}
                 >
                     <p
-                        className="text-blue-500 cursor-pointer text-sm flex flex-row items-center gap-2"
+                        className="text-blue-500 w-fit cursor-pointer text-sm flex flex-row items-center gap-2 group-focus:ring-2 group-focus:ring-blue-500 rounded-sm"
                     >
                         {showAllMatches ? <DoubleArrowUpIcon className="w-3 h-3" /> : <DoubleArrowDownIcon className="w-3 h-3" />}
                         {showAllMatches ? `Show fewer matches` : `Show ${matchCount - MAX_MATCHES_TO_PREVIEW} more matches`}

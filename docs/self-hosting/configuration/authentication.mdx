@@ -1,0 +1,118 @@
+---
+title: Authentication
+sidebarTitle: Authentication
+---
+
+<Warning>Make sure the `AUTH_URL` environment variable is [configured correctly](/self-hosting/configuration) when using Sourcebot behind a domain.</Warning>
+
+Sourcebot has built-in authentication that gates access to your organization. OAuth, email codes, and email / password are supported. 
+
+The first account that's registered on a Sourcebot deployment is made the owner. All other users who register must be [approved](/self-hosting/configuration/authentication#approving-new-members) by the owner.
+
+![Login Page](/images/login.png)
+
+
+# Approving New Members
+
+All account registrations after the first account must be approved by the owner. The owner can see all join requests by going into **Settings -> Members**.
+
+If you have an [enterprise license](/self-hosting/license-key), you can enable [AUTH_EE_ENABLE_JIT_PROVISIONING](/self-hosting/configuration/authentication#enterprise-authentication-providers) to 
+have Sourcebot accounts automatically created and approved on registration.
+
+You can setup emails to be sent when new join requests are created/approved by configurating [transactional emails](/self-hosting/configuration/transactional-emails)
+# Authentication Providers
+
+To enable an authentication provider in Sourcebot, configure the required environment variables for the provider. Under the hood, Sourcebot uses Auth.js which supports [many providers](https://authjs.dev/getting-started/authentication/oauth). Submit a [feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas) if you want us to add support for a specific provider.
+
+## Core Authentication Providers
+
+### Email / Password
+---
+Email / password authentication is enabled by default. It can be **disabled** by setting `AUTH_CREDENTIALS_LOGIN_ENABLED` to `false`.
+
+### Email codes
+---
+Email codes are 6 digit codes sent to a provided email. Email codes are enabled when transactional emails are configured using the following environment variables:
+
+- `AUTH_EMAIL_CODE_LOGIN_ENABLED`
+- `SMTP_CONNECTION_URL`
+- `EMAIL_FROM_ADDRESS`
+
+
+See [transactional emails](/self-hosting/configuration/transactional-emails) for more details.
+
+## Enterprise Authentication Providers
+
+The following authentication providers require an [enterprise license](/self-hosting/license-key) to be enabled.
+
+By default, a new user registering using these providers must have their join request accepted by the owner of the organization to join. To allow a user to join automatically when
+they register for the first time, set the `AUTH_EE_ENABLE_JIT_PROVISIONING` environment variable to `true`. 
+
+### GitHub
+---
+
+[Auth.js GitHub Provider Docs](https://authjs.dev/getting-started/providers/github)
+
+**Required environment variables:**
+- `AUTH_EE_GITHUB_CLIENT_ID`
+- `AUTH_EE_GITHUB_CLIENT_SECRET`
+
+Optional environment variables:
+- `AUTH_EE_GITHUB_BASE_URL` - Base URL for GitHub Enterprise (defaults to https://github.com)
+
+### GitLab
+---
+
+[Auth.js GitLab Provider Docs](https://authjs.dev/getting-started/providers/gitlab)
+
+**Required environment variables:**
+- `AUTH_EE_GITLAB_CLIENT_ID`
+- `AUTH_EE_GITLAB_CLIENT_SECRET`
+
+Optional environment variables:
+- `AUTH_EE_GITLAB_BASE_URL` - Base URL for GitLab instance (defaults to https://gitlab.com)
+
+### Google
+---
+
+[Auth.js Google Provider Docs](https://authjs.dev/getting-started/providers/google)
+
+**Required environment variables:**
+- `AUTH_EE_GOOGLE_CLIENT_ID`
+- `AUTH_EE_GOOGLE_CLIENT_SECRET`
+
+### Okta
+---
+
+[Auth.js Okta Provider Docs](https://authjs.dev/getting-started/providers/okta)
+
+**Required environment variables:**
+- `AUTH_EE_OKTA_CLIENT_ID`
+- `AUTH_EE_OKTA_CLIENT_SECRET`
+- `AUTH_EE_OKTA_ISSUER`
+
+### Keycloak
+---
+
+[Auth.js Keycloak Provider Docs](https://authjs.dev/getting-started/providers/keycloak)
+
+**Required environment variables:**
+- `AUTH_EE_KEYCLOAK_CLIENT_ID`
+- `AUTH_EE_KEYCLOAK_CLIENT_SECRET`
+- `AUTH_EE_KEYCLOAK_ISSUER`
+
+### Microsoft Entra ID
+
+[Auth.js Microsoft Entra ID Provider Docs](https://authjs.dev/getting-started/providers/microsoft-entra-id)
+
+**Required environment variables:**
+- `AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID`
+- `AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET`
+- `AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER`
+
+---
+
+# Troubleshooting
+
+- If you experience issues logging in, logging out, or accessing an organization you should have access to, try clearing your cookies & performing a full page refresh (`Cmd/Ctrl + Shift + R` on most browsers).
+- Still not working? Reach out to us on our [discord](https://discord.com/invite/6Fhp27x7Pb) or [github discussions](https://github.com/sourcebot-dev/sourcebot/discussions)

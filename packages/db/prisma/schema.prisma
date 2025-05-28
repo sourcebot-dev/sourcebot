@@ -136,6 +136,20 @@ model Invite {
   @@unique([recipientEmail, orgId])
 }
 
+model AccountRequest {
+  id String @id @default(cuid())
+
+  createdAt DateTime @default(now())
+
+  requestedBy User @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+  requestedById String @unique
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@unique([requestedById, orgId])
+}
+
 model Org {
   id          Int          @id @default(autoincrement())
   name        String
@@ -146,8 +160,10 @@ model Org {
   connections Connection[]
   repos       Repo[]
   secrets     Secret[]
+  apiKeys     ApiKey[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
+  metadata    Json?       // For schema see orgMetadataSchema in packages/web/src/types.ts
 
   stripeCustomerId         String?
   stripeSubscriptionStatus StripeSubscriptionStatus?
@@ -156,12 +172,15 @@ model Org {
   /// List of pending invites to this organization
   invites Invite[]
 
+  accountRequests AccountRequest[]
+
   searchContexts SearchContext[]
 }
 
 enum OrgRole {
   OWNER
   MEMBER
+  GUEST
 }
 
 model UserToOrg {
@@ -193,19 +212,38 @@ model Secret {
   @@id([orgId, key])
 }
 
+model ApiKey {
+  name            String
+  hash            String @id @unique
+
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String
+
+}
+
 // @see : https://authjs.dev/concepts/database-models#user
 model User {
-  id             String      @id @default(cuid())
-  name           String?
-  email          String?     @unique
-  hashedPassword String?
-  emailVerified  DateTime?
-  image          String?
-  accounts       Account[]
-  orgs           UserToOrg[]
+  id              String      @id @default(cuid())
+  name            String?
+  email           String?     @unique
+  hashedPassword  String?
+  emailVerified   DateTime?
+  image           String?
+  accounts        Account[]
+  orgs            UserToOrg[]
+  pendingApproval Boolean @default(true)
+  accountRequest  AccountRequest?
 
   /// List of pending invites that the user has created
   invites Invite[]
+
+  apiKeys ApiKey[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

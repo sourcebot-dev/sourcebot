@@ -4,7 +4,7 @@ sidebarTitle: Sourcebot MCP server
 ---
 
 <Note>
-This feature is only available when [self-hosting](/self-hosting) with [authentication](/self-hosting/more/authentication) disabled.
+This feature is only available when [self-hosting](/self-hosting)
 </Note>
 
 The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) is an open standard for providing context to LLMs. The [@sourcebot/mcp](https://www.npmjs.com/package/@sourcebot/mcp) package is a MCP server that enables LLMs to interface with your Sourcebot instance, enabling MCP clients like Cursor, Vscode, and others to have context over your entire codebase.
@@ -176,6 +176,7 @@ Parameters:
 | Name                     | Default                | Description                                       |
 |:-------------------------|:-----------------------|:--------------------------------------------------|
 | `SOURCEBOT_HOST`         | http://localhost:3000  | URL of your Sourcebot instance.                   |
+| `SOURCEBOT_API_KEY`      | -                      | Sourcebot API key.                                |
 | `DEFAULT_MINIMUM_TOKENS` | 10000                  | Minimum number of tokens to return in responses.  |
 | `DEFAULT_MATCHES`        | 10000                  | Number of code matches to fetch per search.       |
 | `DEFAULT_CONTEXT_LINES`  | 5                      | Lines of context to include above/below matches.  |

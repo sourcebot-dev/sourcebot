@@ -50,6 +50,7 @@
                         "pages": [
                             "docs/search/syntax-reference",
                             "docs/search/multi-branch-indexing",
+                            "docs/search/code-navigation",
                             "docs/search/search-contexts"
                         ]
                     },
@@ -63,6 +64,7 @@
                     {
                         "group": "More",
                         "pages": [
+                            "docs/more/api-keys",
                             "docs/more/roles-and-permissions",
                             "docs/more/mcp-server"
                         ]
@@ -77,17 +79,16 @@
                         "group": "Getting Started",
                         "pages": [
                             "self-hosting/overview",
-                            "self-hosting/configuration",
                             "self-hosting/license-key"
                         ]
                     },
                     {
-                        "group": "More",
+                        "group": "Configuration",
                         "pages": [
-                            "self-hosting/more/authentication",
-                            "self-hosting/more/tenancy",
-                            "self-hosting/more/transactional-emails",
-                            "self-hosting/more/declarative-config"
+                            "self-hosting/configuration/environment-variables",
+                            "self-hosting/configuration/authentication",
+                            "self-hosting/configuration/transactional-emails",
+                            "self-hosting/configuration/declarative-config"
                         ]
                     },
                     {
@@ -98,6 +99,7 @@
                     {
                         "group": "Upgrade",
                         "pages": [
+                            "self-hosting/upgrade/v3-to-v4-guide",
                             "self-hosting/upgrade/v2-to-v3-guide"
                         ]
                     }
