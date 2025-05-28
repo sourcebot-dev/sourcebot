@@ -7,12 +7,13 @@ import { useMemo } from "react";
 import { FileMatch } from "./fileMatch";
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
 import { Button } from "@/components/ui/button";
+import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 
 export const MAX_MATCHES_TO_PREVIEW = 3;
 
 interface FileMatchContainerProps {
     file: SearchResultFile;
-    onOpenFilePreview: () => void;
+    onOpenFilePreview: (matchIndex?: number) => void;
     showAllMatches: boolean;
     onShowAllMatchesButtonClicked: () => void;
     isBranchFilteringEnabled: boolean;
@@ -32,6 +33,7 @@ export const FileMatchContainer = ({
     const matchCount = useMemo(() => {
         return file.chunks.length;
     }, [file]);
+    const { navigateToPath } = useBrowseNavigation();
 
     const matches = useMemo(() => {
         const sortedMatches = file.chunks.sort((a, b) => {
@@ -81,7 +83,6 @@ export const FileMatchContainer = ({
         return repoInfo[file.repositoryId];
     }, [repoInfo, file.repositoryId]);
 
-
     return (
         <div>
             {/* Title */}
@@ -103,15 +104,15 @@ export const FileMatchContainer = ({
                     branchDisplayName={branchDisplayName}
                     branchDisplayTitle={branches.join(", ")}
                 />
-                <Button
-                    variant="link"
-                    className="text-blue-500 h-5"
-                    onClick={() => {
-                        onOpenFilePreview();
-                    }}
-                >
-                    Preview
-                </Button>
+                    <Button
+                        variant="link"
+                        className="text-blue-500 h-5"
+                        onClick={() => {
+                            onOpenFilePreview();
+                        }}
+                    >
+                        Preview
+                    </Button>
             </div>
 
             {/* Matches */}
@@ -122,6 +123,29 @@ export const FileMatchContainer = ({
                     <FileMatch
                         match={match}
                         file={file}
+                        onOpen={(startLineNumber, endLineNumber, isCtrlKeyPressed) => {
+                            if (isCtrlKeyPressed) {
+                                const matchIndex = matches.slice(0, index).reduce((acc, match) => {
+                                    return acc + match.matchRanges.length;
+                                }, 0);
+                                onOpenFilePreview(matchIndex);
+                            } else {
+                                navigateToPath({
+                                    repoName: file.repository,
+                                    revisionName: file.branches?.[0] ?? 'HEAD',
+                                    path: file.fileName.text,
+                                    pathType: 'blob',
+                                    highlightRange: {
+                                        start: {
+                                            lineNumber: startLineNumber,
+                                        },
+                                        end: {
+                                            lineNumber: endLineNumber,
+                                        }
+                                    }
+                                });
+                            }
+                        }}
                     />
                     {(index !== matches.length - 1 || isMoreContentButtonVisible) && (
                         <Separator className="bg-accent" />

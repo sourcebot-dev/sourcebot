@@ -3,44 +3,31 @@
 import { useCallback, useMemo } from "react";
 import { SearchResultFile, SearchResultChunk } from "@/features/search/types";
 import { base64Decode } from "@/lib/utils";
-import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 
 
 interface FileMatchProps {
     match: SearchResultChunk;
     file: SearchResultFile;
+    onOpen: (startLineNumber: number, endLineNumber: number, isCtrlKeyPressed: boolean) => void;
 }
 
 export const FileMatch = ({
     match,
     file,
+    onOpen: _onOpen,
 }: FileMatchProps) => {
-    const { navigateToPath } = useBrowseNavigation();
 
     const content = useMemo(() => {
         return base64Decode(match.content);
     }, [match.content]);
 
-    const onOpen = useCallback(() => {
+    const onOpen = useCallback((isCtrlKeyPressed: boolean) => {
         const startLineNumber = match.contentStart.lineNumber;
         const endLineNumber = content.trimEnd().split('\n').length + startLineNumber - 1;
 
-        navigateToPath({
-            repoName: file.repository,
-            revisionName: file.branches?.[0] ?? 'HEAD',
-            path: file.fileName.text,
-            pathType: 'blob',
-            highlightRange: {
-                start: {
-                    lineNumber: startLineNumber,
-                },
-                end: {
-                    lineNumber: endLineNumber,
-                }
-            }
-        })
-    }, []);
+        _onOpen(startLineNumber, endLineNumber, isCtrlKeyPressed);
+    }, [content, match.contentStart.lineNumber, _onOpen]);
 
     // If it's just the title, don't show a code preview
     if (match.matchRanges.length === 0) {
@@ -55,9 +42,13 @@ export const FileMatch = ({
                 if (e.key !== "Enter") {
                     return;
                 }
-                onOpen();
+
+                onOpen(e.metaKey || e.ctrlKey);
             }}
-            onClick={onOpen}
+            onClick={(e) => {
+                onOpen(e.metaKey || e.ctrlKey);
+            }}
+            title="Open file preview (cmd/ctrl + click)"
         >
             <LightweightCodeHighlighter
                 language={file.language}

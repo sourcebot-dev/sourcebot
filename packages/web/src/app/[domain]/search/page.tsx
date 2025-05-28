@@ -222,6 +222,7 @@ const PanelGroup = ({
     const [previewedFile, setPreviewedFile] = useState<SearchResultFile | undefined>(undefined);
     const filteredFileMatches = useFilteredMatches(fileMatches);
     const filterPanelRef = useRef<ImperativePanelHandle>(null);
+    const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
 
     const [isFilterPanelCollapsed, setIsFilterPanelCollapsed] = useLocalStorage('isFilterPanelCollapsed', false);
 
@@ -313,7 +314,8 @@ const PanelGroup = ({
                 {filteredFileMatches.length > 0 ? (
                     <SearchResultsPanel
                         fileMatches={filteredFileMatches}
-                        onOpenFilePreview={(fileMatch) => {
+                        onOpenFilePreview={(fileMatch, matchIndex) => {
+                            setSelectedMatchIndex(matchIndex ?? 0);
                             setPreviewedFile(fileMatch);
                         }}
                         isLoadMoreButtonVisible={!!isMoreResultsButtonVisible}
@@ -342,6 +344,8 @@ const PanelGroup = ({
                         <CodePreviewPanel
                             previewedFile={previewedFile}
                             onClose={() => setPreviewedFile(undefined)}
+                            selectedMatchIndex={selectedMatchIndex}
+                            onSelectedMatchIndexChange={setSelectedMatchIndex}
                         />
                     </ResizablePanel>
                 </>

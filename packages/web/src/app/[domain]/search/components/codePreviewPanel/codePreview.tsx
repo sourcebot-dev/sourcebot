@@ -15,7 +15,7 @@ import { Cross1Icon, FileIcon } from "@radix-ui/react-icons";
 import { Scrollbar } from "@radix-ui/react-scroll-area";
 import CodeMirror, { ReactCodeMirrorRef, SelectionRange } from '@uiw/react-codemirror';
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 import { SymbolHoverPopup } from "@/ee/features/codeNav/components/symbolHoverPopup";
 import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
@@ -34,18 +34,21 @@ export interface CodePreviewFile {
 interface CodePreviewProps {
     file: CodePreviewFile;
     repoName: string;
+    selectedMatchIndex: number;
+    onSelectedMatchIndexChange: Dispatch<SetStateAction<number>>;
     onClose: () => void;
 }
 
 export const CodePreview = ({
     file,
     repoName,
+    selectedMatchIndex,
+    onSelectedMatchIndexChange,
     onClose,
 }: CodePreviewProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const { navigateToPath } = useBrowseNavigation();
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
-    const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
 
     const [gutterWidth, setGutterWidth] = useState(0);
     const theme = useCodeMirrorTheme();
@@ -101,12 +104,12 @@ export const CodePreview = ({
     }, [ranges, selectedMatchIndex, file, editorRef]);
 
     const onUpClicked = useCallback(() => {
-        setSelectedMatchIndex((prev) => prev - 1);
-    }, []);
+        onSelectedMatchIndexChange((prev) => prev - 1);
+    }, [onSelectedMatchIndexChange]);
 
     const onDownClicked = useCallback(() => {
-        setSelectedMatchIndex((prev) => prev + 1);
-    }, []);
+        onSelectedMatchIndexChange((prev) => prev + 1);
+    }, [onSelectedMatchIndexChange]);
 
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
         if (symbolDefinitions.length === 0) {

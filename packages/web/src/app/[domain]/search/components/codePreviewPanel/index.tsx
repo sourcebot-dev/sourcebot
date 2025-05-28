@@ -5,19 +5,23 @@ import { CodePreview } from "./codePreview";
 import { SearchResultFile } from "@/features/search/types";
 import { useDomain } from "@/hooks/useDomain";
 import { SymbolIcon } from "@radix-ui/react-icons";
-import { useMemo } from "react";
+import { SetStateAction, Dispatch, useMemo } from "react";
 import { getFileSource } from "@/features/search/fileSourceApi";
 import { base64Decode } from "@/lib/utils";
 import { unwrapServiceError } from "@/lib/utils";
 
 interface CodePreviewPanelProps {
     previewedFile: SearchResultFile;
+    selectedMatchIndex: number;
     onClose: () => void;
+    onSelectedMatchIndexChange: Dispatch<SetStateAction<number>>;
 }
 
 export const CodePreviewPanel = ({
     previewedFile,
+    selectedMatchIndex,
     onClose,
+    onSelectedMatchIndexChange,
 }: CodePreviewPanelProps) => {
     const domain = useDomain();
 
@@ -67,6 +71,8 @@ export const CodePreviewPanel = ({
         <CodePreview
             file={file}
             repoName={previewedFile.repository}
+            selectedMatchIndex={selectedMatchIndex}
+            onSelectedMatchIndexChange={onSelectedMatchIndexChange}
             onClose={onClose}
         />
     )

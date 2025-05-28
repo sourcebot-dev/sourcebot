@@ -8,7 +8,7 @@ import { useDebounce, usePrevious } from "@uidotdev/usehooks";
 
 interface SearchResultsPanelProps {
     fileMatches: SearchResultFile[];
-    onOpenFilePreview: (fileMatch: SearchResultFile) => void;
+    onOpenFilePreview: (fileMatch: SearchResultFile, matchIndex?: number) => void;
     isLoadMoreButtonVisible: boolean;
     onLoadMoreButtonClicked: () => void;
     isBranchFilteringEnabled: boolean;
@@ -150,8 +150,8 @@ export const SearchResultsPanel = ({
                         >
                             <FileMatchContainer
                                 file={file}
-                                onOpenFilePreview={() => {
-                                    onOpenFilePreview(file);
+                                onOpenFilePreview={(matchIndex) => {
+                                    onOpenFilePreview(file, matchIndex);
                                 }}
                                 showAllMatches={showAllMatchesStates[virtualRow.index]}
                                 onShowAllMatchesButtonClicked={() => {
