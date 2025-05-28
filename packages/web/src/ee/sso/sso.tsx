@@ -18,20 +18,22 @@ export const getSSOProviders = (): Provider[] => {
     const providers: Provider[] = [];
 
     if (env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
+        const baseUrl = env.AUTH_EE_GITHUB_BASE_URL ?? "https://github.com";
+        const apiUrl = env.AUTH_EE_GITHUB_BASE_URL ? `${env.AUTH_EE_GITHUB_BASE_URL}/api/v3` : "https://api.github.com";
         providers.push(GitHub({
             clientId: env.AUTH_EE_GITHUB_CLIENT_ID,
             clientSecret: env.AUTH_EE_GITHUB_CLIENT_SECRET,
             authorization: {
-                url: `${env.AUTH_EE_GITHUB_BASE_URL}/login/oauth/authorize`,
+                url: `${baseUrl}/login/oauth/authorize`,
                 params: {
                     scope: "read:user user:email",
                 },
             },
             token: {
-                url: `${env.AUTH_EE_GITHUB_BASE_URL}/login/oauth/access_token`,
+                url: `${baseUrl}/login/oauth/access_token`,
             },
             userinfo: {
-                url: `${env.AUTH_EE_GITHUB_BASE_URL}/api/v3/user`,
+                url: `${apiUrl}/user`,
             },
         }));
     }

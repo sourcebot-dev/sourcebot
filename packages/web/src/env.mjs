@@ -28,7 +28,7 @@ export const env = createEnv({
         AUTH_EE_ENABLE_JIT_PROVISIONING: booleanSchema.default('false'),
         AUTH_EE_GITHUB_CLIENT_ID: z.string().optional(),
         AUTH_EE_GITHUB_CLIENT_SECRET: z.string().optional(),
-        AUTH_EE_GITHUB_BASE_URL: z.string().default("https://github.com"),
+        AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
         AUTH_EE_GITLAB_CLIENT_ID: z.string().optional(),
         AUTH_EE_GITLAB_CLIENT_SECRET: z.string().optional(),
         AUTH_EE_GITLAB_BASE_URL: z.string().default("https://gitlab.com"),
