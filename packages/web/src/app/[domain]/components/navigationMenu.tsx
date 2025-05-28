@@ -15,6 +15,7 @@ import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { env } from "@/env.mjs";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { auth } from "@/auth";
+import WhatsNewIndicator from "./whatsNewIndicator";
 
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
@@ -105,6 +106,7 @@ export const NavigationMenu = async ({
                     <WarningNavIndicator />
                     <ErrorNavIndicator />
                     <TrialNavIndicator subscription={subscription} />
+                    <WhatsNewIndicator />
                     <form
                         action={async () => {
                             "use server";
