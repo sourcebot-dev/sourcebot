@@ -10,7 +10,6 @@ import { SYMBOL_HOVER_TARGET_DATA_ATTRIBUTE } from "./symbolHoverTargetsExtensio
 interface UseHoveredOverSymbolInfoProps {
     editorRef: ReactCodeMirrorRef;
     isSticky: boolean;
-    repoName: string;
     revisionName: string;
     language: string;
 }
@@ -36,7 +35,6 @@ const SYMBOL_HOVER_POPUP_MOUSE_OUT_TIMEOUT_MS = 100;
 export const useHoveredOverSymbolInfo = ({
     editorRef,
     isSticky,
-    repoName,
     revisionName,
     language,
 }: UseHoveredOverSymbolInfoProps): HoveredOverSymbolInfo | undefined => {
@@ -52,11 +50,10 @@ export const useHoveredOverSymbolInfo = ({
     }, [symbolElement]);
 
     const { data: symbolDefinitions, isLoading: isSymbolDefinitionsLoading } = useQuery({
-        queryKey: ["definitions", symbolName, repoName, revisionName, language, domain],
+        queryKey: ["definitions", symbolName, revisionName, language, domain],
         queryFn: () => unwrapServiceError(
             findSearchBasedSymbolDefinitions({
                 symbolName: symbolName!,
-                repoName,
                 language,
                 revisionName,
             }, domain)

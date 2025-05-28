@@ -4,7 +4,6 @@ import { sew, withAuth, withOrgMembership } from "@/actions";
 import { searchResponseSchema } from "@/features/search/schemas";
 import { search } from "@/features/search/searchApi";
 import { isServiceError } from "@/lib/utils";
-import escapeStringRegexp from "escape-string-regexp";
 import { FindRelatedSymbolsResponse } from "./types";
 import { ServiceError } from "@/lib/serviceError";
 import { SearchResponse } from "../search/types";
@@ -15,7 +14,6 @@ const MAX_REFERENCE_COUNT = 1000;
 export const findSearchBasedSymbolReferences = async (
     props: {
         symbolName: string,
-        repoName: string,
         language: string,
         revisionName?: string,
     },
@@ -25,12 +23,11 @@ export const findSearchBasedSymbolReferences = async (
         withOrgMembership(session, domain, async () => {
             const {
                 symbolName,
-                repoName,
                 language,
                 revisionName = "HEAD",
             } = props;
 
-            const query = `\\b${symbolName}\\b repo:^${escapeStringRegexp(repoName)}$ rev:${revisionName} lang:${language}`
+            const query = `\\b${symbolName}\\b rev:${revisionName} ${getExpandedLanguageFilter(language)} case:yes`;
 
             const searchResult = await search({
                 query,
@@ -50,7 +47,6 @@ export const findSearchBasedSymbolReferences = async (
 export const findSearchBasedSymbolDefinitions = async (
     props: {
         symbolName: string,
-        repoName: string,
         language: string,
         revisionName?: string,
     },
@@ -60,12 +56,11 @@ export const findSearchBasedSymbolDefinitions = async (
         withOrgMembership(session, domain, async () => {
             const {
                 symbolName,
-                repoName,
                 language,
                 revisionName = "HEAD",
             } = props;
 
-            const query = `sym:\\b${symbolName}\\b repo:^${escapeStringRegexp(repoName)}$ rev:${revisionName} lang:${language}`
+            const query = `sym:\\b${symbolName}\\b rev:${revisionName} ${getExpandedLanguageFilter(language)}`;
 
             const searchResult = await search({
                 query,
@@ -107,4 +102,17 @@ const parseRelatedSymbolsSearchResponse = (searchResult: SearchResponse) => {
     }));
 
     return parser.parseAsync(searchResult);
+}
+
+// Expands the language filter to include all variants of the language.
+const getExpandedLanguageFilter = (language: string) => {
+    switch (language) {
+        case "TypeScript":
+        case "JavaScript":
+        case "JSX":
+        case "TSX":
+            return `(lang:TypeScript or lang:JavaScript or lang:JSX or lang:TSX)`
+        default:
+            return `lang:${language}`
+    }
 }

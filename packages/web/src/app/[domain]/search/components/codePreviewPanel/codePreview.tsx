@@ -270,7 +270,6 @@ export const CodePreview = ({
                     {editorRef && hasCodeNavEntitlement && (
                         <SymbolHoverPopup
                             editorRef={editorRef}
-                            repoName={repoName}
                             language={file.language}
                             revisionName={file.revision}
                             onFindReferences={onFindReferences}

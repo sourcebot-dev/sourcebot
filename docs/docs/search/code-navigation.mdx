@@ -31,7 +31,7 @@ Code navigation is **search-based**, meaning it uses the same code search engine
 Given a `symbolName`, along with information about the file the symbol is contained within (`git_revision`, and `language`), runs the following search:
 
 ```bash
-\\b{symbolName}\\b rev:{git_revision} lang:{language}
+\\b{symbolName}\\b rev:{git_revision} lang:{language} case:yes
 ```
 
 ### Find definitions

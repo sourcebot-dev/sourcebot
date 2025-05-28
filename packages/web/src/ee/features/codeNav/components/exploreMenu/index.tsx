@@ -44,7 +44,6 @@ export const ExploreMenu = ({
         queryFn: () => unwrapServiceError(
             findSearchBasedSymbolReferences({
                 symbolName: selectedSymbolInfo.symbolName,
-                repoName: selectedSymbolInfo.repoName,
                 language: selectedSymbolInfo.language,
                 revisionName: selectedSymbolInfo.revisionName,
             }, domain)
@@ -61,7 +60,6 @@ export const ExploreMenu = ({
         queryFn: () => unwrapServiceError(
             findSearchBasedSymbolDefinitions({
                 symbolName: selectedSymbolInfo.symbolName,
-                repoName: selectedSymbolInfo.repoName,
                 language: selectedSymbolInfo.language,
                 revisionName: selectedSymbolInfo.revisionName,
             }, domain)

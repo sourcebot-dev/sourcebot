@@ -211,7 +211,6 @@ export const CodePreviewPanel = ({
                     {editorRef && hasCodeNavEntitlement && (
                         <SymbolHoverPopup
                             editorRef={editorRef}
-                            repoName={repoName}
                             revisionName={revisionName}
                             language={language}
                             onFindReferences={onFindReferences}

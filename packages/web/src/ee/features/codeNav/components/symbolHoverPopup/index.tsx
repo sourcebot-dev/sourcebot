@@ -10,7 +10,6 @@ import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
 
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
-    repoName: string;
     language: string;
     revisionName: string;
     onFindReferences: (symbolName: string) => void;
@@ -19,7 +18,6 @@ interface SymbolHoverPopupProps {
 
 export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     editorRef,
-    repoName,
     revisionName,
     language,
     onFindReferences,
@@ -31,7 +29,6 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     const symbolInfo = useHoveredOverSymbolInfo({
         editorRef,
         isSticky,
-        repoName,
         revisionName,
         language,
     });
