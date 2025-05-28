@@ -22,16 +22,16 @@ export const getSSOProviders = (): Provider[] => {
             clientId: env.AUTH_EE_GITHUB_CLIENT_ID,
             clientSecret: env.AUTH_EE_GITHUB_CLIENT_SECRET,
             authorization: {
-                url: `${env.AUTH_EE_GITHUB_BASE_URL}/oauth/authorize`,
+                url: `${env.AUTH_EE_GITHUB_BASE_URL}/login/oauth/authorize`,
                 params: {
-                    scope: "read_user",
+                    scope: "read:user user:email",
                 },
             },
             token: {
-                url: `${env.AUTH_EE_GITHUB_BASE_URL}/oauth/token`,
+                url: `${env.AUTH_EE_GITHUB_BASE_URL}/login/oauth/access_token`,
             },
             userinfo: {
-                url: `${env.AUTH_EE_GITHUB_BASE_URL}/api/v4/user`,
+                url: `${env.AUTH_EE_GITHUB_BASE_URL}/api/v3/user`,
             },
         }));
     }
