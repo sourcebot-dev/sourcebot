@@ -37,6 +37,7 @@ export const symbolHoverTargetsExtension = StateField.define<DecorationSet>({
 
         tree?.iterate({
             enter: (node) => {
+                // console.log(node.type.name, getTextAt(node.from, node.to));
                 if (NODE_TYPES.includes(node.type.name)) {
                     decorations.push(decoration.range(node.from, node.to));
                 }
