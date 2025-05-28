@@ -21,6 +21,7 @@ Sourcebot V4 introduces authentication, performance improvements and code naviga
 ### Added
 - [Sourcebot EE] Added search-based code navigation, allowing you to jump between symbol definition and references when viewing source files. [Read the documentation](https://docs.sourcebot.dev/docs/search/code-navigation). [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
 - Added collapsible filter panel. [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
+- Added Sourcebot API key management for external clients. [#311](https://github.com/sourcebot-dev/sourcebot/pull/311)
 
 ### Fixed
 - Improved scroll performance for large numbers of search results. [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
