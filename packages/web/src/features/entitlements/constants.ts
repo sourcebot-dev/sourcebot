@@ -27,7 +27,7 @@ export const isValidEntitlement = (entitlement: string): entitlement is Entitlem
 
 export const entitlementsByPlan: Record<Plan, Entitlement[]> = {
     oss: [],
-    "cloud:team": ["billing", "multi-tenancy", "sso"],
+    "cloud:team": ["billing", "multi-tenancy", "sso", "code-nav"],
     "self-hosted:enterprise": ["search-contexts", "sso", "code-nav"],
     "self-hosted:enterprise-unlimited": ["search-contexts", "public-access", "sso", "code-nav"],
     "self-hosted:enterprise-custom": [],

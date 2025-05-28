@@ -1,6 +1,6 @@
 ---
 title: Search contexts
-sidebarTitle: Search contexts (EE)
+sidebarTitle: Search contexts
 ---
 
 import SearchContextSchema from '/snippets/schemas/v3/searchContext.schema.mdx'
@@ -16,7 +16,7 @@ A **search context** is a user-defined grouping of repositories that helps focus
 - `( context:project1 or context:project2 ) logger\.debug` - search for debug log calls in project1 and project2 
 
 
-Search contexts are defined in the `context` object inside of a [declarative config](/self-hosting/more/declarative-config). Repositories can be included / excluded from a search context by specifying the repo's URL in either the `include` array or `exclude` array. Glob patterns are supported.
+Search contexts are defined in the `context` object inside of a [declarative config](/self-hosting/configuration/declarative-config). Repositories can be included / excluded from a search context by specifying the repo's URL in either the `include` array or `exclude` array. Glob patterns are supported.
 
 ## Example
 
@@ -41,7 +41,7 @@ shared/
 ├─ ...
 ```
 
-To make searching easier, we can create three search contexts in our [config.json](/self-hosting/more/declarative-config):
+To make searching easier, we can create three search contexts in our [config.json](/self-hosting/configuration/declarative-config):
 - `web`: For all frontend-related code
 - `backend`: For backend services and shared APIs
 - `pipelines`: For all CI/CD configurations

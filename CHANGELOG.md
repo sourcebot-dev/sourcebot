@@ -7,8 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Sourcebot V4 introduces authentication, performance improvements and code navigation. Checkout the [migration guide](https://docs.sourcebot.dev/self-hosting/upgrade/v3-to-v4-guide) for information on upgrading your instance to v4.
+
+### Changed
+- [**Breaking Change**] Authentication is now required by default. Notes:
+  - When setting up your instance, email / password login will be the default authentication provider.
+  - The first user that logs into the instance is given the `owner` role. ([docs](https://docs.sourcebot.dev/docs/more/roles-and-permissions)).
+  - Subsequent users can request to join the instance. The `owner` can approve / deny requests to join the instance via `Settings` > `Members` > `Pending Requests`.
+  - If a user is approved to join the instance, they are given the `member` role.
+  - Additional login providers, including email links and SSO, can be configured with additional environment variables. ([docs](https://docs.sourcebot.dev/self-hosting/configuration/authentication)).
+- Clicking on a search result now takes you to the `/browse` view. Files can still be previewed by clicking the "Preview" button or holding `Cmd` / `Ctrl` when clicking on a search result. [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
+
 ### Added
-- [Sourcebot EE] Added code navigation (find all references / go to definition). [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
+- [Sourcebot EE] Added search-based code navigation, allowing you to jump between symbol definition and references when viewing source files. [Read the documentation](https://docs.sourcebot.dev/docs/search/code-navigation). [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
+- Added collapsible filter panel. [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
 
 ### Fixed
 - Improved scroll performance for large numbers of search results. [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
@@ -99,8 +111,8 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 ### Added
 - Added parallelized repo indexing and connection syncing via Redis & BullMQ. See the [architecture overview](https://docs.sourcebot.dev/self-hosting/overview#architecture).
 - Added repo indexing progress indicators in the navbar.
-- Added authentication support via OAuth or email/password. For instructions on enabling, see [this doc](https://docs.sourcebot.dev/self-hosting/more/authentication).
-- Added the following UI for managing your deployment when **[auth is enabled](https://docs.sourcebot.dev/self-hosting/more/authentication)**:
+- Added authentication support via OAuth or email/password. For instructions on enabling, see [this doc](https://docs.sourcebot.dev/self-hosting/configuration/authentication).
+- Added the following UI for managing your deployment when **[auth is enabled](https://docs.sourcebot.dev/self-hosting/configuration/authentication)**:
   - connection management: create and manage your JSON configs via a integrated web-editor.
   - secrets: import personal access tokens (PAT) into Sourcebot (AES-256 encrypted). Reference secrets in your connection config by name.
   - team & invite management: invite users to your instance to give them access. Configure team [roles & permissions](https://docs.sourcebot.dev/docs/more/roles-and-permissions).
