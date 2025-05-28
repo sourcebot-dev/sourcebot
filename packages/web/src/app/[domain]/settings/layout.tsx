@@ -11,6 +11,7 @@ import { getMe, getOrgAccountRequests } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getOrgFromDomain } from "@/data/org";
 import { OrgRole } from "@prisma/client";
+import { env } from "@/env.mjs";
 
 export const metadata: Metadata = {
     title: "Settings",
@@ -84,10 +85,12 @@ export default async function SettingsLayout({
             title: "API Keys",
             href: `/${domain}/settings/apiKeys`,
         },
-        {
-            title: "License",
-            href: `/${domain}/settings/license`,
-        }
+        ...(env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined ? [
+            {
+                title: "License",
+                href: `/${domain}/settings/license`,
+            }
+        ] : []),
     ]
 
     return (
