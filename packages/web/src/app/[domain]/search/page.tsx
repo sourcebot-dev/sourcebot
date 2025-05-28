@@ -13,7 +13,7 @@ import { createPathWithQueryParams, measure, unwrapServiceError } from "@/lib/ut
 import { InfoCircledIcon, SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { search } from "../../api/(client)/client";
 import { TopBar } from "../components/topBar";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
@@ -24,6 +24,13 @@ import { useToast } from "@/components/hooks/use-toast";
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 import { useFilteredMatches } from "./components/filterPanel/useFilterMatches";
+import { Button } from "@/components/ui/button";
+import { ImperativePanelHandle } from "react-resizable-panels";
+import { FilterIcon } from "lucide-react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useLocalStorage } from "@uidotdev/usehooks";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 
 const DEFAULT_MAX_MATCH_COUNT = 10000;
 
@@ -214,6 +221,21 @@ const PanelGroup = ({
 }: PanelGroupProps) => {
     const [previewedFile, setPreviewedFile] = useState<SearchResultFile | undefined>(undefined);
     const filteredFileMatches = useFilteredMatches(fileMatches);
+    const filterPanelRef = useRef<ImperativePanelHandle>(null);
+
+    const [isFilterPanelCollapsed, setIsFilterPanelCollapsed] = useLocalStorage('isFilterPanelCollapsed', false);
+
+    useHotkeys("mod+b", () => {
+        if (isFilterPanelCollapsed) {
+            filterPanelRef.current?.expand();
+        } else {
+            filterPanelRef.current?.collapse();
+        }
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Toggle filter panel",
+    });
 
     return (
         <ResizablePanelGroup
@@ -222,18 +244,46 @@ const PanelGroup = ({
         >
             {/* ~~ Filter panel ~~ */}
             <ResizablePanel
+                ref={filterPanelRef}
                 minSize={20}
                 maxSize={30}
-                defaultSize={20}
+                defaultSize={isFilterPanelCollapsed ? 0 : 20}
                 collapsible={true}
                 id={'filter-panel'}
                 order={1}
+                onCollapse={() => setIsFilterPanelCollapsed(true)}
+                onExpand={() => setIsFilterPanelCollapsed(false)}
             >
                 <FilterPanel
                     matches={fileMatches}
                     repoInfo={repoInfo}
                 />
             </ResizablePanel>
+            {isFilterPanelCollapsed && (
+                <div className="flex flex-col items-center h-full p-2">
+                    <Tooltip
+                        delayDuration={100}
+                    >
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                    filterPanelRef.current?.expand();
+                                }}
+                            >
+                                <FilterIcon className="w-4 h-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="flex flex-row items-center gap-2">
+                            <KeyboardShortcutHint shortcut="⌘ B" />
+                            <Separator orientation="vertical" className="h-4" />
+                            <span>Open filter panel</span>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
+            )}
             <AnimatedResizableHandle />
 
             {/* ~~ Search results ~~ */}
@@ -281,7 +331,6 @@ const PanelGroup = ({
             {previewedFile && (
                 <>
                     <AnimatedResizableHandle />
-
                     {/* ~~ Code preview ~~ */}
                     <ResizablePanel
                         minSize={10}
