@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [Sourcebot EE] Added code navigation (find all references / go to definition). [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
+
 ## [3.2.1] - 2025-05-15
 
 ### Added
