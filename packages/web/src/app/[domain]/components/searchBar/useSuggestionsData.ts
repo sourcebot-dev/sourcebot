@@ -37,7 +37,7 @@ export const useSuggestionsData = ({
 }: Props) => {
     const domain = useDomain();
     const { data: repoSuggestions, isLoading: _isLoadingRepos } = useQuery({
-        queryKey: ["repoSuggestions"],
+        queryKey: ["repoSuggestions", domain],
         queryFn: () => getRepos(domain),
         select: (data): Suggestion[] => {
             return data.repos
@@ -50,7 +50,7 @@ export const useSuggestionsData = ({
     const isLoadingRepos = useMemo(() => suggestionMode === "repo" && _isLoadingRepos, [_isLoadingRepos, suggestionMode]);
 
     const { data: fileSuggestions, isLoading: _isLoadingFiles } = useQuery({
-        queryKey: ["fileSuggestions", suggestionQuery],
+        queryKey: ["fileSuggestions", suggestionQuery, domain],
         queryFn: () => search({
             query: `file:${suggestionQuery}`,
             matches: 15,
@@ -70,7 +70,7 @@ export const useSuggestionsData = ({
     const isLoadingFiles = useMemo(() => suggestionMode === "file" && _isLoadingFiles, [_isLoadingFiles, suggestionMode]);
 
     const { data: symbolSuggestions, isLoading: _isLoadingSymbols } = useQuery({
-        queryKey: ["symbolSuggestions", suggestionQuery],
+        queryKey: ["symbolSuggestions", suggestionQuery, domain],
         queryFn: () => search({
             query: `sym:${suggestionQuery.length > 0 ? suggestionQuery : ".*"}`,
             matches: 15,
@@ -100,7 +100,7 @@ export const useSuggestionsData = ({
     const isLoadingSymbols = useMemo(() => suggestionMode === "symbol" && _isLoadingSymbols, [suggestionMode, _isLoadingSymbols]);
 
     const { data: searchContextSuggestions, isLoading: _isLoadingSearchContexts } = useQuery({
-        queryKey: ["searchContexts"],
+        queryKey: ["searchContexts", domain],
         queryFn: () => getSearchContexts(domain),
         select: (data): Suggestion[] => {
             if (isServiceError(data)) {

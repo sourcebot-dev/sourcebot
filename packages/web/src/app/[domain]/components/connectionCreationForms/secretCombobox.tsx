@@ -40,7 +40,7 @@ export const SecretCombobox = ({
     const captureEvent = useCaptureEvent();
 
     const { data: secrets, isPending, isError, refetch } = useQuery({
-        queryKey: ["secrets"],
+        queryKey: ["secrets", domain],
         queryFn: () => unwrapServiceError(getSecrets(domain)),
     });
 

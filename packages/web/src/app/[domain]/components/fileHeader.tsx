@@ -1,9 +1,11 @@
+'use client';
 
 import { getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import Image from "next/image";
 import Link from "next/link";
+import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation";
 
 interface FileHeaderProps {
     fileName: string;
@@ -35,6 +37,8 @@ export const FileHeader = ({
         webUrl: repo.webUrl,
     });
 
+    const { navigateToPath } = useBrowseNavigation();
+
     return (
         <div className="flex flex-row gap-2 items-center w-full overflow-hidden">
             {info?.icon ? (
@@ -58,17 +62,11 @@ export const FileHeader = ({
                 <p
                     className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-[3px] flex items-center gap-0.5"
                     title={branchDisplayTitle}
+                    style={{
+                        marginBottom: "0.1rem",
+                    }}
                 >
-                    {/* hack since to make the @ symbol look more centered with the text */}
-                    <span
-                        style={{
-                            fontSize: "0.60rem",
-                            lineHeight: "1rem",
-                            marginBottom: "0.1rem",
-                        }}
-                    >
-                        @
-                    </span>
+                    <span className="mr-0.5">@</span>
                     {`${branchDisplayName}`}
                 </p>
             )}
@@ -76,7 +74,17 @@ export const FileHeader = ({
             <div
                 className="flex-1 flex items-center overflow-hidden mt-0.5"
             >
-                <span className="inline-block w-full truncate-start font-mono text-sm">
+                <span
+                    className="inline-block w-full truncate-start font-mono text-sm cursor-pointer hover:underline"
+                    onClick={() => {
+                        navigateToPath({
+                            repoName: repo.name,
+                            path: fileName,
+                            pathType: 'blob',
+                            revisionName: branchDisplayName,
+                        });
+                    }}
+                >
                     {!fileNameHighlightRange ?
                         fileName
                         : (

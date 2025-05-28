@@ -7,6 +7,9 @@ import gerritLogo from "@/public/gerrit.svg";
 import bitbucketLogo from "@/public/bitbucket.svg";
 import gitLogo from "@/public/git.svg";
 import { ServiceError } from "./serviceError";
+import { StatusCodes } from "http-status-codes";
+import { ErrorCode } from "./errorCodes";
+import { NextRequest } from "next/server";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -131,7 +134,7 @@ export const getCodeHostInfoForRepo = (repo: {
             return {
                 type: "generic-git-host",
                 displayName: displayName ?? name,
-                codeHostName: "Generic Git Host",
+                codeHostName: "Git Host",
                 repoLink: webUrl,
                 icon: src,
                 iconClassName: className,
@@ -235,7 +238,7 @@ export const getDisplayTime = (date: Date) => {
     }
 }
 
-export const measureSync = <T>(cb: () => T, measureName: string) => {
+export const measureSync = <T>(cb: () => T, measureName: string, outputLog: boolean = true) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;
 
@@ -245,7 +248,9 @@ export const measureSync = <T>(cb: () => T, measureName: string) => {
 
     const measure = performance.measure(measureName, startMark, endMark);
     const durationMs = measure.duration;
-    console.debug(`[${measureName}] took ${durationMs}ms`);
+    if (outputLog) {
+        console.debug(`[${measureName}] took ${durationMs}ms`);
+    }
 
     return {
         data,
@@ -253,7 +258,7 @@ export const measureSync = <T>(cb: () => T, measureName: string) => {
     }
 }
 
-export const measure = async <T>(cb: () => Promise<T>, measureName: string) => {
+export const measure = async <T>(cb: () => Promise<T>, measureName: string, outputLog: boolean = true) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;
 
@@ -263,7 +268,9 @@ export const measure = async <T>(cb: () => Promise<T>, measureName: string) => {
 
     const measure = performance.measure(measureName, startMark, endMark);
     const durationMs = measure.duration;
-    console.debug(`[${measureName}] took ${durationMs}ms`);
+    if (outputLog) {
+        console.debug(`[${measureName}] took ${durationMs}ms`);
+    }
 
     return {
         data,
@@ -286,4 +293,16 @@ export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>):
     }
 
     return data;
+}
+
+export const requiredQueryParamGuard = (request: NextRequest, param: string): ServiceError | string => {
+    const value = request.nextUrl.searchParams.get(param);
+    if (!value) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.MISSING_REQUIRED_QUERY_PARAMETER,
+            message: `Missing required query param: ${param}`,
+        };
+    }
+    return value;
 }

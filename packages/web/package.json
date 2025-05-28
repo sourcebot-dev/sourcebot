@@ -34,6 +34,7 @@
     "@codemirror/lang-xml": "^6.1.0",
     "@codemirror/lang-yaml": "^6.1.2",
     "@codemirror/language": "^6.0.0",
+    "@codemirror/language-data": "^6.5.1",
     "@codemirror/legacy-modes": "^6.4.2",
     "@codemirror/search": "^6.5.6",
     "@codemirror/state": "^6.4.1",
@@ -81,6 +82,7 @@
     "@tanstack/react-query": "^5.53.3",
     "@tanstack/react-table": "^8.20.5",
     "@tanstack/react-virtual": "^3.10.8",
+    "@uidotdev/usehooks": "^2.4.1",
     "@uiw/codemirror-themes": "^4.23.6",
     "@uiw/react-codemirror": "^4.23.0",
     "@viz-js/lang-dot": "^1.0.4",
@@ -144,6 +146,7 @@
     "zod-to-json-schema": "^3.24.5"
   },
   "devDependencies": {
+    "@tanstack/eslint-plugin-query": "^5.74.7",
     "@types/micromatch": "^4.0.9",
     "@types/node": "^20",
     "@types/nodemailer": "^6.4.17",

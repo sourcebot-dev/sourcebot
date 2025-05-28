@@ -263,5 +263,13 @@ export type PosthogEventMap = {
     //////////////////////////////////////////////////////////////////
     wa_api_key_created: {},
     wa_api_key_creation_fail: {},
+    //////////////////////////////////////////////////////////////////
+    wa_preview_panel_find_references_pressed: {},
+    wa_preview_panel_goto_definition_pressed: {},
+    //////////////////////////////////////////////////////////////////
+    wa_browse_find_references_pressed: {},
+    wa_browse_goto_definition_pressed: {},
+    //////////////////////////////////////////////////////////////////
+    wa_explore_menu_reference_clicked: {},
 } 
 export type PosthogEvent = keyof PosthogEventMap;

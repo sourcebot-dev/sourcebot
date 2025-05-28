@@ -2,13 +2,13 @@
 
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
 import { FileMatchContainer, MAX_MATCHES_TO_PREVIEW } from "./fileMatchContainer";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useVirtualizer, VirtualItem } from "@tanstack/react-virtual";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useDebounce, usePrevious } from "@uidotdev/usehooks";
 
 interface SearchResultsPanelProps {
     fileMatches: SearchResultFile[];
-    onOpenFileMatch: (fileMatch: SearchResultFile) => void;
-    onMatchIndexChanged: (matchIndex: number) => void;
+    onOpenFilePreview: (fileMatch: SearchResultFile, matchIndex?: number) => void;
     isLoadMoreButtonVisible: boolean;
     onLoadMoreButtonClicked: () => void;
     isBranchFilteringEnabled: boolean;
@@ -19,18 +19,33 @@ const ESTIMATED_LINE_HEIGHT_PX = 20;
 const ESTIMATED_NUMBER_OF_LINES_PER_CODE_CELL = 10;
 const ESTIMATED_MATCH_CONTAINER_HEIGHT_PX = 30;
 
+type ScrollHistoryState = {
+    scrollOffset?: number;
+    measurementsCache?: VirtualItem[];
+    showAllMatchesStates?: boolean[];
+}
+
 export const SearchResultsPanel = ({
     fileMatches,
-    onOpenFileMatch,
-    onMatchIndexChanged,
+    onOpenFilePreview,
     isLoadMoreButtonVisible,
     onLoadMoreButtonClicked,
     isBranchFilteringEnabled,
     repoInfo,
 }: SearchResultsPanelProps) => {
     const parentRef = useRef<HTMLDivElement>(null);
-    const [showAllMatchesStates, setShowAllMatchesStates] = useState(Array(fileMatches.length).fill(false));
-    const [lastShowAllMatchesButtonClickIndex, setLastShowAllMatchesButtonClickIndex] = useState(-1);
+
+    // Restore the scroll offset, measurements cache, and other state from the history
+    // state. This enables us to restore the scroll offset when the user navigates back
+    // to the page.
+    // @see: https://github.com/TanStack/virtual/issues/378#issuecomment-2173670081
+    const {
+        scrollOffset: restoreOffset,
+        measurementsCache: restoreMeasurementsCache,
+        showAllMatchesStates: restoreShowAllMatchesStates,
+    } = history.state as ScrollHistoryState;
+
+    const [showAllMatchesStates, setShowAllMatchesStates] = useState(restoreShowAllMatchesStates || Array(fileMatches.length).fill(false));
 
     const virtualizer = useVirtualizer({
         count: fileMatches.length,
@@ -51,60 +66,55 @@ export const SearchResultsPanel = ({
 
             return estimatedSize;
         },
-        measureElement: (element, _entry, instance) => {
-            // @note : Stutters were appearing when scrolling upwards. The workaround is
-            // to use the cached height of the element when scrolling up.
-            // @see : https://github.com/TanStack/virtual/issues/659
-            const isCacheDirty = element.hasAttribute("data-cache-dirty");
-            element.removeAttribute("data-cache-dirty");
-            const direction = instance.scrollDirection;
-            if (direction === "forward" || direction === null || isCacheDirty) {
-                return element.scrollHeight;
-            } else {
-                const indexKey = Number(element.getAttribute("data-index"));
-                // Unfortunately, the cache is a private property, so we need to
-                // hush the TS compiler.
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                const cacheMeasurement = instance.itemSizeCache.get(indexKey);
-                return cacheMeasurement;
-            }
-        },
+        initialOffset: restoreOffset,
+        initialMeasurementsCache: restoreMeasurementsCache,
         enabled: true,
         overscan: 10,
         debug: false,
     });
 
-    const onShowAllMatchesButtonClicked = useCallback((index: number) => {
-        const states = [...showAllMatchesStates];
-        states[index] = !states[index];
-        setShowAllMatchesStates(states);
-        setLastShowAllMatchesButtonClickIndex(index);
-    }, [showAllMatchesStates]);
-
-    // After the "show N more/less matches" button is clicked, the FileMatchContainer's
-    // size can change considerably. In cases where N > 3 or 4 cells when collapsing,
-    // a visual artifact can appear where there is a large gap between the now collapsed
-    // container and the next container. This is because the container's height was not
-    // re-calculated. To get arround this, we force a re-measure of the element AFTER
-    // it was re-rendered (hence the useLayoutEffect).
-    useLayoutEffect(() => {
-        if (lastShowAllMatchesButtonClickIndex < 0) {
+    // When the number of file matches changes, we need to reset our scroll state.
+    const prevFileMatches = usePrevious(fileMatches);
+    useEffect(() => {
+        if (!prevFileMatches) {
             return;
         }
 
-        const element = virtualizer.elementsCache.get(lastShowAllMatchesButtonClickIndex);
-        element?.setAttribute('data-cache-dirty', 'true');
-        virtualizer.measureElement(element);
+        if (prevFileMatches.length !== fileMatches.length) {
+            setShowAllMatchesStates(Array(fileMatches.length).fill(false));
+            virtualizer.scrollToIndex(0);
+        }
+    }, [fileMatches.length, prevFileMatches, virtualizer]);
 
-        setLastShowAllMatchesButtonClickIndex(-1);
-    }, [lastShowAllMatchesButtonClickIndex, virtualizer]);
-
-    // Reset some state when the file matches change.
+    // Save the scroll state to the history stack.
+    const debouncedScrollOffset = useDebounce(virtualizer.scrollOffset, 100);
     useEffect(() => {
-        setShowAllMatchesStates(Array(fileMatches.length).fill(false));
-        virtualizer.scrollToIndex(0);
-    }, [fileMatches, virtualizer]);
+        history.replaceState(
+            {
+                scrollOffset: debouncedScrollOffset ?? undefined,
+                measurementsCache: virtualizer.measurementsCache,
+                showAllMatchesStates,
+            } satisfies ScrollHistoryState,
+            '',
+            window.location.href
+        );
+    }, [debouncedScrollOffset, virtualizer.measurementsCache, showAllMatchesStates]);
+
+    const onShowAllMatchesButtonClicked = useCallback((index: number) => {
+        const states = [...showAllMatchesStates];
+        const wasShown = states[index];
+        states[index] = !wasShown;
+        setShowAllMatchesStates(states);
+
+        // When collapsing, scroll to the top of the file match container. This ensures
+        // that the focused "show fewer matches" button is visible.
+        if (wasShown) {
+            virtualizer.scrollToIndex(index, {
+                align: 'start'
+            });
+        }
+    }, [showAllMatchesStates, virtualizer]);
+
 
     return (
         <div
@@ -140,11 +150,8 @@ export const SearchResultsPanel = ({
                         >
                             <FileMatchContainer
                                 file={file}
-                                onOpenFile={() => {
-                                    onOpenFileMatch(file);
-                                }}
-                                onMatchIndexChanged={(matchIndex) => {
-                                    onMatchIndexChanged(matchIndex);
+                                onOpenFilePreview={(matchIndex) => {
+                                    onOpenFilePreview(file, matchIndex);
                                 }}
                                 showAllMatches={showAllMatchesStates[virtualRow.index]}
                                 onShowAllMatchesButtonClicked={() => {

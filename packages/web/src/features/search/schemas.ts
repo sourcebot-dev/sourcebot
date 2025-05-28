@@ -63,6 +63,9 @@ export const searchResponseSchema = z.object({
         regexpsConsidered: z.number(),
         flushReason: z.number(),
     }),
+    stats: z.object({
+        matchCount: z.number(),
+    }),
     files: z.array(z.object({
         fileName: z.object({
             // The name of the file
@@ -111,4 +114,5 @@ export const fileSourceRequestSchema = z.object({
 export const fileSourceResponseSchema = z.object({
     source: z.string(),
     language: z.string(),
+    webUrl: z.string().optional(),
 });

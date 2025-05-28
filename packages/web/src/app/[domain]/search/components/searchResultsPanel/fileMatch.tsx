@@ -1,25 +1,33 @@
 'use client';
 
-import { useMemo } from "react";
-import { CodePreview } from "./codePreview";
+import { useCallback, useMemo } from "react";
 import { SearchResultFile, SearchResultChunk } from "@/features/search/types";
 import { base64Decode } from "@/lib/utils";
+import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 
 
 interface FileMatchProps {
     match: SearchResultChunk;
     file: SearchResultFile;
-    onOpen: () => void;
+    onOpen: (startLineNumber: number, endLineNumber: number, isCtrlKeyPressed: boolean) => void;
 }
 
 export const FileMatch = ({
     match,
     file,
-    onOpen,
+    onOpen: _onOpen,
 }: FileMatchProps) => {
+
     const content = useMemo(() => {
         return base64Decode(match.content);
     }, [match.content]);
+
+    const onOpen = useCallback((isCtrlKeyPressed: boolean) => {
+        const startLineNumber = match.contentStart.lineNumber;
+        const endLineNumber = content.trimEnd().split('\n').length + startLineNumber - 1;
+
+        _onOpen(startLineNumber, endLineNumber, isCtrlKeyPressed);
+    }, [content, match.contentStart.lineNumber, _onOpen]);
 
     // If it's just the title, don't show a code preview
     if (match.matchRanges.length === 0) {
@@ -29,21 +37,28 @@ export const FileMatch = ({
     return (
         <div
             tabIndex={0}
-            className="cursor-pointer focus:ring-inset focus:ring-4 bg-white dark:bg-[#282c34]"
+            className="cursor-pointer focus:ring-inset focus:ring-4 bg-background hover:bg-editor-lineHighlight"
             onKeyDown={(e) => {
                 if (e.key !== "Enter") {
                     return;
                 }
-                onOpen();
+
+                onOpen(e.metaKey || e.ctrlKey);
             }}
-            onClick={onOpen}
+            onClick={(e) => {
+                onOpen(e.metaKey || e.ctrlKey);
+            }}
+            title="open file: click, open file preview: cmd/ctrl + click"
         >
-            <CodePreview
-                content={content}
+            <LightweightCodeHighlighter
                 language={file.language}
-                ranges={match.matchRanges}
-                lineOffset={match.contentStart.lineNumber - 1}
-            />
+                highlightRanges={match.matchRanges}
+                lineNumbers={true}
+                lineNumbersOffset={match.contentStart.lineNumber}
+                renderWhitespace={true}
+            >
+                {content}
+            </LightweightCodeHighlighter>
         </div>
     );
 }
