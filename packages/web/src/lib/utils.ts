@@ -300,7 +300,7 @@ export const requiredQueryParamGuard = (request: NextRequest, param: string): Se
     if (!value) {
         return {
             statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.MISSING_QUERY_PARAM,
+            errorCode: ErrorCode.MISSING_REQUIRED_QUERY_PARAMETER,
             message: `Missing required query param: ${param}`,
         };
     }
