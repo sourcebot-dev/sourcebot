@@ -16,7 +16,7 @@ export const newsData: NewsItem[] = [
   {
     unique_id: "search-contexts",
     header: "Search contexts",
-    sub_header: "Group repos into different search contexts to search against",
+    sub_header: "Filter searches by groups of repos",
     url: "https://docs.sourcebot.dev/docs/search/search-contexts"
   }
 ]; 
