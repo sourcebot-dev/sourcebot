@@ -266,7 +266,18 @@ export const SearchBar = ({
                 indentWithTab={false}
                 autoFocus={autoFocus ?? false}
             />
-            <KeyboardShortcutHint shortcut="/" />
+            <Tooltip
+                delayDuration={100}
+            >
+                <TooltipTrigger asChild>
+                    <div>
+                        <KeyboardShortcutHint shortcut="/" />
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
+                    Focus search bar
+                </TooltipContent>
+            </Tooltip>
             <SearchSuggestionsBox
                 ref={suggestionBoxRef}
                 query={query}
