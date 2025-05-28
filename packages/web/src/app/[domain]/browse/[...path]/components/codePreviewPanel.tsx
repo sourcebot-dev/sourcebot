@@ -17,6 +17,7 @@ import { EditorContextMenu } from "../../../components/editorContextMenu";
 import { BrowseHighlightRange, HIGHLIGHT_RANGE_QUERY_PARAM, useBrowseNavigation } from "../../hooks/useBrowseNavigation";
 import { useBrowseState } from "../../hooks/useBrowseState";
 import { rangeHighlightingExtension } from "./rangeHighlightingExtension";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface CodePreviewPanelProps {
     path: string;
@@ -40,6 +41,7 @@ export const CodePreviewPanel = ({
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
     const { updateBrowseState } = useBrowseState();
     const { navigateToPath } = useBrowseNavigation();
+    const captureEvent = useCaptureEvent();
 
     const highlightRangeQuery = useNonEmptyQueryParam(HIGHLIGHT_RANGE_QUERY_PARAM);
     const highlightRange = useMemo((): BrowseHighlightRange | undefined => {
@@ -132,6 +134,8 @@ export const CodePreviewPanel = ({
     }, [editorRef, highlightRange]);
 
     const onFindReferences = useCallback((symbolName: string) => {
+        captureEvent('wa_browse_find_references_pressed', {});
+
         updateBrowseState({
             selectedSymbolInfo: {
                 repoName,
@@ -142,12 +146,14 @@ export const CodePreviewPanel = ({
             isBottomPanelCollapsed: false,
             activeExploreMenuTab: "references",
         })
-    }, [updateBrowseState, repoName, revisionName, language]);
+    }, [captureEvent, updateBrowseState, repoName, revisionName, language]);
 
 
     // If we resolve multiple matches, instead of navigating to the first match, we should
     // instead popup the bottom sheet with the list of matches.
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
+        captureEvent('wa_browse_goto_definition_pressed', {});
+
         if (symbolDefinitions.length === 0) {
             return;
         }
@@ -175,7 +181,7 @@ export const CodePreviewPanel = ({
                 isBottomPanelCollapsed: false,
             })
         }
-    }, [navigateToPath, revisionName, updateBrowseState, repoName, language]);
+    }, [captureEvent, navigateToPath, revisionName, updateBrowseState, repoName, language]);
 
     const theme = useCodeMirrorTheme();
 

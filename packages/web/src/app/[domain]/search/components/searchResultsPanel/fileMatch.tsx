@@ -48,7 +48,7 @@ export const FileMatch = ({
             onClick={(e) => {
                 onOpen(e.metaKey || e.ctrlKey);
             }}
-            title="Open file preview (cmd/ctrl + click)"
+            title="open file: click, open file preview: cmd/ctrl + click"
         >
             <LightweightCodeHighlighter
                 language={file.language}

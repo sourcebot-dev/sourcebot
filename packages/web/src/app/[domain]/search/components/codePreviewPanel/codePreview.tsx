@@ -21,6 +21,7 @@ import { SymbolHoverPopup } from "@/ee/features/codeNav/components/symbolHoverPo
 import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { SymbolDefinition } from "@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 export interface CodePreviewFile {
     content: string;
@@ -56,6 +57,8 @@ export const CodePreview = ({
     const keymapExtension = useKeymapExtension(editorRef?.view);
     const languageExtension = useCodeMirrorLanguageExtension(file?.language ?? '', editorRef?.view);
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
+
+    const captureEvent = useCaptureEvent();
 
     const extensions = useMemo(() => {
         return [
@@ -112,6 +115,8 @@ export const CodePreview = ({
     }, [onSelectedMatchIndexChange]);
 
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
+        captureEvent('wa_preview_panel_goto_definition_pressed', {});
+
         if (symbolDefinitions.length === 0) {
             return;
         }
@@ -145,9 +150,11 @@ export const CodePreview = ({
                 }
             });
         }
-    }, [file.filepath, file.language, file.revision, navigateToPath, repoName]);
+    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName]);
     
     const onFindReferences = useCallback((symbolName: string) => {
+        captureEvent('wa_preview_panel_find_references_pressed', {});
+
         navigateToPath({
             repoName,
             revisionName: file.revision,
@@ -164,7 +171,7 @@ export const CodePreview = ({
                 isBottomPanelCollapsed: false,
             }
         })
-    }, [file.filepath, file.language, file.revision, navigateToPath, repoName]);
+    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName]);
 
     return (
         <div className="flex flex-col h-full">

@@ -8,6 +8,7 @@ import { FindRelatedSymbolsResponse } from "@/features/codeNav/types";
 import { RepositoryInfo, SourceRange } from "@/features/search/types";
 import { base64Decode } from "@/lib/utils";
 import { useMemo } from "react";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface ReferenceListProps {
     data: FindRelatedSymbolsResponse;
@@ -26,6 +27,7 @@ export const ReferenceList = ({
     }, [data.repositoryInfo]);
 
     const { navigateToPath } = useBrowseNavigation();
+    const captureEvent = useCaptureEvent();
 
     return (
         <ScrollArea className="h-full">
@@ -56,6 +58,7 @@ export const ReferenceList = ({
                                         range={match.range}
                                         language={file.language}
                                         onClick={() => {
+                                            captureEvent('wa_explore_menu_reference_clicked', {});
                                             navigateToPath({
                                                 repoName: file.repository,
                                                 revisionName,
