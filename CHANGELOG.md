@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed issue with how entitlements are resolved for cloud. [#319](https://github.com/sourcebot-dev/sourcebot/pull/319)
+
 ## [4.0.0] - 2025-05-28
 
 Sourcebot V4 introduces authentication, performance improvements and code navigation. Checkout the [migration guide](https://docs.sourcebot.dev/self-hosting/upgrade/v3-to-v4-guide) for information on upgrading your instance to v4.

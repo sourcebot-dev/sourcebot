@@ -1,5 +1,5 @@
 import { env } from "@/env.mjs"
-import { Entitlement, entitlementsByPlan, Plan, isValidEntitlement } from "./constants"
+import { Entitlement, entitlementsByPlan, Plan } from "./constants"
 import { base64Decode } from "@/lib/utils";
 import { z } from "zod";
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
@@ -12,7 +12,6 @@ const eeLicenseKeyPayloadSchema = z.object({
     seats: z.number(),
     // ISO 8601 date string
     expiryDate: z.string().datetime(),
-    customEntitlements: z.array(z.string()).optional()
 });
 
 type LicenseKeyPayload = z.infer<typeof eeLicenseKeyPayloadSchema>;
@@ -39,6 +38,10 @@ export const getLicenseKey = (): LicenseKeyPayload | null => {
 
 export const getPlan = (): Plan => {
     if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT) {
+        if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo") {
+            return "cloud:demo";
+        }
+
         return "cloud:team";
     }
 
@@ -50,9 +53,6 @@ export const getPlan = (): Plan => {
             process.exit(1);
         }
 
-        if (licenseKey.customEntitlements) {
-            return "self-hosted:enterprise-custom";
-        }
         return licenseKey.seats === SOURCEBOT_UNLIMITED_SEATS ? "self-hosted:enterprise-unlimited" : "self-hosted:enterprise";
     } else {
         console.info(`No valid license key found. Falling back to oss plan.`);
@@ -71,30 +71,6 @@ export const hasEntitlement = (entitlement: Entitlement) => {
 }
 
 export const getEntitlements = (): Entitlement[] => {
-    const licenseKey = getLicenseKey();
-    if (!licenseKey) {
-        return entitlementsByPlan["oss"];
-    }
-
     const plan = getPlan();
-    if (plan === "self-hosted:enterprise-custom") {
-        const customEntitlements = licenseKey.customEntitlements;
-        if (!customEntitlements) {
-            console.error(`The provided license key is under the self-hosted:enterprise-custom plan but has no custom entitlements. Returning oss entitlements.`);
-            return entitlementsByPlan["oss"];
-        }
-
-        const validCustomEntitlements: Entitlement[] = [];
-        for (const entitlement of customEntitlements) {
-            if (!isValidEntitlement(entitlement)) {
-                console.error(`Invalid custom entitlement "${entitlement}" provided in license key. Skipping.`);
-                continue;
-            }
-            validCustomEntitlements.push(entitlement as Entitlement);
-        }
-
-        return validCustomEntitlements;
-    }
-
     return entitlementsByPlan[plan];
 }
