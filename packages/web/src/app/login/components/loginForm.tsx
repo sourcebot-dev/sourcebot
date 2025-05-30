@@ -1,12 +1,11 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import googleLogo from "@/public/google.svg";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { Fragment, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { cn, getCodeHostIcon } from "@/lib/utils";
+import { cn, getAuthProviderInfo } from "@/lib/utils";
 import { MagicLinkForm } from "./magicLinkForm";
 import { CredentialsForm } from "./credentialsForm";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
@@ -22,15 +21,10 @@ const PRIVACY_POLICY_URL = "https://sourcebot.dev/privacy";
 interface LoginFormProps {
     callbackUrl?: string;
     error?: string;
-    enabledMethods: {
-        github: boolean;
-        google: boolean;
-        magicLink: boolean;
-        credentials: boolean;
-    }
+    providers: Array<{ id: string; name: string }>;
 }
 
-export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps) => {
+export const LoginForm = ({ callbackUrl, error, providers }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
     const onSignInWithOauth = useCallback((provider: string) => {
         signIn(provider, { redirectTo: callbackUrl ?? "/" });
@@ -49,6 +43,33 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
                 return "An error occurred during authentication. Please try again.";
         }
     }, [error]);
+
+    // Separate OAuth providers from special auth methods
+    const oauthProviders = providers.filter(p => 
+        !["credentials", "nodemailer"].includes(p.id)
+    );
+    const hasCredentials = providers.some(p => p.id === "credentials");
+    const hasMagicLink = providers.some(p => p.id === "nodemailer");
+
+    // Helper function to get the correct analytics event name
+    const getLoginEventName = (providerId: string) => {
+        switch (providerId) {
+            case "github":
+                return "wa_login_with_github" as const;
+            case "google":
+                return "wa_login_with_google" as const;
+            case "gitlab":
+                return "wa_login_with_gitlab" as const;
+            case "okta":
+                return "wa_login_with_okta" as const;
+            case "keycloak":
+                return "wa_login_with_keycloak" as const;
+            case "microsoft-entra-id":
+                return "wa_login_with_microsoft_entra_id" as const;
+            default:
+                return "wa_login_with_github" as const; // fallback
+        }
+    };
 
     return (
         <div className="flex flex-col items-center justify-center w-full">
@@ -71,36 +92,28 @@ export const LoginForm = ({ callbackUrl, error, enabledMethods }: LoginFormProps
                 )}
                 <DividerSet
                     elements={[
-                        ...(enabledMethods.github || enabledMethods.google ? [
-                            <>
-                                {enabledMethods.github && (
-                                    <ProviderButton
-                                        key="github"
-                                        name="GitHub"
-                                        logo={getCodeHostIcon("github")!}
-                                        onClick={() => {
-                                            captureEvent("wa_login_with_github", {});
-                                            onSignInWithOauth("github")
-                                        }}
-                                    />
-                                )}
-                                {enabledMethods.google && (
-                                    <ProviderButton
-                                        key="google"
-                                        name="Google"
-                                        logo={{ src: googleLogo }}
-                                        onClick={() => {
-                                            captureEvent("wa_login_with_google", {});
-                                            onSignInWithOauth("google")
-                                        }}
-                                    />
-                                )}
-                            </>
+                        ...(oauthProviders.length > 0 ? [
+                            <div key="oauth-providers" className="w-full space-y-3">
+                                {oauthProviders.map((provider) => {
+                                    const providerInfo = getAuthProviderInfo(provider.id);
+                                    return (
+                                        <ProviderButton
+                                            key={provider.id}
+                                            name={providerInfo.displayName}
+                                            logo={providerInfo.icon}
+                                            onClick={() => {
+                                                captureEvent(getLoginEventName(provider.id), {});
+                                                onSignInWithOauth(provider.id);
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </div>
                         ] : []),
-                        ...(enabledMethods.magicLink ? [
+                        ...(hasMagicLink ? [
                             <MagicLinkForm key="magic-link" callbackUrl={callbackUrl} />
                         ] : []),
-                        ...(enabledMethods.credentials ? [
+                        ...(hasCredentials ? [
                             <CredentialsForm key="credentials" callbackUrl={callbackUrl} />
                         ] : [])
                     ]}
@@ -120,7 +133,7 @@ const ProviderButton = ({
     className,
 }: {
     name: string;
-    logo: { src: string, className?: string };
+    logo: { src: string, className?: string } | null;
     onClick: () => void;
     className?: string;
 }) => {

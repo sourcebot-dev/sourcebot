@@ -20,11 +20,11 @@ export default async function Login({ searchParams }: LoginProps) {
     }
 
     const providers = getProviders();
-    const providerMap = providers
+    const providerData = providers
         .map((provider) => {
             if (typeof provider === "function") {
-                const providerData = provider()
-                return { id: providerData.id, name: providerData.name }
+                const providerInfo = provider()
+                return { id: providerInfo.id, name: providerInfo.name }
             } else {
                 return { id: provider.id, name: provider.name }
             }
@@ -36,12 +36,7 @@ export default async function Login({ searchParams }: LoginProps) {
                 <LoginForm
                     callbackUrl={searchParams.callbackUrl}
                     error={searchParams.error}
-                    enabledMethods={{
-                        github: providerMap.some(provider => provider.id === "github"),
-                        google: providerMap.some(provider => provider.id === "google"),
-                        magicLink: providerMap.some(provider => provider.id === "nodemailer"),
-                        credentials: providerMap.some(provider => provider.id === "credentials"),
-                    }}
+                    providers={providerData}
                 />
             </div>
             <Footer />

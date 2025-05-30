@@ -6,6 +6,10 @@ import giteaLogo from "@/public/gitea.svg";
 import gerritLogo from "@/public/gerrit.svg";
 import bitbucketLogo from "@/public/bitbucket.svg";
 import gitLogo from "@/public/git.svg";
+import googleLogo from "@/public/google.svg";
+import oktaLogo from "@/public/okta.svg";
+import keycloakLogo from "@/public/keycloak.svg";
+import microsoftLogo from "@/public/microsoft_entra.svg";
 import { ServiceError } from "./serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
@@ -43,6 +47,105 @@ export type CodeHostType =
     "bitbucket-cloud" |
     "bitbucket-server" |
     "generic-git-host";
+
+export type AuthProviderType = 
+    "github" |
+    "gitlab" |
+    "google" |
+    "okta" |
+    "keycloak" |
+    "microsoft-entra-id" |
+    "credentials" |
+    "nodemailer";
+
+type AuthProviderInfo = {
+    id: string;
+    name: string;
+    displayName: string;
+    icon: { src: string; className?: string } | null;
+}
+
+export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
+    switch (providerId) {
+        case "github":
+            return {
+                id: "github",
+                name: "GitHub",
+                displayName: "GitHub",
+                icon: {
+                    src: githubLogo,
+                    className: "dark:invert",
+                },
+            };
+        case "gitlab":
+            return {
+                id: "gitlab", 
+                name: "GitLab",
+                displayName: "GitLab",
+                icon: {
+                    src: gitlabLogo,
+                },
+            };
+        case "google":
+            return {
+                id: "google",
+                name: "Google", 
+                displayName: "Google",
+                icon: {
+                    src: googleLogo,
+                },
+            };
+        case "okta":
+            return {
+                id: "okta",
+                name: "Okta",
+                displayName: "Okta", 
+                icon: {
+                    src: oktaLogo,
+                    className: "dark:invert",
+                },
+            };
+        case "keycloak":
+            return {
+                id: "keycloak",
+                name: "Keycloak",
+                displayName: "Keycloak",
+                icon: {
+                    src: keycloakLogo,
+                },
+            };
+        case "microsoft-entra-id":
+            return {
+                id: "microsoft-entra-id",
+                name: "Microsoft Entra ID",
+                displayName: "Microsoft Entra ID",
+                icon: {
+                    src: microsoftLogo,
+                },
+            };
+        case "credentials":
+            return {
+                id: "credentials",
+                name: "Credentials",
+                displayName: "Email & Password",
+                icon: null, // No icon needed for credentials
+            };
+        case "nodemailer":
+            return {
+                id: "nodemailer",
+                name: "Email",
+                displayName: "Email Code",
+                icon: null, // No icon needed for email
+            };
+        default:
+            return {
+                id: providerId,
+                name: providerId,
+                displayName: providerId.charAt(0).toUpperCase() + providerId.slice(1),
+                icon: null,
+            };
+    }
+};
 
 type CodeHostInfo = {
     type: CodeHostType;
