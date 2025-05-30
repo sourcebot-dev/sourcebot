@@ -7,7 +7,7 @@ sidebarTitle: Authentication
 
 Sourcebot has built-in authentication that gates access to your organization. OAuth, email codes, and email / password are supported. 
 
-The first account that's registered on a Sourcebot deployment is made the owner. All other users who register must be [approved](/self-hosting/configuration/authentication#approving-new-members) by the owner.
+The first account that's registered on a Sourcebot deployment is made the owner. All other users who register must be [approved](/docs/configuration/authentication#approving-new-members) by the owner.
 
 ![Login Page](/images/login.png)
 
@@ -16,10 +16,10 @@ The first account that's registered on a Sourcebot deployment is made the owner.
 
 All account registrations after the first account must be approved by the owner. The owner can see all join requests by going into **Settings -> Members**.
 
-If you have an [enterprise license](/self-hosting/license-key), you can enable [AUTH_EE_ENABLE_JIT_PROVISIONING](/self-hosting/configuration/authentication#enterprise-authentication-providers) to 
+If you have an [enterprise license](/docs/license-key), you can enable [AUTH_EE_ENABLE_JIT_PROVISIONING](/docs/configuration/authentication#enterprise-authentication-providers) to 
 have Sourcebot accounts automatically created and approved on registration.
 
-You can setup emails to be sent when new join requests are created/approved by configurating [transactional emails](/self-hosting/configuration/transactional-emails)
+You can setup emails to be sent when new join requests are created/approved by configurating [transactional emails](/docs/configuration/transactional-emails)
 # Authentication Providers
 
 To enable an authentication provider in Sourcebot, configure the required environment variables for the provider. Under the hood, Sourcebot uses Auth.js which supports [many providers](https://authjs.dev/getting-started/authentication/oauth). Submit a [feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas) if you want us to add support for a specific provider.
@@ -39,11 +39,11 @@ Email codes are 6 digit codes sent to a provided email. Email codes are enabled 
 - `EMAIL_FROM_ADDRESS`
 
 
-See [transactional emails](/self-hosting/configuration/transactional-emails) for more details.
+See [transactional emails](/docs/configuration/transactional-emails) for more details.
 
 ## Enterprise Authentication Providers
 
-The following authentication providers require an [enterprise license](/self-hosting/license-key) to be enabled.
+The following authentication providers require an [enterprise license](/docs/license-key) to be enabled.
 
 By default, a new user registering using these providers must have their join request accepted by the owner of the organization to join. To allow a user to join automatically when
 they register for the first time, set the `AUTH_EE_ENABLE_JIT_PROVISIONING` environment variable to `true`. 

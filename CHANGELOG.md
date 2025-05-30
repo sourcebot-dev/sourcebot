@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.0.0] - 2025-05-28
 
-Sourcebot V4 introduces authentication, performance improvements and code navigation. Checkout the [migration guide](https://docs.sourcebot.dev/self-hosting/upgrade/v3-to-v4-guide) for information on upgrading your instance to v4.
+Sourcebot V4 introduces authentication, performance improvements and code navigation. Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v3-to-v4-guide) for information on upgrading your instance to v4.
 
 ### Changed
 - [**Breaking Change**] Authentication is now required by default. Notes:
@@ -25,7 +25,7 @@ Sourcebot V4 introduces authentication, performance improvements and code naviga
   - The first user that logs into the instance is given the `owner` role. ([docs](https://docs.sourcebot.dev/docs/more/roles-and-permissions)).
   - Subsequent users can request to join the instance. The `owner` can approve / deny requests to join the instance via `Settings` > `Members` > `Pending Requests`.
   - If a user is approved to join the instance, they are given the `member` role.
-  - Additional login providers, including email links and SSO, can be configured with additional environment variables. ([docs](https://docs.sourcebot.dev/self-hosting/configuration/authentication)).
+  - Additional login providers, including email links and SSO, can be configured with additional environment variables. ([docs](https://docs.sourcebot.dev/docs/configuration/authentication)).
 - Clicking on a search result now takes you to the `/browse` view. Files can still be previewed by clicking the "Preview" button or holding `Cmd` / `Ctrl` when clicking on a search result. [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
 
 ### Added
@@ -113,17 +113,17 @@ Sourcebot V4 introduces authentication, performance improvements and code naviga
 
 ## [3.0.0] - 2025-04-01
 
-Sourcebot v3 is here and brings a number of structural changes to the tool's foundation, including a SQL database, parallelized indexing, authentication support, multitenancy, and more. Checkout the [migration guide](https://docs.sourcebot.dev/self-hosting/upgrade/v2-to-v3-guide) for information on upgrading your instance to v3.
+Sourcebot v3 is here and brings a number of structural changes to the tool's foundation, including a SQL database, parallelized indexing, authentication support, multitenancy, and more. Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v2-to-v3-guide) for information on upgrading your instance to v3.
 
 ### Changed
-- [**Breaking Change**] Changed the config schema such that connection objects are specified in the `connection` map, instead of the `repos` array. [See migration guide](https://docs.sourcebot.dev/self-hosting/upgrade/v2-to-v3-guide).
+- [**Breaking Change**] Changed the config schema such that connection objects are specified in the `connection` map, instead of the `repos` array. [See migration guide](https://docs.sourcebot.dev/docs/upgrade/v2-to-v3-guide).
 - Updated the tool's color-palette in dark mode.
 
 ### Added
-- Added parallelized repo indexing and connection syncing via Redis & BullMQ. See the [architecture overview](https://docs.sourcebot.dev/self-hosting/overview#architecture).
+- Added parallelized repo indexing and connection syncing via Redis & BullMQ. See the [architecture overview](https://docs.sourcebot.dev/docs/overview#architecture).
 - Added repo indexing progress indicators in the navbar.
-- Added authentication support via OAuth or email/password. For instructions on enabling, see [this doc](https://docs.sourcebot.dev/self-hosting/configuration/authentication).
-- Added the following UI for managing your deployment when **[auth is enabled](https://docs.sourcebot.dev/self-hosting/configuration/authentication)**:
+- Added authentication support via OAuth or email/password. For instructions on enabling, see [this doc](https://docs.sourcebot.dev/docs/configuration/authentication).
+- Added the following UI for managing your deployment when **[auth is enabled](https://docs.sourcebot.dev/docs/configuration/authentication)**:
   - connection management: create and manage your JSON configs via a integrated web-editor.
   - secrets: import personal access tokens (PAT) into Sourcebot (AES-256 encrypted). Reference secrets in your connection config by name.
   - team & invite management: invite users to your instance to give them access. Configure team [roles & permissions](https://docs.sourcebot.dev/docs/more/roles-and-permissions).

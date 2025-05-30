@@ -8,7 +8,7 @@ This guide will walk you through upgrading your Sourcebot deployment from v3 to 
 <Warning>
 Please note that the following features are no longer supported in v4:
 - Multi-tenancy mode
-- Unauthenticated access to a Sourcebot deployment - authentication is now built in by default. Unauthenticated access to a organization can be enabled with an unlimited seat [enterprise license](/self-hosting/license-key) 
+- Unauthenticated access to a Sourcebot deployment - authentication is now built in by default. Unauthenticated access to a organization can be enabled with an unlimited seat [enterprise license](/docs/license-key) 
 </Warning>
 
 ### If your deployment doesn't have authentication enabled
@@ -22,12 +22,12 @@ Please note that the following features are no longer supported in v4:
         When you visit your new deployment you'll be presented with a sign-in page. Sourcebot now requires authentication, and all users must register and sign-in to the deployment.
 
         The first account that's registered will be made the owner. By default, you can register using basic credentials which will be stored encrypted within the postgres DB connected to Sourcebot. Check out
-        the [auth docs](/self-hosting/configuration/authentication) to setup additional auth providers.
+        the [auth docs](/docs/configuration/authentication) to setup additional auth providers.
 
         <img width="600" height="500" style={{ borderRadius: '0.5rem' }} src="/images/login_basic.png" />
     </Step>
     <Step title="(Optional) Configure transactional emails">
-        Emails can be sent on organization join request/approval by configuring [transactional emails](/self-hosting/configuration/transactional-emails)
+        Emails can be sent on organization join request/approval by configuring [transactional emails](/docs/configuration/transactional-emails)
 
         <img width="500" height="600" style={{ borderRadius: '0.5rem' }} src="/images/join_request_email.png" />
     </Step>
@@ -36,7 +36,7 @@ Please note that the following features are no longer supported in v4:
 
         ![Pending Approval Page](/images/pending_approval.png)
 
-        The owner can view and approve join requests by navigating to **Settings -> Members**. Automatic provisioning of accounts is supported when using SSO/Oauth providers, check out the [auth docs](/self-hosting/configuration/authentication#enterprise-authentication-providers) for more info
+        The owner can view and approve join requests by navigating to **Settings -> Members**. Automatic provisioning of accounts is supported when using SSO/Oauth providers, check out the [auth docs](/docs/configuration/authentication#enterprise-authentication-providers) for more info
 
     </Step>
     <Step title="You're done!">
@@ -47,11 +47,11 @@ Please note that the following features are no longer supported in v4:
 ### If your deployment has authentication enabled
 
 The only change that's required if your deployment has authentication enabled is to unset the `SOURCEBOT_AUTH_ENABLED` environment variable. New user registrations will now submit a request to join the organization which can be approved by the owner by 
-navigating to **Settings -> Members**. Emails can be sent on organization join request/approval by configuring [transactional emails](/self-hosting/configuration/transactional-emails)
+navigating to **Settings -> Members**. Emails can be sent on organization join request/approval by configuring [transactional emails](/docs/configuration/transactional-emails)
 
 ### If your deployment uses multi-tenancy mode
 
-Unfortunately, multi-tenancy mode is no longer officially supported in v4. To upgrade to v4, you'll need to unset the `SOURCEBOT_TENANCY_MODE` environment variable and wipe your Sourcebot cache. You can then follow the [instructions above](/self-hosting/upgrade/v3-to-v4-guide#if-your-deployment-doesnt-have-authentication-enabled)
+Unfortunately, multi-tenancy mode is no longer officially supported in v4. To upgrade to v4, you'll need to unset the `SOURCEBOT_TENANCY_MODE` environment variable and wipe your Sourcebot cache. You can then follow the [instructions above](/docs/upgrade/v3-to-v4-guide#if-your-deployment-doesnt-have-authentication-enabled)
 to finish upgrading to v4 in single-tenant mode.
 
 ## Troubleshooting

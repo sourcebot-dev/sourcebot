@@ -2,19 +2,137 @@
 title: "Overview"
 ---
 
-Sourcebot is an **[open-source](https://github.com/sourcebot-dev/sourcebot) code search tool** that is purpose built to search multi-million line codebases in seconds. It integrates with [GitHub](/docs/connections/github), [GitLab](/docs/connections/gitlab), and [other platforms](/docs/connections).
+import SupportedPlatforms from '/snippets/platform-support.mdx'
 
-## Getting Started
+Sourcebot is an [open-source](https://github.com/sourcebot-dev/sourcebot) code search tool that is purpose built to search multi-million line codebases in seconds. It integrates with [GitHub](/docs/connections/github), [GitLab](/docs/connections/gitlab), and [other platforms](/docs/connections).
 
-There are two ways to get started using Sourcebot:
+## Features
+---
 
-<CardGroup cols={2}>
-  <Card horizontal title="Self-Host" icon="server" href="/self-hosting/overview">
-    Deploy Sourcebot on your own infrastructure.
-  </Card>
-  <Card horizontal title="Sourcebot Cloud" icon="cloud" href="/docs/getting-started">
-    Use Sourcebot on our managed infrastructure.
-  </Card>
-</CardGroup>
+### Fast-indexed based search
 
-We also have a [public demo](https://demo.sourcebot.dev) if you'd like to try Sourcebot out before registering.
+Search across millions of lines of code in seconds using Sourcebot's blazingly fast indexed search. Find exactly what you are looking for with regular expressions, search filters, boolean logic, and more.
+
+<Accordion title="Key benefits">
+- **Regex support:** Use regular expressions to find code with precision.
+- **Query language:** Scope searches to specific files, repos, languages, symbol definitions and more using a rich [query language](/docs/search/syntax-reference).
+- **Fast & scalable:** Sourcebot uses [trigram indexing](https://en.wikipedia.org/wiki/Trigram_search), allowing it to scale to massive codebases.
+- **Syntax highlighting:** Syntax highlighting support for over [100+ languages](https://github.com/sourcebot-dev/sourcebot/blob/57724689303f351c279d37f45b6406f1d5d5d5ab/packages/web/src/lib/codemirrorLanguage.ts#L125).
+- **Multi-repository:** Search across all of your repositories in a single search.
+- **Search suggestions:** Get search suggestions as you craft your query.
+- **Filter panel:** Filter results by repository or by language.
+</Accordion>
+
+<video
+  autoPlay
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video"
+  src="https://framerusercontent.com/assets/cEqHNSLiMbNeG3bk5xheQWXmKqc.mp4"
+></video>
+
+### Code Navigation
+
+[Code navigation](/docs/search/code-navigation) helps you jump between symbol definitions and references quickly when browsing source code in Sourcebot.
+
+<Accordion title="Key benefits">
+- **Hover popover:** Hovering over a symbol reveals the symbol's definition signature in a inline preview.
+- **Go to definition:** Navigate to a symbol's definition(s).
+- **Find references:** Get all references to a symbol.
+- **Cross-repository:** Sourcebot can resolve references and definitions across repositories.
+</Accordion>
+
+<video
+  autoPlay
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video"
+  src="https://framerusercontent.com/assets/B9ZxrlsUeO9NJyzkKyvVV2KSU4.mp4"
+></video>
+
+
+### Multi code-host support
+
+Connect your code from multiple code-host platforms and search them all from a single interface.
+
+<Accordion title="Key benefits">
+- **Auto re-indexing:** Sourcebot will take care of keeping it's index upto date with the latest changes.
+</Accordion>
+
+<Columns cols={4}>
+  <Tooltip tip="GitHub.com | Enterprise Server | Enterprise Cloud">
+    <Card title="GitHub" img="/images/github.png" href="/docs/connections/github" />
+  </Tooltip>
+  <Tooltip tip="GitLab.com | Self Managed (CE & EE) | Dedicated">
+    <Card title="GitLab" img="/images/gitlab.png" href="/docs/connections/gitlab" />
+  </Tooltip>
+  <Tooltip tip="Bitbucket cloud | Bitbucket Data Center">
+    <Card title="BitBucket" img="/images/bitbucket.png" href="/docs/connections/bitbucket-cloud" />
+  </Tooltip>
+  <Tooltip tip="Gitea.com | Gitea Self-hosted">
+    <Card title="Gitea" img="/images/gitea.png" href="/docs/connections/gitea" />
+  </Tooltip>
+  <Card title="Gerrit" img="/images/gerrit.png" href="/docs/connections/gerrit" />
+  <Card title="Other Git Hosts" img="/images/git.png" href="/docs/connections/generic-git-host" />
+  <Card title="Local Git Repos" img="/images/local.png" href="/docs/connections/local-repos" />
+</Columns>
+
+
+### Authentication
+
+TODO
+
+### Light / Dark mode support
+
+TODO
+
+### Self-hosted
+
+TODO
+
+## Architecture
+
+Sourcebot is shipped as a single docker container that runs a collection of services using [supervisord](https://supervisord.org/):
+
+![architecture diagram](/images/architecture_diagram.png)
+
+{/*TODO: outline the different services, how Sourcebot communicates with code hosts, and the different*/}
+
+Sourcebot consists of the following components:
+- **Web Server** : main Next.js web application serving the Sourcebot UI.
+- **Backend Worker** : Node.js process that incrementally syncs with code hosts (e.g., GitHub, GitLab etc.) and asynchronously indexes configured repositories.
+- **Zoekt** : the [open-source](https://github.com/sourcegraph/zoekt), trigram indexing code search engine that powers Sourcebot under the hood.
+- **Postgres** : transactional database for storing business-logic data.
+- **Redis Job Queue** : fast in-memory store. Used with [BullMQ](https://docs.bullmq.io/) for queuing asynchronous work.
+- **`.sourcebot/` cache** : file-system cache where persistent data is written.
+
+You can use managed Redis / Postgres services that run outside of the Sourcebot container by providing the `REDIS_URL` and `DATABASE_URL` environment variables, respectively. See the [configuration](/self-hosting/configuration) for more configuration options.
+
+## Scalability
+
+One of our design philosophies for Sourcebot is to keep our infrastructure [radically simple](https://www.radicalsimpli.city/) while balancing scalability concerns. Depending on the number of repositories you have indexed and the instance you are running Sourcebot on, you may experience slow search times or other performance degradations. Our recommendation is to vertically scale your instance by increasing the number of CPU cores and memory.
+
+Sourcebot does not support horizontal scaling at this time, but it is on our roadmap. If this is something your team would be interested in, please contact us at [team@sourcebot.dev](mailto:team@sourcebot.dev).
+
+
+## Telemetry
+By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We don't collect or transmit <a href="https://demo.sourcebot.dev/~/search?query=captureEvent%5C(%20repo%3Asourcebot">any information related to your codebase</a>. In addition, all events are [sanitized](https://github.com/sourcebot-dev/sourcebot/blob/HEAD/packages/web/src/app/posthogProvider.tsx) to ensure that no sensitive details (ex. ip address, query info) leave your machine. 
+
+The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made.
+
+If you'd like to disable all telemetry, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `true`:
+
+```bash
+docker run \
+  -e SOURCEBOT_TELEMETRY_DISABLED=true \
+  /* additional args */ \
+  ghcr.io/sourcebot-dev/sourcebot:latest
+```
+
+If you disabled telemetry correctly, you'll see the following log when starting Sourcebot:
+
+```sh
+Disabling telemetry since SOURCEBOT_TELEMETRY_DISABLED was set.
+```
