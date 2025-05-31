@@ -1,6 +1,9 @@
 import { Script } from "../scriptRunner";
 import { PrismaClient } from "../../dist";
 import { confirmAction } from "../utils";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('migrate-duplicate-connections');
 
 // Handles duplicate connections by renaming them to be unique.
 // @see: 20250320215449_unique_connection_name_constraint_within_org
@@ -15,7 +18,7 @@ export const migrateDuplicateConnections: Script = {
             },
         })).filter(({ _count }) => _count._all > 1);
 
-        console.log(`Found ${duplicates.reduce((acc, { _count }) => acc + _count._all, 0)} duplicate connections.`);
+        logger.info(`Found ${duplicates.reduce((acc, { _count }) => acc + _count._all, 0)} duplicate connections.`);
 
         confirmAction();
 
@@ -37,7 +40,7 @@ export const migrateDuplicateConnections: Script = {
                 const connection = connections[i];
                 const newName = `${name}-${i + 1}`;
 
-                console.log(`Migrating connection with id ${connection.id} from name=${name} to name=${newName}`);
+                logger.info(`Migrating connection with id ${connection.id} from name=${name} to name=${newName}`);
 
                 await prisma.connection.update({
                     where: { id: connection.id },
@@ -47,6 +50,6 @@ export const migrateDuplicateConnections: Script = {
             }
         }
 
-        console.log(`Migrated ${migrated} connections.`);
+        logger.info(`Migrated ${migrated} connections.`);
     },
 };

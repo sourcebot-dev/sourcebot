@@ -5,6 +5,9 @@ import { prisma } from '@/prisma';
 import { ConnectionSyncStatus, StripeSubscriptionStatus } from '@sourcebot/db';
 import { stripeClient } from '@/ee/features/billing/stripe';
 import { env } from '@/env.mjs';
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('stripe-webhook');
 
 export async function POST(req: NextRequest) {
     const body = await req.text();
@@ -52,7 +55,7 @@ export async function POST(req: NextRequest) {
                     stripeLastUpdatedAt: new Date()
                 }
             });
-            console.log(`Org ${org.id} subscription status updated to INACTIVE`);
+            logger.info(`Org ${org.id} subscription status updated to INACTIVE`);
 
             return new Response(JSON.stringify({ received: true }), {
                 status: 200
@@ -80,7 +83,7 @@ export async function POST(req: NextRequest) {
                     stripeLastUpdatedAt: new Date()
                 }
             });
-            console.log(`Org ${org.id} subscription status updated to ACTIVE`);
+            logger.info(`Org ${org.id} subscription status updated to ACTIVE`);
 
             // mark all of this org's connections for sync, since their repos may have been previously garbage collected
             await prisma.connection.updateMany({
@@ -96,14 +99,14 @@ export async function POST(req: NextRequest) {
                 status: 200
             });
         } else {
-            console.log(`Received unknown event type: ${event.type}`);
+            logger.info(`Received unknown event type: ${event.type}`);
             return new Response(JSON.stringify({ received: true }), {
                 status: 202
             });
         }
 
     } catch (err) {
-        console.error('Error processing webhook:', err);
+        logger.error('Error processing webhook:', err);
         return new Response(
             'Webhook error: ' + (err as Error).message,
             { status: 400 }

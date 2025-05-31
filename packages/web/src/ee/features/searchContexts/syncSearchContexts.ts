@@ -4,6 +4,9 @@ import { SINGLE_TENANT_ORG_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { prisma } from "@/prisma";
 import { SearchContext } from "@sourcebot/schemas/v3/index.type";
 import micromatch from "micromatch";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('sync-search-contexts');
 
 export const syncSearchContexts = async (contexts?: { [key: string]: SearchContext }) => {
     if (env.SOURCEBOT_TENANCY_MODE !== 'single') {
@@ -13,7 +16,7 @@ export const syncSearchContexts = async (contexts?: { [key: string]: SearchConte
     if (!hasEntitlement("search-contexts")) {
         if (contexts) {
             const plan = getPlan();
-            console.error(`Search contexts are not supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+            logger.error(`Search contexts are not supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
         }
         return;
     }
@@ -101,7 +104,7 @@ export const syncSearchContexts = async (contexts?: { [key: string]: SearchConte
     });
 
     for (const context of deletedContexts) {
-        console.log(`Deleting search context with name '${context.name}'. ID: ${context.id}`);
+        logger.info(`Deleting search context with name '${context.name}'. ID: ${context.id}`);
         await prisma.searchContext.delete({
             where: {
                 id: context.id,

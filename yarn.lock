@@ -5759,8 +5759,6 @@ __metadata:
   resolution: "@sourcebot/backend@workspace:packages/backend"
   dependencies:
     "@gitbeaker/rest": "npm:^40.5.1"
-    "@logtail/node": "npm:^0.5.2"
-    "@logtail/winston": "npm:^0.5.2"
     "@octokit/rest": "npm:^21.0.2"
     "@sentry/cli": "npm:^2.42.2"
     "@sentry/node": "npm:^9.3.0"
@@ -5768,6 +5766,7 @@ __metadata:
     "@sourcebot/crypto": "workspace:*"
     "@sourcebot/db": "workspace:*"
     "@sourcebot/error": "workspace:*"
+    "@sourcebot/logger": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@t3-oss/env-core": "npm:^0.12.0"
     "@types/argparse": "npm:^2.0.16"
@@ -5796,7 +5795,6 @@ __metadata:
     tsx: "npm:^4.19.1"
     typescript: "npm:^5.6.2"
     vitest: "npm:^2.1.9"
-    winston: "npm:^3.15.0"
     zod: "npm:^3.24.3"
   languageName: unknown
   linkType: soft
@@ -5832,6 +5830,22 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.7.5"
     typescript: "npm:^5.7.3"
+  languageName: unknown
+  linkType: soft
+
+"@sourcebot/logger@workspace:*, @sourcebot/logger@workspace:packages/logger":
+  version: 0.0.0-use.local
+  resolution: "@sourcebot/logger@workspace:packages/logger"
+  dependencies:
+    "@logtail/node": "npm:^0.5.2"
+    "@logtail/winston": "npm:^0.5.2"
+    "@t3-oss/env-core": "npm:^0.12.0"
+    "@types/node": "npm:^22.7.5"
+    dotenv: "npm:^16.4.5"
+    triple-beam: "npm:^1.4.1"
+    typescript: "npm:^5.7.3"
+    winston: "npm:^3.15.0"
+    zod: "npm:^3.24.3"
   languageName: unknown
   linkType: soft
 
@@ -15525,7 +15539,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"triple-beam@npm:^1.3.0":
+"triple-beam@npm:^1.3.0, triple-beam@npm:^1.4.1":
   version: 1.4.1
   resolution: "triple-beam@npm:1.4.1"
   checksum: 10c0/4bf1db71e14fe3ff1c3adbe3c302f1fdb553b74d7591a37323a7badb32dc8e9c290738996cbb64f8b10dc5a3833645b5d8c26221aaaaa12e50d1251c9aba2fea

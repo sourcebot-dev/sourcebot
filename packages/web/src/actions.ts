@@ -33,10 +33,13 @@ import { hasEntitlement } from "./features/entitlements/server";
 import { getPublicAccessStatus } from "./ee/features/publicAccess/publicAccess";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
+import { createLogger } from "@sourcebot/logger";
 
 const ajv = new Ajv({
     validateFormats: false,
 });
+
+const logger = createLogger('web-actions');
 
 /**
  * "Service Error Wrapper".
@@ -49,7 +52,7 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
         return await fn();
     } catch (e) {
         Sentry.captureException(e);
-        console.error(e);
+        logger.error(e);
         return unexpectedError(`An unexpected error occurred. Please try again later.`);
     }
 }
@@ -64,7 +67,7 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
         if (apiKey) {
             const apiKeyOrError = await verifyApiKey(apiKey);
             if (isServiceError(apiKeyOrError)) {
-                console.error(`Invalid API key: ${JSON.stringify(apiKey)}. Error: ${JSON.stringify(apiKeyOrError)}`);
+                logger.error(`Invalid API key: ${JSON.stringify(apiKey)}. Error: ${JSON.stringify(apiKeyOrError)}`);
                 return notAuthenticated();
             }
 
@@ -75,7 +78,7 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
             });
 
             if (!user) {
-                console.error(`No user found for API key: ${apiKey}`);
+                logger.error(`No user found for API key: ${apiKey}`);
                 return notAuthenticated();
             }
 
@@ -97,7 +100,7 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
         ) {
             if (!hasEntitlement("public-access")) {
                 const plan = getPlan();
-                console.error(`Public access isn't supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+                logger.error(`Public access isn't supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
                 return notAuthenticated();
             }
 
@@ -1011,11 +1014,11 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
 
                     const failed = result.rejected.concat(result.pending).filter(Boolean);
                     if (failed.length > 0) {
-                        console.error(`Failed to send invite email to ${email}: ${failed}`);
+                        logger.error(`Failed to send invite email to ${email}: ${failed}`);
                     }
                 }));
             } else {
-                console.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping invite email to ${emails.join(", ")}`);
+                logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping invite email to ${emails.join(", ")}`);
             }
 
             return {
@@ -1457,7 +1460,7 @@ export const createAccountRequest = async (userId: string, domain: string) => se
     }
 
     if (user.pendingApproval == false) {
-        console.warn(`User ${userId} isn't pending approval. Skipping account request creation.`);
+        logger.warn(`User ${userId} isn't pending approval. Skipping account request creation.`);
         return {
             success: true,
             existingRequest: false,
@@ -1484,7 +1487,7 @@ export const createAccountRequest = async (userId: string, domain: string) => se
     });
 
     if (existingRequest) {
-        console.warn(`User ${userId} already has an account request for org ${org.id}. Skipping account request creation.`);
+        logger.warn(`User ${userId} already has an account request for org ${org.id}. Skipping account request creation.`);
         return {
             success: true,
             existingRequest: true,
@@ -1516,7 +1519,7 @@ export const createAccountRequest = async (userId: string, domain: string) => se
             });
 
             if (!owner) {
-                console.error(`Failed to find owner for org ${org.id} when drafting email for account request from ${userId}`);
+                logger.error(`Failed to find owner for org ${org.id} when drafting email for account request from ${userId}`);
             } else {
                 const html = await render(JoinRequestSubmittedEmail({
                     baseUrl: deploymentUrl,
@@ -1541,11 +1544,11 @@ export const createAccountRequest = async (userId: string, domain: string) => se
 
                 const failed = result.rejected.concat(result.pending).filter(Boolean);
                 if (failed.length > 0) {
-                    console.error(`Failed to send account request email to ${owner.email}: ${failed}`);
+                    logger.error(`Failed to send account request email to ${owner.email}: ${failed}`);
                 }
             }
         } else {
-            console.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping account request email to owner`);
+            logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping account request email to owner`);
         }
     }
 
@@ -1612,7 +1615,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                 })
 
                 for (const invite of invites) {
-                    console.log(`Account request approved. Deleting invite ${invite.id} for ${request.requestedBy.email}`);
+                    logger.info(`Account request approved. Deleting invite ${invite.id} for ${request.requestedBy.email}`);
                     await tx.invite.delete({
                         where: {
                             id: invite.id,
@@ -1651,10 +1654,10 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
 
                 const failed = result.rejected.concat(result.pending).filter(Boolean);
                 if (failed.length > 0) {
-                    console.error(`Failed to send approval email to ${request.requestedBy.email}: ${failed}`);
+                    logger.error(`Failed to send approval email to ${request.requestedBy.email}: ${failed}`);
                 }
             } else {
-                console.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping approval email to ${request.requestedBy.email}`);
+                logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping approval email to ${request.requestedBy.email}`);
             }
 
             return {

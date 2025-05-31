@@ -2,7 +2,7 @@ import { Connection, ConnectionSyncStatus, PrismaClient, Prisma } from "@sourceb
 import { Job, Queue, Worker } from 'bullmq';
 import { Settings } from "./types.js";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
-import { createLogger } from "./logger.js";
+import { createLogger } from "@sourcebot/logger";
 import { Redis } from 'ioredis';
 import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig, compileBitbucketConfig, compileGenericGitHostConfig } from "./repoCompileUtils.js";
 import { BackendError, BackendException } from "@sourcebot/error";
@@ -32,7 +32,7 @@ type JobResult = {
 export class ConnectionManager implements IConnectionManager {
     private worker: Worker;
     private queue: Queue<JobPayload>;
-    private logger = createLogger('ConnectionManager');
+    private logger = createLogger('connection-manager');
 
     constructor(
         private db: PrismaClient,

@@ -3,6 +3,9 @@ import { LoginForm } from "./components/loginForm";
 import { redirect } from "next/navigation";
 import { getProviders } from "@/auth";
 import { Footer } from "@/app/components/footer";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('login-page');
 
 interface LoginProps {
     searchParams: {
@@ -12,10 +15,10 @@ interface LoginProps {
 }
 
 export default async function Login({ searchParams }: LoginProps) {
-    console.log("Login page loaded");
+    logger.info("Login page loaded");
     const session = await auth();
     if (session) {
-        console.log("Session found in login page, redirecting to home");
+        logger.info("Session found in login page, redirecting to home");
         return redirect("/");
     }
 

@@ -1,8 +1,8 @@
 import winston, { format } from 'winston';
 import { Logtail } from '@logtail/node';
 import { LogtailTransport } from '@logtail/winston';
-import { env } from './env.js';
 import { MESSAGE } from 'triple-beam';
+import { env } from './env.js';
 
 /**
  * Logger configuration with support for structured JSON logging.
@@ -84,4 +84,4 @@ const createLogger = (label: string) => {
 
 export {
     createLogger
-};
+}; 

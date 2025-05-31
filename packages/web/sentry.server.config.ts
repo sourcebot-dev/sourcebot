@@ -3,6 +3,9 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('sentry-server-config');
 
 if (!!process.env.NEXT_PUBLIC_SENTRY_WEBAPP_DSN && !!process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT) {
     Sentry.init({
@@ -13,5 +16,5 @@ if (!!process.env.NEXT_PUBLIC_SENTRY_WEBAPP_DSN && !!process.env.NEXT_PUBLIC_SEN
         debug: false,
     });
 } else {
-    console.debug("[server] Sentry was not initialized");
+    logger.debug("[server] Sentry was not initialized");
 }

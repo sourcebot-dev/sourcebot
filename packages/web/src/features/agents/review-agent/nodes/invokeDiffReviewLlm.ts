@@ -2,12 +2,15 @@ import OpenAI from "openai";
 import { sourcebot_file_diff_review, sourcebot_file_diff_review_schema } from "@/features/agents/review-agent/types";
 import { env } from "@/env.mjs";
 import fs from "fs";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('invoke-diff-review-llm');
 
 export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined, prompt: string): Promise<sourcebot_file_diff_review> => {
-    console.log("Executing invoke_diff_review_llm");
+    logger.debug("Executing invoke_diff_review_llm");
     
     if (!env.OPENAI_API_KEY) {
-        console.error("OPENAI_API_KEY is not set, skipping review agent");
+        logger.error("OPENAI_API_KEY is not set, skipping review agent");
         throw new Error("OPENAI_API_KEY is not set, skipping review agent");
     }
     
@@ -39,10 +42,10 @@ export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined
             throw new Error(`Invalid diff review format: ${diffReview.error}`);
         }
 
-        console.log("Completed invoke_diff_review_llm");
+        logger.debug("Completed invoke_diff_review_llm");
         return diffReview.data;
     } catch (error) {
-        console.error('Error calling OpenAI:', error);
+        logger.error('Error calling OpenAI:', error);
         throw error;
     }
 }
