@@ -11,7 +11,7 @@ export const newsData: NewsItem[] = [
     unique_id: "sso",
     header: "SSO",
     sub_header: "We've added support for SSO providers",
-    url: "https://docs.sourcebot.dev/self-hosting/configuration/authentication",
+    url: "https://docs.sourcebot.dev/docs/configuration/authentication",
   },
   {
     unique_id: "search-contexts",
