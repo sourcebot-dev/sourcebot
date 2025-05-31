@@ -20,6 +20,8 @@ const { combine, colorize, timestamp, prettyPrint, errors, printf, label: labelF
 
 const datadogFormat = format((info) => {
     info.status = info.level.toLowerCase();
+    info.service = info.label;
+    delete info.label;
 
     const msg = info[MESSAGE as unknown as string] as string | undefined;
     if (msg) {
@@ -46,9 +48,7 @@ const createLogger = (label: string) => {
         format: combine(
             errors({ stack: true }),
             timestamp(),
-            labelFn({
-                label: label,
-            })
+            labelFn({ label: label })
         ),
         transports: [
             new winston.transports.Console({
