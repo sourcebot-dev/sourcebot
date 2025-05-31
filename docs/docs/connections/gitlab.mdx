@@ -1,6 +1,7 @@
 ---
 title: Linking code from GitLab
 sidebarTitle: GitLab
+icon: GitLab
 ---
 
 import GitLabSchema from '/snippets/schemas/v3/gitlab.schema.mdx'
@@ -116,7 +117,7 @@ Next, provide the PAT via the `token` property, either as an environment variabl
 
 <Tabs>
     <Tab title="Environment Variable">
-        <Note>Environment variables are only supported in a [declarative config](/self-hosting/configuration/declarative-config) and cannot be used in the web UI.</Note>
+        <Note>Environment variables are only supported in a [declarative config](/docs/configuration/declarative-config) and cannot be used in the web UI.</Note>
 
         1. Add the `token` property to your connection config:
         ```json
@@ -141,7 +142,7 @@ Next, provide the PAT via the `token` property, either as an environment variabl
     </Tab>
 
     <Tab title="Secret">
-        <Note>Secrets are only supported when [authentication](/self-hosting/configuration/authentication) is enabled.</Note>
+        <Note>Secrets are only supported when [authentication](/docs/configuration/authentication) is enabled.</Note>
 
         1. Navigate to **Secrets** in settings and create a new secret with your PAT:
 

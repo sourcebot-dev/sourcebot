@@ -33,7 +33,7 @@ export default async function LicensePage({ params: { domain } }: LicensePagePro
                     <Info className="h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-medium mb-2">No License Found</h3>
                     <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-                        Check out the <a href="https://docs.sourcebot.dev/self-hosting/license-key" target="_blank" rel="noopener noreferrer" className="text-primary">docs</a> for more information.
+                        Check out the <a href="https://docs.sourcebot.dev/docs/license-key" target="_blank" rel="noopener noreferrer" className="text-primary">docs</a> for more information.
                     </p>
                     <div className="mb-8 max-w-md rounded-lg bg-slate-50 p-4 dark:bg-slate-800">
                         <p className="text-base text-center">

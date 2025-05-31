@@ -1,6 +1,6 @@
 {
     "$schema": "https://mintlify.com/docs.json",
-    "theme": "mint",
+    "theme": "willow",
     "name": "Sourcebot",
     "colors": {
         "primary": "#851EE7",
@@ -15,23 +15,23 @@
         "anchors": [
             {
                 "anchor": "Docs",
-                "icon": "book-open",
+                "icon": "books",
                 "groups": [
                     {
-                        "group": "General",
+                        "group": "Getting Started",
                         "pages": [
                             "docs/overview",
-                            "docs/getting-started",
-                            "docs/getting-started-selfhost"
+                            "docs/quick-start-guide",
+                            "docs/license-key"
                         ]
                     },
                     {
-                        "group": "Connecting your code",
+                        "group": "Configuration",
                         "pages": [
-                            "docs/connections/overview",
                             {
-                                "group": "Supported platforms",
+                                "group": "Connecting your code",
                                 "pages": [
+                                    "docs/connections/overview",
                                     "docs/connections/github",
                                     "docs/connections/gitlab",
                                     "docs/connections/bitbucket-cloud",
@@ -42,7 +42,10 @@
                                     "docs/connections/local-repos",
                                     "docs/connections/request-new"
                                 ]
-                            }
+                            },
+                            "docs/configuration/environment-variables",
+                            "docs/configuration/authentication",
+                            "docs/configuration/transactional-emails"
                         ]
                     },
                     {
@@ -68,39 +71,12 @@
                             "docs/more/roles-and-permissions",
                             "docs/more/mcp-server"
                         ]
-                    }
-                ]
-            },
-            {
-                "anchor": "Self Hosting",
-                "icon": "server",
-                "groups": [
-                    {
-                        "group": "Getting Started",
-                        "pages": [
-                            "self-hosting/overview",
-                            "self-hosting/license-key"
-                        ]
-                    },
-                    {
-                        "group": "Configuration",
-                        "pages": [
-                            "self-hosting/configuration/environment-variables",
-                            "self-hosting/configuration/authentication",
-                            "self-hosting/configuration/transactional-emails",
-                            "self-hosting/configuration/declarative-config"
-                        ]
-                    },
-                    {
-                        "group": "Security",
-                        "pages": [
-                        ]
                     },
                     {
                         "group": "Upgrade",
                         "pages": [
-                            "self-hosting/upgrade/v3-to-v4-guide",
-                            "self-hosting/upgrade/v2-to-v3-guide"
+                            "docs/upgrade/v3-to-v4-guide",
+                            "docs/upgrade/v2-to-v3-guide"
                         ]
                     }
                 ]
@@ -122,21 +98,18 @@
         "dark": "/logo/dark.png"
     },
     "navbar": {
-        "links": [
-            {
-                "label": "GitHub",
-                "href": "https://github.com/sourcebot-dev/sourcebot"
-            }
-        ],
         "primary": {
             "type": "button",
-            "label": "Sourcebot Cloud",
-            "href": "https://app.sourcebot.dev"
+            "label": "GitHub",
+            "href": "https://github.com/sourcebot-dev/sourcebot"
         }
     },
     "footer": {
         "socials": {
-            "github": "https://github.com/sourcebot-dev/sourcebot"
+            "github": "https://github.com/sourcebot-dev/sourcebot",
+            "twitter": "https://x.com/sourcebot_dev",
+            "discord": "https://discord.gg/Y6b78RqM",
+            "linkedin": "https://www.linkedin.com/company/sourcebot"
         }
     },
     "integrations": {
@@ -146,6 +119,6 @@
     },
     "appearance": {
         "default": "dark",
-        "strict": true
+        "strict": false
     }
 }
