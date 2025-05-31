@@ -21,8 +21,30 @@
                         "group": "Getting Started",
                         "pages": [
                             "docs/overview",
-                            "docs/quick-start-guide",
-                            "docs/license-key"
+                            "docs/deployment-guide"
+                        ]
+                    },
+                    {
+                        "group": "Features",
+                        "pages": [
+                            {
+                                "group": "Search",
+                                "pages": [
+                                    "docs/features/search/syntax-reference",
+                                    "docs/features/search/multi-branch-indexing",
+                                    "docs/features/search/search-contexts"
+                                ]
+                            },
+                            "docs/features/code-navigation",
+                            "docs/features/mcp-server",
+                            {
+                                "group": "Agents",
+                                "tag": "experimental",
+                                "pages": [
+                                    "docs/features/agents/overview",
+                                    "docs/features/agents/review-agent"
+                                ]
+                            }
                         ]
                     },
                     {
@@ -43,33 +65,16 @@
                                     "docs/connections/request-new"
                                 ]
                             },
+                            "docs/license-key",
                             "docs/configuration/environment-variables",
-                            "docs/configuration/authentication",
+                            {
+                                "group": "Authentication",
+                                "pages": [
+                                    "docs/configuration/auth/overview",
+                                    "docs/configuration/auth/roles-and-permissions"
+                                ]
+                            },
                             "docs/configuration/transactional-emails"
-                        ]
-                    },
-                    {
-                        "group": "Search",
-                        "pages": [
-                            "docs/search/syntax-reference",
-                            "docs/search/multi-branch-indexing",
-                            "docs/search/code-navigation",
-                            "docs/search/search-contexts"
-                        ]
-                    },
-                    {
-                        "group": "Agents",
-                        "pages": [
-                            "docs/agents/overview",
-                            "docs/agents/review-agent"
-                        ]
-                    },
-                    {
-                        "group": "More",
-                        "pages": [
-                            "docs/more/api-keys",
-                            "docs/more/roles-and-permissions",
-                            "docs/more/mcp-server"
                         ]
                     },
                     {

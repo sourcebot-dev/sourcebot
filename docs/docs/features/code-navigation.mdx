@@ -4,10 +4,9 @@ sidebarTitle: Code navigation
 ---
 
 import SearchContextSchema from '/snippets/schemas/v3/searchContext.schema.mdx'
+import LicenseKeyRequired from '/snippets/license-key-required.mdx'
 
-<Note>
-This feature is only available in [Sourcebot cloud](app.sourcebot.dev) or with an active Enterprise license when [self-hosting](/self-hosting). Please add your [license key](/docs/license-key) to activate it.
-</Note>
+<LicenseKeyRequired />
 
 **Code navigation** allows you to jump between symbol definition and references when viewing source files in Sourcebot. This feature is enabled **automatically** when a valid license key is present and works with all popular programming languages.
 
@@ -25,7 +24,7 @@ This feature is only available in [Sourcebot cloud](app.sourcebot.dev) or with a
 
 ## How does it work?
 
-Code navigation is **search-based**, meaning it uses the same code search engine and [query language](/docs/search/syntax-reference) to estimate a symbol's references and definitions. We refer to these estimations as "search heuristics". We have two search heuristics to enable the following operations:
+Code navigation is **search-based**, meaning it uses the same code search engine and [query language](/docs/features/search/syntax-reference) to estimate a symbol's references and definitions. We refer to these estimations as "search heuristics". We have two search heuristics to enable the following operations:
 
 ### Find references
 Given a `symbolName`, along with information about the file the symbol is contained within (`git_revision`, and `language`), runs the following search:

@@ -2,29 +2,43 @@
 title: "Deployment guide"
 ---
 
-## Quick Start Guide
+import SupportedPlatforms from '/snippets/platform-support.mdx'
 
-{/*
+The following guide will walk you through the steps to deploy Sourcebot on your own infrastructure. Sourcebot is distributed as a [single docker container](/docs/overview#architecture) that can be deployed to a k8s cluster, a VM, or any platform that supports docker.
+
+
+## Walkthrough video
+---
+
+Watch this 1:51 minute video to get a quick overview of how to deploy Sourcebot using Docker.
+
 <iframe
-    src="https://www.youtube.com/embed/4KzFe50RQkQ"
+    src="https://www.youtube.com/embed/1_JCr05haWc"
     title="YouTube video player"
     frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowfullscreen
     className="aspect-video w-full"
 ></iframe>
-*/}
+
+## Step-by-step guide
+---
+
+<Note>Hit an issue? Please let us know on [GitHub discussions](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) or by [emailing us](mailto:team@sourcebot.dev).</Note>
 
 <Steps>
-    <Step title="Create a config">
-        By default, Sourcebot requires a configuration file with a list of [code host connections](/docs/connections/overview) that specify what repositories should be **synced** (cloned and indexed). To get started, run the following command to create a starter `config.json`:
+    <Step title="Requirements">
+        - Docker -> use [Docker Desktop](https://www.docker.com/products/docker-desktop/) on Mac or Windows.
+    </Step>
+    <Step title="Create a config.json">
+        Create a `config.json` file that tells Sourcebot which repositories to sync and index:
 
         ```bash
         touch config.json
         echo '{
             "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
             "connections": {
-                // Comments are supported
+                // 
                 "starter-connection": {
                     "type": "github",
                     "repos": [
@@ -35,12 +49,11 @@ title: "Deployment guide"
         }' > config.json
         ```
 
-        This config creates a single GitHub connection named `starter-connection` that specifies [Sourcebot](https://github.com/sourcebot-dev/sourcebot) as a repo to sync.
+        This config creates a single GitHub connection named `starter-connection` that specifies [Sourcebot](https://github.com/sourcebot-dev/sourcebot) as a repo to sync. [Learn more about the config file](/docs/connections/overview).
     </Step>
 
     <Step title="Launch your instance">
-        <Warning>If you're deploying Sourcebot behind a domain, you must set the [AUTH_URL](/docs/configuration/environment-variables) environment variable</Warning>
-        Sourcebot is packaged as a [single Docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot). In the same directory as `config.json`, run the following command to start your instance:
+        In the same directory as `config.json`, run the following command to start your instance:
 
         ``` bash
         docker run \
@@ -64,16 +77,14 @@ title: "Deployment guide"
                 - reads `config.json` and starts syncing.
         </Accordion>
 
-        <Note>Hit an issue? Please let us know on [GitHub discussions](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) or by [emailing us](mailto:team@sourcebot.dev).</Note>
     </Step>
 
-    <Step title="Create the owner account">
-        Sourcebot has built-in authentication which gates your instance. The first account which is registered on a fresh Sourcebot deployment is made owner.
-        
-        Registration is performed using basic credentials which are stored encrypted within your deployment. To setup more authentication providers
-        check out the [auth docs](/docs/configuration/authentication)
+    <Step title="Done">
+        You're all set! Navigate to `http://localhost:3000` to login and start searching.
 
-        <img width="600" height="500" style={{ borderRadius: '0.5rem' }} src="/images/login_basic.png" />
+        <Note>
+            The first account which is registered on a fresh Sourcebot deployment is given the [owner role](/docs/configuration/auth/roles-and-permissions).
+        </Note>
     </Step>
 
     <Step title="Link your code">
@@ -83,4 +94,17 @@ title: "Deployment guide"
 
         <Note>Missing your code host? [Submit a feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas).</Note>
     </Step>
+
 </Steps>
+
+## Next steps
+---
+
+<CardGroup cols={2}>
+    <Card title="Connecting your code" icon="code" href="/docs/connections/overview">
+        Learn more about how to connect your code to Sourcebot.
+    </Card>
+    <Card title="Setup other authentication providers" icon="lock" href="/docs/configuration/auth/overview">
+        Learn more about how to setup SSO, email codes, and other authentication providers.
+    </Card>
+</CardGroup>

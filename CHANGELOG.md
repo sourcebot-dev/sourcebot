@@ -22,14 +22,14 @@ Sourcebot V4 introduces authentication, performance improvements and code naviga
 ### Changed
 - [**Breaking Change**] Authentication is now required by default. Notes:
   - When setting up your instance, email / password login will be the default authentication provider.
-  - The first user that logs into the instance is given the `owner` role. ([docs](https://docs.sourcebot.dev/docs/more/roles-and-permissions)).
+  - The first user that logs into the instance is given the `owner` role. ([docs](https://docs.sourcebot.dev/docs/configuration/auth/roles-and-permissions)).
   - Subsequent users can request to join the instance. The `owner` can approve / deny requests to join the instance via `Settings` > `Members` > `Pending Requests`.
   - If a user is approved to join the instance, they are given the `member` role.
-  - Additional login providers, including email links and SSO, can be configured with additional environment variables. ([docs](https://docs.sourcebot.dev/docs/configuration/authentication)).
+  - Additional login providers, including email links and SSO, can be configured with additional environment variables. ([docs](https://docs.sourcebot.dev/docs/configuration/auth/overview)).
 - Clicking on a search result now takes you to the `/browse` view. Files can still be previewed by clicking the "Preview" button or holding `Cmd` / `Ctrl` when clicking on a search result. [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
 
 ### Added
-- [Sourcebot EE] Added search-based code navigation, allowing you to jump between symbol definition and references when viewing source files. [Read the documentation](https://docs.sourcebot.dev/docs/search/code-navigation). [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
+- [Sourcebot EE] Added search-based code navigation, allowing you to jump between symbol definition and references when viewing source files. [Read the documentation](https://docs.sourcebot.dev/docs/features/code-navigation). [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
 - Added collapsible filter panel. [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
 - Added Sourcebot API key management for external clients. [#311](https://github.com/sourcebot-dev/sourcebot/pull/311)
 
@@ -44,7 +44,7 @@ Sourcebot V4 introduces authentication, performance improvements and code naviga
 ## [3.2.0] - 2025-05-12
 
 ### Added
-- Added AI code review agent [#298](https://github.com/sourcebot-dev/sourcebot/pull/298). Checkout the [docs](https://docs.sourcebot.dev/docs/agents/review-agent) for more information.
+- Added AI code review agent [#298](https://github.com/sourcebot-dev/sourcebot/pull/298). Checkout the [docs](https://docs.sourcebot.dev/docs/features/agents/review-agent) for more information.
 
 ### Fixed
 - Fixed issue with repos appearing in the carousel when they fail indexing for the first time. [#305](https://github.com/sourcebot-dev/sourcebot/pull/305)
@@ -122,11 +122,11 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 ### Added
 - Added parallelized repo indexing and connection syncing via Redis & BullMQ. See the [architecture overview](https://docs.sourcebot.dev/docs/overview#architecture).
 - Added repo indexing progress indicators in the navbar.
-- Added authentication support via OAuth or email/password. For instructions on enabling, see [this doc](https://docs.sourcebot.dev/docs/configuration/authentication).
-- Added the following UI for managing your deployment when **[auth is enabled](https://docs.sourcebot.dev/docs/configuration/authentication)**:
+- Added authentication support via OAuth or email/password. For instructions on enabling, see [this doc](https://docs.sourcebot.dev/docs/configuration/auth/overview).
+- Added the following UI for managing your deployment when **[auth is enabled](https://docs.sourcebot.dev/docs/configuration/auth/overview)**:
   - connection management: create and manage your JSON configs via a integrated web-editor.
   - secrets: import personal access tokens (PAT) into Sourcebot (AES-256 encrypted). Reference secrets in your connection config by name.
-  - team & invite management: invite users to your instance to give them access. Configure team [roles & permissions](https://docs.sourcebot.dev/docs/more/roles-and-permissions).
+  - team & invite management: invite users to your instance to give them access. Configure team [roles & permissions](https://docs.sourcebot.dev/docs/configuration/auth/roles-and-permissions).
 - Added multi-tenancy support. See [this doc](https://docs.sourcebot.dev/self-hosting/more/tenancy).
 
 ### Removed

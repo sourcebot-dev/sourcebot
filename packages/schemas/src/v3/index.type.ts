@@ -16,7 +16,7 @@ export interface SourcebotConfig {
   $schema?: string;
   settings?: Settings;
   /**
-   * [Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/docs/search/search-contexts
+   * [Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/docs/features/search/search-contexts
    */
   contexts?: {
     [k: string]: SearchContext;

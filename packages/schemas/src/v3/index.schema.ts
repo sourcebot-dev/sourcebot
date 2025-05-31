@@ -187,7 +187,7 @@ const schema = {
     },
     "contexts": {
       "type": "object",
-      "description": "[Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/docs/search/search-contexts",
+      "description": "[Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/docs/features/search/search-contexts",
       "patternProperties": {
         "^[a-zA-Z0-9_-]+$": {
           "$schema": "http://json-schema.org/draft-07/schema#",
