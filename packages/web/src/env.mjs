@@ -56,10 +56,6 @@ export const env = createEnv({
         STRIPE_WEBHOOK_SECRET: z.string().optional(),
         STRIPE_ENABLE_TEST_CLOCKS: booleanSchema.default('false'),
 
-        // Logging
-        SOURCEBOT_LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
-        SOURCEBOT_STRUCTURED_LOGGING_ENABLED: booleanSchema.default('false'),
-
         // Misc
         CONFIG_MAX_REPOS_NO_TOKEN: numberSchema.default(Number.MAX_SAFE_INTEGER),
         NODE_ENV: z.enum(["development", "test", "production"]),

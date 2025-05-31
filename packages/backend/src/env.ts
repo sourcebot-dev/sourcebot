@@ -22,9 +22,6 @@ dotenv.config({
 export const env = createEnv({
     server: {
         SOURCEBOT_ENCRYPTION_KEY: z.string(),
-        SOURCEBOT_LOG_LEVEL: z.enum(["info", "debug", "warn", "error"]).default("info"),
-        SOURCEBOT_STRUCTURED_LOGGING_ENABLED: booleanSchema.default("false"),
-        SOURCEBOT_STRUCTURED_LOGGING_FILE: z.string().optional(),
         SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default("false"),
         SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
         NEXT_PUBLIC_SOURCEBOT_VERSION: z.string().default("unknown"),

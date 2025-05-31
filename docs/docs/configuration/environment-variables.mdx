@@ -26,7 +26,9 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `SMTP_CONNECTION_URL` | `-` | <p>The url to the SMTP service used for sending transactional emails. See [this doc](/docs/configuration/transactional-emails) for more info.</p> |
 | `SOURCEBOT_ENCRYPTION_KEY` | Automatically generated at startup if no value is provided. Generated using `openssl rand -base64 24` | <p>Used to encrypt connection secrets and generate API keys.</p> |
 | `SOURCEBOT_LOG_LEVEL` | `info` | <p>The Sourcebot logging level. Valid values are `debug`, `info`, `warn`, `error`, in order of severity.</p> |
-| `SOURCEBOT_TELEMETRY_DISABLED` | `false` | <p>Enables/disables telemetry collection in Sourcebot. See [this doc](/self-hosting/security/telemetry) for more info.</p> |
+| `SOURCEBOT_STRUCTURED_LOGGING_ENABLED` | `false` | <p>Enables/disable structured JSON logging. See [this doc](/docs/configuration/transactional-emails) for more info.</p> |
+| `SOURCEBOT_STRUCTURED_LOGGING_FILE` | - | <p>Optional file to log to if structured logging is enabled</p> | 
+| `SOURCEBOT_TELEMETRY_DISABLED` | `false` | <p>Enables/disables telemetry collection in Sourcebot. See [this doc](/docs/more/structured-logging) for more info.</p> |
 | `TOTAL_MAX_MATCH_COUNT` | `100000` | <p>The maximum number of matches per query</p> |
 | `ZOEKT_MAX_WALL_TIME_MS` | `10000` | <p>The maximum real world duration (in milliseconds) per zoekt query</p> | 
 
