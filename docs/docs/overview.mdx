@@ -16,6 +16,7 @@ Search across millions of lines of code in seconds using Sourcebot's blazingly f
 <Accordion title="Key benefits">
 - **Regex support:** Use regular expressions to find code with precision.
 - **Query language:** Scope searches to specific files, repos, languages, symbol definitions and more using a rich [query language](/docs/search/syntax-reference).
+- **Branch search:** Specify a list of branches to search across ([docs](/docs/search/multi-branch-indexing)).
 - **Fast & scalable:** Sourcebot uses [trigram indexing](https://en.wikipedia.org/wiki/Trigram_search), allowing it to scale to massive codebases.
 - **Syntax highlighting:** Syntax highlighting support for over [100+ languages](https://github.com/sourcebot-dev/sourcebot/blob/57724689303f351c279d37f45b6406f1d5d5d5ab/packages/web/src/lib/codemirrorLanguage.ts#L125).
 - **Multi-repository:** Search across all of your repositories in a single search.
@@ -53,12 +54,14 @@ Search across millions of lines of code in seconds using Sourcebot's blazingly f
 ></video>
 
 
-### Multi code-host support
+### Cross code-host support
 
-Connect your code from multiple code-host platforms and search them all from a single interface.
+Connect your code from multiple code-host platforms and search across all of them from a single interface.
 
 <Accordion title="Key benefits">
-- **Auto re-indexing:** Sourcebot will take care of keeping it's index upto date with the latest changes.
+- **Auto re-syncing:** Code-hosts will periodically sync with Sourcebot to pull the latest changes.
+- **Flexible configuration:** Sourcebot uses a expressive [JSON schema](/docs/connections/overview) config format to specify exaclty what repositories to index (and what not to index).
+- **Parallel indexing:** Repositories are indexed in parallel.
 </Accordion>
 
 <Columns cols={4}>
