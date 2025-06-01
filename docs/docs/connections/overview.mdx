@@ -4,11 +4,71 @@ sidebarTitle: Overview
 ---
 
 import SupportedPlatforms from '/snippets/platform-support.mdx'
+import ConfigSchema from '/snippets/schemas/v3/index.schema.mdx'
 
-{/* TODO: document the concept of connections, the JSON schema, etc. */}
+A **connection** in Sourcebot represents a link to a code host (such as GitHub, GitLab, Bitbucket, etc.). Each connection defines how Sourcebot should authenticate and interact with a particular host, and which repositories to sync and index from that host. Connections are uniquely identified by their name.
 
-### Supported code hosts
+A JSON configuration file is used to specify connections. For example:
+
+```json
+// Specifies two connections:
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "connections": {
+        // 1. A connection to GitHub.com
+        "github-connection": {
+            "type": "github",
+            "repos": [
+                "sourcebot-dev/sourcebot"
+            ],
+            "token": {
+                "env": "GITHUB_TOKEN"
+            }
+        },
+        // 2. A self-hosted GitLab instance
+        "gitlab-connection": {
+            "type": "gitlab",
+            "url": "https://gitlab.example.com",
+            "groups": [
+                "my-group",
+                "my-other-group/sub-group"
+            ],
+            "token": {
+                "env": "GITLAB_TOKEN"
+            }
+        }
+    }
+}
+```
+
+Configuration files must conform to the [JSON schema](https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json).
+
+When running Sourcebot, this file must be mounted in a volume that is accessible to the container, with it's path specified in the `CONFIG_FILE` environment variable. For example:
+
+```bash
+docker run \
+    -v $(pwd)/config.json:/data/config.json \
+    -e CONFIG_FILE=/data/config.json \
+    ... \ # other config
+    ghcr.io/sourcebot-dev/sourcebot:latest
+```
+
+## Getting started
+---
+
+To get started, pick a platform below and follow the instructions to connect your code.
 
 <SupportedPlatforms />
 
 <Note>Missing your code host? [Submit a feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas).</Note>
+
+
+## Schema reference
+---
+
+<Accordion title="Reference">
+[schemas/v3/index.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/index.json)
+
+<ConfigSchema />
+
+</Accordion>
