@@ -33,8 +33,13 @@ const matchHighlighter = StateField.define<DecorationSet>({
                     .map((range, index) => {
                         const { from, to } = convertToCodeMirrorRange(range, transaction.newDoc);
                         const mark = index === selectedMatchIndex ? selectedMatchMark : matchMark;
-                        return mark.range(from, to);
-                    });
+                        if (from < to) {
+                            return mark.range(from, to);
+                        }
+
+                        return undefined;
+                    })
+                    .filter((decoration) => decoration !== undefined);
 
                 highlights = Decoration.set(decorations)
             }
