@@ -9,6 +9,9 @@ import { processGitHubPullRequest } from "@/features/agents/review-agent/app";
 import { throttling } from "@octokit/plugin-throttling";
 import fs from "fs";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('github-webhook');
 
 let githubApp: App | undefined;
 if (env.GITHUB_APP_ID && env.GITHUB_APP_WEBHOOK_SECRET && env.GITHUB_APP_PRIVATE_KEY_PATH) {
@@ -26,7 +29,7 @@ if (env.GITHUB_APP_ID && env.GITHUB_APP_WEBHOOK_SECRET && env.GITHUB_APP_PRIVATE
             throttle: {
                 onRateLimit: (retryAfter: number, options: Required<EndpointDefaults>, octokit: Octokit, retryCount: number) => {
                     if (retryCount > 3) {
-                        console.log(`Rate limit exceeded: ${retryAfter} seconds`);
+                        logger.warn(`Rate limit exceeded: ${retryAfter} seconds`);
                         return false;
                     }
 
@@ -35,7 +38,7 @@ if (env.GITHUB_APP_ID && env.GITHUB_APP_WEBHOOK_SECRET && env.GITHUB_APP_PRIVATE
             }
         });
     } catch (error) {
-        console.error(`Error initializing GitHub app: ${error}`);
+        logger.error(`Error initializing GitHub app: ${error}`);
     }
 }
 
@@ -53,21 +56,21 @@ export const POST = async (request: NextRequest) => {
 
     const githubEvent = headers['x-github-event'] || headers['X-GitHub-Event'];
     if (githubEvent) {
-        console.log('GitHub event received:', githubEvent);
+        logger.info('GitHub event received:', githubEvent);
 
         if (!githubApp) {
-            console.warn('Received GitHub webhook event but GitHub app env vars are not set');
+            logger.warn('Received GitHub webhook event but GitHub app env vars are not set');
             return Response.json({ status: 'ok' });
         }
 
         if (isPullRequestEvent(githubEvent, body)) {
             if (env.REVIEW_AGENT_AUTO_REVIEW_ENABLED === "false") {
-                console.log('Review agent auto review (REVIEW_AGENT_AUTO_REVIEW_ENABLED) is disabled, skipping');
+                logger.info('Review agent auto review (REVIEW_AGENT_AUTO_REVIEW_ENABLED) is disabled, skipping');
                 return Response.json({ status: 'ok' });
             }
 
             if (!body.installation) {
-                console.error('Received github pull request event but installation is not present');
+                logger.error('Received github pull request event but installation is not present');
                 return Response.json({ status: 'ok' });
             }
 
@@ -81,15 +84,15 @@ export const POST = async (request: NextRequest) => {
         if (isIssueCommentEvent(githubEvent, body)) {
             const comment = body.comment.body;
             if (!comment) {
-                console.warn('Received issue comment event but comment body is empty');
+                logger.warn('Received issue comment event but comment body is empty');
                 return Response.json({ status: 'ok' });
             }
 
             if (comment === `/${env.REVIEW_AGENT_REVIEW_COMMAND}`) {
-                console.log('Review agent review command received, processing');
+                logger.info('Review agent review command received, processing');
 
                 if (!body.installation) {
-                    console.error('Received github issue comment event but installation is not present');
+                    logger.error('Received github issue comment event but installation is not present');
                     return Response.json({ status: 'ok' });
                 }
 

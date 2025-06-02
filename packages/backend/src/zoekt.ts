@@ -5,7 +5,7 @@ import { getRepoPath } from "./utils.js";
 import { getShardPrefix } from "./utils.js";
 import { getBranches, getTags } from "./git.js";
 import micromatch from "micromatch";
-import { createLogger } from "./logger.js";
+import { createLogger } from "@sourcebot/logger";
 import { captureEvent } from "./posthog.js";
 
 const logger = createLogger('zoekt');

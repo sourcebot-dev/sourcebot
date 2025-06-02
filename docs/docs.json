@@ -74,7 +74,8 @@
                                     "docs/configuration/auth/roles-and-permissions"
                                 ]
                             },
-                            "docs/configuration/transactional-emails"
+                            "docs/configuration/transactional-emails",
+                            "docs/configuration/structured-logging"
                         ]
                     },
                     {

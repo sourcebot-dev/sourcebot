@@ -2,6 +2,8 @@
 title: Overview
 ---
 
+<Warning>If you're deploying Sourcebot behind a domain, you must set the [AUTH_URL](/docs/configuration/environment-variables) environment variable.</Warning>
+
 Sourcebot has built-in authentication that gates access to your organization. OAuth, email codes, and email / password are supported. 
 
 The first account that's registered on a Sourcebot deployment is made the owner. All other users who register must be [approved](/docs/configuration/auth/overview#approving-new-members) by the owner.
@@ -39,8 +41,6 @@ Email codes are 6 digit codes sent to a provided email. Email codes are enabled 
 See [transactional emails](/docs/configuration/transactional-emails) for more details.
 
 ## Enterprise Authentication Providers
-
-<Warning>If you're deploying Sourcebot behind a domain, you must set the [AUTH_URL](/docs/configuration/environment-variables) environment variable to use these providers.</Warning>
 
 The following authentication providers require an [enterprise license](/docs/license-key) to be enabled.
 

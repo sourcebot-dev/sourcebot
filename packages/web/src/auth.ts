@@ -19,6 +19,7 @@ import { getSSOProviders, handleJITProvisioning } from '@/ee/sso/sso';
 import { hasEntitlement } from '@/features/entitlements/server';
 import { isServiceError } from './lib/utils';
 import { ServiceErrorException } from './lib/serviceError';
+import { createLogger } from "@sourcebot/logger";
 
 export const runtime = 'nodejs';
 
@@ -35,6 +36,8 @@ declare module 'next-auth/jwt' {
         userId: string
     }
 }
+
+const logger = createLogger('web-auth');
 
 export const getProviders = () => {
     const providers: Provider[] = [];
@@ -202,13 +205,13 @@ const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
             if (env.AUTH_EE_ENABLE_JIT_PROVISIONING === 'true' && hasEntitlement("sso")) {
                 const res = await handleJITProvisioning(user.id!, SINGLE_TENANT_ORG_DOMAIN);
                 if (isServiceError(res)) {
-                    console.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
+                    logger.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
                     throw new ServiceErrorException(res);
                 }
             } else {
                 const res = await createAccountRequest(user.id!, SINGLE_TENANT_ORG_DOMAIN);
                 if (isServiceError(res)) {
-                    console.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
+                    logger.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
                     throw new ServiceErrorException(res);
                 }
             }

@@ -4,7 +4,7 @@ import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, Search
 import { isServiceError } from './utils.js';
 
 export const search = async (request: SearchRequest): Promise<SearchResponse | ServiceError> => {
-    console.error(`Executing search request: ${JSON.stringify(request, null, 2)}`);
+    console.debug(`Executing search request: ${JSON.stringify(request, null, 2)}`);
     const result = await fetch(`${env.SOURCEBOT_HOST}/api/search`, {
         method: 'POST',
         headers: {

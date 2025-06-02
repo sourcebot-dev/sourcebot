@@ -12,6 +12,9 @@ import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { headers } from "next/headers";
 import { getSubscriptionForOrg } from "./serverUtils";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('billing-actions');
 
 export const createOnboardingSubscription = async (domain: string) => sew(() =>
     withAuth(async (userId) =>
@@ -98,7 +101,7 @@ export const createOnboardingSubscription = async (domain: string) => sew(() =>
                     subscriptionId: subscription.id,
                 }
             } catch (e) {
-                console.error(e);
+                logger.error(e);
                 return {
                     statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
                     errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,

@@ -1,6 +1,6 @@
 import fetch from 'cross-fetch';
 import { GerritConnectionConfig } from "@sourcebot/schemas/v3/index.type"
-import { createLogger } from './logger.js';
+import { createLogger } from '@sourcebot/logger';
 import micromatch from "micromatch";
 import { measure, fetchWithRetry } from './utils.js';
 import { BackendError } from '@sourcebot/error';
@@ -33,7 +33,7 @@ interface GerritWebLink {
    url: string;
 }
 
-const logger = createLogger('Gerrit');
+const logger = createLogger('gerrit');
 
 export const getGerritReposFromConfig = async (config: GerritConnectionConfig): Promise<GerritProject[]> => {
    const url = config.url.endsWith('/') ? config.url : `${config.url}/`;
@@ -95,7 +95,7 @@ const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
       try {
          response = await fetch(endpointWithParams);
          if (!response.ok) {
-            console.log(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${response.status}`);
+            logger.error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${response.status}`);
             const e = new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
                status: response.status,
             });
@@ -109,7 +109,7 @@ const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
          }
 
          const status = (err as any).code;
-         console.log(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${status}`);
+         logger.error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${status}`);
          throw new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
             status: status,
          });

@@ -1,5 +1,8 @@
 import express, { Request, Response } from 'express';
 import client, { Registry, Counter, Gauge } from 'prom-client';
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('prometheus-client');
 
 export class PromClient {
     private registry: Registry;
@@ -96,7 +99,7 @@ export class PromClient {
         });
 
         this.app.listen(this.PORT, () => {
-            console.log(`Prometheus metrics server is running on port ${this.PORT}`);
+            logger.info(`Prometheus metrics server is running on port ${this.PORT}`);
         });
     }
 
