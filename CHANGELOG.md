@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] - 2025-06-02
+
+### Added
+- Added structured logging support. [#323](https://github.com/sourcebot-dev/sourcebot/pull/323)
+
 ### Fixed
 - Fixed issue where new oauth providers weren't being display in the login page. [commit](https://github.com/sourcebot-dev/sourcebot/commit/a2e06266dbe5e5ad4c2c3f730c73d64edecedcf7)
 - Fixed client side "mark decorations may not be empty" error when viewing certain files. [#325](https://github.com/sourcebot-dev/sourcebot/pull/325)
 - Fixed issue where the symbol hover popover would not appear for large source files. [#325](https://github.com/sourcebot-dev/sourcebot/pull/325)
+
 
 ## [4.0.1] - 2025-05-28
 
