@@ -9,7 +9,7 @@ import { SchemaRepository as BitbucketCloudRepository } from "@coderabbitai/bitb
 import { Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
-import { createLogger } from './logger.js';
+import { createLogger } from '@sourcebot/logger';
 import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GenericGitHostConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { RepoMetadata } from './types.js';
 import path from 'path';
@@ -20,7 +20,7 @@ import GitUrlParse from 'git-url-parse';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 
-const logger = createLogger('RepoCompileUtils');
+const logger = createLogger('repo-compile-utils');
 
 export const compileGithubConfig = async (
     config: GithubConnectionConfig,

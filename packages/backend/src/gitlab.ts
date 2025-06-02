@@ -1,6 +1,6 @@
 import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
 import micromatch from "micromatch";
-import { createLogger } from "./logger.js";
+import { createLogger } from "@sourcebot/logger";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type"
 import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
 import { PrismaClient } from "@sourcebot/db";
@@ -8,7 +8,7 @@ import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
 import { env } from "./env.js";
 
-const logger = createLogger("GitLab");
+const logger = createLogger('gitlab');
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
 export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {

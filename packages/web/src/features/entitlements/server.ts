@@ -3,6 +3,9 @@ import { Entitlement, entitlementsByPlan, Plan } from "./constants"
 import { base64Decode } from "@/lib/utils";
 import { z } from "zod";
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('entitlements');
 
 const eeLicenseKeyPrefix = "sourcebot_ee_";
 export const SOURCEBOT_UNLIMITED_SEATS = -1;
@@ -22,7 +25,7 @@ const decodeLicenseKeyPayload = (payload: string): LicenseKeyPayload => {
         const payloadJson = JSON.parse(decodedPayload);
         return eeLicenseKeyPayloadSchema.parse(payloadJson);
     } catch (error) {
-        console.error(`Failed to decode license key payload: ${error}`);
+        logger.error(`Failed to decode license key payload: ${error}`);
         process.exit(1);
     }
 }
@@ -49,12 +52,13 @@ export const getPlan = (): Plan => {
     if (licenseKey) {
         const expiryDate = new Date(licenseKey.expiryDate);
         if (expiryDate.getTime() < new Date().getTime()) {
-            console.error(`The provided license key has expired (${expiryDate.toLocaleString()}). Falling back to oss plan. Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
+            logger.error(`The provided license key has expired (${expiryDate.toLocaleString()}). Falling back to oss plan. Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
             process.exit(1);
         }
 
         return licenseKey.seats === SOURCEBOT_UNLIMITED_SEATS ? "self-hosted:enterprise-unlimited" : "self-hosted:enterprise";
     } else {
+        logger.info(`No valid license key found. Falling back to oss plan.`);
         return "oss"; 
     }
 }

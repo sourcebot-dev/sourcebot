@@ -2,14 +2,14 @@ import { Api, giteaApi, HttpResponse, Repository as GiteaRepository } from 'gite
 import { GiteaConnectionConfig } from '@sourcebot/schemas/v3/gitea.type';
 import { getTokenFromConfig, measure } from './utils.js';
 import fetch from 'cross-fetch';
-import { createLogger } from './logger.js';
+import { createLogger } from '@sourcebot/logger';
 import micromatch from 'micromatch';
 import { PrismaClient } from '@sourcebot/db';
 import { processPromiseResults, throwIfAnyFailed } from './connectionUtils.js';
 import * as Sentry from "@sentry/node";
 import { env } from './env.js';
 
-const logger = createLogger('Gitea');
+const logger = createLogger('gitea');
 const GITEA_CLOUD_HOSTNAME = "gitea.com";
 
 export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {

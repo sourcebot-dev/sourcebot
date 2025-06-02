@@ -25,6 +25,7 @@
     },
     "dependencies": {
         "@prisma/client": "6.2.1",
+        "@sourcebot/logger": "workspace:*",
         "@types/readline-sync": "^1.4.8",
         "readline-sync": "^1.4.10"
     }

@@ -15,6 +15,9 @@ import { createGuestUser, setPublicAccessStatus } from '@/ee/features/publicAcce
 import { isServiceError } from './lib/utils';
 import { ServiceErrorException } from './lib/serviceError';
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('web-initialize');
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -73,7 +76,7 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
                 }
             });
 
-            console.log(`Upserted connection with name '${key}'. Connection ID: ${connectionDb.id}`);
+            logger.info(`Upserted connection with name '${key}'. Connection ID: ${connectionDb.id}`);
 
             // Re-try any repos that failed to index.
             const failedRepos = currentConnection?.repos.filter(repo => repo.repo.repoIndexingStatus === RepoIndexingStatus.FAILED).map(repo => repo.repo.id) ?? [];
@@ -104,7 +107,7 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
     });
 
     for (const connection of deletedConnections) {
-        console.log(`Deleting connection with name '${connection.name}'. Connection ID: ${connection.id}`);
+        logger.info(`Deleting connection with name '${connection.name}'. Connection ID: ${connection.id}`);
         await prisma.connection.delete({
             where: {
                 id: connection.id,
@@ -142,12 +145,12 @@ const syncDeclarativeConfig = async (configPath: string) => {
     const hasPublicAccessEntitlement = hasEntitlement("public-access");
     const enablePublicAccess = config.settings?.enablePublicAccess;
     if (enablePublicAccess !== undefined && !hasPublicAccessEntitlement) {
-        console.error(`Public access flag is set in the config file but your license doesn't have public access entitlement. Please contact ${SOURCEBOT_SUPPORT_EMAIL} to request a license upgrade.`);
+        logger.error(`Public access flag is set in the config file but your license doesn't have public access entitlement. Please contact ${SOURCEBOT_SUPPORT_EMAIL} to request a license upgrade.`);
         process.exit(1);
     }
 
     if (hasPublicAccessEntitlement) {
-        console.log(`Setting public access status to ${!!enablePublicAccess} for org ${SINGLE_TENANT_ORG_DOMAIN}`);
+        logger.info(`Setting public access status to ${!!enablePublicAccess} for org ${SINGLE_TENANT_ORG_DOMAIN}`);
         const res = await setPublicAccessStatus(SINGLE_TENANT_ORG_DOMAIN, !!enablePublicAccess);
         if (isServiceError(res)) {
             throw new ServiceErrorException(res);
@@ -179,7 +182,7 @@ const pruneOldGuestUser = async () => {
             },
         });
 
-        console.log(`Deleted old guest user ${guestUser.userId}`);
+        logger.info(`Deleted old guest user ${guestUser.userId}`);
     }
 }
 
@@ -227,7 +230,7 @@ const initSingleTenancy = async () => {
         // watch for changes assuming it is a local file
         if (!isRemotePath(configPath)) {
             watch(configPath, () => {
-                console.log(`Config file ${configPath} changed. Re-syncing...`);
+                logger.info(`Config file ${configPath} changed. Re-syncing...`);
                 syncDeclarativeConfig(configPath);
             });
         }
@@ -237,7 +240,7 @@ const initSingleTenancy = async () => {
 const initMultiTenancy = async () => {
     const hasMultiTenancyEntitlement = hasEntitlement("multi-tenancy");
     if (!hasMultiTenancyEntitlement) {
-        console.error(`SOURCEBOT_TENANCY_MODE is set to ${env.SOURCEBOT_TENANCY_MODE} but your license doesn't have multi-tenancy entitlement. Please contact ${SOURCEBOT_SUPPORT_EMAIL} to request a license upgrade.`);
+        logger.error(`SOURCEBOT_TENANCY_MODE is set to ${env.SOURCEBOT_TENANCY_MODE} but your license doesn't have multi-tenancy entitlement. Please contact ${SOURCEBOT_SUPPORT_EMAIL} to request a license upgrade.`);
         process.exit(1);
     }
 }

@@ -6,6 +6,7 @@ import { env } from "@/env.mjs";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
 import path from "path";
 import fs from "fs";
+import { createLogger } from "@sourcebot/logger";
 
 const rules = [
     "Do NOT provide general feedback, summaries, explanations of changes, or praises for making good additions.",
@@ -17,11 +18,13 @@ const rules = [
     "If there are no issues found on a line range, do NOT respond with any comments. This includes comments such as \"No issues found\" or \"LGTM\"."
 ]
 
+const logger = createLogger('review-agent');
+
 export async function processGitHubPullRequest(octokit: Octokit, pullRequest: GitHubPullRequest) {
-    console.log(`Received a pull request event for #${pullRequest.number}`);
+    logger.info(`Received a pull request event for #${pullRequest.number}`);
 
     if (!env.OPENAI_API_KEY) {
-        console.error("OPENAI_API_KEY is not set, skipping review agent");
+        logger.error("OPENAI_API_KEY is not set, skipping review agent");
         return;
     }
 
@@ -42,7 +45,7 @@ export async function processGitHubPullRequest(octokit: Octokit, pullRequest: Gi
             hour12: false
         }).replace(/(\d+)\/(\d+)\/(\d+), (\d+):(\d+):(\d+)/, '$3_$1_$2_$4_$5_$6');
         reviewAgentLogPath = path.join(reviewAgentLogDir, `review-agent-${pullRequest.number}-${timestamp}.log`);
-        console.log(`Review agent logging to ${reviewAgentLogPath}`);
+        logger.info(`Review agent logging to ${reviewAgentLogPath}`);
     }
 
     const prPayload = await githubPrParser(octokit, pullRequest);

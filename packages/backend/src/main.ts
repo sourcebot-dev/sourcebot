@@ -1,5 +1,5 @@
 import { PrismaClient } from '@sourcebot/db';
-import { createLogger } from "./logger.js";
+import { createLogger } from "@sourcebot/logger";
 import { AppContext } from "./types.js";
 import { DEFAULT_SETTINGS } from './constants.js';
 import { Redis } from 'ioredis';
@@ -14,7 +14,7 @@ import { SourcebotConfig } from '@sourcebot/schemas/v3/index.type';
 import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
 import { Ajv } from "ajv";
 
-const logger = createLogger('main');
+const logger = createLogger('backend-main');
 const ajv = new Ajv({
     validateFormats: false,
 });
@@ -56,7 +56,7 @@ export const main = async (db: PrismaClient, context: AppContext) => {
         logger.info('Connected to redis');
     }).catch((err: unknown) => {
         logger.error('Failed to connect to redis');
-        console.error(err);
+        logger.error(err);
         process.exit(1);
     });
 
