@@ -4,10 +4,9 @@ sidebarTitle: Search contexts
 ---
 
 import SearchContextSchema from '/snippets/schemas/v3/searchContext.schema.mdx'
+import LicenseKeyRequired from '/snippets/license-key-required.mdx'
 
-<Note>
-This feature is only available when [self-hosting](/self-hosting) with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.
-</Note>
+<LicenseKeyRequired />
 
 A **search context** is a user-defined grouping of repositories that helps focus searches on specific areas of your codebase, like frontend, backend, or infrastructure code. Some example queries using search contexts:
 
@@ -105,7 +104,7 @@ Like other prefixes, contexts can be negated using `-` or combined using `or`:
 - `-context:web` excludes frontend repositories from results
 - `( context:web or context:backend )` searches across both frontend and backend code
 
-See [this doc](/docs/search/syntax-reference) for more details on the search query syntax.
+See [this doc](/docs/features/search/syntax-reference) for more details on the search query syntax.
 
 ## Schema reference
 

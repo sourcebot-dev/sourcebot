@@ -3,19 +3,23 @@ title: Sourcebot MCP server (@sourcebot/mcp)
 sidebarTitle: Sourcebot MCP server
 ---
 
-<Note>
-This feature is only available when [self-hosting](/self-hosting)
-</Note>
-
 The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) is an open standard for providing context to LLMs. The [@sourcebot/mcp](https://www.npmjs.com/package/@sourcebot/mcp) package is a MCP server that enables LLMs to interface with your Sourcebot instance, enabling MCP clients like Cursor, Vscode, and others to have context over your entire codebase.
 
 ## Getting Started
 
 <Steps>
     <Step title="Launch Sourcebot">
-        Follow the self-hosting [quick start guide](/self-hosting/overview#quick-start-guide) to launch Sourcebot and get your code indexed. The host url of your instance (e.g., `http://localhost:3000`) is passed to the MCP server via the `SOURCEBOT_HOST` url.
+        Follow the [deployment guide](/docs/deployment-guide) to launch Sourcebot and get your code indexed. The host url of your instance (e.g., `http://localhost:3000`) is passed to the MCP server via the `SOURCEBOT_HOST` url.
 
         If a host is not provided, then the server will fallback to using the demo instance hosted at https://demo.sourcebot.dev. You can see the list of repositories indexed [here](https://demo.sourcebot.dev/~/repos). Add additional repositories by [opening a PR](https://github.com/sourcebot-dev/sourcebot/blob/main/demo-site-config.json).
+    </Step>
+
+    <Step title="Create an API key">
+        Create an API key to allow the MCP server to query your Sourcebot instance. To create an API key, login to your Sourcebot instance and navigate to **Settings -> API Keys**:
+
+        ![API Keys UI](/images/api_key.png)
+
+        Copy the API key and set it as the `SOURCEBOT_API_KEY` environment variable.
     </Step>
 
     <Step title="Install the MCP server">
@@ -39,7 +43,8 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP)
                             "command": "npx",
                             "args": ["-y", "@sourcebot/mcp@latest" ],
                             "env": {
-                                "SOURCEBOT_HOST": "http://localhost:3000"
+                                "SOURCEBOT_HOST": "http://localhost:3000",
+                                "SOURCEBOT_API_KEY": "your-api-key"
                             }
                         }
                     }
@@ -62,7 +67,8 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP)
                             "command": "npx",
                             "args": ["-y", "@sourcebot/mcp@latest" ],
                             "env": {
-                                "SOURCEBOT_HOST": "http://localhost:3000"
+                                "SOURCEBOT_HOST": "http://localhost:3000",
+                                "SOURCEBOT_API_KEY": "your-api-key"
                             }
                         }
                     }
@@ -86,7 +92,8 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP)
                                 "command": "npx",
                                 "args": ["-y", "@sourcebot/mcp@latest"],
                                 "env": {
-                                    "SOURCEBOT_HOST": "http://localhost:3000"
+                                    "SOURCEBOT_HOST": "http://localhost:3000",
+                                    "SOURCEBOT_API_KEY": "your-api-key"
                                 }
                             }
                         }
@@ -102,7 +109,7 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP)
                 Run the following command:
 
                 ```sh
-                claude mcp add sourcebot -e SOURCEBOT_HOST=http://localhost:3000 -- npx -y @sourcebot/mcp@latest
+                claude mcp add sourcebot -e SOURCEBOT_HOST=http://localhost:3000 -e SOURCEBOT_API_KEY=your-api-key -- npx -y @sourcebot/mcp@latest
                 ```
 
                 Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
@@ -119,7 +126,8 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP)
                             "command": "npx",
                             "args": ["-y", "@sourcebot/mcp@latest"],
                             "env": {
-                                "SOURCEBOT_HOST": "http://localhost:3000"
+                                "SOURCEBOT_HOST": "http://localhost:3000",
+                                "SOURCEBOT_API_KEY": "your-api-key"
                             }
                         }
                     }

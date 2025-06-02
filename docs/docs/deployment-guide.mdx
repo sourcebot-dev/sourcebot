@@ -1,0 +1,101 @@
+---
+title: "Deployment guide"
+---
+
+import SupportedPlatforms from '/snippets/platform-support.mdx'
+
+The following guide will walk you through the steps to deploy Sourcebot on your own infrastructure. Sourcebot is distributed as a [single docker container](/docs/overview#architecture) that can be deployed to a k8s cluster, a VM, or any platform that supports docker.
+
+
+## Walkthrough video
+---
+
+Watch this 1:51 minute video to get a quick overview of how to deploy Sourcebot using Docker.
+
+<iframe
+    src="https://www.youtube.com/embed/1_JCr05haWc"
+    title="YouTube video player"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen
+    className="aspect-video w-full"
+></iframe>
+
+## Step-by-step guide
+---
+
+<Note>Hit an issue? Please let us know on [GitHub discussions](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) or by [emailing us](mailto:team@sourcebot.dev).</Note>
+
+<Steps>
+    <Step title="Requirements">
+        - Docker -> use [Docker Desktop](https://www.docker.com/products/docker-desktop/) on Mac or Windows.
+    </Step>
+    <Step title="Create a config.json">
+        Create a `config.json` file that tells Sourcebot which repositories to sync and index:
+
+        ```bash
+        touch config.json
+        echo '{
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "connections": {
+                // 
+                "starter-connection": {
+                    "type": "github",
+                    "repos": [
+                        "sourcebot-dev/sourcebot"
+                    ]
+                }
+            }
+        }' > config.json
+        ```
+
+        This config creates a single GitHub connection named `starter-connection` that specifies [Sourcebot](https://github.com/sourcebot-dev/sourcebot) as a repo to sync. [Learn more about the config file](/docs/connections/overview).
+    </Step>
+
+    <Step title="Launch your instance">
+        In the same directory as `config.json`, run the following command to start your instance:
+
+        ``` bash
+        docker run \
+            -p 3000:3000 \
+            --pull=always \
+            --rm \
+            -v $(pwd):/data \
+            -e CONFIG_PATH=/data/config.json \
+            --name sourcebot \
+            ghcr.io/sourcebot-dev/sourcebot:latest
+        ```
+
+        Navigate to `localhost:3000` to start searching the Sourcebot repo.
+    
+        <Accordion title="Details">
+            **This command**:
+                - pulls the latest version of the `sourcebot` docker image.
+                - mounts the working directory to `/data` in the container to allow Sourcebot to persist data across restarts, and to access the `config.json`. In your local directory, you should see a `.sourcebot` folder created that contains all persistent data.
+                - runs any pending database migrations.
+                - starts up all services, including the webserver exposed on port 3000.
+                - reads `config.json` and starts syncing.
+        </Accordion>
+
+    </Step>
+
+    <Step title="Done">
+        You're all set! Navigate to `http://localhost:3000` to login and start searching.
+
+        <Note>
+            The first account which is registered on a fresh Sourcebot deployment is given the [owner role](/docs/configuration/auth/roles-and-permissions).
+        </Note>
+    </Step>
+</Steps>
+
+## Next steps
+---
+
+<CardGroup cols={2}>
+    <Card title="Connecting your code" icon="code" href="/docs/connections/overview">
+        Learn more about how to connect your code to Sourcebot.
+    </Card>
+    <Card title="Setup other authentication providers" icon="lock" href="/docs/configuration/auth/overview">
+        Learn more about how to setup SSO, email codes, and other authentication providers.
+    </Card>
+</CardGroup>

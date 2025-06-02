@@ -1,9 +1,8 @@
 'use client';
 
-import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
-import { Fragment, useCallback, useMemo } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { cn, getAuthProviderInfo } from "@/lib/utils";
 import { MagicLinkForm } from "./magicLinkForm";
@@ -14,6 +13,7 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import DemoCard from "@/app/[domain]/onboard/components/demoCard";
 import Link from "next/link";
 import { env } from "@/env.mjs";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 const TERMS_OF_SERVICE_URL = "https://sourcebot.dev/terms";
 const PRIVACY_POLICY_URL = "https://sourcebot.dev/privacy";
@@ -27,7 +27,9 @@ interface LoginFormProps {
 export const LoginForm = ({ callbackUrl, error, providers }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
     const onSignInWithOauth = useCallback((provider: string) => {
-        signIn(provider, { redirectTo: callbackUrl ?? "/" });
+        signIn(provider, {
+            redirectTo: callbackUrl ?? "/"
+        });
     }, [callbackUrl]);
 
     const errorMessage = useMemo(() => {
@@ -137,15 +139,21 @@ const ProviderButton = ({
     onClick: () => void;
     className?: string;
 }) => {
+    const [isLoading, setIsLoading] = useState(false);
+
     return (
-        <Button
-            onClick={onClick}
+        <LoadingButton
+            onClick={() => {
+                setIsLoading(true);
+                onClick();
+            }}
             className={cn("w-full", className)}
             variant="outline"
+            loading={isLoading}
         >
             {logo && <Image src={logo.src} alt={name} className={cn("w-5 h-5 mr-2", logo.className)} />}
             Sign in with {name}
-        </Button>
+        </LoadingButton>
     )
 }
 

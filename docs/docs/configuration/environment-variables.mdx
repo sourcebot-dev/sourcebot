@@ -1,17 +1,18 @@
 ---
-title: Environment Variables 
-sidebarTitle: Environment Variables 
+title: Environment variables 
+sidebarTitle: Environment variables 
+mode: "wide"
 ---
 
-<Note>This page provides a detailed reference of all environment variables supported by Sourcebot. If you're just looking to get up and running, we recommend starting with the [getting started](/self-hosting/overview) guide instead.</Note>
+<Note>This page provides a detailed reference of all environment variables supported by Sourcebot. If you're just looking to get up and running, we recommend starting with the [deployment guide](/docs/deployment-guide) instead.</Note>
 
 ### Core Environment Variables
 The following environment variables allow you to configure your Sourcebot deployment.
 
 | Variable | Default | Description |
 | :------- | :------ | :---------- |
-| `AUTH_CREDENTIALS_LOGIN_ENABLED` | `true` | <p>Enables/disables authentication with basic credentials. Username and passwords are stored encrypted at rest within the postgres database. Checkout the [auth docs](/docs/configuration/authentication) for more info</p> |
-| `AUTH_EMAIL_CODE_LOGIN_ENABLED` | `false` | <p>Enables/disables authentication with a login code that's sent to a users email. `SMTP_CONNECTION_URL` and `EMAIL_FROM_ADDRESS` must also be set. Checkout the [auth docs](/docs/configuration/authentication) for more info </p> |
+| `AUTH_CREDENTIALS_LOGIN_ENABLED` | `true` | <p>Enables/disables authentication with basic credentials. Username and passwords are stored encrypted at rest within the postgres database. Checkout the [auth docs](/docs/configuration/auth/overview) for more info</p> |
+| `AUTH_EMAIL_CODE_LOGIN_ENABLED` | `false` | <p>Enables/disables authentication with a login code that's sent to a users email. `SMTP_CONNECTION_URL` and `EMAIL_FROM_ADDRESS` must also be set. Checkout the [auth docs](/docs/configuration/auth/overview) for more info </p> |
 | `AUTH_SECRET` | Automatically generated at startup if no value is provided. Generated using `openssl rand -base64 33` | <p>Used to validate login session cookies</p> |
 | `AUTH_URL` | - | <p>URL of your Sourcebot deployment, e.g., `https://example.com` or `http://localhost:3000`.</p> |
 | `CONFIG_PATH` | `-` | <p>The container relative path to the declerative configuration file. See [this doc](/docs/configuration/declarative-config) for more info.</p> | 
@@ -28,7 +29,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `SOURCEBOT_LOG_LEVEL` | `info` | <p>The Sourcebot logging level. Valid values are `debug`, `info`, `warn`, `error`, in order of severity.</p> |
 | `SOURCEBOT_STRUCTURED_LOGGING_ENABLED` | `false` | <p>Enables/disable structured JSON logging. See [this doc](/docs/configuration/transactional-emails) for more info.</p> |
 | `SOURCEBOT_STRUCTURED_LOGGING_FILE` | - | <p>Optional file to log to if structured logging is enabled</p> | 
-| `SOURCEBOT_TELEMETRY_DISABLED` | `false` | <p>Enables/disables telemetry collection in Sourcebot. See [this doc](/docs/more/structured-logging) for more info.</p> |
+| `SOURCEBOT_TELEMETRY_DISABLED` | `false` | <p>Enables/disables telemetry collection in Sourcebot. See [this doc](/docs/overview.mdx#telemetry) for more info.</p> |
 | `TOTAL_MAX_MATCH_COUNT` | `100000` | <p>The maximum number of matches per query</p> |
 | `ZOEKT_MAX_WALL_TIME_MS` | `10000` | <p>The maximum real world duration (in milliseconds) per zoekt query</p> | 
 
