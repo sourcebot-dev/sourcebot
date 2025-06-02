@@ -20,9 +20,12 @@ export const rangeHighlightingExtension = (range: BrowseHighlightRange) => State
             const from = state.doc.line(start.lineNumber).from + start.column - 1;
             const to = state.doc.line(end.lineNumber).from + end.column - 1;
 
-            return Decoration.set([
-                markDecoration.range(from, to),
-            ]);
+            const decorations: Range<Decoration>[] = [];
+            if (from < to) {
+                decorations.push(markDecoration.range(from, to));
+            }
+
+            return Decoration.set(decorations);
         } else {
             const decorations: Range<Decoration>[] = [];
             for (let line = start.lineNumber; line <= end.lineNumber; line++) {
