@@ -5814,6 +5814,7 @@ __metadata:
   resolution: "@sourcebot/db@workspace:packages/db"
   dependencies:
     "@prisma/client": "npm:6.2.1"
+    "@sourcebot/logger": "workspace:*"
     "@types/argparse": "npm:^2.0.16"
     "@types/readline-sync": "npm:^1.4.8"
     argparse: "npm:^2.0.1"
@@ -5947,6 +5948,7 @@ __metadata:
     "@sourcebot/crypto": "workspace:*"
     "@sourcebot/db": "workspace:*"
     "@sourcebot/error": "workspace:*"
+    "@sourcebot/logger": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@ssddanbrown/codemirror-lang-twig": "npm:^1.0.0"
     "@stripe/react-stripe-js": "npm:^3.1.1"
