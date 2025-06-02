@@ -55,7 +55,6 @@ export const getPlan = (): Plan => {
 
         return licenseKey.seats === SOURCEBOT_UNLIMITED_SEATS ? "self-hosted:enterprise-unlimited" : "self-hosted:enterprise";
     } else {
-        console.info(`No valid license key found. Falling back to oss plan.`);
         return "oss"; 
     }
 }

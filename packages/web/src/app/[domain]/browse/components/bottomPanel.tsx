@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 
 export const BOTTOM_PANEL_MIN_SIZE = 35;
 export const BOTTOM_PANEL_MAX_SIZE = 65;
-const CODE_NAV_DOCS_URL = "https://docs.sourcebot.dev/docs/search/code-navigation";
+const CODE_NAV_DOCS_URL = "https://docs.sourcebot.dev/docs/features/code-navigation";
 
 export const BottomPanel = () => {
     const panelRef = useRef<ImperativePanelHandle>(null);

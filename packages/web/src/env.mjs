@@ -26,20 +26,26 @@ export const env = createEnv({
 
         // Enterprise Auth
         AUTH_EE_ENABLE_JIT_PROVISIONING: booleanSchema.default('false'),
+
         AUTH_EE_GITHUB_CLIENT_ID: z.string().optional(),
         AUTH_EE_GITHUB_CLIENT_SECRET: z.string().optional(),
         AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
+
         AUTH_EE_GITLAB_CLIENT_ID: z.string().optional(),
         AUTH_EE_GITLAB_CLIENT_SECRET: z.string().optional(),
         AUTH_EE_GITLAB_BASE_URL: z.string().default("https://gitlab.com"),
+
         AUTH_EE_GOOGLE_CLIENT_ID: z.string().optional(),
         AUTH_EE_GOOGLE_CLIENT_SECRET: z.string().optional(),
+
         AUTH_EE_OKTA_CLIENT_ID: z.string().optional(),
         AUTH_EE_OKTA_CLIENT_SECRET: z.string().optional(),
         AUTH_EE_OKTA_ISSUER: z.string().optional(),
+
         AUTH_EE_KEYCLOAK_CLIENT_ID: z.string().optional(),
         AUTH_EE_KEYCLOAK_CLIENT_SECRET: z.string().optional(),
         AUTH_EE_KEYCLOAK_ISSUER: z.string().optional(),
+
         AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID: z.string().optional(),
         AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET: z.string().optional(),
         AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER: z.string().optional(),
