@@ -41,7 +41,7 @@ A JSON configuration file is used to specify connections. For example:
 }
 ```
 
-Configuration files must conform to the [JSON schema](https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json).
+Configuration files must conform to the [JSON schema](#schema-reference).
 
 When running Sourcebot, this file must be mounted in a volume that is accessible to the container, with it's path specified in the `CONFIG_FILE` environment variable. For example:
 
@@ -52,6 +52,23 @@ docker run \
     ... \ # other config
     ghcr.io/sourcebot-dev/sourcebot:latest
 ```
+
+Sourcebot performs syncing in the background. Syncing consists of two steps:
+1. Fetch the latest changes from `HEAD` (and any [additional branches](/docs/features/search/multi-branch-indexing)) from the code host.
+2. Re-indexes the repository.
+
+This is processed in a [job queue](/docs/overview#architecture), and is parallelized across multiple worker processes. Jobs will take longer to complete the first time a repository is synced, or when a diff is large.
+
+On the home page, you can view the sync status of ongoing jobs:
+
+<video
+    autoPlay
+    muted
+    loop
+    playsInline
+    className="w-full aspect-video"
+    src="https://framerusercontent.com/assets/7YyxK8ctPEy9Rf68X2kIdMI.mp4"
+></video>
 
 ## Getting started
 ---
