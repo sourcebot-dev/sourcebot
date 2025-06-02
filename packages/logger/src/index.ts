@@ -21,12 +21,12 @@ const { combine, colorize, timestamp, prettyPrint, errors, printf, label: labelF
 const datadogFormat = format((info) => {
     info.status = info.level.toLowerCase();
     info.service = info.label;
-    delete info.label;
+    info.label = undefined;
 
     const msg = info[MESSAGE as unknown as string] as string | undefined;
     if (msg) {
         info.message = msg;
-        delete info[MESSAGE as unknown as string];
+        info[MESSAGE as unknown as string] = undefined;
     }
 
     return info;
