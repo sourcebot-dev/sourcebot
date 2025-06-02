@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed issue with the symbol hover popover clipping at the top of the page. [#326](https://github.com/sourcebot-dev/sourcebot/pull/326)
+
 ## [4.1.0] - 2025-06-02
 
 ### Added

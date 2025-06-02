@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SymbolDefinition, useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
 import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
+import { createPortal } from "react-dom";
 
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
@@ -55,9 +56,11 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                         crossAxis: false,
                         fallbackPlacements: ['bottom'],
                         boundary: editorRef.view?.dom,
+                        padding: 20,
                     }),
                     shift({
                         padding: 5,
+                        boundary: editorRef.view?.dom,
                     })
                 ]
             }).then(({ x, y }) => {
@@ -91,7 +94,14 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         }
     }, [symbolInfo, onGotoDefinition]);
 
-    return symbolInfo ? (
+    if (!symbolInfo) {
+        return null;
+    }
+
+    // We use a portal here to render the popup at the document body level.
+    // This avoids clipping issues that occur when the popup is rendered inside scrollable or overflow-hidden containers (like the editor or its parent).
+    // By rendering in a portal, the popup can be absolutely positioned anywhere in the viewport without being cut off by parent containers.
+    return createPortal(
         <div
             ref={ref}
             className="absolute z-10 flex flex-col gap-2 bg-background border border-gray-300 dark:border-gray-700 rounded-md shadow-lg p-2 max-w-3xl"
@@ -133,6 +143,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                     Find references
                 </Button>
             </div>
-        </div>
-    ) : null;
+        </div>,
+        document.body
+    );
 };
