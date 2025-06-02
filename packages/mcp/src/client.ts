@@ -2,12 +2,9 @@ import { env } from './env.js';
 import { listRepositoriesResponseSchema, searchResponseSchema, fileSourceResponseSchema } from './schemas.js';
 import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse, ServiceError } from './types.js';
 import { isServiceError } from './utils.js';
-import { createLogger } from "@sourcebot/logger";
-
-const logger = createLogger('mcp-client');
 
 export const search = async (request: SearchRequest): Promise<SearchResponse | ServiceError> => {
-    logger.debug(`Executing search request: ${JSON.stringify(request, null, 2)}`);
+    console.debug(`Executing search request: ${JSON.stringify(request, null, 2)}`);
     const result = await fetch(`${env.SOURCEBOT_HOST}/api/search`, {
         method: 'POST',
         headers: {

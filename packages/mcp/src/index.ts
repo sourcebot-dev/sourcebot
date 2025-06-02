@@ -9,9 +9,6 @@ import { listRepos, search, getFileSource } from './client.js';
 import { env, numberSchema } from './env.js';
 import { TextContent } from './types.js';
 import { base64Decode, isServiceError } from './utils.js';
-import { createLogger } from "@sourcebot/logger";
-
-const logger = createLogger('mcp-server');
 
 // Create MCP server
 const server = new McpServer({
@@ -78,7 +75,7 @@ server.tool(
             query += ` case:no`;
         }
 
-        logger.debug(`Executing search request: ${query}`);
+        console.debug(`Executing search request: ${query}`);
 
         const response = await search({
             query,
@@ -218,10 +215,10 @@ server.tool(
 const runServer = async () => {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    logger.info('Sourcebot MCP server ready');
+    console.info('Sourcebot MCP server ready');
 }
 
 runServer().catch((error) => {
-    logger.error('Failed to start MCP server:', error);
+    console.error('Failed to start MCP server:', error);
     process.exit(1);
 });

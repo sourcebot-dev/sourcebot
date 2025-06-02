@@ -18,7 +18,6 @@
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.10.2",
-        "@sourcebot/logger": "workspace:*",
         "@t3-oss/env-core": "^0.13.4",
         "escape-string-regexp": "^5.0.0",
         "express": "^5.1.0",
