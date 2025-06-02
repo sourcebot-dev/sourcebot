@@ -52,7 +52,7 @@ export const symbolHoverTargetsExtension = StateField.define<DecorationSet>({
         // @note: we need to use `ensureSyntaxTree` here (as opposed to `syntaxTree`)
         // because we want to parse the entire document, not just the text visible in
         // the current viewport.
-        const { data: tree } = measureSync(() => ensureSyntaxTree(state, state.doc.length), "ensureSyntaxTree");
+        const { data: tree } = measureSync(() => ensureSyntaxTree(state, state.doc.length, Infinity), "ensureSyntaxTree");
         const decorations: Range<Decoration>[] = [];
 
         // @note: useful for debugging
