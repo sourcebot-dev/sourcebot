@@ -27,6 +27,9 @@ interface LightweightCodeHighlighter {
     renderWhitespace?: boolean;
 }
 
+// The maximum number of characters per line that we will display in the preview.
+const MAX_NUMBER_OF_CHARACTER_PER_LINE = 1000;
+
 /**
  * Lightweight code highlighter that uses the Lezer parser to highlight code.
  * This is helpful in scenarios where we need to highlight a ton of code snippets
@@ -49,12 +52,19 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
         return code.trimEnd().split('\n');
     }, [code]);
 
+    const isFileTooLargeToDisplay = useMemo(() => {
+        return unhighlightedLines.some(line => line.length > MAX_NUMBER_OF_CHARACTER_PER_LINE);
+    }, [code]);
 
     const [highlightedLines, setHighlightedLines] = useState<React.ReactNode[] | null>(null);
 
     const highlightStyle = useCodeMirrorHighlighter();
 
     useEffect(() => {
+        if (isFileTooLargeToDisplay) {
+            return;
+        }
+
         measure(() => Promise.all(
             unhighlightedLines
                 .map(async (line, index) => {
@@ -103,12 +113,21 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
     const lineNumberDigits = String(lineCount).length;
     const lineNumberWidth = `${lineNumberDigits + 2}ch`; // +2 for padding
 
+    if (isFileTooLargeToDisplay) {
+        return (
+            <div className="font-mono text-sm px-2">
+                File too large to display in preview.
+            </div>
+        );
+    }
+
     return (
         <div
             style={{
                 fontFamily: tailwind.theme.fontFamily.editor,
                 fontSize: tailwind.theme.fontSize.editor,
                 whiteSpace: renderWhitespace ? 'pre-wrap' : 'none',
+                wordBreak: 'break-all',
             }}
         >
             {(highlightedLines ?? unhighlightedLines).map((line, index) => (
