@@ -43,12 +43,12 @@ A JSON configuration file is used to specify connections. For example:
 
 Configuration files must conform to the [JSON schema](#schema-reference).
 
-When running Sourcebot, this file must be mounted in a volume that is accessible to the container, with it's path specified in the `CONFIG_FILE` environment variable. For example:
+When running Sourcebot, this file must be mounted in a volume that is accessible to the container, with it's path specified in the `CONFIG_PATH` environment variable. For example:
 
 ```bash
 docker run \
     -v $(pwd)/config.json:/data/config.json \
-    -e CONFIG_FILE=/data/config.json \
+    -e CONFIG_PATH=/data/config.json \
     ... \ # other config
     ghcr.io/sourcebot-dev/sourcebot:latest
 ```
