@@ -94,48 +94,56 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         }
     }, [symbolInfo, onGotoDefinition]);
 
-    return symbolInfo ? (
-            <div
-                ref={ref}
-                className="absolute z-10 flex flex-col gap-2 bg-background border border-gray-300 dark:border-gray-700 rounded-md shadow-lg p-2 max-w-3xl"
-                onMouseOver={() => setIsSticky(true)}
-                onMouseOut={() => setIsSticky(false)}
-            >
-                {symbolInfo.isSymbolDefinitionsLoading ? (
-                    <div className="flex flex-row items-center gap-2 text-sm">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Loading...
-                    </div>
-                ) : symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 0 ? (
-                    <SymbolDefinitionPreview
-                        symbolDefinition={symbolInfo.symbolDefinitions[0]}
-                    />
-                ) : (
-                    <p className="text-sm font-medium text-muted-foreground">No hover info found</p>
-                )}
-                <Separator />
-                <div className="flex flex-row gap-2 mt-2">
-                    <LoadingButton
-                        loading={symbolInfo.isSymbolDefinitionsLoading}
-                        disabled={!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0}
-                        variant="outline"
-                        size="sm"
-                        onClick={onGotoDefinition}
-                    >
-                        {
-                            !symbolInfo.isSymbolDefinitionsLoading && (!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0) ?
-                                "No definition found" :
-                                `Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`
-                        }
-                    </LoadingButton>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onFindReferences(symbolInfo.symbolName)}
-                    >
-                        Find references
-                    </Button>
+    if (!symbolInfo) {
+        return null;
+    }
+
+    // We use a portal here to render the popup at the document body level.
+    // This avoids clipping issues that occur when the popup is rendered inside scrollable or overflow-hidden containers (like the editor or its parent).
+    // By rendering in a portal, the popup can be absolutely positioned anywhere in the viewport without being cut off by parent containers.
+    return createPortal(
+        <div
+            ref={ref}
+            className="absolute z-10 flex flex-col gap-2 bg-background border border-gray-300 dark:border-gray-700 rounded-md shadow-lg p-2 max-w-3xl"
+            onMouseOver={() => setIsSticky(true)}
+            onMouseOut={() => setIsSticky(false)}
+        >
+            {symbolInfo.isSymbolDefinitionsLoading ? (
+                <div className="flex flex-row items-center gap-2 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading...
                 </div>
-        </div>
-    ) : null;
+            ) : symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 0 ? (
+                <SymbolDefinitionPreview
+                    symbolDefinition={symbolInfo.symbolDefinitions[0]}
+                />
+            ) : (
+                <p className="text-sm font-medium text-muted-foreground">No hover info found</p>
+            )}
+            <Separator />
+            <div className="flex flex-row gap-2 mt-2">
+                <LoadingButton
+                    loading={symbolInfo.isSymbolDefinitionsLoading}
+                    disabled={!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0}
+                    variant="outline"
+                    size="sm"
+                    onClick={onGotoDefinition}
+                >
+                    {
+                        !symbolInfo.isSymbolDefinitionsLoading && (!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0) ?
+                            "No definition found" :
+                            `Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`
+                    }
+                </LoadingButton>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onFindReferences(symbolInfo.symbolName)}
+                >
+                    Find references
+                </Button>
+            </div>
+        </div>,
+        document.body
+    );
 };
