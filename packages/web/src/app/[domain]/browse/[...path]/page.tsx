@@ -2,7 +2,7 @@ import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { TopBar } from "@/app/[domain]/components/topBar";
 import { Separator } from '@/components/ui/separator';
 import { getFileSource } from '@/features/search/fileSourceApi';
-import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
+import { cn, getCodeHostInfoForRepo, isServiceError, measure } from "@/lib/utils";
 import { base64Decode } from "@/lib/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { LuFileX2, LuBookX } from "react-icons/lu";
@@ -11,6 +11,10 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { getRepoInfoByName } from "@/actions";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import Image from "next/image";
+import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
+import { getTree } from "@/features/fileTree/actions";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface BrowsePageProps {
     params: {
@@ -139,13 +143,49 @@ export default async function BrowsePage({
                 </div>
                 <Separator />
             </div>
-            <CodePreviewPanel
-                source={base64Decode(fileSourceResponse.source)}
-                language={fileSourceResponse.language}
-                repoName={repoInfo.name}
-                path={path}
-                revisionName={revisionName ?? 'HEAD'}
-            />
+            <ResizablePanelGroup
+                direction="horizontal"
+            >
+                <FileTreePanel
+                    repoName={repoInfo.name}
+                    revisionName={revisionName ?? 'HEAD'}
+                    domain={params.domain}
+                    path={path}
+                />
+                <AnimatedResizableHandle />
+                <CodePreviewPanel
+                    source={base64Decode(fileSourceResponse.source)}
+                    language={fileSourceResponse.language}
+                    repoName={repoInfo.name}
+                    path={path}
+                    revisionName={revisionName ?? 'HEAD'}
+                />
+            </ResizablePanelGroup>
         </>
+    )
+}
+
+const FileTreePanel = async ({ repoName, revisionName, path, domain }: { repoName: string, revisionName: string, path: string, domain: string }) => {
+
+    const { data: response } = await measure(() => getTree(repoName, revisionName, path, domain), 'getTree');
+    if (isServiceError(response)) {
+        return "error";
+    }
+
+    return (
+        <ResizablePanel
+            order={1}
+        >
+            <ScrollArea className="h-full">
+                {response.tree
+                    .filter(item => item.type === 'tree')
+                    .filter(item => path.startsWith(item.path))
+                    .map(item => (
+                        <div key={item.path}>
+                            <span className="text-sm text-muted-foreground">{item.type} - {item.path}</span>
+                        </div>
+                    ))}
+            </ScrollArea>
+        </ResizablePanel>
     )
 }

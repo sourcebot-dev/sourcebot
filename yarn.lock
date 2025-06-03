@@ -6033,6 +6033,7 @@ __metadata:
     react-resizable-panels: "npm:^2.1.1"
     server-only: "npm:^0.0.1"
     sharp: "npm:^0.33.5"
+    simple-git: "npm:^3.27.0"
     strip-json-comments: "npm:^5.0.1"
     stripe: "npm:^17.6.0"
     tailwind-merge: "npm:^2.5.2"

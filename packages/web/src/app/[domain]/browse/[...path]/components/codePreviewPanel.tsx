@@ -187,7 +187,7 @@ export const CodePreviewPanel = ({
 
     return (
         <ResizablePanel
-            order={1}
+            order={2}
             id={"code-preview-panel"}
         >
             <ScrollArea className="h-full overflow-auto flex-1">
