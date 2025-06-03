@@ -114,6 +114,7 @@
     "embla-carousel-react": "^8.3.0",
     "escape-string-regexp": "^5.0.0",
     "fuse.js": "^7.0.0",
+    "google-auth-library": "^9.15.1",
     "graphql": "^16.9.0",
     "http-status-codes": "^2.3.0",
     "input-otp": "^1.4.2",
