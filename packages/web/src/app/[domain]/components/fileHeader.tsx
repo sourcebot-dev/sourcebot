@@ -6,6 +6,9 @@ import clsx from "clsx";
 import Image from "next/image";
 import Link from "next/link";
 import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation";
+import { Copy, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/components/hooks/use-toast";
 
 interface FileHeaderProps {
     fileName: string;
@@ -38,6 +41,15 @@ export const FileHeader = ({
     });
 
     const { navigateToPath } = useBrowseNavigation();
+    const { toast } = useToast();
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(fileName);
+        setCopied(true);
+        toast({ description: "Copied file path!" });
+        setTimeout(() => setCopied(false), 1500);
+    };
 
     return (
         <div className="flex flex-row gap-2 items-center w-full overflow-hidden">
@@ -71,11 +83,9 @@ export const FileHeader = ({
                 </p>
             )}
             <span>·</span>
-            <div
-                className="flex-1 flex items-center overflow-hidden mt-0.5"
-            >
+            <div className="flex-1 flex items-center overflow-hidden mt-0.5">
                 <span
-                    className="inline-block w-full truncate-start font-mono text-sm cursor-pointer hover:underline"
+                    className="inline-block truncate-start font-mono text-sm cursor-pointer hover:underline"
                     onClick={() => {
                         navigateToPath({
                             repoName: repo.name,
@@ -97,6 +107,18 @@ export const FileHeader = ({
                             </>
                         )}
                 </span>
+                <button
+                    className="ml-2 p-1 rounded transition-colors"
+                    onClick={handleCopy}
+                    aria-label="Copy file path"
+                    type="button"
+                >
+                    {copied ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : (
+                        <Copy className="h-4 w-4 text-muted-foreground" />
+                    )}
+                </button>
             </div>
         </div>
     )
