@@ -13,7 +13,7 @@ import { CodePreviewPanel } from "./components/codePreviewPanel";
 import Image from "next/image";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
-import { getTree } from "@/features/fileTree/actions";
+import { FileTreeNode, getTree } from "@/features/fileTree/actions";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface BrowsePageProps {
@@ -166,10 +166,33 @@ export default async function BrowsePage({
 }
 
 const FileTreePanel = async ({ repoName, revisionName, path, domain }: { repoName: string, revisionName: string, path: string, domain: string }) => {
-
-    const { data: response } = await measure(() => getTree(repoName, revisionName, path, domain), 'getTree');
+    const { data: response } = await measure(() => getTree(repoName, revisionName, domain), 'getTree');
     if (isServiceError(response)) {
         return "error";
+    }
+
+    function renderTree(nodes: FileTreeNode, parentPath = "") {
+        return (
+            <ul className="pl-4">
+                {nodes.children.map((node) => {
+                    const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
+                    if (node.type === 'tree') {
+                        return (
+                            <li key={fullPath}>
+                                <span className="font-semibold text-muted-foreground">{node.name}/</span>
+                                {node.children.length > 0 && renderTree(node, fullPath)}
+                            </li>
+                        );
+                    } else {
+                        return (
+                            <li key={fullPath}>
+                                <span className="text-sm text-muted-foreground">{node.name}</span>
+                            </li>
+                        );
+                    }
+                })}
+            </ul>
+        );
     }
 
     return (
@@ -177,14 +200,7 @@ const FileTreePanel = async ({ repoName, revisionName, path, domain }: { repoNam
             order={1}
         >
             <ScrollArea className="h-full">
-                {response.tree
-                    .filter(item => item.type === 'tree')
-                    .filter(item => path.startsWith(item.path))
-                    .map(item => (
-                        <div key={item.path}>
-                            <span className="text-sm text-muted-foreground">{item.type} - {item.path}</span>
-                        </div>
-                    ))}
+                {renderTree(response.tree)}
             </ScrollArea>
         </ResizablePanel>
     )
