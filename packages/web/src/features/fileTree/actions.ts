@@ -10,6 +10,7 @@ import path from 'path';
 
 export type FileTreeNode = {
     name: string;
+    path: string;
     type: string;
     children: FileTreeNode[];
 }
@@ -82,6 +83,7 @@ const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } => {
 const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {
     const root: FileTreeNode = {
         name: 'root',
+        path: '',
         type: 'tree',
         children: [],
     };
@@ -99,6 +101,7 @@ const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode
             if (!next) {
                 next = {
                     name: part,
+                    path: item.path,
                     type: nodeType,
                     children: [],
                 };

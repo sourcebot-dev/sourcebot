@@ -6044,6 +6044,7 @@ __metadata:
     usehooks-ts: "npm:^3.1.0"
     vite-tsconfig-paths: "npm:^5.1.3"
     vitest: "npm:^2.1.5"
+    vscode-icons-js: "npm:^11.6.1"
     zod: "npm:^3.24.3"
     zod-to-json-schema: "npm:^3.24.5"
   languageName: unknown
@@ -6329,6 +6330,13 @@ __metadata:
   version: 2.0.4
   resolution: "@types/http-errors@npm:2.0.4"
   checksum: 10c0/494670a57ad4062fee6c575047ad5782506dd35a6b9ed3894cea65830a94367bd84ba302eb3dde331871f6d70ca287bfedb1b2cf658e6132cd2cbd427ab56836
+  languageName: node
+  linkType: hard
+
+"@types/jasmine@npm:^3.6.3":
+  version: 3.10.18
+  resolution: "@types/jasmine@npm:3.10.18"
+  checksum: 10c0/09914c65b09cb90536debd21c90000b27a26b730881d45e32c5c19cd429cdcf7407cf27dad2b11a5319bbba7e7e6d756b4a6f1f3c854b691bd1f0ac4f4ea1226
   languageName: node
   linkType: hard
 
@@ -16318,6 +16326,15 @@ __metadata:
   bin:
     vitest: vitest.mjs
   checksum: 10c0/e339e16dccacf4589ff43cb1f38c7b4d14427956ae8ef48702af6820a9842347c2b6c77356aeddb040329759ca508a3cb2b104ddf78103ea5bc98ab8f2c3a54e
+  languageName: node
+  linkType: hard
+
+"vscode-icons-js@npm:^11.6.1":
+  version: 11.6.1
+  resolution: "vscode-icons-js@npm:11.6.1"
+  dependencies:
+    "@types/jasmine": "npm:^3.6.3"
+  checksum: 10c0/bae04f20e3a981cd730f92fed29ff07f389837a12f22c7c36656f7ed005bd672d19dd2213c3db16f8dbbf9c4e0655ccb303a847616fbdb290071c7ec4dc99b99
   languageName: node
   linkType: hard
 

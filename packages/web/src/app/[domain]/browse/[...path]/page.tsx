@@ -11,10 +11,10 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { getRepoInfoByName } from "@/actions";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import Image from "next/image";
-import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { ResizablePanelGroup } from "@/components/ui/resizable";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
-import { FileTreeNode, getTree } from "@/features/fileTree/actions";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { getTree } from "@/features/fileTree/actions";
+import { FileTreePanel } from "@/features/fileTree/components/fileTreePanel";
 
 interface BrowsePageProps {
     params: {
@@ -106,6 +106,8 @@ export default async function BrowsePage({
         webUrl: repoInfo.webUrl,
     });
 
+    const { data: getTreeResponse } = await measure(() => getTree(repoName, revisionName ?? 'HEAD', params.domain), 'getTree');
+
     return (
         <>
             <div className='sticky top-0 left-0 right-0 z-10'>
@@ -146,12 +148,16 @@ export default async function BrowsePage({
             <ResizablePanelGroup
                 direction="horizontal"
             >
-                <FileTreePanel
-                    repoName={repoInfo.name}
-                    revisionName={revisionName ?? 'HEAD'}
-                    domain={params.domain}
-                    path={path}
-                />
+                {isServiceError(getTreeResponse) ? (
+                    <span>Error loading file tree</span>
+                ) : (
+                    <FileTreePanel
+                        tree={getTreeResponse.tree}
+                        path={path}
+                        repoName={repoInfo.name}
+                        revisionName={revisionName ?? 'HEAD'}
+                    />
+                )}
                 <AnimatedResizableHandle />
                 <CodePreviewPanel
                     source={base64Decode(fileSourceResponse.source)}
@@ -162,46 +168,5 @@ export default async function BrowsePage({
                 />
             </ResizablePanelGroup>
         </>
-    )
-}
-
-const FileTreePanel = async ({ repoName, revisionName, path, domain }: { repoName: string, revisionName: string, path: string, domain: string }) => {
-    const { data: response } = await measure(() => getTree(repoName, revisionName, domain), 'getTree');
-    if (isServiceError(response)) {
-        return "error";
-    }
-
-    function renderTree(nodes: FileTreeNode, parentPath = "") {
-        return (
-            <ul className="pl-4">
-                {nodes.children.map((node) => {
-                    const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
-                    if (node.type === 'tree') {
-                        return (
-                            <li key={fullPath}>
-                                <span className="font-semibold text-muted-foreground">{node.name}/</span>
-                                {node.children.length > 0 && renderTree(node, fullPath)}
-                            </li>
-                        );
-                    } else {
-                        return (
-                            <li key={fullPath}>
-                                <span className="text-sm text-muted-foreground">{node.name}</span>
-                            </li>
-                        );
-                    }
-                })}
-            </ul>
-        );
-    }
-
-    return (
-        <ResizablePanel
-            order={1}
-        >
-            <ScrollArea className="h-full">
-                {renderTree(response.tree)}
-            </ScrollArea>
-        </ResizablePanel>
     )
 }
