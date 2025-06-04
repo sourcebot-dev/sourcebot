@@ -5,11 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.1.1] - 2025-06-03
 
 ### Added
 - Added copy button for filenames. [#328](https://github.com/sourcebot-dev/sourcebot/pull/328)
 - Added development docker compose file. [#328](https://github.com/sourcebot-dev/sourcebot/pull/328)
+- Added keyboard shortcuts for goto def & find all refs. [#329](https://github.com/sourcebot-dev/sourcebot/pull/329)
 - Added GCP IAP JIT provisioning. [#330](https://github.com/sourcebot-dev/sourcebot/pull/330)
 
 ### Fixed
