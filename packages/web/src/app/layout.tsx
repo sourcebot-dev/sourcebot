@@ -13,6 +13,7 @@ import { getEntitlements } from "@/features/entitlements/server";
 export const metadata: Metadata = {
     title: "Sourcebot",
     description: "Sourcebot",
+    manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -26,9 +27,6 @@ export default function RootLayout({
             // @see : https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
             suppressHydrationWarning
         >
-            <head>
-                <link rel="manifest" href="/manifest.json" />
-            </head>
             <body>
                 <Toaster />
                 <SessionProvider>

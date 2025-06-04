@@ -14,10 +14,14 @@ export async function GET(
     }
 
     const result = await getRepoImage(repoIdNum, domain);
-
     if (isServiceError(result)) {
         return new Response(result.message, { status: result.statusCode });
     }
 
-    return result;
+    return new Response(result, {
+        headers: {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=3600',
+        },
+    });
 } 

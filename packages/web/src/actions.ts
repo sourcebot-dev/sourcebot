@@ -1715,7 +1715,7 @@ export const getSearchContexts = async (domain: string) => sew(() =>
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
     ));
 
-export const getRepoImage = async (repoId: number, domain: string): Promise<Response | ServiceError> => sew(async () => {
+export const getRepoImage = async (repoId: number, domain: string): Promise<ArrayBuffer | ServiceError> => sew(async () => {
     return await withAuth(async (userId) => {
         return await withOrgMembership(userId, domain, async ({ org }) => {
             const repo = await prisma.repo.findUnique({
@@ -1736,22 +1736,6 @@ export const getRepoImage = async (repoId: number, domain: string): Promise<Resp
                 return notFound();
             }
 
-            // Only proxy images from self-hosted instances that might require authentication
-            const imageUrl = new URL(repo.imageUrl);
-
-            const publicHostnames = [
-                'github.com',
-                'gitlab.com',
-                'avatars.githubusercontent.com',
-                'gitea.com',
-                'bitbucket.org',
-            ];
-            const isPublicInstance = publicHostnames.includes(imageUrl.hostname);
-
-            if (isPublicInstance) {
-                return Response.redirect(repo.imageUrl);
-            }
-
             let authHeaders: Record<string, string> = {};
             for (const { connection } of repo.connections) {
                 try {
@@ -1766,7 +1750,7 @@ export const getRepoImage = async (repoId: number, domain: string): Promise<Resp
                         const config = connection.config as unknown as GitlabConnectionConfig;
                         if (config.token) {
                             const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
-                            authHeaders['Authorization'] = `Bearer ${token}`;
+                            authHeaders['PRIVATE-TOKEN'] = token;
                             break;
                         }
                     } else if (connection.connectionType === 'gitea') {
@@ -1792,15 +1776,8 @@ export const getRepoImage = async (repoId: number, domain: string): Promise<Resp
                     return notFound();
                 }
 
-                const contentType = response.headers.get('content-type') || 'image/png';
                 const imageBuffer = await response.arrayBuffer();
-
-                return new Response(imageBuffer, {
-                    headers: {
-                        'Content-Type': contentType,
-                        'Cache-Control': 'public, max-age=3600',
-                    },
-                });
+                return imageBuffer;
             } catch (error) {
                 logger.error(`Error proxying image for repo ${repoId}:`, error);
                 return notFound();
