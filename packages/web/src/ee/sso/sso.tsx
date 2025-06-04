@@ -109,10 +109,14 @@ export const getSSOProviders = (): Provider[] => {
                     }
 
                     const oauth2Client = new OAuth2Client();
-                    const ticket = await oauth2Client.verifyIdToken({
-                        idToken: iapAssertion,
-                        audience: env.AUTH_EE_GCP_IAP_AUDIENCE,
-                    });
+                    
+                    const { pubkeys } = await oauth2Client.getIapPublicKeys();
+                    const ticket = await oauth2Client.verifySignedJwtWithCertsAsync(
+                        iapAssertion,
+                        pubkeys,
+                        env.AUTH_EE_GCP_IAP_AUDIENCE,
+                        ['https://cloud.google.com/iap']
+                    );
 
                     const payload = ticket.getPayload();
                     if (!payload) {
