@@ -1,8 +1,7 @@
 import { FileHeader } from "@/app/[domain]/components/fileHeader";
-import { TopBar } from "@/app/[domain]/components/topBar";
 import { Separator } from '@/components/ui/separator';
 import { getFileSource } from '@/features/search/fileSourceApi';
-import { cn, getCodeHostInfoForRepo, isServiceError, measure } from "@/lib/utils";
+import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
 import { base64Decode } from "@/lib/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { LuFileX2, LuBookX } from "react-icons/lu";
@@ -11,10 +10,6 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { getRepoInfoByName } from "@/actions";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
 import Image from "next/image";
-import { ResizablePanelGroup } from "@/components/ui/resizable";
-import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
-import { getTree } from "@/features/fileTree/actions";
-import { FileTreePanel } from "@/features/fileTree/components/fileTreePanel";
 
 interface BrowsePageProps {
     params: {
@@ -106,67 +101,53 @@ export default async function BrowsePage({
         webUrl: repoInfo.webUrl,
     });
 
-    const { data: getTreeResponse } = await measure(() => getTree(repoName, revisionName ?? 'HEAD', params.domain), 'getTree');
-
     return (
-        <>
-            <div className='sticky top-0 left-0 right-0 z-10'>
-                <TopBar
-                    defaultSearchQuery={`repo:${repoName}${revisionName ? ` rev:${revisionName}` : ''} `}
-                    domain={params.domain}
-                />
-                <Separator />
-                <div className="bg-accent py-1 px-2 flex flex-row items-center">
-                    <FileHeader
-                        fileName={path}
-                        repo={{
-                            name: repoInfo.name,
-                            displayName: repoInfo.displayName,
-                            webUrl: repoInfo.webUrl,
-                            codeHostType: repoInfo.codeHostType,
-                        }}
-                        branchDisplayName={revisionName}
-                    />
-                    {(fileSourceResponse.webUrl && codeHostInfo) && (
-                        <a
-                            href={fileSourceResponse.webUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex flex-row items-center gap-2 px-2 py-0.5 rounded-md flex-shrink-0"
-                        >
-                            <Image
-                                src={codeHostInfo.icon}
-                                alt={codeHostInfo.codeHostName}
-                                className={cn('w-4 h-4 flex-shrink-0', codeHostInfo.iconClassName)}
-                            />
-                            <span className="text-sm font-medium">Open in {codeHostInfo.codeHostName}</span>
-                        </a>
-                    )}
-                </div>
-                <Separator />
-            </div>
-            <ResizablePanelGroup
-                direction="horizontal"
-            >
-                {isServiceError(getTreeResponse) ? (
-                    <span>Error loading file tree</span>
-                ) : (
-                    <FileTreePanel
-                        tree={getTreeResponse.tree}
-                        path={path}
-                        repoName={repoInfo.name}
-                        revisionName={revisionName ?? 'HEAD'}
-                    />
-                )}
-                <AnimatedResizableHandle />
-                <CodePreviewPanel
-                    source={base64Decode(fileSourceResponse.source)}
-                    language={fileSourceResponse.language}
-                    repoName={repoInfo.name}
-                    path={path}
-                    revisionName={revisionName ?? 'HEAD'}
-                />
-            </ResizablePanelGroup>
-        </>
+        <CodePreviewPanel
+                source={base64Decode(fileSourceResponse.source)}
+                language={fileSourceResponse.language}
+                repoName={repoInfo.name}
+                path={path}
+                revisionName={revisionName ?? 'HEAD'}
+            />
     )
+
+    // return (
+    //     <div className="flex flex-col h-full w-full">
+    //         <div className="bg-accent py-1 px-2 flex flex-row items-center">
+    //             <FileHeader
+    //                 fileName={path}
+    //                 repo={{
+    //                     name: repoInfo.name,
+    //                     displayName: repoInfo.displayName,
+    //                     webUrl: repoInfo.webUrl,
+    //                     codeHostType: repoInfo.codeHostType,
+    //                 }}
+    //                 branchDisplayName={revisionName}
+    //             />
+    //             {(fileSourceResponse.webUrl && codeHostInfo) && (
+    //                     <a
+    //                         href={fileSourceResponse.webUrl}
+    //                         target="_blank"
+    //                         rel="noopener noreferrer"
+    //                         className="flex flex-row items-center gap-2 px-2 py-0.5 rounded-md flex-shrink-0"
+    //                     >
+    //                         <Image
+    //                             src={codeHostInfo.icon}
+    //                             alt={codeHostInfo.codeHostName}
+    //                             className={cn('w-4 h-4 flex-shrink-0', codeHostInfo.iconClassName)}
+    //                         />
+    //                         <span className="text-sm font-medium">Open in {codeHostInfo.codeHostName}</span>
+    //                     </a>
+    //                 )}
+    //         </div>
+    //         <Separator />
+    //         <CodePreviewPanel
+    //             source={base64Decode(fileSourceResponse.source)}
+    //             language={fileSourceResponse.language}
+    //             repoName={repoInfo.name}
+    //             path={path}
+    //             revisionName={revisionName ?? 'HEAD'}
+    //         />
+    //     </div>
+    // )
 }

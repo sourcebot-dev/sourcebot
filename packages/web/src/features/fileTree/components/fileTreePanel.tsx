@@ -1,6 +1,6 @@
 'use client';
 
-import { FileTreeNode as RawFileTreeNode } from "../actions";
+import { getTree, FileTreeNode as RawFileTreeNode } from "../actions";
 import { ResizablePanel } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -8,17 +8,42 @@ import { getIconForFile, getIconForFolder } from "vscode-icons-js";
 import { Icon } from '@iconify/react';
 import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 import { ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
+import { useBrowseState } from "@/app/[domain]/browse/hooks/useBrowseState";
+import { useQuery } from "@tanstack/react-query";
+import { unwrapServiceError } from "@/lib/utils";
+import { useDomain } from "@/hooks/useDomain";
 
-interface FileTreePanelProps {
-    tree: RawFileTreeNode;
-    path: string;
-    repoName: string;
-    revisionName: string;
-}
+
 
 type FileTreeNode = Omit<RawFileTreeNode, 'children'> & {
     isCollapsed: boolean;
     children: FileTreeNode[];
+}
+
+export const FileTreePanel = () => {
+    const { state: { repoName, revisionName } } = useBrowseState();
+    const domain = useDomain();
+
+    const { data, isPending, isError } = useQuery({
+        queryKey: ['tree', repoName, revisionName],
+        queryFn: () => unwrapServiceError(getTree(repoName, revisionName, domain)),
+    });
+
+    if (isPending) {
+        return <p>Loading...</p>
+    }
+
+    if (isError) {
+        return <p>Error</p>
+    }
+
+    return (
+        <PureFileTreePanel
+            tree={data.tree}
+            repoName={repoName}
+            revisionName={revisionName}
+        />
+    )
 }
 
 const buildCollapsableTree = (tree: RawFileTreeNode): FileTreeNode => {
@@ -41,8 +66,13 @@ const transformTree = (
     }
 }
 
-export const FileTreePanel = ({ tree: _tree, path, repoName, revisionName }: FileTreePanelProps) => {
+interface PureFileTreePanelProps {
+    tree: RawFileTreeNode;
+    repoName: string;
+    revisionName: string;
+}
 
+const PureFileTreePanel = ({ tree: _tree, repoName, revisionName }: PureFileTreePanelProps) => {
     const [tree, setTree] = useState<FileTreeNode>(buildCollapsableTree(_tree));
 
     const setIsCollapsed = useCallback((path: string, isCollapsed: boolean) => {
@@ -54,19 +84,10 @@ export const FileTreePanel = ({ tree: _tree, path, repoName, revisionName }: Fil
         }));
     }, [tree]);
 
-    useEffect(() => {
-        const parts = path.split('/');
-        let currentPath = '';
-        parts.forEach((part) => {
-            currentPath = currentPath ? `${currentPath}/${part}` : part;
-            console.log('setting collapse for', currentPath);
-            setIsCollapsed(currentPath, false);
-        });
-    }, [path]);
-
     const { navigateToPath } = useBrowseNavigation();
 
     const renderTree = useCallback((nodes: FileTreeNode, depth = 0) => {
+        console.log('rendering tree');
         return (
             <div>
                 {nodes.children.map((node) => {
@@ -106,13 +127,9 @@ export const FileTreePanel = ({ tree: _tree, path, repoName, revisionName }: Fil
     const renderedTree = useMemo(() => renderTree(tree), [tree, renderTree]);
 
     return (
-        <ResizablePanel
-            order={1}
-        >
-            <ScrollArea className="h-full">
-                {renderedTree}
-            </ScrollArea>
-        </ResizablePanel>
+        <ScrollArea className="h-full">
+            {renderedTree}
+        </ScrollArea>
     )
 }
 

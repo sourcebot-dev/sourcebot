@@ -1,6 +1,5 @@
 'use client';
 
-import { ResizablePanel } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SymbolHoverPopup } from "@/ee/features/codeNav/components/symbolHoverPopup";
 import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
@@ -186,41 +185,36 @@ export const CodePreviewPanel = ({
     const theme = useCodeMirrorTheme();
 
     return (
-        <ResizablePanel
-            order={2}
-            id={"code-preview-panel"}
-        >
-            <ScrollArea className="h-full overflow-auto flex-1">
-                <CodeMirror
-                    className="relative"
-                    ref={setEditorRef}
-                    value={source}
-                    extensions={extensions}
-                    readOnly={true}
-                    theme={theme}
-                >
-                    {editorRef && editorRef.view && currentSelection && (
-                        <EditorContextMenu
-                            view={editorRef.view}
-                            selection={currentSelection}
-                            repoName={repoName}
-                            path={path}
-                            revisionName={revisionName}
-                        />
-                    )}
-                    {editorRef && hasCodeNavEntitlement && (
-                        <SymbolHoverPopup
-                            editorRef={editorRef}
-                            revisionName={revisionName}
-                            language={language}
-                            onFindReferences={onFindReferences}
-                            onGotoDefinition={onGotoDefinition}
-                        />
-                    )}
-                </CodeMirror>
+        <ScrollArea className="h-full overflow-auto flex-1">
+            <CodeMirror
+                className="relative"
+                ref={setEditorRef}
+                value={source}
+                extensions={extensions}
+                readOnly={true}
+                theme={theme}
+            >
+                {editorRef && editorRef.view && currentSelection && (
+                    <EditorContextMenu
+                        view={editorRef.view}
+                        selection={currentSelection}
+                        repoName={repoName}
+                        path={path}
+                        revisionName={revisionName}
+                    />
+                )}
+                {editorRef && hasCodeNavEntitlement && (
+                    <SymbolHoverPopup
+                        editorRef={editorRef}
+                        revisionName={revisionName}
+                        language={language}
+                        onFindReferences={onFindReferences}
+                        onGotoDefinition={onGotoDefinition}
+                    />
+                )}
+            </CodeMirror>
 
-            </ScrollArea>
-        </ResizablePanel>
+        </ScrollArea>
     )
 }
 
