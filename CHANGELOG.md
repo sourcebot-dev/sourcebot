@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added seperate page for signup. [#311](https://github.com/sourcebot-dev/sourcebot/pull/331)
+
 ## [4.1.1] - 2025-06-03
 
 ### Added
