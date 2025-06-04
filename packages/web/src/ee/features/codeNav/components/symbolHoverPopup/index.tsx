@@ -8,6 +8,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SymbolDefinition, useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
 import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
 import { createPortal } from "react-dom";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useToast } from "@/components/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
@@ -26,6 +30,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     const [isSticky, setIsSticky] = useState(false);
+    const { toast } = useToast();
 
     const symbolInfo = useHoveredOverSymbolInfo({
         editorRef,
@@ -94,6 +99,36 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         }
     }, [symbolInfo, onGotoDefinition]);
 
+    useHotkeys('alt+shift+f12', () => {
+        if (symbolInfo?.symbolName) {
+            console.log('here!');
+            onFindReferences(symbolInfo.symbolName);
+        }
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Open Explore Panel",
+    });
+
+    useHotkeys('alt+f12', () => {
+        if (!symbolInfo) {
+            return;
+        }
+
+        if (!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0) {
+            toast({
+                description: "No definition found for this symbol",
+            });
+            return;
+        }
+
+        onGotoDefinition();
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Go to definition",
+    })
+
     if (!symbolInfo) {
         return null;
     }
@@ -122,26 +157,50 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
             )}
             <Separator />
             <div className="flex flex-row gap-2 mt-2">
-                <LoadingButton
-                    loading={symbolInfo.isSymbolDefinitionsLoading}
-                    disabled={!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0}
-                    variant="outline"
-                    size="sm"
-                    onClick={onGotoDefinition}
-                >
-                    {
-                        !symbolInfo.isSymbolDefinitionsLoading && (!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0) ?
-                            "No definition found" :
-                            `Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`
-                    }
-                </LoadingButton>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onFindReferences(symbolInfo.symbolName)}
-                >
-                    Find references
-                </Button>
+                <Tooltip delayDuration={500}>
+                    <TooltipTrigger asChild>
+                        <LoadingButton
+                            loading={symbolInfo.isSymbolDefinitionsLoading}
+                            disabled={!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0}
+                            variant="outline"
+                            size="sm"
+                            onClick={onGotoDefinition}
+                        >
+                            {
+                                !symbolInfo.isSymbolDefinitionsLoading && (!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0) ?
+                                    "No definition found" :
+                                    `Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`
+                            }
+                        </LoadingButton>
+                    </TooltipTrigger>
+                    <TooltipContent
+                        side="bottom"
+                        className="flex flex-row items-center gap-2"
+                    >
+                        <KeyboardShortcutHint shortcut="⌥ F12" />
+                        <Separator orientation="vertical" className="h-4" />
+                        <span>{`Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`}</span>
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip delayDuration={500}>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onFindReferences(symbolInfo.symbolName)}
+                        >
+                            Find references
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                        side="bottom"
+                        className="flex flex-row items-center gap-2"
+                    >
+                        <KeyboardShortcutHint shortcut="⌥ ⇧ F12" />
+                        <Separator orientation="vertical" className="h-4" />
+                        <span>Find references</span>
+                    </TooltipContent>
+                </Tooltip>
             </div>
         </div>,
         document.body
