@@ -80,6 +80,16 @@ Optional environment variables:
 - `AUTH_EE_GOOGLE_CLIENT_ID`
 - `AUTH_EE_GOOGLE_CLIENT_SECRET`
 
+### GCP IAP
+---
+
+Custom provider built to enable automatic Sourcebot account registration/login when using GCP IAP.
+
+**Required environment variables**
+- `AUTH_EE_GCP_IAP_ENABLED`
+- `AUTH_EE_GCP_IAP_AUDIENCE`
+    - This can be found by selecting the ⋮ icon next to the IAP-enabled backend service and pressing `Get JWT audience code`
+
 ### Okta
 ---
 

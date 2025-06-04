@@ -17,6 +17,7 @@ import { PendingApprovalCard } from "./components/pendingApproval";
 import { hasEntitlement } from "@/features/entitlements/server";
 import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
 import { env } from "@/env.mjs";
+import { GcpIapAuth } from "./components/gcpIapAuth";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -37,7 +38,12 @@ export default async function Layout({
     if (!publicAccessEnabled) {
         const session = await auth();
         if (!session) {
-            redirect('/login');
+            const ssoEntitlement = await hasEntitlement("sso");
+            if (ssoEntitlement && env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
+                return <GcpIapAuth callbackUrl={`/${domain}`} />;
+            } else {
+                redirect('/login');
+            }
         }
 
         const membership = await prisma.userToOrg.findUnique({
