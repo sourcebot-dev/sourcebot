@@ -20,7 +20,11 @@ export const BOTTOM_PANEL_MIN_SIZE = 35;
 export const BOTTOM_PANEL_MAX_SIZE = 65;
 const CODE_NAV_DOCS_URL = "https://docs.sourcebot.dev/docs/features/code-navigation";
 
-export const BottomPanel = () => {
+interface BottomPanelProps {
+    order: number;
+}
+
+export const BottomPanel = ({ order }: BottomPanelProps) => {
     const panelRef = useRef<ImperativePanelHandle>(null);
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
     const domain = useDomain();
@@ -94,7 +98,7 @@ export const BottomPanel = () => {
                         updateBrowseState({ bottomPanelSize: size });
                     }
                 }}
-                order={2}
+                order={order}
                 id={"bottom-panel"}
             >
                 {!hasCodeNavEntitlement ? (

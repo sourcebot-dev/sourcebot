@@ -1,176 +1,304 @@
 'use client';
 
-import { getTree, FileTreeNode as RawFileTreeNode } from "../actions";
-import { ResizablePanel } from "@/components/ui/resizable";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { getIconForFile, getIconForFolder } from "vscode-icons-js";
-import { Icon } from '@iconify/react';
-import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
-import { ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
-import { useBrowseState } from "@/app/[domain]/browse/hooks/useBrowseState";
+import { getTree } from "../actions";
 import { useQuery } from "@tanstack/react-query";
 import { unwrapServiceError } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
+import { ResizablePanel } from "@/components/ui/resizable";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useBrowseState } from "@/app/[domain]/browse/hooks/useBrowseState";
+import { PureFileTreePanel } from "./pureFileTreePanel";
+import { Button } from "@/components/ui/button";
+import { ImperativePanelHandle } from "react-resizable-panels";
+import { useRef } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { Separator } from "@/components/ui/separator";
+import {
+    GoSidebarCollapse as ExpandIcon,
+    GoSidebarExpand as CollapseIcon
+} from "react-icons/go";
+import { Tooltip, TooltipContent } from "@/components/ui/tooltip";
+import { TooltipTrigger } from "@/components/ui/tooltip";
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 
 
-
-type FileTreeNode = Omit<RawFileTreeNode, 'children'> & {
-    isCollapsed: boolean;
-    children: FileTreeNode[];
+interface FileTreePanelProps {
+    order: number;
 }
 
-export const FileTreePanel = () => {
-    const { state: { repoName, revisionName } } = useBrowseState();
-    const domain = useDomain();
+const FILE_TREE_PANEL_DEFAULT_SIZE = 10;
+const FILE_TREE_PANEL_MIN_SIZE = 10;
+const FILE_TREE_PANEL_MAX_SIZE = 30;
 
+
+export const FileTreePanel = ({ order }: FileTreePanelProps) => {
+    const {
+        state: {
+            repoName,
+            revisionName,
+            isFileTreePanelCollapsed,
+        },
+        updateBrowseState,
+    } = useBrowseState();
+
+    const domain = useDomain();
+    const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
     const { data, isPending, isError } = useQuery({
         queryKey: ['tree', repoName, revisionName],
         queryFn: () => unwrapServiceError(getTree(repoName, revisionName, domain)),
     });
 
-    if (isPending) {
-        return <p>Loading...</p>
-    }
-
-    if (isError) {
-        return <p>Error</p>
-    }
+    useHotkeys("mod+b", () => {
+        if (isFileTreePanelCollapsed) {
+            fileTreePanelRef.current?.expand();
+        } else {
+            fileTreePanelRef.current?.collapse();
+        }
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Toggle file tree panel",
+    });
 
     return (
-        <PureFileTreePanel
-            tree={data.tree}
-            repoName={repoName}
-            revisionName={revisionName}
-        />
-    )
-}
-
-const buildCollapsableTree = (tree: RawFileTreeNode): FileTreeNode => {
-    return {
-        ...tree,
-        isCollapsed: true,
-        children: tree.children.map(buildCollapsableTree),
-    }
-}
-
-const transformTree = (
-    tree: FileTreeNode,
-    transform: (node: FileTreeNode) => FileTreeNode
-): FileTreeNode => {
-    const newNode = transform(tree);
-    const newChildren = tree.children.map(child => transformTree(child, transform));
-    return {
-        ...newNode,
-        children: newChildren,
-    }
-}
-
-interface PureFileTreePanelProps {
-    tree: RawFileTreeNode;
-    repoName: string;
-    revisionName: string;
-}
-
-const PureFileTreePanel = ({ tree: _tree, repoName, revisionName }: PureFileTreePanelProps) => {
-    const [tree, setTree] = useState<FileTreeNode>(buildCollapsableTree(_tree));
-
-    const setIsCollapsed = useCallback((path: string, isCollapsed: boolean) => {
-        setTree(transformTree(tree, (currentNode) => {
-            if (currentNode.path === path) {
-                currentNode.isCollapsed = isCollapsed;
-            }
-            return currentNode;
-        }));
-    }, [tree]);
-
-    const { navigateToPath } = useBrowseNavigation();
-
-    const renderTree = useCallback((nodes: FileTreeNode, depth = 0) => {
-        console.log('rendering tree');
-        return (
-            <div>
-                {nodes.children.map((node) => {
-                    return (
-                        <>
-                           <div 
-                                className="flex flex-row gap-1 items-center hover:bg-accent hover:text-accent-foreground rounded-sm cursor-pointer"
-                                style={{ paddingLeft: `${depth * 16}px` }}
+        <>
+            <ResizablePanel
+                ref={fileTreePanelRef}
+                order={order}
+                minSize={FILE_TREE_PANEL_MIN_SIZE}
+                maxSize={FILE_TREE_PANEL_MAX_SIZE}
+                defaultSize={isFileTreePanelCollapsed ? 0 : FILE_TREE_PANEL_DEFAULT_SIZE}
+                collapsible={true}
+                id="file-tree-panel"
+                onCollapse={() => updateBrowseState({ isFileTreePanelCollapsed: true })}
+                onExpand={() => updateBrowseState({ isFileTreePanelCollapsed: false })}
+            >
+                <div className="flex flex-col h-full">
+                    <div className="flex flex-row items-center p-2 gap-2">
+                        <Tooltip
+                            delayDuration={100}
+                        >
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                        fileTreePanelRef.current?.collapse();
+                                    }}
+                                >
+                                    <CollapseIcon className="w-4 h-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
+                                <KeyboardShortcutHint shortcut="⌘ B" />
+                                <Separator orientation="vertical" className="h-4" />
+                                <span>Close file tree</span>
+                            </TooltipContent>
+                        </Tooltip>
+                        <p className="font-medium">File Tree</p>
+                    </div>
+                    <Separator orientation="horizontal" className="w-full mb-2" />
+                    {isPending ? (
+                        <FileTreePanelSkeleton />
+                    ) :
+                        isError ? (
+                            <div className="flex flex-col items-center justify-center h-full">
+                                <p>Error loading file tree</p>
+                            </div>
+                        ) : (
+                            <PureFileTreePanel
+                                tree={data.tree}
+                                repoName={repoName}
+                                revisionName={revisionName}
+                            />
+                        )}
+                </div>
+            </ResizablePanel>
+            {isFileTreePanelCollapsed && (
+                <div className="flex flex-col items-center h-full p-2">
+                    <Tooltip
+                        delayDuration={100}
+                    >
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
                                 onClick={() => {
-                                    if (node.type === 'tree') {
-                                        setIsCollapsed(node.path, !node.isCollapsed);
-                                    }
-                                    else if (node.type === 'blob') {
-                                        navigateToPath({
-                                            repoName: repoName,
-                                            revisionName: revisionName,
-                                            path: node.path,
-                                            pathType: 'blob',
-                                        });
-                                    }
+                                    fileTreePanelRef.current?.expand();
                                 }}
                             >
-                                <FileTreeItem
-                                    key={node.path}
-                                    node={node}
-                                    onClick={() => {}}
-                                />
-                            </div>
-                            {node.children.length > 0 && !node.isCollapsed && renderTree(node, depth + 1)}
-                        </>
-                    );
-                })}
-            </div>
-        );
-    }, []);
-
-    const renderedTree = useMemo(() => renderTree(tree), [tree, renderTree]);
-
-    return (
-        <ScrollArea className="h-full">
-            {renderedTree}
-        </ScrollArea>
+                                <ExpandIcon className="w-4 h-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
+                            <KeyboardShortcutHint shortcut="⌘ B" />
+                            <Separator orientation="vertical" className="h-4" />
+                            <span>Open file tree</span>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
+            )}
+        </>
     )
 }
 
-const FileTreeItem = ({
-    node,
-    onClick,
-}: {
-    node: FileTreeNode,
-    onClick: () => void
-}) => {
-    const iconName = useMemo(() => {
-        if (node.type === 'tree') {
-            const icon = getIconForFolder(node.name);
-            if (icon) {
-                const iconName = `vscode-icons:${icon.substring(0, icon.indexOf('.')).replaceAll('_', '-')}`;
-                return iconName;
-            }
-        } else if (node.type === 'blob') {
-            const icon = getIconForFile(node.name);
-            if (icon) {
-                const iconName = `vscode-icons:${icon.substring(0, icon.indexOf('.')).replaceAll('_', '-')}`;
-                return iconName;
-            }
-        }
 
-        return "vscode-icons:file-type-unknown";
-    }, [node.type]);
-
+const FileTreePanelSkeleton = () => {
     return (
-        <div className="flex flex-row gap-1 select-none" onClick={onClick}>
-            <div className="flex flex-row gap-1 cursor-pointer w-4 h-4 flex-shrink-0">
-                {node.type === 'tree' && (
-                    node.isCollapsed ? (
-                        <ChevronRightIcon className="w-4 h-4 flex-shrink-0" />
-                    ) : (
-                        <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
-                    )
-                )}
+        <div className="p-2 space-y-2">
+            {/* Root level items */}
+            <div className="flex items-center gap-2">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-24" />
             </div>
-            <Icon icon={iconName} className="w-4 h-4 flex-shrink-0" />
-            <span className="text-sm text-muted-foreground">{node.name}</span>
+            <div className="flex items-center gap-2">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-20" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-28" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-16" />
+            </div>
+            <div className="flex items-center gap-2">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-18" />
+            </div>
+            <div className="flex items-center gap-2 pl-8">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-22" />
+            </div>
+            <div className="flex items-center gap-2 pl-8">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-30" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-26" />
+            </div>
+            <div className="flex items-center gap-2">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-28" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-20" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-35" />
+            </div>
+            <div className="flex items-center gap-2 pl-8">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-24" />
+            </div>
+            <div className="flex items-center gap-2 pl-8">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-16" />
+            </div>
+            <div className="flex items-center gap-2 pl-8">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-28" />
+            </div>
+            <div className="flex items-center gap-2">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-22" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-18" />
+            </div>
+            <div className="flex items-center gap-2">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-26" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-20" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-30" />
+            </div>
+            <div className="flex items-center gap-2 pl-8">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-24" />
+            </div>
+            <div className="flex items-center gap-2 pl-8">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-28" />
+            </div>
+            <div className="flex items-center gap-2 pl-12">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-22" />
+            </div>
+            <div className="flex items-center gap-2 pl-12">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-16" />
+            </div>
+            <div className="flex items-center gap-2 pl-8">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-26" />
+            </div>
+            <div className="flex items-center gap-2">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-24" />
+            </div>
+            <div className="flex items-center gap-2">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-18" />
+            </div>
+            <div className="flex items-center gap-2 pl-4">
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="w-4 h-4" />
+                <Skeleton className="h-4 w-28" />
+            </div>
         </div>
     )
 }

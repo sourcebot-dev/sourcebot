@@ -11,6 +11,7 @@ export interface BrowseState {
         language: string;
     }
     isBottomPanelCollapsed: boolean;
+    isFileTreePanelCollapsed: boolean;
     activeExploreMenuTab: "references" | "definitions";
     bottomPanelSize: number;
     repoName: string;
@@ -20,6 +21,7 @@ export interface BrowseState {
 const defaultState: BrowseState = {
     selectedSymbolInfo: undefined,
     isBottomPanelCollapsed: true,
+    isFileTreePanelCollapsed: false,
     activeExploreMenuTab: "references",
     bottomPanelSize: 35,
     repoName: '',

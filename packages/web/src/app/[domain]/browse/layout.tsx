@@ -51,35 +51,33 @@ export default function Layout({
                     <Separator />
                 </div>
                 <ResizablePanelGroup
-                    direction="vertical"
+                    direction="horizontal"
                 >
+                    <FileTreePanel order={1} />
+
+                    <AnimatedResizableHandle />
+
                     <ResizablePanel
-                        order={1}
+                        order={2}
                         minSize={10}
-                        id="file-tree-panel"
+                        defaultSize={90}
+                        id="code-preview-panel-container"
                     >
                         <ResizablePanelGroup
-                            direction="horizontal"
+                            direction="vertical"
                         >
                             <ResizablePanel
                                 order={1}
-                                minSize={10}
-                                maxSize={30}
-                                id="file-tree-panel"
-                            >
-                                <FileTreePanel />
-                            </ResizablePanel>
-                            <AnimatedResizableHandle />
-                            <ResizablePanel
-                                order={2}
                                 id="code-preview-panel"
                             >
                                 {codePreviewPanel}
                             </ResizablePanel>
+                            <AnimatedResizableHandle />
+                            <BottomPanel
+                                order={2}
+                            />
                         </ResizablePanelGroup>
                     </ResizablePanel>
-                    <AnimatedResizableHandle />
-                    <BottomPanel />
                 </ResizablePanelGroup>
             </div>
         </BrowseStateProvider>
