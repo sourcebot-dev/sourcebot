@@ -26,6 +26,9 @@ export default function RootLayout({
             // @see : https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
             suppressHydrationWarning
         >
+            <head>
+                <link rel="manifest" href="/manifest.json" />
+            </head>
             <body>
                 <Toaster />
                 <SessionProvider>
