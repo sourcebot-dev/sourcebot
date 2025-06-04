@@ -11,6 +11,8 @@ export const GcpIapAuth = ({ callbackUrl }: GcpIapAuthProps) => {
     useEffect(() => {
         signIn("gcp-iap", {
             redirectTo: callbackUrl ?? "/"
+        }).catch((error) => {
+            console.error("Error signing in with GCP IAP:", error);
         });
     }, [callbackUrl]);
 
