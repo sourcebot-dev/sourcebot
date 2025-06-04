@@ -63,3 +63,6 @@ export function decrypt(iv: string, encryptedText: string): string {
 
     return decrypted;
 }
+
+// Export token utilities
+export { getTokenFromConfig } from './tokenUtils.js';

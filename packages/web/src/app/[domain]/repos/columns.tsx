@@ -6,12 +6,13 @@ import { ArrowUpDown, ExternalLink, Clock, Loader2, CheckCircle2, XCircle, Trash
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
+import { cn, getRepoImageSrc } from "@/lib/utils"
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { AddRepoButton } from "./addRepoButton"
 
 export type RepositoryColumnInfo = {
+    repoId: number
     name: string
     imageUrl?: string
     connections: {
@@ -112,7 +113,7 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
                     <div className="relative h-8 w-8 overflow-hidden rounded-md border bg-muted">
                         {repo.imageUrl ? (
                             <Image
-                                src={repo.imageUrl || "/placeholder.svg"}
+                                src={getRepoImageSrc(repo.imageUrl, repo.repoId, domain) || "/placeholder.svg"}
                                 alt={`${repo.name} logo`}
                                 width={32}
                                 height={32}

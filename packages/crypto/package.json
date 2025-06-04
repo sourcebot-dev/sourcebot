@@ -8,6 +8,8 @@
     "postinstall": "yarn build"
   },
   "dependencies": {
+    "@sourcebot/db": "*",
+    "@sourcebot/schemas": "*",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {

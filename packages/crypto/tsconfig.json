@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
-      "target": "ES6",
-      "module": "CommonJS",
-      "lib": ["ES6"],
+      "target": "ES2022",
+      "module": "Node16",
+      "lib": ["ES2023"],
       "outDir": "dist",
       "rootDir": "src",
       "declaration": true,
@@ -11,11 +11,12 @@
       "strict": true,
       "noImplicitAny": true,
       "strictNullChecks": true,
-      "moduleResolution": "node",
+      "moduleResolution": "Node16",
       "esModuleInterop": true,
       "forceConsistentCasingInFileNames": true,
       "skipLibCheck": true,
-      "isolatedModules": true
+      "isolatedModules": true,
+      "resolveJsonModule": true
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"]

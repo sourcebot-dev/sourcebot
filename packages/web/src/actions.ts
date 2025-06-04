@@ -7,7 +7,7 @@ import { CodeHostType, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
-import { decrypt, encrypt, generateApiKey, hashSecret } from "@sourcebot/crypto";
+import { decrypt, encrypt, generateApiKey, hashSecret, getTokenFromConfig } from "@sourcebot/crypto";
 import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus, Org, ApiKey } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
@@ -1712,6 +1712,98 @@ export const getSearchContexts = async (domain: string) => sew(() =>
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
     ));
 
+export const getRepoImage = async (repoId: number, domain: string): Promise<Response | ServiceError> => sew(async () => {
+    return await withAuth(async (userId) => {
+        return await withOrgMembership(userId, domain, async ({ org }) => {
+            const repo = await prisma.repo.findUnique({
+                where: {
+                    id: repoId,
+                    orgId: org.id,
+                },
+                include: {
+                    connections: {
+                        include: {
+                            connection: true,
+                        }
+                    }
+                }
+            });
+
+            if (!repo || !repo.imageUrl) {
+                return notFound();
+            }
+
+            // Only proxy images from self-hosted instances that might require authentication
+            const imageUrl = new URL(repo.imageUrl);
+            const publicHostnames = [
+                'github.com',
+                'gitlab.com',
+                'avatars.githubusercontent.com',
+                'gitea.com',
+                'bitbucket.org',
+            ];
+            const isPublicInstance = publicHostnames.includes(imageUrl.hostname);
+
+            if (isPublicInstance) {
+                return Response.redirect(repo.imageUrl);
+            }
+
+            let authHeaders: Record<string, string> = {};
+            for (const { connection } of repo.connections) {
+                try {
+                    if (connection.connectionType === 'github') {
+                        const config = connection.config as unknown as import('@sourcebot/schemas/v3/github.type').GithubConnectionConfig;
+                        if (config.token) {
+                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                            authHeaders['Authorization'] = `token ${token}`;
+                            break;
+                        }
+                    } else if (connection.connectionType === 'gitlab') {
+                        const config = connection.config as unknown as import('@sourcebot/schemas/v3/gitlab.type').GitlabConnectionConfig;
+                        if (config.token) {
+                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                            authHeaders['Authorization'] = `Bearer ${token}`;
+                            break;
+                        }
+                    } else if (connection.connectionType === 'gitea') {
+                        const config = connection.config as unknown as import('@sourcebot/schemas/v3/gitea.type').GiteaConnectionConfig;
+                        if (config.token) {
+                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                            authHeaders['Authorization'] = `token ${token}`;
+                            break;
+                        }
+                    }
+                } catch (error) {
+                    logger.warn(`Failed to get token for connection ${connection.id}:`, error);
+                }
+            }
+
+            try {
+                const response = await fetch(repo.imageUrl, {
+                    headers: authHeaders,
+                });
+
+                if (!response.ok) {
+                    logger.warn(`Failed to fetch image from ${repo.imageUrl}: ${response.status}`);
+                    return notFound();
+                }
+
+                const contentType = response.headers.get('content-type') || 'image/png';
+                const imageBuffer = await response.arrayBuffer();
+
+                return new Response(imageBuffer, {
+                    headers: {
+                        'Content-Type': contentType,
+                        'Cache-Control': 'public, max-age=3600',
+                    },
+                });
+            } catch (error) {
+                logger.error(`Error proxying image for repo ${repoId}:`, error);
+                return notFound();
+            }
+        }, /* minRequiredRole = */ OrgRole.GUEST);
+    }, /* allowSingleTenantUnauthedAccess = */ true);
+});
 
 ////// Helpers ///////
 
