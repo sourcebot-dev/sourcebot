@@ -1,11 +1,11 @@
 import { auth } from "@/auth";
-import { LoginForm } from "./components/loginForm";
+import { LoginForm } from "../login/components/loginForm";
 import { redirect } from "next/navigation";
 import { getProviders } from "@/auth";
 import { Footer } from "@/app/components/footer";
 import { createLogger } from "@sourcebot/logger";
 
-const logger = createLogger('login-page');
+const logger = createLogger('signup-page');
 
 interface LoginProps {
     searchParams: {
@@ -14,11 +14,10 @@ interface LoginProps {
     }
 }
 
-export default async function Login({ searchParams }: LoginProps) {
-    logger.info("Login page loaded");
+export default async function Signup({ searchParams }: LoginProps) {
     const session = await auth();
     if (session) {
-        logger.info("Session found in login page, redirecting to home");
+        logger.info("Session found in signup page, redirecting to home");
         return redirect("/");
     }
 
@@ -40,7 +39,7 @@ export default async function Login({ searchParams }: LoginProps) {
                     callbackUrl={searchParams.callbackUrl}
                     error={searchParams.error}
                     providers={providerData}
-                    context="login"
+                    context="signup"
                 />
             </div>
             <Footer />
