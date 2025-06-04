@@ -8,6 +8,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SymbolDefinition, useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
 import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
 import { createPortal } from "react-dom";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useToast } from "@/components/hooks/use-toast";
 
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
@@ -26,6 +28,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     const [isSticky, setIsSticky] = useState(false);
+    const { toast } = useToast();
 
     const symbolInfo = useHoveredOverSymbolInfo({
         editorRef,
@@ -93,6 +96,36 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
             symbolInfo.element.removeEventListener("click", onGotoDefinition);
         }
     }, [symbolInfo, onGotoDefinition]);
+
+    useHotkeys('alt+shift+f12', () => {
+        if (symbolInfo?.symbolName) {
+            console.log('here!');
+            onFindReferences(symbolInfo.symbolName);
+        }
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Open Explore Panel",
+    });
+
+    useHotkeys('alt+f12', () => {
+        if (!symbolInfo) {
+            return;
+        }
+
+        if (!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0) {
+            toast({
+                description: "No definition found for this symbol",
+            });
+            return;
+        }
+
+        onGotoDefinition();
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Go to definition",
+    })
 
     if (!symbolInfo) {
         return null;
