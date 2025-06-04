@@ -53,6 +53,20 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName }: PureF
 
     const { navigateToPath } = useBrowseNavigation();
 
+    const onNodeClicked = useCallback((node: FileTreeNode) => {
+        if (node.type === 'tree') {
+            setIsCollapsed(node.path, !node.isCollapsed);
+        }
+        else if (node.type === 'blob') {
+            navigateToPath({
+                repoName: repoName,
+                revisionName: revisionName,
+                path: node.path,
+                pathType: 'blob',
+            });
+        }
+    }, [setIsCollapsed, navigateToPath, repoName, revisionName]);
+
     const renderTree = useCallback((nodes: FileTreeNode, depth = 0) => {
         return (
             <div>
@@ -62,19 +76,14 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName }: PureF
                             <div
                                 className="flex flex-row gap-1 items-center hover:bg-accent hover:text-accent-foreground rounded-sm cursor-pointer p-0.5"
                                 style={{ paddingLeft: `${depth * 16}px` }}
-                                onClick={() => {
-                                    if (node.type === 'tree') {
-                                        setIsCollapsed(node.path, !node.isCollapsed);
-                                    }
-                                    else if (node.type === 'blob') {
-                                        navigateToPath({
-                                            repoName: repoName,
-                                            revisionName: revisionName,
-                                            path: node.path,
-                                            pathType: 'blob',
-                                        });
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        onNodeClicked(node);
                                     }
                                 }}
+                                onClick={() => onNodeClicked(node)}
                             >
                                 <FileTreeItem
                                     key={node.path}
@@ -94,7 +103,6 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName }: PureF
     return (
         <ScrollArea
             className="h-full w-full overflow-auto p-0.5"
-            type="always"
         >
             {renderedTree}
             <ScrollBar orientation="horizontal" />
@@ -126,7 +134,9 @@ const FileTreeItem = ({
     }, [node.type]);
 
     return (
-        <div className="flex flex-row gap-1 select-none">
+        <div
+            className="flex flex-row gap-1 select-none"
+        >
             <div className="flex flex-row gap-1 cursor-pointer w-4 h-4 flex-shrink-0">
                 {node.type === 'tree' && (
                     node.isCollapsed ? (
