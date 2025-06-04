@@ -12,7 +12,14 @@ import { OrgRole } from "@sourcebot/db";
 import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@/features/entitlements/server";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
+import { OAuth2Client } from "google-auth-library";
 import { sew } from "@/actions";
+import Credentials from "next-auth/providers/credentials";
+import type { User as AuthJsUser } from "next-auth";
+import { onCreateUser } from "@/lib/authUtils";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('web-sso');
 
 export const getSSOProviders = (): Provider[] => {
     const providers: Provider[] = [];
@@ -88,6 +95,82 @@ export const getSSOProviders = (): Provider[] => {
         }));
     }
 
+    if (env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
+        providers.push(Credentials({
+            id: "gcp-iap",
+            name: "Google Cloud IAP",
+            credentials: {},
+            authorize: async (credentials, req) => {
+                try {
+                    const iapAssertion = req.headers?.get("x-goog-iap-jwt-assertion");
+                    if (!iapAssertion || typeof iapAssertion !== "string") {
+                        logger.warn("No IAP assertion found in headers");
+                        return null;
+                    }
+
+                    const oauth2Client = new OAuth2Client();
+                    
+                    const { pubkeys } = await oauth2Client.getIapPublicKeys();
+                    const ticket = await oauth2Client.verifySignedJwtWithCertsAsync(
+                        iapAssertion,
+                        pubkeys,
+                        env.AUTH_EE_GCP_IAP_AUDIENCE,
+                        ['https://cloud.google.com/iap']
+                    );
+
+                    const payload = ticket.getPayload();
+                    if (!payload) {
+                        logger.warn("Invalid IAP token payload");
+                        return null;
+                    }
+
+                    const email = payload.email;
+                    const name = payload.name || payload.email;
+                    const image = payload.picture;
+
+                    if (!email) {
+                        logger.warn("Missing email in IAP token");
+                        return null;
+                    }
+
+                    const existingUser = await prisma.user.findUnique({
+                        where: { email }
+                    });
+
+                    if (!existingUser) {
+                        const newUser = await prisma.user.create({
+                            data: {
+                                email,
+                                name,
+                                image,
+                            }
+                        });
+
+                        const authJsUser: AuthJsUser = {
+                            id: newUser.id,
+                            email: newUser.email,
+                            name: newUser.name,
+                            image: newUser.image,
+                        };
+
+                        await onCreateUser({ user: authJsUser });
+                        return authJsUser;
+                    } else {
+                        return {
+                            id: existingUser.id,
+                            email: existingUser.email,
+                            name: existingUser.name,
+                            image: existingUser.image,
+                        };
+                    }
+                } catch (error) {
+                    logger.error("Error verifying IAP token:", error);
+                    return null;
+                }
+            },
+        }));
+    }
+
     return providers;
 }
 
@@ -129,7 +212,7 @@ export const handleJITProvisioning = async (userId: string, domain: string): Pro
     });
 
     if (userToOrg) {
-        console.warn(`JIT provisioning skipped for user ${userId} since they're already a member of org ${domain}`);
+        logger.warn(`JIT provisioning skipped for user ${userId} since they're already a member of org ${domain}`);
         return true;
     }
 

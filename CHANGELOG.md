@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added copy button for filenames. [#328](https://github.com/sourcebot-dev/sourcebot/pull/328)
 - Added development docker compose file. [#328](https://github.com/sourcebot-dev/sourcebot/pull/328)
 - Added keyboard shortcuts for find all refs / go to def. [#329](https://github.com/sourcebot-dev/sourcebot/pull/329)
+- Added GCP IAP JIT provisioning. [#330](https://github.com/sourcebot-dev/sourcebot/pull/330)
 
 ### Fixed
 - Fixed issue with the symbol hover popover clipping at the top of the page. [#326](https://github.com/sourcebot-dev/sourcebot/pull/326)
