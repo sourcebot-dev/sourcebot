@@ -14,8 +14,6 @@ export interface BrowseState {
     isFileTreePanelCollapsed: boolean;
     activeExploreMenuTab: "references" | "definitions";
     bottomPanelSize: number;
-    repoName: string;
-    revisionName: string;
 }
 
 const defaultState: BrowseState = {
@@ -24,8 +22,6 @@ const defaultState: BrowseState = {
     isFileTreePanelCollapsed: false,
     activeExploreMenuTab: "references",
     bottomPanelSize: 35,
-    repoName: '',
-    revisionName: '',
 };
 
 export const SET_BROWSE_STATE_QUERY_PARAM = "setBrowseState";
@@ -40,16 +36,10 @@ export const BrowseStateContext = createContext<{
 
 interface BrowseStateProviderProps {
     children: React.ReactNode;
-    repoName: string;
-    revisionName: string;
 }
 
-export const BrowseStateProvider = ({ children, repoName, revisionName }: BrowseStateProviderProps) => {
-    const [state, setState] = useState<BrowseState>({
-        ...defaultState,
-        repoName,
-        revisionName,
-    });
+export const BrowseStateProvider = ({ children }: BrowseStateProviderProps) => {
+    const [state, setState] = useState<BrowseState>(defaultState);
 
     const hydratedBrowseState = useNonEmptyQueryParam(SET_BROWSE_STATE_QUERY_PARAM);
 

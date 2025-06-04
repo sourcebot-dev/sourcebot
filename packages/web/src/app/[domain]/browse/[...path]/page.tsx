@@ -1,153 +1,46 @@
-import { FileHeader } from "@/app/[domain]/components/fileHeader";
-import { Separator } from '@/components/ui/separator';
-import { getFileSource } from '@/features/search/fileSourceApi';
-import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
-import { base64Decode } from "@/lib/utils";
-import { ErrorCode } from "@/lib/errorCodes";
-import { LuFileX2, LuBookX } from "react-icons/lu";
-import { notFound } from "next/navigation";
-import { ServiceErrorException } from "@/lib/serviceError";
-import { getRepoInfoByName } from "@/actions";
+'use client';
+
+import { base64Decode, unwrapServiceError } from "@/lib/utils";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
-import Image from "next/image";
+import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
+import { useQuery } from "@tanstack/react-query";
+import { getFileSource } from "@/features/search/fileSourceApi";
+import { useDomain } from "@/hooks/useDomain";
+import { Loader2 } from "lucide-react";
 
-interface BrowsePageProps {
-    params: {
-        path: string[];
-        domain: string;
-    };
-}
+export default function BrowsePage() {
+    const { path, repoName, revisionName } = useBrowseParams();
+    const domain = useDomain();
 
-export default async function BrowsePage({
-    params,
-}: BrowsePageProps) {
-    const rawPath = decodeURIComponent(params.path.join('/'));
-    const sentinalIndex = rawPath.search(/\/-\/(tree|blob)\//);
-    if (sentinalIndex === -1) {
-        notFound();
-    }
+    const { data: fileSourceResponse, isPending, isError } = useQuery({
+        queryKey: ['fileSource', repoName, revisionName, path, domain],
+        queryFn: () => unwrapServiceError(getFileSource({
+            fileName: path,
+            repository: repoName,
+            branch: revisionName
+        }, domain)),
+    });
 
-    const repoAndRevisionName = rawPath.substring(0, sentinalIndex).split('@');
-    const repoName = repoAndRevisionName[0];
-    const revisionName = repoAndRevisionName.length > 1 ? repoAndRevisionName[1] : undefined;
-
-    const { path, pathType } = ((): { path: string, pathType: 'tree' | 'blob' } => {
-        const path = rawPath.substring(sentinalIndex + '/-/'.length);
-        const pathType = path.startsWith('tree/') ? 'tree' : 'blob';
-        switch (pathType) {
-            case 'tree':
-                return {
-                    path: path.substring('tree/'.length),
-                    pathType,
-                };
-            case 'blob':
-                return {
-                    path: path.substring('blob/'.length),
-                    pathType,
-                };
-        }
-    })();
-
-    const repoInfo = await getRepoInfoByName(repoName, params.domain);
-    if (isServiceError(repoInfo)) {
-        if (repoInfo.errorCode === ErrorCode.NOT_FOUND) {
-            return (
-                <div className="flex h-full">
-                    <div className="m-auto flex flex-col items-center gap-2">
-                        <LuBookX className="h-12 w-12 text-secondary-foreground" />
-                        <span className="font-medium text-secondary-foreground">Repository not found</span>
-                    </div>
-                </div>
-            );
-        }
-
-        throw new ServiceErrorException(repoInfo);
-    }
-
-    if (pathType === 'tree') {
-        // @todo : proper tree handling
+    if (isPending) {
         return (
-            <>
-                Tree view not supported
-            </>
+            <div className="flex flex-col w-full min-h-full items-center justify-center">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading...
+            </div>
         )
     }
 
-    const fileSourceResponse = await getFileSource({
-        fileName: path,
-        repository: repoName,
-        branch: revisionName ?? 'HEAD',
-    }, params.domain);
-
-    if (isServiceError(fileSourceResponse)) {
-        if (fileSourceResponse.errorCode === ErrorCode.FILE_NOT_FOUND) {
-            return (
-                <div className="flex h-full">
-                    <div className="m-auto flex flex-col items-center gap-2">
-                        <LuFileX2 className="h-12 w-12 text-secondary-foreground" />
-                        <span className="font-medium text-secondary-foreground">File not found</span>
-                    </div>
-                </div>
-            )
-        }
-
-        throw new ServiceErrorException(fileSourceResponse);
+    if (isError) {
+        return <div>error</div>
     }
-
-    const codeHostInfo = getCodeHostInfoForRepo({
-        codeHostType: repoInfo.codeHostType,
-        name: repoInfo.name,
-        displayName: repoInfo.displayName,
-        webUrl: repoInfo.webUrl,
-    });
 
     return (
         <CodePreviewPanel
-                source={base64Decode(fileSourceResponse.source)}
-                language={fileSourceResponse.language}
-                repoName={repoInfo.name}
-                path={path}
-                revisionName={revisionName ?? 'HEAD'}
-            />
+            source={base64Decode(fileSourceResponse.source)}
+            language={fileSourceResponse.language}
+            repoName={repoName}
+            path={path}
+            revisionName={revisionName ?? 'HEAD'}
+        />
     )
-
-    // return (
-    //     <div className="flex flex-col h-full w-full">
-    //         <div className="bg-accent py-1 px-2 flex flex-row items-center">
-    //             <FileHeader
-    //                 fileName={path}
-    //                 repo={{
-    //                     name: repoInfo.name,
-    //                     displayName: repoInfo.displayName,
-    //                     webUrl: repoInfo.webUrl,
-    //                     codeHostType: repoInfo.codeHostType,
-    //                 }}
-    //                 branchDisplayName={revisionName}
-    //             />
-    //             {(fileSourceResponse.webUrl && codeHostInfo) && (
-    //                     <a
-    //                         href={fileSourceResponse.webUrl}
-    //                         target="_blank"
-    //                         rel="noopener noreferrer"
-    //                         className="flex flex-row items-center gap-2 px-2 py-0.5 rounded-md flex-shrink-0"
-    //                     >
-    //                         <Image
-    //                             src={codeHostInfo.icon}
-    //                             alt={codeHostInfo.codeHostName}
-    //                             className={cn('w-4 h-4 flex-shrink-0', codeHostInfo.iconClassName)}
-    //                         />
-    //                         <span className="text-sm font-medium">Open in {codeHostInfo.codeHostName}</span>
-    //                     </a>
-    //                 )}
-    //         </div>
-    //         <Separator />
-    //         <CodePreviewPanel
-    //             source={base64Decode(fileSourceResponse.source)}
-    //             language={fileSourceResponse.language}
-    //             repoName={repoInfo.name}
-    //             path={path}
-    //             revisionName={revisionName ?? 'HEAD'}
-    //         />
-    //     </div>
-    // )
 }

@@ -20,6 +20,7 @@ import {
 import { Tooltip, TooltipContent } from "@/components/ui/tooltip";
 import { TooltipTrigger } from "@/components/ui/tooltip";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
 
 
 interface FileTreePanelProps {
@@ -34,18 +35,18 @@ const FILE_TREE_PANEL_MAX_SIZE = 30;
 export const FileTreePanel = ({ order }: FileTreePanelProps) => {
     const {
         state: {
-            repoName,
-            revisionName,
             isFileTreePanelCollapsed,
         },
         updateBrowseState,
     } = useBrowseState();
+    
+    const { repoName, revisionName, path } = useBrowseParams();
 
     const domain = useDomain();
     const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
-    const { data, isPending, isError } = useQuery({
-        queryKey: ['tree', repoName, revisionName],
-        queryFn: () => unwrapServiceError(getTree(repoName, revisionName, domain)),
+    const { data, isPending, isLoading, isError } = useQuery({
+        queryKey: ['tree', repoName, revisionName, domain],
+        queryFn: () => unwrapServiceError(getTree(repoName, revisionName ?? 'HEAD', domain)),
     });
 
     useHotkeys("mod+b", () => {
@@ -99,7 +100,7 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                         <p className="font-medium">File Tree</p>
                     </div>
                     <Separator orientation="horizontal" className="w-full mb-2" />
-                    {isPending ? (
+                    {(isPending || isLoading) ? (
                         <FileTreePanelSkeleton />
                     ) :
                         isError ? (
@@ -110,7 +111,8 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                             <PureFileTreePanel
                                 tree={data.tree}
                                 repoName={repoName}
-                                revisionName={revisionName}
+                                revisionName={revisionName ?? 'HEAD'}
+                                path={path}
                             />
                         )}
                 </div>

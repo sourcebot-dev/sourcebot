@@ -7,7 +7,7 @@ import { BrowseStateProvider } from "./browseStateProvider";
 import { FileTreePanel } from "@/features/fileTree/components/fileTreePanel";
 import { TopBar } from "@/app/[domain]/components/topBar";
 import { Separator } from '@/components/ui/separator';
-import { notFound, usePathname } from "next/navigation";
+import { useBrowseParams } from "./hooks/useBrowseParams";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -20,28 +20,10 @@ export default function Layout({
     children: codePreviewPanel,
     params,
 }: LayoutProps) {
-    const pathname = usePathname();
-
-    const startIndex = pathname.indexOf('/browse/');
-    if (startIndex === -1) {
-        return notFound();
-    }
-
-    const rawPath = pathname.substring(startIndex + '/browse/'.length);
-    const sentinalIndex = rawPath.search(/\/-\/(tree|blob)\//);
-    if (sentinalIndex === -1) {
-        return notFound();
-    }
-
-    const repoAndRevisionName = rawPath.substring(0, sentinalIndex).split('@');
-    const repoName = repoAndRevisionName[0];
-    const revisionName = repoAndRevisionName.length > 1 ? repoAndRevisionName[1] : undefined;
+    const { repoName, revisionName } = useBrowseParams();
 
     return (
-        <BrowseStateProvider
-            repoName={repoName}
-            revisionName={revisionName ?? 'HEAD'}
-        >
+        <BrowseStateProvider>
             <div className="flex flex-col h-screen">
                 <div className='sticky top-0 left-0 right-0 z-10'>
                     <TopBar
