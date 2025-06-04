@@ -14,6 +14,9 @@ import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
+import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
+import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
+import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import Ajv from "ajv";
 import { StatusCodes } from "http-status-codes";
 import { cookies, headers } from "next/headers";
@@ -1735,6 +1738,7 @@ export const getRepoImage = async (repoId: number, domain: string): Promise<Resp
 
             // Only proxy images from self-hosted instances that might require authentication
             const imageUrl = new URL(repo.imageUrl);
+
             const publicHostnames = [
                 'github.com',
                 'gitlab.com',
@@ -1752,21 +1756,21 @@ export const getRepoImage = async (repoId: number, domain: string): Promise<Resp
             for (const { connection } of repo.connections) {
                 try {
                     if (connection.connectionType === 'github') {
-                        const config = connection.config as unknown as import('@sourcebot/schemas/v3/github.type').GithubConnectionConfig;
+                        const config = connection.config as unknown as GithubConnectionConfig;
                         if (config.token) {
                             const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
                             authHeaders['Authorization'] = `token ${token}`;
                             break;
                         }
                     } else if (connection.connectionType === 'gitlab') {
-                        const config = connection.config as unknown as import('@sourcebot/schemas/v3/gitlab.type').GitlabConnectionConfig;
+                        const config = connection.config as unknown as GitlabConnectionConfig;
                         if (config.token) {
                             const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
                             authHeaders['Authorization'] = `Bearer ${token}`;
                             break;
                         }
                     } else if (connection.connectionType === 'gitea') {
-                        const config = connection.config as unknown as import('@sourcebot/schemas/v3/gitea.type').GiteaConnectionConfig;
+                        const config = connection.config as unknown as GiteaConnectionConfig;
                         if (config.token) {
                             const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
                             authHeaders['Authorization'] = `token ${token}`;
