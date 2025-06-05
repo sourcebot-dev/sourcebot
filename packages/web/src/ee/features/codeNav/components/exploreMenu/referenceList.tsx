@@ -5,11 +5,13 @@ import { FileHeader } from "@/app/[domain]/components/fileHeader";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { FindRelatedSymbolsResponse } from "@/features/codeNav/types";
 import { RepositoryInfo, SourceRange } from "@/features/search/types";
-import { base64Decode } from "@/lib/utils";
+import { base64Decode, unwrapServiceError } from "@/lib/utils";
 import { useMemo, useRef } from "react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useVirtualizer } from "@tanstack/react-virtual";
-
+import { useQueryClient } from "@tanstack/react-query";
+import { getFileSource } from "@/features/search/fileSourceApi";
+import { useDomain } from "@/hooks/useDomain";
 interface ReferenceListProps {
     data: FindRelatedSymbolsResponse;
     revisionName: string;
@@ -31,6 +33,8 @@ export const ReferenceList = ({
 
     const { navigateToPath } = useBrowseNavigation();
     const captureEvent = useCaptureEvent();
+    const queryClient = useQueryClient();
+    const domain = useDomain();
 
     // Virtualization setup
     const parentRef = useRef<HTMLDivElement>(null);
@@ -119,6 +123,20 @@ export const ReferenceList = ({
                                                     highlightRange: match.range,
                                                 })
                                             }}
+                                            // @note: We prefetch the file source when the user hovers over a file.
+                                            // This is to try and mitigate having a loading spinner appear when
+                                            // the user clicks on a file to open it.
+                                            // @see: /browse/[...path]/page.tsx
+                                            onMouseEnter={() => {
+                                                queryClient.prefetchQuery({
+                                                    queryKey: ['fileSource', file.repository, revisionName, file.fileName, domain],
+                                                    queryFn: () => unwrapServiceError(getFileSource({
+                                                        fileName: file.fileName,
+                                                        repository: file.repository,
+                                                        branch: revisionName,
+                                                    }, domain)),
+                                                });
+                                            }}
                                         />
                                     ))}
                             </div>
@@ -136,6 +154,7 @@ interface ReferenceListItemProps {
     range: SourceRange;
     language: string;
     onClick: () => void;
+    onMouseEnter: () => void;
 }
 
 const ReferenceListItem = ({
@@ -143,6 +162,7 @@ const ReferenceListItem = ({
     range,
     language,
     onClick,
+    onMouseEnter,
 }: ReferenceListItemProps) => {
     const decodedLineContent = useMemo(() => {
         return base64Decode(lineContent);
@@ -154,6 +174,7 @@ const ReferenceListItem = ({
         <div
             className="w-full hover:bg-accent py-1 cursor-pointer"
             onClick={onClick}
+            onMouseEnter={onMouseEnter}
         >
             <LightweightCodeHighlighter
                 language={language}
