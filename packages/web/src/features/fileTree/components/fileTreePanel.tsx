@@ -27,7 +27,7 @@ interface FileTreePanelProps {
     order: number;
 }
 
-const FILE_TREE_PANEL_DEFAULT_SIZE = 10;
+const FILE_TREE_PANEL_DEFAULT_SIZE = 20;
 const FILE_TREE_PANEL_MIN_SIZE = 10;
 const FILE_TREE_PANEL_MAX_SIZE = 30;
 
@@ -40,11 +40,11 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
         updateBrowseState,
     } = useBrowseState();
     
+    const domain = useDomain();
     const { repoName, revisionName, path } = useBrowseParams();
 
-    const domain = useDomain();
     const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
-    const { data, isPending, isLoading, isError } = useQuery({
+    const { data, isPending, isError } = useQuery({
         queryKey: ['tree', repoName, revisionName, domain],
         queryFn: () => unwrapServiceError(getTree(repoName, revisionName ?? 'HEAD', domain)),
     });
@@ -100,7 +100,7 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                         <p className="font-medium">File Tree</p>
                     </div>
                     <Separator orientation="horizontal" className="w-full mb-2" />
-                    {(isPending || isLoading) ? (
+                    {isPending ? (
                         <FileTreePanelSkeleton />
                     ) :
                         isError ? (

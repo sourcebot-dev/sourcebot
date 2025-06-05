@@ -42,7 +42,7 @@ export default function Layout({
                     <ResizablePanel
                         order={2}
                         minSize={10}
-                        defaultSize={90}
+                        defaultSize={80}
                         id="code-preview-panel-container"
                     >
                         <ResizablePanelGroup

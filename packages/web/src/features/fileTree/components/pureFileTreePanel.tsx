@@ -12,6 +12,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useDomain } from "@/hooks/useDomain";
 import { unwrapServiceError } from "@/lib/utils";
 import { getFileSource } from "@/features/search/fileSourceApi";
+import scrollIntoView from 'scroll-into-view-if-needed'
+
 
 export type FileTreeNode = Omit<RawFileTreeNode, 'children'> & {
     isCollapsed: boolean;
@@ -50,10 +52,17 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName, path }:
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
     const domain = useDomain();
+    const { navigateToPath } = useBrowseNavigation();
 
+    // @note: When `_tree` changes, it indicates that a new tree has been loaded.
+    // In that case, we need to rebuild the collapsable tree.
     useEffect(() => {
         setTree(buildCollapsableTree(_tree));
     }, [_tree]);
+
+    useEffect(() => {
+        console.log(repoName, revisionName, path, tree.children[0].path);
+    }, [tree, repoName, revisionName, path]);
 
     const setIsCollapsed = useCallback((path: string, isCollapsed: boolean) => {
         setTree(currentTree => transformTree(currentTree, (currentNode) => {
@@ -63,8 +72,6 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName, path }:
             return currentNode;
         }));
     }, []);
-
-    const { navigateToPath } = useBrowseNavigation();
 
     // When the path changes, expand all the folders up to the path
     useEffect(() => {
@@ -79,19 +86,6 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName, path }:
         }
     }, [path, setIsCollapsed]);
 
-    // When the path changes, scroll to the file in the tree
-    useEffect(() => {
-        const activeElement = document.querySelector(`[data-path="${path}"]`);
-        if (!activeElement) {
-            return;
-        }
-
-        activeElement.scrollIntoView({
-            behavior: 'instant',
-            block: 'nearest',
-        });
-    }, [path]);
-
     const onNodeClicked = useCallback((node: FileTreeNode) => {
         if (node.type === 'tree') {
             setIsCollapsed(node.path, !node.isCollapsed);
@@ -103,12 +97,14 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName, path }:
                 path: node.path,
                 pathType: 'blob',
             });
+
         }
     }, [setIsCollapsed, navigateToPath, repoName, revisionName]);
 
-    // Prefetch the file source when the user hovers over a file.
-    // This is to try and mitigate having a loading spinner appear when the user clicks on a file
-    // to open it.
+    // @note: We prefetch the file source when the user hovers over a file.
+    // This is to try and mitigate having a loading spinner appear when
+    // the user clicks on a file to open it.
+    // @see: /browse/[...path]/page.tsx
     const onNodeMouseEnter = useCallback((node: FileTreeNode) => {
         if (node.type !== 'blob') {
             return;
@@ -119,10 +115,9 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName, path }:
             queryFn: () => unwrapServiceError(getFileSource({
                 fileName: node.path,
                 repository: repoName,
-                branch: revisionName
+                branch: revisionName,
             }, domain)),
-            staleTime: Infinity,
-        })
+        });
 
     }, [queryClient, repoName, revisionName, domain]);
 
@@ -132,27 +127,13 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName, path }:
                 {nodes.children.map((node) => {
                     return (
                         <>
-                            <div
-                                className={clsx("flex flex-row gap-1 items-center hover:bg-accent hover:text-accent-foreground rounded-sm cursor-pointer p-0.5", {
-                                    'bg-accent': node.path === path,
-                                })}
-                                data-path={node.path}
-                                style={{ paddingLeft: `${depth * 16}px` }}
-                                tabIndex={0}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        onNodeClicked(node);
-                                    }
-                                }}
-                                onClick={() => onNodeClicked(node)}
-                                onMouseEnter={() => onNodeMouseEnter(node)}
-                            >
-                                <FileTreeItem
-                                    key={node.path}
-                                    node={node}
-                                />
-                            </div>
+                            <FileTreeItem
+                                node={node}
+                                isActive={node.path === path}
+                                depth={depth}
+                                onNodeClicked={onNodeClicked}
+                                onNodeMouseEnter={onNodeMouseEnter}
+                            />
                             {node.children.length > 0 && !node.isCollapsed && renderTree(node, depth + 1)}
                         </>
                     );
@@ -176,9 +157,29 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName, path }:
 
 const FileTreeItem = ({
     node,
+    isActive,
+    depth,
+    onNodeClicked,
+    onNodeMouseEnter,
 }: {
     node: FileTreeNode,
+    isActive: boolean,
+    depth: number,
+    onNodeClicked: (node: FileTreeNode) => void,
+    onNodeMouseEnter: (node: FileTreeNode) => void,
 }) => {
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (isActive && ref.current) {
+            scrollIntoView(ref.current, {
+                scrollMode: 'if-needed',
+                block: 'center',
+                behavior: 'instant',
+            });
+        }
+    }, [isActive]);
+
     const iconName = useMemo(() => {
         if (node.type === 'tree') {
             const icon = getIconForFolder(node.name);
@@ -199,7 +200,20 @@ const FileTreeItem = ({
 
     return (
         <div
-            className="flex flex-row gap-1 select-none"
+            ref={ref}
+            className={clsx("flex flex-row gap-1 items-center hover:bg-accent hover:text-accent-foreground rounded-sm cursor-pointer p-0.5", {
+                'bg-accent': isActive,
+            })}
+            style={{ paddingLeft: `${depth * 16}px` }}
+            tabIndex={0}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onNodeClicked(node);
+                }
+            }}
+            onClick={() => onNodeClicked(node)}
+            onMouseEnter={() => onNodeMouseEnter(node)}
         >
             <div className="flex flex-row gap-1 cursor-pointer w-4 h-4 flex-shrink-0">
                 {node.type === 'tree' && (
