@@ -136,6 +136,10 @@ export class RepoManager implements IRepoManager {
                     {
                         repoIndexingStatus: RepoIndexingStatus.NEW,
                     },
+                    // Retry failed repos to give them another chance
+                    {
+                        repoIndexingStatus: RepoIndexingStatus.FAILED,
+                    },
                     // When the repo has already been indexed, we only want to reindex if the reindexing
                     // interval has elapsed (or if the date isn't set for some reason).
                     {
