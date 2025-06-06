@@ -1,5 +1,6 @@
 'use client';
 
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { QuestionMarkCircledIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 
@@ -44,13 +45,22 @@ export const Entry = ({
             )}
             onClick={() => onClicked()}
         >
-            <div className="flex flex-row items-center gap-1 overflow-hidden">
+            <div className="flex flex-row items-center gap-1 overflow-hidden min-w-0">
                 {Icon ? Icon : (
                     <QuestionMarkCircledIcon className="w-4 h-4 flex-shrink-0" />
                 )}
-                <p className="overflow-hidden text-ellipsis whitespace-nowrap">{displayName}</p>
+                <div className="overflow-hidden flex-1 min-w-0">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <p className="overflow-hidden text-ellipsis whitespace-nowrap truncate-start">{displayName}</p>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-sm">
+                            <p className="font-mono text-sm break-all whitespace-pre-wrap">{displayName}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
             </div>
-            <div className="px-2 py-0.5 bg-accent text-sm rounded-md">
+            <div className="px-2 py-0.5 bg-accent text-sm rounded-md flex-shrink-0">
                 {countText}
             </div>
         </div>
