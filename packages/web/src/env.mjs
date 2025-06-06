@@ -55,7 +55,7 @@ export const env = createEnv({
 
         DATA_CACHE_DIR: z.string(),
 
-        SOURCEBOT_PUBLIC_KEY_PATH: z.string().optional(),
+        SOURCEBOT_PUBLIC_KEY_PATH: z.string(),
 
         // Email
         SMTP_CONNECTION_URL: z.string().url().optional(),

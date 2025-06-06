@@ -80,6 +80,7 @@ export function verifySignature(data: string, signature: string, publicKeyPath: 
             publicKeyCache.set(publicKeyPath, publicKey);
         }
 
+        // Convert base64url signature to base64 if needed
         const base64Signature = signature.replace(/-/g, '+').replace(/_/g, '/');
         const paddedSignature = base64Signature + '='.repeat((4 - base64Signature.length % 4) % 4);
         const signatureBuffer = Buffer.from(paddedSignature, 'base64');
