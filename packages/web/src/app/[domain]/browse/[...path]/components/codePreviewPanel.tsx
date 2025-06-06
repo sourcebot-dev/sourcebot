@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useMemo } from "react";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
-import { FileHeader } from "@/app/[domain]/components/fileHeader";
+import { PathHeader } from "@/app/[domain]/components/pathHeader";
 
 export const CodePreviewPanel = () => {
     const { path, repoName, revisionName } = useBrowseParams();
@@ -61,8 +61,8 @@ export const CodePreviewPanel = () => {
     return (
         <>
             <div className="flex flex-row py-1 px-2 items-center justify-between">
-                <FileHeader
-                    fileName={path}
+                <PathHeader
+                    path={path}
                     repo={{
                         name: repoName,
                         codeHostType: repoInfoResponse.codeHostType,

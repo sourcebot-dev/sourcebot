@@ -3,7 +3,7 @@
 import { Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { getRepoInfoByName } from "@/actions";
-import { FileHeader } from "@/app/[domain]/components/fileHeader";
+import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { useCallback } from "react";
 import { FileTreeItem, getFolderContents } from "@/features/fileTree/actions";
 import { FileTreeItemComponent } from "@/features/fileTree/components/fileTreeItemComponent";
@@ -88,14 +88,15 @@ export const TreePreviewPanel = () => {
     return (
         <>
             <div className="flex flex-row py-1 px-2 items-center justify-between">
-                <FileHeader
-                    fileName={path}
+                <PathHeader
+                    path={path}
                     repo={{
                         name: repoName,
                         codeHostType: repoInfoResponse.codeHostType,
                         displayName: repoInfoResponse.displayName,
                         webUrl: repoInfoResponse.webUrl,
                     }}
+                    pathType="tree"
                 />
             </div>
             <Separator />

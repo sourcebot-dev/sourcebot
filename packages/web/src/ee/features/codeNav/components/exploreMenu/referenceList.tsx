@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
-import { FileHeader } from "@/app/[domain]/components/fileHeader";
+import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { FindRelatedSymbolsResponse } from "@/features/codeNav/types";
 import { RepositoryInfo, SourceRange } from "@/features/search/types";
@@ -93,14 +93,14 @@ export const ReferenceList = ({
                                     top: `-${virtualRow.start}px`,
                                 }}
                             >
-                                <FileHeader
+                                <PathHeader
                                     repo={{
                                         name: repoInfo.name,
                                         displayName: repoInfo.displayName,
                                         codeHostType: repoInfo.codeHostType,
                                         webUrl: repoInfo.webUrl,
                                     }}
-                                    fileName={file.fileName}
+                                    path={file.fileName}
                                     branchDisplayName={revisionName === "HEAD" ? undefined : revisionName}
                                 />
                             </div>
