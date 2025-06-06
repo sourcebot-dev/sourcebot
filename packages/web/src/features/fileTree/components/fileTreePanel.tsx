@@ -39,14 +39,19 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
         },
         updateBrowseState,
     } = useBrowseState();
-    
+
     const domain = useDomain();
     const { repoName, revisionName, path } = useBrowseParams();
 
     const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
     const { data, isPending, isError } = useQuery({
         queryKey: ['tree', repoName, revisionName, domain],
-        queryFn: () => unwrapServiceError(getTree(repoName, revisionName ?? 'HEAD', domain)),
+        queryFn: () => unwrapServiceError(
+            getTree({
+                repoName,
+                revisionName: revisionName ?? 'HEAD',
+            }, domain)
+        ),
     });
 
     useHotkeys("mod+b", () => {
@@ -110,8 +115,6 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                         ) : (
                             <PureFileTreePanel
                                 tree={data.tree}
-                                repoName={repoName}
-                                revisionName={revisionName ?? 'HEAD'}
                                 path={path}
                             />
                         )}

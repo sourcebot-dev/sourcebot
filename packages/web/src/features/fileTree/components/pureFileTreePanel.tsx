@@ -3,16 +3,13 @@
 import { FileTreeNode as RawFileTreeNode } from "../actions";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useCallback, useMemo, useState, useEffect, useRef } from "react";
-import { getIconForFile, getIconForFolder } from "vscode-icons-js";
-import { Icon } from '@iconify/react';
+import { FileTreeItemComponent } from "./fileTreeItemComponent";
 import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
-import { ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
-import clsx from "clsx";
+import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDomain } from "@/hooks/useDomain";
 import { unwrapServiceError } from "@/lib/utils";
 import { getFileSource } from "@/features/search/fileSourceApi";
-import scrollIntoView from 'scroll-into-view-if-needed'
 
 
 export type FileTreeNode = Omit<RawFileTreeNode, 'children'> & {
@@ -42,27 +39,22 @@ const transformTree = (
 
 interface PureFileTreePanelProps {
     tree: RawFileTreeNode;
-    repoName: string;
-    revisionName: string;
     path: string;
 }
 
-export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName, path }: PureFileTreePanelProps) => {
+export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps) => {
     const [tree, setTree] = useState<FileTreeNode>(buildCollapsableTree(_tree));
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const { navigateToPath } = useBrowseNavigation();
+    const { repoName, revisionName } = useBrowseParams();
     const queryClient = useQueryClient();
     const domain = useDomain();
-    const { navigateToPath } = useBrowseNavigation();
 
     // @note: When `_tree` changes, it indicates that a new tree has been loaded.
     // In that case, we need to rebuild the collapsable tree.
     useEffect(() => {
         setTree(buildCollapsableTree(_tree));
     }, [_tree]);
-
-    useEffect(() => {
-        console.log(repoName, revisionName, path, tree.children[0].path);
-    }, [tree, repoName, revisionName, path]);
 
     const setIsCollapsed = useCallback((path: string, isCollapsed: boolean) => {
         setTree(currentTree => transformTree(currentTree, (currentNode) => {
@@ -126,21 +118,23 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName, path }:
             <div>
                 {nodes.children.map((node) => {
                     return (
-                        <>
-                            <FileTreeItem
+                        <div key={node.path}>
+                            <FileTreeItemComponent
                                 node={node}
                                 isActive={node.path === path}
                                 depth={depth}
-                                onNodeClicked={onNodeClicked}
-                                onNodeMouseEnter={onNodeMouseEnter}
+                                isCollapsed={node.isCollapsed}
+                                isCollapseChevronVisible={node.type === 'tree'}
+                                onClick={() => onNodeClicked(node)}
+                                onMouseEnter={() => onNodeMouseEnter(node)}
                             />
                             {node.children.length > 0 && !node.isCollapsed && renderTree(node, depth + 1)}
-                        </>
+                        </div>
                     );
                 })}
             </div>
         );
-    }, [onNodeClicked, onNodeMouseEnter, path]);
+    }, [path, onNodeClicked, onNodeMouseEnter]);
 
     const renderedTree = useMemo(() => renderTree(tree), [tree, renderTree]);
 
@@ -155,77 +149,3 @@ export const PureFileTreePanel = ({ tree: _tree, repoName, revisionName, path }:
     )
 }
 
-const FileTreeItem = ({
-    node,
-    isActive,
-    depth,
-    onNodeClicked,
-    onNodeMouseEnter,
-}: {
-    node: FileTreeNode,
-    isActive: boolean,
-    depth: number,
-    onNodeClicked: (node: FileTreeNode) => void,
-    onNodeMouseEnter: (node: FileTreeNode) => void,
-}) => {
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (isActive && ref.current) {
-            scrollIntoView(ref.current, {
-                scrollMode: 'if-needed',
-                block: 'center',
-                behavior: 'instant',
-            });
-        }
-    }, [isActive]);
-
-    const iconName = useMemo(() => {
-        if (node.type === 'tree') {
-            const icon = getIconForFolder(node.name);
-            if (icon) {
-                const iconName = `vscode-icons:${icon.substring(0, icon.indexOf('.')).replaceAll('_', '-')}`;
-                return iconName;
-            }
-        } else if (node.type === 'blob') {
-            const icon = getIconForFile(node.name);
-            if (icon) {
-                const iconName = `vscode-icons:${icon.substring(0, icon.indexOf('.')).replaceAll('_', '-')}`;
-                return iconName;
-            }
-        }
-
-        return "vscode-icons:file-type-unknown";
-    }, [node.name, node.type]);
-
-    return (
-        <div
-            ref={ref}
-            className={clsx("flex flex-row gap-1 items-center hover:bg-accent hover:text-accent-foreground rounded-sm cursor-pointer p-0.5", {
-                'bg-accent': isActive,
-            })}
-            style={{ paddingLeft: `${depth * 16}px` }}
-            tabIndex={0}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    onNodeClicked(node);
-                }
-            }}
-            onClick={() => onNodeClicked(node)}
-            onMouseEnter={() => onNodeMouseEnter(node)}
-        >
-            <div className="flex flex-row gap-1 cursor-pointer w-4 h-4 flex-shrink-0">
-                {node.type === 'tree' && (
-                    node.isCollapsed ? (
-                        <ChevronRightIcon className="w-4 h-4 flex-shrink-0" />
-                    ) : (
-                        <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
-                    )
-                )}
-            </div>
-            <Icon icon={iconName} className="w-4 h-4 flex-shrink-0" />
-            <span className="text-sm">{node.name}</span>
-        </div>
-    )
-}

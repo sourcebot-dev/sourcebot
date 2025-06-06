@@ -8,17 +8,24 @@ import { notFound } from '@/lib/serviceError';
 import { simpleGit } from 'simple-git';
 import path from 'path';
 
-export type FileTreeNode = {
-    name: string;
-    path: string;
+export type FileTreeItem = {
     type: string;
+    path: string;
+    name: string;
+}
+
+export type FileTreeNode = FileTreeItem & {
     children: FileTreeNode[];
 }
 
-export const getTree = async (repoName: string, revisionName: string, domain: string) => sew(() =>
+/**
+ * Returns the tree of files (blobs) and directories (trees) for a given repository,
+ * at a given revision.
+ */
+export const getTree = async (params: { repoName: string, revisionName: string }, domain: string) => sew(() =>
     withAuth((session) =>
         withOrgMembership(session, domain, async ({ org }) => {
-
+            const { repoName, revisionName } = params;
             const repo = await prisma.repo.findFirst({
                 where: {
                     name: repoName,
@@ -33,13 +40,15 @@ export const getTree = async (repoName: string, revisionName: string, domain: st
             const { path: repoPath } = getRepoPath(repo);
 
             const git = simpleGit().cwd(repoPath);
-
             const result = await git.raw([
                 'ls-tree',
                 revisionName,
+                // recursive
                 '-r',
+                // include trees when recursing
                 '-t',
-                '--format=%(objecttype),%(path)'
+                // format as output as {type},{path}
+                '--format=%(objecttype),%(path)',
             ]);
 
             const lines = result.split('\n').filter(line => line.trim());
@@ -61,24 +70,62 @@ export const getTree = async (repoName: string, revisionName: string, domain: st
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
 );
 
-const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } => {
-    // If we are dealing with a local repository, then use that as the path.
-    // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
-    const cloneUrl = new URL(repo.cloneUrl);
-    if (repo.external_codeHostType === 'generic-git-host' && cloneUrl.protocol === 'file:') {
-        return {
-            path: cloneUrl.pathname,
-            isReadOnly: true,
-        }
-    }
+/**
+ * Returns the contents of a folder at a given path in a given repository,
+ * at a given revision.
+ */
+export const getFolderContents = async (params: { repoName: string, revisionName: string, path: string }, domain: string) => sew(() =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ org }) => {
+            const { repoName, revisionName, path } = params;
+            const repo = await prisma.repo.findFirst({
+                where: {
+                    name: repoName,
+                    orgId: org.id,
+                },
+            });
 
-    const reposPath = path.join(env.DATA_CACHE_DIR, 'repos');
+            if (!repo) {
+                return notFound();
+            }
 
-    return {
-        path: path.join(reposPath, repo.id.toString()),
-        isReadOnly: false,
-    }
-}
+            const { path: repoPath } = getRepoPath(repo);
+
+            let normalizedPath = path;
+
+            if (!normalizedPath.endsWith('/')) {
+                normalizedPath = `${normalizedPath}/`;
+            }
+
+            if (normalizedPath.startsWith('/')) {
+                normalizedPath = normalizedPath.slice(1);
+            }
+
+            const git = simpleGit().cwd(repoPath);
+            const result = await git.raw([
+                'ls-tree',
+                revisionName,
+                // format as output as {type},{path}
+                '--format=%(objecttype),%(path)',
+                ...(normalizedPath.length === 0 ? [] : [normalizedPath]),
+            ]);
+
+            const lines = result.split('\n').filter(line => line.trim());
+
+            const contents: FileTreeItem[] = lines.map(line => {
+                const [type, path] = line.split(',');
+                const name = path.split('/').pop() ?? '';
+
+                return {
+                    type,
+                    path,
+                    name,
+                }
+            });
+
+            return contents;
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+)
 
 const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {
     const root: FileTreeNode = {
@@ -132,4 +179,26 @@ const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode
     };
 
     return sortTree(root);
+}
+
+// @todo: this is duplicated from the `getRepoPath` function in the
+// backend's `utils.ts` file. Eventually we should move this to a shared
+// package.
+const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } => {
+    // If we are dealing with a local repository, then use that as the path.
+    // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
+    const cloneUrl = new URL(repo.cloneUrl);
+    if (repo.external_codeHostType === 'generic-git-host' && cloneUrl.protocol === 'file:') {
+        return {
+            path: cloneUrl.pathname,
+            isReadOnly: true,
+        }
+    }
+
+    const reposPath = path.join(env.DATA_CACHE_DIR, 'repos');
+
+    return {
+        path: path.join(reposPath, repo.id.toString()),
+        isReadOnly: false,
+    }
 }

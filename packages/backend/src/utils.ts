@@ -70,6 +70,8 @@ export const arraysEqualShallow = <T>(a?: readonly T[], b?: readonly T[]) => {
     return true;
 }
 
+// @note: this function is duplicated in `packages/web/src/features/fileTree/actions.ts`.
+// @todo: we should move this to a shared package.
 export const getRepoPath = (repo: Repo, ctx: AppContext): { path: string, isReadOnly: boolean } => {
     // If we are dealing with a local repository, then use that as the path.
     // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
