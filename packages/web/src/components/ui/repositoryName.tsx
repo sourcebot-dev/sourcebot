@@ -120,11 +120,6 @@ export const RepositoryName = React.forwardRef<
                 {customTooltipContent || (
                     <div className="space-y-1">
                         <p className="font-mono text-sm">{repoName}</p>
-                        {repoName.includes('/') && (
-                            <p className="text-xs text-muted-foreground">
-                                Project: {getProjectName(repoName)}
-                            </p>
-                        )}
                     </div>
                 )}
             </TooltipContent>
