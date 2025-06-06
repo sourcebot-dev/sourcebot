@@ -5803,13 +5803,15 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@sourcebot/crypto@workspace:packages/crypto"
   dependencies:
+    "@sourcebot/db": "npm:*"
+    "@sourcebot/schemas": "npm:*"
     "@types/node": "npm:^22.7.5"
     dotenv: "npm:^16.4.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
 
-"@sourcebot/db@workspace:*, @sourcebot/db@workspace:packages/db":
+"@sourcebot/db@npm:*, @sourcebot/db@workspace:*, @sourcebot/db@workspace:packages/db":
   version: 0.0.0-use.local
   resolution: "@sourcebot/db@workspace:packages/db"
   dependencies:
@@ -5869,7 +5871,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sourcebot/schemas@workspace:*, @sourcebot/schemas@workspace:packages/schemas":
+"@sourcebot/schemas@npm:*, @sourcebot/schemas@workspace:*, @sourcebot/schemas@workspace:packages/schemas":
   version: 0.0.0-use.local
   resolution: "@sourcebot/schemas@workspace:packages/schemas"
   dependencies:

@@ -409,3 +409,32 @@ export const requiredQueryParamGuard = (request: NextRequest, param: string): Se
     }
     return value;
 }
+
+export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, domain: string): string | undefined => {
+    if (!imageUrl) return undefined;
+    
+    try {
+        const url = new URL(imageUrl);
+        
+        // List of known public instances that don't require authentication
+        const publicHostnames = [
+            'github.com',
+            'gitlab.com',
+            'avatars.githubusercontent.com',
+            'gitea.com',
+            'bitbucket.org',
+        ];
+        
+        const isPublicInstance = publicHostnames.includes(url.hostname);
+        
+        if (isPublicInstance) {
+            return imageUrl;
+        } else {
+            // Use the proxied route for self-hosted instances
+            return `/api/${domain}/repos/${repoId}/image`;
+        }
+    } catch {
+        // If URL parsing fails, use the original URL
+        return imageUrl;
+    }
+};

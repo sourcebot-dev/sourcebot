@@ -13,6 +13,7 @@ import { getEntitlements } from "@/features/entitlements/server";
 export const metadata: Metadata = {
     title: "Sourcebot",
     description: "Sourcebot",
+    manifest: "/manifest.json",
 };
 
 export default function RootLayout({
