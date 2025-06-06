@@ -4,6 +4,7 @@ import { base64Decode } from "@/lib/utils";
 import { z } from "zod";
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { createLogger } from "@sourcebot/logger";
+import { verifySignature } from "@sourcebot/crypto";
 
 const logger = createLogger('entitlements');
 
@@ -15,6 +16,7 @@ const eeLicenseKeyPayloadSchema = z.object({
     seats: z.number(),
     // ISO 8601 date string
     expiryDate: z.string().datetime(),
+    sig: z.string(),
 });
 
 type LicenseKeyPayload = z.infer<typeof eeLicenseKeyPayloadSchema>;
@@ -23,7 +25,26 @@ const decodeLicenseKeyPayload = (payload: string): LicenseKeyPayload => {
     try {
         const decodedPayload = base64Decode(payload);
         const payloadJson = JSON.parse(decodedPayload);
-        return eeLicenseKeyPayloadSchema.parse(payloadJson);
+        const licenseData = eeLicenseKeyPayloadSchema.parse(payloadJson);
+        
+        if (env.SOURCEBOT_PUBLIC_KEY_PATH) {
+            const dataToVerify = JSON.stringify({
+                expiryDate: licenseData.expiryDate,
+                id: licenseData.id,
+                seats: licenseData.seats
+            });
+            
+            const isSignatureValid = verifySignature(dataToVerify, licenseData.sig, env.SOURCEBOT_PUBLIC_KEY_PATH);
+            if (!isSignatureValid) {
+                logger.error('License key signature verification failed');
+                process.exit(1);
+            }
+        } else {
+            logger.error('No public key path provided, unable to verify license key signature');
+            process.exit(1);
+        }
+        
+        return licenseData;
     } catch (error) {
         logger.error(`Failed to decode license key payload: ${error}`);
         process.exit(1);

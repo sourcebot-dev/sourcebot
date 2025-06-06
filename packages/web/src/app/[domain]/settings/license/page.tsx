@@ -109,12 +109,13 @@ export default async function LicensePage({ params: { domain } }: LicensePagePro
                         <div className="grid grid-cols-2 gap-4">
                             <div className="text-sm text-muted-foreground">Expiry Date</div>
                             <div className={`text-sm font-mono ${isExpired ? 'text-destructive' : ''}`}>
-                                {expiryDate.toLocaleDateString("en-US", {
+                                {expiryDate.toLocaleString("en-US", {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                     month: "long",
                                     day: "numeric",
-                                    year: "numeric"
+                                    year: "numeric",
+                                    timeZoneName: "short"
                                 })} {isExpired && '(Expired)'}
                             </div>
                         </div>
