@@ -1,6 +1,6 @@
 'use client';
 
-import { FileHeader } from "@/app/[domain]/components/fileHeader";
+import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { Separator } from "@/components/ui/separator";
 import { DoubleArrowDownIcon, DoubleArrowUpIcon } from "@radix-ui/react-icons";
 import { useMemo } from "react";
@@ -92,15 +92,15 @@ export const FileMatchContainer = ({
                     top: `-${yOffset}px`,
                 }}
             >
-                <FileHeader
+                <PathHeader
                     repo={{
                         name: repo.name,
                         codeHostType: repo.codeHostType,
                         displayName: repo.displayName,
                         webUrl: repo.webUrl,
                     }}
-                    fileName={file.fileName.text}
-                    fileNameHighlightRange={fileNameRange}
+                    path={file.fileName.text}
+                    pathHighlightRange={fileNameRange}
                     branchDisplayName={branchDisplayName}
                     branchDisplayTitle={branches.join(", ")}
                 />
