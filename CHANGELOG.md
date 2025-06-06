@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2025-06-09
+
 ### Added
 - Added seperate page for signup. [#311](https://github.com/sourcebot-dev/sourcebot/pull/331)
 - Fix repo images in authed instance case and add manifest json. [#332](https://github.com/sourcebot-dev/sourcebot/pull/332)
