@@ -6,11 +6,17 @@ import clsx from "clsx";
 import Image from "next/image";
 import Link from "next/link";
 import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation";
-import { Copy, CheckCircle2, ChevronRight } from "lucide-react";
-import { useCallback, useState, useMemo } from "react";
+import { Copy, CheckCircle2, ChevronRight, MoreHorizontal } from "lucide-react";
+import { useCallback, useState, useMemo, useRef, useEffect } from "react";
 import { useToast } from "@/components/hooks/use-toast";
 import { usePrefetchFolderContents } from "@/hooks/usePrefetchFolderContents";
 import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface FileHeaderProps {
     path: string;
@@ -60,6 +66,10 @@ export const PathHeader = ({
     const { prefetchFolderContents } = usePrefetchFolderContents();
     const { prefetchFileSource } = usePrefetchFileSource();
     
+    const containerRef = useRef<HTMLDivElement>(null);
+    const breadcrumbsRef = useRef<HTMLDivElement>(null);
+    const [visibleSegmentCount, setVisibleSegmentCount] = useState<number | null>(null);
+    
     // Create breadcrumb segments from file path
     const breadcrumbSegments = useMemo(() => {
         const pathParts = path.split('/').filter(Boolean);
@@ -95,6 +105,73 @@ export const PathHeader = ({
         
         return segments;
     }, [path, pathHighlightRange]);
+
+    // Calculate which segments should be visible based on available space
+    useEffect(() => {
+        const measureSegments = () => {
+            if (!containerRef.current || !breadcrumbsRef.current) return;
+            
+            const containerWidth = containerRef.current.offsetWidth;
+            const availableWidth = containerWidth - 175; // Reserve space for copy button and padding
+            
+            // Create a temporary element to measure segment widths
+            const tempElement = document.createElement('div');
+            tempElement.style.position = 'absolute';
+            tempElement.style.visibility = 'hidden';
+            tempElement.style.whiteSpace = 'nowrap';
+            tempElement.className = 'font-mono text-sm';
+            document.body.appendChild(tempElement);
+            
+            let totalWidth = 0;
+            let visibleCount = breadcrumbSegments.length;
+            
+            // Start from the end (most important segments) and work backwards
+            for (let i = breadcrumbSegments.length - 1; i >= 0; i--) {
+                const segment = breadcrumbSegments[i];
+                tempElement.textContent = segment.name;
+                const segmentWidth = tempElement.offsetWidth;
+                const separatorWidth = i < breadcrumbSegments.length - 1 ? 16 : 0; // ChevronRight width
+                
+                if (totalWidth + segmentWidth + separatorWidth > availableWidth && i > 0) {
+                    // If adding this segment would overflow and it's not the last segment
+                    visibleCount = breadcrumbSegments.length - i;
+                    // Add width for ellipsis dropdown (approximately 24px)
+                    if (visibleCount < breadcrumbSegments.length) {
+                        totalWidth += 40; // Ellipsis button + separator
+                    }
+                    break;
+                }
+                
+                totalWidth += segmentWidth + separatorWidth;
+            }
+            
+            document.body.removeChild(tempElement);
+            setVisibleSegmentCount(visibleCount);
+        };
+
+        measureSegments();
+        
+        const resizeObserver = new ResizeObserver(measureSegments);
+        if (containerRef.current) {
+            resizeObserver.observe(containerRef.current);
+        }
+        
+        return () => resizeObserver.disconnect();
+    }, [breadcrumbSegments]);
+
+    const hiddenSegments = useMemo(() => {
+        if (visibleSegmentCount === null || visibleSegmentCount >= breadcrumbSegments.length) {
+            return [];
+        }
+        return breadcrumbSegments.slice(0, breadcrumbSegments.length - visibleSegmentCount);
+    }, [breadcrumbSegments, visibleSegmentCount]);
+
+    const visibleSegments = useMemo(() => {
+        if (visibleSegmentCount === null) {
+            return breadcrumbSegments;
+        }
+        return breadcrumbSegments.slice(breadcrumbSegments.length - visibleSegmentCount);
+    }, [breadcrumbSegments, visibleSegmentCount]);
 
     const onCopyPath = useCallback(() => {
         navigator.clipboard.writeText(path);
@@ -175,9 +252,36 @@ export const PathHeader = ({
                 </p>
             )}
             <span>·</span>
-            <div className="flex-1 flex items-center overflow-hidden mt-0.5">
-                <div className="flex items-center overflow-hidden">
-                    {breadcrumbSegments.map((segment, index) => (
+            <div ref={containerRef} className="flex-1 flex items-center overflow-hidden mt-0.5">
+                <div ref={breadcrumbsRef} className="flex items-center overflow-hidden">
+                    {hiddenSegments.length > 0 && (
+                        <>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        className="font-mono text-sm cursor-pointer hover:underline p-1 rounded transition-colors"
+                                        aria-label="Show hidden path segments"
+                                    >
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="min-w-[200px]">
+                                    {hiddenSegments.map((segment) => (
+                                        <DropdownMenuItem
+                                            key={segment.fullPath}
+                                            onClick={() => onBreadcrumbClick(segment)}
+                                            onMouseEnter={() => onBreadcrumbMouseEnter(segment)}
+                                            className="font-mono text-sm cursor-pointer"
+                                        >
+                                            {renderSegmentWithHighlight(segment)}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <ChevronRight className="h-3 w-3 mx-0.5 text-muted-foreground flex-shrink-0" />
+                        </>
+                    )}
+                    {visibleSegments.map((segment, index) => (
                         <div key={segment.fullPath} className="flex items-center">
                             <span
                                 className={clsx(
@@ -188,7 +292,7 @@ export const PathHeader = ({
                             >
                                 {renderSegmentWithHighlight(segment)}
                             </span>
-                            {index < breadcrumbSegments.length - 1 && (
+                            {index < visibleSegments.length - 1 && (
                                 <ChevronRight className="h-3 w-3 mx-0.5 text-muted-foreground flex-shrink-0" />
                             )}
                         </div>
