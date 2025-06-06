@@ -53,7 +53,7 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
             }, domain)
         ),
     });
-
+    
     useHotkeys("mod+b", () => {
         if (isFileTreePanelCollapsed) {
             fileTreePanelRef.current?.expand();
@@ -182,22 +182,22 @@ const FileTreePanelSkeleton = () => {
             <div className="flex items-center gap-2 pl-4">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-18" />
+                <Skeleton className="h-4 w-16" />
             </div>
             <div className="flex items-center gap-2 pl-8">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-22" />
+                <Skeleton className="h-4 w-20" />
             </div>
             <div className="flex items-center gap-2 pl-8">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-30" />
+                <Skeleton className="h-4 w-28" />
             </div>
             <div className="flex items-center gap-2 pl-4">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-26" />
+                <Skeleton className="h-4 w-24" />
             </div>
             <div className="flex items-center gap-2">
                 <Skeleton className="w-4 h-4" />
@@ -212,7 +212,7 @@ const FileTreePanelSkeleton = () => {
             <div className="flex items-center gap-2 pl-4">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-35" />
+                <Skeleton className="h-4 w-32" />
             </div>
             <div className="flex items-center gap-2 pl-8">
                 <Skeleton className="w-4 h-4" />
@@ -232,7 +232,7 @@ const FileTreePanelSkeleton = () => {
             <div className="flex items-center gap-2">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-22" />
+                <Skeleton className="h-4 w-20" />
             </div>
             <div className="flex items-center gap-2 pl-4">
                 <Skeleton className="w-4 h-4" />
@@ -242,12 +242,12 @@ const FileTreePanelSkeleton = () => {
             <div className="flex items-center gap-2 pl-4">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-18" />
+                <Skeleton className="h-4 w-16" />
             </div>
             <div className="flex items-center gap-2">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-26" />
+                <Skeleton className="h-4 w-24" />
             </div>
             <div className="flex items-center gap-2 pl-4">
                 <Skeleton className="w-4 h-4" />
@@ -257,7 +257,7 @@ const FileTreePanelSkeleton = () => {
             <div className="flex items-center gap-2 pl-4">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-30" />
+                <Skeleton className="h-4 w-28" />
             </div>
             <div className="flex items-center gap-2 pl-8">
                 <Skeleton className="w-4 h-4" />
@@ -272,7 +272,7 @@ const FileTreePanelSkeleton = () => {
             <div className="flex items-center gap-2 pl-12">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-22" />
+                <Skeleton className="h-4 w-20" />
             </div>
             <div className="flex items-center gap-2 pl-12">
                 <Skeleton className="w-4 h-4" />
@@ -282,7 +282,7 @@ const FileTreePanelSkeleton = () => {
             <div className="flex items-center gap-2 pl-8">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-26" />
+                <Skeleton className="h-4 w-24" />
             </div>
             <div className="flex items-center gap-2">
                 <Skeleton className="w-4 h-4" />
@@ -297,7 +297,7 @@ const FileTreePanelSkeleton = () => {
             <div className="flex items-center gap-2 pl-4">
                 <Skeleton className="w-4 h-4" />
                 <Skeleton className="w-4 h-4" />
-                <Skeleton className="h-4 w-18" />
+                <Skeleton className="h-4 w-16" />
             </div>
             <div className="flex items-center gap-2 pl-4">
                 <Skeleton className="w-4 h-4" />

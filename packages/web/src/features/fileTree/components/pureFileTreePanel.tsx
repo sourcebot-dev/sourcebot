@@ -2,11 +2,10 @@
 
 import { FileTreeNode as RawFileTreeNode } from "../actions";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { useCallback, useMemo, useState, useEffect, useRef } from "react";
+import React, { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { FileTreeItemComponent } from "./fileTreeItemComponent";
 import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
-import { useDomain } from "@/hooks/useDomain";
 import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
 
 
@@ -46,7 +45,6 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
     const { navigateToPath } = useBrowseNavigation();
     const { repoName, revisionName } = useBrowseParams();
     const { prefetchFileSource } = usePrefetchFileSource();
-    const domain = useDomain();
 
     // @note: When `_tree` changes, it indicates that a new tree has been loaded.
     // In that case, we need to rebuild the collapsable tree.
@@ -108,7 +106,7 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
             <>
                 {nodes.children.map((node) => {
                     return (
-                        <>
+                        <React.Fragment key={node.path}>
                             <FileTreeItemComponent
                                 key={node.path}
                                 node={node}
@@ -121,7 +119,7 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
                                 parentRef={scrollAreaRef}
                             />
                             {node.children.length > 0 && !node.isCollapsed && renderTree(node, depth + 1)}
-                        </>
+                        </React.Fragment>
                     );
                 })}
             </>

@@ -4,9 +4,12 @@ import { sew, withAuth, withOrgMembership } from '@/actions';
 import { env } from '@/env.mjs';
 import { OrgRole, Repo } from '@sourcebot/db';
 import { prisma } from '@/prisma';
-import { notFound } from '@/lib/serviceError';
+import { notFound, unexpectedError } from '@/lib/serviceError';
 import { simpleGit } from 'simple-git';
 import path from 'path';
+import { createLogger } from '@sourcebot/logger';
+
+const logger = createLogger('file-tree');
 
 export type FileTreeItem = {
     type: string;
@@ -40,16 +43,23 @@ export const getTree = async (params: { repoName: string, revisionName: string }
             const { path: repoPath } = getRepoPath(repo);
 
             const git = simpleGit().cwd(repoPath);
-            const result = await git.raw([
-                'ls-tree',
-                revisionName,
-                // recursive
-                '-r',
-                // include trees when recursing
-                '-t',
-                // format as output as {type},{path}
-                '--format=%(objecttype),%(path)',
-            ]);
+
+            let result: string;
+            try {
+                result = await git.raw([
+                    'ls-tree',
+                    revisionName,
+                    // recursive
+                    '-r',
+                    // include trees when recursing
+                    '-t',
+                    // format as output as {type},{path}
+                    '--format=%(objecttype),%(path)',
+                ]);
+            } catch (error) {
+                logger.error('git ls-tree failed.', { error });
+                return unexpectedError('git ls-tree command failed.');
+            }
 
             const lines = result.split('\n').filter(line => line.trim());
 
@@ -91,24 +101,44 @@ export const getFolderContents = async (params: { repoName: string, revisionName
 
             const { path: repoPath } = getRepoPath(repo);
 
+            // @note: we don't allow directory traversal
+            // or null bytes in the path.
+            if (path.includes('..') || path.includes('\0')) {
+                return notFound();
+            }
+
+            // Normalize the path by...
             let normalizedPath = path;
 
+            // ... adding a trailing slash if it doesn't have one.
+            // This is important since ls-tree won't return the contents
+            // of a directory if it doesn't have a trailing slash.
             if (!normalizedPath.endsWith('/')) {
                 normalizedPath = `${normalizedPath}/`;
             }
 
+            // ... removing any leading slashes. This is needed since
+            // the path is relative to the repository's root, so we
+            // need a relative path.
             if (normalizedPath.startsWith('/')) {
                 normalizedPath = normalizedPath.slice(1);
             }
 
             const git = simpleGit().cwd(repoPath);
-            const result = await git.raw([
-                'ls-tree',
-                revisionName,
-                // format as output as {type},{path}
-                '--format=%(objecttype),%(path)',
-                ...(normalizedPath.length === 0 ? [] : [normalizedPath]),
-            ]);
+
+            let result: string;
+            try {
+                result = await git.raw([
+                    'ls-tree',
+                    revisionName,
+                    // format as output as {type},{path}
+                    '--format=%(objecttype),%(path)',
+                    ...(normalizedPath.length === 0 ? [] : [normalizedPath]),
+                ]);
+            } catch (error) {
+                logger.error('git ls-tree failed.', { error });
+                return unexpectedError('git ls-tree command failed.');
+            }
 
             const lines = result.split('\n').filter(line => line.trim());
 

@@ -92,13 +92,11 @@ export const FileTreeItemComponent = ({
                 className="flex flex-row gap-1 cursor-pointer w-4 h-4 flex-shrink-0"
             >
                 {isCollapseChevronVisible && (
-                    <>
-                        {isCollapsed ? (
-                            <ChevronRightIcon className="w-4 h-4 flex-shrink-0" />
-                        ) : (
-                            <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
-                        )}
-                    </>
+                    isCollapsed ? (
+                        <ChevronRightIcon className="w-4 h-4 flex-shrink-0" />
+                    ) : (
+                        <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
+                    )
                 )}
             </div>
             <Icon icon={iconName} className="w-4 h-4 flex-shrink-0" />
