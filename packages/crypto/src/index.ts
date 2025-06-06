@@ -5,6 +5,8 @@ import { SOURCEBOT_ENCRYPTION_KEY } from './environment';
 const algorithm = 'aes-256-cbc';
 const ivLength = 16; // 16 bytes for CBC
 
+const publicKeyCache = new Map<string, string>();
+
 const generateIV = (): Buffer => {
     return crypto.randomBytes(ivLength);
 };
@@ -67,11 +69,16 @@ export function decrypt(iv: string, encryptedText: string): string {
 
 export function verifySignature(data: string, signature: string, publicKeyPath: string): boolean {
     try {
-        if (!fs.existsSync(publicKeyPath)) {
-            throw new Error(`Public key file not found at: ${publicKeyPath}`);
+        let publicKey = publicKeyCache.get(publicKeyPath);
+        
+        if (!publicKey) {
+            if (!fs.existsSync(publicKeyPath)) {
+                throw new Error(`Public key file not found at: ${publicKeyPath}`);
+            }
+            
+            publicKey = fs.readFileSync(publicKeyPath, 'utf8');
+            publicKeyCache.set(publicKeyPath, publicKey);
         }
-
-        const publicKey = fs.readFileSync(publicKeyPath, 'utf8');
 
         const base64Signature = signature.replace(/-/g, '+').replace(/_/g, '/');
         const paddedSignature = base64Signature + '='.repeat((4 - base64Signature.length % 4) % 4);
