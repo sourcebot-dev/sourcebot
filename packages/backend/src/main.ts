@@ -68,5 +68,6 @@ export const main = async (db: PrismaClient, context: AppContext) => {
     connectionManager.registerPollingCallback();
 
     const repoManager = new RepoManager(db, settings, redis, promClient, context);
+    await repoManager.validateIndexedReposHaveShards();
     await repoManager.blockingPollLoop();
 }

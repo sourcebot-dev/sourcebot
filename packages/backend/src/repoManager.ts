@@ -12,6 +12,7 @@ import { PromClient } from './promClient.js';
 import * as Sentry from "@sentry/node";
 
 interface IRepoManager {
+    validateIndexedReposHaveShards: () => Promise<void>;
     blockingPollLoop: () => void;
     dispose: () => void;
 }
@@ -524,6 +525,61 @@ export class RepoManager implements IRepoManager {
                 }
             });
         }
+    }
+
+    ///////////////////////////
+    // Repo index validation
+    ///////////////////////////
+
+    public async validateIndexedReposHaveShards() {
+        logger.info('Validating indexed repos have shards...');
+        
+        const indexedRepos = await this.db.repo.findMany({
+            where: {
+                repoIndexingStatus: RepoIndexingStatus.INDEXED
+            }
+        });
+        logger.info(`Found ${indexedRepos.length} repos in the DB marked as INDEXED`);
+
+        if (indexedRepos.length === 0) {
+            return;
+        }
+
+        const reposToReindex: number[] = [];
+
+        for (const repo of indexedRepos) {
+            const shardPrefix = getShardPrefix(repo.orgId, repo.id);
+            
+            // TODO: this doesn't take into account if a repo has multiple shards and only some of them are missing. To support that, this logic
+            // would need to know how many total shards are expected for this repo
+            let hasShards = false;
+            try {
+                const files = readdirSync(this.ctx.indexPath);
+                hasShards = files.some(file => file.startsWith(shardPrefix));
+            } catch (error) {
+                logger.error(`Failed to read index directory ${this.ctx.indexPath}: ${error}`);
+                continue;
+            }
+
+            if (!hasShards) {
+                logger.info(`Repo ${repo.displayName} (id: ${repo.id}) is marked as INDEXED but has no shards on disk. Marking for reindexing.`);
+                reposToReindex.push(repo.id);
+            }
+        }
+
+        if (reposToReindex.length > 0) {
+            await this.db.repo.updateMany({
+                where: {
+                    id: { in: reposToReindex }
+                },
+                data: {
+                    repoIndexingStatus: RepoIndexingStatus.NEW
+                }
+            });
+            logger.info(`Marked ${reposToReindex.length} repos for reindexing due to missing shards`);
+        }
+
+        logger.info('Done validating indexed repos have shards');
     }
 
     private async fetchAndScheduleRepoTimeouts() {
