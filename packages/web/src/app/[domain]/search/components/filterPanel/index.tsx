@@ -11,6 +11,7 @@ import { Entry } from "./entry";
 import { Filter } from "./filter";
 import { LANGUAGES_QUERY_PARAM, REPOS_QUERY_PARAM, useFilteredMatches } from "./useFilterMatches";
 import { useGetSelectedFromQuery } from "./useGetSelectedFromQuery";
+import { RepositoryName } from "@/components/ui/repositoryName";
 
 interface FilePanelProps {
     matches: SearchResultFile[];
@@ -76,7 +77,15 @@ export const FilterPanel = ({
 
                 return {
                     key: repository,
-                    displayName: info?.displayName ?? repository,
+                    displayName: (
+                        <RepositoryName 
+                            repoName={info?.displayName ?? repository}
+                            displayMode="truncate"
+                            maxLength={50}
+                            tooltipSide="right"
+                            className="flex-1 min-w-0"
+                        />
+                    ),
                     count: 0,
                     isSelected,
                     isDisabled,

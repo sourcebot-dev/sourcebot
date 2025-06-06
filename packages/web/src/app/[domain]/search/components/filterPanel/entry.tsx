@@ -5,7 +5,7 @@ import clsx from "clsx";
 
 export type Entry = {
     key: string;
-    displayName: string;
+    displayName: string | React.ReactNode;
     count: number;
     isSelected: boolean;
     isHidden: boolean;
@@ -44,13 +44,19 @@ export const Entry = ({
             )}
             onClick={() => onClicked()}
         >
-            <div className="flex flex-row items-center gap-1 overflow-hidden">
+            <div className="flex flex-row items-center gap-1 overflow-hidden min-w-0">
                 {Icon ? Icon : (
                     <QuestionMarkCircledIcon className="w-4 h-4 flex-shrink-0" />
                 )}
-                <p className="overflow-hidden text-ellipsis whitespace-nowrap">{displayName}</p>
+                <div className="overflow-hidden flex-1 min-w-0">
+                    {typeof displayName === 'string' ? (
+                        <p className="overflow-hidden text-ellipsis whitespace-nowrap">{displayName}</p>
+                    ) : (
+                        displayName
+                    )}
+                </div>
             </div>
-            <div className="px-2 py-0.5 bg-accent text-sm rounded-md">
+            <div className="px-2 py-0.5 bg-accent text-sm rounded-md flex-shrink-0">
                 {countText}
             </div>
         </div>

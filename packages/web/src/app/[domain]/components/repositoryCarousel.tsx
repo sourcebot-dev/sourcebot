@@ -11,6 +11,7 @@ import Image from "next/image";
 import { FileIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import { RepositoryQuery } from "@/lib/types";
+import { RepositoryName } from "@/components/ui/repositoryName";
 
 interface RepositoryCarouselProps {
     repos: RepositoryQuery[];
@@ -95,9 +96,13 @@ const RepositoryBadge = ({
             })}
         >
             {repoIcon}
-            <span className="text-sm font-mono">
-                {displayName}
-            </span>
+            <RepositoryName
+                repoName={displayName}
+                displayMode="project-only"
+                maxLength={25}
+                className="flex-1 min-w-0"
+                showTooltip={false}
+            />
         </div>
     )
 }
