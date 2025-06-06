@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added seperate page for signup. [#311](https://github.com/sourcebot-dev/sourcebot/pull/331)
 - Fix repo images in authed instance case and add manifest json. [#332](https://github.com/sourcebot-dev/sourcebot/pull/332)
+- Added encryption logic for license keys. [#335](https://github.com/sourcebot-dev/sourcebot/pull/335)
 
 ## [4.1.1] - 2025-06-03
 

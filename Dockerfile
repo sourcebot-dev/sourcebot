@@ -174,6 +174,7 @@ ENV REDIS_DATA_DIR=$DATA_CACHE_DIR/redis
 ENV DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
 ENV REDIS_URL="redis://localhost:6379"
 ENV SRC_TENANT_ENFORCEMENT_MODE=strict
+ENV SOURCEBOT_PUBLIC_KEY_PATH=/app/public.pem
 
 # Valid values are: debug, info, warn, error
 ENV SOURCEBOT_LOG_LEVEL=info
@@ -181,7 +182,7 @@ ENV SOURCEBOT_LOG_LEVEL=info
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
-COPY package.json yarn.lock* .yarnrc.yml ./
+COPY package.json yarn.lock* .yarnrc.yml public.pem ./
 COPY .yarn ./.yarn
 
 # Configure zoekt
