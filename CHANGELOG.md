@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix repo images in authed instance case and add manifest json. [#332](https://github.com/sourcebot-dev/sourcebot/pull/332)
 - Added encryption logic for license keys. [#335](https://github.com/sourcebot-dev/sourcebot/pull/335)
 
+### Fixed
+- Handle long repo names better in the UI. [#338](https://github.com/sourcebot-dev/sourcebot/pull/338)
+
 ## [4.1.1] - 2025-06-03
 
 ### Added
