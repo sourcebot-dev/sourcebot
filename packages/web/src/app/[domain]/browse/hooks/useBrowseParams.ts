@@ -23,15 +23,17 @@ export const useBrowseParams = () => {
     const { path, pathType } = ((): { path: string, pathType: 'tree' | 'blob' } => {
         const path = rawPath.substring(sentinalIndex + '/-/'.length);
         const pathType = path.startsWith('tree/') ? 'tree' : 'blob';
+
+        // @note: decodedURIComponent is needed here incase the path contains a space.
         switch (pathType) {
             case 'tree':
                 return {
-                    path: path.substring('tree/'.length),
+                    path: decodeURIComponent(path.substring('tree/'.length)),
                     pathType,
                 };
             case 'blob':
                 return {
-                    path: path.substring('blob/'.length),
+                    path: decodeURIComponent(path.substring('blob/'.length)),
                     pathType,
                 };
         }
