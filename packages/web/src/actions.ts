@@ -1736,7 +1736,7 @@ export const getRepoImage = async (repoId: number, domain: string): Promise<Arra
                 return notFound();
             }
 
-            let authHeaders: Record<string, string> = {};
+            const authHeaders: Record<string, string> = {};
             for (const { connection } of repo.connections) {
                 try {
                     if (connection.connectionType === 'github') {
