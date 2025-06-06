@@ -8,6 +8,9 @@ import { FileTreePanel } from "@/features/fileTree/components/fileTreePanel";
 import { TopBar } from "@/app/[domain]/components/topBar";
 import { Separator } from '@/components/ui/separator';
 import { useBrowseParams } from "./hooks/useBrowseParams";
+import { CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -62,6 +65,35 @@ export default function Layout({
                     </ResizablePanel>
                 </ResizablePanelGroup>
             </div>
+            <FileSearchCommandDialog />
         </BrowseStateProvider>
     );
+}
+
+const FileSearchCommandDialog = () => {
+
+    const [isOpen, setIsOpen] = useState(false);
+
+    useHotkeys("mod+p", (event) => {
+        event.preventDefault();
+        setIsOpen((prev) => !prev);
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Open File Search",
+    });
+
+    return (
+        <CommandDialog
+            open={isOpen}
+            onOpenChange={setIsOpen}
+        >
+            <CommandInput placeholder="Search files..." />
+            <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandItem>Ok</CommandItem>
+                <CommandItem>Letsgo</CommandItem>
+            </CommandList>
+        </CommandDialog>
+    )
 }
