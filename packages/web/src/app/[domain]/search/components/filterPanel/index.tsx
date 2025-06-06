@@ -11,7 +11,6 @@ import { Entry } from "./entry";
 import { Filter } from "./filter";
 import { LANGUAGES_QUERY_PARAM, REPOS_QUERY_PARAM, useFilteredMatches } from "./useFilterMatches";
 import { useGetSelectedFromQuery } from "./useGetSelectedFromQuery";
-import { RepositoryName } from "@/components/ui/repositoryName";
 
 interface FilePanelProps {
     matches: SearchResultFile[];
