@@ -6,10 +6,8 @@ import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { FileTreeItemComponent } from "./fileTreeItemComponent";
 import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
-import { useQueryClient } from "@tanstack/react-query";
 import { useDomain } from "@/hooks/useDomain";
-import { unwrapServiceError } from "@/lib/utils";
-import { getFileSource } from "@/features/search/fileSourceApi";
+import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
 
 
 export type FileTreeNode = Omit<RawFileTreeNode, 'children'> & {
@@ -47,7 +45,7 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { navigateToPath } = useBrowseNavigation();
     const { repoName, revisionName } = useBrowseParams();
-    const queryClient = useQueryClient();
+    const { prefetchFileSource } = usePrefetchFileSource();
     const domain = useDomain();
 
     // @note: When `_tree` changes, it indicates that a new tree has been loaded.
@@ -102,24 +100,17 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
             return;
         }
 
-        queryClient.prefetchQuery({
-            queryKey: ['fileSource', repoName, revisionName, node.path, domain],
-            queryFn: () => unwrapServiceError(getFileSource({
-                fileName: node.path,
-                repository: repoName,
-                branch: revisionName,
-            }, domain)),
-        });
+        prefetchFileSource(repoName, revisionName ?? 'HEAD', node.path);
+    }, [prefetchFileSource, repoName, revisionName]);
 
-    }, [queryClient, repoName, revisionName, domain]);
-
-    const renderTree = useCallback((nodes: FileTreeNode, depth = 0) => {
+    const renderTree = useCallback((nodes: FileTreeNode, depth = 0): React.ReactNode => {
         return (
-            <div>
+            <>
                 {nodes.children.map((node) => {
                     return (
-                        <div key={node.path}>
+                        <>
                             <FileTreeItemComponent
+                                key={node.path}
                                 node={node}
                                 isActive={node.path === path}
                                 depth={depth}
@@ -127,12 +118,13 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
                                 isCollapseChevronVisible={node.type === 'tree'}
                                 onClick={() => onNodeClicked(node)}
                                 onMouseEnter={() => onNodeMouseEnter(node)}
+                                parentRef={scrollAreaRef}
                             />
                             {node.children.length > 0 && !node.isCollapsed && renderTree(node, depth + 1)}
-                        </div>
+                        </>
                     );
                 })}
-            </div>
+            </>
         );
     }, [path, onNodeClicked, onNodeMouseEnter]);
 

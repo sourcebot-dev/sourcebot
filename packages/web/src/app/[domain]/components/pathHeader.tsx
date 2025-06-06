@@ -9,6 +9,8 @@ import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation";
 import { Copy, CheckCircle2, ChevronRight } from "lucide-react";
 import { useCallback, useState, useMemo } from "react";
 import { useToast } from "@/components/hooks/use-toast";
+import { usePrefetchFolderContents } from "@/hooks/usePrefetchFolderContents";
+import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
 
 interface FileHeaderProps {
     path: string;
@@ -55,7 +57,9 @@ export const PathHeader = ({
     const { navigateToPath } = useBrowseNavigation();
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
-
+    const { prefetchFolderContents } = usePrefetchFolderContents();
+    const { prefetchFileSource } = usePrefetchFileSource();
+    
     // Create breadcrumb segments from file path
     const breadcrumbSegments = useMemo(() => {
         const pathParts = path.split('/').filter(Boolean);
@@ -107,6 +111,20 @@ export const PathHeader = ({
             revisionName: branchDisplayName,
         });
     }, [repo.name, branchDisplayName, navigateToPath, pathType]);
+
+    const onBreadcrumbMouseEnter = useCallback((segment: BreadcrumbSegment) => {
+        if (segment.isLastSegment && pathType === 'blob') {
+            prefetchFileSource(repo.name, branchDisplayName ?? 'HEAD', segment.fullPath);
+        } else {
+            prefetchFolderContents(repo.name, branchDisplayName ?? 'HEAD', segment.fullPath);
+        }
+    }, [
+        repo.name,
+        branchDisplayName,
+        prefetchFolderContents,
+        pathType,
+        prefetchFileSource,
+    ]);
 
     const renderSegmentWithHighlight = (segment: BreadcrumbSegment) => {
         if (!segment.highlightRange) {
@@ -166,6 +184,7 @@ export const PathHeader = ({
                                     "font-mono text-sm truncate cursor-pointer hover:underline",
                                 )}
                                 onClick={() => onBreadcrumbClick(segment)}
+                                onMouseEnter={() => onBreadcrumbMouseEnter(segment)}
                             >
                                 {renderSegmentWithHighlight(segment)}
                             </span>

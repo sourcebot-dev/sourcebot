@@ -16,6 +16,7 @@ export const FileTreeItemComponent = ({
     isCollapseChevronVisible = true,
     onClick,
     onMouseEnter,
+    parentRef,
 }: {
     node: FileTreeItem,
     isActive: boolean,
@@ -24,6 +25,7 @@ export const FileTreeItemComponent = ({
     isCollapseChevronVisible?: boolean,
     onClick: () => void,
     onMouseEnter: () => void,
+    parentRef: React.RefObject<HTMLDivElement>,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
 
@@ -33,9 +35,23 @@ export const FileTreeItemComponent = ({
                 scrollMode: 'if-needed',
                 block: 'center',
                 behavior: 'instant',
+                // We only want to scroll if the element is hidden vertically
+                // in the parent element.
+                boundary: () => {
+                    if (!parentRef.current || !ref.current) {
+                        return false;
+                    }
+
+                    const rect = ref.current.getBoundingClientRect();
+                    const parentRect = parentRef.current.getBoundingClientRect();
+
+                    const completelyAbove = rect.bottom <= parentRect.top;
+                    const completelyBelow = rect.top >= parentRect.bottom;
+                    return completelyAbove || completelyBelow;
+                }
             });
         }
-    }, [isActive]);
+    }, [isActive, parentRef]);
 
     const iconName = useMemo(() => {
         if (node.type === 'tree') {
@@ -72,17 +88,19 @@ export const FileTreeItemComponent = ({
             onClick={onClick}
             onMouseEnter={onMouseEnter}
         >
-            {isCollapseChevronVisible && (
-                <div
-                    className="flex flex-row gap-1 cursor-pointer w-4 h-4 flex-shrink-0"
-                >
-                    {isCollapsed ? (
-                        <ChevronRightIcon className="w-4 h-4 flex-shrink-0" />
-                    ) : (
-                        <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
-                    )}
-                </div>
-            )}
+            <div
+                className="flex flex-row gap-1 cursor-pointer w-4 h-4 flex-shrink-0"
+            >
+                {isCollapseChevronVisible && (
+                    <>
+                        {isCollapsed ? (
+                            <ChevronRightIcon className="w-4 h-4 flex-shrink-0" />
+                        ) : (
+                            <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
+                        )}
+                    </>
+                )}
+            </div>
             <Icon icon={iconName} className="w-4 h-4 flex-shrink-0" />
             <span className="text-sm">{node.name}</span>
         </div>

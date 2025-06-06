@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { getRepoInfoByName } from "@/actions";
 import { PathHeader } from "@/app/[domain]/components/pathHeader";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { FileTreeItem, getFolderContents } from "@/features/fileTree/actions";
 import { FileTreeItemComponent } from "@/features/fileTree/components/fileTreeItemComponent";
 import { useBrowseNavigation } from "../../hooks/useBrowseNavigation";
@@ -12,15 +12,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { unwrapServiceError } from "@/lib/utils";
 import { useBrowseParams } from "../../hooks/useBrowseParams";
 import { useDomain } from "@/hooks/useDomain";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getFileSource } from "@/features/search/fileSourceApi";
+import { useQuery } from "@tanstack/react-query";
+import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
+import { usePrefetchFolderContents } from "@/hooks/usePrefetchFolderContents";
 
 export const TreePreviewPanel = () => {
     const { path } = useBrowseParams();
     const { repoName, revisionName } = useBrowseParams();
     const domain = useDomain();
-    const queryClient = useQueryClient();
     const { navigateToPath } = useBrowseNavigation();
+    const { prefetchFileSource } = usePrefetchFileSource();
+    const { prefetchFolderContents } = usePrefetchFolderContents();
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     const { data: repoInfoResponse, isPending: isRepoInfoPending, isError: isRepoInfoError } = useQuery({
         queryKey: ['repoInfo', repoName, domain],
@@ -49,28 +52,11 @@ export const TreePreviewPanel = () => {
 
     const onNodeMouseEnter = useCallback((node: FileTreeItem) => {
         if (node.type === 'blob') {
-            queryClient.prefetchQuery({
-                queryKey: ['fileSource', repoName, revisionName, node.path, domain],
-                queryFn: () => unwrapServiceError(getFileSource({
-                    fileName: node.path,
-                    repository: repoName,
-                    branch: revisionName,
-                }, domain)),
-            });
+            prefetchFileSource(repoName, revisionName ?? 'HEAD', node.path);
         } else if (node.type === 'tree') {
-            queryClient.prefetchQuery({
-                queryKey: ['tree', repoName, revisionName, node.path, domain],
-                queryFn: () => unwrapServiceError(
-                    getFolderContents({
-                        repoName,
-                        revisionName: revisionName ?? 'HEAD',
-                        path: node.path,
-                    }, domain)
-                ),
-            });
+            prefetchFolderContents(repoName, revisionName ?? 'HEAD', node.path);
         }
-
-    }, [queryClient, repoName, revisionName, domain]);
+    }, [prefetchFileSource, prefetchFolderContents, repoName, revisionName]);
 
     if (isFolderContentsPending || isRepoInfoPending) {
         return (
@@ -100,7 +86,10 @@ export const TreePreviewPanel = () => {
                 />
             </div>
             <Separator />
-            <ScrollArea className="flex flex-col p-0.5">
+            <ScrollArea
+                className="flex flex-col p-0.5"
+                ref={scrollAreaRef}
+            >
                 {data.map((item) => (
                     <FileTreeItemComponent
                         key={item.path}
@@ -110,6 +99,7 @@ export const TreePreviewPanel = () => {
                         isCollapseChevronVisible={false}
                         onClick={() => onNodeClicked(item)}
                         onMouseEnter={() => onNodeMouseEnter(item)}
+                        parentRef={scrollAreaRef}
                     />
                 ))}
             </ScrollArea>
