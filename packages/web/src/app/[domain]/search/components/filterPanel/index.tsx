@@ -77,15 +77,7 @@ export const FilterPanel = ({
 
                 return {
                     key: repository,
-                    displayName: (
-                        <RepositoryName 
-                            repoName={info?.displayName ?? repository}
-                            displayMode="truncate"
-                            maxLength={50}
-                            tooltipSide="right"
-                            className="flex-1 min-w-0"
-                        />
-                    ),
+                    displayName: info?.displayName ?? repository,
                     count: 0,
                     isSelected,
                     isDisabled,

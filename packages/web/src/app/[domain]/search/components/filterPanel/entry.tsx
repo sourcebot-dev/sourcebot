@@ -1,11 +1,12 @@
 'use client';
 
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { QuestionMarkCircledIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 
 export type Entry = {
     key: string;
-    displayName: string | React.ReactNode;
+    displayName: string;
     count: number;
     isSelected: boolean;
     isHidden: boolean;
@@ -49,11 +50,14 @@ export const Entry = ({
                     <QuestionMarkCircledIcon className="w-4 h-4 flex-shrink-0" />
                 )}
                 <div className="overflow-hidden flex-1 min-w-0">
-                    {typeof displayName === 'string' ? (
-                        <p className="overflow-hidden text-ellipsis whitespace-nowrap">{displayName}</p>
-                    ) : (
-                        displayName
-                    )}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <p className="overflow-hidden text-ellipsis whitespace-nowrap truncate-start">{displayName}</p>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-sm">
+                            <p className="font-mono text-sm break-all whitespace-pre-wrap">{displayName}</p>
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
             </div>
             <div className="px-2 py-0.5 bg-accent text-sm rounded-md flex-shrink-0">
