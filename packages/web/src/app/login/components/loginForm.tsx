@@ -22,9 +22,10 @@ interface LoginFormProps {
     callbackUrl?: string;
     error?: string;
     providers: Array<{ id: string; name: string }>;
+    context: "login" | "signup";
 }
 
-export const LoginForm = ({ callbackUrl, error, providers }: LoginFormProps) => {
+export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
     const onSignInWithOauth = useCallback((provider: string) => {
         signIn(provider, {
@@ -77,9 +78,11 @@ export const LoginForm = ({ callbackUrl, error, providers }: LoginFormProps) => 
         <div className="flex flex-col items-center justify-center w-full">
             <div className="mb-6 flex flex-col items-center">
                 <SourcebotLogo
-                    className="h-12 sm:h-16"
+                    className="h-12 sm:h-16 mb-3"
                 />
-                <h2 className="text-lg font-bold text-center">Sign in to your account</h2>
+                <h2 className="text-lg font-medium text-center">
+                    {context === "login" ? "Sign in to your account" : "Create a new account"}
+                </h2>
             </div>
             {env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined && (
                 <div className="w-full sm:w-[500px] max-w-[500px]">
@@ -120,6 +123,17 @@ export const LoginForm = ({ callbackUrl, error, providers }: LoginFormProps) => 
                         ] : [])
                     ]}
                 />
+                <p className="text-sm text-muted-foreground mt-8">
+                    {context === "login" ?
+                        <>
+                            No account yet? <Link className="underline" href="/signup">Sign up</Link>
+                        </>
+                    :
+                        <>
+                            Already have an account? <Link className="underline" href="/login">Sign in</Link>
+                        </>
+                    }
+                </p>
             </Card>
             {env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined && (
                 <p className="text-xs text-muted-foreground mt-8">By signing in, you agree to the <Link className="underline" href={TERMS_OF_SERVICE_URL} target="_blank">Terms of Service</Link> and <Link className="underline" href={PRIVACY_POLICY_URL} target="_blank">Privacy Policy</Link>.</p>

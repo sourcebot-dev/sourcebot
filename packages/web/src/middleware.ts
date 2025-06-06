@@ -10,7 +10,11 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    if (url.pathname.startsWith('/login') || url.pathname.startsWith('/redeem')) {
+    if (
+        url.pathname.startsWith('/login') ||
+        url.pathname.startsWith('/redeem') ||
+        url.pathname.startsWith('/signup')
+    ) {
         return NextResponse.next();
     }
 
