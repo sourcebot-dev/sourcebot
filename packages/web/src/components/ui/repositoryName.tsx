@@ -1,14 +1,13 @@
 'use client';
 
 import { cn } from "@/lib/utils";
-import { createTruncatedRepoDisplay, createBreadcrumbRepoDisplay, getProjectName, createCompactRepoDisplay } from "@/lib/repositoryDisplayUtils";
+import { createTruncatedRepoDisplay, getProjectName } from "@/lib/repositoryDisplayUtils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbEllipsis, BreadcrumbSeparator } from "./breadcrumb";
 import React from "react";
 
 export interface RepositoryNameProps {
     repoName: string;
-    displayMode?: 'truncate' | 'breadcrumb' | 'project-only' | 'compact';
+    displayMode?: 'truncate' | 'project-only';
     maxLength?: number;
     className?: string;
     tooltipSide?: 'top' | 'bottom' | 'left' | 'right';
@@ -41,28 +40,6 @@ export const RepositoryName = React.forwardRef<
 }, ref) => {
     const renderContent = () => {
         switch (displayMode) {
-            case 'breadcrumb': {
-                const { parts, isCollapsed, fullParts } = createBreadcrumbRepoDisplay(repoName);
-                return (
-                    <Breadcrumb>
-                        <BreadcrumbList className="flex-nowrap">
-                            {parts.map((part, index) => (
-                                <React.Fragment key={index}>
-                                    {index > 0 && <BreadcrumbSeparator />}
-                                    <BreadcrumbItem>
-                                        {part === '…' ? (
-                                            <BreadcrumbEllipsis />
-                                        ) : (
-                                            <span className="font-mono text-sm">{part}</span>
-                                        )}
-                                    </BreadcrumbItem>
-                                </React.Fragment>
-                            ))}
-                        </BreadcrumbList>
-                    </Breadcrumb>
-                );
-            }
-            
             case 'project-only': {
                 const projectName = getProjectName(repoName);
                 return (
@@ -73,11 +50,6 @@ export const RepositoryName = React.forwardRef<
                         }
                     </span>
                 );
-            }
-            
-            case 'compact': {
-                const { displayText } = createCompactRepoDisplay(repoName, maxLength);
-                return <span className="font-mono text-sm">{displayText}</span>;
             }
             
             case 'truncate':
@@ -101,7 +73,6 @@ export const RepositoryName = React.forwardRef<
     // Only show tooltip if content is truncated or explicitly requested
     const shouldShowTooltip = showTooltip && (
         customTooltipContent ||
-        displayMode === 'breadcrumb' ||
         displayMode === 'project-only' ||
         repoName.length > maxLength ||
         repoName !== content.props.children.props.children

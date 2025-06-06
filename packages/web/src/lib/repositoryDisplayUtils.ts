@@ -83,41 +83,6 @@ export function createTruncatedRepoDisplay(
 }
 
 /**
- * Creates a breadcrumb-style display for repository names with intelligent collapsing.
- * Shows first part, ellipsis, and last N parts for very long paths.
- * 
- * Example: "group1/group2/group3/group4/project" → ["group1", "…", "group4", "project"]
- */
-export function createBreadcrumbRepoDisplay(
-    repoName: string,
-    maxVisibleParts: number = 3
-): { parts: string[], isCollapsed: boolean, fullParts: string[] } {
-    const fullParts = repoName.split('/');
-    
-    if (fullParts.length <= maxVisibleParts) {
-        return {
-            parts: fullParts,
-            isCollapsed: false,
-            fullParts
-        };
-    }
-
-    // Show first part, ellipsis, then last (maxVisibleParts - 2) parts
-    const visibleEndParts = maxVisibleParts - 2; // Account for first part and ellipsis
-    const parts = [
-        fullParts[0],
-        '…',
-        ...fullParts.slice(-visibleEndParts)
-    ];
-
-    return {
-        parts,
-        isCollapsed: true,
-        fullParts
-    };
-}
-
-/**
  * Extracts just the project name from a repository path.
  * Useful for very constrained spaces like carousel items.
  */
@@ -125,59 +90,3 @@ export function getProjectName(repoName: string): string {
     const parts = repoName.split('/');
     return parts[parts.length - 1];
 }
-
-/**
- * Creates a compact display that shows project name with group context in parentheses.
- * Example: "my-project (from group/subgroup)"
- */
-export function createCompactRepoDisplay(
-    repoName: string,
-    maxLength: number = 40
-): TruncatedRepoDisplay {
-    const parts = repoName.split('/');
-    const projectName = parts[parts.length - 1];
-    const fullText = repoName;
-
-    if (parts.length === 1) {
-        return createTruncatedRepoDisplay(repoName, maxLength);
-    }
-
-    const groupPath = parts.slice(0, -1).join('/');
-    const compactFormat = `${projectName} (${groupPath})`;
-
-    if (compactFormat.length <= maxLength) {
-        return {
-            displayText: compactFormat,
-            fullText,
-            isTruncated: false,
-            parts
-        };
-    }
-
-    // Try to fit by truncating the group path
-    const baseLength = projectName.length + 3; // " ()" = 3 chars
-    const availableForGroup = maxLength - baseLength;
-
-    if (availableForGroup > 10) {
-        const truncatedGroup = groupPath.length > availableForGroup 
-            ? '…' + groupPath.substring(groupPath.length - availableForGroup + 1)
-            : groupPath;
-        
-        return {
-            displayText: `${projectName} (${truncatedGroup})`,
-            fullText,
-            isTruncated: true,
-            parts
-        };
-    }
-
-    // If even that doesn't fit, just show the project name
-    return {
-        displayText: projectName.length > maxLength 
-            ? projectName.substring(0, maxLength - 1) + '…'
-            : projectName,
-        fullText,
-        isTruncated: true,
-        parts
-    };
-} 
