@@ -267,7 +267,7 @@ const PanelGroup = ({
                     >
                         <TooltipTrigger asChild>
                             <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
                                 onClick={() => {

@@ -2,6 +2,12 @@ import { NewsItem } from "./types";
 
 export const newsData: NewsItem[] = [
     {
+        unique_id: "file-explorer",
+        header: "File explorer",
+        sub_header: "We've added support for a file explorer when browsing files.",
+        url: "https://github.com/sourcebot-dev/sourcebot/releases/tag/v4.2.0"
+    },
+    {
         unique_id: "structured-logging",
         header: "Structured logging",
         sub_header: "We've added support for structured logging",
