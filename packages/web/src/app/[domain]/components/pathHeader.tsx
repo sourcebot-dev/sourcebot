@@ -223,22 +223,27 @@ export const PathHeader = ({
     return (
         <div className="flex flex-row gap-2 items-center w-full overflow-hidden">
             {info?.icon ? (
-                <Image
-                    src={info.icon}
-                    alt={info.codeHostName}
-                    className={`w-4 h-4 ${info.iconClassName}`}
-                />
-            ): (
+                <a href={info.repoLink} target="_blank" rel="noopener noreferrer">
+                    <Image
+                        src={info.icon}
+                        alt={info.codeHostName}
+                        className={`w-4 h-4 ${info.iconClassName}`}
+                    />
+                </a>
+            ) : (
                 <LaptopIcon className="w-4 h-4" />
             )}
-            <Link
-                className={clsx("font-medium", {
-                    "cursor-pointer hover:underline": info?.repoLink,
+            <div
+                className="font-medium cursor-pointer hover:underline"
+                onClick={() => navigateToPath({
+                    repoName: repo.name,
+                    path: '',
+                    pathType: 'tree',
+                    revisionName: branchDisplayName,
                 })}
-                href={info?.repoLink ?? ""}
             >
                 {info?.displayName}
-            </Link>
+            </div>
             {branchDisplayName && (
                 <p
                     className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-[3px] flex items-center gap-0.5"
