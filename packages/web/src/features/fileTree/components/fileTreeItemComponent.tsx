@@ -1,12 +1,11 @@
 'use client';
 
 import { FileTreeItem } from "../actions";
-import { useMemo, useEffect, useRef } from "react";
-import { getIconForFile, getIconForFolder } from "vscode-icons-js";
-import { Icon } from '@iconify/react';
+import { useEffect, useRef } from "react";
 import clsx from "clsx";
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
+import { FileTreeItemIcon } from "./fileTreeItemIcon";
 
 export const FileTreeItemComponent = ({
     node,
@@ -53,24 +52,6 @@ export const FileTreeItemComponent = ({
         }
     }, [isActive, parentRef]);
 
-    const iconName = useMemo(() => {
-        if (node.type === 'tree') {
-            const icon = getIconForFolder(node.name);
-            if (icon) {
-                const iconName = `vscode-icons:${icon.substring(0, icon.indexOf('.')).replaceAll('_', '-')}`;
-                return iconName;
-            }
-        } else if (node.type === 'blob') {
-            const icon = getIconForFile(node.name);
-            if (icon) {
-                const iconName = `vscode-icons:${icon.substring(0, icon.indexOf('.')).replaceAll('_', '-')}`;
-                return iconName;
-            }
-        }
-
-        return "vscode-icons:file-type-unknown";
-    }, [node.name, node.type]);
-
     return (
         <div
             ref={ref}
@@ -99,7 +80,7 @@ export const FileTreeItemComponent = ({
                     )
                 )}
             </div>
-            <Icon icon={iconName} className="w-4 h-4 flex-shrink-0" />
+            <FileTreeItemIcon item={node} />
             <span className="text-sm">{node.name}</span>
         </div>
     )
