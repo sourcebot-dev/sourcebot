@@ -14,6 +14,7 @@ import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
 import { useBrowseParams } from "../hooks/useBrowseParams";
 import { FileTreeItemIcon } from "@/features/fileTree/components/fileTreeItemIcon";
 import { useLocalStorage } from "usehooks-ts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const MAX_RESULTS = 100;
 
@@ -271,10 +272,10 @@ const ResultsSkeleton = () => {
         <div className="p-2">
             {Array.from({ length: 6 }).map((_, index) => (
                 <div key={index} className="flex flex-row gap-2 p-2 mb-1">
-                    <div className="w-4 h-4 bg-gray-200 rounded mt-0.5 animate-pulse" />
+                    <Skeleton className="w-4 h-4" />
                     <div className="flex flex-col w-full gap-1">
-                        <div className="h-4 bg-gray-200 rounded animate-pulse w-1/4" />
-                        <div className="h-3 bg-gray-100 rounded animate-pulse w-1/2" />
+                        <Skeleton className="h-4 w-1/4" />
+                        <Skeleton className="h-3 w-1/2" />
                     </div>
                 </div>
             ))}
