@@ -1,6 +1,6 @@
 'use client';
 
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useQuery } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import { useBrowseState } from "../hooks/useBrowseState";
 import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
 import { useBrowseParams } from "../hooks/useBrowseParams";
 import { FileTreeItemIcon } from "@/features/fileTree/components/fileTreeItemIcon";
+import { useLocalStorage } from "usehooks-ts";
 
 const MAX_RESULTS = 100;
 
@@ -31,9 +32,12 @@ export const FileSearchCommandDialog = () => {
     const { state: { isFileSearchOpen }, updateBrowseState } = useBrowseState();
 
     const commandListRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const { navigateToPath } = useBrowseNavigation();
     const { prefetchFileSource } = usePrefetchFileSource();
+
+    const [recentlyOpened, setRecentlyOpened] = useLocalStorage<FileTreeItem[]>(`recentlyOpenedFiles-${repoName}`, []);
 
     useHotkeys("mod+p", (event) => {
         event.preventDefault();
@@ -59,15 +63,8 @@ export const FileSearchCommandDialog = () => {
         enabled: isFileSearchOpen,
     });
 
-    const filteredFiles = useMemo((): { filteredFiles: SearchResult[]; maxResultsHit: boolean } => {
+    const { filteredFiles, maxResultsHit } = useMemo((): { filteredFiles: SearchResult[]; maxResultsHit: boolean } => {
         if (!files || isLoading) {
-            return {
-                filteredFiles: [],
-                maxResultsHit: false,
-            };
-        }
-
-        if (searchQuery.length === 0) {
             return {
                 filteredFiles: [],
                 maxResultsHit: false,
@@ -108,6 +105,39 @@ export const FileSearchCommandDialog = () => {
         })
     }, [searchQuery]);
 
+    const onSelect = useCallback((file: FileTreeItem) => {
+        setRecentlyOpened((prev) => {
+            const filtered = prev.filter(f => f.path !== file.path);
+            return [file, ...filtered];
+        });
+        navigateToPath({
+            repoName,
+            revisionName,
+            path: file.path,
+            pathType: 'blob',
+        });
+        updateBrowseState({
+            isFileSearchOpen: false,
+        });
+    }, [navigateToPath, repoName, revisionName, setRecentlyOpened, updateBrowseState]);
+
+    const onMouseEnter = useCallback((file: FileTreeItem) => {
+        prefetchFileSource(
+            repoName,
+            revisionName ?? 'HEAD',
+            file.path
+        );
+    }, [prefetchFileSource, repoName, revisionName]);
+
+    // @note: We were hitting issues when the user types into the input field while the files are still
+    // loading. The workaround was to set `disabled` when loading and then focus the input field when
+    // the files are loaded, hence the `useEffect` below.
+    useEffect(() => {
+        if (!isLoading) {
+            inputRef.current?.focus();
+        }
+    }, [isLoading]);
+
     return (
         <Dialog
             open={isFileSearchOpen}
@@ -129,6 +159,8 @@ export const FileSearchCommandDialog = () => {
                     <CommandInput
                         placeholder={`Search for files in ${repoName}...`}
                         onValueChange={setSearchQuery}
+                        disabled={isLoading}
+                        ref={inputRef}
                     />
                     {
                         isLoading ? (
@@ -137,54 +169,42 @@ export const FileSearchCommandDialog = () => {
                             <p>Error loading files.</p>
                         ) : (
                             <CommandList ref={commandListRef}>
-                                {searchQuery.length > 0 && (
-                                    <CommandEmpty className="text-muted-foreground text-center text-sm py-6">No results found.</CommandEmpty>
-                                )}
-                                {filteredFiles.filteredFiles.map(({ file, match }) => {
-                                    return (
-                                        <CommandItem
-                                            key={file.path}
-                                            onSelect={() => {
-                                                navigateToPath({
-                                                    repoName,
-                                                    revisionName,
-                                                    path: file.path,
-                                                    pathType: 'blob',
-                                                });
-                                                updateBrowseState({
-                                                    isFileSearchOpen: false,
-                                                });
-                                            }}
-                                            onMouseEnter={() => {
-                                                prefetchFileSource(
-                                                    repoName,
-                                                    revisionName ?? 'HEAD',
-                                                    file.path
-                                                );
-                                            }}
-                                        >
-                                            <div className="flex flex-row gap-2 w-full cursor-pointer">
-                                                <FileTreeItemIcon item={file} className="mt-0.5" />
-                                                <div className="flex flex-col w-full">
-                                                    <span className="text-sm font-medium">
-                                                        {file.name}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {match ? (
-                                                            <Highlight text={file.path} range={match} />
-                                                        ) : (
-                                                            file.path
-                                                        )}
-                                                    </span>
-                                                </div>
+                                {searchQuery.length === 0 ? (
+                                    <CommandGroup
+                                        heading="Recently opened"
+                                    >
+                                        <CommandEmpty className="text-muted-foreground text-center text-sm py-6">No recently opened files.</CommandEmpty>
+                                        {recentlyOpened.map((file) => {
+                                            return (
+                                                <SearchResultComponent
+                                                    key={file.path}
+                                                    file={file}
+                                                    onSelect={() => onSelect(file)}
+                                                    onMouseEnter={() => onMouseEnter(file)}
+                                                />
+                                            );
+                                        })}
+                                    </CommandGroup>
+                                ) : (
+                                    <>
+                                        <CommandEmpty className="text-muted-foreground text-center text-sm py-6">No results found.</CommandEmpty>
+                                        {filteredFiles.map(({ file, match }) => {
+                                            return (
+                                                <SearchResultComponent
+                                                    key={file.path}
+                                                    file={file}
+                                                    match={match}
+                                                    onSelect={() => onSelect(file)}
+                                                    onMouseEnter={() => onMouseEnter(file)}
+                                                />
+                                            );
+                                        })}
+                                        {maxResultsHit && (
+                                            <div className="text-muted-foreground text-center text-sm py-4">
+                                                Maximum results hit. Please refine your search.
                                             </div>
-                                        </CommandItem>
-                                    );
-                                })}
-                                {filteredFiles.maxResultsHit && (
-                                    <div className="text-muted-foreground text-center text-sm py-4">
-                                        Maximum results hit. Please refine your search.
-                                    </div>
+                                        )}
+                                    </>
                                 )}
                             </CommandList>
                         )
@@ -193,6 +213,47 @@ export const FileSearchCommandDialog = () => {
             </DialogContent>
         </Dialog>
     )
+}
+
+interface SearchResultComponentProps {
+    file: FileTreeItem;
+    match?: {
+        from: number;
+        to: number;
+    };
+    onSelect: () => void;
+    onMouseEnter: () => void;
+}
+
+const SearchResultComponent = ({
+    file,
+    match,
+    onSelect,
+    onMouseEnter,
+}: SearchResultComponentProps) => {
+    return (
+        <CommandItem
+            key={file.path}
+            onSelect={onSelect}
+            onMouseEnter={onMouseEnter}
+        >
+            <div className="flex flex-row gap-2 w-full cursor-pointer relative">
+                <FileTreeItemIcon item={file} className="mt-1" />
+                <div className="flex flex-col w-full">
+                    <span className="text-sm font-medium">
+                        {file.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                        {match ? (
+                            <Highlight text={file.path} range={match} />
+                        ) : (
+                            file.path
+                        )}
+                    </span>
+                </div>
+            </div>
+        </CommandItem>
+    );
 }
 
 const Highlight = ({ text, range }: { text: string, range: { from: number; to: number } }) => {
