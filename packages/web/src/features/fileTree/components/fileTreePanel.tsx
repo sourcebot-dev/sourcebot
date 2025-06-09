@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent } from "@/components/ui/tooltip";
 import { TooltipTrigger } from "@/components/ui/tooltip";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
+import { SearchIcon } from "lucide-react";
 
 
 interface FileTreePanelProps {
@@ -103,6 +104,25 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                             </TooltipContent>
                         </Tooltip>
                         <p className="font-medium">File Tree</p>
+                        <Tooltip delayDuration={100}>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 ml-auto"
+                                    onClick={() => {
+                                        updateBrowseState({ isFileSearchOpen: true });
+                                    }}
+                                >
+                                    <SearchIcon className="w-4 h-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
+                                <KeyboardShortcutHint shortcut="⌘ P" />
+                                <Separator orientation="vertical" className="h-4" />
+                                <span>Search files</span>
+                            </TooltipContent>
+                        </Tooltip>
                     </div>
                     <Separator orientation="horizontal" className="w-full mb-2" />
                     {isPending ? (
