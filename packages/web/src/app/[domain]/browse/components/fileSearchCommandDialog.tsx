@@ -35,24 +35,23 @@ export const FileSearchCommandDialog = () => {
     const { navigateToPath } = useBrowseNavigation();
     const { prefetchFileSource } = usePrefetchFileSource();
 
-    const onOpenChange = useCallback((isOpen: boolean) => {
-        updateBrowseState({
-            isFileSearchOpen: isOpen,
-        });
-
-        if (isOpen) {
-            setSearchQuery('');
-        }
-    }, [updateBrowseState]);
-
     useHotkeys("mod+p", (event) => {
         event.preventDefault();
-        onOpenChange(!isFileSearchOpen);
+        updateBrowseState({
+            isFileSearchOpen: !isFileSearchOpen,
+        });
     }, {
         enableOnFormTags: true,
         enableOnContentEditable: true,
         description: "Open File Search",
     });
+
+    // Whenever we open the dialog, clear the search query
+    useEffect(() => {
+        if (isFileSearchOpen) {
+            setSearchQuery('');
+        }
+    }, [isFileSearchOpen]);
 
     const { data: files, isLoading, isError } = useQuery({
         queryKey: ['files', repoName, revisionName, domain],
@@ -70,7 +69,7 @@ export const FileSearchCommandDialog = () => {
 
         if (searchQuery.length === 0) {
             return {
-                filteredFiles: files.slice(0, MAX_RESULTS).map((file) => ({ file })),
+                filteredFiles: [],
                 maxResultsHit: false,
             };
         }
@@ -112,11 +111,15 @@ export const FileSearchCommandDialog = () => {
     return (
         <Dialog
             open={isFileSearchOpen}
-            onOpenChange={onOpenChange}
+            onOpenChange={(isOpen) => {
+                updateBrowseState({
+                    isFileSearchOpen: isOpen,
+                });
+            }}
             modal={true}
         >
             <DialogContent
-                className="overflow-hidden p-0 shadow-lg max-w-[90vw] sm:max-w-2xl"
+                className="overflow-hidden p-0 shadow-lg max-w-[90vw] sm:max-w-2xl top-[20%] translate-y-0"
             >
                 <DialogTitle className="sr-only">Search for files</DialogTitle>
                 <DialogDescription className="sr-only">{`Search for files in the repository ${repoName}.`}</DialogDescription>
@@ -134,7 +137,9 @@ export const FileSearchCommandDialog = () => {
                             <p>Error loading files.</p>
                         ) : (
                             <CommandList ref={commandListRef}>
-                                <CommandEmpty className="text-muted-foreground text-center text-sm py-6">No results found.</CommandEmpty>
+                                {searchQuery.length > 0 && (
+                                    <CommandEmpty className="text-muted-foreground text-center text-sm py-6">No results found.</CommandEmpty>
+                                )}
                                 {filteredFiles.filteredFiles.map(({ file, match }) => {
                                     return (
                                         <CommandItem
@@ -146,7 +151,9 @@ export const FileSearchCommandDialog = () => {
                                                     path: file.path,
                                                     pathType: 'blob',
                                                 });
-                                                onOpenChange(false);
+                                                updateBrowseState({
+                                                    isFileSearchOpen: false,
+                                                });
                                             }}
                                             onMouseEnter={() => {
                                                 prefetchFileSource(
