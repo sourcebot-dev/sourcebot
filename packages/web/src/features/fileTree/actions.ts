@@ -155,7 +155,58 @@ export const getFolderContents = async (params: { repoName: string, revisionName
 
             return contents;
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
-)
+);
+
+export const getFiles = async (params: { repoName: string, revisionName: string }, domain: string) => sew(() =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ org }) => {
+            const { repoName, revisionName } = params;
+
+            const repo = await prisma.repo.findFirst({
+                where: {
+                    name: repoName,
+                    orgId: org.id,
+                },
+            });
+
+            if (!repo) {
+                return notFound();
+            }
+
+            const { path: repoPath } = getRepoPath(repo);
+
+            const git = simpleGit().cwd(repoPath);
+
+            let result: string;
+            try {
+                result = await git.raw([
+                    'ls-tree',
+                    revisionName,
+                    // recursive
+                    '-r',
+                    // only return the names of the files
+                    '--name-only',
+                ]);
+            } catch (error) {
+                logger.error('git ls-tree failed.', { error });
+                return unexpectedError('git ls-tree command failed.');
+            }
+
+            const paths = result.split('\n').filter(line => line.trim());
+
+            const files: FileTreeItem[] = paths.map(path => {
+                const name = path.split('/').pop() ?? '';
+                return {
+                    type: 'blob',
+                    path,
+                    name,
+                }
+            });
+
+            return files;
+
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+);
 
 const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {
     const root: FileTreeNode = {

@@ -8,6 +8,7 @@ import { FileTreePanel } from "@/features/fileTree/components/fileTreePanel";
 import { TopBar } from "@/app/[domain]/components/topBar";
 import { Separator } from '@/components/ui/separator';
 import { useBrowseParams } from "./hooks/useBrowseParams";
+import { FileSearchCommandDialog } from "./components/fileSearchCommandDialog";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -62,6 +63,7 @@ export default function Layout({
                     </ResizablePanel>
                 </ResizablePanelGroup>
             </div>
+            <FileSearchCommandDialog />
         </BrowseStateProvider>
     );
 }

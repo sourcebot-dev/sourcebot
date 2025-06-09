@@ -73,7 +73,7 @@ export const getPlan = (): Plan => {
     if (licenseKey) {
         const expiryDate = new Date(licenseKey.expiryDate);
         if (expiryDate.getTime() < new Date().getTime()) {
-            logger.error(`The provided license key has expired (${expiryDate.toLocaleString()}). Falling back to oss plan. Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
+            logger.error(`The provided license key has expired (${expiryDate.toLocaleString()}). Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
             process.exit(1);
         }
 

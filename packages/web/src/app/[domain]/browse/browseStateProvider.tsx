@@ -12,6 +12,7 @@ export interface BrowseState {
     }
     isBottomPanelCollapsed: boolean;
     isFileTreePanelCollapsed: boolean;
+    isFileSearchOpen: boolean;
     activeExploreMenuTab: "references" | "definitions";
     bottomPanelSize: number;
 }
@@ -20,6 +21,7 @@ const defaultState: BrowseState = {
     selectedSymbolInfo: undefined,
     isBottomPanelCollapsed: true,
     isFileTreePanelCollapsed: false,
+    isFileSearchOpen: false,
     activeExploreMenuTab: "references",
     bottomPanelSize: 35,
 };
