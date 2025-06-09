@@ -188,8 +188,8 @@ export const getFiles = async (params: { repoName: string, revisionName: string 
                     '--name-only',
                 ]);
             } catch (error) {
-                logger.error('git ls-files failed.', { error });
-                return unexpectedError('git ls-files command failed.');
+                logger.error('git ls-tree failed.', { error });
+                return unexpectedError('git ls-tree command failed.');
             }
 
             const paths = result.split('\n').filter(line => line.trim());
