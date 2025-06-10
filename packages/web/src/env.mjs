@@ -67,6 +67,9 @@ export const env = createEnv({
         STRIPE_WEBHOOK_SECRET: z.string().optional(),
         STRIPE_ENABLE_TEST_CLOCKS: booleanSchema.default('false'),
 
+        LOGTAIL_TOKEN: z.string().optional(),
+        LOGTAIL_HOST: z.string().url().optional(),
+
         // Misc
         CONFIG_MAX_REPOS_NO_TOKEN: numberSchema.default(Number.MAX_SAFE_INTEGER),
         NODE_ENV: z.enum(["development", "test", "production"]),

@@ -64,6 +64,9 @@ export class ConnectionManager implements IConnectionManager {
                 connectionName: connection.name,
                 orgId: connection.orgId,
                 config: connectionConfig,
+            }, {
+                removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                removeOnFail: env.REDIS_REMOVE_ON_FAIL,
             });
             this.logger.info(`Added job to queue for connection ${connection.name} (id: ${connection.id})`);
         }).catch((err: unknown) => {

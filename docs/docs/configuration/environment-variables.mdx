@@ -23,6 +23,8 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `EMAIL_FROM_ADDRESS` | `-` | <p>The email address that transactional emails will be sent from. See [this doc](/docs/configuration/transactional-emails) for more info.</p> | 
 | `REDIS_DATA_DIR` | `$DATA_CACHE_DIR/redis` | <p>The data directory for the default Redis instance.</p> |
 | `REDIS_URL` | `redis://localhost:6379` | <p>Connection string of your Redis instance. By default, a Redis database is automatically provisioned at startup within the container.</p> |
+| `REDIS_REMOVE_ON_COMPLETE` | `0` | <p>Controls how many completed jobs are allowed to remain in Redis queues</p> |
+| `REDIS_REMOVE_ON_FAIL` | `100` | <p>Controls how many failed jobs are allowed to remain in Redis queues</p> |
 | `SHARD_MAX_MATCH_COUNT` | `10000` | <p>The maximum shard count per query</p> |
 | `SMTP_CONNECTION_URL` | `-` | <p>The url to the SMTP service used for sending transactional emails. See [this doc](/docs/configuration/transactional-emails) for more info.</p> |
 | `SOURCEBOT_ENCRYPTION_KEY` | Automatically generated at startup if no value is provided. Generated using `openssl rand -base64 24` | <p>Used to encrypt connection secrets and generate API keys.</p> |
