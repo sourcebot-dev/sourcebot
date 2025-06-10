@@ -45,12 +45,11 @@ const searchCodeTool = tool({
                 );
 
                 const snippets = file.chunks.map(chunk => {
-                    chunk.contentStart
                     const content = base64Decode(chunk.content);
                     return `\`\`\`\n${content}\n\`\`\``
                 }).join('\n');
 
-                let text = `file: ${file.webUrl}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}\n\n${snippets}`;
+                const text = `file: ${file.webUrl}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}\n\n${snippets}`;
 
                 results.push(text);
             }
