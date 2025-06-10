@@ -304,6 +304,12 @@ type ParsedSegment = {
 } | {
     type: 'citation';
     citation: Citation;
+} | {
+    type: 'code-block';
+    content: string;
+} | {
+    type: 'code-inline';
+    content: string;
 }
 
 const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
@@ -321,6 +327,18 @@ const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
                             citation={segment.citation} 
                         />
                     );
+                } else if (segment.type === 'code-block') {
+                    return (
+                        <pre key={index} className="text-xs text-gray-500 whitespace-pre-wrap break-all bg-gray-50 dark:bg-gray-900 p-3 rounded-md border my-2">
+                            {segment.content}
+                        </pre>
+                    );
+                } else if (segment.type === 'code-inline') {
+                    return (
+                        <code key={index} className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200 font-mono">
+                            {segment.content}
+                        </code>
+                    );
                 } else {
                     return (
                         <span key={index}>
@@ -333,49 +351,75 @@ const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
     )
 }
 
-// Function to parse text and extract citations
+// Function to parse text and extract citations and code blocks
 const parseTextIntoSegments = (text: string): ParsedSegment[] => {
     const parts: ParsedSegment[] = [];
     
+    // Create combined regex to match both citations and code blocks
+    // Priority: citations first, then code blocks, then inline code
+    const combinedRegex = new RegExp([
+        `(${CITATION_PREFIX}\\{[^}]*\\})`, // Group 1: Citations
+        '(```[\\s\\S]*?```)', // Group 2: Code blocks (triple backticks)
+        '(`[^`\n]*?`)', // Group 3: Inline code (single backticks, no newlines)
+    ].join('|'), 'g');
+    
     let currentIndex = 0;
+    let match: RegExpExecArray | null = null;
     
-    // @note: creates a capturing group for the citation JSON
-    const citationRegex = new RegExp(`${CITATION_PREFIX}(\\{[^}]*\\})`, 'g');
-    
-    let citationMatch: RegExpExecArray | null = null;
-    while ((citationMatch = citationRegex.exec(text)) !== null) {
-
-        const [citationString, citationJson] = citationMatch;
-
-        // Add text before citation
-        if (citationMatch.index > currentIndex) {
-            const textBefore = text.slice(currentIndex, citationMatch.index);
+    while ((match = combinedRegex.exec(text)) !== null) {
+        const [fullMatch, citationMatch, codeBlockMatch, inlineCodeMatch] = match;
+        
+        // Add text before the match
+        if (match.index > currentIndex) {
+            const textBefore = text.slice(currentIndex, match.index);
             if (textBefore.trim()) {
                 parts.push({ type: 'text', content: textBefore });
             }
         }
         
-        // Try to parse the citation JSON
-        try {
-            const citationJsonObject = JSON.parse(citationJson);
-            const citation = citationSchema.parse(citationJsonObject);
-
+        // Handle citations
+        if (citationMatch) {
+            const citationJson = citationMatch.replace(CITATION_PREFIX, '');
+            try {
+                const citationJsonObject = JSON.parse(citationJson);
+                const citation = citationSchema.parse(citationJsonObject);
+                parts.push({ 
+                    type: 'citation', 
+                    citation: citation
+                });
+            } catch {
+                // Fallback to text if parsing fails
+                parts.push({ type: 'text', content: fullMatch });
+            }
+        }
+        // Handle code blocks (```code```)
+        else if (codeBlockMatch) {
+            // Remove the triple backticks and extract the code content
+            const codeContent = codeBlockMatch.slice(3, -3);
             parts.push({ 
-                type: 'citation', 
-                citation: citation
+                type: 'code-block', 
+                content: codeContent
             });
-
-        // Fallback to text if parsing fails
-        } catch {
-            parts.push({ type: 'text', content: citationString });
+        }
+        // Handle inline code (`code`)
+        else if (inlineCodeMatch) {
+            // Remove the single backticks and extract the code content
+            const codeContent = inlineCodeMatch.slice(1, -1);
+            parts.push({ 
+                type: 'code-inline', 
+                content: codeContent
+            });
         }
         
-        currentIndex = citationMatch.index + citationString.length;
+        currentIndex = match.index + fullMatch.length;
     }
     
     // Add remaining text
     if (currentIndex < text.length) {
-        parts.push({ type: 'text', content: text.slice(currentIndex) });
+        const remainingText = text.slice(currentIndex);
+        if (remainingText.trim()) {
+            parts.push({ type: 'text', content: remainingText });
+        }
     }
     
     return parts;
