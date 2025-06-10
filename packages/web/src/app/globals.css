@@ -252,3 +252,19 @@
   /* text-decoration-color: #0070f3; */
   /* text-decoration-thickness: 2px; */
 }
+
+.cm-editor .cm-selectionBackground,
+.cm-editor .cm-line::selection,
+.cm-editor .cm-selectionLayer .cm-selectionBackground,
+.cm-content ::selection {
+    background: var(--editor-selection-highlight, #ffe066) !important;
+    color: var(--editor-selection-highlight-foreground, #222) !important;
+}
+
+.dark .cm-editor .cm-selectionBackground,
+.dark .cm-editor .cm-line::selection,
+.dark .cm-editor .cm-selectionLayer .cm-selectionBackground,
+.dark .cm-content ::selection {
+    background: var(--editor-selection-highlight, #2563eb) !important;
+    color: var(--editor-selection-highlight-foreground, #fff) !important;
+}
