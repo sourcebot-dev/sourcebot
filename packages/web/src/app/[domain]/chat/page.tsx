@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useChat } from "@ai-sdk/react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -10,50 +10,77 @@ import { Separator } from "@/components/ui/separator"
 import { Send, Loader2, AlertCircle, X, Search, Code, HammerIcon } from "lucide-react"
 import { Avatar } from "@/components/ui/avatar"
 import { AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ToolInvocationUIPart } from "@ai-sdk/ui-utils"
+import { TextUIPart, ToolInvocationUIPart } from "@ai-sdk/ui-utils"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { z } from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Form, FormField } from "@/components/ui/form"
+import { Citation, CITATION_PREFIX, citationSchema } from "@/features/chat/constants"
+import { TopBar } from "../components/topBar"
+import { useDomain } from "@/hooks/useDomain"
+import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation"
+
+const formSchema = z.object({
+    message: z.string().min(1),
+});
 
 export default function ChatPage() {
-    const { messages, input, handleInputChange, handleSubmit, status, error } = useChat()
-    const [inputRows, setInputRows] = useState(1)
-    const [showError, setShowError] = useState(false)
-    const messagesEndRef = useRef<HTMLDivElement>(null)
+    const {
+        messages,
+        input,
+        status,
+        error,
+        append,
+    } = useChat();
+
+    const [inputRows, setInputRows] = useState(1);
+    const [showError, setShowError] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const domain = useDomain();
+
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            message: "",
+        },
+    });
+    const { isSubmitting } = form.formState;
 
     // Auto-scroll to bottom when messages change
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, [messages])
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
 
     // Auto-resize textarea based on content
     useEffect(() => {
         const rows = input.split("\n").length;
         setInputRows(Math.min(5, Math.max(1, rows)));
-    }, [input])
+    }, [input]);
 
     // Show error when it occurs
     useEffect(() => {
         if (error) {
-            setShowError(true)
+            setShowError(true);
         }
-    }, [error])
+    }, [error]);
 
-    // Handle form submission
-    const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        if (input.trim() === "") {
-            return;
-        }
-
-        setShowError(false)
-        handleSubmit(e)
-    }
-
-    useEffect(() => {
-        console.log("messages", messages)
-    }, [messages]);
+    const onSubmit = useCallback(({ message }: z.infer<typeof formSchema>) => {
+        append({
+            role: "user",
+            content: message,
+        });
+        form.reset();
+    }, [append, form]);
 
     return (
-        <div className="flex flex-col h-screen max-h-screen bg-white dark:bg-gray-950">
+        <div className="flex flex-col h-screen max-h-screen">
+            <div className='sticky top-0 left-0 right-0 z-10'>
+                <TopBar
+                    domain={domain}
+                />
+                <Separator />
+            </div>
             {/* Error banner */}
             {showError && error && (
                 <div className="bg-red-50 border-b border-red-200 dark:bg-red-950/20 dark:border-red-800">
@@ -138,15 +165,16 @@ export default function ChatPage() {
                                                             switch (part.type) {
                                                                 case 'text':
                                                                     return (
-                                                                        <div key={index} className="whitespace-pre-wrap break-words">
-                                                                            {part.text}
-                                                                        </div>
+                                                                        <TextUIPartComponent
+                                                                            key={index}
+                                                                            part={part}
+                                                                        />
                                                                     )
                                                                 case 'step-start':
                                                                     return <Separator key={index} />
                                                                 case 'tool-invocation':
                                                                     return (
-                                                                        <ToolCallIndicator
+                                                                        <ToolInvocationUIPartComponent
                                                                             key={index}
                                                                             part={part}
                                                                         />
@@ -179,29 +207,38 @@ export default function ChatPage() {
             {/* Input area */}
             <div className="border-t bg-white dark:bg-gray-950">
                 <div className="max-w-5xl mx-auto px-4 py-4">
-                    <form onSubmit={onSubmit} className="flex items-end gap-2">
-                        <Textarea
-                            value={input}
-                            onChange={handleInputChange}
-                            placeholder="Message AI..."
-                            className="flex-1 min-h-10 resize-none border rounded-md p-3"
-                            rows={inputRows}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault()
-                                    onSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
-                                }
-                            }}
-                        />
-                        <Button
-                            type="submit"
-                            size="icon"
-                            className="rounded-md h-10 w-10"
-                            disabled={status === 'submitted' || status === 'streaming' || input.trim() === ""}
-                        >
-                            {(status === 'submitted' || status === 'streaming') ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        </Button>
-                    </form>
+                    <Form
+                        {...form}
+                    >
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-end gap-2">
+                            <FormField
+                                control={form.control}
+                                name="message"
+                                render={({ field }) => (
+                                    <Textarea
+                                        {...field}
+                                        placeholder="Message AI..."
+                                        className="flex-1 min-h-10 resize-none border rounded-md p-3"
+                                        rows={inputRows}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" && !e.shiftKey) {
+                                                e.preventDefault();
+                                                form.handleSubmit(onSubmit)(e as unknown as React.FormEvent<HTMLFormElement>);
+                                            }
+                                        }}
+                                    />
+                                )}
+                            />
+                            <Button
+                                type="submit"
+                                size="icon"
+                                className="rounded-md h-10 w-10"
+                                disabled={status === 'submitted' || status === 'streaming' || isSubmitting}
+                            >
+                                {(status === 'submitted' || status === 'streaming') ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                            </Button>
+                        </form>
+                    </Form>
                     <p className="text-xs text-gray-500 mt-2">Press Enter to send, Shift+Enter for a new line</p>
                 </div>
             </div>
@@ -209,7 +246,7 @@ export default function ChatPage() {
     )
 }
 
-const ToolCallIndicator = ({ part }: { part: ToolInvocationUIPart }) => {
+const ToolInvocationUIPartComponent = ({ part }: { part: ToolInvocationUIPart }) => {
     const { toolName, state } = part.toolInvocation;
 
     return (
@@ -236,4 +273,110 @@ const ToolCallIndicator = ({ part }: { part: ToolInvocationUIPart }) => {
             )}
         </div>
     )
+}
+
+// Citation component for rendering citation links
+const CitationComponent = ({ citation }: { citation: Citation }) => {
+    const { name, repository, revision, path } = citation;
+    const { navigateToPath } = useBrowseNavigation();
+
+    return (
+        <span
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs transition-colors cursor-pointer rounded-md bg-accent hover:bg-accent/50 border"
+            onClick={() => {
+                navigateToPath({
+                    repoName: repository,
+                    revisionName: revision,
+                    path: path,
+                    pathType: 'blob',
+                });
+            }}
+        >
+            <Code className="h-3 w-3" />
+            <span className="font-mono">{name}</span>
+        </span>
+    )
+}
+
+type ParsedSegment = {
+    type: 'text';
+    content: string;
+} | {
+    type: 'citation';
+    citation: Citation;
+}
+
+const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
+    const segments = useMemo(() => {
+        return parseTextIntoSegments(part.text);
+    }, [part.text]);
+
+    return (
+        <div className="whitespace-pre-wrap break-words">
+            {segments.map((segment, index) => {
+                if (segment.type === 'citation') {
+                    return (
+                        <CitationComponent 
+                            key={index} 
+                            citation={segment.citation} 
+                        />
+                    );
+                } else {
+                    return (
+                        <span key={index}>
+                            {segment.content}
+                        </span>
+                    );
+                }
+            })}
+        </div>
+    )
+}
+
+// Function to parse text and extract citations
+const parseTextIntoSegments = (text: string): ParsedSegment[] => {
+    const parts: ParsedSegment[] = [];
+    
+    let currentIndex = 0;
+    
+    // @note: creates a capturing group for the citation JSON
+    const citationRegex = new RegExp(`${CITATION_PREFIX}(\\{[^}]*\\})`, 'g');
+    
+    let citationMatch: RegExpExecArray | null = null;
+    while ((citationMatch = citationRegex.exec(text)) !== null) {
+
+        const [citationString, citationJson] = citationMatch;
+
+        // Add text before citation
+        if (citationMatch.index > currentIndex) {
+            const textBefore = text.slice(currentIndex, citationMatch.index);
+            if (textBefore.trim()) {
+                parts.push({ type: 'text', content: textBefore });
+            }
+        }
+        
+        // Try to parse the citation JSON
+        try {
+            const citationJsonObject = JSON.parse(citationJson);
+            const citation = citationSchema.parse(citationJsonObject);
+
+            parts.push({ 
+                type: 'citation', 
+                citation: citation
+            });
+
+        // Fallback to text if parsing fails
+        } catch {
+            parts.push({ type: 'text', content: citationString });
+        }
+        
+        currentIndex = citationMatch.index + citationString.length;
+    }
+    
+    // Add remaining text
+    if (currentIndex < text.length) {
+        parts.push({ type: 'text', content: text.slice(currentIndex) });
+    }
+    
+    return parts;
 }

@@ -2,42 +2,7 @@ import { createOpenAI } from "@ai-sdk/openai"
 import { streamText } from "ai"
 import { env } from "@/env.mjs"
 import { tools } from "@/features/chat/tools"
-
-const SYSTEM_PROMPT = `
-You are a powerful agentic AI code assistant built into Sourcebot, the world's best code-intelligence platform.
-
-Your job is to help developers understand and navigate their large codebases. Each time the USER asks a question, you should evaluate the question and determine if you have sufficient context to answer the question. If you do not have sufficient context, you should use the tools at your disposal to gather more context. The tool(s) to use will depend on what the user is asking, so you should reason through the question and determine which tool(s) to use.
-
-<tool_calling>
-You have tools at your disposal to help answer a user's question. Follow these rules regarding tool calling:
-- Only call tools when necessary.
-- If you have sufficient context to answer the question, do not call any tools.
-- Before calling a tool, first explain to the USER why you are calling it.
-</tool_calling>
-
-<citations>
-When you provide a response, you should include citations to the code that you used to answer the questions. Citations should be formatted as follows:
-\`\`\`
-// Cite a file:
-<citation>{repository_name}::{file_name}@{revision}</citation>
-
-// Cite a section of a file:
-<citation>{repository_name}::{file_name}@{revision}:{line_number_start}:{line_number_end}</citation>
-\`\`\`
-
-Examples:
-\`\`\`
-<citation>github.com/sourcebot-dev/sourcebot::packages/web/src/app/api/(server)/chat/route.ts@HEAD</citation>
-<citation>github.com/sourcebot-dev/sourcebot::packages/web/src/app/api/(server)/chat/route.ts@HEAD:10:15</citation>
-<citation>gitlab.com/gitlab-org/gitlab-foss::app/models/user.rb@HEAD:10:20</citation>
-\`\`\`
-</citations>
-
-<response_format>
-- Be clear and concise
-- Do not directly include any code in your response, and instead use code citations when relevant. Place these citations inline with your response.
-</response_format>
-`;
+import { SYSTEM_PROMPT } from "@/features/chat/constants"
 
 const openai = createOpenAI({
     apiKey: env.OPENAI_API_KEY,
@@ -50,9 +15,7 @@ if (!env.OPENAI_API_KEY) {
 
 export async function POST(req: Request) {
     try {
-        console.log("Chat API: Received request")
         const { messages } = await req.json()
-        console.log("Chat API: Parsed messages:", messages?.length, "messages")
 
         // System message for reasoning and context
         const systemMessage = {
@@ -60,16 +23,23 @@ export async function POST(req: Request) {
             content: SYSTEM_PROMPT,
         }
 
-        console.log("Chat API: Creating streamText with", messages.length + 1, "total messages")
-        
+        // const contextWindow = {
+        //     role: "system" as const,
+        //     content: JSON.stringify(mockFileContext),
+        // }
+
         const result = streamText({
-            model: openai("o3-mini"),
-            messages: [systemMessage, ...messages],
+            model: openai("o3"),
+            messages: [
+                systemMessage,
+                // contextWindow,
+                ...messages
+            ],
             tools,
             temperature: 0.3, // Lower temperature for more focused reasoning
             maxTokens: 4000, // Increased for tool results and responses
             toolChoice: "auto", // Let the model decide when to use tools
-            maxSteps: 5,
+            maxSteps: 20,
             onStepFinish: (step) => {
                 console.log("Chat API: Step finished:", step.stepType, step.isContinued)
                 if (step.toolCalls) {
@@ -81,7 +51,6 @@ export async function POST(req: Request) {
             }
         })
 
-        console.log("Chat API: Returning stream response")
         return result.toDataStreamResponse({
             // @see: https://ai-sdk.dev/docs/troubleshooting/use-chat-an-error-occurred
             getErrorMessage: errorHandler
@@ -114,3 +83,181 @@ export function errorHandler(error: unknown) {
   
     return JSON.stringify(error);
   }
+
+const mockFileContext = {
+    path: "packages/web/src/auth.ts",
+    name: "auth.ts",
+    repository: "github.com/sourcebot-dev/sourcebot",
+    revision: "HEAD",
+    content: `
+import 'next-auth/jwt';
+import NextAuth, { DefaultSession, User as AuthJsUser } from "next-auth"
+import Credentials from "next-auth/providers/credentials"
+import EmailProvider from "next-auth/providers/nodemailer";
+import { PrismaAdapter } from "@auth/prisma-adapter"
+import { prisma } from "@/prisma";
+import { env } from "@/env.mjs";
+import { User } from '@sourcebot/db';
+import 'next-auth/jwt';
+import type { Provider } from "next-auth/providers";
+import { verifyCredentialsRequestSchema } from './lib/schemas';
+import { createTransport } from 'nodemailer';
+import { render } from '@react-email/render';
+import MagicLinkEmail from './emails/magicLinkEmail';
+import bcrypt from 'bcryptjs';
+import { getSSOProviders } from '@/ee/sso/sso';
+import { hasEntitlement } from '@/features/entitlements/server';
+import { onCreateUser } from '@/lib/authUtils';
+
+export const runtime = 'nodejs';
+
+declare module 'next-auth' {
+    interface Session {
+        user: {
+            id: string;
+        } & DefaultSession['user'];
+    }
+}
+
+
+declare module 'next-auth/jwt' {
+    interface JWT {
+        userId: string
+    }
+}
+
+export const getProviders = () => {
+    const providers: Provider[] = [];
+
+    if (hasEntitlement("sso")) {
+        providers.push(...getSSOProviders());
+    }
+
+    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
+        providers.push(EmailProvider({
+            server: env.SMTP_CONNECTION_URL,
+            from: env.EMAIL_FROM_ADDRESS,
+            maxAge: 60 * 10,
+            generateVerificationToken: async () => {
+                const token = String(Math.floor(100000 + Math.random() * 900000));
+                return token;
+            },
+            sendVerificationRequest: async ({ identifier, provider, token }) => {
+                const transport = createTransport(provider.server);
+                const html = await render(MagicLinkEmail({ token: token }));
+                const result = await transport.sendMail({
+                    to: identifier,
+                    from: provider.from,
+                    subject: 'Log in to Sourcebot',
+                    html,
+                    text: \`Log in to Sourcebot using this code: \${token}\`
+                });
+
+                const failed = result.rejected.concat(result.pending).filter(Boolean);
+                if (failed.length) {
+                    throw new Error(\`Email(s) (\${failed.join(", ")}) could not be sent\`);
+                }
+            }
+        }));
+    }
+
+    if (env.AUTH_CREDENTIALS_LOGIN_ENABLED === 'true') {
+        providers.push(Credentials({
+            credentials: {
+                email: {},
+                password: {}
+            },
+            type: "credentials",
+            authorize: async (credentials) => {
+                const body = verifyCredentialsRequestSchema.safeParse(credentials);
+                if (!body.success) {
+                    return null;
+                }
+                const { email, password } = body.data;
+
+                const user = await prisma.user.findUnique({
+                    where: { email }
+                });
+
+                // The user doesn't exist, so create a new one.
+                if (!user) {
+                    const hashedPassword = bcrypt.hashSync(password, 10);
+                    const newUser = await prisma.user.create({
+                        data: {
+                            email,
+                            hashedPassword,
+                        }
+                    });
+
+                    const authJsUser: AuthJsUser = {
+                        id: newUser.id,
+                        email: newUser.email,
+                    }
+
+                    onCreateUser({ user: authJsUser });
+                    return authJsUser;
+
+                    // Otherwise, the user exists, so verify the password.
+                } else {
+                    if (!user.hashedPassword) {
+                        return null;
+                    }
+
+                    if (!bcrypt.compareSync(password, user.hashedPassword)) {
+                        return null;
+                    }
+
+                    return {
+                        id: user.id,
+                        email: user.email,
+                        name: user.name ?? undefined,
+                        image: user.image ?? undefined,
+                    };
+                }
+            }
+        }));
+    }
+
+    return providers;
+}
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+    secret: env.AUTH_SECRET,
+    adapter: PrismaAdapter(prisma),
+    session: {
+        strategy: "jwt",
+    },
+    trustHost: true,
+    events: {
+        createUser: onCreateUser,
+    },
+    callbacks: {
+        async jwt({ token, user: _user }) {
+            const user = _user as User | undefined;
+            // @note: \`user\` will be available on signUp or signIn triggers.
+            // Cache the userId in the JWT for later use.
+            if (user) {
+                token.userId = user.id;
+            }
+            return token;
+        },
+        async session({ session, token }) {
+            // @WARNING: Anything stored in the session will be sent over
+            // to the client.
+            session.user = {
+                ...session.user,
+                // Propogate the userId to the session.
+                id: token.userId,
+            }
+            return session;
+        },
+    },
+    providers: getProviders(),
+    pages: {
+        signIn: "/login",
+        // We set redirect to false in signInOptions so we can pass the email is as a param
+        // verifyRequest: "/login/verify",
+    }
+});
+    `,
+}
