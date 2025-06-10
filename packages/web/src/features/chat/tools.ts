@@ -3,6 +3,39 @@ import { search } from "@/features/search/searchApi"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { tool } from "ai";
 import { base64Decode, isServiceError } from "@/lib/utils";
+import { getFileSource } from "../search/fileSourceApi";
+
+const readFileTool = tool({
+    description: `Reads the contents of a file at the given path.`,
+    parameters: z.object({
+        path: z.string().describe("The path to the file to read"),
+        repository: z.string().describe("The repository to read the file from"),
+        revision: z.string().describe("The revision to read the file from"),
+    }),
+    execute: async ({ path, repository, revision }) => {
+        const response = await getFileSource({
+            fileName: path,
+            repository,
+            branch: revision,
+        // @todo: handle multi-tenancy.
+        }, SINGLE_TENANT_ORG_DOMAIN);
+
+        if (isServiceError(response)) {
+            return {
+                success: false,
+                error: response.message,
+                summary: "Failed to read file"
+            }
+        }
+
+        return {
+            success: true,
+            content: base64Decode(response.source),
+            summary: "File read successfully"
+        }
+
+    }
+});
 
 const searchCodeTool = tool({
     description: `Fetches code that matches the provided regex pattern in \`query\`. This is NOT a semantic search.
@@ -74,6 +107,7 @@ const searchCodeTool = tool({
 
 export const tools = {
     searchCode: searchCodeTool,
+    readFile: readFileTool,
 }
 
 export type Tool = keyof typeof tools;
