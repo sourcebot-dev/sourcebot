@@ -10,6 +10,7 @@ import { existsSync, readdirSync, promises } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import { PromClient } from './promClient.js';
 import * as Sentry from "@sentry/node";
+import { env } from './env.js';
 
 interface IRepoManager {
     validateIndexedReposHaveShards: () => Promise<void>;
@@ -106,8 +107,10 @@ export class RepoManager implements IRepoManager {
                     name: 'repoIndexJob',
                     data: { repo },
                     opts: {
-                        priority: priority
-                    }
+                        priority: priority,
+                        removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                        removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+                    },
                 })));
 
                 // Increment pending jobs counter for each repo added
@@ -396,6 +399,10 @@ export class RepoManager implements IRepoManager {
             await this.gcQueue.addBulk(repos.map(repo => ({
                 name: 'repoGarbageCollectionJob',
                 data: { repo },
+                opts: {
+                    removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                    removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+                }
             })));
 
             logger.info(`Added ${repos.length} jobs to gcQueue`);
