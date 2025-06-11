@@ -35,6 +35,8 @@ export const env = createEnv({
         FALLBACK_GITEA_CLOUD_TOKEN: z.string().optional(),
 
         REDIS_URL: z.string().url().default("redis://localhost:6379"),
+        REDIS_REMOVE_ON_COMPLETE: numberSchema.default(0),
+        REDIS_REMOVE_ON_FAIL: numberSchema.default(100),
 
         NEXT_PUBLIC_SENTRY_BACKEND_DSN: z.string().optional(),
         NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().optional(),
