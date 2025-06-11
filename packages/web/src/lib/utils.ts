@@ -419,7 +419,6 @@ export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, do
         // List of known public instances that don't require authentication
         const publicHostnames = [
             'github.com',
-            'gitlab.com',
             'avatars.githubusercontent.com',
             'gitea.com',
             'bitbucket.org',
