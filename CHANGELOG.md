@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Text highlighting clarity. [#342](https://github.com/sourcebot-dev/sourcebot/pull/342)
+- Fixed repo list column header styling. [#344](https://github.com/sourcebot-dev/sourcebot/pull/344)
 - Clean up successful and failed jobs in Redis queues. [#343](https://github.com/sourcebot-dev/sourcebot/pull/343)
 
 ## [4.2.0] - 2025-06-09
