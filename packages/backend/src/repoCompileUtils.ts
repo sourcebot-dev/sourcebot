@@ -121,7 +121,10 @@ export const compileGitlabConfig = async (
         const isFork = project.forked_from_project !== undefined;
         const repoDisplayName = project.path_with_namespace;
         const repoName = path.join(repoNameRoot, repoDisplayName);
-
+        // project.avatar_url is not directly accessible with tokens; use the avatar API endpoint if available
+        const avatarUrl = project.avatar_url
+            ? new URL(`/api/v4/projects/${project.id}/avatar`, hostUrl).toString()
+            : null;
         logger.debug(`Found gitlab repo ${repoDisplayName} with webUrl: ${projectUrl}`);
 
         const record: RepoData = {
@@ -132,7 +135,7 @@ export const compileGitlabConfig = async (
             webUrl: projectUrl,
             name: repoName,
             displayName: repoDisplayName,
-            imageUrl: project.avatar_url,
+            imageUrl: avatarUrl,
             isFork: isFork,
             isArchived: !!project.archived,
             org: {
