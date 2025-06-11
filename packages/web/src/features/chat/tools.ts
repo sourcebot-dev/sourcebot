@@ -2,8 +2,69 @@ import { z } from "zod"
 import { search } from "@/features/search/searchApi"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { tool } from "ai";
-import { base64Decode, isServiceError } from "@/lib/utils";
+import { isServiceError } from "@/lib/utils";
 import { getFileSource } from "../search/fileSourceApi";
+import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/actions";
+
+const findSymbolReferencesTool = tool({
+    description: `Finds references to a symbol in the codebase.`,
+    parameters: z.object({
+        symbol: z.string().describe("The symbol to find references to"),
+        language: z.string().describe("The programming language of the symbol"),
+        revision: z.string().describe("The revision to search for the symbol in"),
+    }),
+    execute: async ({ symbol, language, revision }) => {
+        const response = await findSearchBasedSymbolReferences({
+            symbolName: symbol,
+            language,
+            revisionName: revision,
+        }, SINGLE_TENANT_ORG_DOMAIN);
+
+        if (isServiceError(response)) {
+            return {
+                success: false,
+                error: response.message,
+                summary: "Failed to find symbol references"
+            }
+        }
+
+        return {
+            success: true,
+            results: response,
+            summary: `Found ${response.files.length} files with ${response.stats.matchCount} total matches`
+        }
+    }
+});
+
+const findSymbolDefinitionsTool = tool({
+    description: `Finds definitions of a symbol in the codebase.`,
+    parameters: z.object({
+        symbol: z.string().describe("The symbol to find definitions of"),
+        language: z.string().describe("The programming language of the symbol"),
+        revision: z.string().describe("The revision to search for the symbol in"),
+    }),
+    execute: async ({ symbol, language, revision }) => {
+        const response = await findSearchBasedSymbolDefinitions({
+            symbolName: symbol,
+            language,
+            revisionName: revision,
+        }, SINGLE_TENANT_ORG_DOMAIN);
+
+        if (isServiceError(response)) {
+            return {
+                success: false,
+                error: response.message,
+                summary: "Failed to find symbol definitions"
+            }
+        }
+
+        return {
+            success: true,
+            results: response,
+            summary: `Found ${response.files.length} files with ${response.stats.matchCount} total matches`
+        }
+    }
+});
 
 const readFileTool = tool({
     description: `Reads the contents of a file at the given path.`,
@@ -30,7 +91,7 @@ const readFileTool = tool({
 
         return {
             success: true,
-            content: base64Decode(response.source),
+            content: response,
             summary: "File read successfully"
         }
 
@@ -63,35 +124,15 @@ const searchCodeTool = tool({
 
             if (response.files.length === 0) {
                 return {
-                    success: true,
+                    success: false,
                     results: [],
                     summary: "No results found"
                 }
             }
 
-            const results: string[] = [];
-
-            for (const file of response.files) {
-                const numMatches = file.chunks.reduce(
-                    (acc, chunk) => acc + chunk.matchRanges.length,
-                    0,
-                );
-
-                const snippets = file.chunks.map(chunk => {
-                    const content = base64Decode(chunk.content);
-                    return `\`\`\`\n${content}\n\`\`\``
-                }).join('\n');
-
-                const text = `file: ${file.webUrl}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}\n\n${snippets}`;
-
-                results.push(text);
-            }
-
-            console.log("Search tool: Results:", results)
-            
             return {
                 success: true,
-                results,
+                results: response,
                 summary: `Found ${response.files.length} files with ${response.stats.matchCount} total matches`
             }
         } catch (error) {
@@ -108,6 +149,8 @@ const searchCodeTool = tool({
 export const tools = {
     searchCode: searchCodeTool,
     readFile: readFileTool,
+    findSymbolReferences: findSymbolReferencesTool,
+    findSymbolDefinitions: findSymbolDefinitionsTool,
 }
 
 export type Tool = keyof typeof tools;
