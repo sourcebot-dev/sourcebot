@@ -3,14 +3,22 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useDomain } from "./useDomain";
 import { unwrapServiceError } from "@/lib/utils";
-import { useCallback } from "react";
 import { getFolderContents } from "@/features/fileTree/actions";
+import { useDebounceCallback } from "usehooks-ts";
 
-export const usePrefetchFolderContents = () => {
+interface UsePrefetchFolderContentsProps {
+    debounceDelay?: number;
+    staleTime?: number;
+}
+
+export const usePrefetchFolderContents = ({
+    debounceDelay = 200,
+    staleTime = 5 * 60 * 1000, // 5 minutes
+}: UsePrefetchFolderContentsProps = {}) => {
     const queryClient = useQueryClient();
     const domain = useDomain();
 
-    const prefetchFolderContents = useCallback((repoName: string, revisionName: string, path: string) => {
+    const prefetchFolderContents = useDebounceCallback((repoName: string, revisionName: string, path: string) => {
         queryClient.prefetchQuery({
             queryKey: ['tree', repoName, revisionName, path, domain],
             queryFn: () => unwrapServiceError(
@@ -20,8 +28,9 @@ export const usePrefetchFolderContents = () => {
                     path,
                 }, domain)
             ),
+            staleTime,
         });
-    }, [queryClient, domain]);
+    }, debounceDelay);
 
     return { prefetchFolderContents };
 }
