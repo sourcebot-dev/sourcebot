@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Text highlighting clarity. [#342](https://github.com/sourcebot-dev/sourcebot/pull/342)
 - Fixed repo list column header styling. [#344](https://github.com/sourcebot-dev/sourcebot/pull/344)
 - Clean up successful and failed jobs in Redis queues. [#343](https://github.com/sourcebot-dev/sourcebot/pull/343)
+- Fixed issue with files occasionally not loading after moving the cursor rapidly over the file browser. [#346](https://github.com/sourcebot-dev/sourcebot/pull/346)
 
 ## [4.2.0] - 2025-06-09
 
