@@ -182,8 +182,11 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button 
-                                variant={currentFilter ? "secondary" : "ghost"}
-                                className="px-0 font-medium"
+                                variant="ghost"
+                                className={cn(
+                                    "px-0 font-medium hover:bg-transparent focus:bg-transparent active:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0",
+                                    currentFilter ? "text-primary hover:text-primary" : "text-muted-foreground hover:text-muted-foreground"
+                                )}
                             >
                                 Status
                                 <ListFilter className={cn(
@@ -228,10 +231,10 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
                 <Button
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="px-0 font-medium"
+                    className="px-0 font-medium hover:bg-transparent focus:bg-transparent active:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                 >
                     Last Indexed
-                    <ArrowUpDown className="ml-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <ArrowUpDown className="ml-2 h-3.5 w-3.5" />
                 </Button>
             </div>
         ),
