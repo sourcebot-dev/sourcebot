@@ -1,4 +1,3 @@
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const planLabels = {
     oss: "OSS",
@@ -17,15 +16,16 @@ const entitlements = [
     "public-access",
     "multi-tenancy",
     "sso",
-    "code-nav"
+    "code-nav",
+    "audit"
 ] as const;
 export type Entitlement = (typeof entitlements)[number];
 
 export const entitlementsByPlan: Record<Plan, Entitlement[]> = {
     oss: [],
     "cloud:team": ["billing", "multi-tenancy", "sso", "code-nav"],
-    "self-hosted:enterprise": ["search-contexts", "sso", "code-nav"],
-    "self-hosted:enterprise-unlimited": ["search-contexts", "public-access", "sso", "code-nav"],
+    "self-hosted:enterprise": ["search-contexts", "sso", "code-nav", "audit"],
+    "self-hosted:enterprise-unlimited": ["search-contexts", "public-access", "sso", "code-nav", "audit"],
     // Special entitlement for https://demo.sourcebot.dev
     "cloud:demo": ["public-access", "code-nav", "search-contexts"],
 } as const;

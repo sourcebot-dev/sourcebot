@@ -13,7 +13,7 @@ import { createTransport } from 'nodemailer';
 import { render } from '@react-email/render';
 import MagicLinkEmail from './emails/magicLinkEmail';
 import bcrypt from 'bcryptjs';
-import { getSSOProviders } from '@/ee/sso/sso';
+import { getSSOProviders } from '@/ee/features/sso/sso';
 import { hasEntitlement } from '@/features/entitlements/server';
 import { onCreateUser } from '@/lib/authUtils';
 

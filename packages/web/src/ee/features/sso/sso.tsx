@@ -247,5 +247,4 @@ export const handleJITProvisioning = async (userId: string, domain: string): Pro
     });
 
     return true;
-});
-
+}); 

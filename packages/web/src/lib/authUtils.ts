@@ -7,7 +7,7 @@ import { hasEntitlement } from "@/features/entitlements/server";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { createAccountRequest } from "@/actions";
-import { handleJITProvisioning } from "@/ee/sso/sso";
+import { handleJITProvisioning } from "@/ee/features/sso/sso";
 import { createLogger } from "@sourcebot/logger";
 
 const logger = createLogger('web-auth-utils');
