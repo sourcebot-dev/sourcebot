@@ -1,12 +1,13 @@
 import { createOpenAI } from "@ai-sdk/openai"
-import { streamText } from "ai"
+import { extractReasoningMiddleware, streamText, wrapLanguageModel } from "ai"
 import { env } from "@/env.mjs"
 import { tools } from "@/features/chat/tools"
 import { SYSTEM_PROMPT } from "@/features/chat/constants"
 
 const openai = createOpenAI({
     apiKey: env.OPENAI_API_KEY,
-})
+});
+
 
 // Check if API key is configured
 if (!env.OPENAI_API_KEY) {
@@ -29,7 +30,14 @@ export async function POST(req: Request) {
         // }
 
         const result = streamText({
-            model: openai("o3"),
+            model: wrapLanguageModel({
+                model: openai("o3-mini"),
+                middleware: [
+                    extractReasoningMiddleware({
+                        tagName: 'reasoning',
+                    })
+                ]
+            }),
             messages: [
                 systemMessage,
                 // contextWindow,
