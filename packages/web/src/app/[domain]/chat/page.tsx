@@ -289,6 +289,7 @@ const CitationComponent = ({ citation }: { citation: Citation }) => {
                     revisionName: revision,
                     path: path,
                     pathType: 'blob',
+                    highlightRange: citation.range,
                 });
             }}
         >
@@ -358,7 +359,7 @@ const parseTextIntoSegments = (text: string): ParsedSegment[] => {
     // Create combined regex to match both citations and code blocks
     // Priority: citations first, then code blocks, then inline code
     const combinedRegex = new RegExp([
-        `(${CITATION_PREFIX}\\{[^}]*\\})`, // Group 1: Citations
+        `(${CITATION_PREFIX}.*)`, // Group 1: Citations
         '(```[\\s\\S]*?```)', // Group 2: Code blocks (triple backticks)
         '(`[^`\n]*?`)', // Group 3: Inline code (single backticks, no newlines)
     ].join('|'), 'g');

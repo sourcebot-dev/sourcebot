@@ -6,6 +6,16 @@ export const citationSchema = z.object({
     name: z.string(),
     repository: z.string(),
     revision: z.string(),
+    range: z.object({
+        start: z.object({
+            lineNumber: z.number(),
+            column: z.number().optional(),
+        }),
+        end: z.object({
+            lineNumber: z.number(),
+            column: z.number().optional(),
+        }),
+    }).optional(),
 });
 
 export type Citation = z.infer<typeof citationSchema>;
@@ -38,13 +48,14 @@ Examples:
 \`\`\`
 ${CITATION_PREFIX}${JSON.stringify({path:"packages/web/src/auth.ts", repository:"github.com/sourcebot-dev/sourcebot", revision:"HEAD", name: "auth.ts"} satisfies Citation)}
 ${CITATION_PREFIX}${JSON.stringify({path:"packages/web/src/components/Button.tsx", repository:"github.com/sourcebot-dev/sourcebot", revision:"refs/tags/v1.0.0", name: "Button.tsx"} satisfies Citation)}
+${CITATION_PREFIX}${JSON.stringify({path:"packages/web/src/components/Button.tsx", repository:"github.com/sourcebot-dev/sourcebot", revision:"refs/tags/v1.0.0", name: "Button.tsx", range: {start: {lineNumber: 1, column: 1}, end: {lineNumber: 1, column: 10}}} satisfies Citation)}
 \`\`\`
 
 </citations>
 
 <response_format>
 - Be clear and concise
-- Do not directly include any code in your response, and instead use code citations when relevant.
+- Whenever outputting ANY code, enclose it in either \`{code}\` if it's a single line of code, or \`\`\`{language}\n{code}\n\`\`\` if it's a block of code. ALWAYS include a citation to the code immediately following the code.
 - Where possible, DO NOT reference file paths directly and instead use citations.
 </response_format>
 `;
