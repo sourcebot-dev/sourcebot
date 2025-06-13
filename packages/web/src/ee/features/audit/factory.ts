@@ -1,7 +1,7 @@
-import { IAuditService } from './types.js';
-import { MockAuditService } from './mockAuditService.js';
-import { hasEntitlement } from '@/features/entitlements/server.js';
-import { AuditService } from '@/ee/features/audit/auditService.js';
+import { IAuditService } from '@/ee/features/audit/types';
+import { MockAuditService } from '@/ee/features/audit/mockAuditService';
+import { hasEntitlement } from '@/features/entitlements/server';
+import { AuditService } from '@/ee/features/audit/auditService';
 
 let enterpriseService: IAuditService | null = null;
 
@@ -14,5 +14,3 @@ export function getAuditService(): IAuditService {
   }
   return new MockAuditService();
 }
-
-export * from './types.js'; 

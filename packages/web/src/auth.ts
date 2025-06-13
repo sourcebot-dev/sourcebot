@@ -16,6 +16,9 @@ import bcrypt from 'bcryptjs';
 import { getSSOProviders } from '@/ee/features/sso/sso';
 import { hasEntitlement } from '@/features/entitlements/server';
 import { onCreateUser } from '@/lib/authUtils';
+import { getAuditService } from '@/ee/features/audit/factory';
+
+const auditService = getAuditService();
 
 export const runtime = 'nodejs';
 
@@ -137,6 +140,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     trustHost: true,
     events: {
         createUser: onCreateUser,
+        signIn: async ({ user, account }) => {
+            if (user.id) {
+                await auditService.createAudit({
+                    action: "user.signed_in",
+                    actor: {
+                        id: user.id,
+                        type: "user"
+                    },
+                    target: {
+                        id: user.id,
+                        type: "user"
+                    }
+                });
+            }
+        },
+        signOut: async (message) => {
+            const token = message as { token: { userId: string } | null };
+            if (token?.token?.userId) {
+                await auditService.createAudit({
+                    action: "user.signed_out",
+                    actor: {
+                        id: token.token.userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: token.token.userId,
+                        type: "user"
+                    }
+                });
+            }
+        }
     },
     callbacks: {
         async jwt({ token, user: _user }) {

@@ -9,15 +9,34 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { createAccountRequest } from "@/actions";
 import { handleJITProvisioning } from "@/ee/features/sso/sso";
 import { createLogger } from "@sourcebot/logger";
+import { getAuditService } from "@/ee/features/audit/factory";
 
 const logger = createLogger('web-auth-utils');
+const auditService = getAuditService();
 
 export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
+    if (!user.id) {
+        logger.error("User ID is undefined on user creation");
+        await auditService.createAudit({
+            action: "user.creation_failed",
+            actor: {
+                id: "undefined",
+                type: "user"
+            },
+            target: {
+                id: "undefined",
+                type: "user"
+            },
+            metadata: {
+                message: "User ID is undefined on user creation"
+            }
+        });
+        throw new Error("User ID is undefined on user creation");
+    }
+
     // In single-tenant mode, we assign the first user to sign
     // up as the owner of the default org.
-    if (
-        env.SOURCEBOT_TENANCY_MODE === 'single'
-    ) {
+    if (env.SOURCEBOT_TENANCY_MODE === 'single') {
         const defaultOrg = await prisma.org.findUnique({
             where: {
                 id: SINGLE_TENANT_ORG_ID,
@@ -34,6 +53,20 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         });
 
         if (!defaultOrg) {
+            await auditService.createAudit({
+                action: "user.creation_failed",
+                actor: {
+                    id: user.id,
+                    type: "user"
+                },
+                target: {
+                    id: user.id,
+                    type: "user"
+                },
+                metadata: {
+                    message: "Default org not found on single tenant user creation"
+                }
+            });
             throw new Error("Default org not found on single tenant user creation");
         }
 
@@ -68,20 +101,84 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                     }
                 });
             });
+
+            await auditService.createAudit({
+                action: "user.owner_created",
+                actor: {
+                    id: user.id,
+                    type: "user"
+                },
+                target: {
+                    id: SINGLE_TENANT_ORG_ID.toString(),
+                    type: "org"
+                }
+            });
         } else {
             // TODO(auth): handle multi tenant case
             if (env.AUTH_EE_ENABLE_JIT_PROVISIONING === 'true' && hasEntitlement("sso")) {
-                const res = await handleJITProvisioning(user.id!, SINGLE_TENANT_ORG_DOMAIN);
+                const res = await handleJITProvisioning(user.id, SINGLE_TENANT_ORG_DOMAIN);
                 if (isServiceError(res)) {
                     logger.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
+                    await auditService.createAudit({
+                        action: "user.jit_provisioning_failed",
+                        actor: {
+                            id: user.id,
+                            type: "user"
+                        },
+                        target: {
+                            id: SINGLE_TENANT_ORG_ID.toString(),
+                            type: "org"
+                        },
+                        metadata: {
+                            message: `Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`
+                        }
+                    });
                     throw new ServiceErrorException(res);
                 }
+
+                await auditService.createAudit({
+                    action: "user.jit_provisioned",
+                    actor: {
+                        id: user.id,
+                        type: "user"
+                    },
+                    target: {
+                        id: SINGLE_TENANT_ORG_ID.toString(),
+                        type: "org"
+                    }
+                });
             } else {
-                const res = await createAccountRequest(user.id!, SINGLE_TENANT_ORG_DOMAIN);
+                const res = await createAccountRequest(user.id, SINGLE_TENANT_ORG_DOMAIN);
                 if (isServiceError(res)) {
                     logger.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
+                    await auditService.createAudit({
+                        action: "user.join_request_creation_failed",
+                        actor: {
+                            id: user.id,
+                            type: "user"
+                        },
+                        target: {
+                            id: SINGLE_TENANT_ORG_ID.toString(),
+                            type: "org"
+                        },
+                        metadata: {
+                            message: res.message
+                        }
+                    });
                     throw new ServiceErrorException(res);
                 }
+
+                await auditService.createAudit({
+                    action: "user.join_requested",
+                    actor: {
+                        id: user.id,
+                        type: "user"
+                    },
+                    target: {
+                        id: SINGLE_TENANT_ORG_ID.toString(),
+                        type: "org"
+                    }
+                });
             }
         }
     }

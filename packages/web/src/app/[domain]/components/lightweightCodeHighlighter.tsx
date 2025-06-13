@@ -54,7 +54,7 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
 
     const isFileTooLargeToDisplay = useMemo(() => {
         return unhighlightedLines.some(line => line.length > MAX_NUMBER_OF_CHARACTER_PER_LINE);
-    }, [code]);
+    }, [unhighlightedLines]);
 
     const [highlightedLines, setHighlightedLines] = useState<React.ReactNode[] | null>(null);
 
@@ -106,7 +106,8 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
         highlightRanges,
         highlightStyle,
         unhighlightedLines,
-        lineNumbersOffset
+        lineNumbersOffset,
+        isFileTooLargeToDisplay,
     ]);
 
     const lineCount = (highlightedLines ?? unhighlightedLines).length + lineNumbersOffset;

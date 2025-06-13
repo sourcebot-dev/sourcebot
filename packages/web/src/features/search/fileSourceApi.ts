@@ -7,9 +7,13 @@ import { isServiceError } from "../../lib/utils";
 import { search } from "./searchApi";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { OrgRole } from "@sourcebot/db";
+import { getAuditService } from "@/ee/features/audit/factory";
 // @todo (bkellam) : We should really be using `git show <hash>:<path>` to fetch file contents here.
 // This will allow us to support permalinks to files at a specific revision that may not be indexed
 // by zoekt.
+
+const auditService = getAuditService();
+
 export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest, domain: string, apiKey: string | undefined = undefined): Promise<FileSourceResponse | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async () => {
@@ -40,10 +44,23 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
             const file = files[0];
             const source = file.content ?? '';
             const language = file.language;
+            
+            await auditService.createAudit({
+                action: "query.file_source",
+                actor: {
+                    id: apiKey ? apiKey : userId,
+                    type: apiKey ? "api_key" : "user"
+                },
+                target: {
+                    id: `${escapedRepository}/${escapedFileName}${branch ? `:${branch}` : ''}`,
+                    type: "file"
+                }
+            });
             return {
                 source,
                 language,
                 webUrl: file.webUrl,
             } satisfies FileSourceResponse;
+
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 );

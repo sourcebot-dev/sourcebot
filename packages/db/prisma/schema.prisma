@@ -227,6 +227,19 @@ model ApiKey {
 
 }
 
+model Audit {
+  id String @id @default(cuid())
+  action String
+  actorId String
+  actorType String
+  targetId String
+  targetType String
+  sourcebotVersion String
+  metadata Json?
+
+  @@index([actorId, actorType, targetId, targetType])
+}
+
 // @see : https://authjs.dev/concepts/database-models#user
 model User {
   id              String      @id @default(cuid())

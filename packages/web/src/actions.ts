@@ -37,12 +37,14 @@ import { getPublicAccessStatus } from "./ee/features/publicAccess/publicAccess";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import { createLogger } from "@sourcebot/logger";
+import { getAuditService } from "@/ee/features/audit/factory";
 
 const ajv = new Ajv({
     validateFormats: false,
 });
 
 const logger = createLogger('web-actions');
+const auditService = getAuditService();
 
 /**
  * "Service Error Wrapper".
@@ -461,6 +463,21 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
             });
 
             if (existingApiKey) {
+                await auditService.createAudit({
+                    action: "api_key.creation_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    metadata: {
+                        message: `API key ${name} already exists`,
+                        api_key: name
+                    }
+                });
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.API_KEY_ALREADY_EXISTS,
@@ -469,12 +486,27 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
             }
 
             const { key, hash } = generateApiKey();
-            await prisma.apiKey.create({
+            const apiKey = await prisma.apiKey.create({
                 data: {
                     name,
                     hash,
                     orgId: org.id,
                     createdById: userId,
+                }
+            });
+
+            await auditService.createAudit({
+                action: "api_key.created",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: apiKey.hash,
+                    type: "api_key"
+                },
+                metadata: {
+                    api_key: name
                 }
             });
 
@@ -494,6 +526,21 @@ export const deleteApiKey = async (name: string, domain: string): Promise<{ succ
             });
 
             if (!apiKey) {
+                await auditService.createAudit({
+                    action: "api_key.deletion_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: domain,
+                        type: "org"
+                    },
+                    metadata: {
+                        message: `API key ${name} not found for user ${userId}`,
+                        api_key: name
+                    }
+                });
                 return {
                     statusCode: StatusCodes.NOT_FOUND,
                     errorCode: ErrorCode.API_KEY_NOT_FOUND,
@@ -505,6 +552,21 @@ export const deleteApiKey = async (name: string, domain: string): Promise<{ succ
                 where: {
                     hash: apiKey.hash,
                 },
+            });
+
+            await auditService.createAudit({
+                action: "api_key.deleted",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: apiKey.hash,
+                    type: "api_key"
+                },
+                metadata: {
+                    api_key: name
+                }
             });
 
             return {
@@ -905,6 +967,23 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
 export const createInvites = async (emails: string[], domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
+            const failAuditCallback = async (error: string) => {
+                await auditService.createAudit({
+                    action: "user.invite_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    metadata: {
+                        message: error,
+                        emails: emails.join(", ")
+                    }
+                });
+            }
             const user = await getMe();
             if (isServiceError(user)) {
                 throw new ServiceErrorException(user);
@@ -912,6 +991,21 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
 
             const hasAvailability = await orgHasAvailability(domain);
             if (!hasAvailability) {
+                await auditService.createAudit({
+                    action: "user.invite_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    metadata: {
+                        message: "Organization has reached maximum number of seats",
+                        emails: emails.join(", ")
+                    }
+                });
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
@@ -930,6 +1024,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
             });
 
             if (existingInvites.length > 0) {
+                await failAuditCallback("A pending invite already exists for one or more of the provided emails");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_INVITE,
@@ -950,6 +1045,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
             });
 
             if (existingMembers.length > 0) {
+                await failAuditCallback("One or more of the provided emails are already members of this org");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_INVITE,
@@ -957,7 +1053,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                 } satisfies ServiceError;
             }
 
-            await prisma.invite.createMany({
+            const invites = await prisma.invite.createMany({
                 data: emails.map((email) => ({
                     recipientEmail: email,
                     hostUserId: userId,
@@ -1024,6 +1120,20 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                 logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping invite email to ${emails.join(", ")}`);
             }
 
+            await auditService.createAudit({
+                action: "user.invites_created",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: org.id.toString(),
+                    type: "org"
+                },
+                metadata: {
+                    emails: emails.join(", ")
+                }
+            });
             return {
                 success: true,
             }
@@ -1091,6 +1201,27 @@ export const getMe = async () => sew(() =>
 
 export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async () => {
+        const user = await getMe();
+        if (isServiceError(user)) {
+            return user;
+        }
+        
+        const failAuditCallback = async (error: string) => {
+            await auditService.createAudit({
+                action: "user.invite_accept_failed",
+                actor: {
+                    id: user.id,
+                    type: "user"
+                },
+                target: {
+                    id: inviteId,
+                    type: "invite"
+                },
+                metadata: {
+                    message: error
+                }
+            });
+        }
         const invite = await prisma.invite.findUnique({
             where: {
                 id: inviteId,
@@ -1104,13 +1235,9 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
             return notFound();
         }
 
-        const user = await getMe();
-        if (isServiceError(user)) {
-            return user;
-        }
-
         const hasAvailability = await orgHasAvailability(invite.org.domain);
         if (!hasAvailability) {
+            await failAuditCallback("Organization is at max capacity");
             return {
                 statusCode: StatusCodes.BAD_REQUEST,
                 errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
@@ -1120,6 +1247,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
 
         // Check if the user is the recipient of the invite
         if (user.email !== invite.recipientEmail) {
+            await failAuditCallback("User is not the recipient of the invite");
             return notFound();
         }
 
@@ -1156,8 +1284,21 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         });
 
         if (isServiceError(res)) {
+            await failAuditCallback(res.message);
             return res;
         }
+
+        await auditService.createAudit({
+            action: "user.invite_accepted",
+            actor: {
+                id: user.id,
+                type: "user"
+            },
+            target: {
+                id: inviteId,
+                type: "invite"
+            }
+        });
 
         return {
             success: true,
@@ -1561,9 +1702,26 @@ export const createAccountRequest = async (userId: string, domain: string) => se
     }
 });
 
-export const approveAccountRequest = async (requestId: string, domain: string) => sew(() =>
+export const approveAccountRequest = async (requestId: string, domain: string) => sew(async () =>
     withAuth(async (userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
+            const failAuditCallback = async (error: string) => {
+                await auditService.createAudit({
+                    action: "user.join_request_approve_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"    
+                    },
+                    target: {
+                        id: requestId,
+                        type: "account_join_request"
+                    },
+                    metadata: {
+                        message: error,
+                    }
+                });
+            }
+
             const request = await prisma.accountRequest.findUnique({
                 where: {
                     id: requestId,
@@ -1574,11 +1732,13 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
             });
 
             if (!request || request.orgId !== org.id) {
+                await failAuditCallback("Request not found");
                 return notFound();
             }
 
             const hasAvailability = await orgHasAvailability(domain);
             if (!hasAvailability) {
+                await failAuditCallback("Organization is at max capacity");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
@@ -1628,6 +1788,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
             });
 
             if (isServiceError(res)) {
+                await failAuditCallback(res.message);
                 return res;
             }
 
@@ -1663,6 +1824,17 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                 logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping approval email to ${request.requestedBy.email}`);
             }
 
+            await auditService.createAudit({
+                action: "user.join_request_approved",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: requestId,
+                    type: "account_join_request"
+                }
+            });
             return {
                 success: true,
             }
