@@ -67,6 +67,7 @@ export const SYSTEM_MESSAGE: CoreSystemMessage = {
 
 export const fileContextSchema = z.object({
     path: z.string(),
+    name: z.string(),
     repository: z.string(),
     revision: z.string(),
 });
