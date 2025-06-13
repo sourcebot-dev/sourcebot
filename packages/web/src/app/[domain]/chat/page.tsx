@@ -20,6 +20,8 @@ import { ChatContext, Citation, CITATION_PREFIX, citationSchema, FileContext } f
 import { TopBar } from "../components/topBar"
 import { useDomain } from "@/hooks/useDomain"
 import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation"
+import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
+import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle"
 
 const formSchema = z.object({
     message: z.string().min(1),
@@ -27,7 +29,14 @@ const formSchema = z.object({
 
 export default function ChatPage() {
 
-    const [files, setFiles] = useState<FileContext[]>([]);
+    const [files, setFiles] = useState<FileContext[]>([
+        {
+            path: "src/app/api/(server)/chat/route.ts",
+            name: "route.ts",
+            repository: "sourcebot",
+            revision: "main",
+        }
+    ]);
 
     const {
         messages,
@@ -83,7 +92,7 @@ export default function ChatPage() {
     }, [append, form]);
 
     return (
-        <div className="flex flex-col h-screen max-h-screen">
+        <div className="flex flex-col h-screen">
             <div className='sticky top-0 left-0 right-0 z-10'>
                 <TopBar
                     domain={domain}
@@ -117,12 +126,45 @@ export default function ChatPage() {
                 </div>
             )}
 
-            {/* Main chat area */}
-            <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
-                    <div className="max-w-5xl mx-auto px-4 py-6">
+            <ResizablePanelGroup
+                direction="horizontal"
+            >
+                <ResizablePanel
+                    order={1}
+                    minSize={10}
+                    maxSize={20}
+                    defaultSize={20}
+                    className="p-2"
+                >
+                    <h1 className="text-sm font-medium mb-2">Context window</h1>
+                    {files.map((file) => (
+                        <div key={file.path} className="flex items-center justify-between gap-2 p-2 border rounded-md relative">
+                            <div className="flex items-center gap-2">
+                                <Code className="h-4 w-4" />
+                                <p className="text-sm font-mono">{file.name}</p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => {
+                                    setFiles(files.filter((f) => f.path !== file.path && f.repository !== file.repository));
+                                }}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                </ResizablePanel>
+                <AnimatedResizableHandle />
+                <ResizablePanel
+                    order={2}
+                    minSize={10}
+                    defaultSize={80}
+                >
+                    <div className="flex flex-col h-full">
                         {messages.length === 0 ? (
-                            <div className="flex h-[70vh] items-center justify-center text-center">
+                            <div className="flex items-center justify-center text-center h-full">
                                 <div className="space-y-3 max-w-md">
                                     <h3 className="text-xl font-medium">Welcome to AI Chat</h3>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -141,7 +183,7 @@ export default function ChatPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-8">
+                            <ScrollArea className="h-full w-full overflow-auto p-4 space-y-8">
                                 {messages.map((message, index) => (
                                     <div key={message.id} className="group animate-in fade-in duration-200">
                                         <div className="flex items-start gap-3 group">
@@ -207,50 +249,49 @@ export default function ChatPage() {
                                     </div>
                                 ))}
                                 <div ref={messagesEndRef} />
-                            </div>
+                            </ScrollArea>
                         )}
-                    </div>
-                </ScrollArea>
-            </div>
 
-            {/* Input area */}
-            <div className="border-t">
-                <div className="max-w-4xl mx-auto px-4 py-4">
-                    <Form
-                        {...form}
-                    >
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-end gap-2">
-                            <FormField
-                                control={form.control}
-                                name="message"
-                                render={({ field }) => (
-                                    <Textarea
-                                        {...field}
-                                        placeholder="Message AI..."
-                                        className="flex-1 min-h-10 resize-none border rounded-md p-3"
-                                        rows={inputRows}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" && !e.shiftKey) {
-                                                e.preventDefault();
-                                                form.handleSubmit(onSubmit)(e as unknown as React.FormEvent<HTMLFormElement>);
-                                            }
-                                        }}
-                                    />
-                                )}
-                            />
-                            <Button
-                                type="submit"
-                                size="icon"
-                                className="rounded-md h-10 w-10"
-                                disabled={status === 'submitted' || status === 'streaming' || isSubmitting}
+                        <Separator className="my-3" />
+
+                        <div className="flex flex-col p-4">
+                            <Form
+                                {...form}
                             >
-                                {(status === 'submitted' || status === 'streaming') ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                            </Button>
-                        </form>
-                    </Form>
-                    <p className="text-xs text-gray-500 mt-2">Press Enter to send, Shift+Enter for a new line</p>
-                </div>
-            </div>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-end gap-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="message"
+                                        render={({ field }) => (
+                                            <Textarea
+                                                {...field}
+                                                placeholder="Message AI..."
+                                                className="flex-1 min-h-10 resize-none border rounded-md p-3"
+                                                rows={inputRows}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" && !e.shiftKey) {
+                                                        e.preventDefault();
+                                                        form.handleSubmit(onSubmit)(e as unknown as React.FormEvent<HTMLFormElement>);
+                                                    }
+                                                }}
+                                            />
+                                        )}
+                                    />
+                                    <Button
+                                        type="submit"
+                                        size="icon"
+                                        className="rounded-md"
+                                        disabled={status === 'submitted' || status === 'streaming' || isSubmitting}
+                                    >
+                                        {(status === 'submitted' || status === 'streaming') ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                    </Button>
+                                </form>
+                            </Form>
+                            <p className="text-xs text-gray-500 mt-2">Press Enter to send, Shift+Enter for a new line</p>
+                        </div>
+                    </div>
+                </ResizablePanel>
+            </ResizablePanelGroup>
         </div>
     )
 }
@@ -332,9 +373,9 @@ const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
             {segments.map((segment, index) => {
                 if (segment.type === 'citation') {
                     return (
-                        <CitationComponent 
-                            key={index} 
-                            citation={segment.citation} 
+                        <CitationComponent
+                            key={index}
+                            citation={segment.citation}
                         />
                     );
                 } else if (segment.type === 'code-block') {
@@ -364,7 +405,7 @@ const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
 // Function to parse text and extract citations and code blocks
 const parseTextIntoSegments = (text: string): ParsedSegment[] => {
     const parts: ParsedSegment[] = [];
-    
+
     // Create combined regex to match both citations and code blocks
     // Priority: citations first, then code blocks, then inline code
     const combinedRegex = new RegExp([
@@ -372,13 +413,13 @@ const parseTextIntoSegments = (text: string): ParsedSegment[] => {
         '(```[\\s\\S]*?```)', // Group 2: Code blocks (triple backticks)
         '(`[^`\n]*?`)', // Group 3: Inline code (single backticks, no newlines)
     ].join('|'), 'g');
-    
+
     let currentIndex = 0;
     let match: RegExpExecArray | null = null;
-    
+
     while ((match = combinedRegex.exec(text)) !== null) {
         const [fullMatch, citationMatch, codeBlockMatch, inlineCodeMatch] = match;
-        
+
         // Add text before the match
         if (match.index > currentIndex) {
             const textBefore = text.slice(currentIndex, match.index);
@@ -386,15 +427,15 @@ const parseTextIntoSegments = (text: string): ParsedSegment[] => {
                 parts.push({ type: 'text', content: textBefore });
             }
         }
-        
+
         // Handle citations
         if (citationMatch) {
             const citationJson = citationMatch.replace(CITATION_PREFIX, '');
             try {
                 const citationJsonObject = JSON.parse(citationJson);
                 const citation = citationSchema.parse(citationJsonObject);
-                parts.push({ 
-                    type: 'citation', 
+                parts.push({
+                    type: 'citation',
                     citation: citation
                 });
             } catch {
@@ -406,8 +447,8 @@ const parseTextIntoSegments = (text: string): ParsedSegment[] => {
         else if (codeBlockMatch) {
             // Remove the triple backticks and extract the code content
             const codeContent = codeBlockMatch.slice(3, -3);
-            parts.push({ 
-                type: 'code-block', 
+            parts.push({
+                type: 'code-block',
                 content: codeContent
             });
         }
@@ -415,15 +456,15 @@ const parseTextIntoSegments = (text: string): ParsedSegment[] => {
         else if (inlineCodeMatch) {
             // Remove the single backticks and extract the code content
             const codeContent = inlineCodeMatch.slice(1, -1);
-            parts.push({ 
-                type: 'code-inline', 
+            parts.push({
+                type: 'code-inline',
                 content: codeContent
             });
         }
-        
+
         currentIndex = match.index + fullMatch.length;
     }
-    
+
     // Add remaining text
     if (currentIndex < text.length) {
         const remainingText = text.slice(currentIndex);
@@ -431,6 +472,6 @@ const parseTextIntoSegments = (text: string): ParsedSegment[] => {
             parts.push({ type: 'text', content: remainingText });
         }
     }
-    
+
     return parts;
 }
