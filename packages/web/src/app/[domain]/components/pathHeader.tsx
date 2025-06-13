@@ -4,7 +4,6 @@ import { getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import Image from "next/image";
-import Link from "next/link";
 import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation";
 import { Copy, CheckCircle2, ChevronRight, MoreHorizontal } from "lucide-react";
 import { useCallback, useState, useMemo, useRef, useEffect } from "react";
