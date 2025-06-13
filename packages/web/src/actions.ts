@@ -1352,7 +1352,24 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
         withOrgMembership(userId, domain, async ({ org }) => {
             const currentUserId = userId;
 
+            const failAuditCallback = async (error: string) => {
+                await auditService.createAudit({
+                    action: "org.ownership_transfer_failed",
+                    actor: {
+                        id: currentUserId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    metadata: {
+                        message: error
+                    }
+                })
+            }
             if (newOwnerId === currentUserId) {
+                await failAuditCallback("User is already the owner of this org");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
@@ -1370,6 +1387,7 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
             });
 
             if (!newOwner) {
+                await failAuditCallback("The user you're trying to make the owner doesn't exist");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
@@ -1401,6 +1419,21 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
                     }
                 })
             ]);
+
+            await auditService.createAudit({
+                action: "org.ownership_transferred",
+                actor: {
+                    id: currentUserId,
+                    type: "user"
+                },
+                target: {
+                    id: org.id.toString(),
+                    type: "org"
+                },
+                metadata: {
+                    message: `Ownership transferred from ${currentUserId} to ${newOwnerId}`
+                }
+            });
 
             return {
                 success: true,
@@ -1858,6 +1891,18 @@ export const rejectAccountRequest = async (requestId: string, domain: string) =>
                 where: {
                     id: requestId,
                 },
+            });
+
+            await auditService.createAudit({
+                action: "user.join_request_removed",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: requestId,
+                    type: "account_join_request"
+                }
             });
 
             return {

@@ -229,6 +229,8 @@ model ApiKey {
 
 model Audit {
   id String @id @default(cuid())
+  timestamp DateTime @default(now())
+  
   action String
   actorId String
   actorType String
