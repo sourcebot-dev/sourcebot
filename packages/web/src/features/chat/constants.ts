@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CoreSystemMessage } from "ai";
 import zodToJsonSchema from "zod-to-json-schema";
 
 export const citationSchema = z.object({
@@ -54,8 +55,25 @@ ${CITATION_PREFIX}${JSON.stringify({path:"packages/web/src/components/Button.tsx
 </citations>
 
 <response_format>
-- Be clear and concise
-- Whenever outputting ANY code, enclose it in either \`{code}\` if it's a single line of code, or \`\`\`{language}\n{code}\n\`\`\` if it's a block of code. ALWAYS include a citation to the code immediately following the code.
-- Where possible, DO NOT reference file paths directly and instead use citations.
+- Be clear and very concise. Use bullet points where appropriate.
+- Whenever outputting or referencing code, enclose it in either \`{code}\` if it's a single line of code, or \`\`\`{language}\n{code}\n\`\`\` if it's a block of code. ALWAYS include a citation to the code immediately following the code.
 </response_format>
 `;
+
+export const SYSTEM_MESSAGE: CoreSystemMessage = {
+    role: "system" as const,
+    content: SYSTEM_PROMPT,
+}
+
+export const fileContextSchema = z.object({
+    path: z.string(),
+    repository: z.string(),
+    revision: z.string(),
+});
+
+export const chatContextSchema = z.object({
+    files: z.array(fileContextSchema),
+});
+
+export type FileContext = z.infer<typeof fileContextSchema>;
+export type ChatContext = z.infer<typeof chatContextSchema>;

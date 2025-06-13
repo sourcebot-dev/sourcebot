@@ -16,7 +16,7 @@ import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Form, FormField } from "@/components/ui/form"
-import { Citation, CITATION_PREFIX, citationSchema } from "@/features/chat/constants"
+import { ChatContext, Citation, CITATION_PREFIX, citationSchema, FileContext } from "@/features/chat/constants"
 import { TopBar } from "../components/topBar"
 import { useDomain } from "@/hooks/useDomain"
 import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation"
@@ -26,13 +26,22 @@ const formSchema = z.object({
 });
 
 export default function ChatPage() {
+
+    const [files, setFiles] = useState<FileContext[]>([]);
+
     const {
         messages,
         input,
         status,
         error,
         append,
-    } = useChat();
+    } = useChat({
+        body: {
+            context: {
+                files: files,
+            } satisfies ChatContext,
+        }
+    });
 
     const [inputRows, setInputRows] = useState(1);
     const [showError, setShowError] = useState(false);
@@ -205,8 +214,8 @@ export default function ChatPage() {
             </div>
 
             {/* Input area */}
-            <div className="border-t bg-white dark:bg-gray-950">
-                <div className="max-w-5xl mx-auto px-4 py-4">
+            <div className="border-t">
+                <div className="max-w-4xl mx-auto px-4 py-4">
                     <Form
                         {...form}
                     >
