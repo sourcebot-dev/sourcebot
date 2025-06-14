@@ -1285,6 +1285,18 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
 
             if (accountRequest) {
                 logger.info(`Deleting account request ${accountRequest.id} for user ${user.id} since they've redeemed an invite`);
+                await auditService.createAudit({
+                    action: "user.join_request_removed",
+                    actor: {
+                        id: user.id,
+                        type: "user"
+                    },
+                    target: {
+                        id: accountRequest.id,
+                        type: "account_join_request"
+                    }
+                });
+
                 await tx.accountRequest.delete({
                     where: {
                         id: accountRequest.id,
