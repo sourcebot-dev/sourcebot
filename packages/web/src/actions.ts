@@ -1278,8 +1278,10 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
             // Delete the account request if it exists since we've redeemed an invite
             const accountRequest = await tx.accountRequest.findUnique({
                 where: {
-                    requestedById: user.id,
-                    orgId: invite.orgId,
+                    requestedById_orgId: {
+                        requestedById: user.id,
+                        orgId: invite.orgId,
+                    }
                 },
             });
 
