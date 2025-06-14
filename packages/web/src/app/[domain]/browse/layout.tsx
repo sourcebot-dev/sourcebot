@@ -8,28 +8,42 @@ import { FileTreePanel } from "@/features/fileTree/components/fileTreePanel";
 import { TopBar } from "@/app/[domain]/components/topBar";
 import { Separator } from '@/components/ui/separator';
 import { useBrowseParams } from "./hooks/useBrowseParams";
-import { FileSearchCommandDialog } from "./components/fileSearchCommandDialog";
+import { FileSearchCommandDialog } from "@/app/[domain]/components/fileSearchCommandDialog";
+import { useBrowseState } from "./hooks/useBrowseState";
+import { useDomain } from "@/hooks/useDomain";
+import { useBrowseNavigation } from "./hooks/useBrowseNavigation";
 
 interface LayoutProps {
     children: React.ReactNode;
-    params: {
-        domain: string;
-    }
 }
 
 export default function Layout({
-    children: codePreviewPanel,
-    params,
+    children,
 }: LayoutProps) {
-    const { repoName, revisionName } = useBrowseParams();
-
     return (
         <BrowseStateProvider>
+            <InnerLayout>
+                {children}
+            </InnerLayout>
+        </BrowseStateProvider>
+    );
+}
+
+export const InnerLayout = ({
+    children
+}: LayoutProps) => {
+    const { repoName, revisionName } = useBrowseParams();
+    const { state: { isFileSearchOpen }, updateBrowseState } = useBrowseState();
+    const { navigateToPath } = useBrowseNavigation();
+    const domain = useDomain();
+
+    return (
+        <>
             <div className="flex flex-col h-screen">
                 <div className='sticky top-0 left-0 right-0 z-10'>
                     <TopBar
                         defaultSearchQuery={`repo:${repoName}${revisionName ? ` rev:${revisionName}` : ''} `}
-                        domain={params.domain}
+                        domain={domain}
                     />
                     <Separator />
                 </div>
@@ -53,7 +67,7 @@ export default function Layout({
                                 order={1}
                                 id="code-preview-panel"
                             >
-                                {codePreviewPanel}
+                                {children}
                             </ResizablePanel>
                             <AnimatedResizableHandle />
                             <BottomPanel
@@ -63,7 +77,24 @@ export default function Layout({
                     </ResizablePanel>
                 </ResizablePanelGroup>
             </div>
-            <FileSearchCommandDialog />
-        </BrowseStateProvider>
-    );
+            <FileSearchCommandDialog
+                repoName={repoName}
+                revisionName={revisionName}
+                isOpen={isFileSearchOpen}
+                onOpenChange={(isOpen) => {
+                    updateBrowseState({
+                        isFileSearchOpen: isOpen,
+                    });
+                }}
+                onSelect={(file) => {
+                    navigateToPath({
+                        repoName,
+                        revisionName,
+                        path: file.path,
+                        pathType: 'blob',
+                    });
+                }}
+            />
+        </>
+    )
 }

@@ -8,10 +8,7 @@ import { unwrapServiceError } from "@/lib/utils";
 import { FileTreeItem, getFiles } from "@/features/fileTree/actions";
 import { useDomain } from "@/hooks/useDomain";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { useBrowseNavigation } from "../hooks/useBrowseNavigation";
-import { useBrowseState } from "../hooks/useBrowseState";
 import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
-import { useBrowseParams } from "../hooks/useBrowseParams";
 import { FileTreeItemIcon } from "@/features/fileTree/components/fileTreeItemIcon";
 import { useLocalStorage } from "usehooks-ts";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,25 +23,32 @@ type SearchResult = {
     };
 }
 
+interface FileSearchCommandDialogProps {
+    repoName: string;
+    revisionName?: string;
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    onSelect: (file: FileTreeItem) => void;
+}
 
-export const FileSearchCommandDialog = () => {
-    const { repoName, revisionName } = useBrowseParams();
+export const FileSearchCommandDialog = ({
+    repoName,
+    revisionName,
+    isOpen,
+    onOpenChange,
+    onSelect: _onSelect,
+}: FileSearchCommandDialogProps) => {
     const domain = useDomain();
-    const { state: { isFileSearchOpen }, updateBrowseState } = useBrowseState();
-
     const commandListRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const { navigateToPath } = useBrowseNavigation();
     const { prefetchFileSource } = usePrefetchFileSource();
 
     const [recentlyOpened, setRecentlyOpened] = useLocalStorage<FileTreeItem[]>(`recentlyOpenedFiles-${repoName}`, []);
 
     useHotkeys("mod+p", (event) => {
         event.preventDefault();
-        updateBrowseState({
-            isFileSearchOpen: !isFileSearchOpen,
-        });
+        onOpenChange(!isOpen);
     }, {
         enableOnFormTags: true,
         enableOnContentEditable: true,
@@ -53,15 +57,15 @@ export const FileSearchCommandDialog = () => {
 
     // Whenever we open the dialog, clear the search query
     useEffect(() => {
-        if (isFileSearchOpen) {
+        if (isOpen) {
             setSearchQuery('');
         }
-    }, [isFileSearchOpen]);
+    }, [isOpen]);
 
     const { data: files, isLoading, isError } = useQuery({
         queryKey: ['files', repoName, revisionName, domain],
         queryFn: () => unwrapServiceError(getFiles({ repoName, revisionName: revisionName ?? 'HEAD' }, domain)),
-        enabled: isFileSearchOpen,
+        enabled: isOpen,
     });
 
     const { filteredFiles, maxResultsHit } = useMemo((): { filteredFiles: SearchResult[]; maxResultsHit: boolean } => {
@@ -111,16 +115,9 @@ export const FileSearchCommandDialog = () => {
             const filtered = prev.filter(f => f.path !== file.path);
             return [file, ...filtered];
         });
-        navigateToPath({
-            repoName,
-            revisionName,
-            path: file.path,
-            pathType: 'blob',
-        });
-        updateBrowseState({
-            isFileSearchOpen: false,
-        });
-    }, [navigateToPath, repoName, revisionName, setRecentlyOpened, updateBrowseState]);
+        onOpenChange(false);
+        _onSelect(file);
+    }, [setRecentlyOpened, onOpenChange, _onSelect]);
 
     const onMouseEnter = useCallback((file: FileTreeItem) => {
         prefetchFileSource(
@@ -141,11 +138,9 @@ export const FileSearchCommandDialog = () => {
 
     return (
         <Dialog
-            open={isFileSearchOpen}
+            open={isOpen}
             onOpenChange={(isOpen) => {
-                updateBrowseState({
-                    isFileSearchOpen: isOpen,
-                });
+                onOpenChange(isOpen);
             }}
             modal={true}
         >
