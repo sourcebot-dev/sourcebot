@@ -5758,6 +5758,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@sourcebot/backend@workspace:packages/backend"
   dependencies:
+    "@coderabbitai/bitbucket": "npm:^1.1.3"
     "@gitbeaker/rest": "npm:^40.5.1"
     "@octokit/rest": "npm:^21.0.2"
     "@sentry/cli": "npm:^2.42.2"
@@ -14396,7 +14397,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
-    "@coderabbitai/bitbucket": "npm:^1.1.3"
     cross-env: "npm:^7.0.3"
     dotenv-cli: "npm:^8.0.0"
     npm-run-all: "npm:^4.1.5"
