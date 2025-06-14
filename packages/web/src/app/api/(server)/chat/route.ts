@@ -29,7 +29,7 @@ const chatRequestSchema = z.object({
 export async function POST(req: Request) {
     try {
         const requestBody = await req.json();
-        const { messages, context: { files } } = chatRequestSchema.parse(requestBody);
+        const { messages: chatMessages, context: { files } } = chatRequestSchema.parse(requestBody);
 
         // @todo: we can probably cache files per chat session.
         // That way we don't have to refetch files for every message.
@@ -62,6 +62,12 @@ export async function POST(req: Request) {
             content: JSON.stringify(file),
         }));
 
+        const messages = [
+            SYSTEM_MESSAGE,
+            ...context,
+            ...chatMessages,
+        ];
+
         console.log(messages);
 
         const result = streamText({
@@ -74,11 +80,7 @@ export async function POST(req: Request) {
                     })
                 ]
             }),
-            messages: [
-                SYSTEM_MESSAGE,
-                ...context,
-                ...messages
-            ],
+            messages,
             tools,
             temperature: 0.3, // Lower temperature for more focused reasoning
             maxTokens: 4000, // Increased for tool results and responses
