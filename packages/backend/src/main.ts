@@ -1,52 +1,15 @@
 import { PrismaClient } from '@sourcebot/db';
 import { createLogger } from "@sourcebot/logger";
 import { AppContext } from "./types.js";
-import { DEFAULT_SETTINGS } from './constants.js';
+import { DEFAULT_SETTINGS, SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_NAME } from './constants.js';
 import { Redis } from 'ioredis';
 import { ConnectionManager } from './connectionManager.js';
 import { RepoManager } from './repoManager.js';
 import { env } from './env.js';
 import { PromClient } from './promClient.js';
-import { isRemotePath } from './utils.js';
-import { readFile } from 'fs/promises';
-import stripJsonComments from 'strip-json-comments';
-import { SourcebotConfig } from '@sourcebot/schemas/v3/index.type';
-import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
-import { Ajv } from "ajv";
+import { syncSearchContexts } from './ee/syncSearchContexts.js';
 
 const logger = createLogger('backend-main');
-const ajv = new Ajv({
-    validateFormats: false,
-});
-
-const getSettings = async (configPath?: string) => {
-    if (!configPath) {
-        return DEFAULT_SETTINGS;
-    }
-
-    const configContent = await (async () => {
-        if (isRemotePath(configPath)) {
-            const response = await fetch(configPath);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch config file ${configPath}: ${response.statusText}`);
-            }
-            return response.text();
-        } else {
-            return readFile(configPath, { encoding: 'utf-8' });
-        }
-    })();
-
-    const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfig;
-    const isValidConfig = ajv.validate(indexSchema, config);
-    if (!isValidConfig) {
-        throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
-    }
-
-    return {
-        ...DEFAULT_SETTINGS,
-        ...config.settings,
-    }
-}
 
 export const main = async (db: PrismaClient, context: AppContext) => {
     const redis = new Redis(env.REDIS_URL, {
@@ -60,11 +23,28 @@ export const main = async (db: PrismaClient, context: AppContext) => {
         process.exit(1);
     });
 
-    const settings = await getSettings(env.CONFIG_PATH);
+    const settings = {
+        ...DEFAULT_SETTINGS,
+        ...context.config?.settings,
+    }
+
+    await db.org.upsert({
+        where: {
+            id: SINGLE_TENANT_ORG_ID,
+        },
+        update: {},
+        create: {
+            name: SINGLE_TENANT_ORG_NAME,
+            domain: SINGLE_TENANT_ORG_DOMAIN,
+            id: SINGLE_TENANT_ORG_ID
+        }
+    });
+
+    await syncSearchContexts(db, context.config?.contexts);
 
     const promClient = new PromClient();
 
-    const connectionManager = new ConnectionManager(db, settings, redis);
+    const connectionManager = new ConnectionManager(db, settings, redis, context);
     connectionManager.registerPollingCallback();
 
     const repoManager = new RepoManager(db, settings, redis, promClient, context);

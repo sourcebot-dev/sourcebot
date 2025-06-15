@@ -9,6 +9,8 @@ import { BackendError, BackendException } from "@sourcebot/error";
 import { captureEvent } from "./posthog.js";
 import { env } from "./env.js";
 import * as Sentry from "@sentry/node";
+import { syncSearchContexts } from "./ee/syncSearchContexts.js";
+import { AppContext } from "./types.js";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -38,6 +40,7 @@ export class ConnectionManager implements IConnectionManager {
         private db: PrismaClient,
         private settings: Settings,
         redis: Redis,
+        private ctx: AppContext,
     ) {
         this.queue = new Queue<JobPayload>(QUEUE_NAME, {
             connection: redis,
@@ -289,7 +292,9 @@ export class ConnectionManager implements IConnectionManager {
                         notFound.repos.length > 0 ? ConnectionSyncStatus.SYNCED_WITH_WARNINGS : ConnectionSyncStatus.SYNCED,
                 syncedAt: new Date()
             }
-        })
+        });
+
+        await syncSearchContexts(this.db, this.ctx.config?.contexts);
 
         captureEvent('backend_connection_sync_job_completed', {
             connectionId: connectionId,

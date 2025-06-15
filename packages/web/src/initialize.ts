@@ -1,7 +1,7 @@
 import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus } from '@sourcebot/db';
 import { env } from './env.mjs';
 import { prisma } from "@/prisma";
-import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_NAME, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
+import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
 import { readFile } from 'fs/promises';
 import { watch } from 'fs';
 import stripJsonComments from 'strip-json-comments';
@@ -9,7 +9,6 @@ import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
 import Ajv from 'ajv';
-import { syncSearchContexts } from '@/ee/features/searchContexts/syncSearchContexts';
 import { hasEntitlement } from '@/features/entitlements/server';
 import { createGuestUser, setPublicAccessStatus } from '@/ee/features/publicAccess/publicAccess';
 import { isServiceError } from './lib/utils';
@@ -158,7 +157,7 @@ const syncDeclarativeConfig = async (configPath: string) => {
     }
 
     await syncConnections(config.connections);
-    await syncSearchContexts(config.contexts);
+    // await syncSearchContexts(config.contexts);
 }
 
 const pruneOldGuestUser = async () => {
@@ -187,17 +186,17 @@ const pruneOldGuestUser = async () => {
 }
 
 const initSingleTenancy = async () => {
-    await prisma.org.upsert({
-        where: {
-            id: SINGLE_TENANT_ORG_ID,
-        },
-        update: {},
-        create: {
-            name: SINGLE_TENANT_ORG_NAME,
-            domain: SINGLE_TENANT_ORG_DOMAIN,
-            id: SINGLE_TENANT_ORG_ID
-        }
-    });
+    // await prisma.org.upsert({
+    //     where: {
+    //         id: SINGLE_TENANT_ORG_ID,
+    //     },
+    //     update: {},
+    //     create: {
+    //         name: SINGLE_TENANT_ORG_NAME,
+    //         domain: SINGLE_TENANT_ORG_DOMAIN,
+    //         id: SINGLE_TENANT_ORG_ID
+    //     }
+    // });
 
     // This is needed because v4 introduces the GUEST org role as well as making authentication required. 
     // To keep things simple, we'll just delete the old guest user if it exists in the DB

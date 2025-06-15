@@ -9,8 +9,43 @@ import { main } from "./main.js"
 import { PrismaClient } from "@sourcebot/db";
 import { env } from "./env.js";
 import { createLogger } from "@sourcebot/logger";
+import { isRemotePath } from './utils.js';
+import { readFile } from 'fs/promises';
+import stripJsonComments from 'strip-json-comments';
+import { SourcebotConfig } from '@sourcebot/schemas/v3/index.type';
+import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
+import { Ajv } from "ajv";
 
-const logger = createLogger('index');
+const logger = createLogger('backend-entrypoint');
+const ajv = new Ajv({
+    validateFormats: false,
+});
+
+const loadConfig = async (configPath?: string) => {
+    if (!configPath) {
+        return undefined;
+    }
+
+    const configContent = await (async () => {
+        if (isRemotePath(configPath)) {
+            const response = await fetch(configPath);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch config file ${configPath}: ${response.statusText}`);
+            }
+            return response.text();
+        } else {
+            return readFile(configPath, { encoding: 'utf-8' });
+        }
+    })();
+
+    const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfig;
+    const isValidConfig = ajv.validate(indexSchema, config);
+    if (!isValidConfig) {
+        throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
+    }
+
+    return config;
+}
 
 // Register handler for normal exit
 process.on('exit', (code) => {
@@ -50,10 +85,13 @@ if (!existsSync(indexPath)) {
     await mkdir(indexPath, { recursive: true });
 }
 
+const config = await loadConfig(env.CONFIG_PATH);
+
 const context: AppContext = {
     indexPath,
     reposPath,
     cachePath: cacheDir,
+    config,
 }
 
 const prisma = new PrismaClient();
@@ -72,3 +110,4 @@ main(prisma, context)
     .finally(() => {
         logger.info("Shutting down...");
     });
+

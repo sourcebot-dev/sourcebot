@@ -1,4 +1,4 @@
-import { Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
+import { Settings as SettingsSchema, SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import { z } from "zod";
 
 export type AppContext = {
@@ -13,6 +13,8 @@ export type AppContext = {
     indexPath: string;
 
     cachePath: string;
+
+    config?: SourcebotConfig;
 }
 
 export type Settings = Required<SettingsSchema>;
