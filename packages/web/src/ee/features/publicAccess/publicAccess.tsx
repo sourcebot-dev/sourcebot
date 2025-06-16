@@ -7,7 +7,7 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "@/prisma";
 import { sew } from "@/actions";
-import { getPlan, hasEntitlement } from "@/features/entitlements/server";
+import { getPlan, hasEntitlement } from "@sourcebot/shared";
 import { SOURCEBOT_GUEST_USER_EMAIL, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { OrgRole } from "@sourcebot/db";
 

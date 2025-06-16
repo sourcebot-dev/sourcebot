@@ -43,12 +43,14 @@ COPY ./packages/schemas ./packages/schemas
 COPY ./packages/crypto ./packages/crypto
 COPY ./packages/error ./packages/error
 COPY ./packages/logger ./packages/logger
+COPY ./packages/shared ./packages/shared
 
 RUN yarn workspace @sourcebot/db install
 RUN yarn workspace @sourcebot/schemas install
 RUN yarn workspace @sourcebot/crypto install
 RUN yarn workspace @sourcebot/error install
 RUN yarn workspace @sourcebot/logger install
+RUN yarn workspace @sourcebot/shared install
 # ------------------------------------
 
 # ------ Build Web ------
@@ -92,6 +94,7 @@ COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 COPY --from=shared-libs-builder /app/packages/logger ./packages/logger
+COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 
 # Fixes arm64 timeouts
 RUN yarn workspace @sourcebot/web install
@@ -132,6 +135,7 @@ COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 COPY --from=shared-libs-builder /app/packages/logger ./packages/logger
+COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 RUN yarn workspace @sourcebot/backend install
 RUN yarn workspace @sourcebot/backend build
 
@@ -215,6 +219,7 @@ COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 COPY --from=shared-libs-builder /app/packages/logger ./packages/logger
+COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 
 # Configure dependencies
 RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib openssl util-linux unzip

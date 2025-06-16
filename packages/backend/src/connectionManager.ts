@@ -9,8 +9,7 @@ import { BackendError, BackendException } from "@sourcebot/error";
 import { captureEvent } from "./posthog.js";
 import { env } from "./env.js";
 import * as Sentry from "@sentry/node";
-import { syncSearchContexts } from "./ee/syncSearchContexts.js";
-import { AppContext } from "./types.js";
+import { loadConfig, syncSearchContexts } from "@sourcebot/shared";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -40,7 +39,6 @@ export class ConnectionManager implements IConnectionManager {
         private db: PrismaClient,
         private settings: Settings,
         redis: Redis,
-        private ctx: AppContext,
     ) {
         this.queue = new Queue<JobPayload>(QUEUE_NAME, {
             connection: redis,
@@ -267,7 +265,7 @@ export class ConnectionManager implements IConnectionManager {
 
     private async onSyncJobCompleted(job: Job<JobPayload>, result: JobResult) {
         this.logger.info(`Connection sync job for connection ${job.data.connectionName} (id: ${job.data.connectionId}, jobId: ${job.id}) completed`);
-        const { connectionId } = job.data;
+        const { connectionId, orgId } = job.data;
 
         let syncStatusMetadata: Record<string, unknown> = (await this.db.connection.findUnique({
             where: { id: connectionId },
@@ -294,7 +292,18 @@ export class ConnectionManager implements IConnectionManager {
             }
         });
 
-        await syncSearchContexts(this.db, this.ctx.config?.contexts);
+        // After a connection has synced, we need to re-sync the org's search contexts as
+        // there may be new repos that match the search context's include/exclude patterns.
+        if (env.CONFIG_PATH) {
+            const config = await loadConfig(env.CONFIG_PATH);
+
+            await syncSearchContexts({
+                db: this.db,
+                orgId,
+                contexts: config.contexts,
+            });
+        }
+
 
         captureEvent('backend_connection_sync_job_completed', {
             connectionId: connectionId,

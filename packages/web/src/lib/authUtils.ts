@@ -3,7 +3,7 @@ import { env } from "@/env.mjs";
 import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID } from "@/lib/constants";
-import { hasEntitlement } from "@/features/entitlements/server";
+import { hasEntitlement } from "@sourcebot/shared";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { createAccountRequest } from "@/actions";

@@ -1,30 +1,34 @@
-import { SearchContext } from "@sourcebot/schemas/v3/index.type";
 import micromatch from "micromatch";
 import { createLogger } from "@sourcebot/logger";
 import { PrismaClient } from "@sourcebot/db";
-import { SINGLE_TENANT_ORG_ID } from "../constants.js";
+import { getPlan, hasEntitlement } from "../entitlements.js";
+import { SOURCEBOT_SUPPORT_EMAIL } from "../constants.js";
+import { SearchContext } from "@sourcebot/schemas/v3/index.type";
 
 const logger = createLogger('sync-search-contexts');
 
-export const syncSearchContexts = async (db: PrismaClient, contexts?: { [key: string]: SearchContext }) => {
-    // @todo: re-enable this.
-    // if (env.SOURCEBOT_TENANCY_MODE !== 'single') {
-    //     throw new Error("Search contexts are not supported in this tenancy mode. Set SOURCEBOT_TENANCY_MODE=single in your environment variables.");
-    // }
+interface SyncSearchContextsParams {
+    contexts?: { [key: string]: SearchContext } | undefined;
+    orgId: number;
+    db: PrismaClient;
+}
 
-    // if (!hasEntitlement("search-contexts")) {
-    //     if (contexts) {
-    //         const plan = getPlan();
-    //         logger.error(`Search contexts are not supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
-    //     }
-    //     return;
-    // }
+export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
+    const { contexts, orgId, db } = params;
+
+    if (!hasEntitlement("search-contexts")) {
+        if (contexts) {
+            const plan = getPlan();
+            logger.warn(`Skipping search context sync. Reason: "Search contexts are not supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}."`);
+        }
+        return false;
+    }
 
     if (contexts) {
         for (const [key, newContextConfig] of Object.entries(contexts)) {
             const allRepos = await db.repo.findMany({
                 where: {
-                    orgId: SINGLE_TENANT_ORG_ID,
+                    orgId,
                 },
                 select: {
                     id: true,
@@ -47,7 +51,7 @@ export const syncSearchContexts = async (db: PrismaClient, contexts?: { [key: st
                 where: {
                     name_orgId: {
                         name: key,
-                        orgId: SINGLE_TENANT_ORG_ID,
+                        orgId,
                     }
                 },
                 include: {
@@ -59,7 +63,7 @@ export const syncSearchContexts = async (db: PrismaClient, contexts?: { [key: st
                 where: {
                     name_orgId: {
                         name: key,
-                        orgId: SINGLE_TENANT_ORG_ID,
+                        orgId,
                     }
                 },
                 update: {
@@ -80,7 +84,7 @@ export const syncSearchContexts = async (db: PrismaClient, contexts?: { [key: st
                     description: newContextConfig.description,
                     org: {
                         connect: {
-                            id: SINGLE_TENANT_ORG_ID,
+                            id: orgId,
                         }
                     },
                     repos: {
@@ -98,7 +102,7 @@ export const syncSearchContexts = async (db: PrismaClient, contexts?: { [key: st
             name: {
                 notIn: Object.keys(contexts ?? {}),
             },
-            orgId: SINGLE_TENANT_ORG_ID,
+            orgId,
         }
     });
 
@@ -110,4 +114,6 @@ export const syncSearchContexts = async (db: PrismaClient, contexts?: { [key: st
             }
         })
     }
+
+    return true;
 }

@@ -76,6 +76,7 @@
     "@sourcebot/error": "workspace:*",
     "@sourcebot/logger": "workspace:*",
     "@sourcebot/schemas": "workspace:*",
+    "@sourcebot/shared": "workspace:*",
     "@ssddanbrown/codemirror-lang-twig": "^1.0.0",
     "@stripe/react-stripe-js": "^3.1.1",
     "@stripe/stripe-js": "^5.6.0",
