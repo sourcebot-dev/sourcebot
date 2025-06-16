@@ -5893,6 +5893,7 @@ __metadata:
     "@sourcebot/logger": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@t3-oss/env-core": "npm:^0.12.0"
+    "@types/micromatch": "npm:^4.0.9"
     "@types/node": "npm:^22.7.5"
     ajv: "npm:^8.17.1"
     micromatch: "npm:^4.0.8"

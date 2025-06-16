@@ -20,10 +20,10 @@
         "zod": "^3.24.3"
     },
     "devDependencies": {
+        "@types/micromatch": "^4.0.9",
         "@types/node": "^22.7.5",
         "tsc-watch": "6.2.1",
-        "typescript": "^5.7.3",
-        "@types/micromatch": "^4.0.9"
+        "typescript": "^5.7.3"
     },
     "exports": {
         ".": "./dist/index.server.js",
