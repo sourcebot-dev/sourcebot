@@ -5,7 +5,6 @@ import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { FindRelatedSymbolsResponse } from "@/features/codeNav/types";
 import { RepositoryInfo, SourceRange } from "@/features/search/types";
-import { base64Decode } from "@/lib/utils";
 import { useMemo, useRef } from "react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -155,10 +154,6 @@ const ReferenceListItem = ({
     onClick,
     onMouseEnter,
 }: ReferenceListItemProps) => {
-    const decodedLineContent = useMemo(() => {
-        return base64Decode(lineContent);
-    }, [lineContent]);
-
     const highlightRanges = useMemo(() => [range], [range]);
 
     return (
@@ -174,7 +169,7 @@ const ReferenceListItem = ({
                 lineNumbersOffset={range.start.lineNumber}
                 renderWhitespace={false}
             >
-                {decodedLineContent}
+                {lineContent}
             </LightweightCodeHighlighter>
         </div>
     )

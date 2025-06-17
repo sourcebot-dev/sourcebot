@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added audit logging. [#355](https://github.com/sourcebot-dev/sourcebot/pull/355)
+<!-- @NOTE: this release includes a API change that affects the MCP package (@sourcebot/mcp). On release, bump the MCP package's version and delete this message. -->
 
 ### Fixed
 - Delete account join request when redeeming an invite. [#352](https://github.com/sourcebot-dev/sourcebot/pull/352)
 - Fix issue where a repository would not be included in a search context if the context was created before the repository. [#354](https://github.com/sourcebot-dev/sourcebot/pull/354)
+
+### Changed
+- Changed search api (and all apis that depend on it) to return raw source code instead of base64 encoded string. ([356](https://github.com/sourcebot-dev/sourcebot/pull/356)).
+
 
 ## [4.3.0] - 2025-06-11
 
