@@ -32,4 +32,4 @@ export const SINGLE_TENANT_ORG_ID = 1;
 export const SINGLE_TENANT_ORG_DOMAIN = '~';
 export const SINGLE_TENANT_ORG_NAME = 'default';
 
-export const SOURCEBOT_SUPPORT_EMAIL = 'team@sourcebot.dev';
+export { SOURCEBOT_SUPPORT_EMAIL } from "@sourcebot/shared/client";

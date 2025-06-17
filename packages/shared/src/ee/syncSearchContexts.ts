@@ -1,31 +1,34 @@
-import { env } from "@/env.mjs";
-import { getPlan, hasEntitlement } from "@/features/entitlements/server";
-import { SINGLE_TENANT_ORG_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
-import { prisma } from "@/prisma";
-import { SearchContext } from "@sourcebot/schemas/v3/index.type";
 import micromatch from "micromatch";
 import { createLogger } from "@sourcebot/logger";
+import { PrismaClient } from "@sourcebot/db";
+import { getPlan, hasEntitlement } from "../entitlements.js";
+import { SOURCEBOT_SUPPORT_EMAIL } from "../constants.js";
+import { SearchContext } from "@sourcebot/schemas/v3/index.type";
 
 const logger = createLogger('sync-search-contexts');
 
-export const syncSearchContexts = async (contexts?: { [key: string]: SearchContext }) => {
-    if (env.SOURCEBOT_TENANCY_MODE !== 'single') {
-        throw new Error("Search contexts are not supported in this tenancy mode. Set SOURCEBOT_TENANCY_MODE=single in your environment variables.");
-    }
+interface SyncSearchContextsParams {
+    contexts?: { [key: string]: SearchContext } | undefined;
+    orgId: number;
+    db: PrismaClient;
+}
+
+export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
+    const { contexts, orgId, db } = params;
 
     if (!hasEntitlement("search-contexts")) {
         if (contexts) {
             const plan = getPlan();
-            logger.error(`Search contexts are not supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+            logger.warn(`Skipping search context sync. Reason: "Search contexts are not supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}."`);
         }
-        return;
+        return false;
     }
 
     if (contexts) {
         for (const [key, newContextConfig] of Object.entries(contexts)) {
-            const allRepos = await prisma.repo.findMany({
+            const allRepos = await db.repo.findMany({
                 where: {
-                    orgId: SINGLE_TENANT_ORG_ID,
+                    orgId,
                 },
                 select: {
                     id: true,
@@ -44,11 +47,11 @@ export const syncSearchContexts = async (contexts?: { [key: string]: SearchConte
                 });
             }
 
-            const currentReposInContext = (await prisma.searchContext.findUnique({
+            const currentReposInContext = (await db.searchContext.findUnique({
                 where: {
                     name_orgId: {
                         name: key,
-                        orgId: SINGLE_TENANT_ORG_ID,
+                        orgId,
                     }
                 },
                 include: {
@@ -56,11 +59,11 @@ export const syncSearchContexts = async (contexts?: { [key: string]: SearchConte
                 }
             }))?.repos ?? [];
 
-            await prisma.searchContext.upsert({
+            await db.searchContext.upsert({
                 where: {
                     name_orgId: {
                         name: key,
-                        orgId: SINGLE_TENANT_ORG_ID,
+                        orgId,
                     }
                 },
                 update: {
@@ -81,7 +84,7 @@ export const syncSearchContexts = async (contexts?: { [key: string]: SearchConte
                     description: newContextConfig.description,
                     org: {
                         connect: {
-                            id: SINGLE_TENANT_ORG_ID,
+                            id: orgId,
                         }
                     },
                     repos: {
@@ -94,21 +97,23 @@ export const syncSearchContexts = async (contexts?: { [key: string]: SearchConte
         }
     }
 
-    const deletedContexts = await prisma.searchContext.findMany({
+    const deletedContexts = await db.searchContext.findMany({
         where: {
             name: {
                 notIn: Object.keys(contexts ?? {}),
             },
-            orgId: SINGLE_TENANT_ORG_ID,
+            orgId,
         }
     });
 
     for (const context of deletedContexts) {
         logger.info(`Deleting search context with name '${context.name}'. ID: ${context.id}`);
-        await prisma.searchContext.delete({
+        await db.searchContext.delete({
             where: {
                 id: context.id,
             }
         })
     }
+
+    return true;
 }

@@ -34,6 +34,8 @@ clean:
 		packages/error/dist \
 		packages/mcp/node_modules \
 		packages/mcp/dist \
+		packages/shared/node_modules \
+		packages/shared/dist \
 		.sourcebot
 
 soft-reset:

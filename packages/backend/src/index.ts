@@ -10,7 +10,8 @@ import { PrismaClient } from "@sourcebot/db";
 import { env } from "./env.js";
 import { createLogger } from "@sourcebot/logger";
 
-const logger = createLogger('index');
+const logger = createLogger('backend-entrypoint');
+
 
 // Register handler for normal exit
 process.on('exit', (code) => {
@@ -72,3 +73,4 @@ main(prisma, context)
     .finally(() => {
         logger.info("Shutting down...");
     });
+

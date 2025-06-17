@@ -1,15 +1,13 @@
-import { env } from "@/env.mjs"
-import { Entitlement, entitlementsByPlan, Plan } from "./constants"
-import { base64Decode } from "@/lib/utils";
+import { base64Decode } from "./utils.js";
 import { z } from "zod";
-import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { createLogger } from "@sourcebot/logger";
 import { verifySignature } from "@sourcebot/crypto";
+import { env } from "./env.js";
+import { SOURCEBOT_SUPPORT_EMAIL, SOURCEBOT_UNLIMITED_SEATS } from "./constants.js";
 
 const logger = createLogger('entitlements');
 
 const eeLicenseKeyPrefix = "sourcebot_ee_";
-export const SOURCEBOT_UNLIMITED_SEATS = -1;
 
 const eeLicenseKeyPayloadSchema = z.object({
     id: z.string(),
@@ -21,26 +19,52 @@ const eeLicenseKeyPayloadSchema = z.object({
 
 type LicenseKeyPayload = z.infer<typeof eeLicenseKeyPayloadSchema>;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const planLabels = {
+    oss: "OSS",
+    "cloud:team": "Team",
+    "cloud:demo": "Demo",
+    "self-hosted:enterprise": "Enterprise (Self-Hosted)",
+    "self-hosted:enterprise-unlimited": "Enterprise (Self-Hosted) Unlimited",
+} as const;
+export type Plan = keyof typeof planLabels;
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const entitlements = [
+    "search-contexts",
+    "billing",
+    "public-access",
+    "multi-tenancy",
+    "sso",
+    "code-nav"
+] as const;
+export type Entitlement = (typeof entitlements)[number];
+
+const entitlementsByPlan: Record<Plan, Entitlement[]> = {
+    oss: [],
+    "cloud:team": ["billing", "multi-tenancy", "sso", "code-nav"],
+    "self-hosted:enterprise": ["search-contexts", "sso", "code-nav"],
+    "self-hosted:enterprise-unlimited": ["search-contexts", "public-access", "sso", "code-nav"],
+    // Special entitlement for https://demo.sourcebot.dev
+    "cloud:demo": ["public-access", "code-nav", "search-contexts"],
+} as const;
+
+
 const decodeLicenseKeyPayload = (payload: string): LicenseKeyPayload => {
     try {
         const decodedPayload = base64Decode(payload);
         const payloadJson = JSON.parse(decodedPayload);
         const licenseData = eeLicenseKeyPayloadSchema.parse(payloadJson);
         
-        if (env.SOURCEBOT_PUBLIC_KEY_PATH) {
-            const dataToVerify = JSON.stringify({
-                expiryDate: licenseData.expiryDate,
-                id: licenseData.id,
-                seats: licenseData.seats
-            });
-            
-            const isSignatureValid = verifySignature(dataToVerify, licenseData.sig, env.SOURCEBOT_PUBLIC_KEY_PATH);
-            if (!isSignatureValid) {
-                logger.error('License key signature verification failed');
-                process.exit(1);
-            }
-        } else {
-            logger.error('No public key path provided, unable to verify license key signature');
+        const dataToVerify = JSON.stringify({
+            expiryDate: licenseData.expiryDate,
+            id: licenseData.id,
+            seats: licenseData.seats
+        });
+        
+        const isSignatureValid = verifySignature(dataToVerify, licenseData.sig, env.SOURCEBOT_PUBLIC_KEY_PATH);
+        if (!isSignatureValid) {
+            logger.error('License key signature verification failed');
             process.exit(1);
         }
         

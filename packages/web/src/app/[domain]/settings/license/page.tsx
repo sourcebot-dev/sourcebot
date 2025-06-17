@@ -1,4 +1,4 @@
-import { getEntitlements, getLicenseKey, getPlan, SOURCEBOT_UNLIMITED_SEATS } from "@/features/entitlements/server";
+import { getLicenseKey, getEntitlements, getPlan, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { Button } from "@/components/ui/button";
 import { Info, Mail } from "lucide-react";
 import { getOrgMembers } from "@/actions";
@@ -17,9 +17,9 @@ export default async function LicensePage({ params: { domain } }: LicensePagePro
         notFound();
     }
 
-    const licenseKey = await getLicenseKey();
-    const entitlements = await getEntitlements();
-    const plan = await getPlan();
+    const licenseKey = getLicenseKey();
+    const entitlements = getEntitlements();
+    const plan = getPlan();
 
     if (!licenseKey) {
         return (
