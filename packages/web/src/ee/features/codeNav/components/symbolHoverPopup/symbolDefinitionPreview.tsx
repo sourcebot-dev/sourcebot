@@ -3,7 +3,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { useMemo } from "react";
 import { SourceRange } from "@/features/search/types";
-import { base64Decode } from "@/lib/utils";
 
 interface SymbolDefinitionPreviewProps {
     symbolDefinition: {
@@ -20,10 +19,6 @@ export const SymbolDefinitionPreview = ({
 }: SymbolDefinitionPreviewProps) => {
     const { lineContent, language, range } = symbolDefinition;
     const highlightRanges = useMemo(() => [range], [range]);
-
-    const decodedLineContent = useMemo(() => {
-        return base64Decode(lineContent);
-    }, [lineContent]);
 
     return (
         <div className="flex flex-col gap-2 mb-2">
@@ -55,7 +50,7 @@ export const SymbolDefinitionPreview = ({
                 lineNumbersOffset={range.start.lineNumber}
                 renderWhitespace={false}
             >
-                {decodedLineContent}
+                {lineContent}
             </LightweightCodeHighlighter>
         </div>
     )

@@ -1,6 +1,6 @@
 'use client';
 
-import { base64Decode, getCodeHostInfoForRepo, unwrapServiceError } from "@/lib/utils";
+import { getCodeHostInfoForRepo, unwrapServiceError } from "@/lib/utils";
 import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
 import { useQuery } from "@tanstack/react-query";
 import { getFileSource } from "@/features/search/fileSourceApi";
@@ -88,7 +88,7 @@ export const CodePreviewPanel = () => {
             </div>
             <Separator />
             <PureCodePreviewPanel
-                source={base64Decode(fileSourceResponse.source)}
+                source={fileSourceResponse.source}
                 language={fileSourceResponse.language}
                 repoName={repoName}
                 path={path}
