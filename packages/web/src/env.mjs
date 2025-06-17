@@ -96,6 +96,8 @@ export const env = createEnv({
         REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
         REVIEW_AGENT_AUTO_REVIEW_ENABLED: booleanSchema.default('false'),
         REVIEW_AGENT_REVIEW_COMMAND: z.string().default('review'),
+
+        ANTHROPIC_API_KEY: z.string().optional(),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in

@@ -1,4 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai"
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { coreMessageSchema, CoreSystemMessage, extractReasoningMiddleware, streamText, wrapLanguageModel } from "ai"
 import { env } from "@/env.mjs"
 import { tools } from "@/features/chat/tools"
@@ -14,6 +15,10 @@ const logger = createLogger('chat-api');
 const openai = createOpenAI({
     apiKey: env.OPENAI_API_KEY,
 });
+
+const anthropic = createAnthropic({
+    apiKey: env.ANTHROPIC_API_KEY,
+})
 
 
 // Check if API key is configured
@@ -70,9 +75,12 @@ export async function POST(req: Request) {
 
         console.log(messages);
 
+        const model = anthropic("claude-sonnet-4-0");
+        // const model = openai("o3-mini");
+
         const result = streamText({
             model: wrapLanguageModel({
-                model: openai("o3-mini"),
+                model,
                 middleware: [
                     // @todo: not sure if this is needed?
                     extractReasoningMiddleware({
