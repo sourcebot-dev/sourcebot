@@ -1,16 +1,10 @@
 import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus } from '@sourcebot/db';
 import { env } from './env.mjs';
 import { prisma } from "@/prisma";
-import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_NAME, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
-import { readFile } from 'fs/promises';
+import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SINGLE_TENANT_ORG_NAME } from './lib/constants';
 import { watch } from 'fs';
-import stripJsonComments from 'strip-json-comments';
-import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
-import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
-import Ajv from 'ajv';
-import { syncSearchContexts } from '@/ee/features/searchContexts/syncSearchContexts';
-import { getEntitlements, hasEntitlement } from '@/features/entitlements/server';
+import { hasEntitlement, loadConfig, isRemotePath, syncSearchContexts } from '@sourcebot/shared';
 import { createGuestUser, setPublicAccessStatus } from '@/ee/features/publicAccess/publicAccess';
 import { isServiceError } from './lib/utils';
 import { ServiceErrorException } from './lib/serviceError';
@@ -18,14 +12,6 @@ import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { createLogger } from "@sourcebot/logger";
 
 const logger = createLogger('web-initialize');
-
-const ajv = new Ajv({
-    validateFormats: false,
-});
-
-const isRemotePath = (path: string) => {
-    return path.startsWith('https://') || path.startsWith('http://');
-}
 
 const syncConnections = async (connections?: { [key: string]: ConnectionConfig }) => {
     if (connections) {
@@ -116,31 +102,8 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
     }
 }
 
-const readConfig = async (configPath: string): Promise<SourcebotConfig> => {
-    const configContent = await (async () => {
-        if (isRemotePath(configPath)) {
-            const response = await fetch(configPath);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch config file ${configPath}: ${response.statusText}`);
-            }
-            return response.text();
-        } else {
-            return readFile(configPath, {
-                encoding: 'utf-8',
-            });
-        }
-    })();
-
-    const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfig;
-    const isValidConfig = ajv.validate(indexSchema, config);
-    if (!isValidConfig) {
-        throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
-    }
-    return config;
-}
-
 const syncDeclarativeConfig = async (configPath: string) => {
-    const config = await readConfig(configPath);
+    const config = await loadConfig(configPath);
 
     const hasPublicAccessEntitlement = hasEntitlement("public-access");
     const enablePublicAccess = config.settings?.enablePublicAccess;
@@ -163,7 +126,11 @@ const syncDeclarativeConfig = async (configPath: string) => {
     }
 
     await syncConnections(config.connections);
-    await syncSearchContexts(config.contexts);
+    await syncSearchContexts({
+        contexts: config.contexts,
+        orgId: SINGLE_TENANT_ORG_ID,
+        db: prisma,
+    });
 }
 
 const pruneOldGuestUser = async () => {

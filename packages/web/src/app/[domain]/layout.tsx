@@ -14,7 +14,7 @@ import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { notFound, redirect } from "next/navigation";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { PendingApprovalCard } from "./components/pendingApproval";
-import { hasEntitlement } from "@/features/entitlements/server";
+import { hasEntitlement } from "@sourcebot/shared";
 import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "./components/gcpIapAuth";

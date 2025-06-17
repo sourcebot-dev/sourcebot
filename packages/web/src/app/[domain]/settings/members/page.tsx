@@ -9,7 +9,7 @@ import { InvitesList } from "./components/invitesList";
 import { getOrgInvites, getMe, getOrgAccountRequests } from "@/actions";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { ServiceErrorException } from "@/lib/serviceError";
-import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@/features/entitlements/server";
+import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { RequestsList } from "./components/requestsList";
 import { OrgRole } from "@prisma/client";
 

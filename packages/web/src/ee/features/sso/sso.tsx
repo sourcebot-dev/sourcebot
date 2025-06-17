@@ -9,7 +9,7 @@ import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { prisma } from "@/prisma";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { OrgRole } from "@sourcebot/db";
-import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@/features/entitlements/server";
+import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { OAuth2Client } from "google-auth-library";
@@ -216,7 +216,7 @@ export const handleJITProvisioning = async (userId: string, domain: string): Pro
         return true;
     }
 
-    const seats = await getSeats();
+    const seats = getSeats();
     const memberCount = org.members.length;
 
     if (seats != SOURCEBOT_UNLIMITED_SEATS && memberCount >= seats) {

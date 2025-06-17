@@ -1,6 +1,6 @@
 'use client';
 
-import { Entitlement } from "./constants";
+import { Entitlement } from "@sourcebot/shared";
 import { useContext } from "react";
 import { PlanContext } from "./planProvider";
 

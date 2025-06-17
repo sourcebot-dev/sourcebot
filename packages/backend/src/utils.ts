@@ -20,10 +20,6 @@ export const marshalBool = (value?: boolean) => {
     return !!value ? '1' : '0';
 }
 
-export const isRemotePath = (path: string) => {
-    return path.startsWith('https://') || path.startsWith('http://');
-}
-
 export const getTokenFromConfig = async (token: any, orgId: number, db: PrismaClient, logger?: Logger) => {
     try {
         return await getTokenFromConfigBase(token, orgId, db);
