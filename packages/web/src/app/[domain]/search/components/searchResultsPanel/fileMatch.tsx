@@ -1,8 +1,7 @@
 'use client';
 
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { SearchResultFile, SearchResultChunk } from "@/features/search/types";
-import { base64Decode } from "@/lib/utils";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 
 
@@ -17,17 +16,12 @@ export const FileMatch = ({
     file,
     onOpen: _onOpen,
 }: FileMatchProps) => {
-
-    const content = useMemo(() => {
-        return base64Decode(match.content);
-    }, [match.content]);
-
     const onOpen = useCallback((isCtrlKeyPressed: boolean) => {
         const startLineNumber = match.contentStart.lineNumber;
-        const endLineNumber = content.trimEnd().split('\n').length + startLineNumber - 1;
+        const endLineNumber = match.content.trimEnd().split('\n').length + startLineNumber - 1;
 
         _onOpen(startLineNumber, endLineNumber, isCtrlKeyPressed);
-    }, [content, match.contentStart.lineNumber, _onOpen]);
+    }, [match.content, match.contentStart.lineNumber, _onOpen]);
 
     // If it's just the title, don't show a code preview
     if (match.matchRanges.length === 0) {
@@ -57,7 +51,7 @@ export const FileMatch = ({
                 lineNumbersOffset={match.contentStart.lineNumber}
                 renderWhitespace={true}
             >
-                {content}
+                {match.content}
             </LightweightCodeHighlighter>
         </div>
     );

@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { listRepos, search, getFileSource } from './client.js';
 import { env, numberSchema } from './env.js';
 import { TextContent } from './types.js';
-import { base64Decode, isServiceError } from './utils.js';
+import { isServiceError } from './utils.js';
 
 // Create MCP server
 const server = new McpServer({
@@ -114,8 +114,7 @@ server.tool(
 
             if (includeCodeSnippets) {
                 const snippets = file.chunks.map(chunk => {
-                    const content = base64Decode(chunk.content);
-                    return `\`\`\`\n${content}\n\`\`\``
+                    return `\`\`\`\n${chunk.content}\n\`\`\``
                 }).join('\n');
                 text += `\n\n${snippets}`;
             }
@@ -201,7 +200,7 @@ server.tool(
 
         const content: TextContent[] = [{
             type: "text",
-            text: `file: ${fileName}\nrepository: ${repoId}\nlanguage: ${response.language}\nsource:\n${base64Decode(response.source)}`,
+            text: `file: ${fileName}\nrepository: ${repoId}\nlanguage: ${response.language}\nsource:\n${response.source}`,
         }]
 
         return {

@@ -7,7 +7,6 @@ import { useDomain } from "@/hooks/useDomain";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { SetStateAction, Dispatch, useMemo } from "react";
 import { getFileSource } from "@/features/search/fileSourceApi";
-import { base64Decode } from "@/lib/utils";
 import { unwrapServiceError } from "@/lib/utils";
 
 interface CodePreviewPanelProps {
@@ -41,10 +40,8 @@ export const CodePreviewPanel = ({
             }, domain)
         ),
         select: (data) => {
-            const decodedSource = base64Decode(data.source);
-
             return {
-                content: decodedSource,
+                content: data.source,
                 filepath: previewedFile.fileName.text,
                 matches: previewedFile.chunks,
                 link: previewedFile.webUrl,

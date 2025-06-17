@@ -10,6 +10,7 @@ import { SearchRequest, SearchResponse, SourceRange } from "./types";
 import { OrgRole, Repo } from "@sourcebot/db";
 import * as Sentry from "@sentry/nextjs";
 import { sew, withAuth, withOrgMembership } from "@/actions";
+import { base64Decode } from "@sourcebot/shared";
 
 // List of supported query prefixes in zoekt.
 // @see : https://github.com/sourcebot-dev/zoekt/blob/main/query/parse.go#L417
@@ -264,7 +265,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                             .filter((chunk) => !chunk.FileName) // Filter out filename chunks.
                             .map((chunk) => {
                                 return {
-                                    content: chunk.Content,
+                                    content: base64Decode(chunk.Content),
                                     matchRanges: chunk.Ranges.map((range) => ({
                                         start: {
                                             byteOffset: range.Start.ByteOffset,
@@ -295,7 +296,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                                 }
                             }),
                         branches: file.Branches,
-                        content: file.Content,
+                        content: file.Content ? base64Decode(file.Content) : undefined,
                     }
                 }).filter((file) => file !== undefined) ?? [];
 
