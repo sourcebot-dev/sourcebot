@@ -10,17 +10,17 @@ export class AuditService implements IAuditService {
     const sourcebotVersion = process.env.NEXT_PUBLIC_SOURCEBOT_VERSION || 'unknown';
 
     try {
-    const audit = await prisma.audit.create({
-      data: {
-        action: event.action,
-        actorId: event.actor.id,
-        actorType: event.actor.type,
-        targetId: event.target.id,
-        targetType: event.target.type,
-        sourcebotVersion,
-        metadata: event.metadata,
-        orgId: event.orgId,
-      },
+      const audit = await prisma.audit.create({
+        data: {
+          action: event.action,
+          actorId: event.actor.id,
+          actorType: event.actor.type,
+          targetId: event.target.id,
+          targetType: event.target.type,
+          sourcebotVersion,
+          metadata: event.metadata,
+          orgId: event.orgId,
+        },
       });
 
       return audit;
