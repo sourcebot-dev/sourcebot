@@ -198,21 +198,24 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
 
                 (await prisma.repo.findMany({
                     where: {
-                        id: {
-                            in: Array.from(repoIdentifiers).filter((id) => typeof id === "number"),
-                        },
+                        OR: [
+                            {
+                                id: {
+                                    in: Array.from(repoIdentifiers).filter((id) => typeof id === "number"),
+                                },
+                            },
+                            {
+                                name: {
+                                    in: Array.from(repoIdentifiers).filter((id) => typeof id === "string"),
+                                },
+                            }
+                        ],
                         orgId: org.id,
                     }
-                })).forEach(repo => repos.set(repo.id, repo));
-
-                (await prisma.repo.findMany({
-                    where: {
-                        name: {
-                            in: Array.from(repoIdentifiers).filter((id) => typeof id === "string"),
-                        },
-                        orgId: org.id,
-                    }
-                })).forEach(repo => repos.set(repo.name, repo));
+                })).forEach(repo => {
+                    repos.set(repo.id, repo);
+                    repos.set(repo.name, repo);
+                });
 
                 const files = Result.Files?.map((file) => {
                     const fileNameChunks = file.ChunkMatches.filter((chunk) => chunk.FileName);
