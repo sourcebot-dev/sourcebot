@@ -19,10 +19,11 @@ import { Form, FormField } from "@/components/ui/form"
 import { ChatContext, Citation, CITATION_PREFIX, citationSchema, FileContext } from "@/features/chat/constants"
 import { TopBar } from "../components/topBar"
 import { useDomain } from "@/hooks/useDomain"
-import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation"
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle"
 import { FileSearchCommandDialog } from "../components/fileSearchCommandDialog"
+import { useBrowsePath } from "../browse/hooks/useBrowsePath"
+import Link from "next/link"
 
 const formSchema = z.object({
     message: z.string().min(1),
@@ -348,24 +349,22 @@ const ToolInvocationUIPartComponent = ({ part }: { part: ToolInvocationUIPart })
 // Citation component for rendering citation links
 const CitationComponent = ({ citation }: { citation: Citation }) => {
     const { name, repository, revision, path } = citation;
-    const { navigateToPath } = useBrowseNavigation();
+    const { path: browsePath } = useBrowsePath({
+        repoName: repository,
+        revisionName: revision,
+        path: path,
+        pathType: 'blob',
+        highlightRange: citation.range,
+    });
 
     return (
-        <span
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs transition-colors cursor-pointer rounded-md bg-accent hover:bg-accent/50 border"
-            onClick={() => {
-                navigateToPath({
-                    repoName: repository,
-                    revisionName: revision,
-                    path: path,
-                    pathType: 'blob',
-                    highlightRange: citation.range,
-                });
-            }}
+        <Link
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs transition-colors cursor-pointer rounded-md bg-accent select-none hover:bg-accent/50 border"
+            href={browsePath}
         >
             <Code className="h-3 w-3" />
             <span className="font-mono">{name}</span>
-        </span>
+        </Link>
     )
 }
 
