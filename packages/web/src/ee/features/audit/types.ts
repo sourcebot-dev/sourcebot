@@ -16,8 +16,7 @@ export type AuditTarget = z.infer<typeof auditTargetSchema>;
 export const auditMetadataSchema = z.object({
     message: z.string().optional(),
     api_key: z.string().optional(),
-    email: z.string().optional(),
-    emails: z.string().optional(),
+    emails: z.string().optional(), // comma separated list of emails
 })
 export type AuditMetadata = z.infer<typeof auditMetadataSchema>;
 

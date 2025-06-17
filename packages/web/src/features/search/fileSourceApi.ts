@@ -15,7 +15,7 @@ import { getAuditService } from "@/ee/features/audit/factory";
 const auditService = getAuditService();
 
 export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest, domain: string, apiKey: string | undefined = undefined): Promise<FileSourceResponse | ServiceError> => sew(() =>
-    withAuth((userId) =>
+    withAuth((userId, apiKeyHash) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const escapedFileName = escapeStringRegexp(fileName);
             const escapedRepository = escapeStringRegexp(repository);
@@ -48,8 +48,8 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
             await auditService.createAudit({
                 action: "query.file_source",
                 actor: {
-                    id: apiKey ? apiKey : userId,
-                    type: apiKey ? "api_key" : "user"
+                    id: apiKeyHash ?? userId,
+                    type: apiKeyHash ? "api_key" : "user"
                 },
                 orgId: org.id,
                 target: {

@@ -9,7 +9,7 @@ import { getAuditService } from "@/ee/features/audit/factory";
 const auditService = getAuditService();
 
 export const listRepositories = async (domain: string, apiKey: string | undefined = undefined): Promise<ListRepositoriesResponse | ServiceError> => sew(() =>
-    withAuth((userId) =>
+    withAuth((userId, apiKeyHash) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const body = JSON.stringify({
                 opts: {
@@ -50,8 +50,8 @@ export const listRepositories = async (domain: string, apiKey: string | undefine
             await auditService.createAudit({
                 action: "query.list_repositories",
                 actor: {
-                    id: apiKey ? apiKey : userId,
-                    type: apiKey ? "api_key" : "user"
+                    id: apiKeyHash ?? userId,
+                    type: apiKeyHash ? "api_key" : "user"
                 },
                 target: {
                     id: org.id.toString(),

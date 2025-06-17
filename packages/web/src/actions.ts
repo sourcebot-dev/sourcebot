@@ -61,7 +61,7 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
     }
 }
 
-export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false, apiKey: ApiKeyPayload | undefined = undefined) => {
+export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | undefined) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false, apiKey: ApiKeyPayload | undefined = undefined) => {
     const session = await auth();
 
     if (!session) {
@@ -95,7 +95,7 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
                 },
             });
 
-            return fn(user.id);
+            return fn(user.id, apiKeyOrError.apiKey.hash);
         } else if (
             env.SOURCEBOT_TENANCY_MODE === 'single' &&
             allowSingleTenantUnauthedAccess &&
@@ -109,11 +109,11 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
             }
 
             // To support unauthed access a guest user is created in initialize.ts, which we return here
-            return fn(SOURCEBOT_GUEST_USER_ID);
+            return fn(SOURCEBOT_GUEST_USER_ID, undefined);
         }
         return notAuthenticated();
     }
-    return fn(session.user.id);
+    return fn(session.user.id, undefined);
 }
 
 export const orgHasAvailability = async (domain: string): Promise<boolean> => {
@@ -505,10 +505,7 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
                     id: apiKey.hash,
                     type: "api_key"
                 },
-                orgId: org.id,
-                metadata: {
-                    api_key: name
-                }
+                orgId: org.id
             });
 
             return {
@@ -1057,15 +1054,6 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                     message: `One or more of the provided emails are already members of this org.`,
                 } satisfies ServiceError;
             }
-
-            const invites = await prisma.invite.createMany({
-                data: emails.map((email) => ({
-                    recipientEmail: email,
-                    hostUserId: userId,
-                    orgId: org.id,
-                })),
-                skipDuplicates: true,
-            });
 
             // Send invites to recipients
             if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {

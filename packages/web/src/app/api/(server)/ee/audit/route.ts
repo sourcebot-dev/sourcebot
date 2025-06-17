@@ -7,7 +7,7 @@ import { serviceErrorResponse } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { env } from "@/env.mjs";
-import { getEntitlements } from "@/features/entitlements/server";
+import { getEntitlements } from "@sourcebot/shared";
 
 export const GET = async (request: NextRequest) => {
   const domain = request.headers.get("X-Org-Domain");
@@ -23,7 +23,7 @@ export const GET = async (request: NextRequest) => {
 
   if (env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === 'false') {
     return serviceErrorResponse({
-      statusCode: StatusCodes.FORBIDDEN,
+      statusCode: StatusCodes.NOT_FOUND,
       errorCode: ErrorCode.NOT_FOUND,
       message: "Audit logging is not enabled",
     });
@@ -37,7 +37,7 @@ export const GET = async (request: NextRequest) => {
       message: "Audit logging is not enabled for your license",
     });
   }
-  
+
   const result = await fetchAuditRecords(domain, apiKey);
   if (isServiceError(result)) {
     return serviceErrorResponse(result);

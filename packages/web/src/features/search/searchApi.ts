@@ -128,7 +128,7 @@ const getFileWebUrl = (template: string, branch: string, fileName: string): stri
 }
 
 export const search = async ({ query, matches, contextLines, whole }: SearchRequest, domain: string, apiKey: string | undefined = undefined) => sew(() =>
-    withAuth((userId) =>
+    withAuth((userId, apiKeyHash) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const transformedQuery = await transformZoektQuery(query, org.id);
             if (isServiceError(transformedQuery)) {
@@ -304,8 +304,8 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                 await auditService.createAudit({
                     action: "query.code_search",
                     actor: {
-                        id: apiKey ? apiKey : userId,
-                        type: apiKey ? "api_key" : "user"
+                        id: apiKeyHash ?? userId,
+                        type: apiKeyHash ? "api_key" : "user"
                     },
                     target: {
                         id: org.id.toString(),
