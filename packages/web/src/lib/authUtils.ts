@@ -27,6 +27,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                 id: "undefined",
                 type: "user"
             },
+            orgId: SINGLE_TENANT_ORG_ID, // TODO(mt)
             metadata: {
                 message: "User ID is undefined on user creation"
             }
@@ -52,7 +53,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
             }
         });
 
-        if (!defaultOrg) {
+        if (defaultOrg === null) {
             await auditService.createAudit({
                 action: "user.creation_failed",
                 actor: {
@@ -63,6 +64,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                     id: user.id,
                     type: "user"
                 },
+                orgId: SINGLE_TENANT_ORG_ID,
                 metadata: {
                     message: "Default org not found on single tenant user creation"
                 }
@@ -108,6 +110,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                     id: user.id,
                     type: "user"
                 },
+                orgId: SINGLE_TENANT_ORG_ID,
                 target: {
                     id: SINGLE_TENANT_ORG_ID.toString(),
                     type: "org"
@@ -129,6 +132,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                             id: SINGLE_TENANT_ORG_ID.toString(),
                             type: "org"
                         },
+                        orgId: SINGLE_TENANT_ORG_ID,
                         metadata: {
                             message: `Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`
                         }
@@ -145,7 +149,8 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                     target: {
                         id: SINGLE_TENANT_ORG_ID.toString(),
                         type: "org"
-                    }
+                    },
+                    orgId: SINGLE_TENANT_ORG_ID,
                 });
             } else {
                 const res = await createAccountRequest(user.id, SINGLE_TENANT_ORG_DOMAIN);
@@ -161,6 +166,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                             id: SINGLE_TENANT_ORG_ID.toString(),
                             type: "org"
                         },
+                        orgId: SINGLE_TENANT_ORG_ID,
                         metadata: {
                             message: res.message
                         }
@@ -174,10 +180,11 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                         id: user.id,
                         type: "user"
                     },
+                    orgId: SINGLE_TENANT_ORG_ID,
                     target: {
                         id: SINGLE_TENANT_ORG_ID.toString(),
                         type: "org"
-                    }
+                    },
                 });
             }
         }

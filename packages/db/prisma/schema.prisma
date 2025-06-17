@@ -172,6 +172,8 @@ model Org {
   /// List of pending invites to this organization
   invites Invite[]
 
+  audits Audit[]
+
   accountRequests AccountRequest[]
 
   searchContexts SearchContext[]
@@ -239,7 +241,10 @@ model Audit {
   sourcebotVersion String
   metadata Json?
 
-  @@index([actorId, actorType, targetId, targetType])
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@index([actorId, actorType, targetId, targetType, orgId])
 }
 
 // @see : https://authjs.dev/concepts/database-models#user

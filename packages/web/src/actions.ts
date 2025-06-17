@@ -473,6 +473,7 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
                         id: org.id.toString(),
                         type: "org"
                     },
+                    orgId: org.id,
                     metadata: {
                         message: `API key ${name} already exists`,
                         api_key: name
@@ -505,6 +506,7 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
                     id: apiKey.hash,
                     type: "api_key"
                 },
+                orgId: org.id,
                 metadata: {
                     api_key: name
                 }
@@ -517,7 +519,7 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
 
 export const deleteApiKey = async (name: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
-        withOrgMembership(userId, domain, async () => {
+        withOrgMembership(userId, domain, async ({ org }) => {
             const apiKey = await prisma.apiKey.findFirst({
                 where: {
                     name,
@@ -536,6 +538,7 @@ export const deleteApiKey = async (name: string, domain: string): Promise<{ succ
                         id: domain,
                         type: "org"
                     },
+                    orgId: org.id,
                     metadata: {
                         message: `API key ${name} not found for user ${userId}`,
                         api_key: name
@@ -564,6 +567,7 @@ export const deleteApiKey = async (name: string, domain: string): Promise<{ succ
                     id: apiKey.hash,
                     type: "api_key"
                 },
+                orgId: org.id,
                 metadata: {
                     api_key: name
                 }
@@ -978,6 +982,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                         id: org.id.toString(),
                         type: "org"
                     },
+                    orgId: org.id,
                     metadata: {
                         message: error,
                         emails: emails.join(", ")
@@ -1001,6 +1006,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                         id: org.id.toString(),
                         type: "org"
                     },
+                    orgId: org.id,
                     metadata: {
                         message: "Organization has reached maximum number of seats",
                         emails: emails.join(", ")
@@ -1130,6 +1136,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                     id: org.id.toString(),
                     type: "org"
                 },
+                orgId: org.id,
                 metadata: {
                     emails: emails.join(", ")
                 }
@@ -1206,22 +1213,6 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
             return user;
         }
         
-        const failAuditCallback = async (error: string) => {
-            await auditService.createAudit({
-                action: "user.invite_accept_failed",
-                actor: {
-                    id: user.id,
-                    type: "user"
-                },
-                target: {
-                    id: inviteId,
-                    type: "invite"
-                },
-                metadata: {
-                    message: error
-                }
-            });
-        }
         const invite = await prisma.invite.findUnique({
             where: {
                 id: inviteId,
@@ -1234,6 +1225,25 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         if (!invite) {
             return notFound();
         }
+
+        const failAuditCallback = async (error: string) => {
+            await auditService.createAudit({
+                action: "user.invite_accept_failed",
+                actor: {
+                    id: user.id,
+                    type: "user"
+                },
+                target: {
+                    id: inviteId,
+                    type: "invite"
+                },
+                orgId: invite.org.id,
+                metadata: {
+                    message: error
+                }
+            });
+        }
+
 
         const hasAvailability = await orgHasAvailability(invite.org.domain);
         if (!hasAvailability) {
@@ -1293,6 +1303,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
                         id: user.id,
                         type: "user"
                     },
+                    orgId: invite.org.id,
                     target: {
                         id: accountRequest.id,
                         type: "account_join_request"
@@ -1325,6 +1336,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
                 id: user.id,
                 type: "user"
             },
+            orgId: invite.org.id,
             target: {
                 id: inviteId,
                 type: "invite"
@@ -1394,6 +1406,7 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
                         id: org.id.toString(),
                         type: "org"
                     },
+                    orgId: org.id,
                     metadata: {
                         message: error
                     }
@@ -1461,6 +1474,7 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
                     id: org.id.toString(),
                     type: "org"
                 },
+                orgId: org.id,
                 metadata: {
                     message: `Ownership transferred from ${currentUserId} to ${newOwnerId}`
                 }
@@ -1780,6 +1794,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                         id: requestId,
                         type: "account_join_request"
                     },
+                    orgId: org.id,
                     metadata: {
                         message: error,
                     }
@@ -1894,6 +1909,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                     id: userId,
                     type: "user"
                 },
+                orgId: org.id,
                 target: {
                     id: requestId,
                     type: "account_join_request"
@@ -1930,6 +1946,7 @@ export const rejectAccountRequest = async (requestId: string, domain: string) =>
                     id: userId,
                     type: "user"
                 },
+                orgId: org.id,
                 target: {
                     id: requestId,
                     type: "account_join_request"

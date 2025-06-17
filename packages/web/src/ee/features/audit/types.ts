@@ -26,6 +26,7 @@ export const auditEventSchema = z.object({
   actor: auditActorSchema,
   target: auditTargetSchema,
   sourcebotVersion: z.string(),
+  orgId: z.number(),
   metadata: auditMetadataSchema.optional()
 })
 export type AuditEvent = z.infer<typeof auditEventSchema>;

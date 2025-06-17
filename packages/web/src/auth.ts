@@ -17,6 +17,7 @@ import { getSSOProviders } from '@/ee/features/sso/sso';
 import { hasEntitlement } from '@/features/entitlements/server';
 import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
+import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 
 const auditService = getAuditService();
 
@@ -148,6 +149,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         id: user.id,
                         type: "user"
                     },
+                    orgId: SINGLE_TENANT_ORG_ID, // TODO(mt)
                     target: {
                         id: user.id,
                         type: "user"
@@ -164,6 +166,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         id: token.token.userId,
                         type: "user"
                     },
+                    orgId: SINGLE_TENANT_ORG_ID, // TODO(mt)
                     target: {
                         id: token.token.userId,
                         type: "user"

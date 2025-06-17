@@ -14,6 +14,7 @@ export class AuditService implements IAuditService {
         targetType: event.target.type,
         sourcebotVersion,
         metadata: event.metadata,
+        orgId: event.orgId,
       },
     });
 

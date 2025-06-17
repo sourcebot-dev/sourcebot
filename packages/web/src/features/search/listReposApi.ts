@@ -57,6 +57,7 @@ export const listRepositories = async (domain: string, apiKey: string | undefine
                     id: org.id.toString(),
                     type: "org"
                 },
+                orgId: org.id,
                 metadata: {
                     message: result.repos.map((repo) => repo.name).join(", ")
                 }

@@ -311,6 +311,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                         id: org.id.toString(),
                         type: "org"
                     },
+                    orgId: org.id,
                     metadata: {
                         message: query,
                     }
