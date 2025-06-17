@@ -159,8 +159,6 @@ const pruneOldGuestUser = async () => {
 }
 
 const validateEntitlements = () => {
-    const entitlements = getEntitlements();
-
     if (env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === 'true') {
         if (!hasEntitlement('audit')) {
             logger.error(`Audit logging is enabled but your license does not include the audit logging entitlement. Please reach out to us to enquire about upgrading your license.`);
