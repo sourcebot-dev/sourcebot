@@ -295,13 +295,18 @@ export class ConnectionManager implements IConnectionManager {
         // After a connection has synced, we need to re-sync the org's search contexts as
         // there may be new repos that match the search context's include/exclude patterns.
         if (env.CONFIG_PATH) {
-            const config = await loadConfig(env.CONFIG_PATH);
+            try {
+                const config = await loadConfig(env.CONFIG_PATH);
 
-            await syncSearchContexts({
-                db: this.db,
-                orgId,
-                contexts: config.contexts,
-            });
+                await syncSearchContexts({
+                    db: this.db,
+                    orgId,
+                    contexts: config.contexts,
+                });
+            } catch (err) {
+                this.logger.error(`Failed to sync search contexts for connection ${connectionId}: ${err}`);
+                Sentry.captureException(err);
+            }
         }
 
 

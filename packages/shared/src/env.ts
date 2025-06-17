@@ -10,6 +10,5 @@ export const env = createEnv({
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,
-    // @note: todo
-    skipValidation: true,
+    skipValidation: process.env.SKIP_ENV_VALIDATION === "1",
 });
