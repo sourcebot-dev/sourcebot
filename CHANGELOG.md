@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added audit logging. [#355](https://github.com/sourcebot-dev/sourcebot/pull/355)
+
 ### Fixed
 - Delete account join request when redeeming an invite. [#352](https://github.com/sourcebot-dev/sourcebot/pull/352)
 - Fix issue where a repository would not be included in a search context if the context was created before the repository. [#354](https://github.com/sourcebot-dev/sourcebot/pull/354)
