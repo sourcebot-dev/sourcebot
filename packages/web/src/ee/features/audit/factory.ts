@@ -1,16 +1,11 @@
 import { IAuditService } from '@/ee/features/audit/types';
 import { MockAuditService } from '@/ee/features/audit/mockAuditService';
-import { hasEntitlement } from '@/features/entitlements/server';
 import { AuditService } from '@/ee/features/audit/auditService';
+import { env } from '@/env.mjs';
 
-let enterpriseService: IAuditService | null = null;
+let enterpriseService: IAuditService | undefined;
 
 export function getAuditService(): IAuditService {
-  if (hasEntitlement('audit')) {
-    if (!enterpriseService) {
-      enterpriseService = new AuditService();
-    }
-    return enterpriseService!;
-  }
-  return new MockAuditService();
+  enterpriseService = enterpriseService ?? (env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === 'true' ? new AuditService() : new MockAuditService());
+  return enterpriseService;
 }

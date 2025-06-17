@@ -10,7 +10,7 @@ import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
 import Ajv from 'ajv';
 import { syncSearchContexts } from '@/ee/features/searchContexts/syncSearchContexts';
-import { hasEntitlement } from '@/features/entitlements/server';
+import { getEntitlements, hasEntitlement } from '@/features/entitlements/server';
 import { createGuestUser, setPublicAccessStatus } from '@/ee/features/publicAccess/publicAccess';
 import { isServiceError } from './lib/utils';
 import { ServiceErrorException } from './lib/serviceError';
@@ -150,6 +150,11 @@ const syncDeclarativeConfig = async (configPath: string) => {
     }
 
     if (hasPublicAccessEntitlement) {
+        if (enablePublicAccess && env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === 'true') {
+            logger.error(`Audit logging is not supported when public access is enabled. Please disable audit logging or disable public access.`);
+            process.exit(1);
+        }
+        
         logger.info(`Setting public access status to ${!!enablePublicAccess} for org ${SINGLE_TENANT_ORG_DOMAIN}`);
         const res = await setPublicAccessStatus(SINGLE_TENANT_ORG_DOMAIN, !!enablePublicAccess);
         if (isServiceError(res)) {
@@ -186,6 +191,17 @@ const pruneOldGuestUser = async () => {
     }
 }
 
+const validateEntitlements = () => {
+    const entitlements = getEntitlements();
+
+    if (env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === 'true') {
+        if (!hasEntitlement('audit')) {
+            logger.error(`Audit logging is enabled but your license does not include the audit logging entitlement. Please reach out to us to enquire about upgrading your license.`);
+            process.exit(1);
+        }
+    }
+}
+
 const initSingleTenancy = async () => {
     await prisma.org.upsert({
         where: {
@@ -202,6 +218,9 @@ const initSingleTenancy = async () => {
     // This is needed because v4 introduces the GUEST org role as well as making authentication required. 
     // To keep things simple, we'll just delete the old guest user if it exists in the DB
     await pruneOldGuestUser();
+
+    // Startup time entitlement/environment variable validation
+    validateEntitlements();
 
     const hasPublicAccessEntitlement = hasEntitlement("public-access");
     if (hasPublicAccessEntitlement) {

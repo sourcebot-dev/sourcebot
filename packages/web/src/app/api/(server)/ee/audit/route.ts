@@ -6,6 +6,8 @@ import { isServiceError } from "@/lib/utils";
 import { serviceErrorResponse } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
+import { env } from "@/env.mjs";
+import { getEntitlements } from "@/features/entitlements/server";
 
 export const GET = async (request: NextRequest) => {
   const domain = request.headers.get("X-Org-Domain");
@@ -18,6 +20,23 @@ export const GET = async (request: NextRequest) => {
       message: "Missing X-Org-Domain header",
     });
   } 
+
+  if (env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === 'false') {
+    return serviceErrorResponse({
+      statusCode: StatusCodes.FORBIDDEN,
+      errorCode: ErrorCode.NOT_FOUND,
+      message: "Audit logging is not enabled",
+    });
+  }
+
+  const entitlements = getEntitlements();
+  if (!entitlements.includes('audit')) {
+    return serviceErrorResponse({
+      statusCode: StatusCodes.FORBIDDEN,
+      errorCode: ErrorCode.NOT_FOUND,
+      message: "Audit logging is not enabled for your license",
+    });
+  }
   
   const result = await fetchAuditRecords(domain, apiKey);
   if (isServiceError(result)) {
