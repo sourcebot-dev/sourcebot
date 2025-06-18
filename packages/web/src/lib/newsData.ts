@@ -2,6 +2,12 @@ import { NewsItem } from "./types";
 
 export const newsData: NewsItem[] = [
     {
+        unique_id: "audit-logs",
+        header: "Audit logs",
+        sub_header: "We've added support for audit logs",
+        url: "https://docs.sourcebot.dev/docs/configuration/audit-logs"
+    },
+    {
         unique_id: "file-explorer",
         header: "File explorer",
         sub_header: "We've added support for a file explorer when browsing files.",
