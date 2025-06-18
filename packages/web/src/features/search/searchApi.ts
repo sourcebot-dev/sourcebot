@@ -11,6 +11,9 @@ import { OrgRole, Repo } from "@sourcebot/db";
 import * as Sentry from "@sentry/nextjs";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { base64Decode } from "@sourcebot/shared";
+import { getAuditService } from "@/ee/features/audit/factory";
+
+const auditService = getAuditService();
 
 // List of supported query prefixes in zoekt.
 // @see : https://github.com/sourcebot-dev/zoekt/blob/main/query/parse.go#L417
@@ -126,7 +129,7 @@ const getFileWebUrl = (template: string, branch: string, fileName: string): stri
 }
 
 export const search = async ({ query, matches, contextLines, whole }: SearchRequest, domain: string, apiKey: string | undefined = undefined) => sew(() =>
-    withAuth((userId) =>
+    withAuth((userId, apiKeyHash) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const transformedQuery = await transformZoektQuery(query, org.id);
             if (isServiceError(transformedQuery)) {
@@ -178,7 +181,6 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             const searchBody = await searchResponse.json();
 
             const parser = zoektSearchResponseSchema.transform(async ({ Result }) => {
-
                 // @note (2025-05-12): in zoekt, repositories are identified by the `RepositoryID` field
                 // which corresponds to the `id` in the Repo table. In order to efficiently fetch repository
                 // metadata when transforming (potentially thousands) of file matches, we aggregate a unique
@@ -300,6 +302,22 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                     }
                 }).filter((file) => file !== undefined) ?? [];
 
+                await auditService.createAudit({
+                    action: "query.code_search",
+                    actor: {
+                        id: apiKeyHash ?? userId,
+                        type: apiKeyHash ? "api_key" : "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: query,
+                    }
+                });
+
                 return {
                     zoektStats: {
                         duration: Result.Duration,
@@ -347,4 +365,4 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
 
             return parser.parseAsync(searchBody);
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
-)
+    );

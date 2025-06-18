@@ -36,12 +36,14 @@ import { getPublicAccessStatus } from "./ee/features/publicAccess/publicAccess";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import { createLogger } from "@sourcebot/logger";
+import { getAuditService } from "@/ee/features/audit/factory";
 
 const ajv = new Ajv({
     validateFormats: false,
 });
 
 const logger = createLogger('web-actions');
+const auditService = getAuditService();
 
 /**
  * "Service Error Wrapper".
@@ -59,7 +61,7 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
     }
 }
 
-export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false, apiKey: ApiKeyPayload | undefined = undefined) => {
+export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | undefined) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false, apiKey: ApiKeyPayload | undefined = undefined) => {
     const session = await auth();
 
     if (!session) {
@@ -93,7 +95,7 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
                 },
             });
 
-            return fn(user.id);
+            return fn(user.id, apiKeyOrError.apiKey.hash);
         } else if (
             env.SOURCEBOT_TENANCY_MODE === 'single' &&
             allowSingleTenantUnauthedAccess &&
@@ -107,11 +109,11 @@ export const withAuth = async <T>(fn: (userId: string) => Promise<T>, allowSingl
             }
 
             // To support unauthed access a guest user is created in initialize.ts, which we return here
-            return fn(SOURCEBOT_GUEST_USER_ID);
+            return fn(SOURCEBOT_GUEST_USER_ID, undefined);
         }
         return notAuthenticated();
     }
-    return fn(session.user.id);
+    return fn(session.user.id, undefined);
 }
 
 export const orgHasAvailability = async (domain: string): Promise<boolean> => {
@@ -460,6 +462,22 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
             });
 
             if (existingApiKey) {
+                await auditService.createAudit({
+                    action: "api_key.creation_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: `API key ${name} already exists`,
+                        api_key: name
+                    }
+                });
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.API_KEY_ALREADY_EXISTS,
@@ -468,13 +486,26 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
             }
 
             const { key, hash } = generateApiKey();
-            await prisma.apiKey.create({
+            const apiKey = await prisma.apiKey.create({
                 data: {
                     name,
                     hash,
                     orgId: org.id,
                     createdById: userId,
                 }
+            });
+
+            await auditService.createAudit({
+                action: "api_key.created",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: apiKey.hash,
+                    type: "api_key"
+                },
+                orgId: org.id
             });
 
             return {
@@ -484,7 +515,7 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
 
 export const deleteApiKey = async (name: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
-        withOrgMembership(userId, domain, async () => {
+        withOrgMembership(userId, domain, async ({ org }) => {
             const apiKey = await prisma.apiKey.findFirst({
                 where: {
                     name,
@@ -493,6 +524,22 @@ export const deleteApiKey = async (name: string, domain: string): Promise<{ succ
             });
 
             if (!apiKey) {
+                await auditService.createAudit({
+                    action: "api_key.deletion_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: domain,
+                        type: "org"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: `API key ${name} not found for user ${userId}`,
+                        api_key: name
+                    }
+                });
                 return {
                     statusCode: StatusCodes.NOT_FOUND,
                     errorCode: ErrorCode.API_KEY_NOT_FOUND,
@@ -504,6 +551,22 @@ export const deleteApiKey = async (name: string, domain: string): Promise<{ succ
                 where: {
                     hash: apiKey.hash,
                 },
+            });
+
+            await auditService.createAudit({
+                action: "api_key.deleted",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: apiKey.hash,
+                    type: "api_key"
+                },
+                orgId: org.id,
+                metadata: {
+                    api_key: name
+                }
             });
 
             return {
@@ -904,6 +967,24 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
 export const createInvites = async (emails: string[], domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
+            const failAuditCallback = async (error: string) => {
+                await auditService.createAudit({
+                    action: "user.invite_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: error,
+                        emails: emails.join(", ")
+                    }
+                });
+            }
             const user = await getMe();
             if (isServiceError(user)) {
                 throw new ServiceErrorException(user);
@@ -911,6 +992,22 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
 
             const hasAvailability = await orgHasAvailability(domain);
             if (!hasAvailability) {
+                await auditService.createAudit({
+                    action: "user.invite_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: "Organization has reached maximum number of seats",
+                        emails: emails.join(", ")
+                    }
+                });
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
@@ -929,6 +1026,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
             });
 
             if (existingInvites.length > 0) {
+                await failAuditCallback("A pending invite already exists for one or more of the provided emails");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_INVITE,
@@ -949,21 +1047,13 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
             });
 
             if (existingMembers.length > 0) {
+                await failAuditCallback("One or more of the provided emails are already members of this org");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_INVITE,
                     message: `One or more of the provided emails are already members of this org.`,
                 } satisfies ServiceError;
             }
-
-            await prisma.invite.createMany({
-                data: emails.map((email) => ({
-                    recipientEmail: email,
-                    hostUserId: userId,
-                    orgId: org.id,
-                })),
-                skipDuplicates: true,
-            });
 
             // Send invites to recipients
             if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
@@ -1023,6 +1113,21 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                 logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping invite email to ${emails.join(", ")}`);
             }
 
+            await auditService.createAudit({
+                action: "user.invites_created",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: org.id.toString(),
+                    type: "org"
+                },
+                orgId: org.id,
+                metadata: {
+                    emails: emails.join(", ")
+                }
+            });
             return {
                 success: true,
             }
@@ -1090,6 +1195,11 @@ export const getMe = async () => sew(() =>
 
 export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async () => {
+        const user = await getMe();
+        if (isServiceError(user)) {
+            return user;
+        }
+        
         const invite = await prisma.invite.findUnique({
             where: {
                 id: inviteId,
@@ -1103,13 +1213,28 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
             return notFound();
         }
 
-        const user = await getMe();
-        if (isServiceError(user)) {
-            return user;
+        const failAuditCallback = async (error: string) => {
+            await auditService.createAudit({
+                action: "user.invite_accept_failed",
+                actor: {
+                    id: user.id,
+                    type: "user"
+                },
+                target: {
+                    id: inviteId,
+                    type: "invite"
+                },
+                orgId: invite.org.id,
+                metadata: {
+                    message: error
+                }
+            });
         }
+
 
         const hasAvailability = await orgHasAvailability(invite.org.domain);
         if (!hasAvailability) {
+            await failAuditCallback("Organization is at max capacity");
             return {
                 statusCode: StatusCodes.BAD_REQUEST,
                 errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
@@ -1119,6 +1244,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
 
         // Check if the user is the recipient of the invite
         if (user.email !== invite.recipientEmail) {
+            await failAuditCallback("User is not the recipient of the invite");
             return notFound();
         }
 
@@ -1158,6 +1284,19 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
 
             if (accountRequest) {
                 logger.info(`Deleting account request ${accountRequest.id} for user ${user.id} since they've redeemed an invite`);
+                await auditService.createAudit({
+                    action: "user.join_request_removed",
+                    actor: {
+                        id: user.id,
+                        type: "user"
+                    },
+                    orgId: invite.org.id,
+                    target: {
+                        id: accountRequest.id,
+                        type: "account_join_request"
+                    }
+                });
+
                 await tx.accountRequest.delete({
                     where: {
                         id: accountRequest.id,
@@ -1174,8 +1313,22 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         });
 
         if (isServiceError(res)) {
+            await failAuditCallback(res.message);
             return res;
         }
+
+        await auditService.createAudit({
+            action: "user.invite_accepted",
+            actor: {
+                id: user.id,
+                type: "user"
+            },
+            orgId: invite.org.id,
+            target: {
+                id: inviteId,
+                type: "invite"
+            }
+        });
 
         return {
             success: true,
@@ -1229,7 +1382,25 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
         withOrgMembership(userId, domain, async ({ org }) => {
             const currentUserId = userId;
 
+            const failAuditCallback = async (error: string) => {
+                await auditService.createAudit({
+                    action: "org.ownership_transfer_failed",
+                    actor: {
+                        id: currentUserId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: error
+                    }
+                })
+            }
             if (newOwnerId === currentUserId) {
+                await failAuditCallback("User is already the owner of this org");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
@@ -1247,6 +1418,7 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
             });
 
             if (!newOwner) {
+                await failAuditCallback("The user you're trying to make the owner doesn't exist");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
@@ -1278,6 +1450,22 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
                     }
                 })
             ]);
+
+            await auditService.createAudit({
+                action: "org.ownership_transferred",
+                actor: {
+                    id: currentUserId,
+                    type: "user"
+                },
+                target: {
+                    id: org.id.toString(),
+                    type: "org"
+                },
+                orgId: org.id,
+                metadata: {
+                    message: `Ownership transferred from ${currentUserId} to ${newOwnerId}`
+                }
+            });
 
             return {
                 success: true,
@@ -1579,9 +1767,27 @@ export const createAccountRequest = async (userId: string, domain: string) => se
     }
 });
 
-export const approveAccountRequest = async (requestId: string, domain: string) => sew(() =>
+export const approveAccountRequest = async (requestId: string, domain: string) => sew(async () =>
     withAuth(async (userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
+            const failAuditCallback = async (error: string) => {
+                await auditService.createAudit({
+                    action: "user.join_request_approve_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"    
+                    },
+                    target: {
+                        id: requestId,
+                        type: "account_join_request"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: error,
+                    }
+                });
+            }
+
             const request = await prisma.accountRequest.findUnique({
                 where: {
                     id: requestId,
@@ -1592,11 +1798,13 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
             });
 
             if (!request || request.orgId !== org.id) {
+                await failAuditCallback("Request not found");
                 return notFound();
             }
 
             const hasAvailability = await orgHasAvailability(domain);
             if (!hasAvailability) {
+                await failAuditCallback("Organization is at max capacity");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
@@ -1646,6 +1854,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
             });
 
             if (isServiceError(res)) {
+                await failAuditCallback(res.message);
                 return res;
             }
 
@@ -1681,6 +1890,18 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                 logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping approval email to ${request.requestedBy.email}`);
             }
 
+            await auditService.createAudit({
+                action: "user.join_request_approved",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                orgId: org.id,
+                target: {
+                    id: requestId,
+                    type: "account_join_request"
+                }
+            });
             return {
                 success: true,
             }
@@ -1704,6 +1925,19 @@ export const rejectAccountRequest = async (requestId: string, domain: string) =>
                 where: {
                     id: requestId,
                 },
+            });
+
+            await auditService.createAudit({
+                action: "user.join_request_removed",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                orgId: org.id,
+                target: {
+                    id: requestId,
+                    type: "account_join_request"
+                }
             });
 
             return {

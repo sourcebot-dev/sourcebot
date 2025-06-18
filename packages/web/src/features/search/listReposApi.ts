@@ -4,9 +4,12 @@ import { ListRepositoriesResponse } from "./types";
 import { zoektFetch } from "./zoektClient";
 import { zoektListRepositoriesResponseSchema } from "./zoektSchema";
 import { sew, withAuth, withOrgMembership } from "@/actions";
+import { getAuditService } from "@/ee/features/audit/factory";
+
+const auditService = getAuditService();
 
 export const listRepositories = async (domain: string, apiKey: string | undefined = undefined): Promise<ListRepositoriesResponse | ServiceError> => sew(() =>
-    withAuth((userId) =>
+    withAuth((userId, apiKeyHash) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const body = JSON.stringify({
                 opts: {
@@ -42,6 +45,24 @@ export const listRepositories = async (domain: string, apiKey: string | undefine
                 }))
             } satisfies ListRepositoriesResponse));
 
-            return parser.parse(listBody);
+            const result = parser.parse(listBody);
+
+            await auditService.createAudit({
+                action: "query.list_repositories",
+                actor: {
+                    id: apiKeyHash ?? userId,
+                    type: apiKeyHash ? "api_key" : "user"
+                },
+                target: {
+                    id: org.id.toString(),
+                    type: "org"
+                },
+                orgId: org.id,
+                metadata: {
+                    message: result.repos.map((repo) => repo.name).join(", ")
+                }
+            });
+
+            return result;
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 );

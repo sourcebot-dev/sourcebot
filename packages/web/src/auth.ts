@@ -13,9 +13,13 @@ import { createTransport } from 'nodemailer';
 import { render } from '@react-email/render';
 import MagicLinkEmail from './emails/magicLinkEmail';
 import bcrypt from 'bcryptjs';
-import { getSSOProviders } from '@/ee/sso/sso';
+import { getSSOProviders } from '@/ee/features/sso/sso';
 import { hasEntitlement } from '@sourcebot/shared';
 import { onCreateUser } from '@/lib/authUtils';
+import { getAuditService } from '@/ee/features/audit/factory';
+import { SINGLE_TENANT_ORG_ID } from './lib/constants';
+
+const auditService = getAuditService();
 
 export const runtime = 'nodejs';
 
@@ -137,6 +141,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     trustHost: true,
     events: {
         createUser: onCreateUser,
+        signIn: async ({ user, account }) => {
+            if (user.id) {
+                await auditService.createAudit({
+                    action: "user.signed_in",
+                    actor: {
+                        id: user.id,
+                        type: "user"
+                    },
+                    orgId: SINGLE_TENANT_ORG_ID, // TODO(mt)
+                    target: {
+                        id: user.id,
+                        type: "user"
+                    }
+                });
+            }
+        },
+        signOut: async (message) => {
+            const token = message as { token: { userId: string } | null };
+            if (token?.token?.userId) {
+                await auditService.createAudit({
+                    action: "user.signed_out",
+                    actor: {
+                        id: token.token.userId,
+                        type: "user"
+                    },
+                    orgId: SINGLE_TENANT_ORG_ID, // TODO(mt)
+                    target: {
+                        id: token.token.userId,
+                        type: "user"
+                    }
+                });
+            }
+        }
     },
     callbacks: {
         async jwt({ token, user: _user }) {

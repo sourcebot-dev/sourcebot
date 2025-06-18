@@ -172,6 +172,8 @@ model Org {
   /// List of pending invites to this organization
   invites Invite[]
 
+  audits Audit[]
+
   accountRequests AccountRequest[]
 
   searchContexts SearchContext[]
@@ -225,6 +227,24 @@ model ApiKey {
   createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdById String
 
+}
+
+model Audit {
+  id String @id @default(cuid())
+  timestamp DateTime @default(now())
+  
+  action String
+  actorId String
+  actorType String
+  targetId String
+  targetType String
+  sourcebotVersion String
+  metadata Json?
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@index([actorId, actorType, targetId, targetType, orgId])
 }
 
 // @see : https://authjs.dev/concepts/database-models#user

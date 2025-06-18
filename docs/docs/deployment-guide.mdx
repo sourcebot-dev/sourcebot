@@ -33,7 +33,7 @@ Watch this 1:51 minute video to get a quick overview of how to deploy Sourcebot 
     <Step title="Create a config.json">
         Create a `config.json` file that tells Sourcebot which repositories to sync and index:
 
-        ```bash
+        ```bash wrap icon="terminal" Create example config
         touch config.json
         echo '{
             "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
@@ -58,7 +58,7 @@ Watch this 1:51 minute video to get a quick overview of how to deploy Sourcebot 
 
         In the same directory as `config.json`, run the following command to start your instance:
 
-        ``` bash
+        ``` bash icon="terminal" Start the Sourcebot container
         docker run \
             -p 3000:3000 \
             --pull=always \
