@@ -106,6 +106,36 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
 ]
 ```
 
+## Audit action types
+
+| Action  | Actor Type | Target Type |
+| :------- | :------ | :------|
+| `api_key.creation_failed`             | `user` | `org` |
+| `api_key.created`                     | `user` | `api_key` |
+| `api_key.deletion_failed`             | `user` | `org` |
+| `api_key.deleted`                     | `user` | `api_key` |
+| `user.creation_failed`                | `user` | `user` |
+| `user.owner_created`                  | `user` | `org` |
+| `user.jit_provisioning_failed`        | `user` | `org` |
+| `user.jit_provisioned`                | `user` | `org` |
+| `user.join_request_creation_failed`   | `user` | `org` |
+| `user.join_requested`                 | `user` | `org` |
+| `user.join_request_approve_failed`    | `user` | `account_join_request` |
+| `user.join_request_approved`          | `user` | `account_join_request` |
+| `user.join_request_removed`           | `user` | `account_join_request` |
+| `user.invite_failed`                  | `user` | `org` |
+| `user.invites_created`                | `user` | `org` |
+| `user.invite_accept_failed`           | `user` | `invite` |
+| `user.invite_accepted`                | `user` | `invite` |
+| `user.signed_in`                      | `user` | `user` |
+| `user.signed_out`                     | `user` | `user` |
+| `org.ownership_transfer_failed`       | `user` | `org` |
+| `org.ownership_transferred`           | `user` | `org` |
+| `query.file_source`                   | `user \| api_key` | `file` |
+| `query.code_search`                   | `user \| api_key` | `org` |
+| `query.list_repositories`             | `user \| api_key` | `org` |
+
+
 ## Response schema
 
 ```json icon="brackets-curly" expandable wrap Audit log fetch response schema

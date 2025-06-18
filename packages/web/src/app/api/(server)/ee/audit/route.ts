@@ -1,7 +1,7 @@
 'use server';
 
 import { NextRequest } from "next/server";
-import { fetchAuditRecords } from "@/ee/features/audit/utils";
+import { fetchAuditRecords } from "@/ee/features/audit/actions";
 import { isServiceError } from "@/lib/utils";
 import { serviceErrorResponse } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
