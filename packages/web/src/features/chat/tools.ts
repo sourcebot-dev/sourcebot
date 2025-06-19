@@ -130,9 +130,20 @@ const searchCodeTool = tool({
                 }
             }
 
+            const files = response.files.map((file) => {
+                return {
+                    fileName: file.fileName.text,
+                    repository: file.repository,
+                    language: file.language,
+                    chunks: file.chunks.map((chunk) => {
+                        return chunk.content;
+                    })
+                }
+            });
+
             return {
                 success: true,
-                results: response,
+                results: files,
                 summary: `Found ${response.files.length} files with ${response.stats.matchCount} total matches`
             }
         } catch (error) {
