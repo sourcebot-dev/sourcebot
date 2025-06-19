@@ -1,3 +1,5 @@
+'use server';
+
 import { env } from "@/env.mjs";
 import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
 import { isServiceError } from "../../lib/utils";
