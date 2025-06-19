@@ -431,3 +431,5 @@ export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, do
         return imageUrl;
     }
 };
+
+export const IS_MAC = typeof navigator !== 'undefined' && /Mac OS X/.test(navigator.userAgent);

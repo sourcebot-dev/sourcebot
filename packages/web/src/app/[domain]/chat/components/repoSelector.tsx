@@ -137,9 +137,9 @@ export const RepoSelector = React.forwardRef<
                                 )}
                             >
                                 {
-                                    selectedValues.length === 0 ? `${options.length} repos` :
+                                    selectedValues.length === 0 ? `${options.length} repo${options.length === 1 ? '' : 's'}` :
                                         selectedValues.length === 1 ? `${selectedValues[0]}` :
-                                            `${selectedValues.length} repos`
+                                            `${selectedValues.length} repo${selectedValues.length === 1 ? '' : 's'}`
                                 }
                             </span>
                             <ChevronDown className="h-4 cursor-pointer text-muted-foreground mx-2" />
