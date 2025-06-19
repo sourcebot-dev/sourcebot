@@ -4,11 +4,10 @@ import { Separator } from "@/components/ui/separator";
 import { SearchBar } from "./components/searchBar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AtSignIcon } from "lucide-react";
-import { useLocalStorage } from "@uidotdev/usehooks";
 import { Button } from "@/components/ui/button";
 import { RepoSelector } from "./chat/components/repoSelector";
 import { useState, useCallback, useEffect, KeyboardEvent, useRef, useMemo } from "react";
-import { BaseEditor, createEditor, Editor, Element, Descendant, Range, Transforms } from "slate";
+import { BaseEditor, createEditor, Editor, Element, Descendant, Range, Transforms, Point } from "slate";
 import { Slate, Editable, withReact, ReactEditor, RenderElementProps, RenderLeafProps, useSelected, useFocused } from "slate-react";
 import { withHistory } from "slate-history";
 import { createPortal } from "react-dom";
@@ -56,8 +55,10 @@ type RenderElementPropsFor<T> = RenderElementProps & {
     element: T
 }
 
+
 export const HomepageSearch = () => {
-    const [searchMode, setSearchMode] = useLocalStorage<"precise" | "agentic">("searchMode", "precise");
+    // @todo: use local storage
+    const [searchMode, setSearchMode] = useState<"precise" | "agentic">("agentic");
 
     return (
         <div className="mt-4 w-full max-w-[800px] border rounded-md">
@@ -131,22 +132,68 @@ const initialValue: Descendant[] = [
         type: 'paragraph',
         children: [{ text: '' }],
     },
-]
+];
+
+type SuggestionMode = "file" | "none";
 
 const AgenticSearch = () => {
     const [editor] = useState(() => withMentions(withReact(withHistory(createEditor()))));
-    const ref = useRef<HTMLDivElement>(null);
+    const suggestionsBoxRef = useRef<HTMLDivElement>(null);
 
-    const [target, setTarget] = useState<Range | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [selection, setSelection] = useState<Range | null>(null);
     const [index, setIndex] = useState(0);
-
     const domain = useDomain();
 
+    const { suggestionQuery, range, suggestionMode } = useMemo<{
+        suggestionQuery: string;
+        range: Range | null;
+        suggestionMode: SuggestionMode;
+    }>(() => {
+        if (!selection || !Range.isCollapsed(selection)) {
+            return {
+                suggestionMode: "none",
+                suggestionQuery: '',
+                range: null,
+            };
+        }
+
+        const range = word(editor, selection, {
+            terminator: [' '],
+            directions: 'both',
+        });
+
+        if (!range) {
+            return {
+                suggestionMode: "none",
+                suggestionQuery: '',
+                range: null,
+            };
+        }
+        
+        const text = Editor.string(editor, range);
+
+        const match = text.match(/^@([\w.-]*)$/);
+        if (!match) {
+            return {
+                suggestionMode: "none",
+                suggestionQuery: '',
+                range: null,
+            };
+        }
+
+        const suggestionQuery = match[1];
+
+        return {
+            suggestionMode: "file",
+            range,
+            suggestionQuery,
+        }
+    }, [editor, selection]);
+
     const { data: fileSuggestions, isLoading: isLoadingFileSuggestions } = useQuery({
-        queryKey: ["fileSuggestions", searchQuery, domain],
+        queryKey: ["fileSuggestions", suggestionQuery, domain],
         queryFn: () => unwrapServiceError(search({
-            query: `file:${searchQuery}`,
+            query: `file:${suggestionQuery}`,
             matches: 15,
             contextLines: 1,
         }, domain)),
@@ -164,12 +211,13 @@ const AgenticSearch = () => {
                 }
             });
         },
+        enabled: suggestionMode === "file",
     });
 
     const renderElement = useCallback((props: RenderElementProps) => {
         switch (props.element.type) {
             case 'mention':
-                return <Mention {...props as RenderElementPropsFor<MentionElement>} />
+                return <MentionComponent {...props as RenderElementPropsFor<MentionElement>} />
             default:
                 return <DefaultElement {...props} />
         }
@@ -180,8 +228,7 @@ const AgenticSearch = () => {
     }, []);
 
     const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
-        if (target && fileSuggestions && fileSuggestions.length > 0) {
-            console.log(`event: ${event.key}`)
+        if (range && fileSuggestions && fileSuggestions.length > 0) {
             switch (event.key) {
                 case 'ArrowDown': {
                     event.preventDefault();
@@ -198,58 +245,35 @@ const AgenticSearch = () => {
                 case 'Tab':
                 case 'Enter': {
                     event.preventDefault();
-                    insertMention(editor, fileSuggestions[index].name, target);
-                    setTarget(null);
+                    insertMention(editor, fileSuggestions[index].name, range);
                     break;
                 }
                 case 'Escape': {
                     event.preventDefault();
-                    setTarget(null);
+                    setSelection(null);
                     break;
                 }
             }
         }
-    }, [fileSuggestions, index, target, editor]);
+    }, [fileSuggestions, index, range, editor]);
 
     useEffect(() => {
-        if (target && ref.current && editor) {
-            const el = ref.current
-            const domRange = ReactEditor.toDOMRange(editor, target)
+        if (range && suggestionsBoxRef.current && editor) {
+            const el = suggestionsBoxRef.current
+            const domRange = ReactEditor.toDOMRange(editor, range)
             const rect = domRange.getBoundingClientRect()
             el.style.top = `${rect.top + window.pageYOffset + 24}px`
             el.style.left = `${rect.left + window.pageXOffset}px`
         }
-    }, [editor, index, searchQuery, target])
+    }, [editor, index, range]);
 
     return (
         <Slate
             editor={editor}
             initialValue={initialValue}
             onChange={() => {
-                const { selection } = editor
-
-                if (selection && Range.isCollapsed(selection)) {
-                    const [start] = Range.edges(selection);
-                    const wordBefore = Editor.before(editor, start, { unit: 'word' });
-                    const before = wordBefore && Editor.before(editor, wordBefore);
-                    const beforeRange = before && Editor.range(editor, before, start);
-                    const beforeText = beforeRange && Editor.string(editor, beforeRange);
-                    const beforeMatch = beforeText && beforeText.match(/^@(\w*)$/);
-
-                    const after = Editor.after(editor, start);
-                    const afterRange = Editor.range(editor, start, after);
-                    const afterText = Editor.string(editor, afterRange);
-                    const afterMatch = afterText.match(/^(\s|$)/);
-
-                    if (beforeMatch && afterMatch) {
-                        setTarget(beforeRange);
-                        setSearchQuery(beforeMatch[1]);
-                        setIndex(0);
-                        return
-                    }
-                }
-
-                setTarget(null)
+                const { selection } = editor;
+                setSelection(selection);
             }}
         >
             <Editable
@@ -259,10 +283,10 @@ const AgenticSearch = () => {
                 renderLeaf={renderLeaf}
                 onKeyDown={onKeyDown}
             />
-            {target && createPortal(
+            {suggestionMode === "file" && createPortal(
                 <div
-                    ref={ref}
-                    className="absolute top-0 left-0 bg-background border rounded-md p-1 w-[500px] overflow-hidden text-ellipsis"
+                    ref={suggestionsBoxRef}
+                    className="absolute z-10 top-0 left-0 bg-background border rounded-md p-1 w-[500px] overflow-hidden text-ellipsis"
                     data-cy="mentions-portal"
                 >
                     {isLoadingFileSuggestions ? (
@@ -282,8 +306,7 @@ const AgenticSearch = () => {
                                         "bg-accent": i === index,
                                     })}
                                     onClick={() => {
-                                        insertMention(editor, file.name, target);
-                                        setTarget(null);
+                                        insertMention(editor, file.name, range);
                                     }}
                                 >
                                     <FileIcon name={file.name} className="mt-1" />
@@ -340,23 +363,22 @@ const withMentions = (editor: CustomEditor) => {
 
 const insertMention = (editor: CustomEditor, name: string, target?: Range | null) => {
     const mention: MentionElement = {
-      type: 'mention',
-      name,
-      children: [{ text: '' }],
+        type: 'mention',
+        name,
+        children: [{ text: '' }],
     }
-    
+
     if (target) {
         Transforms.select(editor, target)
     }
-    
+
     Transforms.insertNodes(editor, mention)
     Transforms.move(editor)
     Transforms.insertText(editor, ' ')
-  }
+}
 
-const Mention = ({
+const MentionComponent = ({
     attributes,
-    children,
     element,
 }: RenderElementPropsFor<MentionElement>) => {
     const selected = useSelected()
@@ -375,7 +397,6 @@ const Mention = ({
             )}
         >
             <div contentEditable={false}>
-                {children}
                 <span className="font-mono">
                     {element.name}
                 </span>
@@ -396,4 +417,80 @@ const FileIcon = ({ name, className }: { name: string, className?: string }) => 
     }, [name]);
 
     return <Icon icon={iconName} className={cn("w-4 h-4 flex-shrink-0", className)} />;
+}
+
+// @see: https://github.com/ianstormtaylor/slate/issues/4162#issuecomment-1127062098
+function word(
+    editor: CustomEditor,
+    location: Range,
+    options: {
+        terminator?: string[]
+        include?: boolean
+        directions?: 'both' | 'left' | 'right'
+    } = {},
+): Range | undefined {
+    const { terminator = [' '], include = false, directions = 'both' } = options
+
+    const { selection } = editor
+    if (!selection) return
+
+    // Get start and end, modify it as we move along.
+    let [start, end] = Range.edges(location)
+
+    let point: Point = start
+
+    function move(direction: 'right' | 'left'): boolean {
+        const next =
+            direction === 'right'
+                ? Editor.after(editor, point, {
+                    unit: 'character',
+                })
+                : Editor.before(editor, point, { unit: 'character' })
+
+        const wordNext =
+            next &&
+            Editor.string(
+                editor,
+                direction === 'right' ? { anchor: point, focus: next } : { anchor: next, focus: point },
+            )
+
+        const last = wordNext && wordNext[direction === 'right' ? 0 : wordNext.length - 1]
+        if (next && last && !terminator.includes(last)) {
+            point = next
+
+            if (point.offset === 0) {
+                // Means we've wrapped to beginning of another block
+                return false
+            }
+        } else {
+            return false
+        }
+
+        return true
+    }
+
+    // Move point and update start & end ranges
+
+    // Move forwards
+    if (directions !== 'left') {
+        point = end
+        while (move('right'));
+        end = point
+    }
+
+    // Move backwards
+    if (directions !== 'right') {
+        point = start
+        while (move('left'));
+        start = point
+    }
+
+    if (include) {
+        return {
+            anchor: Editor.before(editor, start, { unit: 'offset' }) ?? start,
+            focus: Editor.after(editor, end, { unit: 'offset' }) ?? end,
+        }
+    }
+
+    return { anchor: start, focus: end }
 }
