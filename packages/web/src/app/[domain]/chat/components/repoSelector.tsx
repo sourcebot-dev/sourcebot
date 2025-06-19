@@ -52,12 +52,6 @@ interface RepoSelectorProps extends React.ButtonHTMLAttributes<HTMLButtonElement
     defaultValue?: string[];
 
     /**
-     * Maximum number of items to display. Extra selected items will be summarized.
-     * Optional, defaults to 3.
-     */
-    maxCount?: number;
-
-    /**
      * Additional class names to apply custom styles to the multi-select component.
      * Optional, can be used to add custom styles.
      */
@@ -73,7 +67,6 @@ export const RepoSelector = React.forwardRef<
             options,
             onValueChange,
             defaultValue = [],
-            maxCount = 3,
             className,
             ...props
         },
