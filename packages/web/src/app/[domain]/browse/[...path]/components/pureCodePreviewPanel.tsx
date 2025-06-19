@@ -138,7 +138,7 @@ export const PureCodePreviewPanel = ({
     const onFindReferences = useCallback((symbolName: string) => {
         captureEvent('wa_browse_find_references_pressed', {});
         createAuditClient({
-            action: "user.performed_code_nav_find_references",
+            action: "user.performed_find_references",
             metadata: {
                 message: symbolName,
             },
@@ -162,7 +162,7 @@ export const PureCodePreviewPanel = ({
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
         captureEvent('wa_browse_goto_definition_pressed', {});
         createAuditClient({
-            action: "user.performed_code_nav_goto_definition",
+            action: "user.performed_goto_definition",
             metadata: {
                 message: symbolName,
             },

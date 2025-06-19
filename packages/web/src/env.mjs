@@ -85,7 +85,7 @@ export const env = createEnv({
 
         // EE License
         SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),
-        SOURCEBOT_EE_AUDIT_LOGGING_ENABLED: booleanSchema.default('false'),
+        SOURCEBOT_EE_AUDIT_LOGGING_ENABLED: booleanSchema.default('true'),
 
         // GitHub app for review agent
         GITHUB_APP_ID: z.string().optional(),
