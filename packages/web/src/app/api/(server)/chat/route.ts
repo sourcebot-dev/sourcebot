@@ -1,14 +1,15 @@
-import { createOpenAI } from "@ai-sdk/openai"
+import { saveChat } from "@/app/[domain]/chat/chatStore";
+import { env } from "@/env.mjs";
+import { SYSTEM_MESSAGE } from "@/features/chat/constants";
+import { tools } from "@/features/chat/tools";
+import { FileMentionData } from "@/features/chat/types";
+import { getFileSource } from "@/features/search/fileSourceApi";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
+import { isServiceError } from "@/lib/utils";
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { coreMessageSchema, CoreSystemMessage, extractReasoningMiddleware, streamText, wrapLanguageModel } from "ai"
-import { env } from "@/env.mjs"
-import { tools } from "@/features/chat/tools"
-import { chatContextSchema, SYSTEM_MESSAGE } from "@/features/chat/constants"
-import { z } from "zod"
-import { getFileSource } from "@/features/search/fileSourceApi"
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { isServiceError } from "@/lib/utils"
-import { createLogger } from "@sourcebot/logger"
+import { createOpenAI } from "@ai-sdk/openai";
+import { createLogger } from "@sourcebot/logger";
+import { appendResponseMessages, CoreSystemMessage, extractReasoningMiddleware, Message, streamText, wrapLanguageModel } from "ai";
 
 const logger = createLogger('chat-api');
 
@@ -26,26 +27,29 @@ if (!env.OPENAI_API_KEY) {
     logger.warn("OPENAI_API_KEY is not configured")
 }
 
-const chatRequestSchema = z.object({
-    messages: z.array(coreMessageSchema),
-    context: chatContextSchema,
-})
-
 export async function POST(req: Request) {
     try {
         const requestBody = await req.json();
-        const { messages: chatMessages, context: { files } } = chatRequestSchema.parse(requestBody);
+        const {
+            messages: chatMessages,
+            id,
+        } = requestBody as {
+            messages: Message[];
+            id: string;
+        }
+
+        const annotations = chatMessages.flatMap((message) => message.annotations ?? []) as FileMentionData[];
 
         // @todo: we can probably cache files per chat session.
         // That way we don't have to refetch files for every message.
-        const fileContext = files ? (
-            await Promise.all(
-                files.map(async (file) => {
-                    const { path, repository, revision } = file;
+        const fileContext =
+            (await Promise.all(
+                annotations.map(async (file) => {
+                    const { path, repo } = file;
                     const fileSource = await getFileSource({
                         fileName: path,
-                        repository,
-                        branch: revision,
+                        repository: repo,
+                        branch: 'HEAD',
                     }, SINGLE_TENANT_ORG_DOMAIN);
 
                     if (isServiceError(fileSource)) {
@@ -60,7 +64,10 @@ export async function POST(req: Request) {
                     };
 
                 }))
-        ).filter((file) => file !== undefined) : [];
+            ).filter((file) => file !== undefined);
+
+
+        const model = anthropic("claude-sonnet-4-0");
 
         const context: CoreSystemMessage[] = fileContext.map((file) => ({
             role: "system" as const,
@@ -71,12 +78,7 @@ export async function POST(req: Request) {
             SYSTEM_MESSAGE,
             ...context,
             ...chatMessages,
-        ];
-
-        console.log(messages);
-
-        const model = anthropic("claude-sonnet-4-0");
-        // const model = openai("o3-mini");
+        ]
 
         const result = streamText({
             model: wrapLanguageModel({
@@ -102,6 +104,15 @@ export async function POST(req: Request) {
                 if (step.toolResults) {
                     logger.info(`Tool results in step: ${step.toolResults.length}`)
                 }
+            },
+            onFinish: async ({ response }) => {
+                await saveChat({
+                    id,
+                    messages: appendResponseMessages({
+                        messages: chatMessages,
+                        responseMessages: response.messages,
+                    }),
+                });
             }
         })
 

@@ -1,0 +1,340 @@
+'use client';
+
+import { Skeleton } from "@/components/ui/skeleton";
+import { CustomEditor, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
+import { insertMention, word } from "@/features/chat/utils";
+import { search } from "@/features/search/searchApi";
+import { useDomain } from "@/hooks/useDomain";
+import { cn, IS_MAC, unwrapServiceError } from "@/lib/utils";
+import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
+import { Icon } from '@iconify/react';
+import { useQuery } from "@tanstack/react-query";
+import { Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Descendant, Editor, Range } from "slate";
+import { Editable, ReactEditor, RenderElementProps, RenderLeafProps, useFocused, useSelected, useSlate, useSlateSelection } from "slate-react";
+import { getIconForFile } from "vscode-icons-js";
+
+type SuggestionMode = "file" | "none";
+
+interface ChatBoxProps {
+    onSubmit: (children: Descendant[], editor: CustomEditor) => void;
+    preferredSuggestionsBoxPlacement?: "top-start" | "bottom-start";
+    className?: string;
+}
+
+export const ChatBox = ({
+    onSubmit,
+    preferredSuggestionsBoxPlacement = "bottom-start",
+    className,
+}: ChatBoxProps) => {
+    const suggestionsBoxRef = useRef<HTMLDivElement>(null);
+    const [index, setIndex] = useState(0);
+    const domain = useDomain();
+    const editor = useSlate();
+    const selection = useSlateSelection();
+
+    const { suggestionQuery, range, suggestionMode } = useMemo<{
+        suggestionQuery: string;
+        range: Range | null;
+        suggestionMode: SuggestionMode;
+    }>(() => {
+        if (!selection || !Range.isCollapsed(selection)) {
+            return {
+                suggestionMode: "none",
+                suggestionQuery: '',
+                range: null,
+            };
+        }
+
+        const range = word(editor, selection, {
+            terminator: [' '],
+            directions: 'both',
+        });
+
+        if (!range) {
+            return {
+                suggestionMode: "none",
+                suggestionQuery: '',
+                range: null,
+            };
+        }
+
+        const text = Editor.string(editor, range);
+
+        const match = text.match(/^@([\w.-]*)$/);
+        if (!match) {
+            return {
+                suggestionMode: "none",
+                suggestionQuery: '',
+                range: null,
+            };
+        }
+
+        const suggestionQuery = match[1];
+
+        return {
+            suggestionMode: "file",
+            range,
+            suggestionQuery,
+        }
+    }, [editor, selection]);
+
+    const { data: fileSuggestions, isPending: isPendingFileSuggestions, isError: isErrorFileSuggestions } = useQuery({
+        queryKey: ["fileSuggestions", suggestionQuery, domain],
+        queryFn: () => unwrapServiceError(search({
+            query: `file:${suggestionQuery}`,
+            matches: 10,
+            contextLines: 1,
+        }, domain)),
+        select: (data) => {
+            return data.files.map((file) => {
+                const path = file.fileName.text;
+                const repo = file.repository;
+                const name = path.split('/').pop() ?? '';
+                const language = file.language;
+                return {
+                    path,
+                    repo,
+                    name,
+                    language,
+                }
+            });
+        },
+        enabled: suggestionMode === "file",
+    });
+
+    const renderElement = useCallback((props: RenderElementProps) => {
+        switch (props.element.type) {
+            case 'mention':
+                return <MentionComponent {...props as RenderElementPropsFor<MentionElement>} />
+            default:
+                return <DefaultElement {...props} />
+        }
+    }, []);
+
+    const renderLeaf = useCallback((props: RenderLeafProps) => {
+        return <Leaf {...props} />
+    }, []);
+
+    const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+        if (suggestionMode === "none") {
+            switch (event.key) {
+                case 'Enter': {
+                    if (event.shiftKey) {
+                        break;
+                    }
+
+                    event.preventDefault();
+                    onSubmit(editor.children, editor);
+                    break;
+                }
+            }
+        }
+        else if (
+            suggestionMode === "file" &&
+            fileSuggestions &&
+            fileSuggestions.length > 0
+        ) {
+            switch (event.key) {
+                case 'ArrowDown': {
+                    event.preventDefault();
+                    const prevIndex = index >= fileSuggestions.length - 1 ? 0 : index + 1
+                    setIndex(prevIndex)
+                    break;
+                }
+                case 'ArrowUp': {
+                    event.preventDefault();
+                    const nextIndex = index <= 0 ? fileSuggestions.length - 1 : index - 1
+                    setIndex(nextIndex)
+                    break;
+                }
+                case 'Tab':
+                case 'Enter': {
+                    event.preventDefault();
+                    const suggestion = fileSuggestions[index];
+                    insertMention(editor, {
+                        type: 'file',
+                        ...suggestion,
+                    }, range);
+                    break;
+                }
+                case 'Escape': {
+                    event.preventDefault();
+                    break;
+                }
+            }
+        }
+    }, [suggestionMode, fileSuggestions, editor, onSubmit, index, range]);
+
+    useEffect(() => {
+        if (!range || !suggestionsBoxRef.current) {
+            return;
+        }
+
+        const virtualElement: VirtualElement = {
+            getBoundingClientRect: () => {
+                if (!range) {
+                    return new DOMRect();
+                }
+
+                return ReactEditor.toDOMRange(editor, range).getBoundingClientRect();
+            }
+        }
+
+        computePosition(virtualElement, suggestionsBoxRef.current, {
+            placement: preferredSuggestionsBoxPlacement,
+            middleware: [
+                offset(2),
+                flip({
+                    mainAxis: true,
+                    crossAxis: false,
+                    fallbackPlacements: ['top-start', 'bottom-start'],
+                    padding: 20,
+                }),
+                shift({
+                    padding: 5,
+                })
+            ]
+        }).then(({ x, y }) => {
+            if (suggestionsBoxRef.current) {
+                suggestionsBoxRef.current.style.left = `${x}px`;
+                suggestionsBoxRef.current.style.top = `${y}px`;
+            }
+        })
+    }, [editor, index, range, fileSuggestions, preferredSuggestionsBoxPlacement]);
+
+    return (
+        <div className={cn("w-full px-3 py-2", className)}>
+            <Editable
+                className="w-full rounded-md focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                placeholder="Ask Sourcebot..."
+                autoFocus={true}
+                renderElement={renderElement}
+                renderLeaf={renderLeaf}
+                onKeyDown={onKeyDown}
+            />
+            {suggestionMode === "file" && createPortal(
+                <div
+                    ref={suggestionsBoxRef}
+                    className="absolute z-10 top-0 left-0 bg-background border rounded-md p-1 w-[500px] overflow-hidden text-ellipsis"
+                    data-cy="mentions-portal"
+                >
+                    {isPendingFileSuggestions ? (
+                        <div className="animate-pulse flex flex-col gap-2 px-1 py-0.5 w-full">
+                            {
+                                Array.from({ length: 10 }).map((_, index) => (
+                                    <Skeleton key={index} className="h-4 w-full" />
+                                ))
+                            }
+                        </div>
+                    ) :
+                        (isErrorFileSuggestions || fileSuggestions.length === 0) ? (
+                            <div className="flex flex-col gap-2 px-1 py-0.5 w-full">
+                                <p className="text-sm text-muted-foreground">
+                                    No results found
+                                </p>
+                            </div>
+                        ) :
+                            (
+                                <div className="flex flex-col w-full">
+                                    {fileSuggestions.map((file, i) => (
+                                        <div
+                                            key={file.path}
+                                            className={cn("flex flex-row gap-2 w-full cursor-pointer rounded-md px-1 py-0.5 hover:bg-accent", {
+                                                "bg-accent": i === index,
+                                            })}
+                                            onClick={() => {
+                                                insertMention(editor, {
+                                                    type: 'file',
+                                                    ...file,
+                                                }, range);
+                                                ReactEditor.focus(editor);
+                                            }}
+                                        >
+                                            <FileIcon name={file.name} className="mt-1" />
+                                            <div className="flex flex-col w-full">
+                                                <span className="text-sm font-medium">
+                                                    {file.name}
+                                                </span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {file.path}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                </div>,
+                document.body
+            )}
+        </div>
+    )
+}
+
+const DefaultElement = (props: RenderElementProps) => {
+    return <p {...props.attributes}>{props.children}</p>
+}
+
+const Leaf = (props: RenderLeafProps) => {
+    return (
+        <span
+            {...props.attributes}
+        >
+            {props.children}
+        </span>
+    )
+}
+
+const MentionComponent = ({
+    attributes,
+    children,
+    element: { data },
+}: RenderElementPropsFor<MentionElement>) => {
+    const selected = useSelected();
+    const focused = useFocused();
+
+    return data.type === 'file' && (
+        <span
+            {...attributes}
+            contentEditable={false}
+            className={cn(
+                "px-1.5 py-0.5 mr-1.5 align-baseline inline-block rounded bg-muted text-xs font-mono",
+                {
+                    "ring-2 ring-blue-300": selected && focused
+                }
+            )}
+        >
+            <span contentEditable={false} className="flex flex-row items-center select-none">
+                {/* @see: https://github.com/ianstormtaylor/slate/issues/3490 */}
+                {IS_MAC ? (
+                    <Fragment>
+                        {children}
+                        <FileIcon name={data.name} className="w-3 h-3 mr-0.5" />
+                        {data.name}
+                    </Fragment>
+                ) : (
+                    <Fragment>
+                        <FileIcon name={data.name} className="w-3 h-3 mr-0.5" />
+                        {data.name}
+                        {children}
+                    </Fragment>
+                )}
+            </span>
+        </span>
+    )
+}
+
+const FileIcon = ({ name, className }: { name: string, className?: string }) => {
+    const iconName = useMemo(() => {
+        const icon = getIconForFile(name);
+        if (icon) {
+            const iconName = `vscode-icons:${icon.substring(0, icon.indexOf('.')).replaceAll('_', '-')}`;
+            return iconName;
+        }
+
+        return "vscode-icons:file-type-unknown";
+    }, [name]);
+
+    return <Icon icon={iconName} className={cn("w-4 h-4 flex-shrink-0", className)} />;
+}
