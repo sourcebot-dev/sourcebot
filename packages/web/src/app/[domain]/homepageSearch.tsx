@@ -6,33 +6,40 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AtSignIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RepoSelector } from "./chat/components/repoSelector";
-import { useState, useCallback, useEffect, KeyboardEvent, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, KeyboardEvent, useRef, useMemo, Fragment } from "react";
 import { BaseEditor, createEditor, Editor, Element, Descendant, Range, Transforms, Point } from "slate";
-import { Slate, Editable, withReact, ReactEditor, RenderElementProps, RenderLeafProps, useSelected, useFocused } from "slate-react";
-import { withHistory } from "slate-history";
+import { Slate, Editable, withReact, ReactEditor, RenderElementProps, RenderLeafProps, useSelected, useFocused, useSlateSelection, useSlate } from "slate-react";
+import { HistoryEditor, withHistory } from "slate-history";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useDomain } from "@/hooks/useDomain";
 import { search } from "@/features/search/searchApi";
-import { cn, unwrapServiceError } from "@/lib/utils";
+import { cn, IS_MAC, unwrapServiceError } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from '@iconify/react';
 import { getIconForFile } from "vscode-icons-js";
+import { getRepos } from "@/actions";
 
-type CustomText = {
-    text: string;
-}
+type CustomText = { text: string; }
 
 type ParagraphElement = {
     type: 'paragraph'
     align?: string
-    children: CustomText[]
+    children: Descendant[];
+}
+
+type FileMentionData = {
+    type: 'file';
+    repo: string;
+    path: string;
+    name: string;
+    language: string;
 }
 
 type MentionElement = {
-    type: 'mention'
-    name: string
-    children: CustomText[]
+    type: 'mention';
+    data: FileMentionData;
+    children: CustomText[];
 }
 
 type CustomElement =
@@ -41,7 +48,11 @@ type CustomElement =
     ;
 
 
-type CustomEditor = BaseEditor & ReactEditor
+type CustomEditor =
+    BaseEditor &
+    ReactEditor &
+    HistoryEditor
+    ;
 
 declare module 'slate' {
     interface CustomTypes {
@@ -51,77 +62,88 @@ declare module 'slate' {
     }
 }
 
+const isMentionElement = (descendant: Descendant): descendant is MentionElement => {
+    return 'type' in descendant && descendant.type === 'mention';
+}
+
 type RenderElementPropsFor<T> = RenderElementProps & {
     element: T
 }
 
+type SearchMode = "precise" | "agentic";
 
 export const HomepageSearch = () => {
-    // @todo: use local storage
-    const [searchMode, setSearchMode] = useState<"precise" | "agentic">("agentic");
+    const [searchMode, setSearchMode] = useState<SearchMode>("agentic");
+    const [editor] = useState(() => withMentions(withReact(withHistory(createEditor()))));
 
     return (
         <div className="mt-4 w-full max-w-[800px] border rounded-md">
             {searchMode === "precise" ? (
-                <SearchBar
-                    autoFocus={true}
-                    className="border-none pt-0.5 pb-0"
-                />
+                <>
+                    <SearchBar
+                        autoFocus={true}
+                        className="border-none pt-0.5 pb-0"
+                    />
+                    <Separator />
+                    <Toolbar
+                        searchMode={searchMode}
+                        onSearchModeChange={setSearchMode}
+                    />
+                </>
             ) : (
-                <AgenticSearch />
-            )}
-            <Separator />
-            {/* Toolbar */}
-            <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
-                {searchMode === "agentic" && (
-                    <>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-6 h-6 text-muted-foreground hover:text-primary"
-                            onClick={() => console.log("add context")}
-                        >
-                            <AtSignIcon className="w-4 h-4" />
-                        </Button>
-                        <Separator orientation="vertical" className="h-3 mx-1" />
-                        <RepoSelector
-                            className="bg-inherit w-fit h-6 min-h-6"
-                            options={[
-                                {
-                                    value: "sourcebot-dev/sourcebot",
-                                    label: "sourcebot-dev/sourcebot",
-                                },
-                                {
-                                    value: "sourcebot-dev/sourcebot-cli",
-                                    label: "sourcebot-dev/sourcebot-cli",
-                                },
-                                {
-                                    value: "sourcebot-dev/sourcebot-ui",
-                                    label: "sourcebot-dev/sourcebot-ui",
-                                },
-                            ]}
-                            onValueChange={(value) => console.log(value)}
-                            maxCount={1}
-                        />
-                    </>
-                )}
-                <div className="flex flex-row items-center ml-auto">
-                    <p className="text-sm text-muted-foreground mr-1.5">Search mode:</p>
-                    <Select
-                        value={searchMode}
-                        onValueChange={(value) => setSearchMode(value as "precise" | "agentic")}
+                <Slate
+                    editor={editor}
+                    initialValue={initialValue}
+                >
+                    <AgenticSearchBox
+                        onSubmit={(query) => {
+                            const mentions = query.children.filter((child) => isMentionElement(child));
+                            console.log(mentions);
+                        }}
+                    />
+                    <Separator />
+                    <Toolbar
+                        searchMode={searchMode}
+                        onSearchModeChange={setSearchMode}
                     >
-                        <SelectTrigger
-                            className="h-6 mt-0.5 font-mono font-semibold text-xs p-0 w-fit border-none bg-inherit"
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="precise">Precise</SelectItem>
-                            <SelectItem value="agentic">Agentic</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                        <AgenticSearchBoxToolbar />
+                    </Toolbar>
+                </Slate>
+            )}
+        </div>
+    )
+}
+
+interface ToolbarProps {
+    searchMode: SearchMode;
+    onSearchModeChange: (searchMode: SearchMode) => void;
+    children?: React.ReactNode;
+}
+
+const Toolbar = ({
+    searchMode,
+    onSearchModeChange,
+    children: tools,
+}: ToolbarProps) => {
+    return (
+        <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
+            {tools}
+            <div className="flex flex-row items-center ml-auto">
+                <p className="text-sm text-muted-foreground mr-1.5">Search mode:</p>
+                <Select
+                    value={searchMode}
+                    onValueChange={(value) => onSearchModeChange(value as SearchMode)}
+                >
+                    <SelectTrigger
+                        className="h-6 mt-0.5 font-mono font-semibold text-xs p-0 w-fit border-none bg-inherit"
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="precise">Precise</SelectItem>
+                        <SelectItem value="agentic">Agentic</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
         </div>
     )
@@ -136,13 +158,52 @@ const initialValue: Descendant[] = [
 
 type SuggestionMode = "file" | "none";
 
-const AgenticSearch = () => {
-    const [editor] = useState(() => withMentions(withReact(withHistory(createEditor()))));
-    const suggestionsBoxRef = useRef<HTMLDivElement>(null);
+const AgenticSearchBoxToolbar = () => {
+    const domain = useDomain();
+    const { data: repos } = useQuery({
+        queryKey: ["repos", domain],
+        queryFn: () => unwrapServiceError(getRepos(domain)),
+    });
 
-    const [selection, setSelection] = useState<Range | null>(null);
+    const editor = useSlate();
+
+    return (
+        <>
+            <Button
+                variant="ghost"
+                size="icon"
+                className="w-6 h-6 text-muted-foreground hover:text-primary"
+                onClick={() => {
+                    editor.insertText("@");
+                    ReactEditor.focus(editor);
+                }}
+            >
+                <AtSignIcon className="w-4 h-4" />
+            </Button>
+            <Separator orientation="vertical" className="h-3 mx-1" />
+            <RepoSelector
+                className="bg-inherit w-fit h-6 min-h-6"
+                options={repos?.map((repo) => ({
+                    value: repo.repoName,
+                    label: repo.repoName,
+                })) ?? []}
+                onValueChange={(value) => console.log(value)}
+                maxCount={1}
+            />
+        </>
+    )
+}
+
+interface AgenticSearchBoxProps {
+    onSubmit: (query: ParagraphElement) => void;
+}
+
+const AgenticSearchBox = ({ onSubmit }: AgenticSearchBoxProps) => {
+    const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
     const domain = useDomain();
+    const editor = useSlate();
+    const selection = useSlateSelection();
 
     const { suggestionQuery, range, suggestionMode } = useMemo<{
         suggestionQuery: string;
@@ -169,7 +230,7 @@ const AgenticSearch = () => {
                 range: null,
             };
         }
-        
+
         const text = Editor.string(editor, range);
 
         const match = text.match(/^@([\w.-]*)$/);
@@ -190,7 +251,7 @@ const AgenticSearch = () => {
         }
     }, [editor, selection]);
 
-    const { data: fileSuggestions, isLoading: isLoadingFileSuggestions } = useQuery({
+    const { data: fileSuggestions, isPending: isPendingFileSuggestions, isError: isErrorFileSuggestions } = useQuery({
         queryKey: ["fileSuggestions", suggestionQuery, domain],
         queryFn: () => unwrapServiceError(search({
             query: `file:${suggestionQuery}`,
@@ -228,7 +289,26 @@ const AgenticSearch = () => {
     }, []);
 
     const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
-        if (range && fileSuggestions && fileSuggestions.length > 0) {
+        if (suggestionMode === "none") {
+            switch (event.key) {
+                case 'Enter': {
+                    if (event.shiftKey) {
+                        break;
+                    }
+
+                    event.preventDefault();
+                    const contents = editor.children;
+                    const paragraph = contents[0] as ParagraphElement;
+                    onSubmit(paragraph);
+                    break;
+                }
+            }
+        }
+        else if (
+            suggestionMode === "file" &&
+            fileSuggestions &&
+            fileSuggestions.length > 0
+        ) {
             switch (event.key) {
                 case 'ArrowDown': {
                     event.preventDefault();
@@ -245,17 +325,23 @@ const AgenticSearch = () => {
                 case 'Tab':
                 case 'Enter': {
                     event.preventDefault();
-                    insertMention(editor, fileSuggestions[index].name, range);
+                    const suggestion = fileSuggestions[index];
+                    insertMention(editor, {
+                        type: 'file',
+                        repo: suggestion.repo,
+                        path: suggestion.path,
+                        name: suggestion.name,
+                        language: suggestion.language,
+                    }, range);
                     break;
                 }
                 case 'Escape': {
                     event.preventDefault();
-                    setSelection(null);
                     break;
                 }
             }
         }
-    }, [fileSuggestions, index, range, editor]);
+    }, [suggestionMode, fileSuggestions, editor, onSubmit, index, range]);
 
     useEffect(() => {
         if (range && suggestionsBoxRef.current && editor) {
@@ -268,16 +354,10 @@ const AgenticSearch = () => {
     }, [editor, index, range]);
 
     return (
-        <Slate
-            editor={editor}
-            initialValue={initialValue}
-            onChange={() => {
-                const { selection } = editor;
-                setSelection(selection);
-            }}
-        >
+        <div className="w-full px-3 py-2 min-h-[50px]">
             <Editable
-                className="w-full rounded-md focus-visible:outline-none focus-visible:ring-0 bg-background px-3 py-2 text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                className="w-full rounded-md focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                placeholder="Ask Sourcebot..."
                 autoFocus={true}
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
@@ -289,7 +369,7 @@ const AgenticSearch = () => {
                     className="absolute z-10 top-0 left-0 bg-background border rounded-md p-1 w-[500px] overflow-hidden text-ellipsis"
                     data-cy="mentions-portal"
                 >
-                    {isLoadingFileSuggestions ? (
+                    {isPendingFileSuggestions ? (
                         <div className="animate-pulse flex flex-col gap-2 px-1 py-0.5 w-full">
                             {
                                 Array.from({ length: 10 }).map((_, index) => (
@@ -297,16 +377,28 @@ const AgenticSearch = () => {
                                 ))
                             }
                         </div>
-                    ) : (
+                    ) :
+                    (isErrorFileSuggestions || fileSuggestions.length === 0) ? (
+                        <div className="flex flex-col gap-2 px-1 py-0.5 w-full">
+                            <p className="text-sm text-muted-foreground">
+                                No results found
+                            </p>
+                        </div>
+                    ) :
+                    (
                         <div className="flex flex-col w-full">
-                            {fileSuggestions?.map((file, i) => (
+                            {fileSuggestions.map((file, i) => (
                                 <div
                                     key={file.path}
                                     className={cn("flex flex-row gap-2 w-full cursor-pointer rounded-md px-1 py-0.5", {
                                         "bg-accent": i === index,
                                     })}
                                     onClick={() => {
-                                        insertMention(editor, file.name, range);
+                                        insertMention(editor, {
+                                            type: 'file',
+                                            ...file,
+                                        }, range);
+                                        ReactEditor.focus(editor);
                                     }}
                                 >
                                     <FileIcon name={file.name} className="mt-1" />
@@ -325,7 +417,7 @@ const AgenticSearch = () => {
                 </div>,
                 document.body
             )}
-        </Slate>
+        </div>
     )
 }
 
@@ -361,10 +453,10 @@ const withMentions = (editor: CustomEditor) => {
     return editor
 }
 
-const insertMention = (editor: CustomEditor, name: string, target?: Range | null) => {
+const insertMention = (editor: CustomEditor, data: FileMentionData, target?: Range | null) => {
     const mention: MentionElement = {
         type: 'mention',
-        name,
+        data,
         children: [{ text: '' }],
     }
 
@@ -379,27 +471,38 @@ const insertMention = (editor: CustomEditor, name: string, target?: Range | null
 
 const MentionComponent = ({
     attributes,
-    element,
+    children,
+    element: { data },
 }: RenderElementPropsFor<MentionElement>) => {
-    const selected = useSelected()
-    const focused = useFocused()
+    const selected = useSelected();
+    const focused = useFocused();
 
-    return (
+    return data.type === 'file' && (
         <span
             {...attributes}
             contentEditable={false}
-            data-cy={`mention-${element.name.replace(' ', '-')}`}
             className={cn(
-                "px-1.5 py-0.5 mx-0.5 align-baseline inline-block rounded bg-muted text-xs",
+                "px-1.5 py-0.5 mx-0.5 align-baseline inline-block rounded bg-muted text-xs font-mono",
                 {
                     "ring-2 ring-blue-300": selected && focused
                 }
             )}
         >
-            <div contentEditable={false}>
-                <span className="font-mono">
-                    {element.name}
-                </span>
+            <div contentEditable={false} className="flex flex-row items-center select-none">
+                {/* @see: https://github.com/ianstormtaylor/slate/issues/3490 */}
+                {IS_MAC ? (
+                    <Fragment>
+                        {children}
+                        <FileIcon name={data.name} className="w-3 h-3 mr-0.5" />
+                        {data.name}
+                    </Fragment>
+                ) : (
+                    <Fragment>
+                        <FileIcon name={data.name} className="w-3 h-3 mr-0.5" />
+                        {data.name}
+                        {children}
+                    </Fragment>
+                )}
             </div>
         </span>
     )

@@ -459,3 +459,5 @@ export const getOrgMetadata = (org: Org): OrgMetadata | null => {
     const currentMetadata = orgMetadataSchema.safeParse(org.metadata);
     return currentMetadata.success ? currentMetadata.data : null;
 }
+
+export const IS_MAC = typeof navigator !== 'undefined' && /Mac OS X/.test(navigator.userAgent);
