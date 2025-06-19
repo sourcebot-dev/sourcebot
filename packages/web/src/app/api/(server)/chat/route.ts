@@ -7,7 +7,7 @@ import { chatContextSchema, SYSTEM_MESSAGE } from "@/features/chat/constants"
 import { z } from "zod"
 import { getFileSource } from "@/features/search/fileSourceApi"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { base64Decode, isServiceError } from "@/lib/utils"
+import { isServiceError } from "@/lib/utils"
 import { createLogger } from "@sourcebot/logger"
 
 const logger = createLogger('chat-api');
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
 
                     return {
                         ...fileSource,
-                        source: base64Decode(fileSource.source),
+                        source: fileSource.source,
                     };
 
                 }))

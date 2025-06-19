@@ -1,5 +1,4 @@
 import { NavigationMenu } from "./components/navigationMenu";
-import { SearchBar } from "./components/searchBar";
 import { Separator } from "@/components/ui/separator";
 import { UpgradeToast } from "./components/upgradeToast";
 import Link from "next/link";
@@ -11,6 +10,7 @@ import { RepositorySnapshot } from "./components/repositorySnapshot";
 import { SyntaxReferenceGuideHint } from "./components/syntaxReferenceGuideHint";
 import { getRepos } from "@/actions";
 import { isServiceError } from "@/lib/utils";
+import { HomepageSearch } from "./homepageSearch";
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -32,10 +32,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                         className="h-18 md:h-40 w-auto"
                     />
                 </div>
-                <SearchBar
-                    autoFocus={true}
-                    className="mt-4 w-full max-w-[800px]"
-                />
+                <HomepageSearch />
                 <div className="mt-8">
                     <RepositorySnapshot
                         repos={isServiceError(repos) ? [] : repos}
