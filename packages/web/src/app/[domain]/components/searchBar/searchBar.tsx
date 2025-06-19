@@ -43,6 +43,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Toggle } from "@/components/ui/toggle";
 import { useDomain } from "@/hooks/useDomain";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { createAuditClient } from "@/ee/features/audit/actions";
 import tailwind from "@/tailwind";
 
 interface SearchBarProps {
@@ -203,6 +204,13 @@ export const SearchBar = ({
     const onSubmit = useCallback((query: string) => {
         setIsSuggestionsEnabled(false);
         setIsHistorySearchEnabled(false);
+
+        createAuditClient({
+            action: "user.performed_code_search",
+            metadata: {
+                message: query,
+            },
+        }, domain)
 
         const url = createPathWithQueryParams(`/${domain}/search`,
             [SearchQueryParams.query, query],

@@ -116,6 +116,9 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
 | `api_key.deleted`                     | `user` | `api_key` |
 | `user.creation_failed`                | `user` | `user` |
 | `user.owner_created`                  | `user` | `org` |
+| `user.performed_code_search`              | `user` | `org` |
+| `user.performed_code_nav_find_references` | `user` | `org` |
+| `user.performed_code_nav_goto_definition` | `user` | `org` |
 | `user.jit_provisioning_failed`        | `user` | `org` |
 | `user.jit_provisioned`                | `user` | `org` |
 | `user.join_request_creation_failed`   | `user` | `org` |

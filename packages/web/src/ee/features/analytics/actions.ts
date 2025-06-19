@@ -29,7 +29,13 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
 
       const audits = await prisma.audit.findMany({
         where: {
-          actorType: 'user',
+          action: {
+            in: [
+              "user.performed_code_search",
+              "user.performed_code_nav_find_references",
+              "user.performed_code_nav_goto_definition",
+            ]
+          },
           timestamp: {
             gte: startDate,
             lte: endDate,

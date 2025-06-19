@@ -1,3 +1,5 @@
+"use server";
+
 import { prisma } from "@/prisma";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
@@ -6,9 +8,17 @@ import { OrgRole } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { ServiceError } from "@/lib/serviceError";
 import { getAuditService } from "@/ee/features/audit/factory";
+import { AuditEvent } from "./types";
 
 const auditService = getAuditService();
 const logger = createLogger('audit-utils');
+
+export const createAuditClient = async (event: Omit<AuditEvent, 'sourcebotVersion' | 'orgId' | 'actor' | 'target'>, domain: string) => sew(async () =>
+  withAuth((userId) =>
+    withOrgMembership(userId, domain, async ({ org }) => {
+      await auditService.createAudit({ ...event, orgId: org.id, actor: { id: userId, type: "user" }, target: { id: org.id.toString(), type: "org" } })
+    }, /* minRequiredRole = */ OrgRole.MEMBER), /* allowSingleTenantUnauthedAccess = */ true)
+);
 
 export const fetchAuditRecords = async (domain: string, apiKey: string | undefined = undefined) => sew(() =>
   withAuth((userId) =>
