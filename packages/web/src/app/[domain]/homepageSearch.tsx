@@ -7,11 +7,18 @@ import { useState } from "react";
 import { ChatBox } from "./chat/components/chatBox";
 import { ChatBoxTools } from "./chat/components/chatBoxTools";
 import { SearchBar } from "./components/searchBar";
+import { CreateMessage } from "ai";
+import { getAllMentionElements, toString } from "@/features/chat/utils";
+import { createPathWithQueryParams } from "@/lib/utils";
+import { useDomain } from "@/hooks/useDomain";
+import { useRouter } from "next/navigation";
 
 type SearchMode = "precise" | "agentic";
 
 export const HomepageSearch = () => {
-    const [searchMode, setSearchMode] = useState<SearchMode>("agentic");
+    const [searchMode, setSearchMode] = useState<SearchMode>("precise");
+    const domain = useDomain();
+    const router = useRouter();
 
     return (
         <div className="mt-4 w-full max-w-[800px] border rounded-md">
@@ -30,7 +37,21 @@ export const HomepageSearch = () => {
             ) : (
                 <CustomSlateEditor>
                     <ChatBox
-                        onSubmit={() => { /* todo */ }}
+                        onSubmit={(children) => {
+                            const text = toString(children);
+                            const mentions = getAllMentionElements(children);
+
+                            const message: CreateMessage = {
+                                role: "user",
+                                content: text,
+                                annotations: mentions.map((mention) => mention.data),
+                            };
+
+                            const url = createPathWithQueryParams(`/${domain}/chat`,
+                                ["message", JSON.stringify(message)],
+                            );
+                            router.push(url);
+                        }}
                         className="min-h-[50px]"
                     />
                     <Separator />
