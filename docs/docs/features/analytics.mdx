@@ -1,0 +1,51 @@
+---
+title: Analytics
+sidebarTitle: Analytics
+---
+
+import LicenseKeyRequired from '/snippets/license-key-required.mdx'
+import { Callout } from 'nextra/components'
+
+<LicenseKeyRequired />
+
+
+## Overview
+
+Analytics provides comprehensive insights into your organization's usage of Sourcebot, helping you understand adoption patterns and
+quantify the value of time saved.
+
+This dashboard is backed by [audit log](/docs/configuration/audit-logs) events. Please ensure you have audit logging enabled in order to see these insights.
+
+<video
+  autoPlay
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video"
+  src="/images/analytics_demo.mp4"
+></video>
+
+## Data Metrics
+
+### Active Users
+Tracks the number of unique users who performed any Sourcebot operation within each time period. This metric helps you understand team adoption
+and engagement with Sourcebot.
+
+![DAU Chart](/images/dau_chart.png)
+
+### Code Searches
+Counts the number of code search operations performed by your team.
+
+![Code Search Chart](/images/code_search_chart.png)
+
+### Code Navigation
+Tracks "Go to Definition" and "Find All References" navigation actions. Navigation actions help developers quickly move
+between code locations and understand code relationships.
+
+![Code Nav Chart](/images/code_nav_chart.png)
+
+## Cost Savings Calculator
+
+The analytics dashboard includes a built-in cost savings calculator that helps you quantify the ROI of using Sourcebot.
+
+![Cost Savings Chart](/images/cost_savings_chart.png)

@@ -1,6 +1,7 @@
 import { PrismaClient } from "@sourcebot/db";
 import { ArgumentParser } from "argparse";
 import { migrateDuplicateConnections } from "./scripts/migrate-duplicate-connections";
+import { injectAuditData } from "./scripts/inject-audit-data";
 import { confirmAction } from "./utils";
 import { createLogger } from "@sourcebot/logger";
 
@@ -10,6 +11,7 @@ export interface Script {
 
 export const scripts: Record<string, Script> = {
     "migrate-duplicate-connections": migrateDuplicateConnections,
+    "inject-audit-data": injectAuditData,
 }
 
 const parser = new ArgumentParser();

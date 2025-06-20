@@ -17,6 +17,8 @@ import { BrowseHighlightRange, HIGHLIGHT_RANGE_QUERY_PARAM, useBrowseNavigation 
 import { useBrowseState } from "../../hooks/useBrowseState";
 import { rangeHighlightingExtension } from "./rangeHighlightingExtension";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { createAuditAction } from "@/ee/features/audit/actions";
+import { useDomain } from "@/hooks/useDomain";
 
 interface PureCodePreviewPanelProps {
     path: string;
@@ -40,6 +42,7 @@ export const PureCodePreviewPanel = ({
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
     const { updateBrowseState } = useBrowseState();
     const { navigateToPath } = useBrowseNavigation();
+    const domain = useDomain();
     const captureEvent = useCaptureEvent();
 
     const highlightRangeQuery = useNonEmptyQueryParam(HIGHLIGHT_RANGE_QUERY_PARAM);
@@ -134,6 +137,12 @@ export const PureCodePreviewPanel = ({
 
     const onFindReferences = useCallback((symbolName: string) => {
         captureEvent('wa_browse_find_references_pressed', {});
+        createAuditAction({
+            action: "user.performed_find_references",
+            metadata: {
+                message: symbolName,
+            },
+        }, domain)
 
         updateBrowseState({
             selectedSymbolInfo: {
@@ -145,13 +154,19 @@ export const PureCodePreviewPanel = ({
             isBottomPanelCollapsed: false,
             activeExploreMenuTab: "references",
         })
-    }, [captureEvent, updateBrowseState, repoName, revisionName, language]);
+    }, [captureEvent, updateBrowseState, repoName, revisionName, language, domain]);
 
 
     // If we resolve multiple matches, instead of navigating to the first match, we should
     // instead popup the bottom sheet with the list of matches.
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
         captureEvent('wa_browse_goto_definition_pressed', {});
+        createAuditAction({
+            action: "user.performed_goto_definition",
+            metadata: {
+                message: symbolName,
+            },
+        }, domain)
 
         if (symbolDefinitions.length === 0) {
             return;
@@ -180,7 +195,7 @@ export const PureCodePreviewPanel = ({
                 isBottomPanelCollapsed: false,
             })
         }
-    }, [captureEvent, navigateToPath, revisionName, updateBrowseState, repoName, language]);
+    }, [captureEvent, navigateToPath, revisionName, updateBrowseState, repoName, language, domain]);
 
     const theme = useCodeMirrorTheme();
 
