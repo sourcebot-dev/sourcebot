@@ -57,6 +57,7 @@ ${CITATION_PREFIX}${JSON.stringify({path:"packages/web/src/components/Button.tsx
 <response_format>
 - Be clear and very concise. Use bullet points where appropriate.
 - Whenever outputting or referencing code, enclose it in either single backticks (\`...\`) if it's a single line of code, or tripple back ticks (\`\`\`...\`\`\`) if it's a block of code. ALWAYS include a citation to the code immediately following the code.
+- Always output your response in markdown format.
 </response_format>
 `;
 
