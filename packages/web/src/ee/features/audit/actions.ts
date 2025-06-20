@@ -13,7 +13,7 @@ import { AuditEvent } from "./types";
 const auditService = getAuditService();
 const logger = createLogger('audit-utils');
 
-export const createAuditClient = async (event: Omit<AuditEvent, 'sourcebotVersion' | 'orgId' | 'actor' | 'target'>, domain: string) => sew(async () =>
+export const createAuditAction = async (event: Omit<AuditEvent, 'sourcebotVersion' | 'orgId' | 'actor' | 'target'>, domain: string) => sew(async () =>
   withAuth((userId) =>
     withOrgMembership(userId, domain, async ({ org }) => {
       await auditService.createAudit({ ...event, orgId: org.id, actor: { id: userId, type: "user" }, target: { id: org.id.toString(), type: "org" } })

@@ -305,22 +305,43 @@ function SavingsChart({ data, title, icon: Icon, period, color, gradientId, avgM
 
 function LoadingSkeleton() {
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-                <Card key={i} className="bg-card border-border">
-                    <CardHeader className="pb-4">
-                        <div className="flex items-center space-x-3">
-                            <Skeleton className="h-9 w-9 rounded-lg bg-muted" />
-                            <div className="space-y-2">
-                                <Skeleton className="h-5 w-32 bg-muted" />
-                                <Skeleton className="h-8 w-24 bg-muted" />
+        <div className="space-y-8">
+            {[1, 2, 3].map((groupIndex) => (
+                <div key={groupIndex} className="space-y-4">
+                    {/* Full-width chart skeleton */}
+                    <Card className="bg-card border-border shadow-lg">
+                        <CardHeader className="pb-4">
+                            <div className="flex items-center space-x-3">
+                                <Skeleton className="h-9 w-9 rounded-lg bg-muted" />
+                                <div className="space-y-2">
+                                    <Skeleton className="h-5 w-32 bg-muted" />
+                                </div>
                             </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <Skeleton className="h-[240px] w-full bg-muted rounded-lg" />
-                    </CardContent>
-                </Card>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <Skeleton className="h-[240px] w-full bg-muted rounded-lg" />
+                        </CardContent>
+                    </Card>
+                    
+                    {/* Side-by-side charts skeleton */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {[1, 2].map((chartIndex) => (
+                            <Card key={chartIndex} className="bg-card border-border shadow-lg">
+                                <CardHeader className="pb-4">
+                                    <div className="flex items-center space-x-3">
+                                        <Skeleton className="h-9 w-9 rounded-lg bg-muted" />
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-5 w-32 bg-muted" />
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="pt-0">
+                                    <Skeleton className="h-[240px] w-full bg-muted rounded-lg" />
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
             ))}
         </div>
     )
@@ -330,13 +351,17 @@ export function AnalyticsContent() {
     const domain = useDomain()
     const { theme } = useTheme()
     
-    const [avgMinutesSaved, setAvgMinutesSaved] = useState(2)
-    const [avgSalary, setAvgSalary] = useState(100000)
+    // Store these values as strings in the state to allow us to have empty fields for better UX
+    const [avgMinutesSaved, setAvgMinutesSaved] = useState("2")
+    const [avgSalary, setAvgSalary] = useState("100000")
+    const numericAvgMinutesSaved = parseFloat(avgMinutesSaved) || 0
+    const numericAvgSalary = parseInt(avgSalary, 10) || 0
 
     const {
         data: analyticsResponse,
-        isLoading,
-        error,
+        isPending,
+        isError,
+        error
     } = useQuery({
         queryKey: ["analytics", domain],
         queryFn: () => unwrapServiceError(getAnalytics(domain)),
@@ -368,12 +393,12 @@ export function AnalyticsContent() {
     const totalSavings = useMemo(() => {
         if (!analyticsResponse) return 0
         const totalOperations = analyticsResponse.reduce((sum, row) => sum + row.code_searches + row.navigations, 0)
-        const totalMinutesSaved = totalOperations * avgMinutesSaved
-        const hourlyRate = avgSalary / (40 * 52)
+        const totalMinutesSaved = totalOperations * numericAvgMinutesSaved
+        const hourlyRate = numericAvgSalary / (40 * 52)
         return Math.round((totalMinutesSaved / 60 * hourlyRate) * 100) / 100
-    }, [analyticsResponse, avgMinutesSaved, avgSalary])
+    }, [analyticsResponse, numericAvgMinutesSaved, numericAvgSalary])
 
-    if (isLoading) {
+    if (isPending) {
         return (
             <div className="min-h-screen bg-background p-6">
                 <LoadingSkeleton />
@@ -381,7 +406,7 @@ export function AnalyticsContent() {
         )
     }
 
-    if (error) {
+    if (isError) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <Card className="bg-destructive/10 border-destructive/20 p-8">
@@ -391,22 +416,6 @@ export function AnalyticsContent() {
                         </div>
                         <h3 className="text-xl font-semibold text-foreground mb-2">Analytics Unavailable</h3>
                         <p className="text-destructive">Error loading analytics: {error.message}</p>
-                    </div>
-                </Card>
-            </div>
-        )
-    }
-
-    if (!analyticsResponse) {
-        return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <Card className="bg-card border-border p-8">
-                    <div className="text-center">
-                        <div className="p-3 rounded-full bg-muted/50 w-fit mx-auto mb-4">
-                            <Activity className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-card-foreground mb-2">No Data Available</h3>
-                        <p className="text-muted-foreground">No analytics data available for this domain</p>
                     </div>
                 </Card>
             </div>
@@ -563,10 +572,10 @@ export function AnalyticsContent() {
                                 <Input
                                     id="avgMinutesSaved"
                                     type="number"
-                                    min="0.1"
+                                    min="0"
                                     step="0.1"
                                     value={avgMinutesSaved}
-                                    onChange={(e) => setAvgMinutesSaved(parseFloat(e.target.value) || 0)}
+                                    onChange={(e) => setAvgMinutesSaved(e.target.value)}
                                     placeholder="2"
                                 />
                                 <p className="text-xs text-muted-foreground">Estimated time saved per search or navigation operation</p>
@@ -576,10 +585,10 @@ export function AnalyticsContent() {
                                 <Input
                                     id="avgSalary"
                                     type="number"
-                                    min="10000"
+                                    min="0"
                                     step="1000"
                                     value={avgSalary}
-                                    onChange={(e) => setAvgSalary(parseInt(e.target.value) || 0)}
+                                    onChange={(e) => setAvgSalary(e.target.value)}
                                     placeholder="100000"
                                 />
                                 <p className="text-xs text-muted-foreground">Average annual salary of your engineering team</p>
@@ -608,8 +617,8 @@ export function AnalyticsContent() {
                         period="day"
                         color={getColor("savings")}
                         gradientId="dailySavings"
-                        avgMinutesSaved={avgMinutesSaved}
-                        avgSalary={avgSalary}
+                        avgMinutesSaved={numericAvgMinutesSaved}
+                        avgSalary={numericAvgSalary}
                     />
                     
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -620,8 +629,8 @@ export function AnalyticsContent() {
                             period="week"
                             color={getColor("savings")}
                             gradientId="weeklySavings"
-                            avgMinutesSaved={avgMinutesSaved}
-                            avgSalary={avgSalary}
+                            avgMinutesSaved={numericAvgMinutesSaved}
+                            avgSalary={numericAvgSalary}
                         />
                         <SavingsChart
                             data={monthlyData}
@@ -630,8 +639,8 @@ export function AnalyticsContent() {
                             period="month"
                             color={getColor("savings")}
                             gradientId="monthlySavings"
-                            avgMinutesSaved={avgMinutesSaved}
-                            avgSalary={avgSalary}
+                            avgMinutesSaved={numericAvgMinutesSaved}
+                            avgSalary={numericAvgSalary}
                         />
                     </div>
                 </div>

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added analytics dashboard. [#358](https://github.com/sourcebot-dev/sourcebot/pull/358)
 
+### Changed
+- Audit logging is now enabled by default. [#358](https://github.com/sourcebot-dev/sourcebot/pull/358)
+
 ## [4.4.0] - 2025-06-18
 
 ### Added

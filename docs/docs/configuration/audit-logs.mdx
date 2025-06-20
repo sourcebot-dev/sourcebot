@@ -12,8 +12,8 @@ action, and when the action took place.
 
 This feature gives security and compliance teams the necessary information to ensure proper governance and administration of your Sourcebot deployment.
 
-## Enabling Audit Logs
-Audit logs must be explicitly enabled by setting the `SOURCEBOT_EE_AUDIT_LOGGING_ENABLED` [environment variable](/docs/configuration/environment-variables) to `true`
+## Enabling/Disabling Audit Logs
+Audit logs are enabled by default and can be controlled with the `SOURCEBOT_EE_AUDIT_LOGGING_ENABLED` [environment variable](/docs/configuration/environment-variables).
 
 ## Fetching Audit Logs
 Audit logs are stored in the [postgres database](/docs/overview#architecture) connected to Sourcebot. To fetch all of the audit logs, you can use the following API:

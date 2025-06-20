@@ -17,7 +17,7 @@ import { BrowseHighlightRange, HIGHLIGHT_RANGE_QUERY_PARAM, useBrowseNavigation 
 import { useBrowseState } from "../../hooks/useBrowseState";
 import { rangeHighlightingExtension } from "./rangeHighlightingExtension";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { createAuditClient } from "@/ee/features/audit/actions";
+import { createAuditAction } from "@/ee/features/audit/actions";
 import { useDomain } from "@/hooks/useDomain";
 
 interface PureCodePreviewPanelProps {
@@ -137,7 +137,7 @@ export const PureCodePreviewPanel = ({
 
     const onFindReferences = useCallback((symbolName: string) => {
         captureEvent('wa_browse_find_references_pressed', {});
-        createAuditClient({
+        createAuditAction({
             action: "user.performed_find_references",
             metadata: {
                 message: symbolName,
@@ -161,7 +161,7 @@ export const PureCodePreviewPanel = ({
     // instead popup the bottom sheet with the list of matches.
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
         captureEvent('wa_browse_goto_definition_pressed', {});
-        createAuditClient({
+        createAuditAction({
             action: "user.performed_goto_definition",
             metadata: {
                 message: symbolName,
