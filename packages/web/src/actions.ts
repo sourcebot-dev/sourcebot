@@ -1055,6 +1055,15 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                 } satisfies ServiceError;
             }
 
+            await prisma.invite.createMany({
+                data: emails.map((email) => ({
+                    recipientEmail: email,
+                    hostUserId: userId,
+                    orgId: org.id,
+                })),
+                skipDuplicates: true,
+            });
+
             // Send invites to recipients
             if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
                 const origin = (await headers()).get('origin')!;
