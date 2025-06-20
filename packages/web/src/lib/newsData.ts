@@ -2,6 +2,12 @@ import { NewsItem } from "./types";
 
 export const newsData: NewsItem[] = [
     {
+        unique_id: "analytics",
+        header: "Analytics Dashboard",
+        sub_header: "Understand your team's usage of Sourcebot",
+        url: "https://docs.sourcebot.dev/docs/features/analytics"
+    },
+    {
         unique_id: "audit-logs",
         header: "Audit logs",
         sub_header: "We've added support for audit logs",
