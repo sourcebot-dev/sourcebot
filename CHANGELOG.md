@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added analytics dashboard. [#358](https://github.com/sourcebot-dev/sourcebot/pull/358)
 
+### Fixed
+- Fixed issue where invites appeared to be created successfully, but were not actually being created in the database. [#359](https://github.com/sourcebot-dev/sourcebot/pull/359)
+
 ### Changed
 - Audit logging is now enabled by default. [#358](https://github.com/sourcebot-dev/sourcebot/pull/358)
 
