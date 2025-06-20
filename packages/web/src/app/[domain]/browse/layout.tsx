@@ -29,7 +29,7 @@ export default function Layout({
     );
 }
 
-export const InnerLayout = ({
+const InnerLayout = ({
     children
 }: LayoutProps) => {
     const { repoName, revisionName } = useBrowseParams();
