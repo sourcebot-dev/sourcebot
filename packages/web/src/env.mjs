@@ -19,6 +19,9 @@ export const env = createEnv({
         TOTAL_MAX_MATCH_COUNT: numberSchema.default(100000),
         ZOEKT_MAX_WALL_TIME_MS: numberSchema.default(10000),
         
+        // Database Query Performance
+        DB_QUERY_BATCH_SIZE: numberSchema.default(500),
+        
         // Auth
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),

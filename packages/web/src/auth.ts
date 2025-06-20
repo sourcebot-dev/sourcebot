@@ -141,7 +141,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     trustHost: true,
     events: {
         createUser: onCreateUser,
-        signIn: async ({ user, account }) => {
+        signIn: async ({ user, account: _account }) => {
             if (user.id) {
                 await auditService.createAudit({
                     action: "user.signed_in",
