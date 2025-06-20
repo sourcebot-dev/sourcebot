@@ -16,4 +16,5 @@ export const DEFAULT_SETTINGS: Settings = {
     repoGarbageCollectionGracePeriodMs: 10 * 1000, // 10 seconds
     repoIndexTimeoutMs: 1000 * 60 * 60 * 2, // 2 hours
     enablePublicAccess: false,
+    dbQueryBatchSize: 500, // Default batch size for database queries
 }

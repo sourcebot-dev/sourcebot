@@ -12,6 +12,7 @@ import * as Sentry from "@sentry/nextjs";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { base64Decode } from "@sourcebot/shared";
 import { getAuditService } from "@/ee/features/audit/factory";
+import { batchedFindReposByIds, batchedFindReposByNames } from "@/lib/repoBatchQueries";
 
 const auditService = getAuditService();
 
@@ -198,23 +199,19 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                 const repoIdentifiers = new Set(Result.Files?.map((file) => file.RepositoryID ?? file.Repository) ?? []);
                 const repos = new Map<string | number, Repo>();
 
-                (await prisma.repo.findMany({
-                    where: {
-                        id: {
-                            in: Array.from(repoIdentifiers).filter((id) => typeof id === "number"),
-                        },
-                        orgId: org.id,
-                    }
-                })).forEach(repo => repos.set(repo.id, repo));
+                // Batch query repos by ID to prevent memory issues with large datasets
+                const numericIds = Array.from(repoIdentifiers).filter((id) => typeof id === "number") as number[];
+                if (numericIds.length > 0) {
+                    const reposByIds = await batchedFindReposByIds(numericIds, org.id);
+                    reposByIds.forEach((repo) => repos.set(repo.id, repo));
+                }
 
-                (await prisma.repo.findMany({
-                    where: {
-                        name: {
-                            in: Array.from(repoIdentifiers).filter((id) => typeof id === "string"),
-                        },
-                        orgId: org.id,
-                    }
-                })).forEach(repo => repos.set(repo.name, repo));
+                // Batch query repos by name to prevent memory issues with large datasets
+                const stringNames = Array.from(repoIdentifiers).filter((id) => typeof id === "string") as string[];
+                if (stringNames.length > 0) {
+                    const reposByNames = await batchedFindReposByNames(stringNames, org.id);
+                    reposByNames.forEach((repo) => repos.set(repo.name, repo));
+                }
 
                 const files = Result.Files?.map((file) => {
                     const fileNameChunks = file.ChunkMatches.filter((chunk) => chunk.FileName);

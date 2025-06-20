@@ -662,28 +662,46 @@ export const getConnectionInfo = async (connectionId: number, domain: string) =>
 export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
-            const repos = await prisma.repo.findMany({
-                where: {
-                    orgId: org.id,
-                    ...(filter.status ? {
-                        repoIndexingStatus: { in: filter.status }
-                    } : {}),
-                    ...(filter.connectionId ? {
-                        connections: {
-                            some: {
-                                connectionId: filter.connectionId
-                            }
-                        }
-                    } : {}),
-                },
-                include: {
+            // Use batched query to prevent memory issues with large datasets.
+            // The batch size is configurable via DB_QUERY_BATCH_SIZE environment variable.
+            const whereClause = {
+                orgId: org.id,
+                ...(filter.status ? {
+                    repoIndexingStatus: { in: filter.status }
+                } : {}),
+                ...(filter.connectionId ? {
                     connections: {
-                        include: {
-                            connection: true,
+                        some: {
+                            connectionId: filter.connectionId
                         }
                     }
-                }
-            });
+                } : {}),
+            };
+
+            // First get the total count
+            const totalCount = await prisma.repo.count({ where: whereClause });
+            
+            const repos = [];
+            const batchSize = env.DB_QUERY_BATCH_SIZE;
+            const totalBatches = Math.ceil(totalCount / batchSize);
+
+            // Execute queries in batches
+            for (let i = 0; i < totalBatches; i++) {
+                const skip = i * batchSize;
+                const batchResults = await prisma.repo.findMany({
+                    where: whereClause,
+                    include: {
+                        connections: {
+                            include: {
+                                connection: true,
+                            }
+                        }
+                    },
+                    skip,
+                    take: batchSize,
+                });
+                repos.push(...batchResults);
+            }
 
             return repos.map((repo) => repositoryQuerySchema.parse({
                 codeHostType: repo.external_codeHostType,

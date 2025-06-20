@@ -20,6 +20,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `DATA_DIR` | `/data` | <p>The directory within the container to store all persistent data. Typically, this directory will be volume mapped such that data is persisted across container restarts (e.g., `docker run -v $(pwd):/data`)</p> |
 | `DATABASE_DATA_DIR` | `$DATA_CACHE_DIR/db` | <p>The data directory for the default Postgres database.</p> |
 | `DATABASE_URL` | `postgresql://postgres@ localhost:5432/sourcebot` | <p>Connection string of your Postgres database. By default, a Postgres database is automatically provisioned at startup within the container.</p><p>If you'd like to use a non-default schema, you can provide it as a parameter in the database url </p> |
+| `DB_QUERY_BATCH_SIZE` | `500` | <p>The batch size for database queries to prevent memory issues with large datasets. This is a workaround for Prisma issue [#13864](https://github.com/prisma/prisma/issues/13864). Can also be configured via the `dbQueryBatchSize` setting in the configuration file. Valid range: 100-10000.</p> |
 | `EMAIL_FROM_ADDRESS` | `-` | <p>The email address that transactional emails will be sent from. See [this doc](/docs/configuration/transactional-emails) for more info.</p> | 
 | `REDIS_DATA_DIR` | `$DATA_CACHE_DIR/redis` | <p>The data directory for the default Redis instance.</p> |
 | `REDIS_URL` | `redis://localhost:6379` | <p>Connection string of your Redis instance. By default, a Redis database is automatically provisioned at startup within the container.</p> |

@@ -83,6 +83,10 @@ export interface Settings {
    * [Sourcebot EE] When enabled, allows unauthenticated users to access Sourcebot. Requires an enterprise license with an unlimited number of seats.
    */
   enablePublicAccess?: boolean;
+  /**
+   * The batch size for database queries to prevent memory issues with large datasets. This is a workaround for Prisma issue #13864. Defaults to 500.
+   */
+  dbQueryBatchSize?: number;
 }
 /**
  * Search context
