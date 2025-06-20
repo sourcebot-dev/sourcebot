@@ -4,7 +4,7 @@ import { Separator } from '@/components/ui/separator';
 import { useDomain } from '@/hooks/useDomain';
 import { Message, useChat } from '@ai-sdk/react';
 import { TopBar } from '../../components/topBar';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ErrorBanner } from './errorBanner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
@@ -17,12 +17,13 @@ import { UIMessage } from 'ai';
 import { useSession } from 'next-auth/react';
 import { HammerIcon } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ToolInvocationUIPart } from '@ai-sdk/ui-utils';
+import { CreateMessage, TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 
 export default function Chat({
     id,
     initialMessages,
-}: { id?: string | undefined; initialMessages?: Message[] } = {}) {
+    inputMessage,
+}: { id?: string | undefined; initialMessages?: Message[]; inputMessage?: CreateMessage } = {}) {
     const {
         append,
         messages,
@@ -35,8 +36,16 @@ export default function Chat({
     });
 
     const domain = useDomain();
-
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
+    const hasSubmittedInputMessage = useRef(false);
+
+    // Submit inputMessage once when component mounts
+    useEffect(() => {
+        if (inputMessage && !hasSubmittedInputMessage.current) {
+            hasSubmittedInputMessage.current = true;
+            append(inputMessage);
+        }
+    }, [inputMessage, append]);
 
     // Keep the error state & banner visibility in sync.
     useEffect(() => {
@@ -148,7 +157,10 @@ const MessageComponent = ({ message, isLatestMessage, status }: MessageComponent
                                 switch (part.type) {
                                     case 'text':
                                         return (
-                                            <p key={index}>{part.text}</p>
+                                            <TextUIPartComponent
+                                                key={index}
+                                                part={part}
+                                            />
                                         )
                                     case 'step-start':
                                         break;
@@ -173,6 +185,16 @@ const MessageComponent = ({ message, isLatestMessage, status }: MessageComponent
                     )}
                 </div>
             </div>
+        </div>
+    )
+}
+
+const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
+    return (
+        <div className="whitespace-pre-wrap break-words">
+            <span>
+                {part.text}
+            </span>
         </div>
     )
 }
