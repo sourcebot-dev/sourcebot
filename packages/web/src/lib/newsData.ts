@@ -4,7 +4,7 @@ export const newsData: NewsItem[] = [
     {
         unique_id: "analytics",
         header: "Analytics Dashboard",
-        sub_header: "Understand your team's usage of Sourcebot",
+        sub_header: "Understand your team's Sourcebot usage",
         url: "https://docs.sourcebot.dev/docs/features/analytics"
     },
     {
