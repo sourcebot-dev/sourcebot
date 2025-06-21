@@ -85,6 +85,10 @@ export default async function SettingsLayout({
             title: "API Keys",
             href: `/${domain}/settings/apiKeys`,
         },
+        {
+            title: "Analytics",
+            href: `/${domain}/settings/analytics`,
+        },
         ...(env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined ? [
             {
                 title: "License",

@@ -21,6 +21,9 @@ import { SymbolHoverPopup } from "@/ee/features/codeNav/components/symbolHoverPo
 import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { SymbolDefinition } from "@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo";
+import { createAuditAction } from "@/ee/features/audit/actions";
+import { useDomain } from "@/hooks/useDomain";
+
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 export interface CodePreviewFile {
@@ -50,6 +53,7 @@ export const CodePreview = ({
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const { navigateToPath } = useBrowseNavigation();
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
+    const domain = useDomain();
 
     const [gutterWidth, setGutterWidth] = useState(0);
     const theme = useCodeMirrorTheme();
@@ -116,6 +120,12 @@ export const CodePreview = ({
 
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
         captureEvent('wa_preview_panel_goto_definition_pressed', {});
+        createAuditAction({
+            action: "user.performed_goto_definition",
+            metadata: {
+                message: symbolName,
+            },
+        }, domain)
 
         if (symbolDefinitions.length === 0) {
             return;
@@ -150,10 +160,16 @@ export const CodePreview = ({
                 }
             });
         }
-    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName]);
+    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName, domain]);
     
     const onFindReferences = useCallback((symbolName: string) => {
         captureEvent('wa_preview_panel_find_references_pressed', {});
+        createAuditAction({
+            action: "user.performed_find_references",
+            metadata: {
+                message: symbolName,
+            },
+        }, domain)
 
         navigateToPath({
             repoName,
@@ -171,7 +187,7 @@ export const CodePreview = ({
                 isBottomPanelCollapsed: false,
             }
         })
-    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName]);
+    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName, domain]);
 
     return (
         <div className="flex flex-col h-full">

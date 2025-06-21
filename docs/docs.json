@@ -36,6 +36,7 @@
                                 ]
                             },
                             "docs/features/code-navigation",
+                            "docs/features/analytics",
                             "docs/features/mcp-server",
                             {
                                 "group": "Agents",

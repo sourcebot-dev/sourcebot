@@ -245,6 +245,12 @@ model Audit {
   orgId Int
 
   @@index([actorId, actorType, targetId, targetType, orgId])
+
+  // Fast path for analytics queries – orgId is first because we assume most deployments are single tenant
+  @@index([orgId, timestamp, action, actorId], map: "idx_audit_core_actions_full")
+
+  // Fast path for analytics queries for a specific user
+  @@index([actorId, timestamp], map: "idx_audit_actor_time_full")
 }
 
 // @see : https://authjs.dev/concepts/database-models#user
