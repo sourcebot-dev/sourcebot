@@ -36,6 +36,7 @@ import { sparql } from "codemirror-lang-sparql"; // 3rd party
 import { spreadsheet } from "codemirror-lang-spreadsheet"; // 3rd party
 import { sql } from "@codemirror/lang-sql";
 import { svelte } from "@replit/codemirror-lang-svelte"; // 3rd party
+import { tcl } from "@sourcebot/codemirror-lang-tcl";
 import { twig } from "@ssddanbrown/codemirror-lang-twig"; // 3rd party
 import { vue } from "@codemirror/lang-vue";
 import { wast } from "@codemirror/lang-wast";
@@ -93,7 +94,6 @@ import { shader } from "@codemirror/legacy-modes/mode/clike";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { squirrel } from "@codemirror/legacy-modes/mode/clike";
 import { swift } from "@codemirror/legacy-modes/mode/swift";
-import { tcl } from "@codemirror/legacy-modes/mode/tcl";
 import { textile } from "@codemirror/legacy-modes/mode/textile";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
 import { toml } from "@codemirror/legacy-modes/mode/toml";
@@ -159,6 +159,7 @@ export const codemirrorLanguageMap = {
     "spreadsheet": spreadsheet(),
     "sql": sql(),
     "svelte": svelte(),
+    "tcl": tcl(),
     "tsx": javascript({ jsx: true, typescript: true }),
     "twig": twig(),
     "typescript": javascript({ jsx: false, typescript: true }),
@@ -214,7 +215,6 @@ export const codemirrorLanguageMap = {
     "shell": StreamLanguage.define(shell),
     "squirrel": StreamLanguage.define(squirrel),
     "swift": StreamLanguage.define(swift),
-    "tcl": StreamLanguage.define(tcl),
     "textile": StreamLanguage.define(textile),
     "stex": StreamLanguage.define(stex),
     "toml": StreamLanguage.define(toml),
