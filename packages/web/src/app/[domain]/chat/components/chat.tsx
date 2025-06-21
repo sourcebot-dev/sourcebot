@@ -4,7 +4,7 @@ import { Separator } from '@/components/ui/separator';
 import { useDomain } from '@/hooks/useDomain';
 import { Message, useChat } from '@ai-sdk/react';
 import { TopBar } from '../../components/topBar';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { ErrorBanner } from './errorBanner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
@@ -18,6 +18,9 @@ import { useSession } from 'next-auth/react';
 import { HammerIcon } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { CreateMessage, TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-utils';
+import { marked } from "marked";
+import React from 'react';
+
 
 export default function Chat({
     id,
@@ -152,7 +155,7 @@ const MessageComponent = ({ message, isLatestMessage, status }: MessageComponent
 
                     {/* Tool calls indicators */}
                     {message.parts.length > 0 && (
-                        <div className="space-y-2">
+                        <div>
                             {message.parts.map((part, index) => {
                                 switch (part.type) {
                                     case 'text':
@@ -189,12 +192,31 @@ const MessageComponent = ({ message, isLatestMessage, status }: MessageComponent
     )
 }
 
+marked.use({
+    renderer: {
+        code: (code) => {
+            if (code.lang === 'mermaid') {
+                return `<pre class="mermaid">${code.text}</pre>`;
+            }
+            return `<pre><code>${code.text}</code></pre>`;
+        }
+    }
+})
+
 const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
+    const markdown = useMemo(() => {
+        return marked.parse(part.text, {
+            gfm: true,
+            breaks: true,
+        });
+    }, [part.text]);
+
     return (
-        <div className="whitespace-pre-wrap break-words">
-            <span>
-                {part.text}
-            </span>
+        <div>
+
+            <div className="prose prose-p:text-foreground prose-li:text-foreground dark:prose-invert">
+                <span dangerouslySetInnerHTML={{ __html: markdown }} />
+            </div>
         </div>
     )
 }

@@ -6283,6 +6283,7 @@ __metadata:
     "@stripe/react-stripe-js": "npm:^3.1.1"
     "@stripe/stripe-js": "npm:^5.6.0"
     "@t3-oss/env-nextjs": "npm:^0.12.0"
+    "@tailwindcss/typography": "npm:^0.5.16"
     "@tanstack/eslint-plugin-query": "npm:^5.74.7"
     "@tanstack/react-query": "npm:^5.53.3"
     "@tanstack/react-table": "npm:^8.20.5"
@@ -6339,6 +6340,7 @@ __metadata:
     input-otp: "npm:^1.4.2"
     jsdom: "npm:^25.0.1"
     lucide-react: "npm:^0.517.0"
+    marked: "npm:^15.0.12"
     micromatch: "npm:^4.0.8"
     next: "npm:14.2.26"
     next-auth: "npm:^5.0.0-beta.25"
@@ -6487,6 +6489,20 @@ __metadata:
     zod:
       optional: true
   checksum: 10c0/f39cae67353c09818b13836cf1f0ab8186058f6fd2f5e8983f43c8601f1cd6948d3a159a2f166420049080ca56e73ba69e483229f21593aba0d6d8f4cf79ef32
+  languageName: node
+  linkType: hard
+
+"@tailwindcss/typography@npm:^0.5.16":
+  version: 0.5.16
+  resolution: "@tailwindcss/typography@npm:0.5.16"
+  dependencies:
+    lodash.castarray: "npm:^4.4.0"
+    lodash.isplainobject: "npm:^4.0.6"
+    lodash.merge: "npm:^4.6.2"
+    postcss-selector-parser: "npm:6.0.10"
+  peerDependencies:
+    tailwindcss: "*"
+  checksum: 10c0/35a7387876810c23c270a23848b920517229b707c8ead6a63c8bb7d6720a62f23728c3117f0a93b422a66d1e5ee9c7ad8a6c3f0fbf5255b535c0e4971ffa0158
   languageName: node
   linkType: hard
 
@@ -12313,6 +12329,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lodash.castarray@npm:^4.4.0":
+  version: 4.4.0
+  resolution: "lodash.castarray@npm:4.4.0"
+  checksum: 10c0/0bf523ad1596a5bf17869ba047235b4453eee927005013ae152345e2b291b81a02e7f2b7c38f876a1d16f73c34aa3c3241e965193e5b31595035bc8f330c4358
+  languageName: node
+  linkType: hard
+
 "lodash.debounce@npm:^4.0.8":
   version: 4.0.8
   resolution: "lodash.debounce@npm:4.0.8"
@@ -12331,6 +12354,13 @@ __metadata:
   version: 3.1.0
   resolution: "lodash.isarguments@npm:3.1.0"
   checksum: 10c0/5e8f95ba10975900a3920fb039a3f89a5a79359a1b5565e4e5b4310ed6ebe64011e31d402e34f577eca983a1fc01ff86c926e3cbe602e1ddfc858fdd353e62d8
+  languageName: node
+  linkType: hard
+
+"lodash.isplainobject@npm:^4.0.6":
+  version: 4.0.6
+  resolution: "lodash.isplainobject@npm:4.0.6"
+  checksum: 10c0/afd70b5c450d1e09f32a737bed06ff85b873ecd3d3d3400458725283e3f2e0bb6bf48e67dbe7a309eb371a822b16a26cca4a63c8c52db3fc7dc9d5f9dd324cbb
   languageName: node
   linkType: hard
 
@@ -12511,6 +12541,15 @@ __metadata:
   bin:
     marked: bin/marked.js
   checksum: 10c0/7f5993bfb2d260806ffada81051c45952857117cba0fd82790779dc696c7ebd35a96be47409b4bdabd75e7ede286f5f5142a75a47200e3fa54eaf8b0cd6f74f6
+  languageName: node
+  linkType: hard
+
+"marked@npm:^15.0.12":
+  version: 15.0.12
+  resolution: "marked@npm:15.0.12"
+  bin:
+    marked: bin/marked.js
+  checksum: 10c0/e09da211544b787ecfb25fed07af206060bf7cd6d9de6cb123f15c496a57f83b7aabea93340aaa94dae9c94e097ae129377cad6310abc16009590972e85f4212
   languageName: node
   linkType: hard
 
@@ -13950,6 +13989,16 @@ __metadata:
   peerDependencies:
     postcss: ^8.2.14
   checksum: 10c0/7f9c3f2d764191a39364cbdcec350f26a312431a569c9ef17408021424726b0d67995ff5288405e3724bb7152a4c92f73c027e580ec91e798800ed3c52e2bc6e
+  languageName: node
+  linkType: hard
+
+"postcss-selector-parser@npm:6.0.10":
+  version: 6.0.10
+  resolution: "postcss-selector-parser@npm:6.0.10"
+  dependencies:
+    cssesc: "npm:^3.0.0"
+    util-deprecate: "npm:^1.0.2"
+  checksum: 10c0/a0b27c5e3f7604c8dc7cd83f145fdd7b21448e0d86072da99e0d78e536ba27aa9db2d42024c50aa530408ee517c4bdc0260529e1afb56608f9a82e839c207e82
   languageName: node
   linkType: hard
 

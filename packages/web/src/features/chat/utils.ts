@@ -107,7 +107,7 @@ export const toString = (children: Descendant[]): string => {
         }
 
         if (isMentionElement(child)) {
-            return `@${child.data.name} `;
+            return `\`@${child.data.name}\` `;
         }
 
         return toString(child.children);
