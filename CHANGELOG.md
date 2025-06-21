@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added code nav and syntax highlighting for TCL. [#362](https://github.com/sourcebot-dev/sourcebot/pull/362)
 - Added analytics dashboard. [#358](https://github.com/sourcebot-dev/sourcebot/pull/358)
 
 ### Fixed

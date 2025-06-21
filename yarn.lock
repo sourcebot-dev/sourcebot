@@ -347,6 +347,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@codemirror/highlight@npm:^0.19.0":
+  version: 0.19.8
+  resolution: "@codemirror/highlight@npm:0.19.8"
+  dependencies:
+    "@codemirror/language": "npm:^0.19.0"
+    "@codemirror/rangeset": "npm:^0.19.0"
+    "@codemirror/state": "npm:^0.19.3"
+    "@codemirror/view": "npm:^0.19.39"
+    "@lezer/common": "npm:^0.15.0"
+    style-mod: "npm:^4.0.0"
+  checksum: 10c0/64ee07946e102962339de7d2b1e10f0eb2588549650f681c63ec58b6c1223ed9ed800097d87d5c52150024b7070ba3a0b2b2e27c8913545f85e17c72c2cfff60
+  languageName: node
+  linkType: hard
+
 "@codemirror/lang-angular@npm:^0.1.0":
   version: 0.1.4
   resolution: "@codemirror/lang-angular@npm:0.1.4"
@@ -668,6 +682,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@codemirror/language@npm:^0.19.0":
+  version: 0.19.10
+  resolution: "@codemirror/language@npm:0.19.10"
+  dependencies:
+    "@codemirror/state": "npm:^0.19.0"
+    "@codemirror/text": "npm:^0.19.0"
+    "@codemirror/view": "npm:^0.19.0"
+    "@lezer/common": "npm:^0.15.5"
+    "@lezer/lr": "npm:^0.15.0"
+  checksum: 10c0/aaa1a413fde7913cbe07d5ff66e634a9261214afc76e776d4eb68c7c7f6179988c27d842091bbab28059ff64027f23b492a9d976bf0e5396b1dbecdd9bd9c444
+  languageName: node
+  linkType: hard
+
 "@codemirror/legacy-modes@npm:^6.4.0":
   version: 6.5.1
   resolution: "@codemirror/legacy-modes@npm:6.5.1"
@@ -697,6 +724,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@codemirror/rangeset@npm:^0.19.0, @codemirror/rangeset@npm:^0.19.5":
+  version: 0.19.9
+  resolution: "@codemirror/rangeset@npm:0.19.9"
+  dependencies:
+    "@codemirror/state": "npm:^0.19.0"
+  checksum: 10c0/40fc64994f8020f29c224f4f5a5f83b4cb46252f14ec3837258e3fa27228df59fb891d67f0b42bf873b07543f3965b2e6d5a5ea567481792c904b0031b041236
+  languageName: node
+  linkType: hard
+
 "@codemirror/search@npm:^6.0.0, @codemirror/search@npm:^6.5.6":
   version: 6.5.10
   resolution: "@codemirror/search@npm:6.5.10"
@@ -705,6 +741,15 @@ __metadata:
     "@codemirror/view": "npm:^6.0.0"
     crelt: "npm:^1.0.5"
   checksum: 10c0/01806b0a04e6274077bac5de9fc201194147da25ec888dec0186269da9aff089d321a1a09245b4de39148c76b30ba8595a95d42dea6f5913d19c3a0107401d3a
+  languageName: node
+  linkType: hard
+
+"@codemirror/state@npm:^0.19.0, @codemirror/state@npm:^0.19.3":
+  version: 0.19.9
+  resolution: "@codemirror/state@npm:0.19.9"
+  dependencies:
+    "@codemirror/text": "npm:^0.19.0"
+  checksum: 10c0/b2107e86ab31f4ccd81f2c7848761f6cfaefdc5a215bace692917a9352c44662645535593119c75af2c850de6359771c03ebb8b6366986431a11a1195358d7af
   languageName: node
   linkType: hard
 
@@ -717,6 +762,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@codemirror/text@npm:^0.19.0":
+  version: 0.19.6
+  resolution: "@codemirror/text@npm:0.19.6"
+  checksum: 10c0/2c7cf96116e704e0126e4105f5a91b5feda1c9b403de47bb40ef9e650af2e38a1ba5d8f8e40725e8756260589e41337d1f815f634307adf5cd6df4bf95b61718
+  languageName: node
+  linkType: hard
+
 "@codemirror/theme-one-dark@npm:^6.0.0":
   version: 6.1.2
   resolution: "@codemirror/theme-one-dark@npm:6.1.2"
@@ -726,6 +778,19 @@ __metadata:
     "@codemirror/view": "npm:^6.0.0"
     "@lezer/highlight": "npm:^1.0.0"
   checksum: 10c0/d0d70ce1e03fa7e5d51cc72d8bdef043f30e14a5aee88f4dd71b64e176c3d68629c82390b9cfdab8cc1ac20d35703b65fe9160051fddc873aa67c613d9525a3d
+  languageName: node
+  linkType: hard
+
+"@codemirror/view@npm:^0.19.0, @codemirror/view@npm:^0.19.39":
+  version: 0.19.48
+  resolution: "@codemirror/view@npm:0.19.48"
+  dependencies:
+    "@codemirror/rangeset": "npm:^0.19.5"
+    "@codemirror/state": "npm:^0.19.3"
+    "@codemirror/text": "npm:^0.19.0"
+    style-mod: "npm:^4.0.0"
+    w3c-keyname: "npm:^2.2.4"
+  checksum: 10c0/360893303540878a616b8db85990d58790ba4f7cceda1dd55383a0d49aa733a5f0a1831f31ec12e8419ebf307cc7b47f9b6fa9ddccaed970bcc37174f72f61c0
   languageName: node
   linkType: hard
 
@@ -1812,6 +1877,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@lezer/common@npm:^0.15.0, @lezer/common@npm:^0.15.5":
+  version: 0.15.12
+  resolution: "@lezer/common@npm:0.15.12"
+  checksum: 10c0/ed9cbeeee81e4da94a4fba735caddb6aa5d1908a4b2a95737b35492a2b0ec220be792ef7b2d302914904b3d9fa7307f43e8b627973e10b04cd1c1a88e5647622
+  languageName: node
+  linkType: hard
+
 "@lezer/common@npm:^1.0.0, @lezer/common@npm:^1.0.2, @lezer/common@npm:^1.0.3, @lezer/common@npm:^1.1.0, @lezer/common@npm:^1.2.0, @lezer/common@npm:^1.2.1":
   version: 1.2.3
   resolution: "@lezer/common@npm:1.2.3"
@@ -1902,6 +1974,15 @@ __metadata:
     "@lezer/highlight": "npm:^1.0.0"
     "@lezer/lr": "npm:^1.0.0"
   checksum: 10c0/e91c957cc0825e927b55fbcd233d7ee0b39f9c2a89d9475489f394b7eba2b59e5f480d157a12d5cd6ae6f14bc99f9ccd8e8113baad498199ef1b13c49105f546
+  languageName: node
+  linkType: hard
+
+"@lezer/lr@npm:^0.15.0":
+  version: 0.15.8
+  resolution: "@lezer/lr@npm:0.15.8"
+  dependencies:
+    "@lezer/common": "npm:^0.15.0"
+  checksum: 10c0/5cd5123aca5cb2f268d265b6c21922ba3426ba60b9bbc1df85f4bfeed48097a444c656e642557fa93de8a8eb00d3254f502ce2796ae9edc1d186f14fa540a863
   languageName: node
   linkType: hard
 
@@ -5806,6 +5887,20 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@sourcebot/codemirror-lang-tcl@npm:^1.0.12":
+  version: 1.0.12
+  resolution: "@sourcebot/codemirror-lang-tcl@npm:1.0.12"
+  dependencies:
+    "@codemirror/highlight": "npm:^0.19.0"
+    "@codemirror/language": "npm:^6.0.0"
+    "@lezer/common": "npm:^1.0.0"
+    "@lezer/highlight": "npm:^1.0.0"
+    "@lezer/lr": "npm:^1.0.0"
+    tslib: "npm:^2.8.1"
+  checksum: 10c0/3f858a1fb57a2da63d3b197a2d2617075fdf84598b77b0c8b8237835363035088aec4a7784da5909bd2c9c98422dda5577be6366a3e266715fc5436a8078dab3
+  languageName: node
+  linkType: hard
+
 "@sourcebot/crypto@workspace:*, @sourcebot/crypto@workspace:packages/crypto":
   version: 0.0.0-use.local
   resolution: "@sourcebot/crypto@workspace:packages/crypto"
@@ -5974,6 +6069,7 @@ __metadata:
     "@replit/codemirror-vim": "npm:^6.2.1"
     "@sentry/nextjs": "npm:^9"
     "@shopify/lang-jsonc": "npm:^1.0.0"
+    "@sourcebot/codemirror-lang-tcl": "npm:^1.0.12"
     "@sourcebot/crypto": "workspace:*"
     "@sourcebot/db": "workspace:*"
     "@sourcebot/error": "workspace:*"
@@ -16082,7 +16178,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.0.0, tslib@npm:^2.1.0, tslib@npm:^2.4.0":
+"tslib@npm:^2.0.0, tslib@npm:^2.1.0, tslib@npm:^2.4.0, tslib@npm:^2.8.1":
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
   checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62
