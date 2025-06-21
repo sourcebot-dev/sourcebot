@@ -21,7 +21,6 @@ import { CreateMessage, TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-util
 import { marked } from "marked";
 import React from 'react';
 
-
 export default function Chat({
     id,
     initialMessages,
@@ -75,7 +74,7 @@ export default function Chat({
             )}
 
             <ScrollArea className="flex flex-col h-full w-full p-4 overflow-hidden">
-                <div className="max-w-4xl mx-auto space-y-6">
+                <div className="max-w-3xl mx-auto space-y-6">
                     {
                         messages.length === 0 ? (
                             <div className="flex items-center justify-center text-center h-full">
@@ -96,7 +95,7 @@ export default function Chat({
                     }
                 </div>
             </ScrollArea>
-            <div className="border rounded-md w-full max-w-4xl mx-auto mb-8">
+            <div className="border rounded-md w-full max-w-3xl mx-auto mb-8">
                 <CustomSlateEditor>
                     <ChatBox
                         onSubmit={(children, editor) => {
@@ -192,16 +191,16 @@ const MessageComponent = ({ message, isLatestMessage, status }: MessageComponent
     )
 }
 
-marked.use({
-    renderer: {
-        code: (code) => {
-            if (code.lang === 'mermaid') {
-                return `<pre class="mermaid">${code.text}</pre>`;
-            }
-            return `<pre><code>${code.text}</code></pre>`;
-        }
-    }
-})
+// marked.use({
+//     renderer: {
+//         code: (code) => {
+//             if (code.lang === 'mermaid') {
+//                 return `<pre class="mermaid">${code.text}</pre>`;
+//             }
+//             return `<pre><code>${code.text}</code></pre>`;
+//         }
+//     }
+// })
 
 const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
     const markdown = useMemo(() => {
@@ -212,11 +211,8 @@ const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
     }, [part.text]);
 
     return (
-        <div>
-
-            <div className="prose prose-p:text-foreground prose-li:text-foreground dark:prose-invert">
-                <span dangerouslySetInnerHTML={{ __html: markdown }} />
-            </div>
+        <div className="prose prose-p:text-foreground prose-li:text-foreground dark:prose-invert prose-p:m-0 max-w-none">
+            <span dangerouslySetInnerHTML={{ __html: markdown }} />
         </div>
     )
 }
