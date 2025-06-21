@@ -18,6 +18,7 @@ const findSymbolReferencesTool = tool({
             symbolName: symbol,
             language,
             revisionName: revision,
+        // @todo(mt): handle multi-tenancy.
         }, SINGLE_TENANT_ORG_DOMAIN);
 
         if (isServiceError(response)) {
@@ -48,6 +49,7 @@ const findSymbolDefinitionsTool = tool({
             symbolName: symbol,
             language,
             revisionName: revision,
+        // @todo(mt): handle multi-tenancy.
         }, SINGLE_TENANT_ORG_DOMAIN);
 
         if (isServiceError(response)) {
@@ -78,7 +80,7 @@ const readFileTool = tool({
             fileName: path,
             repository,
             branch: revision,
-        // @todo: handle multi-tenancy.
+        // @todo(mt): handle multi-tenancy.
         }, SINGLE_TENANT_ORG_DOMAIN);
 
         if (isServiceError(response)) {
@@ -111,7 +113,7 @@ const searchCodeTool = tool({
                 matches: 100, 
                 contextLines: 3, 
                 whole: false,
-            // @todo: handle multi-tenancy.
+            // @todo(mt): handle multi-tenancy.
             }, SINGLE_TENANT_ORG_DOMAIN);
 
             if (isServiceError(response)) {

@@ -46,6 +46,8 @@ export async function POST(req: Request) {
             (await Promise.all(
                 annotations.map(async (file) => {
                     const { path, repo } = file;
+
+                    // @todo(mt)
                     const fileSource = await getFileSource({
                         fileName: path,
                         repository: repo,
@@ -67,8 +69,8 @@ export async function POST(req: Request) {
             ).filter((file) => file !== undefined);
 
 
-        // const model = anthropic("claude-sonnet-4-0");
-        const model = openai("gpt-4.1");
+        const model = anthropic("claude-sonnet-4-0");
+        // const model = openai("gpt-4.1");
 
         const context: CoreSystemMessage[] = fileContext.map((file) => ({
             role: "system" as const,
