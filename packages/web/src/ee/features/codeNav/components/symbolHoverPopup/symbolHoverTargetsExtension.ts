@@ -44,7 +44,12 @@ const NODE_TYPES = [
     "FieldName",
     // PHP
     "ClassMemberName",
-    "Name"
+    "Name",
+    // Tcl
+    "ProcName",
+    "ProcInvocation",
+    "PackageName",
+    "Variable"
 ]
 
 export const symbolHoverTargetsExtension = StateField.define<DecorationSet>({
