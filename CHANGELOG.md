@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added code nav and syntax highlighting for TCL. [#362](https://github.com/sourcebot-dev/sourcebot/pull/362)
+
 ### Fixed
 - Fixed issue where invites appeared to be created successfully, but were not actually being created in the database. [#359](https://github.com/sourcebot-dev/sourcebot/pull/359)
 
