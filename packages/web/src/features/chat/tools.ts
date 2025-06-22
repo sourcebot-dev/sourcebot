@@ -15,7 +15,7 @@ const findSymbolReferencesTool = tool({
         language: z.string().describe("The programming language of the symbol"),
         revision: z.string().describe("The revision to search for the symbol in"),
     }),
-    execute: async ({ symbol, language, revision }, { }) => {
+    execute: async ({ symbol, language, revision }) => {
         const response = await findSearchBasedSymbolReferences({
             symbolName: symbol,
             language,
@@ -96,6 +96,7 @@ const readFilesTool = tool({
             repository: response.repository,
             language: response.language,
             source: addLineNumbers(response.source),
+            revision,
         }));
     }
 });
