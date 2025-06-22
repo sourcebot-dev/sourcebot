@@ -1,5 +1,6 @@
 'use client';
 
+import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomEditor, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
 import { insertMention, word } from "@/features/chat/utils";
@@ -7,13 +8,11 @@ import { search } from "@/features/search/searchApi";
 import { useDomain } from "@/hooks/useDomain";
 import { cn, IS_MAC, unwrapServiceError } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
-import { Icon } from '@iconify/react';
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Descendant, Editor, Range } from "slate";
 import { Editable, ReactEditor, RenderElementProps, RenderLeafProps, useFocused, useSelected, useSlate, useSlateSelection } from "slate-react";
-import { getIconForFile } from "vscode-icons-js";
 
 type SuggestionMode = "file" | "none";
 
@@ -252,7 +251,7 @@ export const ChatBox = ({
                                                 ReactEditor.focus(editor);
                                             }}
                                         >
-                                            <FileIcon name={file.name} className="mt-1" />
+                                            <VscodeFileIcon fileName={file.name} className="mt-1" />
                                             <div className="flex flex-col w-full">
                                                 <span className="text-sm font-medium">
                                                     {file.name}
@@ -310,12 +309,12 @@ const MentionComponent = ({
                 {IS_MAC ? (
                     <Fragment>
                         {children}
-                        <FileIcon name={data.name} className="w-3 h-3 mr-0.5" />
+                        <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-0.5" />
                         {data.name}
                     </Fragment>
                 ) : (
                     <Fragment>
-                        <FileIcon name={data.name} className="w-3 h-3 mr-0.5" />
+                        <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-0.5" />
                         {data.name}
                         {children}
                     </Fragment>
@@ -323,18 +322,4 @@ const MentionComponent = ({
             </span>
         </span>
     )
-}
-
-const FileIcon = ({ name, className }: { name: string, className?: string }) => {
-    const iconName = useMemo(() => {
-        const icon = getIconForFile(name);
-        if (icon) {
-            const iconName = `vscode-icons:${icon.substring(0, icon.indexOf('.')).replaceAll('_', '-')}`;
-            return iconName;
-        }
-
-        return "vscode-icons:file-type-unknown";
-    }, [name]);
-
-    return <Icon icon={iconName} className={cn("w-4 h-4 flex-shrink-0", className)} />;
 }
