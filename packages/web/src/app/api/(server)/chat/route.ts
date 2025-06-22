@@ -1,6 +1,6 @@
 import { saveChat } from "@/app/[domain]/chat/chatStore";
 import { env } from "@/env.mjs";
-import { SYSTEM_MESSAGE } from "@/features/chat/constants";
+import { createSystemPrompt } from "@/features/chat/constants";
 import { tools } from "@/features/chat/tools";
 import { FileMentionData } from "@/features/chat/types";
 import { getFileSource } from "@/features/search/fileSourceApi";
@@ -9,7 +9,7 @@ import { isServiceError } from "@/lib/utils";
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from "@ai-sdk/openai";
 import { createLogger } from "@sourcebot/logger";
-import { appendResponseMessages, CoreSystemMessage, extractReasoningMiddleware, Message, streamText, wrapLanguageModel } from "ai";
+import { appendResponseMessages, extractReasoningMiddleware, Message, streamText, wrapLanguageModel } from "ai";
 
 const logger = createLogger('chat-api');
 
@@ -33,16 +33,18 @@ export async function POST(req: Request) {
         const {
             messages: chatMessages,
             id,
+            repos,
         } = requestBody as {
             messages: Message[];
             id: string;
+            repos: string[];
         }
 
         const annotations = chatMessages.flatMap((message) => message.annotations ?? []) as FileMentionData[];
 
         // @todo: we can probably cache files per chat session.
         // That way we don't have to refetch files for every message.
-        const fileContext =
+        const files = annotations.length > 0 ?
             (await Promise.all(
                 annotations.map(async (file) => {
                     const { path, repo } = file;
@@ -62,26 +64,28 @@ export async function POST(req: Request) {
 
                     return {
                         ...fileSource,
-                        source: fileSource.source,
+                        path,
+                        repo,
                     };
 
                 }))
-            ).filter((file) => file !== undefined);
-
+            ).filter((file) => file !== undefined) : undefined;
 
         const model = anthropic("claude-sonnet-4-0");
-        // const model = openai("gpt-4.1");
+        // const model = openai("o3");
 
-        const context: CoreSystemMessage[] = fileContext.map((file) => ({
-            role: "system" as const,
-            content: JSON.stringify(file),
-        }));
+        const systemPrompt = createSystemPrompt({
+            repos,
+            files,
+        });
 
         const messages = [
-            SYSTEM_MESSAGE,
-            ...context,
+            {
+                role: "system" as const,
+                content: systemPrompt,
+            },
             ...chatMessages,
-        ]
+        ];
 
         const result = streamText({
             model: wrapLanguageModel({
@@ -95,10 +99,10 @@ export async function POST(req: Request) {
             }),
             messages,
             tools,
-            temperature: 0.3, // Lower temperature for more focused reasoning
-            maxTokens: 4000, // Increased for tool results and responses
-            toolChoice: "auto", // Let the model decide when to use tools
+            // temperature: 0.3, // Lower temperature for more focused reasoning
             maxSteps: 20,
+            maxTokens: env.SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS, // Increased for tool results and responses
+            toolChoice: "auto", // Let the model decide when to use tools
             onStepFinish: (step) => {
                 logger.info(`Step finished: ${step.stepType} ${step.isContinued}`)
                 if (step.toolCalls) {

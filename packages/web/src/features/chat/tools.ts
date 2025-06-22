@@ -13,12 +13,12 @@ const findSymbolReferencesTool = tool({
         language: z.string().describe("The programming language of the symbol"),
         revision: z.string().describe("The revision to search for the symbol in"),
     }),
-    execute: async ({ symbol, language, revision }) => {
+    execute: async ({ symbol, language, revision }, { }) => {
         const response = await findSearchBasedSymbolReferences({
             symbolName: symbol,
             language,
             revisionName: revision,
-        // @todo(mt): handle multi-tenancy.
+            // @todo(mt): handle multi-tenancy.
         }, SINGLE_TENANT_ORG_DOMAIN);
 
         if (isServiceError(response)) {
@@ -49,7 +49,7 @@ const findSymbolDefinitionsTool = tool({
             symbolName: symbol,
             language,
             revisionName: revision,
-        // @todo(mt): handle multi-tenancy.
+            // @todo(mt): handle multi-tenancy.
         }, SINGLE_TENANT_ORG_DOMAIN);
 
         if (isServiceError(response)) {
@@ -80,7 +80,7 @@ const readFileTool = tool({
             fileName: path,
             repository,
             branch: revision,
-        // @todo(mt): handle multi-tenancy.
+            // @todo(mt): handle multi-tenancy.
         }, SINGLE_TENANT_ORG_DOMAIN);
 
         if (isServiceError(response)) {
@@ -91,10 +91,11 @@ const readFileTool = tool({
             }
         }
 
+        const content = `<file path="${path}" repository="${repository}" language="${response.language}">${response.source}</file>`;
+
         return {
             success: true,
-            content: response,
-            summary: "File read successfully"
+            content,
         }
 
     }
@@ -108,12 +109,12 @@ const searchCodeTool = tool({
     }),
     execute: async ({ query }) => {
         try {
-            const response = await search({ 
-                query, 
-                matches: 100, 
-                contextLines: 3, 
+            const response = await search({
+                query,
+                matches: 100,
+                contextLines: 3,
                 whole: false,
-            // @todo(mt): handle multi-tenancy.
+                // @todo(mt): handle multi-tenancy.
             }, SINGLE_TENANT_ORG_DOMAIN);
 
             if (isServiceError(response)) {

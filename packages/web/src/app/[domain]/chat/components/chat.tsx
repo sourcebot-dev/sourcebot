@@ -35,6 +35,12 @@ export default function Chat({
         id,
         initialMessages,
         sendExtraMessageFields: true,
+        // @todo: make this dynamic based on the repo selector.
+        body: {
+            repos: [
+                'github.com/sourcebot-dev/sourcebot',
+            ]
+        },
     });
 
     const domain = useDomain();
@@ -191,16 +197,18 @@ const MessageComponent = ({ message, isLatestMessage, status }: MessageComponent
     )
 }
 
-// marked.use({
-//     renderer: {
-//         code: (code) => {
-//             if (code.lang === 'mermaid') {
-//                 return `<pre class="mermaid">${code.text}</pre>`;
-//             }
-//             return `<pre><code>${code.text}</code></pre>`;
-//         }
-//     }
-// })
+marked.use({
+    renderer: {
+        code: (code) => {
+            return `<pre><code>${code.text}</code></pre>`;
+        },
+        codespan: (code) => {
+            return `
+                <code class="bg-gray-100 dark:bg-gray-700 w-fit rounded-md font-mono px-2 py-0.5 font-normal prose">${code.text}</code>
+            `;
+        }
+    }
+})
 
 const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
     const markdown = useMemo(() => {
@@ -211,17 +219,14 @@ const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
     }, [part.text]);
 
     return (
-        <div className="prose prose-p:text-foreground prose-li:text-foreground dark:prose-invert prose-p:m-0 max-w-none">
-            <span dangerouslySetInnerHTML={{ __html: markdown }} />
-        </div>
+        <span
+            className="prose prose-p:text-foreground prose-li:text-foreground dark:prose-invert [&>*:first-child]:mt-0 prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none max-w-none"
+            dangerouslySetInnerHTML={{ __html: markdown }}
+        />
     )
 }
 
 const ToolInvocationUIPartComponent = ({ part }: { part: ToolInvocationUIPart }) => {
-    if (part.type !== 'tool-invocation') {
-        return null;
-    }
-
     const { toolName, state } = part.toolInvocation;
 
     return (

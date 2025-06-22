@@ -1,5 +1,7 @@
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
 import { CustomEditor, CustomText, FileMentionData, MentionElement } from "./types"
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/useBrowseNavigation"
 
 export const insertMention = (editor: CustomEditor, data: FileMentionData, target?: Range | null) => {
     const mention: MentionElement = {
@@ -107,7 +109,19 @@ export const toString = (children: Descendant[]): string => {
         }
 
         if (isMentionElement(child)) {
-            return `\`@${child.data.name}\` `;
+
+            const { path, repo } = child.data;
+            // @todo(mt)
+            const url = getBrowsePath(
+                {
+                    repoName: repo,
+                    path,
+                    pathType: 'blob',
+                    domain: SINGLE_TENANT_ORG_DOMAIN,
+                }
+            )
+
+            return `[${child.data.name}](${url}) `;
         }
 
         return toString(child.children);
