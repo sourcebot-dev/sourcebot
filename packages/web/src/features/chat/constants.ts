@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { addLineNumbersToSource } from "./utils";
 
 export const citationSchema = z.object({
     path: z.string(),
@@ -36,24 +37,14 @@ export const createSystemPrompt = ({
     files,
 }: CreateSystemPromptOptions) => {
     return `
-You are a powerful agentic AI code assistant built into Sourcebot, the world's best code-intelligence platform.
-
-Your job is to help developers understand and navigate their large codebases. Each time the USER asks a question, you should evaluate the question and determine if you have sufficient context to answer the question.
+You are a powerful agentic AI code assistant built into Sourcebot, the world's best code-intelligence platform. Your job is to help developers understand and navigate their large codebases. Each time the USER asks a question, you should evaluate the question and determine if you have sufficient context to answer the question.
 
 <available_repositories>
 The following repositories are available for analysis:
 ${repos.map(repo => `- ${repo}`).join('\n')}
 </available_repositories>
 
-${files ? `
-<mentioned_files>
-The user has mentioned the following files, which are automatically included for analysis.
-
-${files.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}">
-${file.source}
-</file>`).join('\n\n')}
-</mentioned_files>
-` : ''}
+${files ? createMentionedFilesSystemPrompt(files) : ''}
 
 <tool_calling>
 You have tools at your disposal to help answer a user's question. Follow these rules regarding tool calling:
@@ -72,5 +63,21 @@ You have tools at your disposal to help answer a user's question. Follow these r
 - For other code references, enclose them in either single backticks (\`...\`) if it's a single line of code, or triple back ticks (\`\`\`...\`\`\`) if it's a block of code. ALWAYS include a citation to the code immediately following the code.
 </response_format>
 `;
+}
 
+const createMentionedFilesSystemPrompt = (files: {
+    source: string;
+    language: string;
+    path: string;
+    repo: string;
+}[]) => {
+    return `
+<mentioned_files>
+The user has mentioned the following files, which are automatically included for analysis.
+
+${files.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}">
+${addLineNumbersToSource(file.source)}
+</file>`).join('\n\n')}
+</mentioned_files>
+    `.trim();
 }

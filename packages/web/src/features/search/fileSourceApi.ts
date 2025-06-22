@@ -45,6 +45,9 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
             return {
                 source,
                 language,
+                path: fileName,
+                repository,
+                branch,
                 webUrl: file.webUrl,
             } satisfies FileSourceResponse;
 

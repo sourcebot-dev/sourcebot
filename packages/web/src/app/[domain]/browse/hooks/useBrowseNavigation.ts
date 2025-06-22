@@ -1,3 +1,5 @@
+'use client';
+
 import { useRouter } from "next/navigation";
 import { useDomain } from "@/hooks/useDomain";
 import { useCallback } from "react";
