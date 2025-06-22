@@ -5,6 +5,8 @@ import { tool } from "ai";
 import { isServiceError } from "@/lib/utils";
 import { getFileSource } from "../search/fileSourceApi";
 import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/actions";
+import { FileSourceResponse } from "../search/types";
+import { addLineNumbersToSource } from "./utils";
 
 const findSymbolReferencesTool = tool({
     description: `Finds references to a symbol in the codebase.`,
@@ -22,19 +24,19 @@ const findSymbolReferencesTool = tool({
         }, SINGLE_TENANT_ORG_DOMAIN);
 
         if (isServiceError(response)) {
-            return {
-                success: false,
-                error: response.message,
-                summary: "Failed to find symbol references"
-            }
+            return response;
         }
 
-        return {
-            success: true,
-            results: response,
-            summary: `Found ${response.files.length} files with ${response.stats.matchCount} total matches`
-        }
-    }
+        return response.files.map((file) => ({
+            fileName: file.fileName,
+            repository: file.repository,
+            language: file.language,
+            matches: file.matches.map(({ lineContent, range }) => {
+                return addLineNumbersToSource(lineContent, range.start.lineNumber);
+            })
+        }));
+    },
+
 });
 
 const findSymbolDefinitionsTool = tool({
@@ -53,53 +55,53 @@ const findSymbolDefinitionsTool = tool({
         }, SINGLE_TENANT_ORG_DOMAIN);
 
         if (isServiceError(response)) {
-            return {
-                success: false,
-                error: response.message,
-                summary: "Failed to find symbol definitions"
-            }
+            return response;
         }
 
-        return {
-            success: true,
-            results: response,
-            summary: `Found ${response.files.length} files with ${response.stats.matchCount} total matches`
-        }
+        return response.files.map((file) => ({
+            fileName: file.fileName,
+            repository: file.repository,
+            language: file.language,
+            matches: file.matches.map(({ lineContent, range }) => {
+                return addLineNumbersToSource(lineContent, range.start.lineNumber);
+            })
+        }));
     }
 });
 
-const readFileTool = tool({
-    description: `Reads the contents of a file at the given path.`,
+const readFilesTool = tool({
+    description: `Reads the contents of multiple files at the given paths.`,
     parameters: z.object({
-        path: z.string().describe("The path to the file to read"),
-        repository: z.string().describe("The repository to read the file from"),
-        revision: z.string().describe("The revision to read the file from"),
+        paths: z.array(z.string()).describe("The paths to the files to read"),
+        repository: z.string().describe("The repository to read the files from"),
+        revision: z.string().describe("The revision to read the files from"),
     }),
-    execute: async ({ path, repository, revision }) => {
-        const response = await getFileSource({
-            fileName: path,
-            repository,
-            branch: revision,
-            // @todo(mt): handle multi-tenancy.
-        }, SINGLE_TENANT_ORG_DOMAIN);
+    execute: async ({ paths, repository, revision }) => {
+        const responses = await Promise.all(paths.map(async (path) => {
+            return getFileSource({
+                fileName: path,
+                repository,
+                branch: revision,
+                // @todo(mt): handle multi-tenancy.
+            }, SINGLE_TENANT_ORG_DOMAIN);
+        }));
 
-        if (isServiceError(response)) {
-            return {
-                success: false,
-                error: response.message,
-                summary: "Failed to read file"
-            }
+        if (responses.some(isServiceError)) {
+            const firstError = responses.find(isServiceError);
+            return firstError!;
         }
 
-        const content = `<file path="${path}" repository="${repository}" language="${response.language}">${response.source}</file>`;
-
-        return {
-            success: true,
-            content,
-        }
-
+        return (responses as FileSourceResponse[]).map((response) => ({
+            path: response.path,
+            repository: response.repository,
+            language: response.language,
+            source: addLineNumbersToSource(response.source),
+        }));
     }
 });
+
+export type ReadFilesToolRequest = z.infer<typeof readFilesTool.parameters>;
+export type ReadFilesToolResponse = Awaited<ReturnType<typeof readFilesTool.execute>>;
 
 const searchCodeTool = tool({
     description: `Fetches code that matches the provided regex pattern in \`query\`. This is NOT a semantic search.
@@ -108,63 +110,45 @@ const searchCodeTool = tool({
         query: z.string().describe("The regex pattern to search for in the code"),
     }),
     execute: async ({ query }) => {
-        try {
-            const response = await search({
-                query,
-                matches: 100,
-                contextLines: 3,
-                whole: false,
-                // @todo(mt): handle multi-tenancy.
-            }, SINGLE_TENANT_ORG_DOMAIN);
+        const response = await search({
+            query,
+            matches: 100,
+            // @todo: we can make this configurable.
+            contextLines: 3,
+            whole: false,
+            // @todo(mt): handle multi-tenancy.
+        }, SINGLE_TENANT_ORG_DOMAIN);
 
-            if (isServiceError(response)) {
-                return {
-                    success: false,
-                    error: response.message,
-                    summary: "Search failed"
-                }
-            }
-
-            if (response.files.length === 0) {
-                return {
-                    success: false,
-                    results: [],
-                    summary: "No results found"
-                }
-            }
-
-            const files = response.files.map((file) => {
-                return {
-                    fileName: file.fileName.text,
-                    repository: file.repository,
-                    language: file.language,
-                    chunks: file.chunks.map((chunk) => {
-                        return chunk.content;
-                    })
-                }
-            });
-
-            return {
-                success: true,
-                results: files,
-                summary: `Found ${response.files.length} files with ${response.stats.matchCount} total matches`
-            }
-        } catch (error) {
-            console.error("Search tool: Exception occurred:", error)
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : "Unknown error occurred",
-                summary: "Search failed"
-            }
+        if (isServiceError(response)) {
+            return response;
         }
+
+        return response.files.map((file) => ({
+            fileName: file.fileName.text,
+            repository: file.repository,
+            language: file.language,
+            matches: file.chunks.map(({ content, contentStart }) => {
+                return addLineNumbersToSource(content, contentStart.lineNumber);
+            })
+        }));
     },
 });
 
+export type SearchCodeToolRequest = z.infer<typeof searchCodeTool.parameters>;
+export type SearchCodeToolResponse = Awaited<ReturnType<typeof searchCodeTool.execute>>;
+
+export const toolNames = {
+    searchCode: 'searchCode',
+    readFiles: 'readFiles',
+    findSymbolReferences: 'findSymbolReferences',
+    findSymbolDefinitions: 'findSymbolDefinitions',
+} as const;
+
 export const tools = {
-    searchCode: searchCodeTool,
-    readFile: readFileTool,
-    findSymbolReferences: findSymbolReferencesTool,
-    findSymbolDefinitions: findSymbolDefinitionsTool,
+    [toolNames.searchCode]: searchCodeTool,
+    [toolNames.readFiles]: readFilesTool,
+    [toolNames.findSymbolReferences]: findSymbolReferencesTool,
+    [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
 }
 
 export type Tool = keyof typeof tools;

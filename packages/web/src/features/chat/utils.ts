@@ -152,3 +152,9 @@ export const resetEditor = (editor: CustomEditor) => {
         children: [{ text: "" }]
     }];
 }
+
+// Adding line numbers to the source code makes it easier for LLMs to
+// reference specific ranges within the code.
+export const addLineNumbers = (source: string, lineOffset = 1) => {
+    return source.split('\n').map((line, index) => `${index + lineOffset}:${line}`).join('\n');
+}
