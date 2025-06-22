@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { addLineNumbersToSource } from "./utils";
+import { addLineNumbers } from "./utils";
 
 export const citationSchema = z.object({
     path: z.string(),
@@ -76,7 +76,7 @@ const createMentionedFilesSystemPrompt = (files: {
 The user has mentioned the following files, which are automatically included for analysis.
 
 ${files.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}">
-${addLineNumbersToSource(file.source)}
+${addLineNumbers(file.source)}
 </file>`).join('\n\n')}
 </mentioned_files>
     `.trim();
