@@ -6,7 +6,7 @@ import { isServiceError } from "@/lib/utils";
 import { getFileSource } from "../search/fileSourceApi";
 import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/actions";
 import { FileSourceResponse } from "../search/types";
-import { addLineNumbersToSource } from "./utils";
+import { addLineNumbers } from "./utils";
 
 const findSymbolReferencesTool = tool({
     description: `Finds references to a symbol in the codebase.`,
@@ -32,7 +32,7 @@ const findSymbolReferencesTool = tool({
             repository: file.repository,
             language: file.language,
             matches: file.matches.map(({ lineContent, range }) => {
-                return addLineNumbersToSource(lineContent, range.start.lineNumber);
+                return addLineNumbers(lineContent, range.start.lineNumber);
             })
         }));
     },
@@ -63,7 +63,7 @@ const findSymbolDefinitionsTool = tool({
             repository: file.repository,
             language: file.language,
             matches: file.matches.map(({ lineContent, range }) => {
-                return addLineNumbersToSource(lineContent, range.start.lineNumber);
+                return addLineNumbers(lineContent, range.start.lineNumber);
             })
         }));
     }
@@ -95,7 +95,7 @@ const readFilesTool = tool({
             path: response.path,
             repository: response.repository,
             language: response.language,
-            source: addLineNumbersToSource(response.source),
+            source: addLineNumbers(response.source),
         }));
     }
 });
@@ -128,7 +128,7 @@ const searchCodeTool = tool({
             repository: file.repository,
             language: file.language,
             matches: file.chunks.map(({ content, contentStart }) => {
-                return addLineNumbersToSource(content, contentStart.lineNumber);
+                return addLineNumbers(content, contentStart.lineNumber);
             })
         }));
     },
