@@ -1,25 +1,27 @@
 'use client';
 
-import { Separator } from '@/components/ui/separator';
-import { useDomain } from '@/hooks/useDomain';
-import { Message, useChat } from '@ai-sdk/react';
-import { TopBar } from '../../components/topBar';
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { ErrorBanner } from './errorBanner';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
-import { ChatBox } from './chatBox';
-import { getAllMentionElements, resetEditor, toString } from '@/features/chat/utils';
-import { ChatBoxTools } from './chatBoxTools';
+import { VscodeFileIcon } from '@/app/components/vscodeFileIcon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2 } from 'lucide-react';
-import { UIMessage } from 'ai';
-import { useSession } from 'next-auth/react';
-import { HammerIcon } from 'lucide-react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
+import { ReadFilesToolRequest, ReadFilesToolResponse, toolNames } from '@/features/chat/tools';
+import { getAllMentionElements, resetEditor, toString } from '@/features/chat/utils';
+import { useDomain } from '@/hooks/useDomain';
+import { cn, isServiceError } from '@/lib/utils';
+import { Message, useChat } from '@ai-sdk/react';
 import { CreateMessage, TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-utils';
+import { UIMessage } from 'ai';
+import { ChevronDown, ChevronRight, EyeIcon, Loader2 } from 'lucide-react';
 import { marked } from "marked";
-import React from 'react';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { getBrowsePath } from '../../browse/hooks/useBrowseNavigation';
+import { TopBar } from '../../components/topBar';
+import { ChatBox } from './chatBox';
+import { ChatBoxTools } from './chatBoxTools';
+import { ErrorBanner } from './errorBanner';
 
 export default function Chat({
     id,
@@ -220,37 +222,168 @@ const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
 
     return (
         <span
-            className="prose prose-p:text-foreground prose-li:text-foreground dark:prose-invert [&>*:first-child]:mt-0 prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none max-w-none"
+            className="prose prose-p:text-foreground prose-li:text-foreground dark:prose-invert [&>*:first-child]:mt-0 prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none prose-hr:my-5 max-w-none"
             dangerouslySetInnerHTML={{ __html: markdown }}
         />
     )
 }
 
 const ToolInvocationUIPartComponent = ({ part }: { part: ToolInvocationUIPart }) => {
-    const { toolName, state } = part.toolInvocation;
+    const {
+        toolName,
+        state,
+        args,
+    } = part.toolInvocation;
+
+    if (toolName === toolNames.readFiles) {
+        return <ReadFilesToolComponent
+            request={args as ReadFilesToolRequest}
+            response={state === 'result' ? part.toolInvocation.result as ReadFilesToolResponse : undefined}
+        />
+    }
+
+    return <p>Unknown tool: {toolName}</p>;
+}
+
+type ReadFilesToolComponentProps = {
+    request: ReadFilesToolRequest;
+    response?: ReadFilesToolResponse;
+}
+
+
+const ReadFilesToolComponent = ({ request, response }: ReadFilesToolComponentProps) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const domain = useDomain();
+
+    const label = useMemo(() => {
+        if (!response) {
+            return `Reading ${request.paths.length} files...`;
+        }
+
+        if (isServiceError(response)) {
+            return `Failed to read files`;
+        }
+
+        return `Read ${response.length} files`;
+    }, [request, response]);
 
     return (
-        <div className="flex items-center gap-2">
-            <HammerIcon className="h-4 w-4" />
-            <p>{toolName}</p>
-            <span className="text-xs text-gray-500">{state}</span>
-            {state === 'result' && (
-                <Accordion type="single" collapsible>
-                    <AccordionItem value="result">
-                        <AccordionTrigger>View Invocation</AccordionTrigger>
-                        <AccordionContent>
-                            <p>Arguments:</p>
-                            <pre className="text-xs text-gray-500 whitespace-pre-wrap break-all">
-                                {JSON.stringify(part.toolInvocation.args, null, 2)}
-                            </pre>
-                            <p>Result:</p>
-                            <pre className="text-xs text-gray-500 whitespace-pre-wrap break-all">
-                                {JSON.stringify(part.toolInvocation.result, null, 2)}
-                            </pre>
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
+        <div className='mb-2'>
+            <div
+                className={cn(
+                    "flex flex-row items-center gap-2 text-muted-foreground group w-fit select-none",
+                    {
+                        'cursor-pointer': response !== undefined,
+                        'hover:text-foreground': !!response,
+                    }
+                )}
+                onClick={() => {
+                    if (response !== undefined) {
+                        setIsExpanded(!isExpanded)
+                    }
+                }}
+            >
+                <EyeIcon className="h-4 w-4" />
+                <span className={cn("text-sm font-medium",
+                    {
+                        'animate-pulse': response === undefined,
+                        'text-destructive': isServiceError(response),
+                    }
+                )}>{label}</span>
+                {response === undefined && (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                )}
+                {response !== undefined && (
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        {isExpanded ? (
+                            <ChevronDown className="h-3 w-3" />
+                        ) : (
+                            <ChevronRight className="h-3 w-3" />
+                        )}
+                    </div>
+                )}
+
+            </div>
+            {response !== undefined && isExpanded && (
+                <div className="mt-0.5 ml-[7px]">
+                    <TreeList>
+                        {isServiceError(response) ? (
+                            <span className="ml-5">Failed with the following error: <Code className="text-sm text-destructive">{response.message}</Code></span>
+                        ) : response.map((file) => {
+                            const fileName = file.path;
+
+                            return (
+                                <div key={file.path} className="flex flex-row font-mono items-center ml-4">
+                                    <VscodeFileIcon fileName={fileName} className="mr-1" />
+                                    <Link
+                                        className="text-sm hover:underline cursor-pointer"
+                                        href={getBrowsePath({
+                                            repoName: file.repository,
+                                            revisionName: file.revision,
+                                            path: file.path,
+                                            domain,
+                                            pathType: 'blob',
+                                        })}
+                                    >
+                                        {fileName}
+                                    </Link>
+                                </div>
+                            )
+                        })}
+                    </TreeList>
+
+                </div>
             )}
         </div>
+    )
+}
+
+const TreeList = ({ children }: { children: React.ReactNode }) => {
+    const childrenArray = React.Children.toArray(children);
+
+    return (
+        <div className="flex flex-col relative">
+            {/* vertical line */}
+            <div
+                className="absolute left-0 top-0 w-px bg-border"
+                style={{
+                    bottom: childrenArray.length > 0 ? `${100 / childrenArray.length * 0.6}%` : '0'
+                }}
+            />
+
+            {childrenArray.map((child, index) => {
+                const isLast = index === childrenArray.length - 1;
+
+                return (
+                    <div
+                        key={index}
+                        className="relative py-0.5"
+                    >
+                        {!isLast && (
+                            <div className="absolute left-0 w-3 h-px bg-border top-1/2"></div>
+                        )}
+                        {isLast && (
+                            <div
+                                className="absolute left-0 w-3 h-3 border-l border-b border-border rounded-bl"
+                                style={{ top: 'calc(50% - 11px)' }}
+                            />
+                        )}
+
+                        {child}
+                    </div>
+                )
+            })}
+        </div>
+    );
+};
+
+const Code = ({ children, className, title }: { children: React.ReactNode, className?: string, title?: string }) => {
+    return (
+        <code
+            className={cn("bg-gray-100 dark:bg-gray-700 w-fit rounded-md font-mono px-2 py-0.5", className)}
+            title={title}
+        >
+            {children}
+        </code>
     )
 }
