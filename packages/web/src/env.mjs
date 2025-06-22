@@ -98,6 +98,8 @@ export const env = createEnv({
         REVIEW_AGENT_REVIEW_COMMAND: z.string().default('review'),
 
         ANTHROPIC_API_KEY: z.string().optional(),
+
+        SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS: numberSchema.default(5000),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in
