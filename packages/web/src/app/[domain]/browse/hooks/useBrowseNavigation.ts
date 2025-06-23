@@ -50,7 +50,7 @@ export const getBrowsePath = ({
         params.set(SET_BROWSE_STATE_QUERY_PARAM, JSON.stringify(setBrowseState));
     }
 
-    const browsePath = `/${domain}/browse/${repoName}@${revisionName}/-/${pathType}/${path}${params.size > 0 ? `?${params.toString()}` : ''}`;
+    const browsePath = encodeURI(`/${domain}/browse/${repoName}@${revisionName}/-/${pathType}/${path}${params.size > 0 ? `?${params.toString()}` : ''}`);
     return browsePath;
 }
 
