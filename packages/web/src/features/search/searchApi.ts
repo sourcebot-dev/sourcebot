@@ -106,13 +106,14 @@ const getFileWebUrl = (template: string, branch: string, fileName: string): stri
 
     const url =
         template.substring("{{URLJoinPath ".length, template.indexOf("}}"))
-            .replace(".Version", branch)
-            .replace(".Path", fileName)
             .split(" ")
             .map((part) => {
                 // remove wrapping quotes
                 if (part.startsWith("\"")) part = part.substring(1);
                 if (part.endsWith("\"")) part = part.substring(0, part.length - 1);
+                // Replace variable references
+                if (part == ".Version") part = branch;
+                if (part == ".Path") part = fileName;
                 return part;
             })
             .join("/");
