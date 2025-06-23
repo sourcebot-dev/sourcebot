@@ -130,7 +130,9 @@ const searchCodeTool = tool({
             language: file.language,
             matches: file.chunks.map(({ content, contentStart }) => {
                 return addLineNumbers(content, contentStart.lineNumber);
-            })
+            }),
+            // @todo: make revision configurable.
+            revision: 'HEAD',
         }));
     },
 });

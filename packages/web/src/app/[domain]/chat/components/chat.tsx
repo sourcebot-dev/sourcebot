@@ -22,7 +22,7 @@ import { cn, createPathWithQueryParams, isServiceError } from '@/lib/utils';
 import { Message, useChat } from '@ai-sdk/react';
 import { CreateMessage, TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import { EditorView } from '@codemirror/view';
-import { PlayIcon } from '@radix-ui/react-icons';
+import { DoubleArrowDownIcon, DoubleArrowUpIcon, PlayIcon } from '@radix-ui/react-icons';
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { UIMessage } from 'ai';
 import type { Root } from "hast";
@@ -39,6 +39,9 @@ import { TopBar } from '../../components/topBar';
 import { ChatBox } from './chatBox';
 import { ChatBoxTools } from './chatBoxTools';
 import { ErrorBanner } from './errorBanner';
+import { CodeBlockMetadata, codeBlockMetadataSchema } from '@/features/chat/constants';
+import { lineOffsetExtension } from '@/lib/extensions/lineOffsetExtension';
+import { gutterWidthExtension } from '@/lib/extensions/gutterWidthExtension';
 
 export default function Chat({
     id,
@@ -265,10 +268,26 @@ const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
                     code: ({ className, children, node, ...rest }) => {
                         if (node?.properties && node.properties.isBlock === true) {
                             const match = /language-(\w+)/.exec(className || '')
+                            const metadataString = node?.data?.meta;
+
+                            const parseCodeBlockMetadata = (metadataString: string) => {
+                                try {
+                                    const metadata = JSON.parse(metadataString);
+                                    return codeBlockMetadataSchema.parse(metadata);
+                                }
+                                catch (error) {
+                                    console.error('Invalid metadata for code block:', error);
+                                    return undefined;
+                                }
+                            }
+
+                            const metadata = metadataString ? parseCodeBlockMetadata(metadataString) : undefined;
+
                             return (
                                 <CodeBlockComponent
                                     code={children?.toString().trimEnd() ?? ''}
-                                    languageName={match ? match[1] : undefined}
+                                    language={match ? match[1] : undefined}
+                                    metadata={metadata}
                                 />
                             )
                         }
@@ -292,23 +311,31 @@ const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
 
 interface CodeBlockComponentProps {
     code: string;
-    languageName?: string;
+    language?: string;
+    metadata?: CodeBlockMetadata;
 }
 
+const MAX_LINES_TO_DISPLAY = 14;
+
 const CodeBlockComponent = ({
-    code,
-    languageName = "text"
+    code: _code,
+    language: _language = "text",
+    metadata,
 }: CodeBlockComponentProps) => {
     const theme = useCodeMirrorTheme();
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const keymapExtension = useKeymapExtension(editorRef?.view);
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
+    const [gutterWidth, setGutterWidth] = useState(0);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const domain = useDomain();
 
-    // @note: we use `languageDescription.name` since `languageName` is not a linguist language name.
-    const languageDescription = useFindLanguageDescription({ languageName });
+    // @note: we use `languageDescription.name` since `_language` is not a linguist language name.
+    const languageDescription = useFindLanguageDescription({ languageName: _language });
     const language = useMemo(() => {
         return languageDescription?.name ?? 'Text';
     }, [languageDescription]);
+
     const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
     const { navigateToPath } = useBrowseNavigation();
 
@@ -316,18 +343,29 @@ const CodeBlockComponent = ({
         return [
             languageExtension,
             EditorView.lineWrapping,
+            gutterWidthExtension,
+            EditorView.updateListener.of((update) => {
+                const width = update.view.plugin(gutterWidthExtension)?.width;
+                if (width) {
+                    setGutterWidth(width);
+                }
+            }),
             keymapExtension,
-            hasCodeNavEntitlement ? [
-                symbolHoverTargetsExtension,
-            ] : [],
-        ];
-    }, [languageExtension, keymapExtension, hasCodeNavEntitlement]);
+            ...(metadata ? [
+                lineOffsetExtension(metadata.startLine - 1),
 
-    const onFindReferences = useCallback((symbolName: string) => {
-        console.log('todo')
-    }, []);
+                ...(hasCodeNavEntitlement ? [
+                    symbolHoverTargetsExtension,
+                ] : []),
+            ] : []),
+        ];
+    }, [languageExtension, keymapExtension, metadata, hasCodeNavEntitlement]);
 
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
+        if (!metadata || symbolDefinitions.length === 0) {
+            return;
+        }
+
         if (symbolDefinitions.length === 0) {
             return;
         }
@@ -335,30 +373,29 @@ const CodeBlockComponent = ({
         if (symbolDefinitions.length === 1) {
             const symbolDefinition = symbolDefinitions[0];
             const { fileName, repoName } = symbolDefinition;
+            const { revision } = metadata;
 
             navigateToPath({
                 repoName,
-                revisionName: 'HEAD',
+                revisionName: revision,
                 path: fileName,
                 pathType: 'blob',
                 highlightRange: symbolDefinition.range,
             })
         } else {
-            // @todo: does this make sense?
-            const repoName = symbolDefinitions[0].repoName;
-            const fileName = symbolDefinitions[0].fileName;
+            const { repository, revision, filePath } = metadata;
 
             navigateToPath({
-                repoName,
-                revisionName: 'HEAD',
-                path: fileName,
+                repoName: repository,
+                revisionName: revision,
+                path: filePath,
                 pathType: 'blob',
                 setBrowseState: {
                     selectedSymbolInfo: {
                         symbolName,
-                        repoName,
-                        revisionName: 'HEAD',
-                        language,
+                        repoName: repository,
+                        revisionName: revision,
+                        language: language,
                     },
                     activeExploreMenuTab: "definitions",
                     isBottomPanelCollapsed: false,
@@ -366,10 +403,77 @@ const CodeBlockComponent = ({
             });
 
         }
-    }, [navigateToPath, language]);
+    }, [metadata, navigateToPath, language]);
+
+    const onFindReferences = useCallback((symbolName: string) => {
+        if (!metadata) {
+            return;
+        }
+
+        const { repository, revision, filePath } = metadata;
+        navigateToPath({
+            repoName: repository,
+            revisionName: revision,
+            path: filePath,
+            pathType: 'blob',
+            setBrowseState: {
+                selectedSymbolInfo: {
+                    symbolName,
+                    repoName: repository,
+                    revisionName: revision,
+                    language: language,
+                },
+                activeExploreMenuTab: "references",
+                isBottomPanelCollapsed: false,
+            }
+        })
+
+    }, [metadata]);
+
+    const code = useMemo(() => {
+        if (isExpanded) {
+            return _code;
+        }
+
+        return _code.split('\n').slice(0, MAX_LINES_TO_DISPLAY).join('\n');
+    }, [_code, isExpanded]);
+
+    const isExpandButtonVisible = useMemo(() => {
+        return _code.split('\n').length > MAX_LINES_TO_DISPLAY;
+    }, [_code]);
 
     return (
-        <div className="my-4 rounded-md border overflow-hidden">
+        <div className="flex flex-col rounded-md border overflow-hidden not-prose my-4">
+            {metadata && (
+                <div className="flex flex-row items-center bg-accent py-1 pr-1">
+                    <div
+                        style={{ width: `${gutterWidth}px` }}
+                        className="flex justify-center items-center"
+                    >
+                        <VscodeFileIcon fileName={metadata.filePath} className="h-4 w-4" />
+                    </div>
+                    <Link
+                        className="flex-1 block truncate-start text-foreground text-sm font-mono cursor-pointer hover:underline"
+                        href={getBrowsePath({
+                            repoName: metadata.repository,
+                            revisionName: metadata.revision,
+                            path: metadata.filePath,
+                            pathType: 'blob',
+                            domain,
+                            highlightRange: {
+                                start: {
+                                    lineNumber: metadata.startLine,
+                                },
+                                end: {
+                                    lineNumber: metadata.endLine,
+                                }
+                            }
+                        })}
+                    >
+                        {metadata.filePath}
+                    </Link>
+                </div>
+            )}
             <CodeMirror
                 ref={setEditorRef}
                 value={code}
@@ -381,16 +485,32 @@ const CodeBlockComponent = ({
                     highlightActiveLineGutter: false,
                 }}
             >
-                {editorRef && hasCodeNavEntitlement && (
+                {editorRef && hasCodeNavEntitlement && metadata && (
                     <SymbolHoverPopup
                         editorRef={editorRef}
-                        revisionName={'HEAD'}
+                        revisionName={metadata.revision}
                         language={language}
                         onFindReferences={onFindReferences}
                         onGotoDefinition={onGotoDefinition}
                     />
                 )}
             </CodeMirror>
+            {isExpandButtonVisible && (
+                <div
+                    tabIndex={0}
+                    className="flex flex-row items-center justify-center w-full bg-accent py-1 cursor-pointer text-muted-foreground hover:text-foreground"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    onKeyDown={(e) => {
+                        if (e.key !== "Enter") {
+                            return;
+                        }
+                        setIsExpanded(!isExpanded);
+                    }}
+                >
+                    {isExpanded ? <DoubleArrowUpIcon className="w-3 h-3" /> : <DoubleArrowDownIcon className="w-3 h-3" />}
+                    <span className="text-sm ml-1">{isExpanded ? 'Show less' : 'Show more'}</span>
+                </div>
+            )}
         </div>
     );
 };
@@ -623,6 +743,7 @@ interface ToolHeaderProps {
 const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpand }: ToolHeaderProps) => {
     return (
         <div
+            tabIndex={0}
             className={cn(
                 "flex flex-row items-center gap-2 text-muted-foreground group w-fit select-none",
                 {
@@ -631,6 +752,12 @@ const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpand }: T
             )}
             onClick={() => {
                 onExpand(!isExpanded)
+            }}
+            onKeyDown={(e) => {
+                if (e.key !== "Enter") {
+                    return;
+                }
+                onExpand(!isExpanded);
             }}
         >
             <Icon className="h-4 w-4" />

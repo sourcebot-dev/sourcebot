@@ -47,13 +47,12 @@ export async function POST(req: Request) {
         const files = annotations.length > 0 ?
             (await Promise.all(
                 annotations.map(async (file) => {
-                    const { path, repo } = file;
+                    const { path, repo, revision } = file;
 
-                    // @todo(mt)
                     const fileSource = await getFileSource({
                         fileName: path,
                         repository: repo,
-                        branch: 'HEAD',
+                        branch: revision,
                     }, SINGLE_TENANT_ORG_DOMAIN);
 
                     if (isServiceError(fileSource)) {
@@ -66,6 +65,7 @@ export async function POST(req: Request) {
                         ...fileSource,
                         path,
                         repo,
+                        revision,
                     };
 
                 }))
@@ -78,6 +78,7 @@ export async function POST(req: Request) {
             repos,
             files,
         });
+        console.log(systemPrompt);
 
         const messages = [
             {

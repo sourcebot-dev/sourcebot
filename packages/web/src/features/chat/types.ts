@@ -17,6 +17,7 @@ export type FileMentionData = {
     path: string;
     name: string;
     language: string;
+    revision: string;
 }
 
 export type MentionElement = {
