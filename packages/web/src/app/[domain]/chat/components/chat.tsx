@@ -4,23 +4,37 @@ import { VscodeFileIcon } from '@/app/components/vscodeFileIcon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { SymbolHoverPopup } from '@/ee/features/codeNav/components/symbolHoverPopup';
+import { symbolHoverTargetsExtension } from '@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension';
+import { SymbolDefinition } from '@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { ReadFilesToolRequest, ReadFilesToolResponse, SearchCodeToolRequest, SearchCodeToolResponse, toolNames } from '@/features/chat/tools';
 import { getAllMentionElements, resetEditor, toString } from '@/features/chat/utils';
+import { useHasEntitlement } from '@/features/entitlements/useHasEntitlement';
+import { useCodeMirrorLanguageExtension } from '@/hooks/useCodeMirrorLanguageExtension';
+import { useCodeMirrorTheme } from '@/hooks/useCodeMirrorTheme';
 import { useDomain } from '@/hooks/useDomain';
+import { useFindLanguageDescription } from '@/hooks/useFindLanguageDescription';
+import { useKeymapExtension } from '@/hooks/useKeymapExtension';
 import { useThemeNormalized } from '@/hooks/useThemeNormalized';
 import { SearchQueryParams } from '@/lib/types';
 import { cn, createPathWithQueryParams, isServiceError } from '@/lib/utils';
 import { Message, useChat } from '@ai-sdk/react';
 import { CreateMessage, TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-utils';
+import { EditorView } from '@codemirror/view';
 import { PlayIcon } from '@radix-ui/react-icons';
+import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { UIMessage } from 'ai';
+import type { Root } from "hast";
 import { ChevronDown, ChevronRight, EyeIcon, Loader2, SearchIcon } from 'lucide-react';
-import { marked } from "marked";
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { getBrowsePath } from '../../browse/hooks/useBrowseNavigation';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import type { Plugin } from "unified";
+import { visit } from 'unist-util-visit';
+import { getBrowsePath, useBrowseNavigation } from '../../browse/hooks/useBrowseNavigation';
 import { TopBar } from '../../components/topBar';
 import { ChatBox } from './chatBox';
 import { ChatBoxTools } from './chatBoxTools';
@@ -133,6 +147,7 @@ export default function Chat({
     );
 }
 
+
 interface MessageComponentProps {
     message: UIMessage;
     isLatestMessage: boolean;
@@ -143,7 +158,6 @@ const MessageComponent = ({ message, isLatestMessage, status }: MessageComponent
 
     const { data: session } = useSession();
     const { theme } = useThemeNormalized();
-    console.log(theme);
 
     return (
         <div key={message.id} className="group animate-in fade-in duration-200">
@@ -205,35 +219,181 @@ const MessageComponent = ({ message, isLatestMessage, status }: MessageComponent
         </div>
     )
 }
+const annotateCodeBlocks: Plugin<[], Root> = () => {
+    return (tree: Root) => {
+        visit(tree, 'element', (node, _index, parent) => {
+            if (node.tagName !== 'code' || !parent || !('tagName' in parent)) {
+                return;
+            }
 
-marked.use({
-    renderer: {
-        code: (code) => {
-            return `<pre><code>${code.text}</code></pre>`;
-        },
-        codespan: (code) => {
-            return `
-                <code class="bg-gray-100 dark:bg-gray-700 w-fit rounded-md font-mono px-2 py-0.5 font-normal prose">${code.text}</code>
-            `;
-        }
+            if (parent.tagName === 'pre') {
+                node.properties.isBlock = true;
+                parent.properties.isBlock = true;
+            } else {
+                node.properties.isBlock = false;
+            }
+        })
     }
-})
+}
+
 
 const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
-    const markdown = useMemo(() => {
-        return marked.parse(part.text, {
-            gfm: true,
-            breaks: true,
-        });
-    }, [part.text]);
+    return (
+        <div
+            className="prose dark:prose-invert prose-p:text-foreground prose-li:text-foreground prose-li:marker:text-foreground prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none prose-hr:my-5 max-w-none"
+        >
+            <Markdown
+                remarkPlugins={[
+                    remarkGfm,
+                ]}
+                rehypePlugins={[
+                    annotateCodeBlocks,
+                ]}
+                components={{
+                    pre: ({ children, node, ...rest }) => {
+
+                        if (node?.properties && node.properties.isBlock === true) {
+                            return children;
+                        }
+
+                        return (
+                            <pre {...rest}>
+                                {children}
+                            </pre>
+                        )
+                    },
+                    code: ({ className, children, node, ...rest }) => {
+                        if (node?.properties && node.properties.isBlock === true) {
+                            const match = /language-(\w+)/.exec(className || '')
+                            return (
+                                <CodeBlockComponent
+                                    code={children?.toString().trimEnd() ?? ''}
+                                    languageName={match ? match[1] : undefined}
+                                />
+                            )
+                        }
+
+                        return (
+                            <code
+                                className={className}
+                                {...rest}
+                            >
+                                {children}
+                            </code>
+                        )
+                    }
+                }}
+            >
+                {part.text}
+            </Markdown>
+        </div>
+    );
+};
+
+interface CodeBlockComponentProps {
+    code: string;
+    languageName?: string;
+}
+
+const CodeBlockComponent = ({
+    code,
+    languageName = "text"
+}: CodeBlockComponentProps) => {
+    const theme = useCodeMirrorTheme();
+    const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
+    const keymapExtension = useKeymapExtension(editorRef?.view);
+    const hasCodeNavEntitlement = useHasEntitlement("code-nav");
+
+    // @note: we use `languageDescription.name` since `languageName` is not a linguist language name.
+    const languageDescription = useFindLanguageDescription({ languageName });
+    const language = useMemo(() => {
+        return languageDescription?.name ?? 'Text';
+    }, [languageDescription]);
+    const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
+    const { navigateToPath } = useBrowseNavigation();
+
+    const extensions = useMemo(() => {
+        return [
+            languageExtension,
+            EditorView.lineWrapping,
+            keymapExtension,
+            hasCodeNavEntitlement ? [
+                symbolHoverTargetsExtension,
+            ] : [],
+        ];
+    }, [languageExtension, keymapExtension, hasCodeNavEntitlement]);
+
+    const onFindReferences = useCallback((symbolName: string) => {
+        console.log('todo')
+    }, []);
+
+    const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
+        if (symbolDefinitions.length === 0) {
+            return;
+        }
+
+        if (symbolDefinitions.length === 1) {
+            const symbolDefinition = symbolDefinitions[0];
+            const { fileName, repoName } = symbolDefinition;
+
+            navigateToPath({
+                repoName,
+                revisionName: 'HEAD',
+                path: fileName,
+                pathType: 'blob',
+                highlightRange: symbolDefinition.range,
+            })
+        } else {
+            // @todo: does this make sense?
+            const repoName = symbolDefinitions[0].repoName;
+            const fileName = symbolDefinitions[0].fileName;
+
+            navigateToPath({
+                repoName,
+                revisionName: 'HEAD',
+                path: fileName,
+                pathType: 'blob',
+                setBrowseState: {
+                    selectedSymbolInfo: {
+                        symbolName,
+                        repoName,
+                        revisionName: 'HEAD',
+                        language,
+                    },
+                    activeExploreMenuTab: "definitions",
+                    isBottomPanelCollapsed: false,
+                }
+            });
+
+        }
+    }, [navigateToPath, language]);
 
     return (
-        <span
-            className="prose prose-p:text-foreground prose-li:text-foreground dark:prose-invert [&>*:first-child]:mt-0 prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none prose-hr:my-5 max-w-none"
-            dangerouslySetInnerHTML={{ __html: markdown }}
-        />
-    )
-}
+        <div className="my-4 rounded-md border overflow-hidden">
+            <CodeMirror
+                ref={setEditorRef}
+                value={code}
+                extensions={extensions}
+                readOnly={true}
+                theme={theme}
+                basicSetup={{
+                    highlightActiveLine: false,
+                    highlightActiveLineGutter: false,
+                }}
+            >
+                {editorRef && hasCodeNavEntitlement && (
+                    <SymbolHoverPopup
+                        editorRef={editorRef}
+                        revisionName={'HEAD'}
+                        language={language}
+                        onFindReferences={onFindReferences}
+                        onGotoDefinition={onGotoDefinition}
+                    />
+                )}
+            </CodeMirror>
+        </div>
+    );
+};
 
 const ToolInvocationUIPartComponent = ({ part }: { part: ToolInvocationUIPart }) => {
     const {
@@ -285,7 +445,7 @@ const SearchCodeToolComponent = ({ request: request, response }: SearchCodeToolC
     }, [request, response]);
 
     return (
-        <>
+        <div className="my-4">
             <ToolHeader
                 isLoading={response === undefined}
                 isError={isServiceError(response)}
@@ -327,7 +487,7 @@ const SearchCodeToolComponent = ({ request: request, response }: SearchCodeToolC
                     <Separator className='ml-[7px] my-2' />
                 </>
             )}
-        </>
+        </div>
     )
 }
 
@@ -353,7 +513,7 @@ const ReadFilesToolComponent = ({ request, response }: ReadFilesToolComponentPro
     }, [request, response]);
 
     return (
-        <>
+        <div className="my-4">
             <ToolHeader
                 isLoading={response === undefined}
                 isError={isServiceError(response)}
@@ -380,7 +540,7 @@ const ReadFilesToolComponent = ({ request, response }: ReadFilesToolComponentPro
                     <Separator className='ml-[7px] my-2' />
                 </>
             )}
-        </>
+        </div>
     )
 }
 

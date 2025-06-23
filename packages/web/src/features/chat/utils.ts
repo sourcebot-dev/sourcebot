@@ -1,5 +1,5 @@
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { CustomEditor, CustomText, FileMentionData, MentionElement } from "./types"
+import { CustomEditor, CustomText, FileMentionData, MentionElement, ParagraphElement } from "./types"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/useBrowseNavigation"
 
@@ -102,14 +102,17 @@ export const isCustomTextElement = (element: Descendant): element is CustomText 
     return 'text' in element && typeof element.text === 'string';
 }
 
+export const isParagraphElement = (element: Descendant): element is ParagraphElement => {
+    return 'type' in element && element.type === 'paragraph';
+}
+
 export const toString = (children: Descendant[]): string => {
     return children.map((child) => {
         if (isCustomTextElement(child)) {
             return child.text;
         }
 
-        if (isMentionElement(child)) {
-
+        else if (isMentionElement(child)) {
             const { path, repo } = child.data;
             // @todo(mt)
             const url = getBrowsePath(
@@ -124,7 +127,13 @@ export const toString = (children: Descendant[]): string => {
             return `[${child.data.name}](${url}) `;
         }
 
-        return toString(child.children);
+        else if (isParagraphElement(child)) {
+            return `${toString(child.children)}\n`;
+        }
+
+        else {
+            return "";
+        }
     }).join("");
 }
 
