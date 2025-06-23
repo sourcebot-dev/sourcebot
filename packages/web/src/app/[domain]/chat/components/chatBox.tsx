@@ -152,8 +152,11 @@ export const ChatBox = ({
                 case 'Enter': {
                     event.preventDefault();
                     const suggestion = fileSuggestions[index];
+                    
+                    // @todo: make revision configurable.
                     insertMention(editor, {
                         type: 'file',
+                        revision: 'HEAD',
                         ...suggestion,
                     }, range);
                     break;
@@ -244,8 +247,10 @@ export const ChatBox = ({
                                                 "bg-accent": i === index,
                                             })}
                                             onClick={() => {
+                                                // @todo: make revision configurable.
                                                 insertMention(editor, {
                                                     type: 'file',
+                                                    revision: 'HEAD',
                                                     ...file,
                                                 }, range);
                                                 ReactEditor.focus(editor);

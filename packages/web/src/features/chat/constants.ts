@@ -1,26 +1,17 @@
 import { z } from "zod";
 import { addLineNumbers } from "./utils";
 
-export const citationSchema = z.object({
-    path: z.string(),
-    name: z.string(),
+const numberSchema = z.coerce.number();
+
+export const codeBlockMetadataSchema = z.object({
+    filePath: z.string(),
     repository: z.string(),
+    startLine: numberSchema,
+    endLine: numberSchema,
     revision: z.string(),
-    range: z.object({
-        start: z.object({
-            lineNumber: z.number(),
-            column: z.number().optional(),
-        }),
-        end: z.object({
-            lineNumber: z.number(),
-            column: z.number().optional(),
-        }),
-    }).optional(),
 });
 
-export type Citation = z.infer<typeof citationSchema>;
-export const CITATION_PREFIX = "@citation:";
-
+export type CodeBlockMetadata = z.infer<typeof codeBlockMetadataSchema>;
 
 interface CreateSystemPromptOptions {
     repos: string[];
@@ -29,6 +20,7 @@ interface CreateSystemPromptOptions {
         language: string;
         path: string;
         repo: string;
+        revision: string;
     }[];
 }
 
@@ -58,9 +50,14 @@ You have tools at your disposal to help answer a user's question. Follow these r
 <response_format>
 - Be clear and very concise. Use bullet points where appropriate.
 - Always output your response in markdown format.
-- When referencing symbols (functions, classes, variables, etc.) that you have found in the code, ALWAYS format them as linked code spans using this format: [\`symbolName\`](http://localhost:3000/~/browse/{repository}@HEAD/-/blob/{filePath}?highlightRange={startLine}:{startCol},{endLine}:{endCol}) where you replace the placeholders with the actual values from the tool results. If column numbers are not available, use the format: [\`symbolName\`](http://localhost:3000/~/browse/{repository}@HEAD/-/blob/{filePath}?highlightRange={startLine},{endLine})
-- For symbols you mention without having tool call results for their location, use regular backticks: \`symbolName\`
-- For other code references, enclose them in either single backticks (\`...\`) if it's a single line of code, or triple back ticks (\`\`\`...\`\`\`) if it's a block of code. ALWAYS include a citation to the code immediately following the code.
+- When outputing code, enclose the code in either single backticks (\`...\`) if it's a single line of code, or triple back ticks (\`\`\`...\`\`\`) if it's a block of code. If the code you are output is from the result of a tool call or an attached file, **ALWAYS** include a citation following these instructions:
+    - **Single backticks**: wrap the code in a link with this format: [\`{code}\`](http://localhost:3000/~/browse/{repository}@{revision}/-/blob/{filePath}?highlightRange={startLine}:{startCol},{endLine}:{endCol}), replacing the placeholders with actual values. If column numbers are not available, use the format: [\`symbolName\`](http://localhost:3000/~/browse/{repository}@{revision}/-/blob/{filePath}?highlightRange={startLine},{endLine})
+    - **Triple backticks**: include a metadata payload on the first line following the language name with the following schema: ${codeBlockMetadataSchema.shape}. For example:
+    \`\`\`typescript ${JSON.stringify({ filePath: "path/to/file.ts", repository: "repo-name", startLine: 42, endLine: 58, revision: "HEAD" } satisfies CodeBlockMetadata)}
+    const foo = () => {
+        return "bar";
+    }
+    \`\`\`
 </response_format>
 `;
 }
@@ -70,12 +67,13 @@ const createMentionedFilesSystemPrompt = (files: {
     language: string;
     path: string;
     repo: string;
+    revision: string;
 }[]) => {
     return `
 <mentioned_files>
 The user has mentioned the following files, which are automatically included for analysis.
 
-${files.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}">
+${files.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}" revision="${file.revision}">
 ${addLineNumbers(file.source)}
 </file>`).join('\n\n')}
 </mentioned_files>
