@@ -13,45 +13,14 @@ export type BrowseHighlightRange = {
 
 export const HIGHLIGHT_RANGE_QUERY_PARAM = 'highlightRange';
 
-export interface GetBrowsePathProps {
+interface NavigateToPathOptions {
     repoName: string;
     revisionName?: string;
     path: string;
     pathType: 'blob' | 'tree';
     highlightRange?: BrowseHighlightRange;
     setBrowseState?: Partial<BrowseState>;
-    domain: string;
 }
-
-export const getBrowsePath = ({
-    repoName,
-    revisionName = 'HEAD',
-    path,
-    pathType,
-    highlightRange,
-    setBrowseState,
-    domain,
-}: GetBrowsePathProps) => {
-    const params = new URLSearchParams();
-
-    if (highlightRange) {
-        const { start, end } = highlightRange;
-
-        if ('column' in start && 'column' in end) {
-            params.set(HIGHLIGHT_RANGE_QUERY_PARAM, `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`);
-        } else {
-            params.set(HIGHLIGHT_RANGE_QUERY_PARAM, `${start.lineNumber},${end.lineNumber}`);
-        }
-    }
-
-    if (setBrowseState) {
-        params.set(SET_BROWSE_STATE_QUERY_PARAM, JSON.stringify(setBrowseState));
-    }
-
-    const browsePath = `/${domain}/browse/${repoName}@${revisionName}/-/${pathType}/${path}${params.keys.length > 0 ? `?${params.toString()}` : ''}`;
-    return browsePath;
-}
-
 
 export const useBrowseNavigation = () => {
     const router = useRouter();
@@ -64,18 +33,24 @@ export const useBrowseNavigation = () => {
         pathType,
         highlightRange,
         setBrowseState,
-    }: Omit<GetBrowsePathProps, 'domain'>) => {
-        const browsePath = getBrowsePath({
-            repoName,
-            revisionName,
-            path,
-            pathType,
-            highlightRange,
-            setBrowseState,
-            domain,
-        });
+    }: NavigateToPathOptions) => {
+        const params = new URLSearchParams();
 
-        router.push(browsePath);
+        if (highlightRange) {
+            const { start, end } = highlightRange;
+
+            if ('column' in start && 'column' in end) {
+                params.set(HIGHLIGHT_RANGE_QUERY_PARAM, `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`);
+            } else {
+                params.set(HIGHLIGHT_RANGE_QUERY_PARAM, `${start.lineNumber},${end.lineNumber}`);
+            }
+        }
+
+        if (setBrowseState) {
+            params.set(SET_BROWSE_STATE_QUERY_PARAM, JSON.stringify(setBrowseState));
+        }
+
+        router.push(`/${domain}/browse/${repoName}@${revisionName}/-/${pathType}/${path}?${params.toString()}`);
     }, [domain, router]);
 
     return {
