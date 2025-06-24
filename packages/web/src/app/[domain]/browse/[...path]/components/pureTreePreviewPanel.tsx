@@ -6,8 +6,6 @@ import { FileTreeItemComponent } from "@/features/fileTree/components/fileTreeIt
 import { useBrowseNavigation } from "../../hooks/useBrowseNavigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBrowseParams } from "../../hooks/useBrowseParams";
-import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
-import { usePrefetchFolderContents } from "@/hooks/usePrefetchFolderContents";
 
 interface PureTreePreviewPanelProps {
     items: FileTreeItem[];
@@ -16,8 +14,6 @@ interface PureTreePreviewPanelProps {
 export const PureTreePreviewPanel = ({ items }: PureTreePreviewPanelProps) => {
     const { repoName, revisionName } = useBrowseParams();
     const { navigateToPath } = useBrowseNavigation();
-    const { prefetchFileSource } = usePrefetchFileSource();
-    const { prefetchFolderContents } = usePrefetchFolderContents();
     const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     const onNodeClicked = useCallback((node: FileTreeItem) => {
@@ -28,14 +24,6 @@ export const PureTreePreviewPanel = ({ items }: PureTreePreviewPanelProps) => {
             pathType: node.type === 'tree' ? 'tree' : 'blob',
         });
     }, [navigateToPath, repoName, revisionName]);
-
-    const onNodeMouseEnter = useCallback((node: FileTreeItem) => {
-        if (node.type === 'blob') {
-            prefetchFileSource(repoName, revisionName ?? 'HEAD', node.path);
-        } else if (node.type === 'tree') {
-            prefetchFolderContents(repoName, revisionName ?? 'HEAD', node.path);
-        }
-    }, [prefetchFileSource, prefetchFolderContents, repoName, revisionName]);
 
     return (
         <ScrollArea
@@ -50,7 +38,6 @@ export const PureTreePreviewPanel = ({ items }: PureTreePreviewPanelProps) => {
                     depth={0}
                     isCollapseChevronVisible={false}
                     onClick={() => onNodeClicked(item)}
-                    onMouseEnter={() => onNodeMouseEnter(item)}
                     parentRef={scrollAreaRef}
                 />
             ))}
