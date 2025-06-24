@@ -6339,12 +6339,7 @@ __metadata:
     http-status-codes: "npm:^2.3.0"
     input-otp: "npm:^1.4.2"
     jsdom: "npm:^25.0.1"
-<<<<<<< HEAD
     lucide-react: "npm:^0.517.0"
-    marked: "npm:^15.0.12"
-=======
-    lucide-react: "npm:^0.435.0"
->>>>>>> e879827 (switch over to rendering using react-markdown. Render code blocks using codemirror)
     micromatch: "npm:^4.0.8"
     next: "npm:14.2.26"
     next-auth: "npm:^5.0.0-beta.25"
@@ -6367,11 +6362,8 @@ __metadata:
     react-icons: "npm:^5.3.0"
     react-markdown: "npm:^10.1.0"
     react-resizable-panels: "npm:^2.1.1"
-<<<<<<< HEAD
     recharts: "npm:^2.15.3"
-=======
     remark-gfm: "npm:^4.0.1"
->>>>>>> e879827 (switch over to rendering using react-markdown. Render code blocks using codemirror)
     scroll-into-view-if-needed: "npm:^3.1.0"
     server-only: "npm:^0.0.1"
     sharp: "npm:^0.33.5"
@@ -6647,7 +6639,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-<<<<<<< HEAD
 "@types/d3-array@npm:^3.0.3":
   version: 3.2.1
   resolution: "@types/d3-array@npm:3.2.1"
@@ -6714,14 +6705,15 @@ __metadata:
   version: 3.0.2
   resolution: "@types/d3-timer@npm:3.0.2"
   checksum: 10c0/c644dd9571fcc62b1aa12c03bcad40571553020feeb5811f1d8a937ac1e65b8a04b759b4873aef610e28b8714ac71c9885a4d6c127a048d95118f7e5b506d9e1
-=======
+  languageName: node
+  linkType: hard
+
 "@types/debug@npm:^4.0.0":
   version: 4.1.12
   resolution: "@types/debug@npm:4.1.12"
   dependencies:
     "@types/ms": "npm:*"
   checksum: 10c0/5dcd465edbb5a7f226e9a5efd1f399c6172407ef5840686b73e3608ce135eeca54ae8037dcd9f16bdb2768ac74925b820a8b9ecc588a58ca09eca6acabe33e2f
->>>>>>> e879827 (switch over to rendering using react-markdown. Render code blocks using codemirror)
   languageName: node
   linkType: hard
 
@@ -15190,12 +15182,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-<<<<<<< HEAD
 "react-is@npm:^18.3.1":
   version: 18.3.1
   resolution: "react-is@npm:18.3.1"
   checksum: 10c0/f2f1e60010c683479e74c63f96b09fb41603527cd131a9959e2aee1e5a8b0caf270b365e5ca77d4a6b18aae659b60a86150bb3979073528877029b35aecd2072
-=======
+  languageName: node
+  linkType: hard
+
 "react-markdown@npm:^10.1.0":
   version: 10.1.0
   resolution: "react-markdown@npm:10.1.0"
@@ -15215,7 +15208,6 @@ __metadata:
     "@types/react": ">=18"
     react: ">=18"
   checksum: 10c0/4a5dc7d15ca6d05e9ee95318c1904f83b111a76f7588c44f50f1d54d4c97193b84e4f64c4b592057c989228238a2590306cedd0c4d398e75da49262b2b5ae1bf
->>>>>>> e879827 (switch over to rendering using react-markdown. Render code blocks using codemirror)
   languageName: node
   linkType: hard
 
