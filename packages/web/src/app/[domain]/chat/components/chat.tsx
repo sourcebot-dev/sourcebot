@@ -29,7 +29,7 @@ import type { Root } from "hast";
 import { ChevronDown, ChevronRight, EyeIcon, Loader2, SearchIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Plugin } from "unified";
@@ -41,7 +41,7 @@ import { ChatBoxTools } from './chatBoxTools';
 import { ErrorBanner } from './errorBanner';
 import { CodeBlockMetadata, codeBlockMetadataSchema } from '@/features/chat/constants';
 import { lineOffsetExtension } from '@/lib/extensions/lineOffsetExtension';
-import { gutterWidthExtension } from '@/lib/extensions/gutterWidthExtension';
+import { LightweightCodeHighlighter } from '../../components/lightweightCodeHighlighter';
 
 export default function Chat({
     id,
@@ -110,14 +110,19 @@ export default function Chat({
                             </div>
                         ) : (
                             <>
-                                {messages.map((m, index) => (
-                                    <MessageComponent
-                                        key={m.id}
-                                        message={m}
-                                        isLatestMessage={index === messages.length - 1}
-                                        status={status}
-                                    />
-                                ))}
+                                {messages.map((m, index) => {
+                                    const isLatestMessage = index === messages.length - 1;
+                                    const isStreaming = isLatestMessage && status === "streaming";
+                                    return (
+                                        <MessageComponent
+                                            key={m.id}
+                                            message={m}
+                                            isLatestMessage={isLatestMessage}
+                                            isStreaming={isStreaming}
+                                        />
+                                    )
+                                })
+                                }
                             </>
                         )
                     }
@@ -154,10 +159,11 @@ export default function Chat({
 interface MessageComponentProps {
     message: UIMessage;
     isLatestMessage: boolean;
-    status: 'submitted' | 'streaming' | 'ready' | 'error';
+    isStreaming: boolean;
 }
 
-const MessageComponent = ({ message, isLatestMessage, status }: MessageComponentProps) => {
+const MessageComponent = memo(({ message, isStreaming }: MessageComponentProps) => {
+    console.log(`Render ${message.id}`);
 
     const { data: session } = useSession();
     const { theme } = useThemeNormalized();
@@ -177,7 +183,7 @@ const MessageComponent = ({ message, isLatestMessage, status }: MessageComponent
                 </Avatar>
 
                 <div className="flex-1 space-y-2 overflow-hidden">
-                    {isLatestMessage && message.role === "assistant" && status === "streaming" && (
+                    {message.role === "assistant" && isStreaming && (
                         <div className="flex items-center gap-1 text-xs text-gray-500">
                             <Loader2 className="h-3 w-3 animate-spin" />
                             <span>Thinking...</span>
@@ -194,6 +200,7 @@ const MessageComponent = ({ message, isLatestMessage, status }: MessageComponent
                                             <TextUIPartComponent
                                                 key={index}
                                                 part={part}
+                                                isStreaming={isStreaming}
                                             />
                                         )
                                     case 'step-start':
@@ -221,7 +228,10 @@ const MessageComponent = ({ message, isLatestMessage, status }: MessageComponent
             </div>
         </div>
     )
-}
+});
+
+MessageComponent.displayName = 'MessageComponent';
+
 const annotateCodeBlocks: Plugin<[], Root> = () => {
     return (tree: Root) => {
         visit(tree, 'element', (node, _index, parent) => {
@@ -240,7 +250,7 @@ const annotateCodeBlocks: Plugin<[], Root> = () => {
 }
 
 
-const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
+const TextUIPartComponent = ({ part, isStreaming }: { part: TextUIPart, isStreaming: boolean }) => {
     return (
         <div
             className="prose dark:prose-invert prose-p:text-foreground prose-li:text-foreground prose-li:marker:text-foreground prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none prose-hr:my-5 max-w-none"
@@ -267,27 +277,16 @@ const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
                     },
                     code: ({ className, children, node, ...rest }) => {
                         if (node?.properties && node.properties.isBlock === true) {
-                            const match = /language-(\w+)/.exec(className || '')
+                            const match = /language-(\w+)/.exec(className || '');
+                            const language = match ? match[1] : undefined;
                             const metadataString = node?.data?.meta;
-
-                            const parseCodeBlockMetadata = (metadataString: string) => {
-                                try {
-                                    const metadata = JSON.parse(metadataString);
-                                    return codeBlockMetadataSchema.parse(metadata);
-                                }
-                                catch (error) {
-                                    console.error('Invalid metadata for code block:', error);
-                                    return undefined;
-                                }
-                            }
-
-                            const metadata = metadataString ? parseCodeBlockMetadata(metadataString) : undefined;
 
                             return (
                                 <CodeBlockComponent
                                     code={children?.toString().trimEnd() ?? ''}
-                                    language={match ? match[1] : undefined}
-                                    metadata={metadata}
+                                    isStreaming={isStreaming}
+                                    language={language}
+                                    metadataPayload={metadataString ?? undefined}
                                 />
                             )
                         }
@@ -311,24 +310,124 @@ const TextUIPartComponent = ({ part }: { part: TextUIPart }) => {
 
 interface CodeBlockComponentProps {
     code: string;
+    isStreaming: boolean;
     language?: string;
-    metadata?: CodeBlockMetadata;
+    metadataPayload?: string;
 }
 
 const MAX_LINES_TO_DISPLAY = 14;
 
 const CodeBlockComponent = ({
     code: _code,
-    language: _language = "text",
-    metadata,
+    isStreaming,
+    language = "text",
+    metadataPayload,
 }: CodeBlockComponentProps) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const domain = useDomain();
+
+    const metadata = useMemo(() => {
+        if (!metadataPayload) {
+            return undefined;
+        }
+
+        try {
+            const metadata = JSON.parse(metadataPayload);
+            return codeBlockMetadataSchema.parse(metadata);
+        }
+        catch (error) {
+            console.error('Invalid metadata for code block:', error);
+            return undefined;
+        }
+
+    }, [metadataPayload]);
+
+    const code = useMemo(() => {
+        if (isExpanded) {
+            return _code;
+        }
+
+        return _code.split('\n').slice(0, MAX_LINES_TO_DISPLAY).join('\n');
+    }, [_code, isExpanded]);
+
+    const isExpandButtonVisible = useMemo(() => {
+        return _code.split('\n').length > MAX_LINES_TO_DISPLAY;
+    }, [_code]);
+
+    return (
+        <div className="flex flex-col rounded-md border overflow-hidden not-prose my-4">
+            {metadata && (
+                <div className="flex flex-row items-center bg-accent py-1 px-3 gap-1.5">
+                    <VscodeFileIcon fileName={metadata.filePath} className="h-4 w-4" />
+                    <Link
+                        className="flex-1 block truncate-start text-foreground text-sm font-mono cursor-pointer hover:underline"
+                        href={getBrowsePath({
+                            repoName: metadata.repository,
+                            revisionName: metadata.revision,
+                            path: metadata.filePath,
+                            pathType: 'blob',
+                            domain,
+                            highlightRange: {
+                                start: {
+                                    lineNumber: metadata.startLine,
+                                },
+                                end: {
+                                    lineNumber: metadata.endLine,
+                                }
+                            }
+                        })}
+                    >
+                        {metadata.filePath}
+                    </Link>
+                </div>
+            )}
+            {isStreaming ? (
+                <LightweightCodeHighlighter
+                    language={language}
+                    lineNumbers={true}
+                    renderWhitespace={true}
+                    lineNumbersOffset={metadata?.startLine ?? 1}
+                >
+                    {code}
+                </LightweightCodeHighlighter>
+            ) : (
+                <FullCodeBlockComponent
+                    code={code}
+                    language={language}
+                    metadata={metadata}
+                />
+            )}
+            {isExpandButtonVisible && (
+                <div
+                    tabIndex={0}
+                    className="flex flex-row items-center justify-center w-full bg-accent py-1 cursor-pointer text-muted-foreground hover:text-foreground"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    onKeyDown={(e) => {
+                        if (e.key !== "Enter") {
+                            return;
+                        }
+                        setIsExpanded(!isExpanded);
+                    }}
+                >
+                    {isExpanded ? <DoubleArrowUpIcon className="w-3 h-3" /> : <DoubleArrowDownIcon className="w-3 h-3" />}
+                    <span className="text-sm ml-1">{isExpanded ? 'Show less' : 'Show more'}</span>
+                </div>
+            )}
+        </div>
+    );
+};
+
+interface FullCodeBlockComponentProps {
+    code: string;
+    language: string;
+    metadata?: CodeBlockMetadata;
+}
+
+const FullCodeBlockComponent = ({ code, language: _language, metadata }: FullCodeBlockComponentProps) => {
     const theme = useCodeMirrorTheme();
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const keymapExtension = useKeymapExtension(editorRef?.view);
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
-    const [gutterWidth, setGutterWidth] = useState(0);
-    const [isExpanded, setIsExpanded] = useState(false);
-    const domain = useDomain();
 
     // @note: we use `languageDescription.name` since `_language` is not a linguist language name.
     const languageDescription = useFindLanguageDescription({ languageName: _language });
@@ -339,17 +438,11 @@ const CodeBlockComponent = ({
     const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
     const { navigateToPath } = useBrowseNavigation();
 
+
     const extensions = useMemo(() => {
         return [
             languageExtension,
             EditorView.lineWrapping,
-            gutterWidthExtension,
-            EditorView.updateListener.of((update) => {
-                const width = update.view.plugin(gutterWidthExtension)?.width;
-                if (width) {
-                    setGutterWidth(width);
-                }
-            }),
             keymapExtension,
             ...(metadata ? [
                 lineOffsetExtension(metadata.startLine - 1),
@@ -428,92 +521,33 @@ const CodeBlockComponent = ({
             }
         })
 
-    }, [metadata]);
+    }, [language, metadata, navigateToPath]);
 
-    const code = useMemo(() => {
-        if (isExpanded) {
-            return _code;
-        }
-
-        return _code.split('\n').slice(0, MAX_LINES_TO_DISPLAY).join('\n');
-    }, [_code, isExpanded]);
-
-    const isExpandButtonVisible = useMemo(() => {
-        return _code.split('\n').length > MAX_LINES_TO_DISPLAY;
-    }, [_code]);
 
     return (
-        <div className="flex flex-col rounded-md border overflow-hidden not-prose my-4">
-            {metadata && (
-                <div className="flex flex-row items-center bg-accent py-1 pr-1">
-                    <div
-                        style={{ width: `${gutterWidth}px` }}
-                        className="flex justify-center items-center"
-                    >
-                        <VscodeFileIcon fileName={metadata.filePath} className="h-4 w-4" />
-                    </div>
-                    <Link
-                        className="flex-1 block truncate-start text-foreground text-sm font-mono cursor-pointer hover:underline"
-                        href={getBrowsePath({
-                            repoName: metadata.repository,
-                            revisionName: metadata.revision,
-                            path: metadata.filePath,
-                            pathType: 'blob',
-                            domain,
-                            highlightRange: {
-                                start: {
-                                    lineNumber: metadata.startLine,
-                                },
-                                end: {
-                                    lineNumber: metadata.endLine,
-                                }
-                            }
-                        })}
-                    >
-                        {metadata.filePath}
-                    </Link>
-                </div>
+        <CodeMirror
+            ref={setEditorRef}
+            value={code}
+            extensions={extensions}
+            readOnly={true}
+            theme={theme}
+            basicSetup={{
+                highlightActiveLine: false,
+                highlightActiveLineGutter: false,
+            }}
+        >
+            {editorRef && hasCodeNavEntitlement && metadata && (
+                <SymbolHoverPopup
+                    editorRef={editorRef}
+                    revisionName={metadata.revision}
+                    language={language}
+                    onFindReferences={onFindReferences}
+                    onGotoDefinition={onGotoDefinition}
+                />
             )}
-            <CodeMirror
-                ref={setEditorRef}
-                value={code}
-                extensions={extensions}
-                readOnly={true}
-                theme={theme}
-                basicSetup={{
-                    highlightActiveLine: false,
-                    highlightActiveLineGutter: false,
-                }}
-            >
-                {editorRef && hasCodeNavEntitlement && metadata && (
-                    <SymbolHoverPopup
-                        editorRef={editorRef}
-                        revisionName={metadata.revision}
-                        language={language}
-                        onFindReferences={onFindReferences}
-                        onGotoDefinition={onGotoDefinition}
-                    />
-                )}
-            </CodeMirror>
-            {isExpandButtonVisible && (
-                <div
-                    tabIndex={0}
-                    className="flex flex-row items-center justify-center w-full bg-accent py-1 cursor-pointer text-muted-foreground hover:text-foreground"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    onKeyDown={(e) => {
-                        if (e.key !== "Enter") {
-                            return;
-                        }
-                        setIsExpanded(!isExpanded);
-                    }}
-                >
-                    {isExpanded ? <DoubleArrowUpIcon className="w-3 h-3" /> : <DoubleArrowDownIcon className="w-3 h-3" />}
-                    <span className="text-sm ml-1">{isExpanded ? 'Show less' : 'Show more'}</span>
-                </div>
-            )}
-        </div>
-    );
-};
+        </CodeMirror>
+    )
+}
 
 const ToolInvocationUIPartComponent = ({ part }: { part: ToolInvocationUIPart }) => {
     const {
