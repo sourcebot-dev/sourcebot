@@ -1,6 +1,3 @@
-// import { CodePreviewPanel } from "./components/codePreviewPanel";
-// import { TreePreviewPanel } from "./components/treePreviewPanel";
-
 import { Suspense } from "react";
 import { getBrowseParamsFromPathParam } from "../hooks/utils";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
