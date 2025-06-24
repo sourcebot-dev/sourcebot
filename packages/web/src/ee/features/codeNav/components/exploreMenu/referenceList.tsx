@@ -8,7 +8,6 @@ import { RepositoryInfo, SourceRange } from "@/features/search/types";
 import { useMemo, useRef } from "react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
 
 interface ReferenceListProps {
     data: FindRelatedSymbolsResponse;
@@ -31,7 +30,6 @@ export const ReferenceList = ({
 
     const { navigateToPath } = useBrowseNavigation();
     const captureEvent = useCaptureEvent();
-    const { prefetchFileSource } = usePrefetchFileSource();
 
     // Virtualization setup
     const parentRef = useRef<HTMLDivElement>(null);
@@ -120,13 +118,6 @@ export const ReferenceList = ({
                                                     highlightRange: match.range,
                                                 })
                                             }}
-                                            // @note: We prefetch the file source when the user hovers over a file.
-                                            // This is to try and mitigate having a loading spinner appear when
-                                            // the user clicks on a file to open it.
-                                            // @see: /browse/[...path]/page.tsx
-                                            onMouseEnter={() => {
-                                                prefetchFileSource(file.repository, revisionName, file.fileName);
-                                            }}
                                         />
                                     ))}
                             </div>
@@ -144,7 +135,6 @@ interface ReferenceListItemProps {
     range: SourceRange;
     language: string;
     onClick: () => void;
-    onMouseEnter: () => void;
 }
 
 const ReferenceListItem = ({
@@ -152,7 +142,6 @@ const ReferenceListItem = ({
     range,
     language,
     onClick,
-    onMouseEnter,
 }: ReferenceListItemProps) => {
     const highlightRanges = useMemo(() => [range], [range]);
 
@@ -160,7 +149,6 @@ const ReferenceListItem = ({
         <div
             className="w-full hover:bg-accent py-1 cursor-pointer"
             onClick={onClick}
-            onMouseEnter={onMouseEnter}
         >
             <LightweightCodeHighlighter
                 language={language}
