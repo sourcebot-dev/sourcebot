@@ -1,15 +1,10 @@
-import { getCodeHostInfoForRepo, isServiceError, unwrapServiceError } from "@/lib/utils";
-import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
-import { useQuery } from "@tanstack/react-query";
-import { getFileSource } from "@/features/search/fileSourceApi";
-import { useDomain } from "@/hooks/useDomain";
-import { Loader2 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 import { getRepoInfoByName } from "@/actions";
-import { cn } from "@/lib/utils";
+import { PathHeader } from "@/app/[domain]/components/pathHeader";
+import { Separator } from "@/components/ui/separator";
+import { getFileSource } from "@/features/search/fileSourceApi";
+import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
 import Image from "next/image";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
-import { PathHeader } from "@/app/[domain]/components/pathHeader";
 
 interface CodePreviewPanelProps {
     path: string;
@@ -19,13 +14,14 @@ interface CodePreviewPanelProps {
 }
 
 export const CodePreviewPanel = async ({ path, repoName, revisionName, domain }: CodePreviewPanelProps) => {
-    const fileSourceResponse = await getFileSource({
-        fileName: path,
-        repository: repoName,
-        branch: revisionName,
-    }, domain);
-
-    const repoInfoResponse = await getRepoInfoByName(repoName, domain);
+    const [fileSourceResponse, repoInfoResponse] = await Promise.all([
+        getFileSource({
+            fileName: path,
+            repository: repoName,
+            branch: revisionName,
+        }, domain),
+        getRepoInfoByName(repoName, domain),
+    ]);
 
     if (isServiceError(fileSourceResponse) || isServiceError(repoInfoResponse)) {
         return <div>Error loading file source</div>
