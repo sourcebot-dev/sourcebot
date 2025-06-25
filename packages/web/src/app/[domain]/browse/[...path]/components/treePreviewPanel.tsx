@@ -14,13 +14,14 @@ interface TreePreviewPanelProps {
 }
 
 export const TreePreviewPanel = async ({ path, repoName, revisionName, domain }: TreePreviewPanelProps) => {
-    const repoInfoResponse = await getRepoInfoByName(repoName, domain);
-
-    const folderContentsResponse = await getFolderContents({
-        repoName,
-        revisionName: revisionName ?? 'HEAD',
-        path,
-    }, domain);
+    const [repoInfoResponse, folderContentsResponse] = await Promise.all([
+        getRepoInfoByName(repoName, domain),
+        getFolderContents({
+            repoName,
+            revisionName: revisionName ?? 'HEAD',
+            path,
+        }, domain)
+    ]);
 
     if (isServiceError(folderContentsResponse) || isServiceError(repoInfoResponse)) {
         return <div>Error loading tree preview</div>
