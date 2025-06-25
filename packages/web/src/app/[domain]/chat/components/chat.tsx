@@ -34,6 +34,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Plugin } from "unified";
 import { visit } from 'unist-util-visit';
+import { useDebounce, useIsClient } from "@uidotdev/usehooks";
 import { getBrowsePath, useBrowseNavigation } from '../../browse/hooks/useBrowseNavigation';
 import { TopBar } from '../../components/topBar';
 import { ChatBox } from './chatBox';
@@ -43,11 +44,15 @@ import { CodeBlockMetadata, codeBlockMetadataSchema } from '@/features/chat/cons
 import { lineOffsetExtension } from '@/lib/extensions/lineOffsetExtension';
 import { LightweightCodeHighlighter } from '../../components/lightweightCodeHighlighter';
 
-export default function Chat({
+type ChatHistoryState = {
+    scrollOffset?: number;
+}
+
+export const Chat = ({
     id,
     initialMessages,
     inputMessage,
-}: { id?: string | undefined; initialMessages?: Message[]; inputMessage?: CreateMessage } = {}) {
+}: { id?: string | undefined; initialMessages?: Message[]; inputMessage?: CreateMessage } = {}) => {
     const {
         append,
         messages,
@@ -68,6 +73,50 @@ export default function Chat({
     const domain = useDomain();
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const hasSubmittedInputMessage = useRef(false);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+    const [scrollOffset, setScrollOffset] = useState(0);
+    const {
+        scrollOffset: restoreScrollOffset,
+    } = history.state as ChatHistoryState;
+
+    // track scroll position changes
+    useEffect(() => {
+        const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        if (!scrollElement) return;
+
+        const handleScroll = () => {
+            setScrollOffset(scrollElement.scrollTop);
+        };
+
+        scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+        return () => scrollElement.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Debounce scroll position and save to history
+    const debouncedScrollOffset = useDebounce(scrollOffset, 100);
+    useEffect(() => {
+        history.replaceState(
+            {
+                scrollOffset: debouncedScrollOffset,
+            } satisfies ChatHistoryState,
+            '',
+            window.location.href
+        );
+    }, [debouncedScrollOffset]);
+
+    // When the restore scroll offset changes, scroll to the offset.
+    useEffect(() => {
+        const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        if (!scrollElement || !restoreScrollOffset) {
+            return;
+        }
+
+        scrollElement.scrollTo({
+            top: restoreScrollOffset,
+            behavior: 'instant',
+        });
+    }, [restoreScrollOffset]);
 
     // Submit inputMessage once when component mounts
     useEffect(() => {
@@ -101,7 +150,7 @@ export default function Chat({
                 />
             )}
 
-            <ScrollArea className="flex flex-col h-full w-full p-4 overflow-hidden">
+            <ScrollArea ref={scrollAreaRef} className="flex flex-col h-full w-full p-4 overflow-hidden">
                 <div className="max-w-3xl mx-auto space-y-6">
                     {
                         messages.length === 0 ? (
@@ -165,22 +214,10 @@ interface MessageComponentProps {
 const MessageComponent = memo(({ message, isStreaming }: MessageComponentProps) => {
     console.log(`Render ${message.id}`);
 
-    const { data: session } = useSession();
-    const { theme } = useThemeNormalized();
-
     return (
         <div key={message.id} className="group animate-in fade-in duration-200">
             <div className="flex items-start gap-3 group">
-                <Avatar className="h-7 w-7 rounded-full">
-                    <AvatarFallback className="text-xs">{message.role === "user" ? "U" : "AI"}</AvatarFallback>
-                    {message.role === "user" ? (
-                        <AvatarImage src={session?.user.image ?? "/placeholder_avatar.png?height=32&width=32"} />
-                    ) : (
-                        <AvatarImage
-                            src={`/${theme === 'dark' ? 'sb_logo_dark_small' : 'sb_logo_light_small'}.png?height=32&width=32`}
-                        />
-                    )}
-                </Avatar>
+                <MessageAvatar role={message.role} />
 
                 <div className="flex-1 space-y-2 overflow-hidden">
                     {message.role === "assistant" && isStreaming && (
@@ -229,6 +266,28 @@ const MessageComponent = memo(({ message, isStreaming }: MessageComponentProps) 
         </div>
     )
 });
+
+interface MessageAvatarProps {
+    role: Message['role'];
+}
+
+const MessageAvatar = ({ role }: MessageAvatarProps) => {
+    const { data: session } = useSession();
+    const { theme } = useThemeNormalized();
+
+    return (
+        <Avatar className="h-7 w-7 rounded-full">
+            <AvatarFallback className="text-xs">{role === "user" ? "U" : "AI"}</AvatarFallback>
+            {role === "user" ? (
+                <AvatarImage src={session?.user.image ?? "/placeholder_avatar.png?height=32&width=32"} />
+            ) : (
+                <AvatarImage
+                    src={`/${theme === 'dark' ? 'sb_logo_dark_small' : 'sb_logo_light_small'}.png?height=32&width=32`}
+                />
+            )}
+        </Avatar>
+    )
+}
 
 MessageComponent.displayName = 'MessageComponent';
 
@@ -318,13 +377,14 @@ interface CodeBlockComponentProps {
 const MAX_LINES_TO_DISPLAY = 14;
 
 const CodeBlockComponent = ({
-    code: _code,
+    code,
     isStreaming,
     language = "text",
     metadataPayload,
 }: CodeBlockComponentProps) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const domain = useDomain();
+    const isClient = useIsClient();
 
     const metadata = useMemo(() => {
         if (!metadataPayload) {
@@ -339,20 +399,15 @@ const CodeBlockComponent = ({
             console.error('Invalid metadata for code block:', error);
             return undefined;
         }
-
     }, [metadataPayload]);
 
-    const code = useMemo(() => {
-        if (isExpanded) {
-            return _code;
-        }
-
-        return _code.split('\n').slice(0, MAX_LINES_TO_DISPLAY).join('\n');
-    }, [_code, isExpanded]);
+    const lineCount = useMemo(() => {
+        return code.split('\n').length;
+    }, [code]);
 
     const isExpandButtonVisible = useMemo(() => {
-        return _code.split('\n').length > MAX_LINES_TO_DISPLAY;
-    }, [_code]);
+        return lineCount > MAX_LINES_TO_DISPLAY;
+    }, [lineCount]);
 
     return (
         <div className="flex flex-col rounded-md border overflow-hidden not-prose my-4">
@@ -381,22 +436,32 @@ const CodeBlockComponent = ({
                     </Link>
                 </div>
             )}
-            {isStreaming ? (
-                <LightweightCodeHighlighter
-                    language={language}
-                    lineNumbers={true}
-                    renderWhitespace={true}
-                    lineNumbersOffset={metadata?.startLine ?? 1}
-                >
-                    {code}
-                </LightweightCodeHighlighter>
-            ) : (
-                <FullCodeBlockComponent
-                    code={code}
-                    language={language}
-                    metadata={metadata}
-                />
-            )}
+            <div
+                className={cn(
+                    "overflow-hidden transition-all duration-300 ease-in-out",
+                    {
+                        "max-h-[350px]": !isExpanded && isExpandButtonVisible, // Roughly 14 lines
+                        "max-h-none": isExpanded || !isExpandButtonVisible
+                    }
+                )}
+            >
+                {(isStreaming || !isClient) ? (
+                    <LightweightCodeHighlighter
+                        language={language}
+                        lineNumbers={true}
+                        renderWhitespace={true}
+                        lineNumbersOffset={metadata?.startLine ?? 1}
+                    >
+                        {code}
+                    </LightweightCodeHighlighter>
+                ) : (
+                    <FullCodeBlockComponent
+                        code={code}
+                        language={language}
+                        metadata={metadata}
+                    />
+                )}
+            </div>
             {isExpandButtonVisible && (
                 <div
                     tabIndex={0}
