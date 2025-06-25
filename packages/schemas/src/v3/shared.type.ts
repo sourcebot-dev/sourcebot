@@ -5,6 +5,7 @@
  * via the `definition` "Token".
  */
 export type Token =
+  | string
   | {
       /**
        * The name of the secret that contains the token.

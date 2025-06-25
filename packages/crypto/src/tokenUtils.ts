@@ -3,6 +3,11 @@ import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { decrypt } from "./index.js";
 
 export const getTokenFromConfig = async (token: Token, orgId: number, db: PrismaClient) => {
+    // Handle direct string tokens
+    if (typeof token === 'string') {
+        return token;
+    }
+    
     if ('secret' in token) {
         const secretKey = token.secret;
         const secret = await db.secret.findUnique({

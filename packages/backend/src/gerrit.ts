@@ -1,10 +1,11 @@
 import fetch from 'cross-fetch';
 import { GerritConnectionConfig } from "@sourcebot/schemas/v3/index.type"
-import { createLogger } from '@sourcebot/logger';
+import { createLogger } from "@sourcebot/logger";
 import micromatch from "micromatch";
-import { measure, fetchWithRetry } from './utils.js';
+import { measure, fetchWithRetry, getTokenFromConfig } from './utils.js';
 import { BackendError } from '@sourcebot/error';
 import { BackendException } from '@sourcebot/error';
+import { PrismaClient } from "@sourcebot/db";
 import * as Sentry from "@sentry/node";
 
 // https://gerrit-review.googlesource.com/Documentation/rest-api.html
@@ -21,7 +22,7 @@ interface GerritProjectInfo {
    web_links?: GerritWebLink[];
 }
 
-interface GerritProject {
+export interface GerritProject {
    name: string;
    id: string;
    state?: GerritProjectState;
@@ -33,15 +34,40 @@ interface GerritWebLink {
    url: string;
 }
 
+interface GerritAuthConfig {
+   username: string;
+   password: string;
+}
+
 const logger = createLogger('gerrit');
 
-export const getGerritReposFromConfig = async (config: GerritConnectionConfig): Promise<GerritProject[]> => {
+export const getGerritReposFromConfig = async (
+   config: GerritConnectionConfig, 
+   orgId: number, 
+   db: PrismaClient
+): Promise<GerritProject[]> => {
    const url = config.url.endsWith('/') ? config.url : `${config.url}/`;
    const hostname = new URL(config.url).hostname;
 
+   // Get authentication credentials if provided
+   let auth: GerritAuthConfig | undefined;
+   if (config.auth) {
+      try {
+         const password = await getTokenFromConfig(config.auth.password, orgId, db, logger);
+         auth = {
+            username: config.auth.username,
+            password: password
+         };
+         logger.debug(`Using authentication for Gerrit instance ${hostname} with username: ${auth.username}`);
+      } catch (error) {
+         logger.error(`Failed to retrieve Gerrit authentication credentials: ${error}`);
+         throw error;
+      }
+   }
+
    let { durationMs, data: projects } = await measure(async () => {
       try {
-         const fetchFn = () => fetchAllProjects(url);
+         const fetchFn = () => fetchAllProjects(url, auth);
          return fetchWithRetry(fetchFn, `projects from ${url}`, logger);
       } catch (err) {
          Sentry.captureException(err);
@@ -81,23 +107,43 @@ export const getGerritReposFromConfig = async (config: GerritConnectionConfig): 
    return projects;
 };
 
-const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
-   const projectsEndpoint = `${url}projects/`;
+const fetchAllProjects = async (url: string, auth?: GerritAuthConfig): Promise<GerritProject[]> => {
+   // Use authenticated endpoint if auth is provided, otherwise use public endpoint
+   const projectsEndpoint = auth ? `${url}a/projects/` : `${url}projects/`;
    let allProjects: GerritProject[] = [];
    let start = 0; // Start offset for pagination
    let hasMoreProjects = true;
 
+   // Prepare authentication headers if credentials are provided
+   const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'User-Agent': 'Sourcebot-Gerrit-Client/1.0'
+   };
+
+   if (auth) {
+      const authString = Buffer.from(`${auth.username}:${auth.password}`).toString('base64');
+      headers['Authorization'] = `Basic ${authString}`;
+      logger.debug(`Using HTTP Basic authentication for user: ${auth.username}`);
+   }
+
    while (hasMoreProjects) {
       const endpointWithParams = `${projectsEndpoint}?S=${start}`;
-      logger.debug(`Fetching projects from Gerrit at ${endpointWithParams}`);
+      logger.debug(`Fetching projects from Gerrit at ${endpointWithParams} ${auth ? '(authenticated)' : '(public)'}`);
 
       let response: Response;
       try {
-         response = await fetch(endpointWithParams);
+         response = await fetch(endpointWithParams, {
+            method: 'GET',
+            headers
+         });
+         
          if (!response.ok) {
-            logger.error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${response.status}`);
+            const errorText = await response.text().catch(() => 'Unknown error');
+            logger.error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${response.status}: ${errorText}`);
             const e = new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
                status: response.status,
+               url: endpointWithParams,
+               authenticated: !!auth
             });
             Sentry.captureException(e);
             throw e;
@@ -112,11 +158,14 @@ const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
          logger.error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${status}`);
          throw new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
             status: status,
+            url: endpointWithParams,
+            authenticated: !!auth
          });
       }
 
       const text = await response.text();
-      const jsonText = text.replace(")]}'\n", ''); // Remove XSSI protection prefix
+      // Remove XSSI protection prefix that Gerrit adds to JSON responses
+      const jsonText = text.replace(/^\)\]\}'\n/, '');
       const data: GerritProjects = JSON.parse(jsonText);
 
       // Add fetched projects to allProjects
@@ -138,10 +187,11 @@ const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
       start += Object.keys(data).length;
    }
 
+   logger.debug(`Successfully fetched ${allProjects.length} projects ${auth ? '(authenticated)' : '(public)'}`);
    return allProjects;
 };
 
-const shouldExcludeProject = ({
+export const shouldExcludeProject = ({
    project,
    exclude,
 }: {

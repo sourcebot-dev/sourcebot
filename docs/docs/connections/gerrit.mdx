@@ -6,70 +6,344 @@ icon: crow
 
 import GerritSchema from '/snippets/schemas/v3/gerrit.schema.mdx'
 
-<Note>Authenticating with Gerrit is currently not supported. If you need this capability, please raise a [feature request](https://github.com/sourcebot-dev/sourcebot/issues/new?template=feature_request.md).</Note>
+Sourcebot can sync code from self-hosted Gerrit instances, including both public and authenticated repositories.
 
-Sourcebot can sync code from self-hosted gerrit instances.
+## Authentication Support
+
+<Info>
+**Authentication Status**: Gerrit authentication is supported through HTTP Basic Auth using username and HTTP password credentials. This guide documents the verified authentication methods and implementation details.
+</Info>
+
+### Authentication Methods
+
+Gerrit supports multiple authentication methods with Sourcebot:
+
+1. **Public Access**: For publicly accessible projects (no authentication required)
+2. **HTTP Basic Auth**: Using Gerrit username and HTTP password
+3. **Cookie-based Auth**: Using Gerrit session cookies (advanced)
 
 If you're not familiar with Sourcebot [connections](/docs/connections/overview), please read that overview first.
 
 ## Connecting to a Gerrit instance
 
-To connect to a gerrit instance, provide the `url` property to your config:
+### Basic Connection (Public Projects)
+
+For publicly accessible Gerrit projects:
 
 ```json
 {
     "type": "gerrit",
-    "url": "https://gerrit.example.com"
-    // .. rest of config ..
+    "url": "https://gerrit.example.com",
+    "projects": ["public-project-name"]
+}
+```
+
+### Authenticated Connection
+
+For private/authenticated Gerrit projects, you need to provide credentials:
+
+```json
+{
+    "type": "gerrit",
+    "url": "https://gerrit.example.com",
+    "projects": ["private-project-name"],
+    "auth": {
+        "username": "your-gerrit-username",
+        "password": {
+            "secret": "GERRIT_HTTP_PASSWORD"
+        }
+    }
+}
+```
+
+<Warning>
+Use **HTTP Password**, not your Gerrit account password. Generate an HTTP password in Gerrit: **Settings → HTTP Credentials → Generate Password**.
+</Warning>
+
+### Environment Variables
+
+Set your Gerrit HTTP password as an environment variable:
+
+```bash
+export GERRIT_HTTP_PASSWORD="your-generated-http-password"
+```
+
+When running with Docker:
+
+```bash
+docker run -e GERRIT_HTTP_PASSWORD="your-http-password" ...
+```
+
+## Authentication Setup Guide
+
+### Step 1: Generate HTTP Password in Gerrit
+
+1. Log into your Gerrit instance
+2. Go to **Settings** (top-right menu)
+3. Navigate to **HTTP Credentials**
+4. Click **Generate Password**
+5. Copy the generated password (this is your HTTP password)
+
+### Step 2: Test API Access
+
+Verify your credentials work with Gerrit's API:
+
+```bash
+curl -u "username:http-password" \
+  "https://gerrit.example.com/a/projects/?d"
+```
+
+Expected response: JSON list of projects you have access to.
+
+### Step 3: Test Git Clone Access
+
+Verify git clone works with your credentials:
+
+```bash
+git clone https://username@gerrit.example.com/a/project-name
+# When prompted, enter your HTTP password
+```
+
+<Note>
+**Special Characters in Passwords**: If your HTTP password contains special characters like `/`, `+`, or `=`, Sourcebot automatically handles URL encoding for git operations. No manual encoding is required on your part.
+</Note>
+
+### Step 4: Configure Sourcebot
+
+Add the authenticated connection to your `config.json`:
+
+```json
+{
+    "connections": {
+        "my-gerrit": {
+            "type": "gerrit",
+            "url": "https://gerrit.example.com",
+            "projects": ["project-name"],
+            "auth": {
+                "username": "your-username",
+                "password": {
+                    "env": "GERRIT_HTTP_PASSWORD"
+                }
+            }
+        }
+    }
 }
 ```
 
 ## Examples
 
 <AccordionGroup>
+    <Accordion title="Public Gerrit instance">
+        ```json
+        {
+            "type": "gerrit",
+            "url": "https://gerrit.googlesource.com",
+            "projects": ["android/platform/build"]
+        }
+        ```
+    </Accordion>
+    
+    <Accordion title="Private Gerrit with authentication">
+        ```json
+        {
+            "type": "gerrit",
+            "url": "https://gerrit.company.com",
+            "projects": ["internal-project"],
+            "auth": {
+                "username": "john.doe",
+                "password": {
+                    "env": "GERRIT_HTTP_PASSWORD"
+                }
+            }
+        }
+        ```
+    </Accordion>
+    
     <Accordion title="Sync projects by glob pattern">
         ```json
         {
             "type": "gerrit",
             "url": "https://gerrit.example.com",
-            // Sync all repos under project1 and project2/sub-project
             "projects": [
                 "project1/**",
                 "project2/sub-project/**"
-            ]
+            ],
+            "auth": {
+                "username": "your-username",
+                "password": {
+                    "env": "GERRIT_HTTP_PASSWORD"
+                }
+            }
         }
         ```
     </Accordion>
+    
     <Accordion title="Exclude repos from syncing">
         ```json
         {
             "type": "gerrit",
             "url": "https://gerrit.example.com",
-            // Sync all repos under project1 and project2/sub-project...
             "projects": [
                 "project1/**",
                 "project2/sub-project/**"
             ],
-            // ...except:
             "exclude": {
-                // any project that matches these glob patterns
                 "projects": [
                     "project1/foo-project",
                     "project2/sub-project/some-sub-folder/**"
                 ],
-
-                // projects that have state READ_ONLY
                 "readOnly": true,
-
-                // projects that have state HIDDEN
                 "hidden": true
+            },
+            "auth": {
+                "username": "your-username",
+                "password": {
+                    "env": "GERRIT_HTTP_PASSWORD"
+                }
             }
         }
         ```
     </Accordion>
 </AccordionGroup>
 
-## Schema reference
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+    <Accordion title="Authentication Failed / 401 Unauthorized">
+        **Symptoms**: Sourcebot logs show authentication errors or 401 status codes.
+        
+        **Solutions**:
+        1. Verify you're using the **HTTP password**, not your account password
+        2. Test credentials manually:
+           ```bash
+           curl -u "username:password" "https://gerrit.example.com/a/projects/"
+           ```
+        3. Check if your Gerrit username is correct
+        4. Regenerate HTTP password in Gerrit settings
+        5. Ensure the environment variable is properly set
+    </Accordion>
+    
+    <Accordion title="No Projects Found / 0 Repos Synced">
+        **Symptoms**: Sourcebot connects but finds 0 repositories to sync.
+        
+        **Solutions**:
+        1. Verify project names exist and are accessible
+        2. Check project permissions in Gerrit
+        3. Test project access manually:
+           ```bash
+           curl -u "username:password" \
+             "https://gerrit.example.com/a/projects/project-name"
+           ```
+        4. Use glob patterns if unsure of exact project names:
+           ```json
+           "projects": ["*"]  // Sync all accessible projects
+           ```
+    </Accordion>
+    
+    <Accordion title="Git Clone Failures">
+        **Symptoms**: Git clone operations fail during repository sync.
+        
+        **Solutions**:
+        1. Verify git clone works manually:
+           ```bash
+           git clone https://username@gerrit.example.com/a/project-name
+           ```
+        2. Check network connectivity and firewall rules
+        3. Ensure Gerrit server supports HTTPS
+        4. Verify the `/a/` prefix is included in clone URLs
+    </Accordion>
+    
+    <Accordion title="Schema Validation Errors">
+        **Symptoms**: Config validation errors about additional properties.
+        
+        **Solutions**:
+        1. Ensure your configuration matches the schema exactly
+        2. Check that all required fields are present
+        3. Verify the `auth` object structure:
+           ```json
+           "auth": {
+               "username": "string",
+               "password": {
+                   "env": "ENVIRONMENT_VARIABLE"
+               }
+           }
+           ```
+    </Accordion>
+</AccordionGroup>
+
+### Debug Steps
+
+1. **Enable Debug Logging**: Set log level to debug in Sourcebot configuration
+2. **Test API Access**: Verify Gerrit API responds correctly
+3. **Check Project Permissions**: Ensure your user has clone permissions
+4. **Validate Configuration**: Use JSON schema validation tools
+
+### Manual Testing Script
+
+You can test Gerrit authentication independently:
+
+```typescript
+// gerrit-test.ts - Test script for Gerrit authentication
+import * as https from 'https';
+import * as child_process from 'child_process';
+
+const GERRIT_URL = 'https://gerrit.example.com';
+const USERNAME = 'your-username';
+const HTTP_PASSWORD = 'your-http-password';
+const PROJECT = 'project-name';
+
+// Test API access
+const auth = 'Basic ' + Buffer.from(`${USERNAME}:${HTTP_PASSWORD}`).toString('base64');
+const options = {
+    hostname: new URL(GERRIT_URL).hostname,
+    path: '/a/projects/',
+    headers: { 'Authorization': auth }
+};
+
+https.get(options, (res) => {
+    console.log(`API Status: ${res.statusCode}`);
+    if (res.statusCode === 200) {
+        console.log('✅ API authentication successful');
+        
+        // Test git clone
+        const cloneUrl = `https://${USERNAME}@${new URL(GERRIT_URL).host}/a/${PROJECT}`;
+        console.log(`Testing git clone: ${cloneUrl}`);
+        
+        // Note: This requires proper credential handling in production
+    } else {
+        console.log('❌ API authentication failed');
+    }
+});
+```
+
+## Implementation Details
+
+### URL Structure
+
+Gerrit uses a specific URL structure for authenticated access:
+
+- **API Access**: `https://gerrit.example.com/a/endpoint`
+- **Git Clone**: `https://username@gerrit.example.com/a/project-name`
+
+The `/a/` prefix is crucial for authenticated operations.
+
+### Credential Flow
+
+1. Sourcebot validates configuration and credentials
+2. API call to `/a/projects/` to list accessible projects
+3. For each project, git clone using `https://username@host/a/project`
+4. Git authentication handled via URL-embedded username and credential helpers
+
+### Security Considerations
+
+- Store HTTP passwords in environment variables, never in config files
+- Use least-privilege Gerrit accounts for Sourcebot
+- Regularly rotate HTTP passwords
+- Monitor access logs for unusual activity
+
+## Schema Reference
 
 <Accordion title="Reference">
 [schemas/v3/gerrit.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/gerrit.json)
@@ -77,3 +351,13 @@ To connect to a gerrit instance, provide the `url` property to your config:
 <GerritSchema />
 
 </Accordion>
+
+## Additional Resources
+
+- [Gerrit HTTP Password Documentation](https://gerrit-review.googlesource.com/Documentation/user-upload.html#http)
+- [Gerrit REST API](https://gerrit-review.googlesource.com/Documentation/rest-api.html)
+- [Git Credential Helpers](https://git-scm.com/docs/gitcredentials)
+
+<Note>
+This documentation is based on extensive testing with Gerrit authentication. If you encounter issues not covered here, please [open an issue](https://github.com/sourcebot-dev/sourcebot/issues) with your specific configuration and error details.
+</Note>

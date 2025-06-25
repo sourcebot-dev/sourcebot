@@ -17,6 +17,10 @@ const schema = {
       ],
       "anyOf": [
         {
+          "type": "string",
+          "description": "Direct token value (not recommended for production)"
+        },
+        {
           "type": "object",
           "properties": {
             "secret": {

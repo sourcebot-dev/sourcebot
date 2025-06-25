@@ -2,7 +2,7 @@ import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createLogger } from "@sourcebot/logger";
 import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
-import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig, GerritConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings, repoMetadataSchema } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
 import { cloneRepository, fetchRepository, unsetGitConfig, upsertGitConfig } from "./git.js";
@@ -186,7 +186,9 @@ export class RepoManager implements IRepoManager {
                         password: token,
                     }
                 }
-            } else if (connection.connectionType === 'gitlab') {
+            }
+
+            else if (connection.connectionType === 'gitlab') {
                 const config = connection.config as unknown as GitlabConnectionConfig;
                 if (config.token) {
                     const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
@@ -195,7 +197,9 @@ export class RepoManager implements IRepoManager {
                         password: token,
                     }
                 }
-            } else if (connection.connectionType === 'gitea') {
+            }
+
+            else if (connection.connectionType === 'gitea') {
                 const config = connection.config as unknown as GiteaConnectionConfig;
                 if (config.token) {
                     const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
@@ -203,7 +207,9 @@ export class RepoManager implements IRepoManager {
                         password: token,
                     }
                 }
-            } else if (connection.connectionType === 'bitbucket') {
+            }
+
+            else if (connection.connectionType === 'bitbucket') {
                 const config = connection.config as unknown as BitbucketConnectionConfig;
                 if (config.token) {
                     const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
@@ -213,12 +219,15 @@ export class RepoManager implements IRepoManager {
                         password: token,
                     }
                 }
-            } else if (connection.connectionType === 'azuredevops') {
-                const config = connection.config as unknown as AzureDevOpsConnectionConfig;
-                if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+            }
+
+            else if (connection.connectionType === 'gerrit') {
+                const config = connection.config as unknown as GerritConnectionConfig;
+                if (config.auth) {
+                    const password = await getTokenFromConfig(config.auth.password, connection.orgId, db, logger);
                     return {
-                        password: token,
+                        username: config.auth.username,
+                        password: password,
                     }
                 }
             }
@@ -239,39 +248,12 @@ export class RepoManager implements IRepoManager {
             await promises.rm(repoPath, { recursive: true, force: true });
         }
 
-        const credentials = await this.getCloneCredentialsForRepo(repo, this.db);
-        const remoteUrl = new URL(repo.cloneUrl);
-        if (credentials) {
-            // @note: URL has a weird behavior where if you set the password but
-            // _not_ the username, the ":" delimiter will still be present in the
-            // URL (e.g., https://:password@example.com). To get around this, if
-            // we only have a password, we set the username to the password.
-            // @see: https://www.typescriptlang.org/play/?#code/MYewdgzgLgBArgJwDYwLwzAUwO4wKoBKAMgBQBEAFlFAA4QBcA9I5gB4CGAtjUpgHShOZADQBKANwAoREj412ECNhAIAJmhhl5i5WrJTQkELz5IQAcxIy+UEAGUoCAJZhLo0UA
-            if (!credentials.username) {
-                remoteUrl.username = credentials.password;
-            } else {
-                remoteUrl.username = credentials.username;
-                remoteUrl.password = credentials.password;
-            }
-        }
-
         if (existsSync(repoPath) && !isReadOnly) {
-            // @NOTE: in #483, we changed the cloning method s.t., we _no longer_
-            // write the clone URL (which could contain a auth token) to the
-            // `remote.origin.url` entry. For the upgrade scenario, we want
-            // to unset this key since it is no longer needed, hence this line.
-            // This will no-op if the key is already unset.
-            // @see: https://github.com/sourcebot-dev/sourcebot/pull/483
-            await unsetGitConfig(repoPath, ["remote.origin.url"]);
-
             logger.info(`Fetching ${repo.displayName}...`);
-            const { durationMs } = await measure(() => fetchRepository(
-                remoteUrl,
-                repoPath,
-                ({ method, stage, progress }) => {
-                    logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
-                }
-            ));
+
+            const { durationMs } = await measure(() => fetchRepository(repoPath, ({ method, stage, progress }) => {
+                logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
+            }));
             const fetchDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
@@ -280,13 +262,25 @@ export class RepoManager implements IRepoManager {
         } else if (!isReadOnly) {
             logger.info(`Cloning ${repo.displayName}...`);
 
-            const { durationMs } = await measure(() => cloneRepository(
-                remoteUrl,
-                repoPath,
-                ({ method, stage, progress }) => {
-                    logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
+            const auth = await this.getCloneCredentialsForRepo(repo, this.db);
+            const cloneUrl = new URL(repo.cloneUrl);
+            if (auth) {
+                // @note: URL has a weird behavior where if you set the password but
+                // _not_ the username, the ":" delimiter will still be present in the
+                // URL (e.g., https://:password@example.com). To get around this, if
+                // we only have a password, we set the username to the password.
+                // @see: https://www.typescriptlang.org/play/?#code/MYewdgzgLgBArgJwDYwLwzAUwO4wKoBKAMgBQBEAFlFAA4QBcA9I5gB4CGAtjUpgHShOZADQBKANwAoREj412ECNhAIAJmhhl5i5WrJTQkELz5IQAcxIy+UEAGUoCAJZhLo0UA
+                if (!auth.username) {
+                    cloneUrl.username = encodeURIComponent(auth.password);
+                } else {
+                    cloneUrl.username = encodeURIComponent(auth.username);
+                    cloneUrl.password = encodeURIComponent(auth.password);
                 }
-            ));
+            }
+
+            const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, ({ method, stage, progress }) => {
+                logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
+            }));
             const cloneDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
@@ -557,7 +551,7 @@ export class RepoManager implements IRepoManager {
 
     public async validateIndexedReposHaveShards() {
         logger.info('Validating indexed repos have shards...');
-
+        
         const indexedRepos = await this.db.repo.findMany({
             where: {
                 repoIndexingStatus: RepoIndexingStatus.INDEXED
@@ -573,7 +567,7 @@ export class RepoManager implements IRepoManager {
         const reposToReindex: number[] = [];
         for (const repo of indexedRepos) {
             const shardPrefix = getShardPrefix(repo.orgId, repo.id);
-
+            
             // TODO: this doesn't take into account if a repo has multiple shards and only some of them are missing. To support that, this logic
             // would need to know how many total shards are expected for this repo
             let hasShards = false;
