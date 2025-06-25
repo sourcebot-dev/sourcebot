@@ -1,5 +1,5 @@
 import { loadChat } from '../chatStore';
-import Chat from '../components/chat';
+import { Chat } from '../components/chat';
 import { CreateMessage } from 'ai';
 import { notFound } from 'next/navigation';
 
