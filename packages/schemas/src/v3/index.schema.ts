@@ -285,7 +285,7 @@ const schema = {
                   "anyOf": [
                     {
                       "type": "string",
-                      "description": "Direct token value (not recommended for production)"
+                      "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)"
                     },
                     {
                       "type": "object",
@@ -502,7 +502,7 @@ const schema = {
                   "anyOf": [
                     {
                       "type": "string",
-                      "description": "Direct token value (not recommended for production)"
+                      "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)"
                     },
                     {
                       "type": "object",
@@ -713,7 +713,7 @@ const schema = {
                   "anyOf": [
                     {
                       "type": "string",
-                      "description": "Direct token value (not recommended for production)"
+                      "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)"
                     },
                     {
                       "type": "object",
@@ -900,7 +900,7 @@ const schema = {
                       "anyOf": [
                         {
                           "type": "string",
-                          "description": "Direct token value (not recommended for production)"
+                          "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)"
                         },
                         {
                           "type": "object",
@@ -1050,7 +1050,7 @@ const schema = {
                   "anyOf": [
                     {
                       "type": "string",
-                      "description": "Direct token value (not recommended for production)"
+                      "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)"
                     },
                     {
                       "type": "object",
