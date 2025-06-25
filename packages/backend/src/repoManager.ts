@@ -2,7 +2,7 @@ import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createLogger } from "@sourcebot/logger";
 import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
-import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, GerritConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings, repoMetadataSchema } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
 import { cloneRepository, fetchRepository, upsertGitConfig } from "./git.js";
@@ -220,6 +220,17 @@ export class RepoManager implements IRepoManager {
                     }
                 }
             }
+
+            else if (connection.connectionType === 'gerrit') {
+                const config = connection.config as unknown as GerritConnectionConfig;
+                if (config.auth) {
+                    const password = await getTokenFromConfig(config.auth.password, connection.orgId, db, logger);
+                    return {
+                        username: config.auth.username,
+                        password: password,
+                    }
+                }
+            }
         }
 
         return undefined;
@@ -260,10 +271,10 @@ export class RepoManager implements IRepoManager {
                 // we only have a password, we set the username to the password.
                 // @see: https://www.typescriptlang.org/play/?#code/MYewdgzgLgBArgJwDYwLwzAUwO4wKoBKAMgBQBEAFlFAA4QBcA9I5gB4CGAtjUpgHShOZADQBKANwAoREj412ECNhAIAJmhhl5i5WrJTQkELz5IQAcxIy+UEAGUoCAJZhLo0UA
                 if (!auth.username) {
-                    cloneUrl.username = auth.password;
+                    cloneUrl.username = encodeURIComponent(auth.password);
                 } else {
-                    cloneUrl.username = auth.username;
-                    cloneUrl.password = auth.password;
+                    cloneUrl.username = encodeURIComponent(auth.username);
+                    cloneUrl.password = encodeURIComponent(auth.password);
                 }
             }
 
