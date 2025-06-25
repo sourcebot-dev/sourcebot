@@ -78,7 +78,7 @@ export const Chat = ({
     const [scrollOffset, setScrollOffset] = useState(0);
     const {
         scrollOffset: restoreScrollOffset,
-    } = history.state as ChatHistoryState;
+    } = (history.state ?? {}) as ChatHistoryState;
 
     // track scroll position changes
     useEffect(() => {
