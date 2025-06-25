@@ -172,7 +172,7 @@ export class ConnectionManager implements IConnectionManager {
                         return await compileGiteaConfig(config, job.data.connectionId, orgId, this.db);
                     }
                     case 'gerrit': {
-                        return await compileGerritConfig(config, job.data.connectionId, orgId);
+                        return await compileGerritConfig(config, job.data.connectionId, orgId, this.db);
                     }
                     case 'bitbucket': {
                         return await compileBitbucketConfig(config, job.data.connectionId, orgId, this.db);

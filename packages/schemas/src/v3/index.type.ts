@@ -117,6 +117,7 @@ export interface GithubConnectionConfig {
    * A Personal Access Token (PAT).
    */
   token?:
+    | string
     | {
         /**
          * The name of the secret that contains the token.
@@ -206,6 +207,7 @@ export interface GitlabConnectionConfig {
    * An authentication token.
    */
   token?:
+    | string
     | {
         /**
          * The name of the secret that contains the token.
@@ -273,6 +275,7 @@ export interface GiteaConnectionConfig {
    * A Personal Access Token (PAT).
    */
   token?:
+    | string
     | {
         /**
          * The name of the secret that contains the token.
@@ -327,6 +330,32 @@ export interface GerritConnectionConfig {
    */
   url: string;
   /**
+   * Authentication configuration for Gerrit
+   */
+  auth?: {
+    /**
+     * Gerrit username for authentication
+     */
+    username: string;
+    /**
+     * Gerrit HTTP password (not your account password). Generate this in Gerrit → Settings → HTTP Credentials → Generate Password.
+     */
+    password:
+      | string
+      | {
+          /**
+           * The name of the secret that contains the token.
+           */
+          secret: string;
+        }
+      | {
+          /**
+           * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+           */
+          env: string;
+        };
+  };
+  /**
    * List of specific projects to sync. If not specified, all projects will be synced. Glob patterns are supported
    */
   projects?: string[];
@@ -358,6 +387,7 @@ export interface BitbucketConnectionConfig {
    * An authentication token.
    */
   token?:
+    | string
     | {
         /**
          * The name of the secret that contains the token.

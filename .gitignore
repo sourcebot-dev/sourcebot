@@ -164,3 +164,7 @@ dist
 /bin
 /config.json
 .DS_Store
+
+# Test files with real credentials (should not be tracked)
+gerrit_auth_test.ts
+**/gerrit_auth_test.ts
