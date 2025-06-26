@@ -19,11 +19,17 @@ type ChatHistoryState = {
     scrollOffset?: number;
 }
 
+interface ChatThreadProps {
+    id?: string | undefined;
+    initialMessages?: Message[];
+    inputMessage?: CreateMessage;
+}
+
 export const ChatThread = ({
     id,
     initialMessages,
     inputMessage,
-}: { id?: string | undefined; initialMessages?: Message[]; inputMessage?: CreateMessage } = {}) => {
+}: ChatThreadProps = {}) => {
     const {
         append,
         messages,
@@ -42,11 +48,20 @@ export const ChatThread = ({
     });
 
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
-    const hasSubmittedInputMessage = useRef(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const latestMessageRef = useRef<HTMLDivElement>(null);
+    const hasSubmittedInputMessage = useRef(false);
 
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
+
+    useEffect(() => {
+        if (!inputMessage || hasSubmittedInputMessage.current) {
+            return;
+        }
+
+        append(inputMessage);
+        hasSubmittedInputMessage.current = true;
+    }, [inputMessage, append]);
 
     // Track scroll position changes.
     useEffect(() => {
@@ -120,14 +135,7 @@ export const ChatThread = ({
         });
 
     }, [isAutoScrollEnabled, messages]);
-
-    // Submit inputMessage once when component mounts
-    useEffect(() => {
-        if (inputMessage && !hasSubmittedInputMessage.current) {
-            hasSubmittedInputMessage.current = true;
-            append(inputMessage);
-        }
-    }, [inputMessage, append]);
+    
 
     // Keep the error state & banner visibility in sync.
     useEffect(() => {
