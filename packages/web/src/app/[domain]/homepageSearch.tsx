@@ -4,8 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { useState } from "react";
-import { ChatBox } from "./chat/components/chatBox";
-import { ChatBoxTools } from "./chat/components/chatBoxTools";
+import { ChatBox } from "../../features/chat/components/chatBox";
+import { ChatBoxTools } from "../../features/chat/components/chatBoxTools";
 import { SearchBar } from "./components/searchBar";
 import { CreateMessage } from "ai";
 import { getAllMentionElements, toString } from "@/features/chat/utils";

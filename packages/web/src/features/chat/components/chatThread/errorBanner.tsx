@@ -9,7 +9,7 @@ interface ErrorBannerProps {
     onClose: () => void;
 }
 
-export function ErrorBanner({ error, isVisible, onClose }: ErrorBannerProps) {
+export const ErrorBanner = ({ error, isVisible, onClose }: ErrorBannerProps) => {
     if (!isVisible) {
         return null;
     }

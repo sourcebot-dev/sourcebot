@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createChat } from './chatStore';
+import { createChat } from '@/features/chat/chatStore';
 import { createPathWithQueryParams } from '@/lib/utils';
 
 interface PageProps {
