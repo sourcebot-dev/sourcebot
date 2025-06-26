@@ -134,7 +134,7 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
             {(highlightedLines ?? unhighlightedLines).map((line, index) => (
                 <div
                     key={index}
-                    className="flex h-[20px]"
+                    className="flex"
                 >
                     {lineNumbers && (
                         <span

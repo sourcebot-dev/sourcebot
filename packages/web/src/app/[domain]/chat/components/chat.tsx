@@ -2,13 +2,16 @@
 
 import { VscodeFileIcon } from '@/app/components/vscodeFileIcon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { SymbolHoverPopup } from '@/ee/features/codeNav/components/symbolHoverPopup';
 import { symbolHoverTargetsExtension } from '@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension';
 import { SymbolDefinition } from '@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo';
+import { CodeBlockMetadata, codeBlockMetadataSchema } from '@/features/chat/constants';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { ReadFilesToolRequest, ReadFilesToolResponse, SearchCodeToolRequest, SearchCodeToolResponse, toolNames } from '@/features/chat/tools';
+import { CustomEditor } from '@/features/chat/types';
 import { getAllMentionElements, resetEditor, toString } from '@/features/chat/utils';
 import { useHasEntitlement } from '@/features/entitlements/useHasEntitlement';
 import { useCodeMirrorLanguageExtension } from '@/hooks/useCodeMirrorLanguageExtension';
@@ -17,32 +20,32 @@ import { useDomain } from '@/hooks/useDomain';
 import { useFindLanguageDescription } from '@/hooks/useFindLanguageDescription';
 import { useKeymapExtension } from '@/hooks/useKeymapExtension';
 import { useThemeNormalized } from '@/hooks/useThemeNormalized';
+import { lineOffsetExtension } from '@/lib/extensions/lineOffsetExtension';
 import { SearchQueryParams } from '@/lib/types';
 import { cn, createPathWithQueryParams, isServiceError } from '@/lib/utils';
 import { Message, useChat } from '@ai-sdk/react';
 import { CreateMessage, TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import { EditorView } from '@codemirror/view';
 import { DoubleArrowDownIcon, DoubleArrowUpIcon, PlayIcon } from '@radix-ui/react-icons';
+import { useDebounce, useIsClient } from "@uidotdev/usehooks";
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { UIMessage } from 'ai';
-import type { Root } from "hast";
-import { ChevronDown, ChevronRight, EyeIcon, Loader2, SearchIcon } from 'lucide-react';
+import type { Element, Root } from "hast";
+import { ArrowDownIcon, ChevronDown, ChevronRight, EyeIcon, Loader2, SearchIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Descendant } from 'slate';
 import type { Plugin } from "unified";
 import { visit } from 'unist-util-visit';
-import { useDebounce, useIsClient } from "@uidotdev/usehooks";
 import { getBrowsePath, useBrowseNavigation } from '../../browse/hooks/useBrowseNavigation';
+import { LightweightCodeHighlighter } from '../../components/lightweightCodeHighlighter';
 import { TopBar } from '../../components/topBar';
 import { ChatBox } from './chatBox';
 import { ChatBoxTools } from './chatBoxTools';
 import { ErrorBanner } from './errorBanner';
-import { CodeBlockMetadata, codeBlockMetadataSchema } from '@/features/chat/constants';
-import { lineOffsetExtension } from '@/lib/extensions/lineOffsetExtension';
-import { LightweightCodeHighlighter } from '../../components/lightweightCodeHighlighter';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -74,22 +77,31 @@ export const Chat = ({
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const hasSubmittedInputMessage = useRef(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
-
+    const latestMessageRef = useRef<HTMLDivElement>(null);
     const [scrollOffset, setScrollOffset] = useState(0);
+
+    const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
     const {
         scrollOffset: restoreScrollOffset,
     } = (history.state ?? {}) as ChatHistoryState;
 
-    // track scroll position changes
+    // Track scroll position changes.
     useEffect(() => {
         const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
         if (!scrollElement) return;
 
         const handleScroll = () => {
-            setScrollOffset(scrollElement.scrollTop);
+            const scrollOffset = scrollElement.scrollTop;
+            setScrollOffset(scrollOffset);
+
+            const threshold = 50; // pixels from bottom to consider "at bottom"
+            const { scrollHeight, clientHeight } = scrollElement;
+            const isAtBottom = scrollHeight - scrollOffset - clientHeight <= threshold;
+            setIsAutoScrollEnabled(isAtBottom);
         };
 
         scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+
         return () => scrollElement.removeEventListener('scroll', handleScroll);
     }, []);
 
@@ -105,10 +117,13 @@ export const Chat = ({
         );
     }, [debouncedScrollOffset]);
 
-    // When the restore scroll offset changes, scroll to the offset.
+    // Restore scroll offset on mount.
     useEffect(() => {
         const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-        if (!scrollElement || !restoreScrollOffset) {
+        if (
+            !scrollElement ||
+            restoreScrollOffset === undefined
+        ) {
             return;
         }
 
@@ -116,7 +131,28 @@ export const Chat = ({
             top: restoreScrollOffset,
             behavior: 'instant',
         });
-    }, [restoreScrollOffset]);
+    // @note: we only want to run this effect once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // When messages are being streamed, scroll to the latest message
+    // assuming auto scrolling is enabled.
+    useEffect(() => {
+        if (
+            !latestMessageRef.current ||
+            !isAutoScrollEnabled ||
+            messages.length === 0
+        ) {
+            return;
+        }
+
+        latestMessageRef.current.scrollIntoView({
+            behavior: 'instant',
+            block: 'end',
+            inline: 'nearest',
+        });
+
+    }, [isAutoScrollEnabled, messages]);
 
     // Submit inputMessage once when component mounts
     useEffect(() => {
@@ -132,6 +168,21 @@ export const Chat = ({
             setIsErrorBannerVisible(true);
         }
     }, [error]);
+
+    const onSubmit = useCallback((children: Descendant[], editor: CustomEditor) => {
+        const text = toString(children);
+        const mentions = getAllMentionElements(children);
+
+        append({
+            role: "user",
+            content: text,
+            annotations: mentions.map((mention) => mention.data),
+        });
+
+        setIsAutoScrollEnabled(true);
+
+        resetEditor(editor);
+    }, [append]);
 
     // simplified rendering code, extend as needed:
     return (
@@ -150,8 +201,13 @@ export const Chat = ({
                 />
             )}
 
-            <ScrollArea ref={scrollAreaRef} className="flex flex-col h-full w-full p-4 overflow-hidden">
-                <div className="max-w-3xl mx-auto space-y-6">
+            <ScrollArea
+                ref={scrollAreaRef}
+                className="flex flex-col h-full w-full p-4 overflow-hidden"
+            >
+                <div
+                    className="max-w-3xl mx-auto space-y-6"
+                >
                     {
                         messages.length === 0 ? (
                             <div className="flex items-center justify-center text-center h-full">
@@ -160,14 +216,12 @@ export const Chat = ({
                         ) : (
                             <>
                                 {messages.map((m, index) => {
-                                    const isLatestMessage = index === messages.length - 1;
-                                    const isStreaming = isLatestMessage && status === "streaming";
                                     return (
                                         <MessageComponent
                                             key={m.id}
                                             message={m}
-                                            isLatestMessage={isLatestMessage}
-                                            isStreaming={isStreaming}
+                                            isStreaming={index === messages.length - 1 && status === "streaming"}
+                                            ref={index === messages.length - 1 ? latestMessageRef : null}
                                         />
                                     )
                                 })
@@ -175,23 +229,32 @@ export const Chat = ({
                             </>
                         )
                     }
+                    {
+                        (!isAutoScrollEnabled && status === "streaming") && (
+                            <div className="absolute bottom-5 left-0 right-0 h-10 flex flex-row items-center justify-center">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="rounded-full animate-bounce-slow h-8 w-8"
+                                    onClick={() => {
+                                        latestMessageRef.current?.scrollIntoView({
+                                            behavior: 'instant',
+                                            block: 'end',
+                                            inline: 'nearest',
+                                        });
+                                    }}
+                                >
+                                    <ArrowDownIcon className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        )
+                    }
                 </div>
             </ScrollArea>
             <div className="border rounded-md w-full max-w-3xl mx-auto mb-8">
                 <CustomSlateEditor>
                     <ChatBox
-                        onSubmit={(children, editor) => {
-                            const text = toString(children);
-                            const mentions = getAllMentionElements(children);
-
-                            append({
-                                role: "user",
-                                content: text,
-                                annotations: mentions.map((mention) => mention.data),
-                            });
-
-                            resetEditor(editor);
-                        }}
+                        onSubmit={onSubmit}
                         className="min-h-[80px]"
                         preferredSuggestionsBoxPlacement="top-start"
                     />
@@ -207,15 +270,12 @@ export const Chat = ({
 
 interface MessageComponentProps {
     message: UIMessage;
-    isLatestMessage: boolean;
     isStreaming: boolean;
 }
 
-const MessageComponent = memo(({ message, isStreaming }: MessageComponentProps) => {
-    console.log(`Render ${message.id}`);
-
+const MessageComponent = memo(forwardRef<HTMLDivElement, MessageComponentProps>(({ message, isStreaming }, ref) => {
     return (
-        <div key={message.id} className="group animate-in fade-in duration-200">
+        <div ref={ref} key={message.id} className="group animate-in fade-in duration-200">
             <div className="flex items-start gap-3 group">
                 <MessageAvatar role={message.role} />
 
@@ -265,7 +325,7 @@ const MessageComponent = memo(({ message, isStreaming }: MessageComponentProps) 
             </div>
         </div>
     )
-});
+}));
 
 interface MessageAvatarProps {
     role: Message['role'];
@@ -310,9 +370,48 @@ const annotateCodeBlocks: Plugin<[], Root> = () => {
 
 
 const TextUIPartComponent = ({ part, isStreaming }: { part: TextUIPart, isStreaming: boolean }) => {
+    const renderPre = useCallback(({ children, node, ...rest }: React.JSX.IntrinsicElements['pre'] & { node?: Element }) => {
+        if (node?.properties && node.properties.isBlock === true) {
+            return children;
+        }
+
+        return (
+            <pre {...rest}>
+                {children}
+            </pre>
+        )
+    }, []);
+
+    const renderCode = useCallback(({ className, children, node, ...rest }: React.JSX.IntrinsicElements['code'] & { node?: Element }) => {
+        if (node?.properties && node.properties.isBlock === true) {
+            const match = /language-(\w+)/.exec(className || '');
+            const language = match ? match[1] : undefined;
+            const metadataString = node?.data?.meta;
+
+            return (
+                <CodeBlockComponent
+                    code={children?.toString().trimEnd() ?? ''}
+                    isStreaming={isStreaming}
+                    language={language}
+                    metadataPayload={metadataString ?? undefined}
+                />
+            )
+        }
+
+        return (
+            <Code
+                className={className}
+                {...rest}
+            >
+                {children}
+            </Code>
+        )
+    }, [isStreaming]);
+
+
     return (
         <div
-            className="prose dark:prose-invert prose-p:text-foreground prose-li:text-foreground prose-li:marker:text-foreground prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none prose-hr:my-5 max-w-none"
+            className="prose dark:prose-invert prose-p:text-foreground prose-li:text-foreground prose-li:marker:text-foreground prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none prose-hr:my-5 max-w-none [&>*:first-child]:mt-0"
         >
             <Markdown
                 remarkPlugins={[
@@ -322,43 +421,8 @@ const TextUIPartComponent = ({ part, isStreaming }: { part: TextUIPart, isStream
                     annotateCodeBlocks,
                 ]}
                 components={{
-                    pre: ({ children, node, ...rest }) => {
-
-                        if (node?.properties && node.properties.isBlock === true) {
-                            return children;
-                        }
-
-                        return (
-                            <pre {...rest}>
-                                {children}
-                            </pre>
-                        )
-                    },
-                    code: ({ className, children, node, ...rest }) => {
-                        if (node?.properties && node.properties.isBlock === true) {
-                            const match = /language-(\w+)/.exec(className || '');
-                            const language = match ? match[1] : undefined;
-                            const metadataString = node?.data?.meta;
-
-                            return (
-                                <CodeBlockComponent
-                                    code={children?.toString().trimEnd() ?? ''}
-                                    isStreaming={isStreaming}
-                                    language={language}
-                                    metadataPayload={metadataString ?? undefined}
-                                />
-                            )
-                        }
-
-                        return (
-                            <code
-                                className={className}
-                                {...rest}
-                            >
-                                {children}
-                            </code>
-                        )
-                    }
+                    pre: renderPre,
+                    code: renderCode,
                 }}
             >
                 {part.text}
@@ -395,8 +459,7 @@ const CodeBlockComponent = ({
             const metadata = JSON.parse(metadataPayload);
             return codeBlockMetadataSchema.parse(metadata);
         }
-        catch (error) {
-            console.error('Invalid metadata for code block:', error);
+        catch {
             return undefined;
         }
     }, [metadataPayload]);
@@ -885,7 +948,7 @@ const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpand }: T
 const Code = ({ children, className, title }: { children: React.ReactNode, className?: string, title?: string }) => {
     return (
         <code
-            className={cn("bg-gray-100 dark:bg-gray-700 w-fit rounded-md font-mono px-2 py-0.5", className)}
+            className={cn("bg-gray-100 dark:bg-gray-700 w-fit rounded-md px-2 py-0.5 font-medium font-mono", className)}
             title={title}
         >
             {children}
