@@ -24,10 +24,10 @@ export async function loadChat(id: string): Promise<Message[]> {
 export async function saveChat({
     id,
     messages,
-  }: {
+}: {
     id: string;
     messages: Message[];
-  }): Promise<void> {
+}): Promise<void> {
     const content = JSON.stringify(messages, null, 2);
     await writeFile(getChatFile(id), content);
-  }
+}

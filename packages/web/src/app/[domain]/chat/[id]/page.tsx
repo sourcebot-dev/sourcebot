@@ -1,7 +1,9 @@
-import { loadChat } from '../chatStore';
-import { Chat } from '../components/chat';
+import { loadChat } from '@/features/chat/chatStore';
+import { ChatThread } from '@/features/chat/components/chatThread';
 import { CreateMessage } from 'ai';
 import { notFound } from 'next/navigation';
+import { TopBar } from '../../components/topBar';
+import { Separator } from '@/components/ui/separator';
 
 interface PageProps {
     params: {
@@ -13,7 +15,7 @@ interface PageProps {
     }
 }
 
-export default async function Page({ params: { id }, searchParams: { message } }: PageProps) {
+export default async function Page({ params: { id, domain }, searchParams: { message } }: PageProps) {
     let inputMessage: CreateMessage | undefined;
 
     if (message) {
@@ -26,9 +28,19 @@ export default async function Page({ params: { id }, searchParams: { message } }
 
     const messages = await loadChat(id);
 
-    return <Chat
-        id={id}
-        initialMessages={messages}
-        inputMessage={inputMessage}
-    />;
+    return (
+        <div className="flex flex-col h-screen">
+            <div className='sticky top-0 left-0 right-0 z-10'>
+                <TopBar
+                    domain={domain}
+                />
+                <Separator />
+            </div>
+            <ChatThread
+                id={id}
+                initialMessages={messages}
+                inputMessage={inputMessage}
+            />
+        </div>
+    )
 }

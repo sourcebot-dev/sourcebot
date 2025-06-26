@@ -1,4 +1,4 @@
-import { saveChat } from "@/app/[domain]/chat/chatStore";
+import { saveChat } from "@/features/chat/chatStore";
 import { env } from "@/env.mjs";
 import { createSystemPrompt } from "@/features/chat/constants";
 import { tools } from "@/features/chat/tools";
@@ -71,14 +71,13 @@ export async function POST(req: Request) {
                 }))
             ).filter((file) => file !== undefined) : undefined;
 
-        const model = anthropic("claude-sonnet-4-0");
-        // const model = openai("o3");
+        // const model = anthropic("claude-sonnet-4-0");
+        const model = openai("o3");
 
         const systemPrompt = createSystemPrompt({
             repos,
             files,
         });
-        console.log(systemPrompt);
 
         const messages = [
             {
