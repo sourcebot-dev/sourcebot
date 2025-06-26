@@ -17,7 +17,11 @@ interface MessageProps {
 
 export const Message = memo(forwardRef<HTMLDivElement, MessageProps>(({ message, isStreaming }, ref) => {
     return (
-        <div ref={ref} key={message.id} className="group animate-in fade-in duration-200">
+        <div
+            ref={ref}
+            key={message.id}
+            className="group animate-in fade-in duration-200"
+        >
             <div className="flex items-start gap-3 group">
                 <MessageAvatar role={message.role} />
 

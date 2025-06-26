@@ -104,13 +104,18 @@ const readFilesTool = tool({
 export type ReadFilesToolRequest = z.infer<typeof readFilesTool.parameters>;
 export type ReadFilesToolResponse = Awaited<ReturnType<typeof readFilesTool.execute>>;
 
-const searchCodeTool = tool({
+const createCodeSearchTool = (repos: string[]) => tool({
     description: `Fetches code that matches the provided regex pattern in \`query\`. This is NOT a semantic search.
     Results are returned as an array of matching files, with the file's URL, repository, and language.`,
     parameters: z.object({
         query: z.string().describe("The regex pattern to search for in the code"),
     }),
-    execute: async ({ query }) => {
+    execute: async ({ query: _query }) => {
+        let query = `${_query}`;
+        if (repos.length > 0) {
+            query += ` reposet:${repos.join(',')}`;
+        }
+
         const response = await search({
             query,
             matches: 100,
@@ -124,21 +129,24 @@ const searchCodeTool = tool({
             return response;
         }
 
-        return response.files.map((file) => ({
-            fileName: file.fileName.text,
-            repository: file.repository,
-            language: file.language,
-            matches: file.chunks.map(({ content, contentStart }) => {
-                return addLineNumbers(content, contentStart.lineNumber);
-            }),
-            // @todo: make revision configurable.
-            revision: 'HEAD',
-        }));
+        return {
+            files: response.files.map((file) => ({
+                fileName: file.fileName.text,
+                repository: file.repository,
+                language: file.language,
+                matches: file.chunks.map(({ content, contentStart }) => {
+                    return addLineNumbers(content, contentStart.lineNumber);
+                }),
+                // @todo: make revision configurable.
+                revision: 'HEAD',
+            })),
+            query,
+        }
     },
 });
 
-export type SearchCodeToolRequest = z.infer<typeof searchCodeTool.parameters>;
-export type SearchCodeToolResponse = Awaited<ReturnType<typeof searchCodeTool.execute>>;
+export type SearchCodeToolRequest = z.infer<ReturnType<typeof createCodeSearchTool>['parameters']>;
+export type SearchCodeToolResponse = Awaited<ReturnType<ReturnType<typeof createCodeSearchTool>['execute']>>;
 
 export const toolNames = {
     searchCode: 'searchCode',
@@ -147,11 +155,11 @@ export const toolNames = {
     findSymbolDefinitions: 'findSymbolDefinitions',
 } as const;
 
-export const tools = {
-    [toolNames.searchCode]: searchCodeTool,
-    [toolNames.readFiles]: readFilesTool,
-    [toolNames.findSymbolReferences]: findSymbolReferencesTool,
-    [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
+export const getTools = ({ repos }: { repos: string[] }) => {
+    return {
+        [toolNames.searchCode]: createCodeSearchTool(repos),
+        [toolNames.readFiles]: readFilesTool,
+        [toolNames.findSymbolReferences]: findSymbolReferencesTool,
+        [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
+    }
 }
-
-export type Tool = keyof typeof tools;

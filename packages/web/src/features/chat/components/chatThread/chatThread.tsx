@@ -23,13 +23,22 @@ interface ChatThreadProps {
     id?: string | undefined;
     initialMessages?: Message[];
     inputMessage?: CreateMessage;
+    defaultSelectedRepos?: string[];
 }
 
 export const ChatThread = ({
     id,
     initialMessages,
     inputMessage,
+    defaultSelectedRepos,
 }: ChatThreadProps = {}) => {
+    const [selectedRepos, setSelectedRepos] = useState<string[]>(defaultSelectedRepos ?? []);
+    const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const latestMessageRef = useRef<HTMLDivElement>(null);
+    const hasSubmittedInputMessage = useRef(false);
+    const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
+
     const {
         append,
         messages,
@@ -39,20 +48,10 @@ export const ChatThread = ({
         id,
         initialMessages,
         sendExtraMessageFields: true,
-        // @todo: make this dynamic based on the repo selector.
         body: {
-            repos: [
-                'github.com/sourcebot-dev/sourcebot',
-            ]
+            selectedRepos,
         },
     });
-
-    const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
-    const latestMessageRef = useRef<HTMLDivElement>(null);
-    const hasSubmittedInputMessage = useRef(false);
-
-    const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
 
     useEffect(() => {
         if (!inputMessage || hasSubmittedInputMessage.current) {
@@ -225,9 +224,13 @@ export const ChatThread = ({
                         onSubmit={onSubmit}
                         className="min-h-[80px]"
                         preferredSuggestionsBoxPlacement="top-start"
+                        selectedRepos={selectedRepos}
                     />
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
-                        <ChatBoxTools />
+                        <ChatBoxTools
+                            selectedRepos={selectedRepos}
+                            onSelectedReposChange={setSelectedRepos}
+                        />
                     </div>
                 </CustomSlateEditor>
             </div>

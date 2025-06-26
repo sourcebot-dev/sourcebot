@@ -12,11 +12,13 @@ import { getAllMentionElements, toString } from "@/features/chat/utils";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 import { useRouter } from "next/navigation";
+import { SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from "@/features/chat/types";
 
 type SearchMode = "precise" | "agentic";
 
-export const HomepageSearch = () => {
+export const IntegratedSearchBox = () => {
     const [searchMode, setSearchMode] = useState<SearchMode>("precise");
+    const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
     const domain = useDomain();
     const router = useRouter();
 
@@ -41,25 +43,33 @@ export const HomepageSearch = () => {
                             const text = toString(children);
                             const mentions = getAllMentionElements(children);
 
-                            const message: CreateMessage = {
+                            const inputMessage: CreateMessage = {
                                 role: "user",
                                 content: text,
                                 annotations: mentions.map((mention) => mention.data),
                             };
 
                             const url = createPathWithQueryParams(`/${domain}/chat`,
-                                ["message", JSON.stringify(message)],
+                                [SET_CHAT_STATE_QUERY_PARAM, JSON.stringify({
+                                    inputMessage,
+                                    selectedRepos,
+                                } satisfies SetChatStatePayload)],
                             );
+                            console.log('url', url);
                             router.push(url);
                         }}
                         className="min-h-[50px]"
+                        selectedRepos={selectedRepos}
                     />
                     <Separator />
                     <Toolbar
                         searchMode={searchMode}
                         onSearchModeChange={setSearchMode}
                     >
-                        <ChatBoxTools />
+                        <ChatBoxTools
+                            selectedRepos={selectedRepos}
+                            onSelectedReposChange={setSelectedRepos}
+                        />
                     </Toolbar>
                 </CustomSlateEditor>
             )}
