@@ -31,7 +31,7 @@ import { useDebounce, useIsClient } from "@uidotdev/usehooks";
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { UIMessage } from 'ai';
 import type { Element, Root } from "hast";
-import { ArrowDownIcon, ChevronDown, ChevronRight, EyeIcon, Loader2, SearchIcon } from 'lucide-react';
+import { ArrowDownIcon, ChevronDown, ChevronRight, CopyIcon, EyeIcon, Loader2, SearchIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import React, { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -46,6 +46,7 @@ import { TopBar } from '../../components/topBar';
 import { ChatBox } from './chatBox';
 import { ChatBoxTools } from './chatBoxTools';
 import { ErrorBanner } from './errorBanner';
+import { useRouter } from 'next/navigation';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -117,7 +118,7 @@ export const Chat = ({
         );
     }, [debouncedScrollOffset]);
 
-    // Restore scroll offset on mount.
+    // // Restore scroll offset on mount.
     useEffect(() => {
         const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
         if (
@@ -313,7 +314,6 @@ const MessageComponent = memo(forwardRef<HTMLDivElement, MessageComponentProps>(
                                     case 'source':
                                     case 'file':
                                     default:
-                                        console.log("Unknown part type:", part);
                                         return (
                                             <p key={index}>Unknown part type: {part.type}</p>
                                         )
@@ -370,6 +370,9 @@ const annotateCodeBlocks: Plugin<[], Root> = () => {
 
 
 const TextUIPartComponent = ({ part, isStreaming }: { part: TextUIPart, isStreaming: boolean }) => {
+    const domain = useDomain();
+    const router = useRouter();
+
     const renderPre = useCallback(({ children, node, ...rest }: React.JSX.IntrinsicElements['pre'] & { node?: Element }) => {
         if (node?.properties && node.properties.isBlock === true) {
             return children;
@@ -383,6 +386,8 @@ const TextUIPartComponent = ({ part, isStreaming }: { part: TextUIPart, isStream
     }, []);
 
     const renderCode = useCallback(({ className, children, node, ...rest }: React.JSX.IntrinsicElements['code'] & { node?: Element }) => {
+        const text = children?.toString().trimEnd() ?? '';
+
         if (node?.properties && node.properties.isBlock === true) {
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : undefined;
@@ -390,7 +395,7 @@ const TextUIPartComponent = ({ part, isStreaming }: { part: TextUIPart, isStream
 
             return (
                 <CodeBlockComponent
-                    code={children?.toString().trimEnd() ?? ''}
+                    code={text}
                     isStreaming={isStreaming}
                     language={language}
                     metadataPayload={metadataString ?? undefined}
@@ -399,14 +404,46 @@ const TextUIPartComponent = ({ part, isStreaming }: { part: TextUIPart, isStream
         }
 
         return (
-            <Code
-                className={className}
-                {...rest}
-            >
-                {children}
-            </Code>
+            <span className="group/code relative inline-block [text-decoration:inherit]">
+                <Code
+                    className={className}
+                    {...rest}
+                >
+                    {children}
+                </Code>
+                <span className="absolute z-20 bottom-0 left-0 transform translate-y-full opacity-0 group-hover/code:opacity-100 hover:opacity-100 transition-all delay-300 duration-100 pointer-events-none group-hover/code:pointer-events-auto hover:pointer-events-auto block">
+                    {/* Invisible bridge to prevent hover gap */}
+                    <span className="absolute -top-2 left-0 right-0 h-2 block"></span>
+                    <span className="bg-background border rounded-md p-0.5 flex gap-0.5">
+                        <button
+                            className="flex items-center justify-center w-5 h-5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors duration-150"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const url = createPathWithQueryParams(`/${domain}/search`, [SearchQueryParams.query, `"${text}"`])
+                                router.push(url);
+                            }}
+                            title="Search for snippet"
+                        >
+                            <SearchIcon className="w-3 h-3" />
+                        </button>
+                        <button
+                            className="flex items-center justify-center w-5 h-5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors duration-150"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(text);
+                            }}
+                            title="Copy snippet"
+                        >
+                            <CopyIcon className="w-3 h-3" />
+                        </button>
+                    </span>
+                </span>
+            </span>
         )
-    }, [isStreaming]);
+
+    }, [isStreaming, domain, router]);
 
 
     return (
