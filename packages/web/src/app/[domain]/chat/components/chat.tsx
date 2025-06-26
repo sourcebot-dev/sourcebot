@@ -27,13 +27,14 @@ import { Message, useChat } from '@ai-sdk/react';
 import { CreateMessage, TextUIPart, ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import { EditorView } from '@codemirror/view';
 import { DoubleArrowDownIcon, DoubleArrowUpIcon, PlayIcon } from '@radix-ui/react-icons';
-import { useDebounce, useIsClient } from "@uidotdev/usehooks";
+import { useIsClient } from "@uidotdev/usehooks";
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { UIMessage } from 'ai';
 import type { Element, Root } from "hast";
 import { ArrowDownIcon, ChevronDown, ChevronRight, CopyIcon, EyeIcon, Loader2, SearchIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import React, { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -46,7 +47,6 @@ import { TopBar } from '../../components/topBar';
 import { ChatBox } from './chatBox';
 import { ChatBoxTools } from './chatBoxTools';
 import { ErrorBanner } from './errorBanner';
-import { useRouter } from 'next/navigation';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -79,61 +79,61 @@ export const Chat = ({
     const hasSubmittedInputMessage = useRef(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const latestMessageRef = useRef<HTMLDivElement>(null);
-    const [scrollOffset, setScrollOffset] = useState(0);
 
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
-    const {
-        scrollOffset: restoreScrollOffset,
-    } = (history.state ?? {}) as ChatHistoryState;
 
     // Track scroll position changes.
     useEffect(() => {
         const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
         if (!scrollElement) return;
 
+        let timeout: NodeJS.Timeout | null = null;
+
         const handleScroll = () => {
             const scrollOffset = scrollElement.scrollTop;
-            setScrollOffset(scrollOffset);
 
             const threshold = 50; // pixels from bottom to consider "at bottom"
             const { scrollHeight, clientHeight } = scrollElement;
             const isAtBottom = scrollHeight - scrollOffset - clientHeight <= threshold;
             setIsAutoScrollEnabled(isAtBottom);
+
+            // Debounce the history state update
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+            
+            timeout = setTimeout(() => {
+                history.replaceState(
+                    {
+                        scrollOffset,
+                    } satisfies ChatHistoryState,
+                    '',
+                    window.location.href
+                );
+            }, 300);
         };
 
         scrollElement.addEventListener('scroll', handleScroll, { passive: true });
 
-        return () => scrollElement.removeEventListener('scroll', handleScroll);
+        return () => {
+            scrollElement.removeEventListener('scroll', handleScroll);
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+        };
     }, []);
 
-    // Debounce scroll position and save to history
-    const debouncedScrollOffset = useDebounce(scrollOffset, 100);
-    useEffect(() => {
-        history.replaceState(
-            {
-                scrollOffset: debouncedScrollOffset,
-            } satisfies ChatHistoryState,
-            '',
-            window.location.href
-        );
-    }, [debouncedScrollOffset]);
-
-    // // Restore scroll offset on mount.
     useEffect(() => {
         const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-        if (
-            !scrollElement ||
-            restoreScrollOffset === undefined
-        ) {
+        if (!scrollElement) {
             return;
         }
 
+        const { scrollOffset } = (history.state ?? {}) as ChatHistoryState;
         scrollElement.scrollTo({
-            top: restoreScrollOffset,
+            top: scrollOffset ?? 0,
             behavior: 'instant',
         });
-    // @note: we only want to run this effect once on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // When messages are being streamed, scroll to the latest message
