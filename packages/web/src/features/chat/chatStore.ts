@@ -1,3 +1,5 @@
+'use server';
+
 import { generateId, Message } from 'ai';
 import { existsSync, mkdirSync } from 'fs';
 import { writeFile, readFile } from 'fs/promises';
