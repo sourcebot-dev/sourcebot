@@ -9,12 +9,23 @@ import { useQuery } from "@tanstack/react-query";
 import { AtSignIcon } from "lucide-react";
 import { ReactEditor, useSlate } from "slate-react";
 import { RepoSelector } from "./repoSelector";
+import { RepoIndexingStatus } from "@sourcebot/db";
 
-export const ChatBoxTools = () => {
+interface ChatBoxToolsProps {
+    selectedRepos: string[];
+    onSelectedReposChange: (repos: string[]) => void;
+}
+
+export const ChatBoxTools = ({
+    selectedRepos,
+    onSelectedReposChange,
+}: ChatBoxToolsProps) => {
     const domain = useDomain();
     const { data: repos } = useQuery({
         queryKey: ["repos", domain],
-        queryFn: () => unwrapServiceError(getRepos(domain)),
+        queryFn: () => unwrapServiceError(getRepos(domain, {
+            status: [RepoIndexingStatus.INDEXED]
+        })),
     });
 
     const editor = useSlate();
@@ -35,11 +46,9 @@ export const ChatBoxTools = () => {
             <Separator orientation="vertical" className="h-3 mx-1" />
             <RepoSelector
                 className="bg-inherit w-fit h-6 min-h-6"
-                options={repos?.map((repo) => ({
-                    value: repo.repoName,
-                    label: repo.repoName,
-                })) ?? []}
-                onValueChange={(value) => console.log(value)}
+                values={repos?.map((repo) => repo.repoName) ?? []}
+                selectedValues={selectedRepos}
+                onValueChange={onSelectedReposChange}
             />
         </>
     )

@@ -1,7 +1,7 @@
 import { saveChat } from "@/features/chat/chatStore";
 import { env } from "@/env.mjs";
 import { createSystemPrompt } from "@/features/chat/constants";
-import { tools } from "@/features/chat/tools";
+import { getTools } from "@/features/chat/tools";
 import { FileMentionData } from "@/features/chat/types";
 import { getFileSource } from "@/features/search/fileSourceApi";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
@@ -10,6 +10,8 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from "@ai-sdk/openai";
 import { createLogger } from "@sourcebot/logger";
 import { appendResponseMessages, extractReasoningMiddleware, Message, streamText, wrapLanguageModel } from "ai";
+import { getRepos } from "@/actions";
+import { RepoIndexingStatus } from "@sourcebot/db";
 
 const logger = createLogger('chat-api');
 
@@ -33,11 +35,11 @@ export async function POST(req: Request) {
         const {
             messages: chatMessages,
             id,
-            repos,
+            selectedRepos,
         } = requestBody as {
             messages: Message[];
             id: string;
-            repos: string[];
+            selectedRepos: string[];
         }
 
         const annotations = chatMessages.flatMap((message) => message.annotations ?? []) as FileMentionData[];
@@ -71,12 +73,30 @@ export async function POST(req: Request) {
                 }))
             ).filter((file) => file !== undefined) : undefined;
 
+
+        // The set of repos that the AI has access to.
+        const reposAccessibleToLLM = await (async () => {
+            if (selectedRepos.length > 0) {
+                return selectedRepos;
+            }
+
+            const repos = await getRepos(SINGLE_TENANT_ORG_DOMAIN, {
+                status: [RepoIndexingStatus.INDEXED]
+            });
+            if (isServiceError(repos)) {
+                logger.error("Error fetching repos:", repos)
+                return [];
+            }
+
+            return repos.map((repo) => repo.repoName);
+        })();
+
         // const model = anthropic("claude-sonnet-4-0");
         const model = openai("o3");
 
         const systemPrompt = createSystemPrompt({
-            repos,
             files,
+            repos: reposAccessibleToLLM,
         });
 
         const messages = [
@@ -98,7 +118,7 @@ export async function POST(req: Request) {
                 ]
             }),
             messages,
-            tools,
+            tools: getTools({ repos: selectedRepos }),
             // temperature: 0.3, // Lower temperature for more focused reasoning
             maxSteps: 20,
             maxTokens: env.SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS, // Increased for tool results and responses

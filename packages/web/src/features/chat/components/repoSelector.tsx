@@ -33,23 +33,15 @@ interface RepoSelectorProps extends React.ButtonHTMLAttributes<HTMLButtonElement
      * An array of option objects to be displayed in the multi-select component.
      * Each option object has a label, value, and an optional icon.
      */
-    options: {
-        /** The text to display for the option. */
-        label: string;
-        /** The unique value associated with the option. */
-        value: string;
-        /** Optional icon component to display alongside the option. */
-        icon?: React.ComponentType<{ className?: string }>;
-    }[];
+    values: string[];
+
+    selectedValues: string[];
 
     /**
      * Callback function triggered when the selected values change.
      * Receives an array of the new selected values.
      */
     onValueChange: (value: string[]) => void;
-
-    /** The default selected values when the component mounts. */
-    defaultValue?: string[];
 
     /**
      * Additional class names to apply custom styles to the multi-select component.
@@ -64,16 +56,14 @@ export const RepoSelector = React.forwardRef<
 >(
     (
         {
-            options,
+            values,
             onValueChange,
-            defaultValue = [],
             className,
+            selectedValues,
             ...props
         },
         ref
     ) => {
-        const [selectedValues, setSelectedValues] =
-            React.useState<string[]>(defaultValue);
         const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
 
         const handleInputKeyDown = (
@@ -84,7 +74,6 @@ export const RepoSelector = React.forwardRef<
             } else if (event.key === "Backspace" && !event.currentTarget.value) {
                 const newSelectedValues = [...selectedValues];
                 newSelectedValues.pop();
-                setSelectedValues(newSelectedValues);
                 onValueChange(newSelectedValues);
             }
         };
@@ -93,12 +82,10 @@ export const RepoSelector = React.forwardRef<
             const newSelectedValues = selectedValues.includes(option)
                 ? selectedValues.filter((value) => value !== option)
                 : [...selectedValues, option];
-            setSelectedValues(newSelectedValues);
             onValueChange(newSelectedValues);
         };
 
-        const handleClear = () => {
-            setSelectedValues([]);
+        const handleClear = () => { 
             onValueChange([]);
         };
 
@@ -130,7 +117,7 @@ export const RepoSelector = React.forwardRef<
                                 )}
                             >
                                 {
-                                    selectedValues.length === 0 ? `${options.length} repo${options.length === 1 ? '' : 's'}` :
+                                    selectedValues.length === 0 ? `${values.length} repo${values.length === 1 ? '' : 's'}` :
                                         selectedValues.length === 1 ? `${selectedValues[0]}` :
                                             `${selectedValues.length} repo${selectedValues.length === 1 ? '' : 's'}`
                                 }
@@ -153,12 +140,12 @@ export const RepoSelector = React.forwardRef<
                             <CommandEmpty>No results found.</CommandEmpty>
                             <CommandGroup>
 
-                                {options.map((option) => {
-                                    const isSelected = selectedValues.includes(option.value);
+                                {values.map((value) => {
+                                    const isSelected = selectedValues.includes(value);
                                     return (
                                         <CommandItem
-                                            key={option.value}
-                                            onSelect={() => toggleOption(option.value)}
+                                            key={value}
+                                            onSelect={() => toggleOption(value)}
                                             className="cursor-pointer"
                                         >
                                             <div
@@ -171,10 +158,7 @@ export const RepoSelector = React.forwardRef<
                                             >
                                                 <CheckIcon className="h-4 w-4" />
                                             </div>
-                                            {option.icon && (
-                                                <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                                            )}
-                                            <span>{option.label}</span>
+                                            <span>{value}</span>
                                         </CommandItem>
                                     );
                                 })}

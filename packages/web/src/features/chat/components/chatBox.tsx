@@ -1,10 +1,10 @@
 'use client';
 
+import { search } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomEditor, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
 import { insertMention, word } from "@/features/chat/utils";
-import { search } from "@/features/search/searchApi";
 import { useDomain } from "@/hooks/useDomain";
 import { cn, IS_MAC, unwrapServiceError } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
@@ -18,12 +18,14 @@ type SuggestionMode = "file" | "none";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
+    selectedRepos: string[];
     preferredSuggestionsBoxPlacement?: "top-start" | "bottom-start";
     className?: string;
 }
 
 export const ChatBox = ({
     onSubmit,
+    selectedRepos,
     preferredSuggestionsBoxPlacement = "bottom-start",
     className,
 }: ChatBoxProps) => {
@@ -80,12 +82,19 @@ export const ChatBox = ({
     }, [editor, selection]);
 
     const { data: fileSuggestions, isPending: isPendingFileSuggestions, isError: isErrorFileSuggestions } = useQuery({
-        queryKey: ["fileSuggestions", suggestionQuery, domain],
-        queryFn: () => unwrapServiceError(search({
-            query: `file:${suggestionQuery}`,
-            matches: 10,
-            contextLines: 1,
-        }, domain)),
+        queryKey: ["fileSuggestions", suggestionQuery, domain, selectedRepos],
+        queryFn: () => {
+            let query = `file:${suggestionQuery}`;
+            if (selectedRepos.length > 0) {
+                query += ` reposet:${selectedRepos.join(',')}`;
+            }
+
+            return unwrapServiceError(search({
+                query,
+                matches: 10,
+                contextLines: 1,
+            }, domain))
+        },
         select: (data) => {
             return data.files.map((file) => {
                 const path = file.fileName.text;
@@ -152,7 +161,7 @@ export const ChatBox = ({
                 case 'Enter': {
                     event.preventDefault();
                     const suggestion = fileSuggestions[index];
-                    
+
                     // @todo: make revision configurable.
                     insertMention(editor, {
                         type: 'file',
@@ -242,7 +251,7 @@ export const ChatBox = ({
                                 <div className="flex flex-col w-full">
                                     {fileSuggestions.map((file, i) => (
                                         <div
-                                            key={file.path}
+                                            key={`${file.repo}-${file.path}`}
                                             className={cn("flex flex-row gap-2 w-full cursor-pointer rounded-md px-1 py-0.5 hover:bg-accent", {
                                                 "bg-accent": i === index,
                                             })}
@@ -262,7 +271,7 @@ export const ChatBox = ({
                                                     {file.name}
                                                 </span>
                                                 <span className="text-xs text-muted-foreground">
-                                                    {file.path}
+                                                    <span className="font-medium">{file.repo.split('/').pop()}</span>/{file.path}
                                                 </span>
                                             </div>
                                         </div>

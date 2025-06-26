@@ -53,7 +53,7 @@ export const SearchCodeTool = ({ request: request, response }: SearchCodeToolPro
                     ) : (
                         <>
                             <TreeList>
-                                {response.map((file) => {
+                                {response.files.map((file) => {
                                     return (
                                         <FileListItem
                                             key={file.fileName}
@@ -65,7 +65,7 @@ export const SearchCodeTool = ({ request: request, response }: SearchCodeToolPro
                             </TreeList>
                             <Link
                                 href={createPathWithQueryParams(`/${domain}/search`,
-                                    [SearchQueryParams.query, request.query],
+                                    [SearchQueryParams.query, response.query],
                                 )}
                                 className='flex flex-row items-center gap-2 text-sm text-muted-foreground mt-2 ml-auto w-fit hover:text-foreground'
                             >

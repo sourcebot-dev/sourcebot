@@ -1,3 +1,4 @@
+import { CreateMessage } from "ai";
 import { BaseEditor, Descendant } from "slate";
 import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
@@ -48,4 +49,11 @@ declare module 'slate' {
         Element: CustomElement
         Text: CustomText
     }
+}
+
+export const SET_CHAT_STATE_QUERY_PARAM = 'setChatState';
+
+export type SetChatStatePayload = {
+    inputMessage: CreateMessage;
+    selectedRepos: string[];
 }

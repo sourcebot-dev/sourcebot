@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CreateMessage } from 'ai';
+import { SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
 
 export default function Page() {
     const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export default function Page() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [inputMessage, setInputMessage] = useState<CreateMessage | undefined>(undefined);
+    const [defaultSelectedRepos, setDefaultSelectedRepos] = useState<string[]>([]);
 
     const { data: messages, isPending, isError } = useQuery({
         queryKey: ['load-chat', id],
@@ -25,21 +27,22 @@ export default function Page() {
     });
 
     useEffect(() => {
-        const message = searchParams.get('message');
-        if (!message) {
+        const setChatState = searchParams.get(SET_CHAT_STATE_QUERY_PARAM);
+        if (!setChatState) {
             return;
         }
 
         try {
-            const inputMessage = JSON.parse(message) as CreateMessage;
+            const { inputMessage, selectedRepos } = JSON.parse(setChatState) as SetChatStatePayload;
             setInputMessage(inputMessage);
+            setDefaultSelectedRepos(selectedRepos);
         } catch {
             console.error('Invalid message in URL');
         }
 
         // Remove the message from the URL
         const newSearchParams = new URLSearchParams(searchParams.toString());
-        newSearchParams.delete('message');
+        newSearchParams.delete(SET_CHAT_STATE_QUERY_PARAM);
         router.replace(`?${newSearchParams.toString()}`, { scroll: false });
     }, [searchParams, router]);
 
@@ -65,6 +68,7 @@ export default function Page() {
                     id={id}
                     initialMessages={messages}
                     inputMessage={inputMessage}
+                    defaultSelectedRepos={defaultSelectedRepos}
                 />
             )}
         </div>
