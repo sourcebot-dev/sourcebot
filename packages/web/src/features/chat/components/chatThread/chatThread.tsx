@@ -61,6 +61,7 @@ export const ChatThread = ({
         }
 
         append(inputMessage);
+        setIsAutoScrollEnabled(true);
         hasSubmittedInputMessage.current = true;
     }, [inputMessage, append]);
 
