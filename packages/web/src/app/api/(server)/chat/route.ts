@@ -11,6 +11,7 @@ import { isServiceError } from "@/lib/utils";
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from "@ai-sdk/openai";
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { appendResponseMessages, extractReasoningMiddleware, LanguageModel, Message, streamText, wrapLanguageModel } from "ai";
@@ -176,6 +177,15 @@ const getModel = (): LanguageModel => {
             });
 
             return google(model);
+        }
+        case 'aws-bedrock': {
+            const aws = createAmazonBedrock({
+                region: env.AWS_REGION,
+                accessKeyId: env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+            });
+
+            return aws(model);
         }
     }
 }

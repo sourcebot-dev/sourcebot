@@ -66,7 +66,7 @@ export const ChatBoxTools = ({
                         className="mr-1"
                     />
                     <p className="text-sm text-muted-foreground">
-                        {modelProviderInfo.model}
+                        {modelProviderInfo.displayName ?? modelProviderInfo.model}
                     </p>
                 </>
             )}
@@ -86,6 +86,8 @@ const ModelProviderLogo = ({
 
     const { src, className: logoClassName } = useMemo(() => {
         switch (provider) {
+            case 'aws-bedrock':
+                // @todo: add aws bedrock logo
             case 'anthropic':
                 return {
                     src: anthropicLogo,
