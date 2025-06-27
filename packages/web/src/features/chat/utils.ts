@@ -184,5 +184,12 @@ export const getConfiguredModelProviderInfo = (): ModelProviderInfo | undefined 
         };
     }
 
+    if (env.GOOGLE_GENERATIVE_AI_API_KEY && env.GOOGLE_GENERATIVE_AI_MODEL) {
+        return {
+            provider: 'google-generative-ai',
+            model: env.GOOGLE_GENERATIVE_AI_MODEL,
+        };
+    }
+
     return undefined;
 }

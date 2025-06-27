@@ -1,18 +1,19 @@
-import { saveChat } from "@/features/chat/chatStore";
+import { getRepos } from "@/actions";
 import { env } from "@/env.mjs";
+import { saveChat } from "@/features/chat/chatStore";
 import { createSystemPrompt } from "@/features/chat/constants";
 import { getTools } from "@/features/chat/tools";
 import { FileMentionData } from "@/features/chat/types";
+import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
 import { getFileSource } from "@/features/search/fileSourceApi";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { isServiceError } from "@/lib/utils";
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from "@ai-sdk/openai";
+import { RepoIndexingStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { appendResponseMessages, extractReasoningMiddleware, LanguageModel, Message, streamText, wrapLanguageModel } from "ai";
-import { getRepos } from "@/actions";
-import { RepoIndexingStatus } from "@sourcebot/db";
-import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
 
 const logger = createLogger('chat-api');
 
@@ -168,6 +169,13 @@ const getModel = (): LanguageModel => {
             });
 
             return openai(model);
+        }
+        case 'google-generative-ai': {
+            const google = createGoogleGenerativeAI({
+                apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
+            });
+
+            return google(model);
         }
     }
 }

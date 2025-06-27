@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
+    "@ai-sdk/google": "^1.2.19",
     "@ai-sdk/openai": "^1.3.21",
     "@auth/prisma-adapter": "^2.7.4",
     "@codemirror/commands": "^6.6.0",
