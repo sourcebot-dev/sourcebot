@@ -61,6 +61,7 @@ export type SetChatStatePayload = {
 export const SOURCEBOT_CHAT_MODEL_PROVIDER = [
     'anthropic',
     'openai',
+    'google-generative-ai',
 ] as const;
 
 export type ModelProvider = (typeof SOURCEBOT_CHAT_MODEL_PROVIDER)[number];

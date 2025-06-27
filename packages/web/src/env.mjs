@@ -102,6 +102,9 @@ export const env = createEnv({
         OPENAI_API_KEY: z.string().optional(),
         OPENAI_MODEL: z.string().optional(),
 
+        GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
+        GOOGLE_GENERATIVE_AI_MODEL: z.string().optional(),
+
         SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS: numberSchema.default(5000),
     },
     // @NOTE: Please make sure of the following:

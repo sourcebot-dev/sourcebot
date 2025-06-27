@@ -17,6 +17,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/google@npm:^1.2.19":
+  version: 1.2.19
+  resolution: "@ai-sdk/google@npm:1.2.19"
+  dependencies:
+    "@ai-sdk/provider": "npm:1.1.3"
+    "@ai-sdk/provider-utils": "npm:2.2.8"
+  peerDependencies:
+    zod: ^3.0.0
+  checksum: 10c0/b40d62ce822ce00850492e4a41c8b6b1ba2ddaaaa8f8d9b8381c198781adb23000fc4f434ef7edf5ba356a4455f8afbbdc5cbecbb0f66b7bcabbcd25758fc6b8
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/openai@npm:^1.3.21":
   version: 1.3.21
   resolution: "@ai-sdk/openai@npm:1.3.21"
@@ -6211,6 +6223,7 @@ __metadata:
   resolution: "@sourcebot/web@workspace:packages/web"
   dependencies:
     "@ai-sdk/anthropic": "npm:^1.2.12"
+    "@ai-sdk/google": "npm:^1.2.19"
     "@ai-sdk/openai": "npm:^1.3.21"
     "@auth/prisma-adapter": "npm:^2.7.4"
     "@codemirror/commands": "npm:^6.6.0"

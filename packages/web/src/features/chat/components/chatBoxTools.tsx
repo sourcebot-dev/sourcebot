@@ -14,6 +14,7 @@ import { ModelProvider, ModelProviderInfo } from "@/features/chat/types";
 import { useMemo } from "react";
 import anthropicLogo from "@/public/anthropic.svg";
 import openaiLogo from "@/public/openai.svg";
+import geminiLogo from "@/public/gemini.svg";
 import Image from "next/image";
 
 interface ChatBoxToolsProps {
@@ -94,6 +95,11 @@ const ModelProviderLogo = ({
                 return {
                     src: openaiLogo,
                     className: 'dark:invert w-3.5 h-3.5'
+                };
+            case 'google-generative-ai':
+                return {
+                    src: geminiLogo,
+                    className: 'w-3.5 h-3.5'
                 };
         }
     }, [provider]);
