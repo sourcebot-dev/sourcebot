@@ -13,6 +13,7 @@ import { createPathWithQueryParams } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 import { useRouter } from "next/navigation";
 import { ModelProviderInfo, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from "@/features/chat/types";
+import { useLocalStorage } from "usehooks-ts";
 
 type SearchMode = "precise" | "agentic";
 
@@ -23,7 +24,7 @@ interface IntegratedSearchBoxProps {
 export const IntegratedSearchBox = ({
     modelProviderInfo,
 }: IntegratedSearchBoxProps) => {
-    const [searchMode, setSearchMode] = useState<SearchMode>("precise");
+    const [searchMode, setSearchMode] = useLocalStorage<SearchMode>("search-mode", "precise", { initializeWithValue: false });
     const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
     const domain = useDomain();
     const router = useRouter();
