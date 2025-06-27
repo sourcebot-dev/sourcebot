@@ -9,25 +9,12 @@ import { isServiceError } from "@/lib/utils";
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from "@ai-sdk/openai";
 import { createLogger } from "@sourcebot/logger";
-import { appendResponseMessages, extractReasoningMiddleware, Message, streamText, wrapLanguageModel } from "ai";
+import { appendResponseMessages, extractReasoningMiddleware, LanguageModel, Message, streamText, wrapLanguageModel } from "ai";
 import { getRepos } from "@/actions";
 import { RepoIndexingStatus } from "@sourcebot/db";
+import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
 
 const logger = createLogger('chat-api');
-
-const openai = createOpenAI({
-    apiKey: env.OPENAI_API_KEY,
-});
-
-const anthropic = createAnthropic({
-    apiKey: env.ANTHROPIC_API_KEY,
-})
-
-
-// Check if API key is configured
-if (!env.OPENAI_API_KEY) {
-    logger.warn("OPENAI_API_KEY is not configured")
-}
 
 export async function POST(req: Request) {
     try {
@@ -91,8 +78,7 @@ export async function POST(req: Request) {
             return repos.map((repo) => repo.repoName);
         })();
 
-        // const model = anthropic("claude-sonnet-4-0");
-        const model = openai("o3");
+        const model = getModel();
 
         const systemPrompt = createSystemPrompt({
             files,
@@ -160,7 +146,33 @@ export async function POST(req: Request) {
     }
 }
 
-function errorHandler(error: unknown) {
+const getModel = (): LanguageModel => {
+    const providerInfo = getConfiguredModelProviderInfo();
+    if (!providerInfo) {
+        throw new Error("No model configured.");
+    }
+
+    const { provider, model } = providerInfo;
+
+    switch (provider) {
+        case 'anthropic': {
+            const anthropic = createAnthropic({
+                apiKey: env.ANTHROPIC_API_KEY,
+            });
+
+            return anthropic(model);
+        }
+        case 'openai': {
+            const openai = createOpenAI({
+                apiKey: env.OPENAI_API_KEY,
+            });
+
+            return openai(model);
+        }
+    }
+}
+
+const errorHandler = (error: unknown) => {
     if (error == null) {
         return 'unknown error';
     }

@@ -12,11 +12,17 @@ import { getAllMentionElements, toString } from "@/features/chat/utils";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 import { useRouter } from "next/navigation";
-import { SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from "@/features/chat/types";
+import { ModelProviderInfo, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from "@/features/chat/types";
 
 type SearchMode = "precise" | "agentic";
 
-export const IntegratedSearchBox = () => {
+interface IntegratedSearchBoxProps {
+    modelProviderInfo?: ModelProviderInfo;
+}
+
+export const IntegratedSearchBox = ({
+    modelProviderInfo,
+}: IntegratedSearchBoxProps) => {
     const [searchMode, setSearchMode] = useState<SearchMode>("precise");
     const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
     const domain = useDomain();
@@ -33,6 +39,7 @@ export const IntegratedSearchBox = () => {
                     <Separator />
                     <Toolbar
                         searchMode={searchMode}
+                        isAgenticSearchEnabled={!!modelProviderInfo?.provider}
                         onSearchModeChange={setSearchMode}
                     />
                 </>
@@ -55,7 +62,6 @@ export const IntegratedSearchBox = () => {
                                     selectedRepos,
                                 } satisfies SetChatStatePayload)],
                             );
-                            console.log('url', url);
                             router.push(url);
                         }}
                         className="min-h-[50px]"
@@ -65,10 +71,12 @@ export const IntegratedSearchBox = () => {
                     <Toolbar
                         searchMode={searchMode}
                         onSearchModeChange={setSearchMode}
+                        isAgenticSearchEnabled={!!modelProviderInfo}
                     >
                         <ChatBoxTools
                             selectedRepos={selectedRepos}
                             onSelectedReposChange={setSelectedRepos}
+                            modelProviderInfo={modelProviderInfo}
                         />
                     </Toolbar>
                 </CustomSlateEditor>
@@ -79,12 +87,14 @@ export const IntegratedSearchBox = () => {
 
 interface ToolbarProps {
     searchMode: SearchMode;
+    isAgenticSearchEnabled: boolean;
     onSearchModeChange: (searchMode: SearchMode) => void;
     children?: React.ReactNode;
 }
 
 const Toolbar = ({
     searchMode,
+    isAgenticSearchEnabled,
     onSearchModeChange,
     children: tools,
 }: ToolbarProps) => {
@@ -104,7 +114,10 @@ const Toolbar = ({
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="precise">Precise</SelectItem>
-                        <SelectItem value="agentic">Agentic</SelectItem>
+                        <SelectItem
+                            value="agentic"
+                            disabled={!isAgenticSearchEnabled}
+                        >Agentic</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

@@ -1,7 +1,8 @@
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { CustomEditor, CustomText, FileMentionData, MentionElement, ParagraphElement } from "./types"
+import { CustomEditor, CustomText, FileMentionData, MentionElement, ModelProvider, ModelProviderInfo, ParagraphElement } from "./types"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/useBrowseNavigation"
+import { env } from "@/env.mjs"
 
 export const insertMention = (editor: CustomEditor, data: FileMentionData, target?: Range | null) => {
     const mention: MentionElement = {
@@ -166,4 +167,22 @@ export const resetEditor = (editor: CustomEditor) => {
 // reference specific ranges within the code.
 export const addLineNumbers = (source: string, lineOffset = 1) => {
     return source.split('\n').map((line, index) => `${index + lineOffset}:${line}`).join('\n');
+}
+
+export const getConfiguredModelProviderInfo = (): ModelProviderInfo | undefined => {
+    if (env.ANTHROPIC_API_KEY && env.ANTHROPIC_MODEL) {
+        return {
+            provider: 'anthropic',
+            model: env.ANTHROPIC_MODEL,
+        };
+    }
+
+    if (env.OPENAI_API_KEY && env.OPENAI_MODEL) {
+        return {
+            provider: 'openai',
+            model: env.OPENAI_MODEL,
+        };
+    }
+
+    return undefined;
 }

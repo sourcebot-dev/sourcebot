@@ -118,11 +118,11 @@ export const RepoSelector = React.forwardRef<
                             >
                                 {
                                     selectedValues.length === 0 ? `${values.length} repo${values.length === 1 ? '' : 's'}` :
-                                        selectedValues.length === 1 ? `${selectedValues[0]}` :
+                                        selectedValues.length === 1 ? `${selectedValues[0].split('/').pop()}` :
                                             `${selectedValues.length} repo${selectedValues.length === 1 ? '' : 's'}`
                                 }
                             </span>
-                            <ChevronDown className="h-4 cursor-pointer text-muted-foreground mx-2" />
+                            <ChevronDown className="h-4 cursor-pointer text-muted-foreground ml-2" />
                         </div>
                     </Button>
                 </PopoverTrigger>
