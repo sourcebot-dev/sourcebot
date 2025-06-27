@@ -62,6 +62,7 @@ export const SOURCEBOT_CHAT_MODEL_PROVIDER = [
     'anthropic',
     'openai',
     'google-generative-ai',
+    'aws-bedrock',
 ] as const;
 
 export type ModelProvider = (typeof SOURCEBOT_CHAT_MODEL_PROVIDER)[number];
@@ -69,4 +70,5 @@ export type ModelProvider = (typeof SOURCEBOT_CHAT_MODEL_PROVIDER)[number];
 export type ModelProviderInfo = {
     provider: ModelProvider;
     model: string;
+    displayName?: string;
 }

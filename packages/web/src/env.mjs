@@ -105,6 +105,12 @@ export const env = createEnv({
         GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
         GOOGLE_GENERATIVE_AI_MODEL: z.string().optional(),
 
+        AWS_BEDROCK_MODEL_DISPLAY_NAME: z.string().optional(),
+        AWS_BEDROCK_MODEL: z.string().optional(),
+        AWS_ACCESS_KEY_ID: z.string().optional(),
+        AWS_SECRET_ACCESS_KEY: z.string().optional(),
+        AWS_REGION: z.string().optional(),
+
         SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS: numberSchema.default(5000),
     },
     // @NOTE: Please make sure of the following:

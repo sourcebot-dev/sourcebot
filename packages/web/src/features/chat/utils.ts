@@ -191,5 +191,17 @@ export const getConfiguredModelProviderInfo = (): ModelProviderInfo | undefined 
         };
     }
 
+    if (
+        env.AWS_BEDROCK_MODEL &&
+        env.AWS_ACCESS_KEY_ID &&
+        env.AWS_SECRET_ACCESS_KEY
+    ) {
+        return {
+            provider: 'aws-bedrock',
+            model: env.AWS_BEDROCK_MODEL,
+            displayName: env.AWS_BEDROCK_MODEL_DISPLAY_NAME,
+        };
+    }
+
     return undefined;
 }
