@@ -91,13 +91,16 @@ export const env = createEnv({
         GITHUB_APP_ID: z.string().optional(),
         GITHUB_APP_WEBHOOK_SECRET: z.string().optional(),
         GITHUB_APP_PRIVATE_KEY_PATH: z.string().optional(),
-        OPENAI_API_KEY: z.string().optional(),
         REVIEW_AGENT_API_KEY: z.string().optional(),
         REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
         REVIEW_AGENT_AUTO_REVIEW_ENABLED: booleanSchema.default('false'),
         REVIEW_AGENT_REVIEW_COMMAND: z.string().default('review'),
 
         ANTHROPIC_API_KEY: z.string().optional(),
+        ANTHROPIC_MODEL: z.string().optional(),
+
+        OPENAI_API_KEY: z.string().optional(),
+        OPENAI_MODEL: z.string().optional(),
 
         SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS: numberSchema.default(5000),
     },

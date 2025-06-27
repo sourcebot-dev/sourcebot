@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
-import { CustomEditor } from '@/features/chat/types';
+import { CustomEditor, ModelProviderInfo } from '@/features/chat/types';
 import { getAllMentionElements, resetEditor, toString } from '@/features/chat/utils';
 import { Message, useChat } from '@ai-sdk/react';
 import { CreateMessage } from '@ai-sdk/ui-utils';
@@ -24,6 +24,7 @@ interface ChatThreadProps {
     initialMessages?: Message[];
     inputMessage?: CreateMessage;
     defaultSelectedRepos?: string[];
+    modelProviderInfo?: ModelProviderInfo;
 }
 
 export const ChatThread = ({
@@ -31,6 +32,7 @@ export const ChatThread = ({
     initialMessages,
     inputMessage,
     defaultSelectedRepos,
+    modelProviderInfo,
 }: ChatThreadProps = {}) => {
     const [selectedRepos, setSelectedRepos] = useState<string[]>(defaultSelectedRepos ?? []);
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
@@ -230,6 +232,7 @@ export const ChatThread = ({
                         <ChatBoxTools
                             selectedRepos={selectedRepos}
                             onSelectedReposChange={setSelectedRepos}
+                            modelProviderInfo={modelProviderInfo}
                         />
                     </div>
                 </CustomSlateEditor>

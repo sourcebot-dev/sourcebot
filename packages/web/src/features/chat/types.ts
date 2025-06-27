@@ -57,3 +57,15 @@ export type SetChatStatePayload = {
     inputMessage: CreateMessage;
     selectedRepos: string[];
 }
+
+export const SOURCEBOT_CHAT_MODEL_PROVIDER = [
+    'anthropic',
+    'openai',
+] as const;
+
+export type ModelProvider = (typeof SOURCEBOT_CHAT_MODEL_PROVIDER)[number];
+
+export type ModelProviderInfo = {
+    provider: ModelProvider;
+    model: string;
+}

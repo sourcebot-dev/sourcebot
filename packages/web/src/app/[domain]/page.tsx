@@ -11,6 +11,7 @@ import { SyntaxReferenceGuideHint } from "./components/syntaxReferenceGuideHint"
 import { getRepos } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { IntegratedSearchBox } from "./integratedSearchBox";
+import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -19,6 +20,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
     }
 
     const repos = await getRepos(domain);
+    const modelProviderInfo = getConfiguredModelProviderInfo();
 
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
@@ -32,7 +34,9 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                         className="h-18 md:h-40 w-auto"
                     />
                 </div>
-                <IntegratedSearchBox />
+                <IntegratedSearchBox
+                    modelProviderInfo={modelProviderInfo}
+                />
                 <div className="mt-8">
                     <RepositorySnapshot
                         repos={isServiceError(repos) ? [] : repos}
