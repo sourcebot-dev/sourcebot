@@ -183,6 +183,8 @@ model Org {
   accountRequests AccountRequest[]
 
   searchContexts SearchContext[]
+
+  chats Chat[]
 }
 
 enum OrgRole {
@@ -310,4 +312,16 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Chat {
+  id String @id @default(cuid())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  messages Json // This is a JSON array of `Message` types from @ai-sdk/ui-utils.
 }

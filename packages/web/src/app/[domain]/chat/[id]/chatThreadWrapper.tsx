@@ -1,6 +1,5 @@
 'use client';
 
-import { loadChat } from '@/features/chat/chatStore';
 import { ChatThread } from '@/features/chat/components/chatThread';
 import { useParams } from 'next/navigation';
 import { TopBar } from '../../components/topBar';
@@ -12,6 +11,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CreateMessage } from 'ai';
 import { ModelProviderInfo, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
+import { loadChatMessages } from '@/features/chat/actions';
+import { unwrapServiceError } from '@/lib/utils';
 
 interface ChatThreadWrapperProps {
     modelProviderInfo?: ModelProviderInfo;
@@ -28,8 +29,8 @@ export const ChatThreadWrapper = ({
     const [defaultSelectedRepos, setDefaultSelectedRepos] = useState<string[]>([]);
 
     const { data: messages, isPending, isError } = useQuery({
-        queryKey: ['load-chat', id],
-        queryFn: () => loadChat(id),
+        queryKey: ['load-chat', id, domain],
+        queryFn: () => unwrapServiceError(loadChatMessages({ chatId: id }, domain)),
     });
 
     useEffect(() => {

@@ -42,10 +42,6 @@ export const ChatBox = ({
     useHotkeys("/", (e) => {
         e.preventDefault();
         ReactEditor.focus(editor);
-    }, {
-        enableOnFormTags: true,
-        enableOnContentEditable: true,
-        description: "Focus on chat box",
     });
 
     // Auto-focus chat box when the component mounts.
