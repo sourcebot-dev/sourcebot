@@ -16,6 +16,7 @@
         "dev:prisma:migrate:dev": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:dev",
         "dev:prisma:studio": "yarn with-env yarn workspace @sourcebot/db prisma:studio",
         "dev:prisma:migrate:reset": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:reset",
+        "dev:prisma:db:push": "yarn with-env yarn workspace @sourcebot/db prisma:db:push",
         "build:deps": "yarn workspaces foreach -R --from '{@sourcebot/schemas,@sourcebot/error,@sourcebot/crypto,@sourcebot/db,@sourcebot/shared}' run build"
     },
     "devDependencies": {

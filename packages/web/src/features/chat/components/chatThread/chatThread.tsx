@@ -14,6 +14,7 @@ import { ChatBox } from '../chatBox';
 import { ChatBoxTools } from '../chatBoxTools';
 import { ErrorBanner } from './errorBanner';
 import { Message as MessageComponent } from './message';
+import { useDomain } from '@/hooks/useDomain';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -34,6 +35,7 @@ export const ChatThread = ({
     defaultSelectedRepos,
     modelProviderInfo,
 }: ChatThreadProps = {}) => {
+    const domain = useDomain();
     const [selectedRepos, setSelectedRepos] = useState<string[]>(defaultSelectedRepos ?? []);
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -53,6 +55,9 @@ export const ChatThread = ({
         body: {
             selectedRepos,
         },
+        headers: {
+            "X-Org-Domain": domain,
+        }
     });
 
     useEffect(() => {
