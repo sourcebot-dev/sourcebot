@@ -2,15 +2,18 @@
 
 import { search } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomEditor, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
-import { insertMention, word } from "@/features/chat/utils";
+import { insertMention, toString, word } from "@/features/chat/utils";
 import { useDomain } from "@/hooks/useDomain";
 import { cn, IS_MAC, unwrapServiceError } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowUp } from "lucide-react";
 import { Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useHotkeys } from "react-hotkeys-hook";
 import { Descendant, Editor, Range } from "slate";
 import { Editable, ReactEditor, RenderElementProps, RenderLeafProps, useFocused, useSelected, useSlate, useSlateSelection } from "slate-react";
 
@@ -24,7 +27,7 @@ interface ChatBoxProps {
 }
 
 export const ChatBox = ({
-    onSubmit,
+    onSubmit: _onSubmit,
     selectedRepos,
     preferredSuggestionsBoxPlacement = "bottom-start",
     className,
@@ -34,6 +37,21 @@ export const ChatBox = ({
     const domain = useDomain();
     const editor = useSlate();
     const selection = useSlateSelection();
+
+    // Hotkey to focus the chat box.
+    useHotkeys("/", (e) => {
+        e.preventDefault();
+        ReactEditor.focus(editor);
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Focus on chat box",
+    });
+
+    // Auto-focus chat box when the component mounts.
+    useEffect(() => {
+        ReactEditor.focus(editor);
+    }, [editor]);
 
     const { suggestionQuery, range, suggestionMode } = useMemo<{
         suggestionQuery: string;
@@ -125,6 +143,18 @@ export const ChatBox = ({
         return <Leaf {...props} />
     }, []);
 
+    const isSubmitEnabled = useMemo(() => {
+        return toString(editor.children).trim().length > 0;
+    }, [editor.children]);
+
+    const onSubmit = useCallback(() => {
+        if (!isSubmitEnabled) {
+            return;
+        }
+
+        _onSubmit(editor.children, editor);
+    }, [_onSubmit, editor, isSubmitEnabled]);
+
     const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
         if (suggestionMode === "none") {
             switch (event.key) {
@@ -134,7 +164,7 @@ export const ChatBox = ({
                     }
 
                     event.preventDefault();
-                    onSubmit(editor.children, editor);
+                    onSubmit();
                     break;
                 }
             }
@@ -216,15 +246,27 @@ export const ChatBox = ({
     }, [editor, index, range, fileSuggestions, preferredSuggestionsBoxPlacement]);
 
     return (
-        <div className={cn("w-full px-3 py-2", className)}>
+        <div
+            className={cn("flex flex-col justify-between gap-0.5 w-full px-3 py-2", className)}
+        >
             <Editable
-                className="w-full rounded-md focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                 placeholder="Ask Sourcebot..."
-                autoFocus={true}
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 onKeyDown={onKeyDown}
             />
+            <div className="ml-auto z-10">
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="w-6 h-6"
+                    disabled={!isSubmitEnabled}
+                    onClick={onSubmit}
+                >
+                    <ArrowUp className="w-4 h-4" />
+                </Button>
+            </div>
             {suggestionMode === "file" && createPortal(
                 <div
                     ref={suggestionsBoxRef}

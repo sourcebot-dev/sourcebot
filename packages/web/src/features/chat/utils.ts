@@ -1,5 +1,5 @@
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { CustomEditor, CustomText, FileMentionData, MentionElement, ModelProvider, ModelProviderInfo, ParagraphElement } from "./types"
+import { CustomEditor, CustomText, FileMentionData, MentionElement, ModelProviderInfo, ParagraphElement } from "./types"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/useBrowseNavigation"
 import { env } from "@/env.mjs"
