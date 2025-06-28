@@ -260,6 +260,11 @@ const schema = {
                   ],
                   "anyOf": [
                     {
+                      "type": "string",
+                      "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)",
+                      "minLength": 1
+                    },
+                    {
                       "type": "object",
                       "properties": {
                         "secret": {
@@ -473,6 +478,11 @@ const schema = {
                   ],
                   "anyOf": [
                     {
+                      "type": "string",
+                      "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)",
+                      "minLength": 1
+                    },
+                    {
                       "type": "object",
                       "properties": {
                         "secret": {
@@ -675,6 +685,11 @@ const schema = {
                   ],
                   "anyOf": [
                     {
+                      "type": "string",
+                      "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)",
+                      "minLength": 1
+                    },
+                    {
                       "type": "object",
                       "properties": {
                         "secret": {
@@ -835,6 +850,68 @@ const schema = {
                   ],
                   "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
                 },
+                "auth": {
+                  "type": "object",
+                  "description": "Authentication configuration for Gerrit",
+                  "properties": {
+                    "username": {
+                      "type": "string",
+                      "description": "Gerrit username for authentication",
+                      "examples": [
+                        "john.doe"
+                      ]
+                    },
+                    "password": {
+                      "description": "Gerrit HTTP password (not your account password). Generate this in Gerrit → Settings → HTTP Credentials → Generate Password.",
+                      "examples": [
+                        {
+                          "env": "GERRIT_HTTP_PASSWORD"
+                        },
+                        {
+                          "secret": "GERRIT_PASSWORD_SECRET"
+                        }
+                      ],
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "secret": {
+                              "type": "string",
+                              "description": "The name of the secret that contains the token."
+                            }
+                          },
+                          "required": [
+                            "secret"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "env": {
+                              "type": "string",
+                              "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                            }
+                          },
+                          "required": [
+                            "env"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "username",
+                    "password"
+                  ],
+                  "additionalProperties": false
+                },
                 "projects": {
                   "type": "array",
                   "items": {
@@ -905,6 +982,11 @@ const schema = {
                     }
                   ],
                   "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)",
+                      "minLength": 1
+                    },
                     {
                       "type": "object",
                       "properties": {
