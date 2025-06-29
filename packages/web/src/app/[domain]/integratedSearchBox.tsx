@@ -1,21 +1,18 @@
 'use client';
 
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
+import { ModelProviderInfo } from "@/features/chat/types";
+import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
+import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useLocalStorage } from "usehooks-ts";
 import { ChatBox } from "../../features/chat/components/chatBox";
 import { ChatBoxTools } from "../../features/chat/components/chatBoxTools";
 import { SearchBar } from "./components/searchBar";
-import { CreateMessage } from "ai";
-import { getAllMentionElements, toString } from "@/features/chat/utils";
-import { cn, createPathWithQueryParams } from "@/lib/utils";
-import { useDomain } from "@/hooks/useDomain";
-import { useRouter } from "next/navigation";
-import { ModelProviderInfo, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from "@/features/chat/types";
-import { useLocalStorage } from "usehooks-ts";
-import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
-import { useHotkeys } from "react-hotkeys-hook";
 
 type SearchMode = "precise" | "agentic";
 
@@ -28,8 +25,7 @@ export const IntegratedSearchBox = ({
 }: IntegratedSearchBoxProps) => {
     const [searchMode, setSearchMode] = useLocalStorage<SearchMode>("search-mode", "precise", { initializeWithValue: false });
     const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
-    const domain = useDomain();
-    const router = useRouter();
+    const { createNewChatThread, isLoading } = useCreateNewChatThread();
 
     useHotkeys("mod+i", (e) => {
         e.preventDefault();
@@ -50,7 +46,7 @@ export const IntegratedSearchBox = ({
     });
 
     return (
-        <div className="mt-4 w-full max-w-[800px] border rounded-md">
+        <div className="mt-4 w-full max-w-[800px] border rounded-md shadow-sm">
             {searchMode === "precise" ? (
                 <>
                     <SearchBar
@@ -68,25 +64,11 @@ export const IntegratedSearchBox = ({
                 <CustomSlateEditor>
                     <ChatBox
                         onSubmit={(children) => {
-                            const text = toString(children);
-                            const mentions = getAllMentionElements(children);
-
-                            const inputMessage: CreateMessage = {
-                                role: "user",
-                                content: text,
-                                annotations: mentions.map((mention) => mention.data),
-                            };
-
-                            const url = createPathWithQueryParams(`/${domain}/chat`,
-                                [SET_CHAT_STATE_QUERY_PARAM, JSON.stringify({
-                                    inputMessage,
-                                    selectedRepos,
-                                } satisfies SetChatStatePayload)],
-                            );
-                            router.push(url);
+                            createNewChatThread(children, selectedRepos);
                         }}
                         className="min-h-[50px]"
                         selectedRepos={selectedRepos}
+                        isRedirecting={isLoading}
                     />
                     <Separator />
                     <Toolbar

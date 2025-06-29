@@ -10,7 +10,7 @@ import { useDomain } from "@/hooks/useDomain";
 import { cn, IS_MAC, unwrapServiceError } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Loader2 } from "lucide-react";
 import { Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -24,6 +24,8 @@ interface ChatBoxProps {
     selectedRepos: string[];
     preferredSuggestionsBoxPlacement?: "top-start" | "bottom-start";
     className?: string;
+    isRedirecting?: boolean;
+    isGenerating?: boolean;
 }
 
 export const ChatBox = ({
@@ -31,6 +33,8 @@ export const ChatBox = ({
     selectedRepos,
     preferredSuggestionsBoxPlacement = "bottom-start",
     className,
+    isRedirecting,
+    isGenerating,
 }: ChatBoxProps) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
@@ -140,8 +144,12 @@ export const ChatBox = ({
     }, []);
 
     const isSubmitEnabled = useMemo(() => {
-        return toString(editor.children).trim().length > 0;
-    }, [editor.children]);
+        return (
+            toString(editor.children).trim().length > 0 &&
+            !isRedirecting &&
+            !isGenerating
+        )
+    }, [editor.children, isRedirecting, isGenerating]);
 
     const onSubmit = useCallback(() => {
         if (!isSubmitEnabled) {
@@ -260,7 +268,11 @@ export const ChatBox = ({
                     disabled={!isSubmitEnabled}
                     onClick={onSubmit}
                 >
-                    <ArrowUp className="w-4 h-4" />
+                    {(isRedirecting || isGenerating) ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                        <ArrowUp className="w-4 h-4" />
+                    )}
                 </Button>
             </div>
             {suggestionMode === "file" && createPortal(

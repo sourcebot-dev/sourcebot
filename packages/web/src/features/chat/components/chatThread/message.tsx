@@ -1,13 +1,10 @@
 'use client';
 
-
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useThemeNormalized } from '@/hooks/useThemeNormalized';
 import { UIMessage } from 'ai';
 import { Loader2 } from 'lucide-react';
-import { useSession } from 'next-auth/react';
 import { forwardRef, memo } from 'react';
 import { MarkdownUIPart } from './markdownUIPart';
+import { MessageAvatar } from './messageAvatar';
 import { ToolUIPart } from './toolUIPart';
 
 interface MessageProps {
@@ -72,27 +69,3 @@ export const Message = memo(forwardRef<HTMLDivElement, MessageProps>(({ message,
 }));
 
 Message.displayName = 'Message';
-
-
-interface MessageAvatarProps {
-    role: UIMessage['role'];
-}
-
-const MessageAvatar = ({ role }: MessageAvatarProps) => {
-    const { data: session } = useSession();
-    const { theme } = useThemeNormalized();
-
-    return (
-        <Avatar className="h-7 w-7 rounded-full">
-            <AvatarFallback className="text-xs">{role === "user" ? "U" : "AI"}</AvatarFallback>
-            {role === "user" ? (
-                <AvatarImage src={session?.user.image ?? "/placeholder_avatar.png?height=32&width=32"} />
-            ) : (
-                <AvatarImage
-                    src={`/${theme === 'dark' ? 'sb_logo_dark_small' : 'sb_logo_light_small'}.png?height=32&width=32`}
-                />
-            )}
-        </Avatar>
-    )
-}
-
