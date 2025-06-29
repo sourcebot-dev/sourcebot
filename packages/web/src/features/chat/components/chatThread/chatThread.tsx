@@ -7,7 +7,7 @@ import { CustomEditor, ModelProviderInfo } from '@/features/chat/types';
 import { getAllMentionElements, resetEditor, toString } from '@/features/chat/utils';
 import { Message, useChat } from '@ai-sdk/react';
 import { CreateMessage } from '@ai-sdk/ui-utils';
-import { ArrowDownIcon } from 'lucide-react';
+import { ArrowDownIcon, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Descendant } from 'slate';
 import { ChatBox } from '../chatBox';
@@ -15,6 +15,7 @@ import { ChatBoxTools } from '../chatBoxTools';
 import { ErrorBanner } from './errorBanner';
 import { Message as MessageComponent } from './message';
 import { useDomain } from '@/hooks/useDomain';
+import { MessageAvatar } from './messageAvatar';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -204,6 +205,13 @@ export const ChatThread = ({
                             </>
                         )
                     }
+                    {status === "submitted" && (
+                        <div className="flex flex-row gap-1 text-xs text-gray-500 items-center">
+                            <MessageAvatar role="assistant" className="mr-3" />
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <span>Thinking...</span>
+                        </div>
+                    )}
                     {
                         (!isAutoScrollEnabled && status === "streaming") && (
                             <div className="absolute bottom-5 left-0 right-0 h-10 flex flex-row items-center justify-center">
@@ -226,13 +234,14 @@ export const ChatThread = ({
                     }
                 </div>
             </ScrollArea>
-            <div className="border rounded-md w-full max-w-3xl mx-auto mb-8">
+            <div className="border rounded-md w-full max-w-3xl mx-auto mb-8 shadow-sm">
                 <CustomSlateEditor>
                     <ChatBox
                         onSubmit={onSubmit}
                         className="min-h-[80px]"
                         preferredSuggestionsBoxPlacement="top-start"
                         selectedRepos={selectedRepos}
+                        isGenerating={status === "streaming" || status === "submitted"}
                     />
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                         <ChatBoxTools

@@ -65,3 +65,25 @@ export const saveChatMessages = async ({ chatId, messages }: { chatId: string, m
 
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
 );
+
+export const getRecentChats = async (domain: string) => sew(() =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ org }) => {
+            // @todo: this should be filtered on the user
+            const chats = await prisma.chat.findMany({
+                where: {
+                    orgId: org.id,
+                },
+                orderBy: {
+                    updatedAt: 'desc',
+                },
+            });
+
+            return chats.map((chat) => ({
+                id: chat.id,
+                createdAt: chat.createdAt,
+                name: chat.name,
+            }))
+        })
+    )
+);

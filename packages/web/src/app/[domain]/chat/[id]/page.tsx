@@ -1,12 +1,13 @@
 import { getConfiguredModelProviderInfo } from '@/features/chat/utils';
-import { ChatThreadWrapper } from './chatThreadWrapper';
+import { ChatThreadPanel } from './components/chatThreadPanel';
 
 export default function Page() {
     const modelProviderInfo = getConfiguredModelProviderInfo();
 
     return (
-        <ChatThreadWrapper
+        <ChatThreadPanel
             modelProviderInfo={modelProviderInfo}
+            order={2}
         />
     )
 }
