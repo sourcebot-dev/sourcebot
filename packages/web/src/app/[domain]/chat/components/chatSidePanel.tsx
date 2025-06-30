@@ -1,26 +1,29 @@
 'use client';
 
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ResizablePanel } from "@/components/ui/resizable";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useRef, useState } from "react";
+import { getRecentChats, updateChatName, deleteChat } from "@/features/chat/actions";
+import { useDomain } from "@/hooks/useDomain";
+import { cn, isServiceError, unwrapServiceError } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { CirclePlusIcon, EllipsisIcon, PencilIcon, TrashIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { ImperativePanelHandle } from "react-resizable-panels";
-import { CirclePlusIcon } from "lucide-react";
 import {
     GoSidebarCollapse as ExpandIcon,
 } from "react-icons/go";
-import { getRecentChats } from "@/features/chat/actions";
-import { unwrapServiceError } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { useDomain } from "@/hooks/useDomain";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { ImperativePanelHandle } from "react-resizable-panels";
 import { useChatId } from "../useChatId";
+import { RenameChatDialog } from "./renameChatDialog";
+import { DeleteChatDialog } from "./deleteChatDialog";
 
 interface ChatSidePanelProps {
     order: number;
@@ -33,7 +36,12 @@ export const ChatSidePanel = ({
     const [isCollapsed, setIsCollapsed] = useState(false);
     const sidePanelRef = useRef<ImperativePanelHandle>(null);
     const router = useRouter();
+    const { toast } = useToast();
     const chatId = useChatId();
+    const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+    const [chatIdToRename, setChatIdToRename] = useState<string | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [chatIdToDelete, setChatIdToDelete] = useState<string | null>(null);
 
     useHotkeys("mod+b", () => {
         if (isCollapsed) {
@@ -47,10 +55,57 @@ export const ChatSidePanel = ({
         description: "Toggle side panel",
     });
 
-    const { data: recentChats, isPending, isError } = useQuery({
+    const { data: recentChats, isPending, isError, refetch: refetchRecentChats } = useQuery({
         queryKey: ['recent-chats', domain],
         queryFn: () => unwrapServiceError(getRecentChats(domain)),
     });
+
+    const onRenameChat = useCallback(async (name: string, chatId: string) => {
+        if (!chatId) {
+            return;
+        }
+
+        const response = await updateChatName({
+            chatId,
+            name: name,
+        }, domain);
+
+        if (isServiceError(response)) {
+            toast({
+                description: `❌ Failed to rename chat. Reason: ${response.message}`
+            });
+        } else {
+            toast({
+                description: `✅ Chat renamed successfully`
+            });
+            refetchRecentChats();
+        }
+    }, [chatId, refetchRecentChats]);
+
+    const onDeleteChat = useCallback(async (chatIdToDelete: string) => {
+        if (!chatIdToDelete) {
+            return;
+        }
+
+        const response = await deleteChat({ chatId: chatIdToDelete }, domain);
+
+        if (isServiceError(response)) {
+            toast({
+                description: `❌ Failed to delete chat. Reason: ${response.message}`
+            });
+        } else {
+            toast({
+                description: `✅ Chat deleted successfully`
+            });
+            
+            // If we just deleted the current chat, navigate to new chat
+            if (chatIdToDelete === chatId) {
+                router.push(`/${domain}/chat`);
+            }
+
+            refetchRecentChats();
+        }
+    }, [chatId, refetchRecentChats, router, toast, domain]);
 
     return (
         <>
@@ -79,22 +134,31 @@ export const ChatSidePanel = ({
                             New Chat
                         </Button>
                     </div>
-                    {isPending ? (
-                        <div className="flex flex-col h-full px-2.5">
-                            <Skeleton className="h-10" />
-                        </div>
-                    ) :
-                    isError ? (
-                        <div className="flex flex-col h-full px-2.5">
-                            <p>Error loading recent chats</p>
-                        </div>
-                    ) : (
-                        <ScrollArea className="flex flex-col h-full px-2.5">
-                            <p className="text-sm font-medium mb-2">Recent Chats</p>
-                            {recentChats.map((chat) => (
+
+                    <ScrollArea className="flex flex-col h-full px-2.5">
+                        <p className="text-sm font-medium mb-2">Recent Chats</p>
+                        <div className="flex flex-col gap-1">
+                            {isPending ? (
+                                Array.from({ length: 20 }).map((_, index) => (
+                                    <Skeleton
+                                        key={index}
+                                        className={cn(
+                                            "h-7 rounded-md",
+                                            index % 6 === 0 ? "w-[70%]" :
+                                                index % 6 === 1 ? "w-[85%]" :
+                                                    index % 6 === 2 ? "w-full" :
+                                                        index % 6 === 3 ? "w-[85%]" :
+                                                            index % 6 === 4 ? "w-[70%]" :
+                                                                "w-[85%]"
+                                        )}
+                                    />
+                                ))
+                            ) : isError ? (
+                                <p>Error loading recent chats</p>
+                            ) : recentChats.map((chat) => (
                                 <div
                                     key={chat.id}
-                                    className={cn("flex flex-row items-center justify-between hover:bg-muted rounded-md px-2 py-1.5 cursor-pointer",
+                                    className={cn("group flex flex-row items-center justify-between hover:bg-muted rounded-md px-2 py-1.5 cursor-pointer",
                                         chat.id === chatId && "bg-muted"
                                     )}
                                     onClick={() => {
@@ -102,10 +166,51 @@ export const ChatSidePanel = ({
                                     }}
                                 >
                                     <span className="text-sm truncate">{chat.name ?? 'Untitled chat'}</span>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-5 w-5 z-10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted-accent"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                }}
+                                            >
+                                                <EllipsisIcon className="w-4 h-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                            align="start"
+                                            className="z-20"
+                                        >
+                                            <DropdownMenuItem
+                                                className="cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setChatIdToRename(chat.id);
+                                                    setIsRenameDialogOpen(true);
+                                                }}
+                                            >
+                                                <PencilIcon className="w-4 h-4 mr-2" />
+                                                Rename
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setChatIdToDelete(chat.id);
+                                                    setIsDeleteDialogOpen(true);
+                                                }}
+                                            >
+                                                <TrashIcon className="w-4 h-4 mr-2" />
+                                                Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
                             ))}
-                        </ScrollArea>
-                    )}
+                        </div>
+                    </ScrollArea>
                 </div>
             </ResizablePanel>
             {isCollapsed && (
@@ -133,6 +238,25 @@ export const ChatSidePanel = ({
                     </Tooltip>
                 </div>
             )}
+            <RenameChatDialog
+                isOpen={isRenameDialogOpen}
+                onOpenChange={setIsRenameDialogOpen}
+                onRename={(name) => {
+                    if (chatIdToRename) {
+                        onRenameChat(name, chatIdToRename);
+                    }
+                }}
+                currentName={recentChats?.find((chat) => chat.id === chatIdToRename)?.name ?? ""}
+            />
+            <DeleteChatDialog
+                isOpen={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                onDelete={() => {
+                    if (chatIdToDelete) {
+                        onDeleteChat(chatIdToDelete);
+                    }
+                }}
+            />
         </>
     )
 }
