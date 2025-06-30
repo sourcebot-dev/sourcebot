@@ -87,3 +87,14 @@ export const getRecentChats = async (domain: string) => sew(() =>
         })
     )
 );
+
+export const updateChatName = async ({ chatId, name }: { chatId: string, name: string }, domain: string) => sew(() =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ org }) => {
+            await prisma.chat.update({
+                where: { id: chatId, orgId: org.id },
+                data: { name },
+            });
+        })
+    )
+);

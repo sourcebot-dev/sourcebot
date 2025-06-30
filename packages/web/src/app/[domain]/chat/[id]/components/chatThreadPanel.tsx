@@ -1,7 +1,6 @@
 'use client';
 
 import { ChatThread } from '@/features/chat/components/chatThread';
-import { useParams } from 'next/navigation';
 import { useDomain } from '@/hooks/useDomain';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
@@ -12,6 +11,7 @@ import { ModelProviderInfo, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } fr
 import { loadChatMessages } from '@/features/chat/actions';
 import { unwrapServiceError } from '@/lib/utils';
 import { ResizablePanel } from '@/components/ui/resizable';
+import { useChatId } from '../../useChatId';
 
 interface ChatThreadPanelProps {
     modelProviderInfo?: ModelProviderInfo;
@@ -22,7 +22,9 @@ export const ChatThreadPanel = ({
     modelProviderInfo,
     order,
 }: ChatThreadPanelProps) => {
-    const { id } = useParams<{ id: string }>();
+    // @note: we are guaranteed to have a chatId because this component will only be
+    // mounted when on a /chat/[id] route.
+    const chatId = useChatId()!;
     const domain = useDomain();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -30,8 +32,8 @@ export const ChatThreadPanel = ({
     const [defaultSelectedRepos, setDefaultSelectedRepos] = useState<string[]>([]);
 
     const { data: messages, isPending, isError } = useQuery({
-        queryKey: ['load-chat', id, domain],
-        queryFn: () => unwrapServiceError(loadChatMessages({ chatId: id }, domain)),
+        queryKey: ['load-chat', chatId, domain],
+        queryFn: () => unwrapServiceError(loadChatMessages({ chatId }, domain)),
     });
 
     useEffect(() => {
@@ -79,7 +81,7 @@ export const ChatThreadPanel = ({
                     </div>
                 ) : (
                     <ChatThread
-                        id={id}
+                        id={chatId}
                         initialMessages={messages}
                         inputMessage={inputMessage}
                         defaultSelectedRepos={defaultSelectedRepos}
