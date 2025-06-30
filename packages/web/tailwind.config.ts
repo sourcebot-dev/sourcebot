@@ -39,7 +39,8 @@ const config = {
     			},
     			muted: {
     				DEFAULT: 'var(--muted)',
-    				foreground: 'var(--muted-foreground)'
+    				foreground: 'var(--muted-foreground)',
+    				accent: 'var(--muted-accent)'
     			},
     			accent: {
     				DEFAULT: 'var(--accent)',

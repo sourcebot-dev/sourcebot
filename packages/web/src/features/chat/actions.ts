@@ -98,3 +98,27 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
         })
     )
 );
+
+export const deleteChat = async ({ chatId }: { chatId: string }, domain: string) => sew(() =>
+    withAuth((session) =>
+        withOrgMembership(session, domain, async ({ org }) => {
+            const chat = await prisma.chat.findUnique({
+                where: {
+                    id: chatId,
+                    orgId: org.id,
+                },
+            });
+
+            if (!chat) {
+                return notFound();
+            }
+
+            await prisma.chat.delete({
+                where: {
+                    id: chatId,
+                    orgId: org.id,
+                },
+            });
+        })
+    )
+);
