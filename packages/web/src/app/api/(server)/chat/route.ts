@@ -12,8 +12,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { OrgRole, RepoIndexingStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { appendResponseMessages, extractReasoningMiddleware, LanguageModel, Message, streamText, wrapLanguageModel } from "ai";
-import { saveChatMessages } from "@/features/chat/actions";
+import { appendResponseMessages, extractReasoningMiddleware, generateText, LanguageModel, Message, streamText, wrapLanguageModel } from "ai";
+import { saveChatMessages, updateChatName } from "@/features/chat/actions";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -143,12 +143,12 @@ const chatHandler = ({ messages: chatMessages, id, selectedRepos }: { messages: 
                     maxTokens: env.SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS, // Increased for tool results and responses
                     toolChoice: "auto", // Let the model decide when to use tools
                     onStepFinish: (step) => {
-                        logger.info(`Step finished: ${step.stepType} ${step.isContinued}`)
+                        logger.debug(`Step finished: ${step.stepType} ${step.isContinued}`)
                         if (step.toolCalls) {
-                            logger.info(`Tool calls in step: ${step.toolCalls.length}`)
+                            logger.debug(`Tool calls in step: ${step.toolCalls.length}`)
                         }
                         if (step.toolResults) {
-                            logger.info(`Tool results in step: ${step.toolResults.length}`)
+                            logger.debug(`Tool results in step: ${step.toolResults.length}`)
                         }
                     },
                     onFinish: async ({ response }) => {
@@ -159,6 +159,16 @@ const chatHandler = ({ messages: chatMessages, id, selectedRepos }: { messages: 
                                 responseMessages: response.messages,
                             }),
                         }, domain);
+
+                        if (chatMessages.length === 1 && chatMessages[0].role === "user") {
+                            const title = await generateChatTitle(chatMessages[0].content, model);
+                            if (title) {
+                                await updateChatName({
+                                    chatId: id,
+                                    name: title,
+                                }, domain);
+                            }
+                        }
                     }
                 });
 
@@ -178,6 +188,37 @@ const chatHandler = ({ messages: chatMessages, id, selectedRepos }: { messages: 
             }
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
     ));
+
+const generateChatTitle = async (message: string, model: LanguageModel) => {
+    try {
+        const prompt = `Convert this question into a short topic title (max 50 characters). 
+
+Rules:
+- Do NOT include question words (what, where, how, why, when, which)
+- Do NOT end with a question mark
+- Capitalize the first letter of the title
+- Focus on the subject/topic being discussed
+- Make it sound like a file name or category
+
+Examples:
+"Where is the authentication code?" → "Authentication Code"
+"How to setup the database?" → "Database Setup"
+"What are the API endpoints?" → "API Endpoints"
+
+User question: ${message}`;
+
+        const result = await generateText({
+            model,
+            prompt,
+            maxTokens: 20,
+        });
+
+        return result.text;
+    } catch (error) {
+        logger.error("Error generating summary:", error)
+        return undefined;
+    }
+}
 
 const getModel = (): LanguageModel => {
     const providerInfo = getConfiguredModelProviderInfo();

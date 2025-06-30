@@ -16,6 +16,7 @@ import { ErrorBanner } from './errorBanner';
 import { Message as MessageComponent } from './message';
 import { useDomain } from '@/hooks/useDomain';
 import { MessageAvatar } from './messageAvatar';
+import { useQueryClient } from '@tanstack/react-query';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -43,6 +44,7 @@ export const ChatThread = ({
     const latestMessageRef = useRef<HTMLDivElement>(null);
     const hasSubmittedInputMessage = useRef(false);
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
+    const queryClient = useQueryClient();
 
     const {
         append,
@@ -58,6 +60,11 @@ export const ChatThread = ({
         },
         headers: {
             "X-Org-Domain": domain,
+        },
+        onFinish: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['recent-chats', domain],
+            });
         }
     });
 

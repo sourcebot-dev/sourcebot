@@ -3,7 +3,7 @@ import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Separator } from '@/components/ui/separator';
 import { TopBar } from '../components/topBar';
-import { ChatSidePanel } from '../chat/[id]/components/chatSidePanel';
+import { ChatSidePanel } from './components/chatSidePanel';
 
 interface LayoutProps {
     children: React.ReactNode;
