@@ -38,7 +38,7 @@
 
 6. Create a copy of `.env.development` and name it `.env.development.local`. Update the required environment variables.
 
-7. If you're using a declerative configuration file, create a configuration file and update the `CONFIG_PATH` environment variable in your `.env.development.local` file.
+7. If you're using a declarative configuration file, create a configuration file and update the `CONFIG_PATH` environment variable in your `.env.development.local` file.
 
 8. Start Sourcebot with the command:
     ```sh
