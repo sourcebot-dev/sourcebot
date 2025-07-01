@@ -1,0 +1,15 @@
+apiVersion: v2
+type: application
+name: sourcebot
+version: 0.1.0
+appVersion: ""
+description: The open source Sourcegraph alternative. Sourcebot gives you a powerful interface to search though all your repos and branches across multiple code hosts.
+icon: https://raw.githubusercontent.com/sourcebot-dev/sourcebot/ebf6721836b8f878d42bb8c1e844bdc7867a74fe/packages/web/public/logo_512.png
+keywords:
+  - code-search
+  - code-intelligence
+  - sourcebot
+home: https://sourcebot.dev/
+sources:
+  - https://github.com/sourcebot-dev/sourcebot
+  - https://github.com/sourcebot-dev/sourcebot/kubernetes/chart
