@@ -21,7 +21,7 @@ export const useSuggestionModeAndQuery = ({
     const suggestionModeMappings = useSuggestionModeMappings();
 
     const { suggestionQuery, suggestionMode } = useMemo<{ suggestionQuery: string, suggestionMode: SuggestionMode }>(() => {
-        // When suggestions are not enabled, fallback to using a sentinal
+        // When suggestions are not enabled, fallback to using a sentinel
         // suggestion mode of "none".
         if (!isSuggestionsEnabled) {
             return {

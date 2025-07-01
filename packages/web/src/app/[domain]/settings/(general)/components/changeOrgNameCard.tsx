@@ -65,7 +65,7 @@ export function ChangeOrgNameCard({ orgName, currentUserRole }: ChangeOrgNameCar
                 <CardTitle>
                     Organization Name
                 </CardTitle>
-                <CardDescription>{`Your organization's visible name within Sourceobot. For example, the name of your company or department.`}</CardDescription>
+                <CardDescription>{`Your organization's visible name within Sourcebot. For example, the name of your company or department.`}</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
