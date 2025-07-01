@@ -66,7 +66,7 @@ export const SyntaxReferenceGuide = () => {
                 <DialogHeader>
                     <DialogTitle>Syntax Reference Guide</DialogTitle>
                     <DialogDescription className="text-sm text-foreground">
-                        Queries consist of space-seperated regular expressions. Wrapping expressions in <Code>{`""`}</Code> combines them. By default, a file must have at least one match for each expression to be included.
+                        Queries consist of space-separated regular expressions. Wrapping expressions in <Code>{`""`}</Code> combines them. By default, a file must have at least one match for each expression to be included.
                     </DialogDescription>
                 </DialogHeader>
                 <Table>

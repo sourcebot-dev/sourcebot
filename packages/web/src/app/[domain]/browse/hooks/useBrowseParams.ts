@@ -11,17 +11,17 @@ export const useBrowseParams = () => {
     }
 
     const rawPath = pathname.substring(startIndex + '/browse/'.length);
-    const sentinalIndex = rawPath.search(/\/-\/(tree|blob)\//);
-    if (sentinalIndex === -1) {
+    const sentinelIndex = rawPath.search(/\/-\/(tree|blob)\//);
+    if (sentinelIndex === -1) {
         throw new Error(`Invalid browse pathname: "${pathname}" - expected to contain "/-/(tree|blob)/" pattern`);
     }
 
-    const repoAndRevisionName = rawPath.substring(0, sentinalIndex).split('@');
+    const repoAndRevisionName = rawPath.substring(0, sentinelIndex).split('@');
     const repoName = repoAndRevisionName[0];
     const revisionName = repoAndRevisionName.length > 1 ? repoAndRevisionName[1] : undefined;
 
     const { path, pathType } = ((): { path: string, pathType: 'tree' | 'blob' } => {
-        const path = rawPath.substring(sentinalIndex + '/-/'.length);
+        const path = rawPath.substring(sentinelIndex + '/-/'.length);
         const pathType = path.startsWith('tree/') ? 'tree' : 'blob';
 
         // @note: decodedURIComponent is needed here incase the path contains a space.

@@ -309,7 +309,7 @@ export interface LocalConfig {
   watch?: boolean;
   exclude?: {
     /**
-     * List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always exluded.
+     * List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always excluded.
      */
     paths?: string[];
   };
