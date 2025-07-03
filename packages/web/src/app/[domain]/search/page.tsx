@@ -31,6 +31,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { SearchBar } from "../components/searchBar";
 
 const DEFAULT_MAX_MATCH_COUNT = 10000;
 
@@ -172,13 +173,15 @@ const SearchPageInternal = () => {
     return (
         <div className="flex flex-col h-screen overflow-clip">
             {/* TopBar */}
-            <div className="sticky top-0 left-0 right-0 z-10">
-                <TopBar
-                    defaultSearchQuery={searchQuery}
-                    domain={domain}
+            <TopBar
+                domain={domain}
+            >
+                <SearchBar
+                    size="sm"
+                    defaultQuery={searchQuery}
+                    className="w-full"
                 />
-                <Separator />
-            </div>
+            </TopBar>
 
             {(isSearchLoading) ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">

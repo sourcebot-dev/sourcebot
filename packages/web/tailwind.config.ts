@@ -55,6 +55,7 @@ const config = {
     				foreground: 'var(--card-foreground)'
     			},
     			highlight: 'var(--highlight)',
+    			link: 'var(--link)',
     			sidebar: {
     				DEFAULT: 'var(--sidebar-background)',
     				foreground: 'var(--sidebar-foreground)',

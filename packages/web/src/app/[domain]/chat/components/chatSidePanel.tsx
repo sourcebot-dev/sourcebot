@@ -24,6 +24,8 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 import { useChatId } from "../useChatId";
 import { RenameChatDialog } from "./renameChatDialog";
 import { DeleteChatDialog } from "./deleteChatDialog";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 interface ChatSidePanelProps {
     order: number;
@@ -42,6 +44,7 @@ export const ChatSidePanel = ({
     const [chatIdToRename, setChatIdToRename] = useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [chatIdToDelete, setChatIdToDelete] = useState<string | null>(null);
+    const { status: authStatus } = useSession();
 
     useHotkeys("mod+b", () => {
         if (isCollapsed) {
@@ -56,8 +59,9 @@ export const ChatSidePanel = ({
     });
 
     const { data: recentChats, isPending, isError, refetch: refetchRecentChats } = useQuery({
-        queryKey: ['recent-chats', domain],
+        queryKey: ['chat', 'recents', domain],
         queryFn: () => unwrapServiceError(getRecentChats(domain)),
+        enabled: authStatus === 'authenticated',
     });
 
     const onRenameChat = useCallback(async (name: string, chatId: string) => {
@@ -97,7 +101,7 @@ export const ChatSidePanel = ({
             toast({
                 description: `✅ Chat deleted successfully`
             });
-            
+
             // If we just deleted the current chat, navigate to new chat
             if (chatIdToDelete === chatId) {
                 router.push(`/${domain}/chat`);
@@ -134,27 +138,30 @@ export const ChatSidePanel = ({
                             New Chat
                         </Button>
                     </div>
-
                     <ScrollArea className="flex flex-col h-full px-2.5">
-                        <p className="text-sm font-medium mb-2">Recent Chats</p>
+                        <p className="text-sm font-medium mb-4">Recent Chats</p>
                         <div className="flex flex-col gap-1">
-                            {isPending ? (
-                                Array.from({ length: 20 }).map((_, index) => (
-                                    <Skeleton
-                                        key={index}
-                                        className={cn(
-                                            "h-7 rounded-md",
-                                            index % 6 === 0 ? "w-[70%]" :
-                                                index % 6 === 1 ? "w-[85%]" :
-                                                    index % 6 === 2 ? "w-full" :
-                                                        index % 6 === 3 ? "w-[85%]" :
-                                                            index % 6 === 4 ? "w-[70%]" :
-                                                                "w-[85%]"
-                                        )}
-                                    />
-                                ))
+                            {authStatus === 'loading' ? (
+                                <ChatHistorySkeleton />
+                            ) : authStatus === 'unauthenticated' ? (
+                                <div className="flex flex-col">
+                                    <p className="text-sm text-muted-foreground mb-4">
+                                        <Link
+                                            href={`/login?callbackUrl=${encodeURIComponent(`/${domain}/chat`)}`}
+                                            className="text-sm text-link hover:underline cursor-pointer"
+                                        >
+                                            Sign in
+                                        </Link> to access your chat history.
+                                    </p>
+                                </div>
+                            ) : isPending ? (
+                                <ChatHistorySkeleton />
                             ) : isError ? (
                                 <p>Error loading recent chats</p>
+                            ) : recentChats.length === 0 ? (
+                                <div className="mx-auto w-full h-52 border border-dashed border-muted-foreground rounded-md flex items-center justify-center p-6">
+                                    <p className="text-sm text-muted-foreground text-center">Recent chats will appear here.</p>
+                                </div>
                             ) : recentChats.map((chat) => (
                                 <div
                                     key={chat.id}
@@ -212,7 +219,8 @@ export const ChatSidePanel = ({
                         </div>
                     </ScrollArea>
                 </div>
-            </ResizablePanel>
+
+            </ResizablePanel >
             {isCollapsed && (
                 <div className="flex flex-col items-center h-full p-2">
                     <Tooltip
@@ -260,3 +268,24 @@ export const ChatSidePanel = ({
         </>
     )
 }
+
+const ChatHistorySkeleton = () => {
+    return (
+        <div className="flex flex-col gap-1">
+            {Array.from({ length: 20 }).map((_, index) => (
+                <Skeleton
+                    key={index}
+                    className={cn(
+                        "h-7 rounded-md",
+                        index % 6 === 0 ? "w-[70%]" :
+                            index % 6 === 1 ? "w-[85%]" :
+                                index % 6 === 2 ? "w-full" :
+                                    index % 6 === 3 ? "w-[85%]" :
+                                        index % 6 === 4 ? "w-[70%]" :
+                                            "w-[85%]"
+                    )}
+                />
+            ))}
+        </div>
+    )
+}   

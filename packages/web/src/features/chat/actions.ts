@@ -1,18 +1,19 @@
 'use server';
 
 import { sew, withAuth, withOrgMembership } from "@/actions";
-import { OrgRole, Prisma } from "@sourcebot/db";
-import { prisma } from "@/prisma";
 import { notFound } from "@/lib/serviceError";
+import { prisma } from "@/prisma";
+import { OrgRole, Prisma } from "@sourcebot/db";
 import { Message } from "ai";
 
 export const createChat = async (domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const chat = await prisma.chat.create({
                 data: {
                     orgId: org.id,
                     messages: [] as unknown as Prisma.InputJsonValue,
+                    createdById: userId,
                 },
             });
 
@@ -23,12 +24,13 @@ export const createChat = async (domain: string) => sew(() =>
 );
 
 export const loadChatMessages = async ({ chatId }: { chatId: string }, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const chat = await prisma.chat.findUnique({
                 where: {
                     id: chatId,
                     orgId: org.id,
+                    createdById: userId,
                 },
             });
 
@@ -41,12 +43,13 @@ export const loadChatMessages = async ({ chatId }: { chatId: string }, domain: s
 );
 
 export const saveChatMessages = async ({ chatId, messages }: { chatId: string, messages: Message[] }, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const chat = await prisma.chat.findUnique({
                 where: {
                     id: chatId,
                     orgId: org.id,
+                    createdById: userId,
                 },
             });
 
@@ -67,12 +70,13 @@ export const saveChatMessages = async ({ chatId, messages }: { chatId: string, m
 );
 
 export const getRecentChats = async (domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             // @todo: this should be filtered on the user
             const chats = await prisma.chat.findMany({
                 where: {
                     orgId: org.id,
+                    createdById: userId,
                 },
                 orderBy: {
                     updatedAt: 'desc',
@@ -89,23 +93,44 @@ export const getRecentChats = async (domain: string) => sew(() =>
 );
 
 export const updateChatName = async ({ chatId, name }: { chatId: string, name: string }, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
-            await prisma.chat.update({
-                where: { id: chatId, orgId: org.id },
-                data: { name },
-            });
-        })
-    )
-);
-
-export const deleteChat = async ({ chatId }: { chatId: string }, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const chat = await prisma.chat.findUnique({
                 where: {
                     id: chatId,
                     orgId: org.id,
+                    createdById: userId,
+                },
+            });
+
+            if (!chat) {
+                return notFound();
+            }
+
+            await prisma.chat.update({
+                where: {
+                    id: chatId,
+                    orgId: org.id,
+                },
+                data: {
+                    name,
+                },
+            });
+
+            return {
+                success: true,
+            }
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+);
+
+export const deleteChat = async ({ chatId }: { chatId: string }, domain: string) => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const chat = await prisma.chat.findUnique({
+                where: {
+                    id: chatId,
+                    orgId: org.id,
+                    createdById: userId,
                 },
             });
 
@@ -119,6 +144,31 @@ export const deleteChat = async ({ chatId }: { chatId: string }, domain: string)
                     orgId: org.id,
                 },
             });
+
+            return {
+                success: true,
+            }
         })
     )
 );
+
+export const getChatInfo = async ({ chatId }: { chatId: string }, domain: string) => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const chat = await prisma.chat.findUnique({
+                where: {
+                    id: chatId,
+                    orgId: org.id,
+                    createdById: userId,
+                },
+            });
+
+            if (!chat) {
+                return notFound();
+            }
+
+            return {
+                name: chat.name,
+            }
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+)
