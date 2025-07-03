@@ -51,6 +51,7 @@ export const ChatThread = ({
         messages,
         error,
         status,
+        stop,
     } = useChat({
         id,
         initialMessages,
@@ -251,6 +252,7 @@ export const ChatThread = ({
                         preferredSuggestionsBoxPlacement="top-start"
                         selectedRepos={selectedRepos}
                         isGenerating={status === "streaming" || status === "submitted"}
+                        onStop={stop}
                     />
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                         <ChatBoxTools
