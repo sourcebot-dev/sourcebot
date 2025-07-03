@@ -8,8 +8,6 @@ import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation";
 import { Copy, CheckCircle2, ChevronRight, MoreHorizontal } from "lucide-react";
 import { useCallback, useState, useMemo, useRef, useEffect } from "react";
 import { useToast } from "@/components/hooks/use-toast";
-import { usePrefetchFolderContents } from "@/hooks/usePrefetchFolderContents";
-import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -62,8 +60,6 @@ export const PathHeader = ({
     const { navigateToPath } = useBrowseNavigation();
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
-    const { prefetchFolderContents } = usePrefetchFolderContents();
-    const { prefetchFileSource } = usePrefetchFileSource();
     
     const containerRef = useRef<HTMLDivElement>(null);
     const breadcrumbsRef = useRef<HTMLDivElement>(null);
@@ -188,19 +184,6 @@ export const PathHeader = ({
         });
     }, [repo.name, branchDisplayName, navigateToPath, pathType]);
 
-    const onBreadcrumbMouseEnter = useCallback((segment: BreadcrumbSegment) => {
-        if (segment.isLastSegment && pathType === 'blob') {
-            prefetchFileSource(repo.name, branchDisplayName ?? 'HEAD', segment.fullPath);
-        } else {
-            prefetchFolderContents(repo.name, branchDisplayName ?? 'HEAD', segment.fullPath);
-        }
-    }, [
-        repo.name,
-        branchDisplayName,
-        prefetchFolderContents,
-        pathType,
-        prefetchFileSource,
-    ]);
 
     const renderSegmentWithHighlight = (segment: BreadcrumbSegment) => {
         if (!segment.highlightRange) {
@@ -274,7 +257,6 @@ export const PathHeader = ({
                                         <DropdownMenuItem
                                             key={segment.fullPath}
                                             onClick={() => onBreadcrumbClick(segment)}
-                                            onMouseEnter={() => onBreadcrumbMouseEnter(segment)}
                                             className="font-mono text-sm cursor-pointer"
                                         >
                                             {renderSegmentWithHighlight(segment)}
@@ -292,7 +274,6 @@ export const PathHeader = ({
                                     "font-mono text-sm truncate cursor-pointer hover:underline",
                                 )}
                                 onClick={() => onBreadcrumbClick(segment)}
-                                onMouseEnter={() => onBreadcrumbMouseEnter(segment)}
                             >
                                 {renderSegmentWithHighlight(segment)}
                             </span>

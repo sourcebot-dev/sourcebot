@@ -10,7 +10,6 @@ import { useDomain } from "@/hooks/useDomain";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useBrowseNavigation } from "../hooks/useBrowseNavigation";
 import { useBrowseState } from "../hooks/useBrowseState";
-import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
 import { useBrowseParams } from "../hooks/useBrowseParams";
 import { FileTreeItemIcon } from "@/features/fileTree/components/fileTreeItemIcon";
 import { useLocalStorage } from "usehooks-ts";
@@ -36,7 +35,6 @@ export const FileSearchCommandDialog = () => {
     const inputRef = useRef<HTMLInputElement>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const { navigateToPath } = useBrowseNavigation();
-    const { prefetchFileSource } = usePrefetchFileSource();
 
     const [recentlyOpened, setRecentlyOpened] = useLocalStorage<FileTreeItem[]>(`recentlyOpenedFiles-${repoName}`, []);
 
@@ -122,14 +120,6 @@ export const FileSearchCommandDialog = () => {
         });
     }, [navigateToPath, repoName, revisionName, setRecentlyOpened, updateBrowseState]);
 
-    const onMouseEnter = useCallback((file: FileTreeItem) => {
-        prefetchFileSource(
-            repoName,
-            revisionName ?? 'HEAD',
-            file.path
-        );
-    }, [prefetchFileSource, repoName, revisionName]);
-
     // @note: We were hitting issues when the user types into the input field while the files are still
     // loading. The workaround was to set `disabled` when loading and then focus the input field when
     // the files are loaded, hence the `useEffect` below.
@@ -181,7 +171,6 @@ export const FileSearchCommandDialog = () => {
                                                     key={file.path}
                                                     file={file}
                                                     onSelect={() => onSelect(file)}
-                                                    onMouseEnter={() => onMouseEnter(file)}
                                                 />
                                             );
                                         })}
@@ -196,7 +185,6 @@ export const FileSearchCommandDialog = () => {
                                                     file={file}
                                                     match={match}
                                                     onSelect={() => onSelect(file)}
-                                                    onMouseEnter={() => onMouseEnter(file)}
                                                 />
                                             );
                                         })}
@@ -223,20 +211,17 @@ interface SearchResultComponentProps {
         to: number;
     };
     onSelect: () => void;
-    onMouseEnter: () => void;
 }
 
 const SearchResultComponent = ({
     file,
     match,
     onSelect,
-    onMouseEnter,
 }: SearchResultComponentProps) => {
     return (
         <CommandItem
             key={file.path}
             onSelect={onSelect}
-            onMouseEnter={onMouseEnter}
         >
             <div className="flex flex-row gap-2 w-full cursor-pointer relative">
                 <FileTreeItemIcon item={file} className="mt-1" />
