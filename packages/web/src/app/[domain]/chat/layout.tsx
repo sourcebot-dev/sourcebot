@@ -1,9 +1,9 @@
 
 import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
-import { Separator } from '@/components/ui/separator';
-import { TopBar } from '../components/topBar';
 import { ChatSidePanel } from './components/chatSidePanel';
+import { TopBar } from '../components/topBar';
+import { ChatName } from './components/chatName';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -15,12 +15,11 @@ interface LayoutProps {
 export default function Layout({ children, params: { domain } }: LayoutProps) {
     return (
         <div className="flex flex-col h-screen w-screen">
-            <div className='sticky top-0 left-0 right-0 z-10'>
-                <TopBar
-                    domain={domain}
-                />
-                <Separator />
-            </div>
+            <TopBar
+                domain={domain}
+            >
+                <ChatName />
+            </TopBar>
             <ResizablePanelGroup
                 direction="horizontal"
             >

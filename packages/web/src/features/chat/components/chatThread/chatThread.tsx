@@ -62,9 +62,11 @@ export const ChatThread = ({
             "X-Org-Domain": domain,
         },
         onFinish: () => {
-            queryClient.invalidateQueries({
-                queryKey: ['recent-chats', domain],
-            });
+            queryClient.invalidateQueries(
+                {
+                    queryKey: ['chat'],
+                },
+            );
         }
     });
 

@@ -71,7 +71,7 @@ export function RepositorySnapshot({
                 {`Search ${indexedRepos.length} `}
                 <Link
                     href={`${domain}/repos`}
-                    className="text-blue-500"
+                    className="text-link"
                 >
                     {indexedRepos.length > 1 ? 'repositories' : 'repository'}
                 </Link>

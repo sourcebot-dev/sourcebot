@@ -49,7 +49,7 @@ export const useCreateNewChatThread = () => {
         );
 
         queryClient.invalidateQueries({
-            queryKey: ['recent-chats'],
+            queryKey: ['chat'],
         }).then(() => {
             router.push(url);
         });
