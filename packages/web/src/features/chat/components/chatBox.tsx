@@ -9,8 +9,9 @@ import { insertMention, toString, word } from "@/features/chat/utils";
 import { useDomain } from "@/hooks/useDomain";
 import { cn, IS_MAC, unwrapServiceError } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
+import { StopIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { ArrowUp, Loader2, StopCircleIcon } from "lucide-react";
 import { Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -21,6 +22,7 @@ type SuggestionMode = "file" | "none";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
+    onStop?: () => void;
     selectedRepos: string[];
     preferredSuggestionsBoxPlacement?: "top-start" | "bottom-start";
     className?: string;
@@ -30,6 +32,7 @@ interface ChatBoxProps {
 
 export const ChatBox = ({
     onSubmit: _onSubmit,
+    onStop,
     selectedRepos,
     preferredSuggestionsBoxPlacement = "bottom-start",
     className,
@@ -261,19 +264,37 @@ export const ChatBox = ({
                 onKeyDown={onKeyDown}
             />
             <div className="ml-auto z-10">
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="w-6 h-6"
-                    disabled={!isSubmitEnabled}
-                    onClick={onSubmit}
-                >
-                    {(isRedirecting || isGenerating) ? (
+                {isRedirecting ? (
+                    <Button
+                        variant="default"
+                        disabled={true}
+                        size="icon"
+                        className="w-6 h-6"
+                    >
                         <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
+                    </Button>
+                ) :
+                isGenerating ? (
+                    <Button
+                        variant="default"
+                        size="sm"
+                        className="h-8"
+                        onClick={onStop}
+                    >
+                        <StopCircleIcon className="w-4 h-4" />
+                        Stop
+                    </Button>
+                ) : (
+                    <Button
+                        variant={isSubmitEnabled ? "default" : "outline"}
+                        size="sm"
+                        className="w-6 h-6"
+                        onClick={onSubmit}
+                        disabled={!isSubmitEnabled}
+                    >
                         <ArrowUp className="w-4 h-4" />
-                    )}
-                </Button>
+                    </Button>
+                )}
             </div>
             {suggestionMode === "file" && createPortal(
                 <div
