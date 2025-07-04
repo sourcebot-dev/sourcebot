@@ -1,20 +1,34 @@
 'use client';
 
-import { UIMessage } from 'ai';
 import { Loader2 } from 'lucide-react';
 import { forwardRef, memo, useMemo } from 'react';
 import { MarkdownUIPart } from './markdownUIPart';
 import { MessageAvatar } from './messageAvatar';
-import { ToolUIPart } from './toolUIPart';
 import { ReasoningUIPart as ReasoningUIPartComponent } from './reasoningUIPart';
-import { TextUIPart, ReasoningUIPart, ToolInvocationUIPart, SourceUIPart, FileUIPart, StepStartUIPart } from '@ai-sdk/ui-utils';
+import { SBChatMessage } from '../../types';
+import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
+import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
 
 interface MessageProps {
-    message: UIMessage;
+    message: SBChatMessage;
     isStreaming: boolean;
 }
 
 export const Message = memo(forwardRef<HTMLDivElement, MessageProps>(({ message, isStreaming }, ref) => {
+
+    const parts = useMemo(() => {
+        let reasoningIndex = 0;
+        return message.parts.map((part) => {
+            const output = { part, reasoningIndex }
+
+            if (part.type === 'reasoning') {
+                reasoningIndex++;
+            }
+
+            return output;
+        });
+    }, [message.parts]);
+
     return (
         <div
             ref={ref}
@@ -32,17 +46,49 @@ export const Message = memo(forwardRef<HTMLDivElement, MessageProps>(({ message,
                         </div>
                     )}
 
-                    {message.parts.length > 0 && (
+                    {parts.length > 0 && (
                         <div className="select-text">
-                            {message.parts.map((part, index) => {
-                                return (
-                                    <MessagePart
-                                        key={`${message.id}-${index}`}
-                                        part={part}
-                                        isStreaming={isStreaming}
-                                        isLatestPart={index === message.parts.length - 1}
-                                    />
-                                )
+                            {parts.map(({ part, reasoningIndex }, index) => {
+                                const isActive = isStreaming && index === parts.length - 1;
+
+                                switch (part.type) {
+                                    case 'text':
+                                        return (
+                                            <MarkdownUIPart
+                                                content={part.text}
+                                                isStreaming={isStreaming}
+                                            />
+                                        )
+                                    case 'step-start':
+                                        break;
+                                    case 'tool-readFiles':
+                                        return (
+                                            <ReadFilesToolComponent
+                                                part={part}
+                                            />
+                                        )
+                                    case 'tool-searchCode':
+                                        return (
+                                            <SearchCodeToolComponent
+                                                part={part}
+                                            />
+                                        )
+                                    case 'reasoning':
+                                        const duration = message.metadata?.reasoningDurations?.[reasoningIndex];
+                                        return (
+                                            <ReasoningUIPartComponent
+                                                part={part}
+                                                isStreaming={isStreaming}
+                                                isActive={isActive}
+                                                duration={duration}
+                                            />
+                                        )
+                                    case 'file':
+                                    default:
+                                        return (
+                                            <p>Unknown part type: {part.type}</p>
+                                        )
+                                }
                             })}
                         </div>
                     )}
@@ -53,47 +99,3 @@ export const Message = memo(forwardRef<HTMLDivElement, MessageProps>(({ message,
 }));
 
 Message.displayName = 'Message';
-
-interface MessagePartProps {
-    part: TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart;
-    isStreaming: boolean;
-    isLatestPart: boolean;
-}
-
-const MessagePart = ({ part, isStreaming, isLatestPart }: MessagePartProps) => {
-    const isActive = useMemo(() => {
-        return isStreaming && isLatestPart;
-    }, [isStreaming, isLatestPart]);
-
-    switch (part.type) {
-        case 'text':
-            return (
-                <MarkdownUIPart
-                    content={part.text}
-                    isStreaming={isStreaming}
-                />
-            )
-        case 'step-start':
-            break;
-        case 'tool-invocation':
-            return (
-                <ToolUIPart
-                    part={part}
-                />
-            )
-        case 'reasoning':
-            return (
-                <ReasoningUIPartComponent
-                    part={part}
-                    isStreaming={isStreaming}
-                    isActive={isActive}
-                />
-            )
-        case 'source':
-        case 'file':
-        default:
-            return (
-                <p>Unknown part type: {part.type}</p>
-            )
-    }
-}

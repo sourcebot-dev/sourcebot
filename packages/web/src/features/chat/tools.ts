@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { search } from "@/features/search/searchApi"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { tool } from "ai";
+import { InferToolInput, InferToolOutput, InferUITool, tool, ToolUIPart } from "ai";
 import { isServiceError } from "@/lib/utils";
 import { getFileSource } from "../search/fileSourceApi";
 import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/actions";
@@ -10,7 +10,7 @@ import { addLineNumbers } from "./utils";
 
 const findSymbolReferencesTool = tool({
     description: `Finds references to a symbol in the codebase.`,
-    parameters: z.object({
+    inputSchema: z.object({
         symbol: z.string().describe("The symbol to find references to"),
         language: z.string().describe("The programming language of the symbol"),
         revision: z.string().describe("The revision to search for the symbol in"),
@@ -39,9 +39,14 @@ const findSymbolReferencesTool = tool({
 
 });
 
+export type FindSymbolReferencesTool = InferUITool<typeof findSymbolReferencesTool>;
+export type FindSymbolReferencesToolInput = InferToolInput<typeof findSymbolReferencesTool>;
+export type FindSymbolReferencesToolOutput = InferToolOutput<typeof findSymbolReferencesTool>;
+export type FindSymbolReferencesToolUIPart = ToolUIPart<{ [toolNames.findSymbolReferences]: FindSymbolReferencesTool }>
+
 const findSymbolDefinitionsTool = tool({
     description: `Finds definitions of a symbol in the codebase.`,
-    parameters: z.object({
+    inputSchema: z.object({
         symbol: z.string().describe("The symbol to find definitions of"),
         language: z.string().describe("The programming language of the symbol"),
         revision: z.string().describe("The revision to search for the symbol in"),
@@ -69,9 +74,14 @@ const findSymbolDefinitionsTool = tool({
     }
 });
 
+export type FindSymbolDefinitionsTool = InferUITool<typeof findSymbolDefinitionsTool>;
+export type FindSymbolDefinitionsToolInput = InferToolInput<typeof findSymbolDefinitionsTool>;
+export type FindSymbolDefinitionsToolOutput = InferToolOutput<typeof findSymbolDefinitionsTool>;
+export type FindSymbolDefinitionsToolUIPart = ToolUIPart<{ [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool }>
+
 const readFilesTool = tool({
     description: `Reads the contents of multiple files at the given paths.`,
-    parameters: z.object({
+    inputSchema: z.object({
         paths: z.array(z.string()).describe("The paths to the files to read"),
         repository: z.string().describe("The repository to read the files from"),
         revision: z.string().describe("The revision to read the files from"),
@@ -101,13 +111,15 @@ const readFilesTool = tool({
     }
 });
 
-export type ReadFilesToolRequest = z.infer<typeof readFilesTool.parameters>;
-export type ReadFilesToolResponse = Awaited<ReturnType<typeof readFilesTool.execute>>;
+export type ReadFilesTool = InferUITool<typeof readFilesTool>;
+export type ReadFilesToolInput = InferToolInput<typeof readFilesTool>;
+export type ReadFilesToolOutput = InferToolOutput<typeof readFilesTool>;
+export type ReadFilesToolUIPart = ToolUIPart<{ [toolNames.readFiles]: ReadFilesTool }>
 
 const createCodeSearchTool = (repos: string[]) => tool({
     description: `Fetches code that matches the provided regex pattern in \`query\`. This is NOT a semantic search.
     Results are returned as an array of matching files, with the file's URL, repository, and language.`,
-    parameters: z.object({
+    inputSchema: z.object({
         query: z.string().describe("The regex pattern to search for in the code"),
     }),
     execute: async ({ query: _query }) => {
@@ -145,8 +157,10 @@ const createCodeSearchTool = (repos: string[]) => tool({
     },
 });
 
-export type SearchCodeToolRequest = z.infer<ReturnType<typeof createCodeSearchTool>['parameters']>;
-export type SearchCodeToolResponse = Awaited<ReturnType<ReturnType<typeof createCodeSearchTool>['execute']>>;
+export type SearchCodeTool = InferUITool<ReturnType<typeof createCodeSearchTool>>;
+export type SearchCodeToolInput = InferToolInput<ReturnType<typeof createCodeSearchTool>>;
+export type SearchCodeToolOutput = InferToolOutput<ReturnType<typeof createCodeSearchTool>>;
+export type SearchCodeToolUIPart = ToolUIPart<{ [toolNames.searchCode]: SearchCodeTool }>
 
 export const toolNames = {
     searchCode: 'searchCode',
@@ -154,6 +168,13 @@ export const toolNames = {
     findSymbolReferences: 'findSymbolReferences',
     findSymbolDefinitions: 'findSymbolDefinitions',
 } as const;
+
+export type ToolTypes = {
+    [toolNames.searchCode]: SearchCodeTool,
+    [toolNames.readFiles]: ReadFilesTool,
+    [toolNames.findSymbolReferences]: FindSymbolReferencesTool,
+    [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool,
+}
 
 export const getTools = ({ repos }: { repos: string[] }) => {
     return {

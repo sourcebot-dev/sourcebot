@@ -3,10 +3,10 @@
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
-import { CustomEditor, ModelProviderInfo } from '@/features/chat/types';
+import { CustomEditor, ModelProviderInfo, SBChatMessage } from '@/features/chat/types';
 import { getAllMentionElements, resetEditor, toString } from '@/features/chat/utils';
-import { Message, useChat } from '@ai-sdk/react';
-import { CreateMessage } from '@ai-sdk/ui-utils';
+import { useChat } from '@ai-sdk/react';
+import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Descendant } from 'slate';
@@ -24,8 +24,8 @@ type ChatHistoryState = {
 
 interface ChatThreadProps {
     id?: string | undefined;
-    initialMessages?: Message[];
-    inputMessage?: CreateMessage;
+    initialMessages?: SBChatMessage[];
+    inputMessage?: CreateUIMessage<SBChatMessage>;
     defaultSelectedRepos?: string[];
     modelProviderInfo?: ModelProviderInfo;
 }
@@ -47,21 +47,23 @@ export const ChatThread = ({
     const queryClient = useQueryClient();
 
     const {
-        append,
         messages,
+        sendMessage,
         error,
         status,
         stop,
-    } = useChat({
+    } = useChat<SBChatMessage>({
         id,
-        initialMessages,
-        sendExtraMessageFields: true,
-        body: {
-            selectedRepos,
-        },
-        headers: {
-            "X-Org-Domain": domain,
-        },
+        messages: initialMessages,
+        transport: new DefaultChatTransport({
+            api: '/api/chat',
+            body: {
+                selectedRepos,
+            },
+            headers: {
+                "X-Org-Domain": domain,
+            }
+        }),
         onFinish: () => {
             queryClient.invalidateQueries(
                 {
@@ -76,10 +78,10 @@ export const ChatThread = ({
             return;
         }
 
-        append(inputMessage);
+        sendMessage(inputMessage);
         setIsAutoScrollEnabled(true);
         hasSubmittedInputMessage.current = true;
-    }, [inputMessage, append]);
+    }, [inputMessage, sendMessage]);
 
     // Track scroll position changes.
     useEffect(() => {
@@ -166,16 +168,17 @@ export const ChatThread = ({
         const text = toString(children);
         const mentions = getAllMentionElements(children);
 
-        append({
-            role: "user",
-            content: text,
-            annotations: mentions.map((mention) => mention.data),
-        });
+        sendMessage({
+            text,
+            metadata: {
+                mentions: mentions.map((mention) => mention.data),
+            }
+        })
 
         setIsAutoScrollEnabled(true);
 
         resetEditor(editor);
-    }, [append]);
+    }, [sendMessage]);
 
     return (
         <>
@@ -201,11 +204,11 @@ export const ChatThread = ({
                             </div>
                         ) : (
                             <>
-                                {messages.map((m, index) => {
+                                {messages.map((message, index) => {
                                     return (
                                         <MessageComponent
-                                            key={m.id}
-                                            message={m}
+                                            key={message.id}
+                                            message={message}
                                             isStreaming={index === messages.length - 1 && status === "streaming"}
                                             ref={index === messages.length - 1 ? latestMessageRef : null}
                                         />

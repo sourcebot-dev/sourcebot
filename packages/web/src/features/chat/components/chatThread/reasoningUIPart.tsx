@@ -1,39 +1,37 @@
 'use client';
 
-import { ReasoningUIPart as ReasoningUIPartType } from '@ai-sdk/ui-utils';
-import { ToolHeader } from './toolUIPart/shared';
+import { ReasoningUIPart as ReasoningUIPartType } from 'ai';
+import { ToolHeader } from './tools/shared';
 import { MarkdownUIPart } from './markdownUIPart';
 import { Brain, Loader2 } from 'lucide-react';
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 interface ReasoningUIPartProps {
     part: ReasoningUIPartType;
     isStreaming: boolean;
     isActive: boolean;
+    duration?: number;
 }
 
-export const ReasoningUIPart = ({ part, isStreaming, isActive }: ReasoningUIPartProps) => {
+export const ReasoningUIPart = ({ part, isStreaming, isActive, duration }: ReasoningUIPartProps) => {
     const [isExpanded, setIsExpanded] = useState(true);
-    const [elapsedTime, setElapsedTime] = useState(0);
-    const startTimeRef = useRef<number>(Date.now());
-    const isFinishedRef = useRef(false);
 
     useEffect(() => {
         setIsExpanded(isActive);
-
-        if (!isActive && !isFinishedRef.current) {
-            isFinishedRef.current = true;
-            setElapsedTime(Math.floor((Date.now() - startTimeRef.current) / 1000) || 0);
-        }
     }, [isActive]);
 
     const label = useMemo(() => {
         if (isActive) {
             return "Thinking...";
-        } else {
-            return `Thought for ${elapsedTime} second${elapsedTime !== 1 ? 's' : ''}`;
         }
-    }, [isActive, elapsedTime]);
+
+        if (duration) {
+            const seconds = Math.round(duration / 1000) || 1;
+            return `Thought for ${seconds} second${seconds !== 1 ? 's' : ''}`;
+        }
+
+        return 'Thought for unknown duration';
+    }, [isActive, duration]);
 
     return (
         <>
@@ -47,7 +45,7 @@ export const ReasoningUIPart = ({ part, isStreaming, isActive }: ReasoningUIPart
             />
             {isExpanded && (
                 <MarkdownUIPart
-                    content={part.reasoning}
+                    content={part.text}
                     isStreaming={isStreaming}
                     className="text-sm prose-p:text-muted-foreground prose-li:text-muted-foreground prose-li:marker:text-muted-foreground"
                 />

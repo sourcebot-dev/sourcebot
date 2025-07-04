@@ -1,8 +1,9 @@
-import { CreateMessage } from "ai";
+import { CreateUIMessage, UIDataTypes, UIMessage } from "ai";
 import { BaseEditor, Descendant } from "slate";
 import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
-
+import { z } from "zod";
+import { ToolTypes } from "./tools";
 
 export type CustomText = { text: string; }
 
@@ -12,18 +13,23 @@ export type ParagraphElement = {
     children: Descendant[];
 }
 
-export type FileMentionData = {
-    type: 'file';
-    repo: string;
-    path: string;
-    name: string;
-    language: string;
-    revision: string;
-}
+const fileMentionDataSchema = z.object({
+    type: z.literal('file'),
+    repo: z.string(),
+    path: z.string(),
+    name: z.string(),
+    language: z.string(),
+    revision: z.string(),
+});
 
+export const mentionDataSchema = z.discriminatedUnion('type', [
+    fileMentionDataSchema,
+]);
+
+export type MentionData = z.infer<typeof mentionDataSchema>;
 export type MentionElement = {
     type: 'mention';
-    data: FileMentionData;
+    data: MentionData;
     children: CustomText[];
 }
 
@@ -54,7 +60,7 @@ declare module 'slate' {
 export const SET_CHAT_STATE_QUERY_PARAM = 'setChatState';
 
 export type SetChatStatePayload = {
-    inputMessage: CreateMessage;
+    inputMessage: CreateUIMessage<SBChatMessage>;
     selectedRepos: string[];
 }
 
@@ -72,3 +78,18 @@ export type ModelProviderInfo = {
     model: string;
     displayName?: string;
 }
+
+export const sbChatMessageMetadataSchema = z.object({
+    reasoningDurations: z.array(z.number()).optional(),
+    totalUsage: z.object({
+        inputTokens: z.number().optional(),
+        outputTokens: z.number().optional(),
+        totalTokens: z.number().optional(),
+        reasoningTokens: z.number().optional(),
+        cachedInputTokens: z.number().optional(),
+    }).optional(),
+    mentions: z.array(mentionDataSchema).optional(),
+});
+
+export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
+export type SBChatMessage = UIMessage<SBChatMessageMetadata, UIDataTypes, ToolTypes>;

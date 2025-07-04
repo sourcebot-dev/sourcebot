@@ -1,10 +1,10 @@
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { CustomEditor, CustomText, FileMentionData, MentionElement, ModelProviderInfo, ParagraphElement } from "./types"
+import { CustomEditor, CustomText, MentionData, MentionElement, ModelProviderInfo, ParagraphElement } from "./types"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/useBrowseNavigation"
 import { env } from "@/env.mjs"
 
-export const insertMention = (editor: CustomEditor, data: FileMentionData, target?: Range | null) => {
+export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
     const mention: MentionElement = {
         type: 'mention',
         data,
