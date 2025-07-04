@@ -8,11 +8,11 @@ import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { CreateMessage } from "ai";
+import { CreateUIMessage } from "ai";
 import { createChat } from "./actions";
 import { isServiceError } from "@/lib/utils";
 import { createPathWithQueryParams } from "@/lib/utils";
-import { SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from "./types";
+import { SBChatMessage, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from "./types";
 
 export const useCreateNewChatThread = () => {
     const domain = useDomain();
@@ -25,10 +25,14 @@ export const useCreateNewChatThread = () => {
         const text = toString(children);
         const mentions = getAllMentionElements(children);
 
-        const inputMessage: CreateMessage = {
-            role: "user",
-            content: text,
-            annotations: mentions.map((mention) => mention.data),
+        const inputMessage: CreateUIMessage<SBChatMessage> = {
+            role: 'user',
+            parts: [
+                { type: 'text', text },
+            ],
+            metadata: {
+                mentions: mentions.map((mention) => mention.data),
+            }
         };
 
         setIsLoading(true);

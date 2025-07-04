@@ -9,7 +9,6 @@ import { insertMention, toString, word } from "@/features/chat/utils";
 import { useDomain } from "@/hooks/useDomain";
 import { cn, IS_MAC, unwrapServiceError } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
-import { StopIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUp, Loader2, StopCircleIcon } from "lucide-react";
 import { Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";

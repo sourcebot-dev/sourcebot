@@ -6,12 +6,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CreateMessage } from 'ai';
-import { ModelProviderInfo, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
+import { ModelProviderInfo, SBChatMessage, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
 import { loadChatMessages } from '@/features/chat/actions';
 import { unwrapServiceError } from '@/lib/utils';
 import { ResizablePanel } from '@/components/ui/resizable';
 import { useChatId } from '../../useChatId';
+import { CreateUIMessage } from 'ai';
 
 interface ChatThreadPanelProps {
     modelProviderInfo?: ModelProviderInfo;
@@ -28,7 +28,7 @@ export const ChatThreadPanel = ({
     const domain = useDomain();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [inputMessage, setInputMessage] = useState<CreateMessage | undefined>(undefined);
+    const [inputMessage, setInputMessage] = useState<CreateUIMessage<SBChatMessage> | undefined>(undefined);
     const [defaultSelectedRepos, setDefaultSelectedRepos] = useState<string[]>([]);
 
     const { data: messages, isPending, isError } = useQuery({

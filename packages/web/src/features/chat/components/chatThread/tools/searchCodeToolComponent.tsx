@@ -1,6 +1,6 @@
 'use client';
 
-import { SearchCodeToolRequest, SearchCodeToolResponse } from "@/features/chat/tools";
+import { SearchCodeToolUIPart } from "@/features/chat/tools";
 import { useDomain } from "@/hooks/useDomain";
 import { createPathWithQueryParams, isServiceError } from "@/lib/utils";
 import { useMemo, useState } from "react";
@@ -13,47 +13,43 @@ import { SearchQueryParams } from "@/lib/types";
 import { PlayIcon } from "@radix-ui/react-icons";
 
 
-interface SearchCodeToolProps {
-    request: SearchCodeToolRequest;
-    response?: SearchCodeToolResponse;
-}
-
-export const SearchCodeTool = ({ request: request, response }: SearchCodeToolProps) => {
+export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const domain = useDomain();
 
     const label = useMemo(() => {
-        if (!response) {
-            return `Searching...`;
+        switch (part.state) {
+            case 'input-streaming':
+                return 'Searching...';
+            case 'input-available':
+                return `Searching for "${part.input.query}"`;
+            case 'output-error':
+                return '"Search code" tool call failed';
+            case 'output-available':
+                return `Searched for "${part.input.query}"`;
         }
-
-        if (isServiceError(response)) {
-            return `Failed to search code`;
-        }
-
-        return `Searched for "${request.query}"`;
-    }, [request, response]);
+    }, [part]);
 
     return (
         <div className="my-4">
             <ToolHeader
-                isLoading={response === undefined}
-                isError={isServiceError(response)}
+                isLoading={part.state !== 'output-available' && part.state !== 'output-error'}
+                isError={part.state === 'output-error' || (part.state === 'output-available' && isServiceError(part.output))}
                 isExpanded={isExpanded}
                 label={label}
                 Icon={SearchIcon}
                 onExpand={setIsExpanded}
             />
-            {response !== undefined && isExpanded && (
+            {part.state === 'output-available' && isExpanded && (
                 <>
-                    {isServiceError(response) ? (
+                    {isServiceError(part.output) ? (
                         <TreeList>
-                            <span>Failed with the following error: <CodeSnippet className="text-sm text-destructive">{response.message}</CodeSnippet></span>
+                            <span>Failed with the following error: <CodeSnippet className="text-sm text-destructive">{part.output.message}</CodeSnippet></span>
                         </TreeList>
                     ) : (
                         <>
                             <TreeList>
-                                {response.files.map((file) => {
+                                {part.output.files.map((file) => {
                                     return (
                                         <FileListItem
                                             key={file.fileName}
@@ -65,7 +61,7 @@ export const SearchCodeTool = ({ request: request, response }: SearchCodeToolPro
                             </TreeList>
                             <Link
                                 href={createPathWithQueryParams(`/${domain}/search`,
-                                    [SearchQueryParams.query, response.query],
+                                    [SearchQueryParams.query, part.output.query],
                                 )}
                                 className='flex flex-row items-center gap-2 text-sm text-muted-foreground mt-2 ml-auto w-fit hover:text-foreground'
                             >

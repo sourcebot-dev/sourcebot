@@ -5,9 +5,9 @@ import { env } from "@/env.mjs";
 import { notFound } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
 import { OrgRole, Prisma } from "@sourcebot/db";
-import { Message } from "ai";
 import fs from 'fs';
 import path from 'path';
+import { SBChatMessage } from "./types";
 
 export const createChat = async (domain: string) => sew(() =>
     withAuth((userId) =>
@@ -41,11 +41,11 @@ export const loadChatMessages = async ({ chatId }: { chatId: string }, domain: s
                 return notFound();
             }
 
-            return chat.messages as unknown as Message[];
+            return chat.messages as unknown as SBChatMessage[];
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
 );
 
-export const saveChatMessages = async ({ chatId, messages }: { chatId: string, messages: Message[] }, domain: string) => sew(() =>
+export const saveChatMessages = async ({ chatId, messages }: { chatId: string, messages: SBChatMessage[] }, domain: string) => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const chat = await prisma.chat.findUnique({

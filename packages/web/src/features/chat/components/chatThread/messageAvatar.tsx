@@ -3,11 +3,11 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useThemeNormalized } from '@/hooks/useThemeNormalized';
-import { UIMessage } from 'ai';
 import { useSession } from 'next-auth/react';
+import { SBChatMessage } from '../../types';
 
 interface MessageAvatarProps {
-    role: UIMessage['role'];
+    role: SBChatMessage['role'];
     className?: string;
 }
 

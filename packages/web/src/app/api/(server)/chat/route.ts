@@ -1,22 +1,23 @@
 import { getRepos, sew, withAuth, withOrgMembership } from "@/actions";
 import { env } from "@/env.mjs";
+import { saveChatMessages, updateChatName } from "@/features/chat/actions";
 import { createSystemPrompt } from "@/features/chat/constants";
 import { getTools } from "@/features/chat/tools";
-import { FileMentionData } from "@/features/chat/types";
+import { SBChatMessageMetadata, SBChatMessage } from "@/features/chat/types";
 import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
 import { getFileSource } from "@/features/search/fileSourceApi";
+import { ErrorCode } from "@/lib/errorCodes";
+import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from "@ai-sdk/openai";
-import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { LanguageModelV2 } from "@ai-sdk/provider";
 import { OrgRole, RepoIndexingStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { appendResponseMessages, extractReasoningMiddleware, generateText, JSONValue, LanguageModel, Message, streamText, wrapLanguageModel } from "ai";
-import { saveChatMessages, updateChatName } from "@/features/chat/actions";
-import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { convertToModelMessages, generateText, JSONValue, stepCountIs, streamText } from "ai";
 import { StatusCodes } from "http-status-codes";
-import { ErrorCode } from "@/lib/errorCodes";
 import { z } from "zod";
 
 const logger = createLogger('chat-api');
@@ -58,38 +59,41 @@ export async function POST(req: Request) {
 }
 
 
-const chatHandler = ({ messages: chatMessages, id, selectedRepos }: { messages: Message[], id: string, selectedRepos: string[] }, domain: string) => sew(async () =>
+const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[], id: string, selectedRepos: string[] }, domain: string) => sew(async () =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async () => {
-            const annotations = chatMessages.flatMap((message) => message.annotations ?? []) as FileMentionData[];
+            // @todo: do we want to only include mentions from the latest message?
+            const mentions = messages.flatMap((message) => message.metadata?.mentions ?? []);
 
             // @todo: we can probably cache files per chat session.
             // That way we don't have to refetch files for every message.
-            const files = annotations.length > 0 ?
+            const files = mentions.length > 0 ?
                 (await Promise.all(
-                    annotations.map(async (file) => {
-                        const { path, repo, revision } = file;
+                    mentions
+                        .filter((mention) => mention.type === 'file')
+                        .map(async (data) => {
+                            const { path, repo, revision } = data;
 
-                        const fileSource = await getFileSource({
-                            fileName: path,
-                            repository: repo,
-                            branch: revision,
-                        }, domain);
+                            const fileSource = await getFileSource({
+                                fileName: path,
+                                repository: repo,
+                                branch: revision,
+                            }, domain);
 
-                        if (isServiceError(fileSource)) {
-                            // @todo: handle this
-                            logger.error("Error fetching file source:", fileSource)
-                            return undefined;
-                        }
+                            if (isServiceError(fileSource)) {
+                                // @todo: handle this
+                                logger.error("Error fetching file source:", fileSource)
+                                return undefined;
+                            }
 
-                        return {
-                            ...fileSource,
-                            path,
-                            repo,
-                            revision,
-                        };
+                            return {
+                                ...fileSource,
+                                path,
+                                repo,
+                                revision,
+                            };
 
-                    }))
+                        }))
                 ).filter((file) => file !== undefined) : undefined;
 
 
@@ -111,73 +115,85 @@ const chatHandler = ({ messages: chatMessages, id, selectedRepos }: { messages: 
             })();
 
             const { model, providerOptions, headers } = getModel();
-
             const systemPrompt = createSystemPrompt({
                 files,
                 repos: reposAccessibleToLLM,
             });
 
-            const messages = [
-                {
-                    role: "system" as const,
-                    content: systemPrompt,
-                },
-                ...chatMessages,
-            ];
+            if (
+                messages.length === 1 &&
+                messages[0].role === "user" &&
+                messages[0].parts.length >= 1 &&
+                messages[0].parts[0].type === 'text'
+            ) {
+                const content = messages[0].parts[0].text;
+                // non-blocking
+                generateChatTitle(content, model).then((title) => {
+                    if (title) {
+                        updateChatName({
+                            chatId: id,
+                            name: title,
+                        }, domain);
+                    }
+                })
+            }
+
+            let reasoningTimer: Date | undefined;
+            let metadata: SBChatMessageMetadata = {};
 
             try {
                 const result = streamText({
-                    model: wrapLanguageModel({
-                        model,
-                        middleware: [
-                            // @todo: not sure if this is needed?
-                            extractReasoningMiddleware({
-                                tagName: 'reasoning',
-                            })
-                        ]
-                    }),
+                    model,
                     providerOptions,
                     headers,
-                    messages,
+                    system: systemPrompt,
+                    messages: convertToModelMessages(messages),
                     tools: getTools({ repos: selectedRepos }),
+                    // @todo: add temperature parameter
                     // temperature: 0.3, // Lower temperature for more focused reasoning
-                    maxSteps: 20,
-                    maxTokens: env.SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS, // Increased for tool results and responses
+                    stopWhen: stepCountIs(5),
+                    maxOutputTokens: env.SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS, // Increased for tool results and responses
                     toolChoice: "auto", // Let the model decide when to use tools
-                    onStepFinish: (step) => {
-                        logger.debug(`Step finished: ${step.stepType} ${step.isContinued}`)
-                        if (step.toolCalls) {
-                            logger.debug(`Tool calls in step: ${step.toolCalls.length}`)
-                        }
-                        if (step.toolResults) {
-                            logger.debug(`Tool results in step: ${step.toolResults.length}`)
-                        }
-                    },
-                    onFinish: async ({ response }) => {
-                        await saveChatMessages({
-                            chatId: id,
-                            messages: appendResponseMessages({
-                                messages: chatMessages,
-                                responseMessages: response.messages,
-                            }),
-                        }, domain);
-
-                        if (chatMessages.length === 1 && chatMessages[0].role === "user") {
-                            const title = await generateChatTitle(chatMessages[0].content, model);
-                            if (title) {
-                                await updateChatName({
-                                    chatId: id,
-                                    name: title,
-                                }, domain);
-                            }
-                        }
-                    }
                 });
 
-                return result.toDataStreamResponse({
+                return result.toUIMessageStreamResponse({
+                    originalMessages: messages,
                     // @see: https://ai-sdk.dev/docs/troubleshooting/use-chat-an-error-occurred
-                    getErrorMessage: errorHandler,
+                    onError: errorHandler,
                     sendReasoning: true,
+                    messageMetadata: ({ part }): SBChatMessageMetadata | undefined => {
+                        if (part.type === 'reasoning-start') {
+                            reasoningTimer = new Date();
+                        }
+
+                        if (part.type === 'reasoning-end' && reasoningTimer) {
+                            const duration = new Date().getTime() - reasoningTimer.getTime();
+                            metadata.reasoningDurations = [
+                                ...(metadata.reasoningDurations ?? []),
+                                duration,
+                            ];
+                            return metadata;
+                        }
+
+                        if (part.type === 'finish') {
+                            metadata.totalUsage = {
+                                inputTokens: part.totalUsage.inputTokens,
+                                outputTokens: part.totalUsage.outputTokens,
+                                totalTokens: part.totalUsage.totalTokens,
+                                reasoningTokens: part.totalUsage.reasoningTokens,
+                                cachedInputTokens: part.totalUsage.cachedInputTokens,
+                            }
+                            return metadata;
+                        }
+                    },
+                    onFinish: async ({ messages }) => {
+                        await saveChatMessages({
+                            chatId: id,
+                            messages
+                        }, domain);
+
+                        
+                    }
                 });
             } catch (error) {
                 logger.error("Error:", error)
@@ -192,7 +208,7 @@ const chatHandler = ({ messages: chatMessages, id, selectedRepos }: { messages: 
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
     ));
 
-const generateChatTitle = async (message: string, model: LanguageModel) => {
+const generateChatTitle = async (message: string, model: LanguageModelV2) => {
     try {
         const prompt = `Convert this question into a short topic title (max 50 characters). 
 
@@ -213,7 +229,7 @@ User question: ${message}`;
         const result = await generateText({
             model,
             prompt,
-            maxTokens: 20,
+            maxOutputTokens: 20,
         });
 
         return result.text;
@@ -224,7 +240,7 @@ User question: ${message}`;
 }
 
 const getModel = (): {
-    model: LanguageModel,
+    model: LanguageModelV2,
     providerOptions?: Record<string, Record<string, JSONValue>>,
     headers?: Record<string, string>,
 } => {
