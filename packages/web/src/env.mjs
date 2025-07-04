@@ -98,6 +98,7 @@ export const env = createEnv({
 
         ANTHROPIC_API_KEY: z.string().optional(),
         ANTHROPIC_MODEL: z.string().optional(),
+        ANTHROPIC_THINKING_BUDGET_TOKENS: numberSchema.default(12000),
 
         OPENAI_API_KEY: z.string().optional(),
         OPENAI_MODEL: z.string().optional(),
@@ -112,6 +113,7 @@ export const env = createEnv({
         AWS_REGION: z.string().optional(),
 
         SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS: numberSchema.default(5000),
+        DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in

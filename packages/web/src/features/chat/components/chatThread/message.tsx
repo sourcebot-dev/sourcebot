@@ -2,10 +2,12 @@
 
 import { UIMessage } from 'ai';
 import { Loader2 } from 'lucide-react';
-import { forwardRef, memo } from 'react';
+import { forwardRef, memo, useMemo } from 'react';
 import { MarkdownUIPart } from './markdownUIPart';
 import { MessageAvatar } from './messageAvatar';
 import { ToolUIPart } from './toolUIPart';
+import { ReasoningUIPart as ReasoningUIPartComponent } from './reasoningUIPart';
+import { TextUIPart, ReasoningUIPart, ToolInvocationUIPart, SourceUIPart, FileUIPart, StepStartUIPart } from '@ai-sdk/ui-utils';
 
 interface MessageProps {
     message: UIMessage;
@@ -31,34 +33,16 @@ export const Message = memo(forwardRef<HTMLDivElement, MessageProps>(({ message,
                     )}
 
                     {message.parts.length > 0 && (
-                        <div>
+                        <div className="select-text">
                             {message.parts.map((part, index) => {
-                                switch (part.type) {
-                                    case 'text':
-                                        return (
-                                            <MarkdownUIPart
-                                                key={index}
-                                                part={part}
-                                                isStreaming={isStreaming}
-                                            />
-                                        )
-                                    case 'step-start':
-                                        break;
-                                    case 'tool-invocation':
-                                        return (
-                                            <ToolUIPart
-                                                key={index}
-                                                part={part}
-                                            />
-                                        )
-                                    case 'reasoning':
-                                    case 'source':
-                                    case 'file':
-                                    default:
-                                        return (
-                                            <p key={index}>Unknown part type: {part.type}</p>
-                                        )
-                                }
+                                return (
+                                    <MessagePart
+                                        key={`${message.id}-${index}`}
+                                        part={part}
+                                        isStreaming={isStreaming}
+                                        isLatestPart={index === message.parts.length - 1}
+                                    />
+                                )
                             })}
                         </div>
                     )}
@@ -69,3 +53,47 @@ export const Message = memo(forwardRef<HTMLDivElement, MessageProps>(({ message,
 }));
 
 Message.displayName = 'Message';
+
+interface MessagePartProps {
+    part: TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart;
+    isStreaming: boolean;
+    isLatestPart: boolean;
+}
+
+const MessagePart = ({ part, isStreaming, isLatestPart }: MessagePartProps) => {
+    const isActive = useMemo(() => {
+        return isStreaming && isLatestPart;
+    }, [isStreaming, isLatestPart]);
+
+    switch (part.type) {
+        case 'text':
+            return (
+                <MarkdownUIPart
+                    content={part.text}
+                    isStreaming={isStreaming}
+                />
+            )
+        case 'step-start':
+            break;
+        case 'tool-invocation':
+            return (
+                <ToolUIPart
+                    part={part}
+                />
+            )
+        case 'reasoning':
+            return (
+                <ReasoningUIPartComponent
+                    part={part}
+                    isStreaming={isStreaming}
+                    isActive={isActive}
+                />
+            )
+        case 'source':
+        case 'file':
+        default:
+            return (
+                <p>Unknown part type: {part.type}</p>
+            )
+    }
+}

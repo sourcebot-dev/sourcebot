@@ -4,7 +4,6 @@ import { CodeSnippet } from '@/app/components/codeSnippet';
 import { useDomain } from '@/hooks/useDomain';
 import { SearchQueryParams } from '@/lib/types';
 import { createPathWithQueryParams } from '@/lib/utils';
-import { TextUIPart } from '@ai-sdk/ui-utils';
 import type { Element, Root } from "hast";
 import { CopyIcon, SearchIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -14,6 +13,7 @@ import remarkGfm from 'remark-gfm';
 import type { Plugin } from "unified";
 import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
+import { cn } from '@/lib/utils';
 
 
 const annotateCodeBlocks: Plugin<[], Root> = () => {
@@ -34,11 +34,12 @@ const annotateCodeBlocks: Plugin<[], Root> = () => {
 }
 
 interface MarkdownUIPartProps {
-    part: TextUIPart;
+    content: string;
     isStreaming: boolean;
+    className?: string;
 }
 
-export const MarkdownUIPart = ({ part, isStreaming }: MarkdownUIPartProps) => {
+export const MarkdownUIPart = ({ content, isStreaming, className }: MarkdownUIPartProps) => {
     const domain = useDomain();
     const router = useRouter();
 
@@ -117,7 +118,7 @@ export const MarkdownUIPart = ({ part, isStreaming }: MarkdownUIPartProps) => {
 
     return (
         <div
-            className="prose dark:prose-invert prose-p:text-foreground prose-li:text-foreground prose-li:marker:text-foreground prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none prose-hr:my-5 max-w-none [&>*:first-child]:mt-0"
+            className={cn("prose dark:prose-invert prose-p:text-foreground prose-li:text-foreground prose-li:marker:text-foreground prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none prose-hr:my-5 max-w-none [&>*:first-child]:mt-0", className)}
         >
             <Markdown
                 remarkPlugins={[
@@ -131,7 +132,7 @@ export const MarkdownUIPart = ({ part, isStreaming }: MarkdownUIPartProps) => {
                     code: renderCode,
                 }}
             >
-                {part.text}
+                {content}
             </Markdown>
         </div>
     );

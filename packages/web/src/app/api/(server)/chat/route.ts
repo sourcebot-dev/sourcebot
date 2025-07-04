@@ -6,13 +6,13 @@ import { FileMentionData } from "@/features/chat/types";
 import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
 import { getFileSource } from "@/features/search/fileSourceApi";
 import { isServiceError } from "@/lib/utils";
-import { createAnthropic } from '@ai-sdk/anthropic';
+import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { OrgRole, RepoIndexingStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { appendResponseMessages, extractReasoningMiddleware, generateText, LanguageModel, Message, streamText, wrapLanguageModel } from "ai";
+import { appendResponseMessages, extractReasoningMiddleware, generateText, JSONValue, LanguageModel, Message, streamText, wrapLanguageModel } from "ai";
 import { saveChatMessages, updateChatName } from "@/features/chat/actions";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
@@ -110,7 +110,7 @@ const chatHandler = ({ messages: chatMessages, id, selectedRepos }: { messages: 
                 return repos.map((repo) => repo.repoName);
             })();
 
-            const model = getModel();
+            const { model, providerOptions, headers } = getModel();
 
             const systemPrompt = createSystemPrompt({
                 files,
@@ -136,6 +136,8 @@ const chatHandler = ({ messages: chatMessages, id, selectedRepos }: { messages: 
                             })
                         ]
                     }),
+                    providerOptions,
+                    headers,
                     messages,
                     tools: getTools({ repos: selectedRepos }),
                     // temperature: 0.3, // Lower temperature for more focused reasoning
@@ -174,7 +176,8 @@ const chatHandler = ({ messages: chatMessages, id, selectedRepos }: { messages: 
 
                 return result.toDataStreamResponse({
                     // @see: https://ai-sdk.dev/docs/troubleshooting/use-chat-an-error-occurred
-                    getErrorMessage: errorHandler
+                    getErrorMessage: errorHandler,
+                    sendReasoning: true,
                 });
             } catch (error) {
                 logger.error("Error:", error)
@@ -220,7 +223,11 @@ User question: ${message}`;
     }
 }
 
-const getModel = (): LanguageModel => {
+const getModel = (): {
+    model: LanguageModel,
+    providerOptions?: Record<string, Record<string, JSONValue>>,
+    headers?: Record<string, string>,
+} => {
     const providerInfo = getConfiguredModelProviderInfo();
     if (!providerInfo) {
         throw new Error("No model configured.");
@@ -234,21 +241,39 @@ const getModel = (): LanguageModel => {
                 apiKey: env.ANTHROPIC_API_KEY,
             });
 
-            return anthropic(model);
+            return {
+                model: anthropic(model),
+                providerOptions: {
+                    anthropic: {
+                        thinking: {
+                            type: "enabled",
+                            budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
+                        }
+                    } satisfies AnthropicProviderOptions,
+                },
+                headers: {
+                    // @see: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#interleaved-thinking
+                    'anthropic-beta': 'interleaved-thinking-2025-05-14',
+                },
+            };
         }
         case 'openai': {
             const openai = createOpenAI({
                 apiKey: env.OPENAI_API_KEY,
             });
 
-            return openai(model);
+            return {
+                model: openai(model),
+            };
         }
         case 'google-generative-ai': {
             const google = createGoogleGenerativeAI({
                 apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
             });
 
-            return google(model);
+            return {
+                model: google(model),
+            };
         }
         case 'aws-bedrock': {
             const aws = createAmazonBedrock({
@@ -257,7 +282,9 @@ const getModel = (): LanguageModel => {
                 secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
             });
 
-            return aws(model);
+            return {
+                model: aws(model),
+            };
         }
     }
 }

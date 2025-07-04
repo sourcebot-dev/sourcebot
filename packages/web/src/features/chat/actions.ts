@@ -1,10 +1,13 @@
 'use server';
 
 import { sew, withAuth, withOrgMembership } from "@/actions";
+import { env } from "@/env.mjs";
 import { notFound } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
 import { OrgRole, Prisma } from "@sourcebot/db";
 import { Message } from "ai";
+import fs from 'fs';
+import path from 'path';
 
 export const createChat = async (domain: string) => sew(() =>
     withAuth((userId) =>
@@ -66,6 +69,19 @@ export const saveChatMessages = async ({ chatId, messages }: { chatId: string, m
                 },
             });
 
+            if (env.DEBUG_WRITE_CHAT_MESSAGES_TO_FILE) {
+                const chatDir = path.join(env.DATA_CACHE_DIR, 'chats');
+                if (!fs.existsSync(chatDir)) {
+                    fs.mkdirSync(chatDir, { recursive: true });
+                }
+
+                const chatFile = path.join(chatDir, `${chatId}.json`);
+                fs.writeFileSync(chatFile, JSON.stringify(messages, null, 2));
+            }
+
+            return {
+                success: true,
+            }
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
 );
 
