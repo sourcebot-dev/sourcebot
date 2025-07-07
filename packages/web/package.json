@@ -150,6 +150,8 @@
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^2.1.1",
     "recharts": "^2.15.3",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "scroll-into-view-if-needed": "^3.1.0",
     "server-only": "^0.0.1",

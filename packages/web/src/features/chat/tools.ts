@@ -8,7 +8,7 @@ import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } fro
 import { FileSourceResponse } from "../search/types";
 import { addLineNumbers } from "./utils";
 
-const findSymbolReferencesTool = tool({
+export const findSymbolReferencesTool = tool({
     description: `Finds references to a symbol in the codebase.`,
     inputSchema: z.object({
         symbol: z.string().describe("The symbol to find references to"),
@@ -44,7 +44,7 @@ export type FindSymbolReferencesToolInput = InferToolInput<typeof findSymbolRefe
 export type FindSymbolReferencesToolOutput = InferToolOutput<typeof findSymbolReferencesTool>;
 export type FindSymbolReferencesToolUIPart = ToolUIPart<{ [toolNames.findSymbolReferences]: FindSymbolReferencesTool }>
 
-const findSymbolDefinitionsTool = tool({
+export const findSymbolDefinitionsTool = tool({
     description: `Finds definitions of a symbol in the codebase.`,
     inputSchema: z.object({
         symbol: z.string().describe("The symbol to find definitions of"),
@@ -79,7 +79,7 @@ export type FindSymbolDefinitionsToolInput = InferToolInput<typeof findSymbolDef
 export type FindSymbolDefinitionsToolOutput = InferToolOutput<typeof findSymbolDefinitionsTool>;
 export type FindSymbolDefinitionsToolUIPart = ToolUIPart<{ [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool }>
 
-const readFilesTool = tool({
+export const readFilesTool = tool({
     description: `Reads the contents of multiple files at the given paths.`,
     inputSchema: z.object({
         paths: z.array(z.string()).describe("The paths to the files to read"),
@@ -116,7 +116,7 @@ export type ReadFilesToolInput = InferToolInput<typeof readFilesTool>;
 export type ReadFilesToolOutput = InferToolOutput<typeof readFilesTool>;
 export type ReadFilesToolUIPart = ToolUIPart<{ [toolNames.readFiles]: ReadFilesTool }>
 
-const createCodeSearchTool = (repos: string[]) => tool({
+export const createCodeSearchTool = (repos: string[]) => tool({
     description: `Fetches code that matches the provided regex pattern in \`query\`. This is NOT a semantic search.
     Results are returned as an array of matching files, with the file's URL, repository, and language.`,
     inputSchema: z.object({
@@ -160,7 +160,7 @@ const createCodeSearchTool = (repos: string[]) => tool({
 export type SearchCodeTool = InferUITool<ReturnType<typeof createCodeSearchTool>>;
 export type SearchCodeToolInput = InferToolInput<ReturnType<typeof createCodeSearchTool>>;
 export type SearchCodeToolOutput = InferToolOutput<ReturnType<typeof createCodeSearchTool>>;
-export type SearchCodeToolUIPart = ToolUIPart<{ [toolNames.searchCode]: SearchCodeTool }>
+export type SearchCodeToolUIPart = ToolUIPart<{ [toolNames.searchCode]: SearchCodeTool }>;
 
 export const toolNames = {
     searchCode: 'searchCode',
@@ -174,13 +174,4 @@ export type ToolTypes = {
     [toolNames.readFiles]: ReadFilesTool,
     [toolNames.findSymbolReferences]: FindSymbolReferencesTool,
     [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool,
-}
-
-export const getTools = ({ repos }: { repos: string[] }) => {
-    return {
-        [toolNames.searchCode]: createCodeSearchTool(repos),
-        [toolNames.readFiles]: readFilesTool,
-        [toolNames.findSymbolReferences]: findSymbolReferencesTool,
-        [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
-    }
 }
