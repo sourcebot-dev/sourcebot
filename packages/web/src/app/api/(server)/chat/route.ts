@@ -2,8 +2,8 @@ import { getRepos, sew, withAuth, withOrgMembership } from "@/actions";
 import { env } from "@/env.mjs";
 import { saveChatMessages, updateChatName } from "@/features/chat/actions";
 import { createSystemPrompt } from "@/features/chat/constants";
-import { getTools } from "@/features/chat/tools";
-import { SBChatMessageMetadata, SBChatMessage } from "@/features/chat/types";
+import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool, toolNames } from "@/features/chat/tools";
+import { SBChatMessage, SBChatMessageMetadata } from "@/features/chat/types";
 import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
 import { getFileSource } from "@/features/search/fileSourceApi";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -148,10 +148,14 @@ const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[
                     headers,
                     system: systemPrompt,
                     messages: convertToModelMessages(messages),
-                    tools: getTools({ repos: selectedRepos }),
-                    // @todo: add temperature parameter
-                    // temperature: 0.3, // Lower temperature for more focused reasoning
-                    stopWhen: stepCountIs(5),
+                    tools: {
+                        [toolNames.searchCode]: createCodeSearchTool(selectedRepos),
+                        [toolNames.readFiles]: readFilesTool,
+                        [toolNames.findSymbolReferences]: findSymbolReferencesTool,
+                        [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
+                    },
+                    temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
+                    stopWhen: stepCountIs(10),
                     maxOutputTokens: env.SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS, // Increased for tool results and responses
                     toolChoice: "auto", // Let the model decide when to use tools
                 });
@@ -267,10 +271,10 @@ const getModel = (): {
                         }
                     } satisfies AnthropicProviderOptions,
                 },
-                headers: {
-                    // @see: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#interleaved-thinking
-                    'anthropic-beta': 'interleaved-thinking-2025-05-14',
-                },
+                // headers: {
+                //     // @see: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#interleaved-thinking
+                //     'anthropic-beta': 'interleaved-thinking-2025-05-14',
+                // },
             };
         }
         case 'openai': {
@@ -320,3 +324,4 @@ const errorHandler = (error: unknown) => {
 
     return JSON.stringify(error);
 }
+

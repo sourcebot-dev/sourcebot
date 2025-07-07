@@ -5,6 +5,7 @@ import { useDomain } from '@/hooks/useDomain';
 import { SearchQueryParams } from '@/lib/types';
 import { createPathWithQueryParams } from '@/lib/utils';
 import type { Element, Root } from "hast";
+import type { Nodes } from "mdast";
 import { CopyIcon, SearchIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback } from 'react';
@@ -14,6 +15,10 @@ import type { Plugin } from "unified";
 import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
 import { cn } from '@/lib/utils';
+import { findAndReplace } from 'mdast-util-find-and-replace';
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
+import { Schema as SanitizeSchema } from 'hast-util-sanitize';
 
 
 const annotateCodeBlocks: Plugin<[], Root> = () => {
@@ -30,6 +35,28 @@ const annotateCodeBlocks: Plugin<[], Root> = () => {
                 node.properties.isBlock = false;
             }
         })
+    }
+}
+
+// @see: https://unifiedjs.com/learn/guide/create-a-remark-plugin/
+function remarkReferencesPlugin() {
+    return function (tree: Nodes) {
+        findAndReplace(tree, [
+            /@file:\{([^:}]+)(?::(\d+)-(\d+))?\}/g,
+            (_, fileName: string, startLine?: string, endLine?: string) => {
+                // Create display text
+                let displayText = fileName.split('/').pop() ?? fileName;
+                if (startLine && endLine) {
+                    displayText += `:${startLine}-${endLine}`;
+                }
+
+                return {
+                    type: 'html',
+                    // @note: if you add additional attributes to this span, make sure to update the rehypeSanitize plugin to allow them.
+                    value: `<span role="link" className="font-mono cursor-pointer text-xs border px-1 py-[1.5px] rounded-md bg-fuchsia-100 hover:bg-fuchsia-200 transition-colors duration-150" title="Click to navigate to code">${displayText}</span>`
+                }
+            }
+        ])
     }
 }
 
@@ -123,9 +150,22 @@ export const MarkdownUIPart = ({ content, isStreaming, className }: MarkdownUIPa
             <Markdown
                 remarkPlugins={[
                     remarkGfm,
+                    remarkReferencesPlugin,
                 ]}
                 rehypePlugins={[
                     annotateCodeBlocks,
+                    rehypeRaw,
+                    [
+                        rehypeSanitize,
+                        {
+                            ...defaultSchema,
+                            attributes: {
+                                ...defaultSchema.attributes,
+                                span: [...(defaultSchema.attributes?.span ?? []), 'role', 'className'],
+                            },
+                            strip: [],
+                        } satisfies SanitizeSchema,
+                    ],
                 ]}
                 components={{
                     pre: renderPre,
