@@ -1,10 +1,6 @@
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { CustomEditor, CustomText, MentionData, MentionElement, ModelProviderInfo, ParagraphElement, SBChatDataParts, SBChatMessage } from "./types"
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/useBrowseNavigation"
+import { CustomEditor, CustomText, MentionData, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessage } from "./types"
 import { env } from "@/env.mjs"
-import { UIMessagePart } from "ai"
-import { SBChatMessageToolTypes } from "./tools"
 
 export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
     const mention: MentionElement = {
