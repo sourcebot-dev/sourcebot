@@ -48,17 +48,21 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
                         </TreeList>
                     ) : (
                         <>
-                            <TreeList>
-                                {part.output.files.map((file) => {
-                                    return (
-                                        <FileListItem
-                                            key={file.fileName}
-                                            path={file.fileName}
-                                            repoName={file.repository}
-                                        />
-                                    )
-                                })}
-                            </TreeList>
+                            {part.output.files.length === 0 ? (
+                                <span className="text-sm text-muted-foreground ml-[25px]">No files found</span>
+                            ) : (
+                                <TreeList>
+                                    {part.output.files.map((file) => {
+                                        return (
+                                            <FileListItem
+                                                key={file.fileName}
+                                                path={file.fileName}
+                                                repoName={file.repository}
+                                            />
+                                        )
+                                    })}
+                                </TreeList>
+                            )}
                             <Link
                                 href={createPathWithQueryParams(`/${domain}/search`,
                                     [SearchQueryParams.query, part.output.query],

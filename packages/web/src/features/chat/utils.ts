@@ -1,8 +1,10 @@
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { CustomEditor, CustomText, MentionData, MentionElement, ModelProviderInfo, ParagraphElement } from "./types"
+import { CustomEditor, CustomText, MentionData, MentionElement, ModelProviderInfo, ParagraphElement, SBChatDataParts, SBChatMessage } from "./types"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/useBrowseNavigation"
 import { env } from "@/env.mjs"
+import { UIMessagePart } from "ai"
+import { SBChatMessageToolTypes } from "./tools"
 
 export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
     const mention: MentionElement = {
@@ -107,29 +109,23 @@ export const isParagraphElement = (element: Descendant): element is ParagraphEle
     return 'type' in element && element.type === 'paragraph';
 }
 
-export const toString = (children: Descendant[]): string => {
+export const slateContentToString = (children: Descendant[]): string => {
     return children.map((child) => {
         if (isCustomTextElement(child)) {
             return child.text;
         }
 
         else if (isMentionElement(child)) {
-            const { path, repo } = child.data;
-            // @todo(mt)
-            const url = getBrowsePath(
-                {
-                    repoName: repo,
-                    path,
-                    pathType: 'blob',
-                    domain: SINGLE_TENANT_ORG_DOMAIN,
-                }
-            )
+            const { type } = child.data;
 
-            return `[${child.data.name}](${url}) `;
+            switch (type) {
+                case 'file':
+                    return `@file:{${child.data.name}} `;
+            }
         }
 
         else if (isParagraphElement(child)) {
-            return `${toString(child.children)}\n`;
+            return `${slateContentToString(child.children)}\n`;
         }
 
         else {
@@ -205,3 +201,39 @@ export const getConfiguredModelProviderInfo = (): ModelProviderInfo | undefined 
 
     return undefined;
 }
+
+export const pairMessages = (messages: SBChatMessage[]): [SBChatMessage, SBChatMessage | undefined][] => {
+    const result: [SBChatMessage, SBChatMessage | undefined][] = [];
+    let pendingUserMessage: SBChatMessage | null = null;
+    
+    for (const message of messages) {
+        if (message.role === 'user') {
+            // case: we have a orphaned user message.
+            // Pair it with undefined.
+            if (pendingUserMessage) {
+                result.push([pendingUserMessage, undefined]);
+            }
+
+            pendingUserMessage = message;
+        } else if (message.role === 'assistant') {
+
+            // case: we have a user <> assistant message pair.
+            // Pair them.
+            if (pendingUserMessage) {
+                result.push([pendingUserMessage, message]);
+                pendingUserMessage = null;
+            }
+
+            // case: we have a orphaned assistant message.
+            // Ignore the orphaned assistant message.
+        }
+    }
+
+    // case: the last message is a user message.
+    // Pair it with undefined.
+    if (pendingUserMessage) {
+        result.push([pendingUserMessage, undefined]);
+    }
+    
+    return result;
+};

@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { Descendant } from "slate";
 import { getAllMentionElements } from "./utils";
-import { toString } from "./utils";
+import { slateContentToString } from "./utils";
 import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -22,7 +22,7 @@ export const useCreateNewChatThread = () => {
     const queryClient = useQueryClient();
 
     const createNewChatThread = useCallback(async (children: Descendant[], selectedRepos: string[]) => {
-        const text = toString(children);
+        const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
         const inputMessage: CreateUIMessage<SBChatMessage> = {

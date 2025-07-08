@@ -12,6 +12,7 @@ interface MessageAvatarProps {
 }
 
 export const MessageAvatar = ({ role, className }: MessageAvatarProps) => {
+    // @todo: this should be based on the user who initiated the conversation.
     const { data: session } = useSession();
     const { theme } = useThemeNormalized();
 

@@ -3,7 +3,7 @@ import { BaseEditor, Descendant } from "slate";
 import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
-import { ToolTypes } from "./tools";
+import { SBChatMessageToolTypes } from "./tools";
 
 export type CustomText = { text: string; }
 
@@ -80,7 +80,7 @@ export type ModelProviderInfo = {
 }
 
 export const sbChatMessageMetadataSchema = z.object({
-    reasoningDurations: z.array(z.number()).optional(),
+    researchDuration: z.number().optional(),
     totalUsage: z.object({
         inputTokens: z.number().optional(),
         outputTokens: z.number().optional(),
@@ -92,4 +92,4 @@ export const sbChatMessageMetadataSchema = z.object({
 });
 
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
-export type SBChatMessage = UIMessage<SBChatMessageMetadata, UIDataTypes, ToolTypes>;
+export type SBChatMessage = UIMessage<SBChatMessageMetadata, UIDataTypes, SBChatMessageToolTypes>;
