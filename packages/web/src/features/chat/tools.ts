@@ -162,16 +162,28 @@ export type SearchCodeToolInput = InferToolInput<ReturnType<typeof createCodeSea
 export type SearchCodeToolOutput = InferToolOutput<ReturnType<typeof createCodeSearchTool>>;
 export type SearchCodeToolUIPart = ToolUIPart<{ [toolNames.searchCode]: SearchCodeTool }>;
 
+export const answerTool = tool({
+    description: `Provides the final structured answer to the user's question. Use this tool ONLY after you have completed your research phase and gathered all necessary context. The answer should be a complete, well-formatted markdown response with proper code references.`,
+    inputSchema: z.object({
+        answer: z.string().describe("Complete markdown-formatted answer with code references using @file:{filename:startLine-endLine} format. This should be your final, comprehensive response to the user's question."),
+    }),
+});
+
+export type AnswerTool = InferUITool<typeof answerTool>;
+export type AnswerToolUIPart = ToolUIPart<{ [toolNames.answerTool]: AnswerTool }>;
+
 export const toolNames = {
     searchCode: 'searchCode',
     readFiles: 'readFiles',
     findSymbolReferences: 'findSymbolReferences',
     findSymbolDefinitions: 'findSymbolDefinitions',
+    answerTool: 'answerTool',
 } as const;
 
-export type ToolTypes = {
+export type SBChatMessageToolTypes = {
     [toolNames.searchCode]: SearchCodeTool,
     [toolNames.readFiles]: ReadFilesTool,
     [toolNames.findSymbolReferences]: FindSymbolReferencesTool,
     [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool,
+    [toolNames.answerTool]: AnswerTool,
 }

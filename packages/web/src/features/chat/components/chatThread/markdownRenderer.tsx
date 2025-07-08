@@ -60,13 +60,13 @@ function remarkReferencesPlugin() {
     }
 }
 
-interface MarkdownUIPartProps {
+interface MarkdownRendererProps {
     content: string;
     isStreaming: boolean;
     className?: string;
 }
 
-export const MarkdownUIPart = ({ content, isStreaming, className }: MarkdownUIPartProps) => {
+export const MarkdownRenderer = ({ content, isStreaming, className }: MarkdownRendererProps) => {
     const domain = useDomain();
     const router = useRouter();
 

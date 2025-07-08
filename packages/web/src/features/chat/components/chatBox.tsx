@@ -5,7 +5,7 @@ import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomEditor, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
-import { insertMention, toString, word } from "@/features/chat/utils";
+import { insertMention, slateContentToString, word } from "@/features/chat/utils";
 import { useDomain } from "@/hooks/useDomain";
 import { cn, IS_MAC, unwrapServiceError } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
@@ -147,7 +147,7 @@ export const ChatBox = ({
 
     const isSubmitEnabled = useMemo(() => {
         return (
-            toString(editor.children).trim().length > 0 &&
+            slateContentToString(editor.children).trim().length > 0 &&
             !isRedirecting &&
             !isGenerating
         )

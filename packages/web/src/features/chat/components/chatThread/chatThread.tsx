@@ -4,19 +4,19 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { CustomEditor, ModelProviderInfo, SBChatMessage } from '@/features/chat/types';
-import { getAllMentionElements, resetEditor, toString } from '@/features/chat/utils';
+import { getAllMentionElements, pairMessages, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon, Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Descendant } from 'slate';
 import { ChatBox } from '../chatBox';
 import { ChatBoxTools } from '../chatBoxTools';
 import { ErrorBanner } from './errorBanner';
-import { Message as MessageComponent } from './message';
 import { useDomain } from '@/hooks/useDomain';
 import { MessageAvatar } from './messageAvatar';
 import { useQueryClient } from '@tanstack/react-query';
+import { MessagePair } from './messagePair';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -41,7 +41,7 @@ export const ChatThread = ({
     const [selectedRepos, setSelectedRepos] = useState<string[]>(defaultSelectedRepos ?? []);
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
-    const latestMessageRef = useRef<HTMLDivElement>(null);
+    const latestMessagePairRef = useRef<HTMLDivElement>(null);
     const hasSubmittedInputMessage = useRef(false);
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
     const queryClient = useQueryClient();
@@ -72,6 +72,10 @@ export const ChatThread = ({
             );
         }
     });
+
+    const messagePairs = useMemo(() => {
+        return pairMessages(messages);
+    }, [messages]);
 
     useEffect(() => {
         if (!inputMessage || hasSubmittedInputMessage.current) {
@@ -141,14 +145,14 @@ export const ChatThread = ({
     // assuming auto scrolling is enabled.
     useEffect(() => {
         if (
-            !latestMessageRef.current ||
+            !latestMessagePairRef.current ||
             !isAutoScrollEnabled ||
             messages.length === 0
         ) {
             return;
         }
 
-        latestMessageRef.current.scrollIntoView({
+        latestMessagePairRef.current.scrollIntoView({
             behavior: 'instant',
             block: 'end',
             inline: 'nearest',
@@ -165,7 +169,7 @@ export const ChatThread = ({
     }, [error]);
 
     const onSubmit = useCallback((children: Descendant[], editor: CustomEditor) => {
-        const text = toString(children);
+        const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
         sendMessage({
@@ -198,33 +202,29 @@ export const ChatThread = ({
                     className="max-w-3xl mx-auto space-y-6"
                 >
                     {
-                        messages.length === 0 ? (
+                        messagePairs.length === 0 ? (
                             <div className="flex items-center justify-center text-center h-full">
                                 <p className="text-muted-foreground">no messages</p>
                             </div>
                         ) : (
                             <>
-                                {messages.map((message, index) => {
+                                {messagePairs.map(([userMessage, assistantMessage], index) => {
+                                    const isLastPair = index === messagePairs.length - 1;
+                                    const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
+                                    
                                     return (
-                                        <MessageComponent
-                                            key={message.id}
-                                            message={message}
-                                            isStreaming={index === messages.length - 1 && status === "streaming"}
-                                            ref={index === messages.length - 1 ? latestMessageRef : null}
+                                        <MessagePair
+                                            key={index}
+                                            userMessage={userMessage}
+                                            assistantMessage={assistantMessage}
+                                            isStreaming={isStreaming}
+                                            ref={isLastPair ? latestMessagePairRef : null}
                                         />
-                                    )
-                                })
-                                }
+                                    );
+                                })}
                             </>
                         )
                     }
-                    {status === "submitted" && (
-                        <div className="flex flex-row gap-1 text-xs text-gray-500 items-center">
-                            <MessageAvatar role="assistant" className="mr-3" />
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            <span>Thinking...</span>
-                        </div>
-                    )}
                     {
                         (!isAutoScrollEnabled && status === "streaming") && (
                             <div className="absolute bottom-5 left-0 right-0 h-10 flex flex-row items-center justify-center">
@@ -233,7 +233,7 @@ export const ChatThread = ({
                                     size="icon"
                                     className="rounded-full animate-bounce-slow h-8 w-8"
                                     onClick={() => {
-                                        latestMessageRef.current?.scrollIntoView({
+                                        latestMessagePairRef.current?.scrollIntoView({
                                             behavior: 'instant',
                                             block: 'end',
                                             inline: 'nearest',
@@ -269,4 +269,3 @@ export const ChatThread = ({
         </>
     );
 }
-

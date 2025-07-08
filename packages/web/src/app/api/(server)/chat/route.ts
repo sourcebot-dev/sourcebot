@@ -2,7 +2,7 @@ import { getRepos, sew, withAuth, withOrgMembership } from "@/actions";
 import { env } from "@/env.mjs";
 import { saveChatMessages, updateChatName } from "@/features/chat/actions";
 import { createSystemPrompt } from "@/features/chat/constants";
-import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool, toolNames } from "@/features/chat/tools";
+import { answerTool, createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool, toolNames } from "@/features/chat/tools";
 import { SBChatMessage, SBChatMessageMetadata } from "@/features/chat/types";
 import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
 import { getFileSource } from "@/features/search/fileSourceApi";
@@ -16,7 +16,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { LanguageModelV2 } from "@ai-sdk/provider";
 import { OrgRole, RepoIndexingStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { convertToModelMessages, generateText, JSONValue, stepCountIs, streamText } from "ai";
+import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, generateText, hasToolCall, JSONValue, stepCountIs, streamText } from "ai";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 
@@ -138,66 +138,80 @@ const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[
                 })
             }
 
-            let reasoningTimer: Date | undefined;
-            let metadata: SBChatMessageMetadata = {};
+            const startTime = new Date();
 
             try {
-                const result = streamText({
-                    model,
-                    providerOptions,
-                    headers,
-                    system: systemPrompt,
-                    messages: convertToModelMessages(messages),
-                    tools: {
-                        [toolNames.searchCode]: createCodeSearchTool(selectedRepos),
-                        [toolNames.readFiles]: readFilesTool,
-                        [toolNames.findSymbolReferences]: findSymbolReferencesTool,
-                        [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
-                    },
-                    temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
-                    stopWhen: stepCountIs(10),
-                    maxOutputTokens: env.SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS, // Increased for tool results and responses
-                    toolChoice: "auto", // Let the model decide when to use tools
-                });
+                const stream = createUIMessageStream<SBChatMessage>({
+                    execute: async ({ writer }) => {
+                        writer.write({
+                            type: 'start',
+                        });
 
-                return result.toUIMessageStreamResponse({
-                    originalMessages: messages,
-                    // @see: https://ai-sdk.dev/docs/troubleshooting/use-chat-an-error-occurred
-                    onError: errorHandler,
-                    sendReasoning: true,
-                    messageMetadata: ({ part }): SBChatMessageMetadata | undefined => {
-                        if (part.type === 'reasoning-start') {
-                            reasoningTimer = new Date();
-                        }
+                        const stream = streamText({
+                            model,
+                            providerOptions,
+                            headers,
+                            system: systemPrompt,
+                            messages: convertToModelMessages(messages),
+                            tools: {
+                                [toolNames.searchCode]: createCodeSearchTool(selectedRepos),
+                                [toolNames.readFiles]: readFilesTool,
+                                [toolNames.findSymbolReferences]: findSymbolReferencesTool,
+                                [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
+                                [toolNames.answerTool]: answerTool,
+                            },
+                            temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
+                            stopWhen: [
+                                hasToolCall(toolNames.answerTool)
+                            ],
+                            maxOutputTokens: env.SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS, // Increased for tool results and responses
+                            toolChoice: "auto", // Let the model decide when to use tools
+                        });
 
-                        if (part.type === 'reasoning-end' && reasoningTimer) {
-                            const duration = new Date().getTime() - reasoningTimer.getTime();
-                            metadata.reasoningDurations = [
-                                ...(metadata.reasoningDurations ?? []),
-                                duration,
-                            ];
-                            return metadata;
-                        }
+                        await new Promise<void>((resolve) => writer.merge(stream.toUIMessageStream({
+                            sendReasoning: true,
+                            sendStart: false,
+                            sendFinish: false,
+                            messageMetadata: ({ part }): SBChatMessageMetadata | undefined => {
+                                if (part.type === 'tool-call' && part.toolName === toolNames.answerTool) {
+                                    return {
+                                        researchDuration: new Date().getTime() - startTime.getTime(),
+                                    };
+                                }
 
-                        if (part.type === 'finish') {
-                            metadata.totalUsage = {
-                                inputTokens: part.totalUsage.inputTokens,
-                                outputTokens: part.totalUsage.outputTokens,
-                                totalTokens: part.totalUsage.totalTokens,
-                                reasoningTokens: part.totalUsage.reasoningTokens,
-                                cachedInputTokens: part.totalUsage.cachedInputTokens,
+                                if (part.type === 'finish') {
+                                    return {
+                                        totalUsage: {
+                                            inputTokens: part.totalUsage.inputTokens,
+                                            outputTokens: part.totalUsage.outputTokens,
+                                            totalTokens: part.totalUsage.totalTokens,
+                                            reasoningTokens: part.totalUsage.reasoningTokens,
+                                            cachedInputTokens: part.totalUsage.cachedInputTokens,
+                                        },
+                                    }
+                                }
+                            },
+                            onFinish: async () => {
+                                resolve();
                             }
-                            return metadata;
-                        }
+                        })));
+
+                        writer.write({
+                            type: 'finish',
+                        });
                     },
+                    onError: errorHandler,
+                    originalMessages: messages,
                     onFinish: async ({ messages }) => {
                         await saveChatMessages({
                             chatId: id,
                             messages
                         }, domain);
+                    },
+                });
 
-                        
-                    }
+                return createUIMessageStreamResponse({
+                    stream,
                 });
             } catch (error) {
                 logger.error("Error:", error)

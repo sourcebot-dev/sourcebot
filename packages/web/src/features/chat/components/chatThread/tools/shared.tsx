@@ -84,9 +84,10 @@ interface ToolHeaderProps {
     label: string;
     Icon: React.ElementType;
     onExpand: (isExpanded: boolean) => void;
+    className?: string;
 }
 
-export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpand }: ToolHeaderProps) => {
+export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpand, className }: ToolHeaderProps) => {
     return (
         <div
             tabIndex={0}
@@ -94,7 +95,8 @@ export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpa
                 "flex flex-row items-center gap-2 text-muted-foreground group w-fit select-none",
                 {
                     'hover:text-foreground cursor-pointer': !isLoading,
-                }
+                },
+                className,
             )}
             onClick={() => {
                 onExpand(!isExpanded)
@@ -106,16 +108,17 @@ export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpa
                 onExpand(!isExpanded);
             }}
         >
-            <Icon className="h-4 w-4" />
+            {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+                <Icon className="h-4 w-4" />
+            )}
             <span className={cn("text-sm font-medium",
                 {
                     'animate-pulse': isLoading,
                     'text-destructive': isError,
                 }
             )}>{label}</span>
-            {isLoading && (
-                <Loader2 className="w-3 h-3 animate-spin" />
-            )}
             {!isLoading && (
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                     {isExpanded ? (
