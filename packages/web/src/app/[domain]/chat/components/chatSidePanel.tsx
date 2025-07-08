@@ -84,7 +84,7 @@ export const ChatSidePanel = ({
             });
             refetchRecentChats();
         }
-    }, [chatId, refetchRecentChats]);
+    }, [refetchRecentChats, toast, domain]);
 
     const onDeleteChat = useCallback(async (chatIdToDelete: string) => {
         if (!chatIdToDelete) {

@@ -21,7 +21,7 @@ export const ChatName = () => {
     const { toast } = useToast();
 
     const { data: chatInfo, isPending, isError, refetch } = useQuery({
-        queryKey: ['chat', 'info', chatId],
+        queryKey: ['chat', 'info', chatId, domain],
         queryFn: () => unwrapServiceError(getChatInfo({ chatId: chatId! }, domain)),
         enabled: !!chatId,
     });
@@ -46,7 +46,7 @@ export const ChatName = () => {
             });
             refetch();
         }
-    }, [chatId, domain]);
+    }, [chatId, domain, refetch, toast]);
 
     const { status: authStatus } = useSession();
 
