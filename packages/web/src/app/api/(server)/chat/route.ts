@@ -16,7 +16,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { LanguageModelV2 } from "@ai-sdk/provider";
 import { OrgRole, RepoIndexingStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, generateText, hasToolCall, JSONValue, streamText } from "ai";
+import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, generateText, hasToolCall, JSONValue, stepCountIs, streamText } from "ai";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 

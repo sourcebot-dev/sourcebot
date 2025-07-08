@@ -32,7 +32,7 @@ export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }
         form.reset({
             name: currentName,
         });
-    }, [currentName, form]);
+    }, [currentName]);
 
     const onSubmit = (data: z.infer<typeof formSchema>) => {
         onRename(data.name);

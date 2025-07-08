@@ -65,7 +65,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
         }
 
         return "Research completed";
-    }, [isResearchActive, message.metadata?.researchDuration]);
+    }, [isResearchActive]);
 
     return (
         <div
