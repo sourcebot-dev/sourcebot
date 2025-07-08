@@ -17,6 +17,8 @@ import { useDomain } from '@/hooks/useDomain';
 import { useQueryClient } from '@tanstack/react-query';
 import { MessagePair } from './messagePair';
 import { useNavigationGuard } from 'next-navigation-guard';
+import { Separator } from '@/components/ui/separator';
+import { useExtractChatContext } from '../../useExtractChatContext';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -72,6 +74,8 @@ export const ChatThread = ({
             );
         }
     });
+
+    const chatContext = useExtractChatContext(messages);
 
     useNavigationGuard({
         enabled: status === "streaming" || status === "submitted",
@@ -204,7 +208,7 @@ export const ChatThread = ({
                 className="flex flex-col h-full w-full p-4 overflow-hidden"
             >
                 <div
-                    className="max-w-3xl mx-auto space-y-6"
+                    className="max-w-[1500px] mx-auto space-y-6"
                 >
                     {
                         messagePairs.length === 0 ? (
@@ -218,13 +222,19 @@ export const ChatThread = ({
                                     const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
                                     
                                     return (
-                                        <MessagePair
-                                            key={index}
-                                            userMessage={userMessage}
-                                            assistantMessage={assistantMessage}
-                                            isStreaming={isStreaming}
-                                            ref={isLastPair ? latestMessagePairRef : null}
-                                        />
+                                        <>
+                                            <MessagePair
+                                                key={index}
+                                                userMessage={userMessage}
+                                                assistantMessage={assistantMessage}
+                                                isStreaming={isStreaming}
+                                                ref={isLastPair ? latestMessagePairRef : null}
+                                                chatContext={chatContext}
+                                            />
+                                            {index !== messagePairs.length - 1 && (
+                                                <Separator className="my-4" />
+                                            )}
+                                        </>
                                     );
                                 })}
                             </>

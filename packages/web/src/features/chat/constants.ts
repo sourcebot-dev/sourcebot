@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { addLineNumbers } from "./utils";
-import { toolNames } from "./tools";
 
 const numberSchema = z.coerce.number();
 
@@ -107,3 +106,13 @@ ${addLineNumbers(file.source)}
 </mentioned_files>
     `.trim();
 }
+
+export const FILE_REFERENCE_REGEX = /@file:\{([^:}]+)(?::(\d+)-(\d+))?\}/g;
+
+export const toolNames = {
+    searchCode: 'searchCode',
+    readFiles: 'readFiles',
+    findSymbolReferences: 'findSymbolReferences',
+    findSymbolDefinitions: 'findSymbolDefinitions',
+    answerTool: 'answerTool',
+} as const;

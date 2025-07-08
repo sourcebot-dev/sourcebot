@@ -3,22 +3,34 @@
 import { Loader2, BookOpenIcon } from 'lucide-react';
 import { memo, useMemo, useState, useEffect, useRef } from 'react';
 import { MarkdownRenderer } from './markdownRenderer';
-import { SBChatMessage } from '../../types';
+import { ChatContext, SBChatMessage } from '../../types';
 import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
-import { AnswerToolComponent } from './tools/answerToolComponent';
 import { ToolHeader } from './tools/shared';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { FileReferencesList } from './fileReferencesList';
+import { useExtractFileReferences } from '../../useExtractFileReferences';
 import { TableOfContents } from './tableOfContents';
 
 interface AssistantResponseProps {
     message: SBChatMessage;
     isStreaming: boolean;
+    chatContext: ChatContext;
 }
 
-export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStreaming }) => {
+export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStreaming, chatContext }) => {
     const [isResearchExpanded, setIsResearchExpanded] = useState(true);
     const hasAutoCollapsed = useRef(false);
     const userHasManuallyExpanded = useRef(false);
+    const markdownRendererRef = useRef<HTMLDivElement>(null);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const [highlightedFileRange, setHighlightedFileRange] = useState<{
+        fileName: string;
+        startLine: number;
+        endLine: number;
+    } | undefined>(undefined);
+
+    const fileReferences = useExtractFileReferences([message]);
 
     // Generate unique id for this message's answer content
     const answerId = `answer-${message.id}`;
@@ -31,7 +43,6 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
     const researchParts = useMemo(() => {
         return message.parts.filter((part) => part.type !== 'tool-answerTool');
     }, [message.parts]);
-
 
     // Auto-collapse when answer first appears, but only once and respect user preference
     useEffect(() => {
@@ -65,14 +76,54 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
         }
 
         return "Research completed";
-    }, [isResearchActive]);
+    }, [isResearchActive, message.metadata?.researchDuration]);
+
+    // Handle hover events on file reference spans for testing
+    useEffect(() => {
+        if (!markdownRendererRef.current) {
+            return;
+        }
+
+        const markdownRenderer = markdownRendererRef.current;
+
+        const handleMouseOver = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (target.hasAttribute('data-reference-id')) {
+                const fileName = target.getAttribute('data-file-name');
+                const startLineStr = target.getAttribute('data-start-line');
+                const endLineStr = target.getAttribute('data-end-line');
+
+                if (fileName && startLineStr && endLineStr) {
+                    setHighlightedFileRange({
+                        fileName,
+                        startLine: parseInt(startLineStr),
+                        endLine: parseInt(endLineStr),
+                    });
+                }
+            }
+        };
+
+        const handleMouseOut = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (target.hasAttribute('data-reference-id')) {
+                setHighlightedFileRange(undefined);
+            }
+        };
+
+        markdownRenderer.addEventListener('mouseover', handleMouseOver);
+        markdownRenderer.addEventListener('mouseout', handleMouseOut);
+
+        return () => {
+            markdownRenderer.removeEventListener('mouseover', handleMouseOver);
+            markdownRenderer.removeEventListener('mouseout', handleMouseOut);
+        };
+    }, [answerPart]); // Re-run when answerPart changes to ensure we catch new content
 
     return (
         <div
             key={message.id}
             className="select-text"
         >
-
             <div className="mb-4">
                 <ToolHeader
                     isLoading={isResearchActive}
@@ -125,13 +176,15 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
                 )}
             </div>
 
-
-            <div className="relative">
-                <div className="p-4 border rounded-lg">
+            <div className="flex gap-4 relative">
+                <div className="w-1/2 p-4 border rounded-lg">
                     {answerPart ? (
-                        <div id={answerId} className="relative">
-                            <AnswerToolComponent
-                                part={answerPart}
+                        <div id={answerId}>
+                            <MarkdownRenderer
+                                ref={markdownRendererRef}
+                                content={answerPart.input?.answer ?? ''}
+                                isStreaming={false}
+                                className="prose prose-sm max-w-none"
                             />
                         </div>
                     ) : isStreaming && (
@@ -145,7 +198,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
                         </div>
                     )}
                 </div>
-                
+
                 {/* TOC positioned to the left and sticky to answer top */}
                 {answerPart && (
                     <div className="absolute left-0 top-0 -translate-x-full pr-6 w-64 hidden xl:block h-full">
@@ -154,6 +207,32 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
                                 targetSelector={`#${answerId}`}
                                 className="border rounded-lg p-4"
                             />
+                        </div>
+                    </div>
+                )}
+
+                {/* Reference viewer */}
+                {answerPart && (
+                    <div className="w-1/2">
+                        <div className="sticky top-0">
+                            {(isStreaming && fileReferences.length === 0) ? (
+                                <div className="animate-pulse space-y-4">
+                                    <div className="h-4 w-1/4 bg-muted rounded" />
+                                    <div className="space-y-2">
+                                        <div className="h-3 w-3/4 bg-muted rounded" />
+                                        <div className="h-3 w-2/3 bg-muted rounded" />
+                                        <div className="h-3 w-1/2 bg-muted rounded" />
+                                    </div>
+                                </div>
+                            ): (
+                                <ScrollArea className="h-[calc(100vh-120px)]" ref={scrollAreaRef}>
+                                    <FileReferencesList
+                                        fileReferences={fileReferences}
+                                        chatContext={chatContext}
+                                        highlightedFileRange={highlightedFileRange}
+                                    />
+                                </ScrollArea>
+                            )}
                         </div>
                     </div>
                 )}

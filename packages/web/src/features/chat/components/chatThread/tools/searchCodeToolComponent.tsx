@@ -49,7 +49,7 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
                     ) : (
                         <>
                             {part.output.files.length === 0 ? (
-                                <span className="text-sm text-muted-foreground ml-[25px]">No files found</span>
+                                <span className="text-sm text-muted-foreground ml-[25px]">No matches found</span>
                             ) : (
                                 <TreeList>
                                     {part.output.files.map((file) => {

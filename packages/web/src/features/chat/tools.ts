@@ -7,6 +7,7 @@ import { getFileSource } from "../search/fileSourceApi";
 import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/actions";
 import { FileSourceResponse } from "../search/types";
 import { addLineNumbers } from "./utils";
+import { toolNames } from "./constants";
 
 export const findSymbolReferencesTool = tool({
     description: `Finds references to a symbol in the codebase.`,
@@ -33,7 +34,8 @@ export const findSymbolReferencesTool = tool({
             language: file.language,
             matches: file.matches.map(({ lineContent, range }) => {
                 return addLineNumbers(lineContent, range.start.lineNumber);
-            })
+            }),
+            revision,
         }));
     },
 
@@ -69,7 +71,8 @@ export const findSymbolDefinitionsTool = tool({
             language: file.language,
             matches: file.matches.map(({ lineContent, range }) => {
                 return addLineNumbers(lineContent, range.start.lineNumber);
-            })
+            }),
+            revision,
         }));
     }
 });
@@ -167,23 +170,13 @@ export const answerTool = tool({
     inputSchema: z.object({
         answer: z.string().describe("Complete markdown-formatted answer with code references using @file:{filename:startLine-endLine} format. This should be your final, comprehensive response to the user's question."),
     }),
+    execute: async ({ answer }) => {
+        return {
+            answer,
+        };
+    }
 });
 
 export type AnswerTool = InferUITool<typeof answerTool>;
 export type AnswerToolUIPart = ToolUIPart<{ [toolNames.answerTool]: AnswerTool }>;
 
-export const toolNames = {
-    searchCode: 'searchCode',
-    readFiles: 'readFiles',
-    findSymbolReferences: 'findSymbolReferences',
-    findSymbolDefinitions: 'findSymbolDefinitions',
-    answerTool: 'answerTool',
-} as const;
-
-export type SBChatMessageToolTypes = {
-    [toolNames.searchCode]: SearchCodeTool,
-    [toolNames.readFiles]: ReadFilesTool,
-    [toolNames.findSymbolReferences]: FindSymbolReferencesTool,
-    [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool,
-    [toolNames.answerTool]: AnswerTool,
-}

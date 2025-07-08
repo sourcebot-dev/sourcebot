@@ -3,7 +3,8 @@ import { BaseEditor, Descendant } from "slate";
 import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
-import { SBChatMessageToolTypes } from "./tools";
+import { AnswerTool, FindSymbolDefinitionsTool, FindSymbolReferencesTool, ReadFilesTool, SearchCodeTool } from "./tools";
+import { toolNames } from "./constants";
 
 export type CustomText = { text: string; }
 
@@ -92,4 +93,28 @@ export const sbChatMessageMetadataSchema = z.object({
 });
 
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
+
+export type SBChatMessageToolTypes = {
+    [toolNames.searchCode]: SearchCodeTool,
+    [toolNames.readFiles]: ReadFilesTool,
+    [toolNames.findSymbolReferences]: FindSymbolReferencesTool,
+    [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool,
+    [toolNames.answerTool]: AnswerTool,
+}
+
 export type SBChatMessage = UIMessage<SBChatMessageMetadata, UIDataTypes, SBChatMessageToolTypes>;
+
+export type ChatContext = {
+    files: {
+        path: string;
+        repository: string;
+        language: string;
+        revision: string;
+    }[];
+}
+
+export type FileReference = {
+    fileName: string;
+    startLine?: number;
+    endLine?: number;
+}
