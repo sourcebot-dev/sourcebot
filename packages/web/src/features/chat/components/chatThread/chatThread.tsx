@@ -7,14 +7,13 @@ import { CustomEditor, ModelProviderInfo, SBChatMessage } from '@/features/chat/
 import { getAllMentionElements, pairMessages, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
-import { ArrowDownIcon, Loader2 } from 'lucide-react';
+import { ArrowDownIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Descendant } from 'slate';
 import { ChatBox } from '../chatBox';
 import { ChatBoxTools } from '../chatBoxTools';
 import { ErrorBanner } from './errorBanner';
 import { useDomain } from '@/hooks/useDomain';
-import { MessageAvatar } from './messageAvatar';
 import { useQueryClient } from '@tanstack/react-query';
 import { MessagePair } from './messagePair';
 
