@@ -173,6 +173,7 @@
   },
   "devDependencies": {
     "@tanstack/eslint-plugin-query": "^5.74.7",
+    "@testing-library/react-hooks": "^8.0.1",
     "@types/micromatch": "^4.0.9",
     "@types/node": "^20",
     "@types/nodemailer": "^6.4.17",

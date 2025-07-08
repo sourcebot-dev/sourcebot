@@ -10,7 +10,7 @@ import { CopyIcon, SearchIcon } from 'lucide-react';
 import type { Heading, Nodes } from "mdast";
 import { findAndReplace } from 'mdast-util-find-and-replace';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, forwardRef } from 'react';
 import Markdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -18,7 +18,7 @@ import remarkGfm from 'remark-gfm';
 import type { PluggableList, Plugin } from "unified";
 import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
-
+import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 
 const annotateCodeBlocks: Plugin<[], Root> = () => {
     return (tree: Root) => {
@@ -41,7 +41,7 @@ const annotateCodeBlocks: Plugin<[], Root> = () => {
 function remarkReferencesPlugin() {
     return function (tree: Nodes) {
         findAndReplace(tree, [
-            /@file:\{([^:}]+)(?::(\d+)-(\d+))?\}/g,
+            FILE_REFERENCE_REGEX,
             (_, fileName: string, startLine?: string, endLine?: string) => {
                 // Create display text
                 let displayText = fileName.split('/').pop() ?? fileName;
@@ -49,10 +49,13 @@ function remarkReferencesPlugin() {
                     displayText += `:${startLine}-${endLine}`;
                 }
 
+                // Create a unique data attribute to identify this reference
+                const referenceId = `ref-${fileName}-${startLine || ''}-${endLine || ''}`;
+
                 return {
                     type: 'html',
                     // @note: if you add additional attributes to this span, make sure to update the rehypeSanitize plugin to allow them.
-                    value: `<span role="link" className="font-mono cursor-pointer text-xs border px-1 py-[1.5px] rounded-md bg-fuchsia-100 hover:bg-fuchsia-200 transition-colors duration-150" title="Click to navigate to code">${displayText}</span>`
+                    value: `<span role="button" className="font-mono cursor-pointer text-xs border px-1 py-[1.5px] rounded-md bg-fuchsia-100 hover:bg-fuchsia-200 transition-colors duration-150" title="Click to navigate to code" data-reference-id="${referenceId}" data-file-name="${fileName}" data-start-line="${startLine || ''}" data-end-line="${endLine || ''}">${displayText}</span>`
                 }
             }
         ])
@@ -63,8 +66,8 @@ const remarkTocExtractor = () => {
     return function (tree: Nodes) {
         visit(tree, 'heading', (node: Heading) => {
             const textContent = node.children
-                .filter((child: any) => child.type === 'text')
-                .map((child: any) => child.value)
+                .filter((child) => child.type === 'text')
+                .map((child) => child.value)
                 .join('');
 
             const id = textContent.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-');
@@ -83,7 +86,7 @@ interface MarkdownRendererProps {
     className?: string;
 }
 
-export const MarkdownRenderer = ({ content, isStreaming, className }: MarkdownRendererProps) => {
+export const MarkdownRenderer = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, isStreaming, className }, ref) => {
     const domain = useDomain();
     const router = useRouter();
 
@@ -104,7 +107,7 @@ export const MarkdownRenderer = ({ content, isStreaming, className }: MarkdownRe
                     ...defaultSchema,
                     attributes: {
                         ...defaultSchema.attributes,
-                        span: [...(defaultSchema.attributes?.span ?? []), 'role', 'className'],
+                        span: [...(defaultSchema.attributes?.span ?? []), 'role', 'className', ['data*']],
                     },
                     strip: [],
                 } satisfies SanitizeSchema,
@@ -185,9 +188,9 @@ export const MarkdownRenderer = ({ content, isStreaming, className }: MarkdownRe
 
     }, [isStreaming, domain, router]);
 
-
     return (
         <div
+            ref={ref}
             className={cn("prose dark:prose-invert prose-p:text-foreground prose-li:text-foreground prose-li:marker:text-foreground prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none prose-hr:my-5 max-w-none [&>*:first-child]:mt-0", className)}
         >
             <Markdown
@@ -202,4 +205,6 @@ export const MarkdownRenderer = ({ content, isStreaming, className }: MarkdownRe
             </Markdown>
         </div>
     );
-};
+});
+
+MarkdownRenderer.displayName = 'MarkdownRenderer';

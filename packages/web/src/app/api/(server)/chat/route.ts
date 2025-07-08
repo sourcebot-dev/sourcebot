@@ -1,8 +1,8 @@
 import { getRepos, sew, withAuth, withOrgMembership } from "@/actions";
 import { env } from "@/env.mjs";
 import { saveChatMessages, updateChatName } from "@/features/chat/actions";
-import { createSystemPrompt } from "@/features/chat/constants";
-import { answerTool, createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool, toolNames } from "@/features/chat/tools";
+import { createSystemPrompt, toolNames } from "@/features/chat/constants";
+import { answerTool, createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool } from "@/features/chat/tools";
 import { SBChatMessage, SBChatMessageMetadata } from "@/features/chat/types";
 import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
 import { getFileSource } from "@/features/search/fileSourceApi";
@@ -16,7 +16,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { LanguageModelV2 } from "@ai-sdk/provider";
 import { OrgRole, RepoIndexingStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, generateText, hasToolCall, JSONValue, stepCountIs, streamText } from "ai";
+import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, generateText, hasToolCall, JSONValue, streamText } from "ai";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 
@@ -62,8 +62,8 @@ export async function POST(req: Request) {
 const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[], id: string, selectedRepos: string[] }, domain: string) => sew(async () =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async () => {
-            // @todo: do we want to only include mentions from the latest message?
-            const mentions = messages.flatMap((message) => message.metadata?.mentions ?? []);
+            const latestMessage = messages[messages.length - 1];
+            const mentions = latestMessage.metadata?.mentions ?? [];
 
             // @todo: we can probably cache files per chat session.
             // That way we don't have to refetch files for every message.
