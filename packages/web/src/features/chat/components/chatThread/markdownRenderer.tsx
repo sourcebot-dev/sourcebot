@@ -3,22 +3,21 @@
 import { CodeSnippet } from '@/app/components/codeSnippet';
 import { useDomain } from '@/hooks/useDomain';
 import { SearchQueryParams } from '@/lib/types';
-import { createPathWithQueryParams } from '@/lib/utils';
+import { cn, createPathWithQueryParams } from '@/lib/utils';
 import type { Element, Root } from "hast";
-import type { Nodes } from "mdast";
+import { Schema as SanitizeSchema } from 'hast-util-sanitize';
 import { CopyIcon, SearchIcon } from 'lucide-react';
+import type { Heading, Nodes } from "mdast";
+import { findAndReplace } from 'mdast-util-find-and-replace';
 import { useRouter } from 'next/navigation';
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import Markdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
-import type { Plugin } from "unified";
+import type { PluggableList, Plugin } from "unified";
 import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
-import { cn } from '@/lib/utils';
-import { findAndReplace } from 'mdast-util-find-and-replace';
-import rehypeRaw from 'rehype-raw'
-import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
-import { Schema as SanitizeSchema } from 'hast-util-sanitize';
 
 
 const annotateCodeBlocks: Plugin<[], Root> = () => {
@@ -60,6 +59,24 @@ function remarkReferencesPlugin() {
     }
 }
 
+const remarkTocExtractor = () => {
+    return function (tree: Nodes) {
+        visit(tree, 'heading', (node: Heading) => {
+            const textContent = node.children
+                .filter((child: any) => child.type === 'text')
+                .map((child: any) => child.value)
+                .join('');
+
+            const id = textContent.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-');
+
+            // Add id to the heading node for linking
+            node.data = node.data || {};
+            node.data.hProperties = node.data.hProperties || {};
+            node.data.hProperties.id = id;
+        });
+    };
+}
+
 interface MarkdownRendererProps {
     content: string;
     isStreaming: boolean;
@@ -69,6 +86,32 @@ interface MarkdownRendererProps {
 export const MarkdownRenderer = ({ content, isStreaming, className }: MarkdownRendererProps) => {
     const domain = useDomain();
     const router = useRouter();
+
+    const remarkPlugins = useMemo((): PluggableList => {
+        return [
+            remarkGfm,
+            remarkReferencesPlugin,
+            remarkTocExtractor,
+        ];
+    }, []);
+
+    const rehypePlugins = useMemo((): PluggableList => {
+        return [
+            annotateCodeBlocks,
+            rehypeRaw,
+            [
+                rehypeSanitize,
+                {
+                    ...defaultSchema,
+                    attributes: {
+                        ...defaultSchema.attributes,
+                        span: [...(defaultSchema.attributes?.span ?? []), 'role', 'className'],
+                    },
+                    strip: [],
+                } satisfies SanitizeSchema,
+            ],
+        ];
+    }, []);
 
     const renderPre = useCallback(({ children, node, ...rest }: React.JSX.IntrinsicElements['pre'] & { node?: Element }) => {
         if (node?.properties && node.properties.isBlock === true) {
@@ -148,25 +191,8 @@ export const MarkdownRenderer = ({ content, isStreaming, className }: MarkdownRe
             className={cn("prose dark:prose-invert prose-p:text-foreground prose-li:text-foreground prose-li:marker:text-foreground prose-headings:mt-6 prose-ol:mt-3 prose-ul:mt-3 prose-p:mb-3 prose-code:before:content-none prose-code:after:content-none prose-hr:my-5 max-w-none [&>*:first-child]:mt-0", className)}
         >
             <Markdown
-                remarkPlugins={[
-                    remarkGfm,
-                    remarkReferencesPlugin,
-                ]}
-                rehypePlugins={[
-                    annotateCodeBlocks,
-                    rehypeRaw,
-                    [
-                        rehypeSanitize,
-                        {
-                            ...defaultSchema,
-                            attributes: {
-                                ...defaultSchema.attributes,
-                                span: [...(defaultSchema.attributes?.span ?? []), 'role', 'className'],
-                            },
-                            strip: [],
-                        } satisfies SanitizeSchema,
-                    ],
-                ]}
+                remarkPlugins={remarkPlugins}
+                rehypePlugins={rehypePlugins}
                 components={{
                     pre: renderPre,
                     code: renderCode,

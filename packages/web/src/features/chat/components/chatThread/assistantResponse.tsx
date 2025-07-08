@@ -8,6 +8,7 @@ import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
 import { AnswerToolComponent } from './tools/answerToolComponent';
 import { ToolHeader } from './tools/shared';
+import { TableOfContents } from './tableOfContents';
 
 interface AssistantResponseProps {
     message: SBChatMessage;
@@ -18,6 +19,9 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
     const [isResearchExpanded, setIsResearchExpanded] = useState(true);
     const hasAutoCollapsed = useRef(false);
     const userHasManuallyExpanded = useRef(false);
+
+    // Generate unique id for this message's answer content
+    const answerId = `answer-${message.id}`;
 
     const answerPart = useMemo(() => {
         return message.parts
@@ -122,18 +126,34 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
             </div>
 
 
-            <div className="p-4 border rounded-lg">
-                {answerPart ? (
-                    <AnswerToolComponent
-                        part={answerPart}
-                    />
-                ) : isStreaming && (
-                    <div className="animate-pulse space-y-4">
-                        <div className="h-4 w-1/4 bg-muted rounded" />
-                        <div className="space-y-2">
-                            <div className="h-3 w-3/4 bg-muted rounded" />
-                            <div className="h-3 w-2/3 bg-muted rounded" />
-                            <div className="h-3 w-1/2 bg-muted rounded" />
+            <div className="relative">
+                <div className="p-4 border rounded-lg">
+                    {answerPart ? (
+                        <div id={answerId} className="relative">
+                            <AnswerToolComponent
+                                part={answerPart}
+                            />
+                        </div>
+                    ) : isStreaming && (
+                        <div className="animate-pulse space-y-4">
+                            <div className="h-4 w-1/4 bg-muted rounded" />
+                            <div className="space-y-2">
+                                <div className="h-3 w-3/4 bg-muted rounded" />
+                                <div className="h-3 w-2/3 bg-muted rounded" />
+                                <div className="h-3 w-1/2 bg-muted rounded" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+                
+                {/* TOC positioned to the left and sticky to answer top */}
+                {answerPart && (
+                    <div className="absolute left-0 top-0 -translate-x-full pr-6 w-64 hidden xl:block h-full">
+                        <div className="sticky top-0">
+                            <TableOfContents
+                                targetSelector={`#${answerId}`}
+                                className="border rounded-lg p-4"
+                            />
                         </div>
                     </div>
                 )}
