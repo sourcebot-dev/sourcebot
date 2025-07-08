@@ -133,6 +133,7 @@
     "micromatch": "^4.0.8",
     "next": "14.2.26",
     "next-auth": "^5.0.0-beta.25",
+    "next-navigation-guard": "^0.2.0",
     "next-themes": "^0.3.0",
     "nodemailer": "^6.10.0",
     "octokit": "^4.1.3",
