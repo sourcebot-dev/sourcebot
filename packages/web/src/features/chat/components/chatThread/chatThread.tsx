@@ -16,6 +16,7 @@ import { ErrorBanner } from './errorBanner';
 import { useDomain } from '@/hooks/useDomain';
 import { useQueryClient } from '@tanstack/react-query';
 import { MessagePair } from './messagePair';
+import { useNavigationGuard } from 'next-navigation-guard';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -44,7 +45,7 @@ export const ChatThread = ({
     const hasSubmittedInputMessage = useRef(false);
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
     const queryClient = useQueryClient();
-
+   
     const {
         messages,
         sendMessage,
@@ -71,6 +72,11 @@ export const ChatThread = ({
             );
         }
     });
+
+    useNavigationGuard({
+        enabled: status === "streaming" || status === "submitted",
+        confirm: () => window.confirm("You have unsaved changes that will be lost.")
+    })
 
     const messagePairs = useMemo(() => {
         return pairMessages(messages);

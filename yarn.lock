@@ -6480,6 +6480,7 @@ __metadata:
     micromatch: "npm:^4.0.8"
     next: "npm:14.2.26"
     next-auth: "npm:^5.0.0-beta.25"
+    next-navigation-guard: "npm:^0.2.0"
     next-themes: "npm:^0.3.0"
     nodemailer: "npm:^6.10.0"
     npm-run-all: "npm:^4.1.5"
@@ -13891,6 +13892,16 @@ __metadata:
     nodemailer:
       optional: true
   checksum: 10c0/d9bbaae7abad133c30eb1df41ef151e959998c2db5152fabd3389d4e13b5dd9226eb4b6cbba400250ae4713aeca2008fa9bcc29233b14a26777de4c3dc4d6a39
+  languageName: node
+  linkType: hard
+
+"next-navigation-guard@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "next-navigation-guard@npm:0.2.0"
+  peerDependencies:
+    next: ^14 || ^15
+    react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+  checksum: 10c0/b53ab6d7efc550076f931f8731648ccb5a771133b59a10b0163a2162f7fceb9e8f7b95b0e4698ae419870bc1c2bbb9dc7b96f81df92fcddf60d58612c247bd7d
   languageName: node
   linkType: hard
 
