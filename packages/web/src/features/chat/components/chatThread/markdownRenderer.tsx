@@ -97,7 +97,6 @@ export const MarkdownRenderer = ({ content, isStreaming, className }: MarkdownRe
 
     const rehypePlugins = useMemo((): PluggableList => {
         return [
-            annotateCodeBlocks,
             rehypeRaw,
             [
                 rehypeSanitize,
@@ -110,6 +109,7 @@ export const MarkdownRenderer = ({ content, isStreaming, className }: MarkdownRe
                     strip: [],
                 } satisfies SanitizeSchema,
             ],
+            annotateCodeBlocks,
         ];
     }, []);
 
