@@ -81,7 +81,7 @@ interface ToolHeaderProps {
     isLoading: boolean;
     isError: boolean;
     isExpanded: boolean;
-    label: string;
+    label: React.ReactNode;
     Icon: React.ElementType;
     onExpand: (isExpanded: boolean) => void;
     className?: string;
