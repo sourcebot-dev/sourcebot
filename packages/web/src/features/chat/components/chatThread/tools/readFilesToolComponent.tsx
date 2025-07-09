@@ -16,14 +16,14 @@ export const ReadFilesToolComponent = ({ part }: { part: ReadFilesToolUIPart }) 
             case 'input-streaming':
                 return 'Reading...';
             case 'input-available':
-                return `Reading ${part.input.paths.length} files...`;
+                return `Reading ${part.input.paths.length} file${part.input.paths.length === 1 ? '' : 's'}...`;
             case 'output-error':
                 return 'Tool call failed';
             case 'output-available':
                 if (isServiceError(part.output)) {
                     return 'Failed to read files';
                 }
-                return `Read ${part.output.length} files`;
+                return `Read ${part.output.length} file${part.output.length === 1 ? '' : 's'}`;
         }
     }, [part]);
 

@@ -1,32 +1,27 @@
 'use client';
 
-import { SearchCodeToolUIPart } from "@/features/chat/tools";
-import { useDomain } from "@/hooks/useDomain";
-import { createPathWithQueryParams, isServiceError } from "@/lib/utils";
+import { FindSymbolDefinitionsToolUIPart } from "@/features/chat/tools";
+import { isServiceError } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { FileListItem, ToolHeader, TreeList } from "./shared";
 import { CodeSnippet } from "@/app/components/codeSnippet";
 import { Separator } from "@/components/ui/separator";
-import { SearchIcon } from "lucide-react";
-import Link from "next/link";
-import { SearchQueryParams } from "@/lib/types";
-import { PlayIcon } from "@radix-ui/react-icons";
+import { BookOpenIcon } from "lucide-react";
 
 
-export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }) => {
+export const FindSymbolDefinitionsToolComponent = ({ part }: { part: FindSymbolDefinitionsToolUIPart }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const domain = useDomain();
 
     const label = useMemo(() => {
         switch (part.state) {
             case 'input-streaming':
-                return 'Searching...';
+                return 'Resolving definition...';
             case 'input-available':
-                return <span>Searching for <CodeSnippet>{part.input.query}</CodeSnippet></span>;
+                return <span>Resolving definition for <CodeSnippet>{part.input.symbol}</CodeSnippet></span>;
             case 'output-error':
-                return '"Search code" tool call failed';
+                return '"Find symbol definitions" tool call failed';
             case 'output-available':
-                return <span>Searched for <CodeSnippet>{part.input.query}</CodeSnippet></span>;
+                return <span>Resolved definition for <CodeSnippet>{part.input.symbol}</CodeSnippet></span>;
         }
     }, [part]);
 
@@ -37,7 +32,7 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
                 isError={part.state === 'output-error' || (part.state === 'output-available' && isServiceError(part.output))}
                 isExpanded={isExpanded}
                 label={label}
-                Icon={SearchIcon}
+                Icon={BookOpenIcon}
                 onExpand={setIsExpanded}
             />
             {part.state === 'output-available' && isExpanded && (
@@ -48,11 +43,11 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
                         </TreeList>
                     ) : (
                         <>
-                            {part.output.files.length === 0 ? (
+                            {part.output.length === 0 ? (
                                 <span className="text-sm text-muted-foreground ml-[25px]">No matches found</span>
                             ) : (
                                 <TreeList>
-                                    {part.output.files.map((file) => {
+                                    {part.output.map((file) => {
                                         return (
                                             <FileListItem
                                                 key={file.fileName}
@@ -63,15 +58,6 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
                                     })}
                                 </TreeList>
                             )}
-                            <Link
-                                href={createPathWithQueryParams(`/${domain}/search`,
-                                    [SearchQueryParams.query, part.output.query],
-                                )}
-                                className='flex flex-row items-center gap-2 text-sm text-muted-foreground mt-2 ml-auto w-fit hover:text-foreground'
-                            >
-                                <PlayIcon className='h-4 w-4' />
-                                Manually run query
-                            </Link>
                         </>
                     )}
                     <Separator className='ml-[7px] my-2' />

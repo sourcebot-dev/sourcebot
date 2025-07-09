@@ -11,6 +11,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileReferencesList } from './fileReferencesList';
 import { useExtractFileReferences } from '../../useExtractFileReferences';
 import { TableOfContents } from './tableOfContents';
+import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
+import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
 
 interface AssistantResponseProps {
     message: SBChatMessage;
@@ -193,11 +195,19 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
                                         />
                                     )
                                 case 'tool-findSymbolDefinitions':
-                                    // @todo
-                                    break;
+                                    return (
+                                        <FindSymbolDefinitionsToolComponent
+                                            key={index}
+                                            part={part}
+                                        />
+                                    )
                                 case 'tool-findSymbolReferences':
-                                    // @todo
-                                    break;
+                                    return (
+                                        <FindSymbolReferencesToolComponent
+                                            key={index}
+                                            part={part}
+                                        />
+                                    )
                                 default:
                                     return null;
                             }
