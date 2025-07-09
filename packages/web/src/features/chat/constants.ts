@@ -1,17 +1,4 @@
-import { z } from "zod";
 import { addLineNumbers } from "./utils";
-
-const numberSchema = z.coerce.number();
-
-export const codeBlockMetadataSchema = z.object({
-    filePath: z.string(),
-    repository: z.string(),
-    startLine: numberSchema,
-    endLine: numberSchema,
-    revision: z.string(),
-});
-
-export type CodeBlockMetadata = z.infer<typeof codeBlockMetadataSchema>;
 
 interface CreateSystemPromptOptions {
     repos: string[];

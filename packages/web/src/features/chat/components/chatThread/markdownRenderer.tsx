@@ -134,14 +134,11 @@ export const MarkdownRenderer = forwardRef<HTMLDivElement, MarkdownRendererProps
         if (node?.properties && node.properties.isBlock === true) {
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : undefined;
-            const metadataString = node?.data?.meta;
 
             return (
                 <CodeBlock
                     code={text}
-                    isStreaming={isStreaming}
                     language={language}
-                    metadataPayload={metadataString ?? undefined}
                 />
             )
         }
