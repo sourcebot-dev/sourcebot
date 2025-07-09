@@ -1,8 +1,9 @@
 import { expect, test } from 'vitest'
-import { pairMessages } from './utils';
 import { SBChatMessage } from './types';
+import { useMessagePairs } from './useMessagePairs';
+import { renderHook } from '@testing-library/react-hooks';
 
-test('pairMessages pairs user and assistant messages', () => {
+test('useMessagePairs pairs user and assistant messages', () => {
     const userMessage: SBChatMessage = {
         role: 'user', parts: [],
         id: '0'
@@ -18,9 +19,9 @@ test('pairMessages pairs user and assistant messages', () => {
         assistantMessage,
     ]
 
-    const pairs = pairMessages(messages);
+    const pairs = renderHook(() => useMessagePairs(messages));
 
-    expect(pairs).toEqual([
+    expect(pairs.result.current).toEqual([
         [userMessage, assistantMessage],
     ]);
 
@@ -48,9 +49,9 @@ test('pairMessages pairs orphaned user messages with undefined', () => {
         assistantMessage,
     ]
 
-    const pairs = pairMessages(messages);
+    const pairs = renderHook(() => useMessagePairs(messages));
 
-    expect(pairs).toEqual([
+    expect(pairs.result.current).toEqual([
         [userMessage1, undefined],
         [userMessage2, assistantMessage],
     ]);
@@ -78,9 +79,9 @@ test('pairMessages ignores orphaned assistant messages', () => {
         assistantMessage2,
     ]
 
-    const pairs = pairMessages(messages);
+    const pairs = renderHook(() => useMessagePairs(messages));
 
-    expect(pairs).toEqual([
+    expect(pairs.result.current).toEqual([
         [userMessage, assistantMessage1],
     ]);
 })
@@ -107,9 +108,9 @@ test('pairMessages pairs the last message with undefined if it is a user message
         userMessage2,
     ]
 
-    const pairs = pairMessages(messages);
+    const pairs = renderHook(() => useMessagePairs(messages));
 
-    expect(pairs).toEqual([
+    expect(pairs.result.current).toEqual([
         [userMessage1, assistantMessage],
         [userMessage2, undefined],
     ]);

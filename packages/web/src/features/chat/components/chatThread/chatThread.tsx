@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { CustomEditor, ModelProviderInfo, SBChatMessage } from '@/features/chat/types';
-import { getAllMentionElements, pairMessages, resetEditor, slateContentToString } from '@/features/chat/utils';
+import { getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Descendant } from 'slate';
 import { ChatBox } from '../chatBox';
 import { ChatBoxTools } from '../chatBoxTools';
@@ -19,6 +19,7 @@ import { MessagePair } from './messagePair';
 import { useNavigationGuard } from 'next-navigation-guard';
 import { Separator } from '@/components/ui/separator';
 import { useExtractChatContext } from '../../useExtractChatContext';
+import { useMessagePairs } from '../../useMessagePairs';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -75,16 +76,13 @@ export const ChatThread = ({
         }
     });
 
+    const messagePairs = useMessagePairs(messages);
     const chatContext = useExtractChatContext(messages);
 
     useNavigationGuard({
         enabled: status === "streaming" || status === "submitted",
         confirm: () => window.confirm("You have unsaved changes that will be lost.")
     })
-
-    const messagePairs = useMemo(() => {
-        return pairMessages(messages);
-    }, [messages]);
 
     useEffect(() => {
         if (!inputMessage || hasSubmittedInputMessage.current) {
