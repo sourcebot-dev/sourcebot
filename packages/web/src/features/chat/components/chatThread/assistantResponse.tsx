@@ -1,7 +1,7 @@
 'use client';
 
 import { Loader2, BookOpenIcon } from 'lucide-react';
-import { memo, useMemo, useState, useEffect, useRef } from 'react';
+import { memo, useMemo, useState, useEffect, useRef, CSSProperties } from 'react';
 import { MarkdownRenderer } from './markdownRenderer';
 import { ChatContext, SBChatMessage } from '../../types';
 import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
@@ -24,11 +24,13 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
     const userHasManuallyExpanded = useRef(false);
     const markdownRendererRef = useRef<HTMLDivElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const answerContainerRef = useRef<HTMLDivElement>(null);
     const [highlightedFileRange, setHighlightedFileRange] = useState<{
         fileName: string;
         startLine: number;
         endLine: number;
     } | undefined>(undefined);
+    const [answerHeight, setAnswerHeight] = useState<number | null>(null);
 
     const fileReferences = useExtractFileReferences([message]);
 
@@ -95,7 +97,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
 
                 if (fileName && startLineStr && endLineStr) {
                     setHighlightedFileRange({
-                        fileName,
+                        fileName: fileName.split('/').pop() ?? fileName,
                         startLine: parseInt(startLineStr),
                         endLine: parseInt(endLineStr),
                     });
@@ -118,6 +120,34 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
             markdownRenderer.removeEventListener('mouseout', handleMouseOut);
         };
     }, [answerPart]); // Re-run when answerPart changes to ensure we catch new content
+
+    // Measure answer content height for dynamic sizing
+    useEffect(() => {
+        if (!answerContainerRef.current || !answerPart) {
+            setAnswerHeight(null);
+            return;
+        }
+
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                setAnswerHeight(entry.contentRect.height);
+            }
+        });
+
+        resizeObserver.observe(answerContainerRef.current);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, [answerPart]);
+
+    const referenceViewerScrollAreaStyle: CSSProperties = useMemo(() => {
+        const maxHeight = 'calc(100vh - 120px)';
+
+        return {
+            height: answerHeight ? `min(${answerHeight}px, ${maxHeight})` : maxHeight,
+        };
+    }, [answerHeight]);
 
     return (
         <div
@@ -177,7 +207,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
             </div>
 
             <div className="flex gap-4 relative">
-                <div className="w-1/2 p-4 border rounded-lg">
+                <div className="w-1/2 p-4 border rounded-lg" ref={answerContainerRef}>
                     {answerPart ? (
                         <div id={answerId}>
                             <MarkdownRenderer
@@ -225,7 +255,10 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
                                     </div>
                                 </div>
                             ): (
-                                <ScrollArea className="h-[calc(100vh-120px)]" ref={scrollAreaRef}>
+                                <ScrollArea 
+                                    ref={scrollAreaRef}
+                                    style={referenceViewerScrollAreaStyle}
+                                >
                                     <FileReferencesList
                                         fileReferences={fileReferences}
                                         chatContext={chatContext}
