@@ -4,11 +4,10 @@ import { renderHook } from '@testing-library/react-hooks';
 import { useExtractReferences } from './useExtractReferences';
 
 test('useExtractReferences extracts file references from answer tool content', () => {
-    const messages: SBChatMessage[] = [
-        {
-            id: 'msg1',
-            role: 'assistant',
-            parts: [
+    const message: SBChatMessage = {
+        id: 'msg1',
+        role: 'assistant',
+        parts: [
                 {
                     type: 'tool-answerTool',
                     toolCallId: 'test-id',
@@ -17,11 +16,10 @@ test('useExtractReferences extracts file references from answer tool content', (
                         answer: 'The auth flow is implemented in @file:{auth.ts} and uses sessions @file:{auth.ts:45-60}.'
                     },
                 }
-            ]
-        }
-    ];
+        ]
+    };
 
-    const { result } = renderHook(() => useExtractReferences(messages));
+    const { result } = renderHook(() => useExtractReferences(message));
     
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toMatchObject({
