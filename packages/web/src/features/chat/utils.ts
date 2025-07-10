@@ -214,3 +214,7 @@ export const createUIMessage = (text: string, sources: Source[]): CreateUIMessag
         ]
     }
 }
+
+export const getFileReferenceId = (fileName: string, range?: { startLine: number, endLine: number }) => {
+    return `file-reference-${fileName}${range ? `-${range.startLine}-${range.endLine}` : ''}`;
+}

@@ -24,6 +24,7 @@ export type Source = z.infer<typeof sourceSchema>;
 
 const fileReferenceSchema = z.object({
     type: z.literal('file'),
+    id: z.string(),
     fileName: z.string(),
     range: z.object({
         startLine: z.number(),

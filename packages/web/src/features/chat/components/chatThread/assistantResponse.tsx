@@ -12,6 +12,7 @@ import { useExtractReferences } from '../../useExtractReferences';
 import { TableOfContents } from './tableOfContents';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
+import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface AssistantResponseProps {
     message: SBChatMessage;
@@ -128,6 +129,30 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
             markdownRenderer.removeEventListener('click', handleClick);
         };
     }, [answerPart]); // Re-run when answerPart changes to ensure we catch new content
+
+
+    useEffect(() => {
+        if (!selectedReference) {
+            return;
+        }
+
+        const referenceElement = document.getElementById(`user-content-${selectedReference.id}`);
+        if (!referenceElement) {
+            return;
+        }
+
+        scrollIntoView(referenceElement, {
+            behavior: 'smooth',
+            scrollMode: 'if-needed',
+            block: 'center',
+        });
+
+        referenceElement.classList.add('chat-reference--selected');
+
+        return () => {
+            referenceElement.classList.remove('chat-reference--selected');
+        };
+    }, [selectedReference]);
 
     // Measure answer content height for dynamic sizing
     useEffect(() => {
@@ -277,6 +302,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
                                     highlightedReference={highlightedReference}
                                     selectedReference={selectedReference}
                                     style={referenceViewerScrollAreaStyle}
+                                    onSelectedReferenceChanged={setSelectedReference}
                                 />
                             )}
                         </div>

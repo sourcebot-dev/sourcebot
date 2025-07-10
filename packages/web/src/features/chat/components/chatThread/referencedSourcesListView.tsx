@@ -1,9 +1,12 @@
 'use client';
 
-import { getBrowsePath, useBrowseNavigation, BrowseHighlightRange } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { getBrowsePath, useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { fetchFileSource } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SymbolHoverPopup } from '@/ee/features/codeNav/components/symbolHoverPopup';
+import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
 import { SymbolDefinition } from '@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo';
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
@@ -11,23 +14,21 @@ import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { useDomain } from "@/hooks/useDomain";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { isServiceError, unwrapServiceError } from "@/lib/utils";
-import { EditorView } from '@codemirror/view';
+import { Range } from "@codemirror/state";
+import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
 import { useQueries } from "@tanstack/react-query";
-import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
-import { useCallback, useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle, Ref } from "react";
-import { Source, FileReference, Reference, FileSource } from "../../types";
+import CodeMirror, { ReactCodeMirrorRef, StateField } from '@uiw/react-codemirror';
 import Link from "next/link";
-import { fetchFileSource } from "@/app/api/(client)/client";
-import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
-import { rangeHighlightingExtension } from "@/app/[domain]/browse/[...path]/components/rangeHighlightingExtension";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { forwardRef, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
+import { FileReference, FileSource, Reference, Source } from "../../types";
 
 interface ReferencedSourcesListViewProps {
     references: FileReference[];
     sources: Source[];
     highlightedReference?: Reference;
     selectedReference?: Reference;
+    onSelectedReferenceChanged: (reference: Reference) => void;
     style: React.CSSProperties;
 }
 
@@ -39,12 +40,25 @@ const getFileId = (fileSource: FileSource) => {
     return `file-source-${fileSource.repo}-${fileSource.path}`;
 }
 
+const lineDecoration = Decoration.line({
+    attributes: { class: "chat-lineHighlight" },
+});
+
+const selectedLineDecoration = Decoration.line({
+    attributes: { class: "chat-lineHighlight-selected" },
+});
+
+const hoverLineDecoration = Decoration.line({
+    attributes: { class: "chat-lineHighlight-hover" },
+});
+
 export const ReferencedSourcesListView = ({
     references,
     sources,
     highlightedReference,
     selectedReference,
     style,
+    onSelectedReferenceChanged,
 }: ReferencedSourcesListViewProps) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const editorRefsMap = useRef<Map<string, ReactCodeMirrorRef>>(new Map());
@@ -201,18 +215,23 @@ export const ReferencedSourcesListView = ({
 
                     const fileData = query.data!;
 
-                    let highlightRange: BrowseHighlightRange | undefined;
-                    if (
-                        highlightedReference &&
-                        highlightedReference.type === 'file' &&
-                        highlightedReference.range &&
-                        resolveFileReference(highlightedReference, [fileSource]) !== undefined
-                    ) {
-                        highlightRange = {
-                            start: { lineNumber: highlightedReference.range.startLine },
-                            end: { lineNumber: highlightedReference.range.endLine },
-                        }
-                    }
+                    // Resolve a list of references that are in this file.
+                    const referencesInFile =
+                        references.filter((reference) => {
+                            if (reference.type !== 'file') {
+                                return false;
+                            }
+                            return resolveFileReference(reference, [fileSource]) !== undefined;
+                        })
+                        .map((reference) => {
+                            return {
+                                reference,
+                                isSelected:
+                                    reference.id === selectedReference?.id,
+                                isHovered:
+                                    reference.id === highlightedReference?.id
+                            }
+                        });
 
                     const key = getFileId(fileSource);
 
@@ -225,8 +244,11 @@ export const ReferencedSourcesListView = ({
                             revision={fileSource.revision}
                             repoName={fileSource.repo}
                             fileName={fileData.path}
-                            highlightRange={highlightRange}
+                            references={referencesInFile}
                             ref={(ref) => setEditorRef(key, ref)}
+                            onReferenceClicked={(reference) => {
+                                onSelectedReferenceChanged(reference);
+                            }}
                         />
                     );
                 })}
@@ -243,11 +265,24 @@ interface CodeMirrorCodeBlockProps {
     revision: string;
     repoName: string;
     fileName: string;
-    // @todo: we should move this into a more generic place.
-    highlightRange?: BrowseHighlightRange;
+    references: {
+        reference: FileReference;
+        isSelected: boolean;
+        isHovered: boolean;
+    }[];
+    onReferenceClicked: (reference: FileReference) => void;
 }
 
-const CodeMirrorCodeBlock = ({ id, code, language, revision, repoName, fileName, highlightRange }: CodeMirrorCodeBlockProps, forwardedRef: Ref<ReactCodeMirrorRef>) => {
+const CodeMirrorCodeBlock = ({
+    id,
+    code,
+    language,
+    revision,
+    repoName,
+    fileName,
+    references,
+    onReferenceClicked,
+}: CodeMirrorCodeBlockProps, forwardedRef: Ref<ReactCodeMirrorRef>) => {
     const domain = useDomain();
     const theme = useCodeMirrorTheme();
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
@@ -271,11 +306,60 @@ const CodeMirrorCodeBlock = ({ id, code, language, revision, repoName, fileName,
             ...(hasCodeNavEntitlement ? [
                 symbolHoverTargetsExtension,
             ] : []),
-            ...(highlightRange ? [
-                rangeHighlightingExtension(highlightRange),
-            ] : []),
+            StateField.define<DecorationSet>({
+                create(state) {
+                    const decorations: Range<Decoration>[] = [];
+
+                    for (const { reference: { range }, isSelected, isHovered } of references) {
+                        if (!range) {
+                            continue;
+                        }
+
+                        for (let line = range.startLine; line <= range.endLine; line++) {
+                            const decoration = isSelected ? selectedLineDecoration : isHovered ? hoverLineDecoration : lineDecoration;
+                            decorations.push(decoration.range(state.doc.line(line).from));
+                        }
+                    }
+
+                    decorations.sort((a, b) => a.from - b.from);
+                    return Decoration.set(decorations);
+                },
+                update(deco, tr) {
+                    return deco.map(tr.changes);
+                },
+                provide: (field) => EditorView.decorations.from(field),
+            }),
+            EditorView.domEventHandlers({
+                click: (event, view) => {
+                    const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+                    if (pos === null) return false;
+                    
+                    const line = view.state.doc.lineAt(pos);
+                    const lineNumber = line.number;
+                    
+                    // Check if this line is part of any highlighted range
+                    const matchingRanges = references.filter(({ reference: { range } }) =>
+                        range && lineNumber >= range.startLine && lineNumber <= range.endLine
+                    );
+
+                    // Sort by the length of the range.
+                    // Shorter ranges are more specific, so we want to prioritize them.
+                    matchingRanges.sort((a, b) => {
+                        const aLength = (a.reference.range!.endLine) - (a.reference.range!.startLine);
+                        const bLength = (b.reference.range!.endLine) - (b.reference.range!.startLine);
+                        return aLength - bLength;
+                    });
+
+                    if (matchingRanges.length > 0) {
+                        onReferenceClicked(matchingRanges[0].reference);
+                        return true; // Prevent default handling
+                    }
+                    
+                    return false;
+                }
+            })
         ];
-    }, [languageExtension, keymapExtension, highlightRange, hasCodeNavEntitlement]);
+    }, [languageExtension, keymapExtension, hasCodeNavEntitlement, references, onReferenceClicked]);
 
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
         if (symbolDefinitions.length === 0) {
