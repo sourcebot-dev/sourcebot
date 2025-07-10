@@ -28,7 +28,9 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
     const [answerHeight, setAnswerHeight] = useState<number | null>(null);
 
     const [highlightedReference, setHighlightedReference] = useState<Reference | undefined>(undefined);
-    const references = useExtractReferences([message]);
+    const [selectedReference, setSelectedReference] = useState<Reference | undefined>(undefined);
+
+    const references = useExtractReferences(message);
 
     // Generate unique id for this message's answer content
     const answerId = `answer-${message.id}`;
@@ -82,7 +84,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
         }
 
         const markdownRenderer = markdownRendererRef.current;
-
+        
         const handleMouseOver = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
             if (target.hasAttribute(REFERENCE_PAYLOAD_ATTRIBUTE)) {
@@ -103,12 +105,27 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
             }
         };
 
+        const handleClick = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (target.hasAttribute(REFERENCE_PAYLOAD_ATTRIBUTE)) {
+                try {
+                    const jsonPayload = JSON.parse(decodeURIComponent(target.getAttribute(REFERENCE_PAYLOAD_ATTRIBUTE) ?? '{}'));
+                    const payload = referenceSchema.parse(jsonPayload);
+                    setSelectedReference(payload);
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+        };
+
         markdownRenderer.addEventListener('mouseover', handleMouseOver);
         markdownRenderer.addEventListener('mouseout', handleMouseOut);
+        markdownRenderer.addEventListener('click', handleClick);
 
         return () => {
             markdownRenderer.removeEventListener('mouseover', handleMouseOver);
             markdownRenderer.removeEventListener('mouseout', handleMouseOut);
+            markdownRenderer.removeEventListener('click', handleClick);
         };
     }, [answerPart]); // Re-run when answerPart changes to ensure we catch new content
 
@@ -258,6 +275,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
                                     references={references}
                                     sources={sources}
                                     highlightedReference={highlightedReference}
+                                    selectedReference={selectedReference}
                                     style={referenceViewerScrollAreaStyle}
                                 />
                             )}
