@@ -85,6 +85,11 @@
     --editor-tag-number: #219;
     --editor-tag-regexp: #e40;
     --editor-tag-variable-local: #30a;
+
+    --chat-reference: #02255f11;
+    --chat-reference-hover: #f5d0fe;
+    --chat-reference-selected: #efc0fb;
+    --chat-reference-selected-border: #e052b8;
   }
 
   .dark {
@@ -165,6 +170,11 @@
     --editor-tag-number: #e5c07b;
     --editor-tag-regexp: #56b6c2;
     --editor-tag-variable-local: #61afef;
+
+    --chat-reference: hsl(219, 14%, 20%);
+    --chat-reference-hover: hsl(219, 14%, 20%);
+    --chat-reference-selected: hsl(219, 14%, 20%);
+    --chat-reference-selected-border: hsl(219, 14%, 20%);
   }
 }
 
@@ -205,6 +215,31 @@
 .lineHighlight {
   background: var(--editor-line-highlight);
   border-radius: 2px;
+}
+
+.chat-lineHighlight,
+.chat-lineHighlight-selected {
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.chat-lineHighlight {
+  background: var(--chat-reference);
+}
+
+.chat-lineHighlight-selected {
+  background: var(--chat-reference-selected);
+}
+
+.chat-lineHighlight-hover {
+  background: var(--chat-reference-hover);
+}
+
+/* Reference states for markdown reference spans */
+.chat-reference--selected {
+  background-color: var(--chat-reference-selected) !important;
+  border-color: var(--chat-reference-selected-border) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .cm-editor.cm-focused {
@@ -261,14 +296,14 @@
 .cm-editor .cm-line::selection,
 .cm-editor .cm-selectionLayer .cm-selectionBackground,
 .cm-content ::selection {
-    background: var(--editor-selection-highlight, #ffe066) !important;
-    color: var(--editor-selection-highlight-foreground, #222) !important;
+  background: var(--editor-selection-highlight, #ffe066) !important;
+  color: var(--editor-selection-highlight-foreground, #222) !important;
 }
 
 .dark .cm-editor .cm-selectionBackground,
 .dark .cm-editor .cm-line::selection,
 .dark .cm-editor .cm-selectionLayer .cm-selectionBackground,
 .dark .cm-content ::selection {
-    background: var(--editor-selection-highlight, #2563eb) !important;
-    color: var(--editor-selection-highlight-foreground, #fff) !important;
+  background: var(--editor-selection-highlight, #2563eb) !important;
+  color: var(--editor-selection-highlight-foreground, #fff) !important;
 }

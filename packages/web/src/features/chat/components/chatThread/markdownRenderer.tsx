@@ -20,6 +20,7 @@ import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 import { FileReference } from '../../types';
+import { getFileReferenceId } from '../../utils';
 
 export const REFERENCE_PAYLOAD_ATTRIBUTE = 'data-reference-payload';
 
@@ -48,25 +49,35 @@ function remarkReferencesPlugin() {
             (_, fileName: string, startLine?: string, endLine?: string) => {
                 // Create display text
                 let displayText = fileName.split('/').pop() ?? fileName;
-                if (startLine && endLine) {
-                    displayText += `:${startLine}-${endLine}`;
+
+                const range = startLine && endLine ? {
+                    startLine: parseInt(startLine),
+                    endLine: parseInt(endLine),
+                } : undefined;
+
+                if (range) {
+                    displayText += `:${range.startLine}-${range.endLine}`;
                 }
 
                 const payload: FileReference = {
                     type: 'file',
+                    id: getFileReferenceId(fileName, range),
                     fileName,
-                    ...(startLine && endLine ? {
-                        range: {
-                            startLine: parseInt(startLine),
-                            endLine: parseInt(endLine),
-                        }
-                    } : {}),
+                    range,
                 }
 
                 return {
                     type: 'html',
                     // @note: if you add additional attributes to this span, make sure to update the rehypeSanitize plugin to allow them.
-                    value: `<span role="button" className="font-mono cursor-pointer text-xs border px-1 py-[1.5px] rounded-md bg-fuchsia-100 hover:bg-fuchsia-200 transition-colors duration-150" title="Click to navigate to code" ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(payload))}">${displayText}</span>`
+                    value: `<span
+                        role="button"
+                        id="${payload.id}"
+                        className="font-mono cursor-pointer text-xs border px-1 py-[1.5px] rounded-md transition-all duration-150 bg-chat-reference hover:bg-chat-reference-hover"
+                        title="Click to navigate to code"
+                        ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(payload))}"
+                    >
+                        ${displayText}
+                    </span>`
                 }
             }
         ])

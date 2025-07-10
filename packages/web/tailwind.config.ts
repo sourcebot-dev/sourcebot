@@ -107,7 +107,13 @@ const config = {
     					regexp: 'var(--editor-tag-regexp)',
     					'variable-local': 'var(--editor-tag-variable-local)'
     				}
-    			}
+    			},
+				chat: {
+					reference: 'var(--chat-reference)',
+					'reference-hover': 'var(--chat-reference-hover)',
+					'reference-selected': 'var(--chat-reference-selected)',
+					'reference-selected-border': 'var(--chat-reference-selected-border)'
+				}
     		},
     		fontSize: {
     			editor: 'var(--editor-font-size)'
