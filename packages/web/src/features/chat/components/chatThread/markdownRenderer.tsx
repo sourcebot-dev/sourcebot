@@ -19,6 +19,9 @@ import type { PluggableList, Plugin } from "unified";
 import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
+import { FileReference } from '../../types';
+
+export const REFERENCE_PAYLOAD_ATTRIBUTE = 'data-reference-payload';
 
 const annotateCodeBlocks: Plugin<[], Root> = () => {
     return (tree: Root) => {
@@ -49,13 +52,21 @@ function remarkReferencesPlugin() {
                     displayText += `:${startLine}-${endLine}`;
                 }
 
-                // Create a unique data attribute to identify this reference
-                const referenceId = `ref-${fileName}-${startLine || ''}-${endLine || ''}`;
+                const payload: FileReference = {
+                    type: 'file',
+                    fileName,
+                    ...(startLine && endLine ? {
+                        range: {
+                            startLine: parseInt(startLine),
+                            endLine: parseInt(endLine),
+                        }
+                    } : {}),
+                }
 
                 return {
                     type: 'html',
                     // @note: if you add additional attributes to this span, make sure to update the rehypeSanitize plugin to allow them.
-                    value: `<span role="button" className="font-mono cursor-pointer text-xs border px-1 py-[1.5px] rounded-md bg-fuchsia-100 hover:bg-fuchsia-200 transition-colors duration-150" title="Click to navigate to code" data-reference-id="${referenceId}" data-file-name="${fileName}" data-start-line="${startLine || ''}" data-end-line="${endLine || ''}">${displayText}</span>`
+                    value: `<span role="button" className="font-mono cursor-pointer text-xs border px-1 py-[1.5px] rounded-md bg-fuchsia-100 hover:bg-fuchsia-200 transition-colors duration-150" title="Click to navigate to code" ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(payload))}">${displayText}</span>`
                 }
             }
         ])
@@ -107,7 +118,7 @@ export const MarkdownRenderer = forwardRef<HTMLDivElement, MarkdownRendererProps
                     ...defaultSchema,
                     attributes: {
                         ...defaultSchema.attributes,
-                        span: [...(defaultSchema.attributes?.span ?? []), 'role', 'className', ['data*']],
+                        span: [...(defaultSchema.attributes?.span ?? []), 'role', 'className', 'data*'],
                     },
                     strip: [],
                 } satisfies SanitizeSchema,

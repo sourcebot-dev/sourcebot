@@ -63,14 +63,16 @@ const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[
     withAuth((userId) =>
         withOrgMembership(userId, domain, async () => {
             const latestMessage = messages[messages.length - 1];
-            const mentions = latestMessage.metadata?.mentions ?? [];
+            const sources = latestMessage.parts
+                .filter((part) => part.type === 'data-source')
+                .map((part) => part.data);
 
             // @todo: we can probably cache files per chat session.
             // That way we don't have to refetch files for every message.
-            const files = mentions.length > 0 ?
+            const files = sources.length > 0 ?
                 (await Promise.all(
-                    mentions
-                        .filter((mention) => mention.type === 'file')
+                    sources
+                        .filter((source) => source.type === 'file')
                         .map(async (data) => {
                             const { path, repo, revision } = data;
 
@@ -166,6 +168,62 @@ const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[
                             ],
                             maxOutputTokens: env.SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS, // Increased for tool results and responses
                             toolChoice: "auto", // Let the model decide when to use tools
+                            onStepFinish: ({ toolResults }) => {
+                                // This takes care of extracting any sources that the LLM has seen as part of
+                                // the tool call it made.
+                                toolResults.forEach(({ output, toolName }) => {
+                                    if (isServiceError(output)) {
+                                        // is there something we want to do here?
+                                        return;
+                                    }
+
+                                    if (toolName === toolNames.readFiles) {
+                                        output.forEach((file) => {
+                                            writer.write({
+                                                type: 'data-source',
+                                                data: {
+                                                    type: 'file',
+                                                    language: file.language,
+                                                    repo: file.repository,
+                                                    path: file.path,
+                                                    revision: file.revision,
+                                                    name: file.path.split('/').pop() ?? file.path,
+                                                }
+                                            })
+                                        })
+                                    }
+                                    else if (toolName === toolNames.searchCode) {
+                                        output.files.forEach((file) => {
+                                            writer.write({
+                                                type: 'data-source',
+                                                data: {
+                                                    type: 'file',
+                                                    language: file.language,
+                                                    repo: file.repository,
+                                                    path: file.fileName,
+                                                    revision: file.revision,
+                                                    name: file.fileName.split('/').pop() ?? file.fileName,
+                                                }
+                                            })
+                                        })
+                                    }
+                                    else if (toolName === toolNames.findSymbolDefinitions || toolName === toolNames.findSymbolReferences) {
+                                        output.forEach((file) => {
+                                            writer.write({
+                                                type: 'data-source',
+                                                data: {
+                                                    type: 'file',
+                                                    language: file.language,
+                                                    repo: file.repository,
+                                                    path: file.fileName,
+                                                    revision: file.revision,
+                                                    name: file.fileName.split('/').pop() ?? file.fileName,
+                                                }
+                                            })
+                                        })
+                                    }
+                                })
+                            }
                         });
 
                         await new Promise<void>((resolve) => writer.merge(stream.toUIMessageStream({

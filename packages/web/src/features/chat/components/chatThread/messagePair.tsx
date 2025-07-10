@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef, useMemo } from 'react';
-import { ChatContext, SBChatMessage } from '../../types';
+import { Source, SBChatMessage } from '../../types';
 import { AssistantResponse } from './assistantResponse';
 import { MarkdownRenderer } from './markdownRenderer';
 import { CheckCircle, Loader2 } from 'lucide-react';
@@ -10,14 +10,14 @@ interface MessagePairProps {
     userMessage: SBChatMessage;
     assistantMessage?: SBChatMessage;
     isStreaming: boolean;
-    chatContext: ChatContext;
+    sources: Source[];
 }
 
 export const MessagePair = forwardRef<HTMLDivElement, MessagePairProps>(({
     userMessage,
     assistantMessage,
     isStreaming,
-    chatContext,
+    sources,
 }, ref) => {
     // Extract user question text
     const userQuestion = useMemo(() => {
@@ -43,7 +43,7 @@ export const MessagePair = forwardRef<HTMLDivElement, MessagePairProps>(({
                 <AssistantResponse
                     message={assistantMessage}
                     isStreaming={isStreaming}
-                    chatContext={chatContext}
+                    sources={sources}
                 />
             ) : isStreaming && (
                 <div className="animate-pulse space-y-4">

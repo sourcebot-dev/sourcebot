@@ -15,57 +15,65 @@ import { EditorView } from '@codemirror/view';
 import { useQueries } from "@tanstack/react-query";
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ChatContext, FileReference } from "../../types";
+import { Source, FileReference, Reference, FileSource } from "../../types";
 import Link from "next/link";
 import { fetchFileSource } from "@/app/api/(client)/client";
 import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
 import { rangeHighlightingExtension } from "@/app/[domain]/browse/[...path]/components/rangeHighlightingExtension";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface FileReferencesListProps {
-    fileReferences: FileReference[];
-    chatContext: ChatContext;
-    highlightedFileRange?: {
-        fileName: string;
-        startLine: number;
-        endLine: number;
-    };
+interface ReferencedSourcesListViewProps {
+    references: FileReference[];
+    sources: Source[];
+    highlightedReference?: Reference;
+    style: React.CSSProperties;
 }
 
-export const FileReferencesList = ({ fileReferences, chatContext, highlightedFileRange}: FileReferencesListProps) => {
-    const codeBlockRefs = useRef<Map<string, HTMLElement>>(new Map());
+const resolveFileReference = (reference: FileReference, sources: FileSource[]): FileSource | undefined => {
+    return sources.find((source) => source.path.endsWith(reference.fileName));
+}
 
-    const filesToFetch = useMemo(() => {
-        return fileReferences
-            .map(({ fileName }) => {
-                const file = chatContext.files.find((file) => file.path.endsWith(fileName));
-                if (file) {
-                    return file;
-                }
-            })
+export const ReferencedSourcesListView = ({
+    references,
+    sources,
+    highlightedReference,
+    style,
+}: ReferencedSourcesListViewProps) => {
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+    const fileSources = useMemo(() => {
+        return sources.filter((source) => source.type === 'file');
+    }, [sources]);
+
+    const referencedFileSources = useMemo((): FileSource[] => {
+        return references
+            .filter((reference) => reference.type === 'file')
+            .map((reference) => resolveFileReference(reference, fileSources))
             .filter((file) => file !== undefined)
+            // de-duplicate files
             .filter((file, index, self) =>
                 index === self.findIndex((t) =>
                     t?.path === file?.path
-                    && t?.repository === file?.repository
+                    && t?.repo === file?.repo
                     && t?.revision === file?.revision
                 )
             );
-    }, [fileReferences, chatContext]);
+    }, [references, fileSources]);
 
     const domain = useDomain();
-    const queries = useQueries({
-        queries: filesToFetch.map((file) => ({
-            queryKey: ['fileSource', file.path, file.repository, file.revision, domain],
+    const fileSourceQueries = useQueries({
+        queries: referencedFileSources.map((file) => ({
+            queryKey: ['fileSource', file.path, file.repo, file.revision, domain],
             queryFn: () => unwrapServiceError(fetchFileSource({
                 fileName: file.path,
-                repository: file.repository,
+                repository: file.repo,
                 branch: file.revision,
             }, domain)),
             staleTime: Infinity,
         })),
     });
 
-    if (filesToFetch.length === 0) {
+    if (referencedFileSources.length === 0) {
         return (
             <div className="p-4 text-center text-muted-foreground text-sm">
                 No file references found
@@ -74,66 +82,70 @@ export const FileReferencesList = ({ fileReferences, chatContext, highlightedFil
     }
 
     return (
-        <div className="space-y-6">
-            {queries.map((query, index) => {
-                const file = filesToFetch[index];
-                const fileName = file.path.split('/').pop() ?? file.path;
+        <ScrollArea
+            ref={scrollAreaRef}
+            style={style}
+        >
+            <div className="space-y-6">
+                {fileSourceQueries.map((query, index) => {
+                    const fileSource = referencedFileSources[index];
+                    const fileName = fileSource.path.split('/').pop() ?? fileSource.path;
 
-                if (query.isLoading) {
+                    if (query.isLoading) {
+                        return (
+                            <div key={`${fileSource.repo}/${fileSource.path}`} className="space-y-2">
+                                <div className="flex items-center gap-2 p-2">
+                                    <VscodeFileIcon fileName={fileName} className="w-4 h-4" />
+                                    <span className="text-sm font-medium">{fileName}</span>
+                                </div>
+                                <Skeleton className="h-48 w-full" />
+                            </div>
+                        );
+                    }
+
+                    if (query.isError || isServiceError(query.data)) {
+                        return (
+                            <div key={`${fileSource.repo}/${fileSource.path}`} className="space-y-2">
+                                <div className="flex items-center gap-2 p-2">
+                                    <VscodeFileIcon fileName={fileName} className="w-4 h-4" />
+                                    <span className="text-sm font-medium">{fileName}</span>
+                                </div>
+                                <div className="p-4 text-sm text-destructive bg-destructive/10 rounded border">
+                                    Failed to load file: {isServiceError(query.data) ? query.data.message : 'Unknown error'}
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    const fileData = query.data!;
+
+                    let highlightRange: BrowseHighlightRange | undefined;
+                    if (
+                        highlightedReference &&
+                        highlightedReference.type === 'file' &&
+                        highlightedReference.range &&
+                        resolveFileReference(highlightedReference, [fileSource]) !== undefined
+                    ) {
+                        highlightRange = {
+                            start: { lineNumber: highlightedReference.range.startLine },
+                            end: { lineNumber: highlightedReference.range.endLine },
+                        }
+                    }
+
                     return (
-                        <div key={`${file.repository}/${file.path}`} className="space-y-2">
-                            <div className="flex items-center gap-2 p-2">
-                                <VscodeFileIcon fileName={fileName} className="w-4 h-4" />
-                                <span className="text-sm font-medium">{fileName}</span>
-                            </div>
-                            <Skeleton className="h-48 w-full" />
-                        </div>
-                    );
-                }
-
-                if (query.isError || isServiceError(query.data)) {
-                    return (
-                        <div key={`${file.repository}/${file.path}`} className="space-y-2">
-                            <div className="flex items-center gap-2 p-2">
-                                <VscodeFileIcon fileName={fileName} className="w-4 h-4" />
-                                <span className="text-sm font-medium">{fileName}</span>
-                            </div>
-                            <div className="p-4 text-sm text-destructive bg-destructive/10 rounded border">
-                                Failed to load file: {isServiceError(query.data) ? query.data.message : 'Unknown error'}
-                            </div>
-                        </div>
-                    );
-                }
-
-                const fileData = query.data!;
-
-                return (
-                    <div
-                        key={`${file.repository}/${file.path}`}
-                        id={`file-reference-${fileName}`}
-                        ref={(el) => {
-                            if (el) {
-                                codeBlockRefs.current.set(fileName, el);
-                            } else {
-                                codeBlockRefs.current.delete(fileName);
-                            }
-                        }}
-                    >
                         <CodeMirrorCodeBlock
                             code={fileData.source}
                             language={fileData.language}
-                            revision={file.revision}
-                            repoName={file.repository}
+                            revision={fileSource.revision}
+                            repoName={fileSource.repo}
                             fileName={fileData.path}
-                            highlightRange={highlightedFileRange && highlightedFileRange.fileName === fileName ? {
-                                start: { lineNumber: highlightedFileRange.startLine },
-                                end: { lineNumber: highlightedFileRange.endLine },
-                            } : undefined}
+                            highlightRange={highlightRange}
                         />
-                    </div>
-                );
-            })}
-        </div>
+                    );
+                })}
+            </div>
+        </ScrollArea>
+
     );
 }
 

@@ -2,24 +2,23 @@
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
-import { CustomEditor, ModelProviderInfo, SBChatMessage } from '@/features/chat/types';
-import { getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
+import { Source, CustomEditor, ModelProviderInfo, SBChatMessage } from '@/features/chat/types';
+import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
+import { useDomain } from '@/hooks/useDomain';
 import { useChat } from '@ai-sdk/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon } from 'lucide-react';
+import { useNavigationGuard } from 'next-navigation-guard';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Descendant } from 'slate';
+import { useMessagePairs } from '../../useMessagePairs';
 import { ChatBox } from '../chatBox';
 import { ChatBoxTools } from '../chatBoxTools';
 import { ErrorBanner } from './errorBanner';
-import { useDomain } from '@/hooks/useDomain';
-import { useQueryClient } from '@tanstack/react-query';
 import { MessagePair } from './messagePair';
-import { useNavigationGuard } from 'next-navigation-guard';
-import { Separator } from '@/components/ui/separator';
-import { useExtractChatContext } from '../../useExtractChatContext';
-import { useMessagePairs } from '../../useMessagePairs';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -48,10 +47,19 @@ export const ChatThread = ({
     const hasSubmittedInputMessage = useRef(false);
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
     const queryClient = useQueryClient();
-   
+
+    // Initial state is from attachments that exist in in the chat history.
+    const [sources, setSources] = useState<Source[]>(
+        initialMessages?.flatMap((message) =>
+            message.parts
+                .filter((part) => part.type === 'data-source')
+                .map((part) => part.data)
+        ) ?? []
+    );
+
     const {
         messages,
-        sendMessage,
+        sendMessage: _sendMessage,
         error,
         status,
         stop,
@@ -73,16 +81,32 @@ export const ChatThread = ({
                     queryKey: ['chat'],
                 },
             );
+        },
+        onData: (dataPart) => {
+            // Keeps sources added by the assistant in sync.
+            if (dataPart.type === 'data-source') {
+                setSources((prev) => [...prev, dataPart.data]);
+            }
         }
     });
 
+    const sendMessage = useCallback((message: CreateUIMessage<SBChatMessage>) => {
+        // Keeps sources added by the user in sync.
+        const sources = message.parts
+            .filter((part) => part.type === 'data-source')
+            .map((part) => part.data);
+        setSources((prev) => [...prev, ...sources]);
+
+        _sendMessage(message);
+    }, [_sendMessage]);
+
+
     const messagePairs = useMessagePairs(messages);
-    const chatContext = useExtractChatContext(messages);
 
     useNavigationGuard({
         enabled: status === "streaming" || status === "submitted",
         confirm: () => window.confirm("You have unsaved changes that will be lost.")
-    })
+    });
 
     useEffect(() => {
         if (!inputMessage || hasSubmittedInputMessage.current) {
@@ -179,12 +203,9 @@ export const ChatThread = ({
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-        sendMessage({
-            text,
-            metadata: {
-                mentions: mentions.map((mention) => mention.data),
-            }
-        })
+
+        const message = createUIMessage(text, mentions.map(({ data }) => data));
+        sendMessage(message);
 
         setIsAutoScrollEnabled(true);
 
@@ -226,8 +247,8 @@ export const ChatThread = ({
                                                 userMessage={userMessage}
                                                 assistantMessage={assistantMessage}
                                                 isStreaming={isStreaming}
+                                                sources={sources}
                                                 ref={isLastPair ? latestMessagePairRef : null}
-                                                chatContext={chatContext}
                                             />
                                             {index !== messagePairs.length - 1 && (
                                                 <Separator className="my-4" />
