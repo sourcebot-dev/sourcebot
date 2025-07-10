@@ -18,9 +18,10 @@ const magicLinkSchema = z.object({
 
 interface MagicLinkFormProps {
     callbackUrl?: string;
+    context: "login" | "signup";
 }   
 
-export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
+export const MagicLinkForm = ({ callbackUrl, context }: MagicLinkFormProps) => {
     const captureEvent = useCaptureEvent();
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
@@ -76,7 +77,7 @@ export const MagicLinkForm = ({ callbackUrl }: MagicLinkFormProps) => {
                     disabled={isLoading}
                 >
                     {isLoading ? <Loader2 className="animate-spin mr-2" /> : ""}
-                    Sign in with login code
+                    {context === "login" ? "Sign in with login code" : "Sign up with login code"}
                 </Button>
             </form>
         </Form>

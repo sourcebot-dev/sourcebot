@@ -110,23 +110,24 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
                                                 captureEvent(getLoginEventName(provider.id), {});
                                                 onSignInWithOauth(provider.id);
                                             }}
+                                            context={context}
                                         />
                                     );
                                 })}
                             </div>
                         ] : []),
                         ...(hasMagicLink ? [
-                            <MagicLinkForm key="magic-link" callbackUrl={callbackUrl} />
+                            <MagicLinkForm key="magic-link" callbackUrl={callbackUrl} context={context} />
                         ] : []),
                         ...(hasCredentials ? [
-                            <CredentialsForm key="credentials" callbackUrl={callbackUrl} />
+                            <CredentialsForm key="credentials" callbackUrl={callbackUrl} context={context} />
                         ] : [])
                     ]}
                 />
                 <p className="text-sm text-muted-foreground mt-8">
                     {context === "login" ?
                         <>
-                            No account yet? <Link className="underline" href="/signup">Sign up</Link>
+                            Don&apos;t have an account? <Link className="underline" href="/signup">Sign up</Link>
                         </>
                     :
                         <>
@@ -147,11 +148,13 @@ const ProviderButton = ({
     logo,
     onClick,
     className,
+    context,
 }: {
     name: string;
     logo: { src: string, className?: string } | null;
     onClick: () => void;
     className?: string;
+    context: "login" | "signup";
 }) => {
     const [isLoading, setIsLoading] = useState(false);
 
@@ -166,7 +169,7 @@ const ProviderButton = ({
             loading={isLoading}
         >
             {logo && <Image src={logo.src} alt={name} className={cn("w-5 h-5 mr-2", logo.className)} />}
-            Sign in with {name}
+            {context === "login" ? `Sign in with ${name}` : `Sign up with ${name}`}
         </LoadingButton>
     )
 }
