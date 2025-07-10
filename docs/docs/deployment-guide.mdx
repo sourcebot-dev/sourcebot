@@ -4,10 +4,12 @@ title: "Deployment guide"
 
 import SupportedPlatforms from '/snippets/platform-support.mdx'
 
+## Container deployment
+
 The following guide will walk you through the steps to deploy Sourcebot on your own infrastructure. Sourcebot is distributed as a [single docker container](/docs/overview#architecture) that can be deployed to a k8s cluster, a VM, or any platform that supports docker.
 
 
-## Walkthrough video
+### Walkthrough video
 ---
 
 Watch this 1:51 minute video to get a quick overview of how to deploy Sourcebot using Docker.
@@ -21,7 +23,7 @@ Watch this 1:51 minute video to get a quick overview of how to deploy Sourcebot 
     className="aspect-video w-full"
 ></iframe>
 
-## Step-by-step guide
+### Step-by-step guide
 ---
 
 <Note>Hit an issue? Please let us know on [GitHub discussions](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) or by [emailing us](mailto:team@sourcebot.dev).</Note>
@@ -94,6 +96,117 @@ Watch this 1:51 minute video to get a quick overview of how to deploy Sourcebot 
         You're all set! You can now start searching - checkout the [syntax guide](/docs/features/search/syntax-reference) to learn more about how to search.
     </Step>
 </Steps>
+
+
+## NixOS deployment
+
+<Note>Hit an issue? Please let us know on [GitHub discussions](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) or by [emailing us](mailto:team@sourcebot.dev).</Note>
+
+<Steps>
+    <Step title="Flake.nix input">
+        Add the Sourcebot flake as an input to your NixOS configuration. This will allow you to use the Sourcebot container in your NixOS deployment.
+
+        ```nix
+        inputs.sourcebot.url = "github:sourcebot-dev/sourcebot";
+        ```
+
+        Add sourcebot module to your NixOS configuration:
+
+        ```nix
+        nixosConfigurations.mysystem = nixpkgs.lib.nixosSystem {
+            modules = [
+                inputs.sourcebot.nixosModules.sourcebot
+            ];
+        }
+        ```
+        [Learn more about NixOS flakes](/docs/installation/nixos-flakes). 
+    </Step>
+    <Step title="Setup Credentials">
+        Sourcebot requires a few secrets to be set up before it can run, and code host credentials can be managed using NixOS module too:
+
+        - [sops-nix](https://github.com/Mic92/sops-nix) example:
+
+            ```nix
+            sops = {
+              secrets = {
+                sourcebot-auth-secret.owner = "sourcebot";
+                sourcebot-encryption-key.owner = "sourcebot";
+                sourcebot-gitlab-token.owner = "sourcebot";
+              };
+              templates = {
+                sourcebot-env = {
+                  content = ''
+                    AUTH_SECRET=${config.sops.placeholder.sourcebot-auth-secret}
+                    SOURCEBOT_ENCRYPTION_KEY=${config.sops.placeholder.sourcebot-encryption-key}
+                    GITLAB_EXAMPLE_TOKEN=${config.sops.placeholder.sourcebot-gitlab-token}
+                  '';
+                };
+              };
+            };
+            ```
+        
+        - [agenix](https://github.com/ryantm/agenix) example:
+
+            ```nix
+              age.secrets.sourcebot-env.file = ../secrets/sourcebot.age;
+            ```
+
+           `sourcebot.age` file should be an environment file in the format:
+
+            ```
+            AUTH_SECRET=your-auth-secret
+            SOURCEBOT_ENCRYPTION_KEY=your-encryption-key
+            GITLAB_EXAMPLE_TOKEN=your-gitlab-token
+            ```
+    </Step>
+    <Step title="Enable Sourcebot">
+        The following NixOS configuration will enable Sourcebot and set it up to run with the provided configuration.
+        Additional options could be found in the [source file](../../nix/nixosModule.nix)
+        
+        ```nix
+            services.sourcebot = {
+              enable = true;
+              # envFile = config.sops.templates.sourcebot-env.path; # Uncomment if using sops-nix
+              # envFile = config.age.secrets.sourcebot-env.path; # Uncomment if using agenix
+              package = pkgs.sourcebot;
+              logLevel = "info";
+              dataDir = "/data/sourcebot";
+              dataCacheDir = "/data/sourcebot/cache";
+              configPath = "${pkgs.writeText "config" (builtins.toJSON {
+                "$schema" = "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json";
+                connections = {
+                  github-public = {
+                    type = "github";
+                    repos = [
+                      "sourcebot-dev/sourcebot"
+                    ];
+                  };
+                  gitlab-private = {
+                    type = "gitlab";
+                    url = "https://gitlab.example.com";
+                    all = true;
+                    token = {
+                      env = "GITLAB_EXAMPLE_TOKEN";
+                    };
+                    exclude = {
+                      forks = true;
+                    };
+                  };
+                };
+                settings = {
+                  resyncConnectionIntervalMs = 1000 * 60 * 60 * 24 * 7; # 1 week
+                  reindexIntervalMs = 1000 * 60 * 60 * 24 * 7; # 1 week
+                  maxRepoIndexingJobConcurrency = 1000; # 8 default
+                  maxConnectionSyncJobConcurrency = 1000; # 8 default
+                  maxRepoGarbageCollectionJobConcurrency = 1000; # 8 default
+                };
+              })}";
+            };
+        ```
+    </Step>
+</Steps>
+
+
 
 ## Next steps
 ---
