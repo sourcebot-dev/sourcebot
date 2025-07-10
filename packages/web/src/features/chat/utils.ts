@@ -1,8 +1,9 @@
 import { env } from "@/env.mjs"
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { CustomEditor, CustomText, MentionData, MentionElement, ModelProviderInfo, ParagraphElement } from "./types"
+import { CustomEditor, CustomText, Source, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessageToolTypes, SBChatMessage } from "./types"
+import { CreateUIMessage, UIMessagePart } from "ai"
 
-export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
+export const insertMention = (editor: CustomEditor, data: Source, target?: Range | null) => {
     const mention: MentionElement = {
         type: 'mention',
         data,
@@ -196,4 +197,20 @@ export const getConfiguredModelProviderInfo = (): ModelProviderInfo | undefined 
     }
 
     return undefined;
+}
+
+export const createUIMessage = (text: string, sources: Source[]): CreateUIMessage<SBChatMessage> => {
+    return {
+        role: 'user',
+        parts: [
+            {
+                type: 'text',
+                text,
+            },
+            ...sources.map((data) => ({
+                type: 'data-source',
+                data,
+            })) as UIMessagePart<{ source: Source }, SBChatMessageToolTypes>[],
+        ]
+    }
 }

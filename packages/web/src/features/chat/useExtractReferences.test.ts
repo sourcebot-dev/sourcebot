@@ -1,9 +1,9 @@
 import { expect, test } from 'vitest'
 import { SBChatMessage } from './types';
 import { renderHook } from '@testing-library/react-hooks';
-import { useExtractFileReferences } from './useExtractFileReferences';
+import { useExtractReferences } from './useExtractReferences';
 
-test('useExtractFileReferences extracts file references from answer tool content', () => {
+test('useExtractReferences extracts file references from answer tool content', () => {
     const messages: SBChatMessage[] = [
         {
             id: 'msg1',
@@ -21,7 +21,7 @@ test('useExtractFileReferences extracts file references from answer tool content
         }
     ];
 
-    const { result } = renderHook(() => useExtractFileReferences(messages));
+    const { result } = renderHook(() => useExtractReferences(messages));
     
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toMatchObject({

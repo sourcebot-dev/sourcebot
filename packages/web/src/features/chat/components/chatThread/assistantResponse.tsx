@@ -2,14 +2,13 @@
 
 import { Loader2, BookOpenIcon } from 'lucide-react';
 import { memo, useMemo, useState, useEffect, useRef, CSSProperties } from 'react';
-import { MarkdownRenderer } from './markdownRenderer';
-import { ChatContext, SBChatMessage } from '../../types';
+import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
+import { Source, SBChatMessage, referenceSchema, Reference } from '../../types';
 import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
 import { ToolHeader } from './tools/shared';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileReferencesList } from './fileReferencesList';
-import { useExtractFileReferences } from '../../useExtractFileReferences';
+import { ReferencedSourcesListView } from './referencedSourcesListView';
+import { useExtractReferences } from '../../useExtractReferences';
 import { TableOfContents } from './tableOfContents';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
@@ -17,24 +16,19 @@ import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesT
 interface AssistantResponseProps {
     message: SBChatMessage;
     isStreaming: boolean;
-    chatContext: ChatContext;
+    sources: Source[];
 }
 
-export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStreaming, chatContext }) => {
+export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStreaming, sources }) => {
     const [isResearchExpanded, setIsResearchExpanded] = useState(true);
     const hasAutoCollapsed = useRef(false);
     const userHasManuallyExpanded = useRef(false);
     const markdownRendererRef = useRef<HTMLDivElement>(null);
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
     const answerContainerRef = useRef<HTMLDivElement>(null);
-    const [highlightedFileRange, setHighlightedFileRange] = useState<{
-        fileName: string;
-        startLine: number;
-        endLine: number;
-    } | undefined>(undefined);
     const [answerHeight, setAnswerHeight] = useState<number | null>(null);
 
-    const fileReferences = useExtractFileReferences([message]);
+    const [highlightedReference, setHighlightedReference] = useState<Reference | undefined>(undefined);
+    const references = useExtractReferences([message]);
 
     // Generate unique id for this message's answer content
     const answerId = `answer-${message.id}`;
@@ -82,7 +76,6 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
         return "Research completed";
     }, [isResearchActive, message.metadata?.researchDuration]);
 
-    // Handle hover events on file reference spans for testing
     useEffect(() => {
         if (!markdownRendererRef.current) {
             return;
@@ -92,25 +85,21 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
 
         const handleMouseOver = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
-            if (target.hasAttribute('data-reference-id')) {
-                const fileName = target.getAttribute('data-file-name');
-                const startLineStr = target.getAttribute('data-start-line');
-                const endLineStr = target.getAttribute('data-end-line');
-
-                if (fileName && startLineStr && endLineStr) {
-                    setHighlightedFileRange({
-                        fileName: fileName.split('/').pop() ?? fileName,
-                        startLine: parseInt(startLineStr),
-                        endLine: parseInt(endLineStr),
-                    });
+            if (target.hasAttribute(REFERENCE_PAYLOAD_ATTRIBUTE)) {
+                try {
+                    const jsonPayload = JSON.parse(decodeURIComponent(target.getAttribute(REFERENCE_PAYLOAD_ATTRIBUTE) ?? '{}'));
+                    const payload = referenceSchema.parse(jsonPayload);
+                    setHighlightedReference(payload);
+                } catch (error) {
+                    console.error(error);
                 }
             }
         };
 
         const handleMouseOut = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
-            if (target.hasAttribute('data-reference-id')) {
-                setHighlightedFileRange(undefined);
+            if (target.hasAttribute(REFERENCE_PAYLOAD_ATTRIBUTE)) {
+                setHighlightedReference(undefined);
             }
         };
 
@@ -255,7 +244,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
                 {answerPart && (
                     <div className="w-1/2">
                         <div className="sticky top-0">
-                            {(isStreaming && fileReferences.length === 0) ? (
+                            {(isStreaming && references.length === 0) ? (
                                 <div className="animate-pulse space-y-4">
                                     <div className="h-4 w-1/4 bg-muted rounded" />
                                     <div className="space-y-2">
@@ -265,16 +254,12 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
                                     </div>
                                 </div>
                             ): (
-                                <ScrollArea 
-                                    ref={scrollAreaRef}
+                                <ReferencedSourcesListView
+                                    references={references}
+                                    sources={sources}
+                                    highlightedReference={highlightedReference}
                                     style={referenceViewerScrollAreaStyle}
-                                >
-                                    <FileReferencesList
-                                        fileReferences={fileReferences}
-                                        chatContext={chatContext}
-                                        highlightedFileRange={highlightedFileRange}
-                                    />
-                                </ScrollArea>
+                                />
                             )}
                         </div>
                     </div>
