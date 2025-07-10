@@ -185,6 +185,7 @@ in {
             "SOURCEBOT_TENANCY_MODE=single"
             "SOURCEBOT_AUTH_ENABLED=${boolToString cfg.authEnabled}"
             "SOURCEBOT_TELEMETRY_DISABLED=${boolToString cfg.telemetryDisabled}"
+            "SOURCEBOT_PUBLIC_KEY_PATH=${cfg.package}/public.pem"
             "AUTH_URL=${cfg.authUrl}"
           ]
           ++ optional (cfg.envFile == null) [
@@ -218,6 +219,7 @@ in {
             "SOURCEBOT_TENANCY_MODE=single"
             "SOURCEBOT_AUTH_ENABLED=${boolToString cfg.authEnabled}"
             "SOURCEBOT_TELEMETRY_DISABLED=${boolToString cfg.telemetryDisabled}"
+            "SOURCEBOT_PUBLIC_KEY_PATH=${cfg.package}/public.pem"
             "AUTH_URL=http://${cfg.hostname}:${toString cfg.port}"
           ]
           ++ optional (cfg.envFile == null) [

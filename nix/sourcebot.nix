@@ -45,6 +45,7 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
   installPhase = ''
     runHook preInstall
 
+
     cp -r packages/web/.next/standalone $out
     cp -r node_modules/* $out/node_modules
 
@@ -62,9 +63,12 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
     cp -r packages/crypto/* $out/packages/crypto
     cp -r packages/error $out/packages/error
     cp -r packages/mcp $out/packages/mcp
+    cp -r packages/logger/* $out/packages/logger
+    cp -r packages/shared/* $out/packages/shared
     cp -r node_modules/* $out/node_modules
 
     mkdir -p $out/bin
+    cp public.pem $out/
 
     rm -rf $out/pacakages/web/.next/cache
     ln -s /var/cache/sourcebot $out/packages/web/.next/cache
@@ -105,6 +109,7 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
     exec ${pkgs.nodejs}/bin/node $out/packages/mcp/dist/index.js "\$@"
     EOF
     chmod +x $out/bin/*
+
 
     runHook postInstall
   '';
