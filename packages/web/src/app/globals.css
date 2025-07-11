@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "./codemirror-styles.css";
+
 @layer base {
   :root {
     --background: hsl(0 0% 100%);
@@ -217,22 +219,21 @@
   border-radius: 2px;
 }
 
-.chat-lineHighlight,
-.chat-lineHighlight-selected {
-  border-radius: 2px;
-  cursor: pointer;
-}
-
+/* Chat-specific styling classes */
 .chat-lineHighlight {
   background: var(--chat-reference);
-}
-
-.chat-lineHighlight-selected {
-  background: var(--chat-reference-selected);
+  cursor: pointer;
 }
 
 .chat-lineHighlight-hover {
   background: var(--chat-reference-hover);
+  cursor: pointer;
+}
+
+.chat-lineHighlight-selected {
+  background: var(--chat-reference-selected);
+  cursor: pointer;
+  --cm-range-border-shadow-color: var(--chat-reference-selected-border);
 }
 
 /* Reference states for markdown reference spans */
@@ -240,6 +241,10 @@
   background-color: var(--chat-reference-selected) !important;
   border-color: var(--chat-reference-selected-border) !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chat-reference--hover {
+  background-color: var(--chat-reference-hover) !important;
 }
 
 .cm-editor.cm-focused {
@@ -253,8 +258,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-
 
 @layer base {
   * {

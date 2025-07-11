@@ -9,7 +9,7 @@ const markDecoration = Decoration.mark({
 });
 
 const lineDecoration = Decoration.line({
-    attributes: { class: "lineHighlight" },
+    attributes: { class: "cm-range-border-radius lineHighlight" },
 });
 
 export const rangeHighlightingExtension = (range: BrowseHighlightRange) => StateField.define<DecorationSet>({

@@ -26,9 +26,10 @@ import { FileReference, FileSource, Reference, Source } from "../../types";
 interface ReferencedSourcesListViewProps {
     references: FileReference[];
     sources: Source[];
-    highlightedReference?: Reference;
+    hoveredReference?: Reference;
+    onHoveredReferenceChanged: (reference?: Reference) => void;
     selectedReference?: Reference;
-    onSelectedReferenceChanged: (reference: Reference) => void;
+    onSelectedReferenceChanged: (reference?: Reference) => void;
     style: React.CSSProperties;
 }
 
@@ -41,11 +42,11 @@ const getFileId = (fileSource: FileSource) => {
 }
 
 const lineDecoration = Decoration.line({
-    attributes: { class: "chat-lineHighlight" },
+    attributes: { class: "cm-range-border-radius chat-lineHighlight" },
 });
 
 const selectedLineDecoration = Decoration.line({
-    attributes: { class: "chat-lineHighlight-selected" },
+    attributes: { class: "cm-range-border-radius cm-range-border-shadow chat-lineHighlight-selected" },
 });
 
 const hoverLineDecoration = Decoration.line({
@@ -55,9 +56,10 @@ const hoverLineDecoration = Decoration.line({
 export const ReferencedSourcesListView = ({
     references,
     sources,
-    highlightedReference,
+    hoveredReference,
     selectedReference,
     style,
+    onHoveredReferenceChanged,
     onSelectedReferenceChanged,
 }: ReferencedSourcesListViewProps) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -222,15 +224,6 @@ export const ReferencedSourcesListView = ({
                                 return false;
                             }
                             return resolveFileReference(reference, [fileSource]) !== undefined;
-                        })
-                        .map((reference) => {
-                            return {
-                                reference,
-                                isSelected:
-                                    reference.id === selectedReference?.id,
-                                isHovered:
-                                    reference.id === highlightedReference?.id
-                            }
                         });
 
                     const key = getFileId(fileSource);
@@ -246,9 +239,10 @@ export const ReferencedSourcesListView = ({
                             fileName={fileData.path}
                             references={referencesInFile}
                             ref={(ref) => setEditorRef(key, ref)}
-                            onReferenceClicked={(reference) => {
-                                onSelectedReferenceChanged(reference);
-                            }}
+                            onSelectedReferenceChanged={onSelectedReferenceChanged}
+                            onHoveredReferenceChanged={onHoveredReferenceChanged}
+                            selectedReference={selectedReference}
+                            hoveredReference={hoveredReference}
                         />
                     );
                 })}
@@ -265,12 +259,11 @@ interface CodeMirrorCodeBlockProps {
     revision: string;
     repoName: string;
     fileName: string;
-    references: {
-        reference: FileReference;
-        isSelected: boolean;
-        isHovered: boolean;
-    }[];
-    onReferenceClicked: (reference: FileReference) => void;
+    references: FileReference[];
+    selectedReference?: FileReference;
+    hoveredReference?: FileReference;
+    onSelectedReferenceChanged: (reference?: FileReference) => void;
+    onHoveredReferenceChanged: (reference?: FileReference) => void;
 }
 
 const CodeMirrorCodeBlock = ({
@@ -281,7 +274,10 @@ const CodeMirrorCodeBlock = ({
     repoName,
     fileName,
     references,
-    onReferenceClicked,
+    selectedReference,
+    hoveredReference,
+    onSelectedReferenceChanged,
+    onHoveredReferenceChanged,
 }: CodeMirrorCodeBlockProps, forwardedRef: Ref<ReactCodeMirrorRef>) => {
     const domain = useDomain();
     const theme = useCodeMirrorTheme();
@@ -297,6 +293,38 @@ const CodeMirrorCodeBlock = ({
     const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
     const { navigateToPath } = useBrowseNavigation();
 
+    const getReferenceAtPos = useCallback((x: number, y: number, view: EditorView): FileReference | undefined => {
+        const pos = view.posAtCoords({ x, y });
+        if (pos === null) return undefined;
+
+        // Check if position is within the main editor content area
+        const rect = view.contentDOM.getBoundingClientRect();
+        if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+            return undefined;
+        }
+
+        const line = view.state.doc.lineAt(pos);
+        const lineNumber = line.number;
+
+        // Check if this line is part of any highlighted range
+        const matchingRanges = references.filter(({ range }) =>
+            range && lineNumber >= range.startLine && lineNumber <= range.endLine
+        );
+
+        // Sort by the length of the range.
+        // Shorter ranges are more specific, so we want to prioritize them.
+        matchingRanges.sort((a, b) => {
+            const aLength = (a.range!.endLine) - (a.range!.startLine);
+            const bLength = (b.range!.endLine) - (b.range!.startLine);
+            return aLength - bLength;
+        });
+
+        if (matchingRanges.length > 0) {
+            return matchingRanges[0];
+        }
+
+        return undefined;
+    }, [references]);
 
     const extensions = useMemo(() => {
         return [
@@ -310,14 +338,24 @@ const CodeMirrorCodeBlock = ({
                 create(state) {
                     const decorations: Range<Decoration>[] = [];
 
-                    for (const { reference: { range }, isSelected, isHovered } of references) {
+                    for (const { range, id } of references) {
                         if (!range) {
                             continue;
                         }
 
+                        const isHovered = id === hoveredReference?.id;
+                        const isSelected = id === selectedReference?.id;
+
                         for (let line = range.startLine; line <= range.endLine; line++) {
-                            const decoration = isSelected ? selectedLineDecoration : isHovered ? hoverLineDecoration : lineDecoration;
-                            decorations.push(decoration.range(state.doc.line(line).from));
+                            if (isSelected) {
+                                decorations.push(selectedLineDecoration.range(state.doc.line(line).from));
+                            } else {
+                                decorations.push(lineDecoration.range(state.doc.line(line).from));
+                                if (isHovered) {
+                                    decorations.push(hoverLineDecoration.range(state.doc.line(line).from));
+                                }
+                            }
+
                         }
                     }
 
@@ -331,35 +369,49 @@ const CodeMirrorCodeBlock = ({
             }),
             EditorView.domEventHandlers({
                 click: (event, view) => {
-                    const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
-                    if (pos === null) return false;
-                    
-                    const line = view.state.doc.lineAt(pos);
-                    const lineNumber = line.number;
-                    
-                    // Check if this line is part of any highlighted range
-                    const matchingRanges = references.filter(({ reference: { range } }) =>
-                        range && lineNumber >= range.startLine && lineNumber <= range.endLine
-                    );
+                    const reference = getReferenceAtPos(event.clientX, event.clientY, view);
 
-                    // Sort by the length of the range.
-                    // Shorter ranges are more specific, so we want to prioritize them.
-                    matchingRanges.sort((a, b) => {
-                        const aLength = (a.reference.range!.endLine) - (a.reference.range!.startLine);
-                        const bLength = (b.reference.range!.endLine) - (b.reference.range!.startLine);
-                        return aLength - bLength;
-                    });
-
-                    if (matchingRanges.length > 0) {
-                        onReferenceClicked(matchingRanges[0].reference);
-                        return true; // Prevent default handling
+                    if (reference) {
+                        onSelectedReferenceChanged(reference.id === selectedReference?.id ? undefined : reference);
+                        return true; // prevent default handling
                     }
-                    
                     return false;
+                },
+                mouseover: (event, view) => {
+                    const reference = getReferenceAtPos(event.clientX, event.clientY, view);
+                    if (!reference) {
+                        return false;
+                    }
+
+                    if (reference.id === selectedReference?.id || reference.id === hoveredReference?.id) {
+                        return false;
+                    }
+
+                    onHoveredReferenceChanged(reference);
+                    return true;
+                },
+                mouseout: (event, view) => {
+                    const reference = getReferenceAtPos(event.clientX, event.clientY, view);
+                    if (reference) {
+                        return false;
+                    }
+
+                    onHoveredReferenceChanged(undefined);
+                    return true;
                 }
             })
         ];
-    }, [languageExtension, keymapExtension, hasCodeNavEntitlement, references, onReferenceClicked]);
+    }, [
+        languageExtension,
+        keymapExtension,
+        hasCodeNavEntitlement,
+        references,
+        hoveredReference?.id,
+        selectedReference?.id,
+        getReferenceAtPos,
+        onSelectedReferenceChanged,
+        onHoveredReferenceChanged,
+    ]);
 
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
         if (symbolDefinitions.length === 0) {
