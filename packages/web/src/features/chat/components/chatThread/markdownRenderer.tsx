@@ -75,9 +75,7 @@ function remarkReferencesPlugin() {
                         className="font-mono cursor-pointer text-xs border px-1 py-[1.5px] rounded-md transition-all duration-150 bg-chat-reference hover:bg-chat-reference-hover"
                         title="Click to navigate to code"
                         ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(payload))}"
-                    >
-                        ${displayText}
-                    </span>`
+                    >${displayText}</span>`
                 }
             }
         ])
