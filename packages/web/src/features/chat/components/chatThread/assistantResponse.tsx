@@ -28,7 +28,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
     const answerContainerRef = useRef<HTMLDivElement>(null);
     const [answerHeight, setAnswerHeight] = useState<number | null>(null);
 
-    const [highlightedReference, setHighlightedReference] = useState<Reference | undefined>(undefined);
+    const [hoveredReference, setHoveredReference] = useState<Reference | undefined>(undefined);
     const [selectedReference, setSelectedReference] = useState<Reference | undefined>(undefined);
 
     const references = useExtractReferences(message);
@@ -91,8 +91,8 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
             if (target.hasAttribute(REFERENCE_PAYLOAD_ATTRIBUTE)) {
                 try {
                     const jsonPayload = JSON.parse(decodeURIComponent(target.getAttribute(REFERENCE_PAYLOAD_ATTRIBUTE) ?? '{}'));
-                    const payload = referenceSchema.parse(jsonPayload);
-                    setHighlightedReference(payload);
+                    const reference = referenceSchema.parse(jsonPayload);
+                    setHoveredReference(reference);
                 } catch (error) {
                     console.error(error);
                 }
@@ -102,7 +102,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
         const handleMouseOut = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
             if (target.hasAttribute(REFERENCE_PAYLOAD_ATTRIBUTE)) {
-                setHighlightedReference(undefined);
+                setHoveredReference(undefined);
             }
         };
 
@@ -111,8 +111,8 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
             if (target.hasAttribute(REFERENCE_PAYLOAD_ATTRIBUTE)) {
                 try {
                     const jsonPayload = JSON.parse(decodeURIComponent(target.getAttribute(REFERENCE_PAYLOAD_ATTRIBUTE) ?? '{}'));
-                    const payload = referenceSchema.parse(jsonPayload);
-                    setSelectedReference(payload);
+                    const reference = referenceSchema.parse(jsonPayload);
+                    setSelectedReference(reference.id === selectedReference?.id ? undefined : reference);
                 } catch (error) {
                     console.error(error);
                 }
@@ -128,7 +128,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
             markdownRenderer.removeEventListener('mouseout', handleMouseOut);
             markdownRenderer.removeEventListener('click', handleClick);
         };
-    }, [answerPart]); // Re-run when answerPart changes to ensure we catch new content
+    }, [answerPart, selectedReference?.id]); // Re-run when answerPart changes to ensure we catch new content
 
 
     useEffect(() => {
@@ -153,6 +153,23 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
             referenceElement.classList.remove('chat-reference--selected');
         };
     }, [selectedReference]);
+
+    useEffect(() => {
+        if (!hoveredReference) {
+            return;
+        }
+
+        const referenceElement = document.getElementById(`user-content-${hoveredReference.id}`);
+        if (!referenceElement) {
+            return;
+        }
+
+        referenceElement.classList.add('chat-reference--hover');
+
+        return () => {
+            referenceElement.classList.remove('chat-reference--hover');
+        };
+    }, [hoveredReference]);
 
     // Measure answer content height for dynamic sizing
     useEffect(() => {
@@ -299,10 +316,11 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
                                 <ReferencedSourcesListView
                                     references={references}
                                     sources={sources}
-                                    highlightedReference={highlightedReference}
+                                    hoveredReference={hoveredReference}
                                     selectedReference={selectedReference}
                                     style={referenceViewerScrollAreaStyle}
                                     onSelectedReferenceChanged={setSelectedReference}
+                                    onHoveredReferenceChanged={setHoveredReference}
                                 />
                             )}
                         </div>
