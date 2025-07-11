@@ -1,19 +1,13 @@
 'use client';
 
-import Image from "next/image";
-import { signIn } from "next-auth/react";
-import { Fragment, useCallback, useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { cn, getAuthProviderInfo } from "@/lib/utils";
-import { MagicLinkForm } from "./magicLinkForm";
-import { CredentialsForm } from "./credentialsForm";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
-import { TextSeparator } from "@/app/components/textSeparator";
+import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import DemoCard from "@/app/[domain]/onboard/components/demoCard";
 import Link from "next/link";
 import { env } from "@/env.mjs";
-import { LoadingButton } from "@/components/ui/loading-button";
 
 const TERMS_OF_SERVICE_URL = "https://sourcebot.dev/terms";
 const PRIVACY_POLICY_URL = "https://sourcebot.dev/privacy";
@@ -25,13 +19,37 @@ interface LoginFormProps {
     context: "login" | "signup";
 }
 
+// Cookie helpers for dismissing the security banner
+const SECURITY_BANNER_COOKIE = "security-banner-dismissed";
+
+const getSecurityBannerDismissed = (): boolean => {
+    if (typeof document === "undefined") return false;
+    const cookies = document.cookie.split(';').map(cookie => cookie.trim());
+    const targetCookie = cookies.find(cookie => cookie.startsWith(`${SECURITY_BANNER_COOKIE}=`));
+    if (!targetCookie) return false;
+    try {
+        const cookieValue = targetCookie.substring(`${SECURITY_BANNER_COOKIE}=`.length);
+        return JSON.parse(decodeURIComponent(cookieValue));
+    } catch (error) {
+        console.warn('Failed to parse security banner cookie:', error);
+        return false;
+    }
+};
+
+const setSecurityBannerDismissed = (dismissed: boolean) => {
+    if (typeof document === "undefined") return;
+    try {
+        const expires = new Date();
+        expires.setFullYear(expires.getFullYear() + 1);
+        const cookieValue = encodeURIComponent(JSON.stringify(dismissed));
+        document.cookie = `${SECURITY_BANNER_COOKIE}=${cookieValue}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
+    } catch (error) {
+        console.warn('Failed to set security banner cookie:', error);
+    }
+};
+
 export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
-    const onSignInWithOauth = useCallback((provider: string) => {
-        signIn(provider, {
-            redirectTo: callbackUrl ?? "/"
-        });
-    }, [callbackUrl]);
 
     const errorMessage = useMemo(() => {
         if (!error) {
@@ -46,13 +64,6 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
                 return "An error occurred during authentication. Please try again.";
         }
     }, [error]);
-
-    // Separate OAuth providers from special auth methods
-    const oauthProviders = providers.filter(p => 
-        !["credentials", "nodemailer"].includes(p.id)
-    );
-    const hasCredentials = providers.some(p => p.id === "credentials");
-    const hasMagicLink = providers.some(p => p.id === "nodemailer");
 
     // Helper function to get the correct analytics event name
     const getLoginEventName = (providerId: string) => {
@@ -72,6 +83,22 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
             default:
                 return "wa_login_with_github" as const; // fallback
         }
+    };
+
+    // Analytics callback for provider clicks
+    const handleProviderClick = (providerId: string) => {
+        captureEvent(getLoginEventName(providerId), {});
+    };
+
+    const [showSecurityBanner, setShowSecurityBanner] = useState(false);
+
+    useEffect(() => {
+        setShowSecurityBanner(!getSecurityBannerDismissed());
+    }, []);
+
+    const handleDismissBanner = () => {
+        setShowSecurityBanner(false);
+        setSecurityBannerDismissed(true);
     };
 
     return (
@@ -95,34 +122,11 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
                         {errorMessage}
                     </div>
                 )}
-                <DividerSet
-                    elements={[
-                        ...(oauthProviders.length > 0 ? [
-                            <div key="oauth-providers" className="w-full space-y-3">
-                                {oauthProviders.map((provider) => {
-                                    const providerInfo = getAuthProviderInfo(provider.id);
-                                    return (
-                                        <ProviderButton
-                                            key={provider.id}
-                                            name={providerInfo.displayName}
-                                            logo={providerInfo.icon}
-                                            onClick={() => {
-                                                captureEvent(getLoginEventName(provider.id), {});
-                                                onSignInWithOauth(provider.id);
-                                            }}
-                                            context={context}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        ] : []),
-                        ...(hasMagicLink ? [
-                            <MagicLinkForm key="magic-link" callbackUrl={callbackUrl} context={context} />
-                        ] : []),
-                        ...(hasCredentials ? [
-                            <CredentialsForm key="credentials" callbackUrl={callbackUrl} context={context} />
-                        ] : [])
-                    ]}
+                <AuthMethodSelector
+                    providers={providers}
+                    callbackUrl={callbackUrl}
+                    context={context}
+                    onProviderClick={handleProviderClick}
                 />
                 <p className="text-sm text-muted-foreground mt-8">
                     {context === "login" ?
@@ -141,46 +145,4 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
             )}
         </div>
     )
-}
-
-const ProviderButton = ({
-    name,
-    logo,
-    onClick,
-    className,
-    context,
-}: {
-    name: string;
-    logo: { src: string, className?: string } | null;
-    onClick: () => void;
-    className?: string;
-    context: "login" | "signup";
-}) => {
-    const [isLoading, setIsLoading] = useState(false);
-
-    return (
-        <LoadingButton
-            onClick={() => {
-                setIsLoading(true);
-                onClick();
-            }}
-            className={cn("w-full", className)}
-            variant="outline"
-            loading={isLoading}
-        >
-            {logo && <Image src={logo.src} alt={name} className={cn("w-5 h-5 mr-2", logo.className)} />}
-            {context === "login" ? `Sign in with ${name}` : `Sign up with ${name}`}
-        </LoadingButton>
-    )
-}
-
-const DividerSet = ({ elements }: { elements: React.ReactNode[] }) => {
-    return elements.map((child, index) => {
-        return (
-            <Fragment key={index}>
-                {child}
-                {index < elements.length - 1 && <TextSeparator key={`divider-${index}`} />}
-            </Fragment>
-        )
-    })
 }

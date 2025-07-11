@@ -1,28 +1,21 @@
-import { OrgCreateForm } from "./components/orgCreateForm";
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { OnboardHeader } from "./components/onboardHeader";
-import { OnboardingSteps } from "@/lib/constants";
-import { LogoutEscapeHatch } from "../components/logoutEscapeHatch";
-import { headers } from "next/headers";
+import { getProviders } from "@/auth";
+import OnboardingPage from "./components/onboardingPage";
 
-export default async function Onboarding() {
-    const session = await auth();
-    if (!session) {
-        redirect("/login");
-    }
+interface OnboardingProps {
+    searchParams?: { step?: string };
+}
 
-    const host = (await headers()).get('host') ?? '';
-
-    return (
-        <div className="flex flex-col items-center min-h-screen py-12 px-4 sm:px-12 bg-backgroundSecondary relative">
-            <OnboardHeader
-                title="Setup your organization"
-                description="Create a organization for your team to search and share code across your repositories."
-                step={OnboardingSteps.CreateOrg}
-            />
-            <OrgCreateForm rootDomain={host} />
-            <LogoutEscapeHatch className="absolute top-0 right-0 p-4 sm:p-12" />
-        </div>
-    );
+export default async function Onboarding({ searchParams }: OnboardingProps) {
+    const providers = getProviders();
+    const providerData = providers
+        .map((provider) => {
+            if (typeof provider === "function") {
+                const providerInfo = provider()
+                return { id: providerInfo.id, name: providerInfo.name }
+            } else {
+                return { id: provider.id, name: provider.name }
+            }
+        });
+        
+    return <OnboardingPage providers={providerData} searchParams={searchParams} />
 }
