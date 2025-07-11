@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
         url.pathname.startsWith('/login') ||
         url.pathname.startsWith('/redeem') ||
         url.pathname.startsWith('/signup') ||
+        url.pathname.startsWith('/invite') ||
         url.pathname.startsWith('/onboard')
     ) {
         return NextResponse.next();

@@ -3,13 +3,17 @@ import { env } from "@/env.mjs";
 import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID } from "@/lib/constants";
-import { hasEntitlement } from "@sourcebot/shared";
+import { getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { isServiceError } from "@/lib/utils";
-import { ServiceErrorException } from "@/lib/serviceError";
+import { orgNotFound, ServiceError, ServiceErrorException, userNotFound } from "@/lib/serviceError";
 import { createAccountRequest } from "@/actions";
 import { handleJITProvisioning } from "@/ee/features/sso/sso";
 import { createLogger } from "@sourcebot/logger";
 import { getAuditService } from "@/ee/features/audit/factory";
+import { StatusCodes } from "http-status-codes";
+import { ErrorCode } from "./errorCodes";
+import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
+import { incrementOrgSeatCount } from "@/ee/features/billing/serverUtils";
 
 const logger = createLogger('web-auth-utils');
 const auditService = getAuditService();
@@ -190,3 +194,102 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         }
     }
 }; 
+
+export const orgHasAvailability = async (domain: string): Promise<boolean> => {
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (!org) {
+        logger.error(`orgHasAvailability: org not found for domain ${domain}`);
+        return false;
+    }
+    const members = await prisma.userToOrg.findMany({
+        where: {
+            orgId: org.id,
+            role: {
+                not: OrgRole.GUEST,
+            },
+        },
+    });
+
+    const maxSeats = getSeats();
+    const memberCount = members.length;
+
+    if (maxSeats !== SOURCEBOT_UNLIMITED_SEATS && memberCount >= maxSeats) {
+        logger.error(`orgHasAvailability: org ${org.id} has reached max capacity`);
+        return false;
+    }
+
+    return true;
+}
+
+export const addUserToOrganization = async (userId: string, orgId: number): Promise<{ success: boolean } | ServiceError> => {
+    const user = await prisma.user.findUnique({
+        where: {
+            id: userId,
+        },
+    });
+
+    if (!user) {
+        logger.error(`addUserToOrganization: user not found for id ${userId}`);
+        return userNotFound();
+    }
+
+    const org = await prisma.org.findUnique({
+        where: {
+            id: orgId,
+        },
+    });
+
+    if (!org) {
+        logger.error(`addUserToOrganization: org not found for id ${orgId}`);
+        return orgNotFound();
+    }
+
+    const hasAvailability = await orgHasAvailability(org.domain);
+    if (!hasAvailability) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
+            message: "Organization is at max capacity",
+        } satisfies ServiceError;
+    }
+
+    const res = await prisma.$transaction(async (tx) => {
+        await tx.userToOrg.create({
+            data: {
+                userId: user.id,
+                orgId: org.id,
+                role: OrgRole.MEMBER,
+            }
+        });
+
+        await tx.user.update({
+            where: {
+                id: user.id,
+            },
+            data: {
+                pendingApproval: false,
+            }
+        });
+
+        if (IS_BILLING_ENABLED) {
+            const result = await incrementOrgSeatCount(orgId, tx);
+            if (isServiceError(result)) {
+                throw result;
+            }
+        }
+    });
+
+    if (isServiceError(res)) {
+        logger.error(`addUserToOrganization: failed to add user ${userId} to org ${orgId}: ${res.message}`);
+        return res;
+    }
+
+    return {
+        success: true,
+    }
+};

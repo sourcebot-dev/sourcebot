@@ -28,15 +28,16 @@ import InviteUserEmail from "./emails/inviteUserEmail";
 import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { TenancyMode, ApiKeyPayload } from "./lib/types";
-import { decrementOrgSeatCount, getSubscriptionForOrg, incrementOrgSeatCount } from "./ee/features/billing/serverUtils";
+import { decrementOrgSeatCount, getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
 import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
 import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
-import { getPlan, getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
+import { getPlan, hasEntitlement } from "@sourcebot/shared";
 import { getPublicAccessStatus } from "./ee/features/publicAccess/publicAccess";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import { createLogger } from "@sourcebot/logger";
 import { getAuditService } from "@/ee/features/audit/factory";
+import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -114,35 +115,6 @@ export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | unde
         return notAuthenticated();
     }
     return fn(session.user.id, undefined);
-}
-
-export const orgHasAvailability = async (domain: string): Promise<boolean> => {
-    const org = await prisma.org.findUnique({
-        where: {
-            domain,
-        },
-    });
-
-    if (!org) {
-        return false;
-    }
-    const members = await prisma.userToOrg.findMany({
-        where: {
-            orgId: org.id,
-            role: {
-                not: OrgRole.GUEST,
-            },
-        },
-    });
-
-    const maxSeats = getSeats();
-    const memberCount = members.length;
-
-    if (maxSeats !== SOURCEBOT_UNLIMITED_SEATS && memberCount >= maxSeats) {
-        return false;
-    }
-
-    return true;
 }
 
 export const withOrgMembership = async <T>(userId: string, domain: string, fn: (params: { userRole: OrgRole, org: Org }) => Promise<T>, minRequiredRole: OrgRole = OrgRole.MEMBER) => {
@@ -1169,6 +1141,21 @@ export const cancelInvite = async (inviteId: string, domain: string): Promise<{ 
         }, /* minRequiredRole = */ OrgRole.OWNER)
     ));
 
+export const getOrgInviteId = async (domain: string) => sew(() =>
+    withAuth(async () => {
+        const org = await prisma.org.findUnique({
+            where: {
+                domain: domain,
+            },
+        });
+
+        if (!org) {
+            return notFound();
+        }
+
+        return org.inviteId;
+    }));
+
 export const getMe = async () => sew(() =>
     withAuth(async (userId) => {
         const user = await prisma.user.findUnique({
@@ -1257,24 +1244,13 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
             return notFound();
         }
 
+        const addUserToOrgRes = await addUserToOrganization(user.id, invite.orgId);
+        if (isServiceError(addUserToOrgRes)) {
+            await failAuditCallback(addUserToOrgRes.message);
+            return addUserToOrgRes;
+        }
+
         const res = await prisma.$transaction(async (tx) => {
-            await tx.userToOrg.create({
-                data: {
-                    userId: user.id,
-                    orgId: invite.orgId,
-                    role: "MEMBER",
-                }
-            });
-
-            await tx.user.update({
-                where: {
-                    id: user.id,
-                },
-                data: {
-                    pendingApproval: false,
-                }
-            });
-
             await tx.invite.delete({
                 where: {
                     id: invite.id,
@@ -1312,18 +1288,10 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
                     }
                 });
             }
-
-            if (IS_BILLING_ENABLED) {
-                const result = await incrementOrgSeatCount(invite.orgId, tx);
-                if (isServiceError(result)) {
-                    throw result;
-                }
-            }
         });
 
         if (isServiceError(res)) {
-            await failAuditCallback(res.message);
-            return res;
+            logger.error(`Failed to perform cleanup after redeeming invite ${inviteId} for user ${user.id}: ${res.message}`);
         }
 
         await auditService.createAudit({
@@ -1811,34 +1779,13 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                 return notFound();
             }
 
-            const hasAvailability = await orgHasAvailability(domain);
-            if (!hasAvailability) {
-                await failAuditCallback("Organization is at max capacity");
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
-                    message: "Organization is at max capacity",
-                } satisfies ServiceError;
+            const addUserToOrgRes = await addUserToOrganization(request.requestedById, org.id);
+            if (isServiceError(addUserToOrgRes)) {
+                await failAuditCallback(addUserToOrgRes.message);
+                return addUserToOrgRes;
             }
 
             const res = await prisma.$transaction(async (tx) => {
-                await tx.user.update({
-                    where: {
-                        id: request.requestedById,
-                    },
-                    data: {
-                        pendingApproval: false,
-                    },
-                });
-
-                await tx.userToOrg.create({
-                    data: {
-                        userId: request.requestedById,
-                        orgId: org.id,
-                        role: "MEMBER",
-                    },
-                });
-
                 await tx.accountRequest.delete({
                     where: {
                         id: requestId,
@@ -1863,8 +1810,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
             });
 
             if (isServiceError(res)) {
-                await failAuditCallback(res.message);
-                return res;
+                logger.error(`Failed to perform cleanup after approving account request ${requestId} for user ${request.requestedById}: ${res.message}`);
             }
 
             // Send approval email to the user

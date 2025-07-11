@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Copy, Check } from "lucide-react"
 import { useToast } from "@/components/hooks/use-toast"
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
+import { getOrgInviteId } from "@/actions"
 
 export function InviteLinkDisplay() {
     const [inviteLink, setInviteLink] = useState("")
@@ -12,10 +14,13 @@ export function InviteLinkDisplay() {
     const { toast } = useToast()
 
     useEffect(() => {
-        // Get the current domain and create the invite link
-        if (typeof window !== "undefined") {
-            setInviteLink(`${window.location.origin}/invite`)
+        const fetchInviteId = async () => {
+            const inviteId = await getOrgInviteId(SINGLE_TENANT_ORG_DOMAIN);
+            if (typeof window !== "undefined") {
+                setInviteLink(`${window.location.origin}/invite?id=${inviteId}`)
+            }
         }
+        fetchInviteId().catch(console.error);
     }, [])
 
     const handleCopy = async () => {

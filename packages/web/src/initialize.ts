@@ -159,15 +159,32 @@ const pruneOldGuestUser = async () => {
 }
 
 const initSingleTenancy = async () => {
-    await prisma.org.upsert({
-        where: {
-            id: SINGLE_TENANT_ORG_ID,
-        },
-        update: {},
-        create: {
-            name: SINGLE_TENANT_ORG_NAME,
-            domain: SINGLE_TENANT_ORG_DOMAIN,
-            id: SINGLE_TENANT_ORG_ID
+    // Back fill the inviteId if the org has already been created to prevent needing to wipe the db
+    await prisma.$transaction(async (tx) => {
+        const org = await tx.org.findUnique({
+            where: {
+                id: SINGLE_TENANT_ORG_ID,
+            },
+        });
+
+        if (!org) {
+            await tx.org.create({
+                data: {
+                    id: SINGLE_TENANT_ORG_ID,
+                    name: SINGLE_TENANT_ORG_NAME,
+                    domain: SINGLE_TENANT_ORG_DOMAIN,
+                    inviteId: crypto.randomUUID(),
+                }
+            });
+        } else if (!org.inviteId) {
+            await tx.org.update({
+                where: {
+                    id: SINGLE_TENANT_ORG_ID,
+                },
+                data: {
+                    inviteId: crypto.randomUUID(),
+                }
+            });
         }
     });
 

@@ -119,7 +119,7 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
                 id: "microsoft-entra-id",
                 name: "Microsoft Entra ID",
                 displayName: "Microsoft Entra ID",
-                icon: {
+               icon: {
                     src: microsoftLogo,
                 },
             };

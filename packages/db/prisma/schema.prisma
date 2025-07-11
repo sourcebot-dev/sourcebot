@@ -171,6 +171,9 @@ model Org {
 
   /// List of pending invites to this organization
   invites Invite[]
+  
+  /// The invite id for this organization
+  inviteId String?
 
   audits Audit[]
 
