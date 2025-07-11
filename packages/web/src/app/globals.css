@@ -89,8 +89,8 @@
     --editor-tag-variable-local: #30a;
 
     --chat-reference: #02255f11;
-    --chat-reference-hover: #f5d0fe;
-    --chat-reference-selected: #efc0fb;
+    --chat-reference-hover: #02225f22;
+    --chat-reference-selected: #efc0fbad;
     --chat-reference-selected-border: #e052b8;
   }
 
@@ -173,10 +173,10 @@
     --editor-tag-regexp: #56b6c2;
     --editor-tag-variable-local: #61afef;
 
-    --chat-reference: hsl(219, 14%, 20%);
-    --chat-reference-hover: hsl(219, 14%, 20%);
-    --chat-reference-selected: hsl(219, 14%, 20%);
-    --chat-reference-selected-border: hsl(219, 14%, 20%);
+    --chat-reference: #2c313aad;
+    --chat-reference-hover: #374151;
+    --chat-reference-selected: #1e3b8a87;
+    --chat-reference-selected-border: #60a5fa;
   }
 }
 
