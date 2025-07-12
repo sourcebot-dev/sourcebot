@@ -94,7 +94,7 @@ ${addLineNumbers(file.source)}
     `.trim();
 }
 
-export const FILE_REFERENCE_REGEX = /@file:\{([^:}]+)(?::(\d+)-(\d+))?\}/g;
+export const FILE_REFERENCE_REGEX = /@file:\{([^:}]+)(?::(\d+)(?:-(\d+))?)?\}/g;
 
 export const toolNames = {
     searchCode: 'searchCode',

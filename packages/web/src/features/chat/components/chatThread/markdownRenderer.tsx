@@ -19,8 +19,7 @@ import type { PluggableList, Plugin } from "unified";
 import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
-import { FileReference } from '../../types';
-import { getFileReferenceId } from '../../utils';
+import { createFileReference } from '@/features/chat/utils';
 
 export const REFERENCE_PAYLOAD_ATTRIBUTE = 'data-reference-payload';
 
@@ -50,20 +49,14 @@ function remarkReferencesPlugin() {
                 // Create display text
                 let displayText = fileName.split('/').pop() ?? fileName;
 
-                const range = startLine && endLine ? {
-                    startLine: parseInt(startLine),
-                    endLine: parseInt(endLine),
-                } : undefined;
-
-                if (range) {
-                    displayText += `:${range.startLine}-${range.endLine}`;
-                }
-
-                const payload: FileReference = {
-                    type: 'file',
-                    id: getFileReferenceId(fileName, range),
+                const fileReference = createFileReference({
                     fileName,
-                    range,
+                    startLine,
+                    endLine,
+                });
+
+                if (fileReference.range) {
+                    displayText += `:${fileReference.range.startLine}-${fileReference.range.endLine}`;
                 }
 
                 return {
@@ -71,10 +64,10 @@ function remarkReferencesPlugin() {
                     // @note: if you add additional attributes to this span, make sure to update the rehypeSanitize plugin to allow them.
                     value: `<span
                         role="button"
-                        id="${payload.id}"
+                        id="${fileReference.id}"
                         className="font-mono cursor-pointer text-xs border px-1 py-[1.5px] rounded-md transition-all duration-150 bg-chat-reference"
                         title="Click to navigate to code"
-                        ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(payload))}"
+                        ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(fileReference))}"
                     >${displayText}</span>`
                 }
             }

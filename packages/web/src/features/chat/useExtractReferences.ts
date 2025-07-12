@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { SBChatMessage, FileReference } from "./types";
 import { FILE_REFERENCE_REGEX } from "./constants";
-import { getFileReferenceId } from "./utils";
+import { createFileReference } from "./utils";
 
 export const useExtractReferences = (message: SBChatMessage) => {
     return useMemo(() => {
@@ -21,20 +21,13 @@ export const useExtractReferences = (message: SBChatMessage) => {
                     while ((match = FILE_REFERENCE_REGEX.exec(content ?? '')) !== null && match !== null) {
                         const [_, fileName, startLine, endLine] = match;
 
-                        references.push({
-                            type: 'file',
-                            id: getFileReferenceId(fileName, startLine && endLine ? {
-                                startLine: parseInt(startLine),
-                                endLine: parseInt(endLine),
-                            } : undefined),
+                        const fileReference = createFileReference({
                             fileName,
-                            ...(startLine && endLine ? {
-                                range: {
-                                    startLine: parseInt(startLine),
-                                    endLine: parseInt(endLine),
-                                }
-                            } : {}),
+                            startLine,
+                            endLine,
                         });
+
+                        references.push(fileReference);
                     }
                     break;
                 }
