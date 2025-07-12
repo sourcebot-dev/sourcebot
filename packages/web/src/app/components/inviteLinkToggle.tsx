@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -10,15 +10,20 @@ import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { getOrgInviteId, getInviteLinkEnabled, setInviteLinkEnabled } from "@/actions"
 import { isServiceError } from "@/lib/utils"
 
-interface InviteLinkToggleProps {}
-
-export function InviteLinkToggle({}: InviteLinkToggleProps) {
+export function InviteLinkToggle() {
     const [enabled, setEnabled] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [isInitializing, setIsInitializing] = useState(true)
     const [inviteLink, setInviteLink] = useState("")
     const [copied, setCopied] = useState(false)
     const { toast } = useToast()
+
+    const fetchInviteLink = useCallback(async () => {
+        const inviteId = await getOrgInviteId(SINGLE_TENANT_ORG_DOMAIN)
+        if (!isServiceError(inviteId)) {
+            setInviteLink(`${window.location.origin}/invite?id=${inviteId}`)
+        }
+    }, [])
 
     // Fetch initial value on component mount
     useEffect(() => {
@@ -39,10 +44,7 @@ export function InviteLinkToggle({}: InviteLinkToggleProps) {
                 
                 // If enabled, also fetch the invite link
                 if (result) {
-                    const inviteId = await getOrgInviteId(SINGLE_TENANT_ORG_DOMAIN);
-                    if (typeof window !== "undefined" && !isServiceError(inviteId)) {
-                        setInviteLink(`${window.location.origin}/invite?id=${inviteId}`)
-                    }
+                    await fetchInviteLink()
                 }
             } catch (error) {
                 console.error("Error fetching invite link setting:", error)
@@ -57,12 +59,12 @@ export function InviteLinkToggle({}: InviteLinkToggleProps) {
         }
 
         fetchInitialValue()
-    }, [toast])
+    }, [toast, fetchInviteLink])
 
-    const handleToggle = async (checked: boolean) => {
+    const handleToggle = async (enabled: boolean) => {
         setIsLoading(true)
         try {
-            const result = await setInviteLinkEnabled(SINGLE_TENANT_ORG_DOMAIN, checked)
+            const result = await setInviteLinkEnabled(SINGLE_TENANT_ORG_DOMAIN, enabled)
             
             if (isServiceError(result)) {
                 toast({
@@ -73,21 +75,18 @@ export function InviteLinkToggle({}: InviteLinkToggleProps) {
                 return
             }
 
-            setEnabled(checked)
+            setEnabled(enabled)
             
-            // If enabled, fetch the invite link
-            if (checked) {
-                const inviteId = await getOrgInviteId(SINGLE_TENANT_ORG_DOMAIN);
-                if (typeof window !== "undefined" && !isServiceError(inviteId)) {
-                    setInviteLink(`${window.location.origin}/invite?id=${inviteId}`)
-                }
+            // If enabled, fetch the invite link; if disabled, clear it
+            if (enabled) {
+                await fetchInviteLink()
             } else {
                 setInviteLink("")
             }
             
             toast({
                 title: "Settings updated",
-                description: checked 
+                description: enabled 
                     ? "Invite link is now enabled" 
                     : "Invite link is now disabled"
             })
@@ -120,16 +119,18 @@ export function InviteLinkToggle({}: InviteLinkToggleProps) {
 
     return (
         <div className="p-4 rounded-lg border border-[var(--border)] bg-[var(--card)]">
-            <div className="flex items-center justify-between">
-                <div className="flex-1">
-                    <h3 className="font-medium text-[var(--foreground)] mb-1">
+            <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-[var(--foreground)] mb-2">
                         Enable invite link
                     </h3>
-                    <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
-                        When enabled, team members can use the invite link to join your organization without requiring approval.
-                    </p>
+                    <div className="max-w-2xl">
+                        <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
+                            When enabled, team members can use the invite link to join your organization without requiring approval.
+                        </p>
+                    </div>
                 </div>
-                <div className="ml-4">
+                <div className="flex-shrink-0">
                     {isInitializing ? (
                         <div className="flex items-center justify-center w-11 h-6">
                             <svg 

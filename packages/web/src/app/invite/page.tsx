@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
@@ -18,16 +18,16 @@ interface InvitePageProps {
 }
 
 export default async function InvitePage({ searchParams }: InvitePageProps) {
+    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+    if (!org || !org.isOnboarded) {
+        return redirect("/onboard");
+    }
+
     const inviteLinkId = searchParams.id;
-    
     if (!inviteLinkId) {
         return <InvalidInviteCard message="No invitation ID provided." />;
     }
 
-    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
-    if (!org) {
-        return <InvalidInviteCard message="Organization not found." />;
-    }
 
     if (org.inviteLinkId !== inviteLinkId) {
         return <InvalidInviteCard message="Invalid invitation link." />;
@@ -109,10 +109,12 @@ function WelcomeCard({ inviteLinkId, providers }: { inviteLinkId: string; provid
                             You've been invited to join this Sourcebot deployment. Sign up to get started.
                         </p>
                     </div>  
+
                     <AuthMethodSelector
                         providers={providers}
                         callbackUrl={`/invite?id=${inviteLinkId}`}
                         context="signup"
+                        securityNoticeClosable={true}
                     />
                 </CardContent>
             </Card>

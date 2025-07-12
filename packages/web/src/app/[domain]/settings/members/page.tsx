@@ -12,6 +12,7 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { RequestsList } from "./components/requestsList";
 import { OrgRole } from "@prisma/client";
+import { MemberApprovalRequiredToggle } from "@/app/onboard/components/memberApprovalRequiredToggle";
 
 interface MembersSettingsPageProps {
     params: {
@@ -77,6 +78,10 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                     </div>
                 )}
             </div>
+
+            {userRoleInOrg === OrgRole.OWNER && (
+                <MemberApprovalRequiredToggle />
+            )}
 
             <InviteMemberCard
                 currentUserRole={userRoleInOrg}

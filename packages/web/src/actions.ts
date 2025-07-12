@@ -1250,50 +1250,6 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
             return addUserToOrgRes;
         }
 
-        const res = await prisma.$transaction(async (tx) => {
-            await tx.invite.delete({
-                where: {
-                    id: invite.id,
-                }
-            });
-
-            // Delete the account request if it exists since we've redeemed an invite
-            const accountRequest = await tx.accountRequest.findUnique({
-                where: {
-                    requestedById_orgId: {
-                        requestedById: user.id,
-                        orgId: invite.orgId,
-                    }
-                },
-            });
-
-            if (accountRequest) {
-                logger.info(`Deleting account request ${accountRequest.id} for user ${user.id} since they've redeemed an invite`);
-                await auditService.createAudit({
-                    action: "user.join_request_removed",
-                    actor: {
-                        id: user.id,
-                        type: "user"
-                    },
-                    orgId: invite.org.id,
-                    target: {
-                        id: accountRequest.id,
-                        type: "account_join_request"
-                    }
-                });
-
-                await tx.accountRequest.delete({
-                    where: {
-                        id: accountRequest.id,
-                    }
-                });
-            }
-        });
-
-        if (isServiceError(res)) {
-            logger.error(`Failed to perform cleanup after redeeming invite ${inviteId} for user ${user.id}: ${res.message}`);
-        }
-
         await auditService.createAudit({
             action: "user.invite_accepted",
             actor: {
@@ -1831,34 +1787,6 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                 return addUserToOrgRes;
             }
 
-            const res = await prisma.$transaction(async (tx) => {
-                await tx.accountRequest.delete({
-                    where: {
-                        id: requestId,
-                    },
-                });
-
-                const invites = await tx.invite.findMany({
-                    where: {
-                        recipientEmail: request.requestedBy.email!,
-                        orgId: org.id,
-                    },
-                })
-
-                for (const invite of invites) {
-                    logger.info(`Account request approved. Deleting invite ${invite.id} for ${request.requestedBy.email}`);
-                    await tx.invite.delete({
-                        where: {
-                            id: invite.id,
-                        },
-                    });
-                }
-            });
-
-            if (isServiceError(res)) {
-                logger.error(`Failed to perform cleanup after approving account request ${requestId} for user ${request.requestedById}: ${res.message}`);
-            }
-
             // Send approval email to the user
             if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
                 const origin = (await headers()).get('origin')!;
@@ -1926,19 +1854,6 @@ export const rejectAccountRequest = async (requestId: string, domain: string) =>
                 where: {
                     id: requestId,
                 },
-            });
-
-            await auditService.createAudit({
-                action: "user.join_request_removed",
-                actor: {
-                    id: userId,
-                    type: "user"
-                },
-                orgId: org.id,
-                target: {
-                    id: requestId,
-                    type: "account_join_request"
-                }
             });
 
             return {

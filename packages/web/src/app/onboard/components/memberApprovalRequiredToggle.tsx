@@ -82,53 +82,57 @@ export function MemberApprovalRequiredToggle({}: MemberApprovalRequiredTogglePro
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 rounded-lg border border-[var(--border)] bg-[var(--card)]">
-                <div className="flex-1">
-                    <h3 className="font-medium text-[var(--foreground)] mb-1">
-                        Require approval for new members
-                    </h3>
-                    <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
-                        When enabled, new users will need approval from an organization owner before they can access your deployment.{" "}
-                        <a
-                            href="https://docs.sourcebot.dev/docs/configuration/auth/overview#approving-new-members"
-                            target="_blank"
-                            rel="noopener"
-                            className="underline text-[var(--primary)]"
-                        >
-                            Learn More
-                        </a>
-                    </p>
-                </div>
-                <div className="ml-4">
-                    {isInitializing ? (
-                        <div className="flex items-center justify-center w-11 h-6">
-                            <svg 
-                                className="animate-spin h-4 w-4 text-[var(--muted-foreground)]" 
-                                fill="none" 
-                                viewBox="0 0 24 24"
-                            >
-                                <circle 
-                                    className="opacity-25" 
-                                    cx="12" 
-                                    cy="12" 
-                                    r="10" 
-                                    stroke="currentColor" 
-                                    strokeWidth="4"
-                                />
-                                <path 
-                                    className="opacity-75" 
-                                    fill="currentColor" 
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                />
-                            </svg>
+            <div className="p-4 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-[var(--foreground)] mb-2">
+                            Require approval for new members
+                        </h3>
+                        <div className="max-w-2xl">
+                            <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
+                                When enabled, new users will need approval from an organization owner before they can access your deployment.{" "}
+                                <a
+                                    href="https://docs.sourcebot.dev/docs/configuration/auth/overview#approving-new-members"
+                                    target="_blank"
+                                    rel="noopener"
+                                    className="underline text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors"
+                                >
+                                    Learn More
+                                </a>
+                            </p>
                         </div>
-                    ) : (
-                        <Switch
-                            checked={enabled}
-                            onCheckedChange={handleToggle}
-                            disabled={isLoading}
-                        />
-                    )}
+                    </div>
+                    <div className="flex-shrink-0">
+                        {isInitializing ? (
+                            <div className="flex items-center justify-center w-11 h-6">
+                                <svg 
+                                    className="animate-spin h-4 w-4 text-[var(--muted-foreground)]" 
+                                    fill="none" 
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle 
+                                        className="opacity-25" 
+                                        cx="12" 
+                                        cy="12" 
+                                        r="10" 
+                                        stroke="currentColor" 
+                                        strokeWidth="4"
+                                    />
+                                    <path 
+                                        className="opacity-75" 
+                                        fill="currentColor" 
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    />
+                                </svg>
+                            </div>
+                        ) : (
+                            <Switch
+                                checked={enabled}
+                                onCheckedChange={handleToggle}
+                                disabled={isLoading}
+                            />
+                        )}
+                    </div>
                 </div>
             </div>
             

@@ -1,5 +1,4 @@
 import type { User as AuthJsUser } from "next-auth";
-import { env } from "@/env.mjs";
 import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
@@ -29,7 +28,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                 id: "undefined",
                 type: "user"
             },
-            orgId: SINGLE_TENANT_ORG_ID, // TODO(mt)
+            orgId: SINGLE_TENANT_ORG_ID,
             metadata: {
                 message: "User ID is undefined on user creation"
             }
@@ -37,81 +36,87 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         throw new Error("User ID is undefined on user creation");
     }
 
-    // In single-tenant mode, we assign the first user to sign
-    // up as the owner of the default org.
-    if (env.SOURCEBOT_TENANCY_MODE === 'single') {
-        const defaultOrg = await prisma.org.findUnique({
-            where: {
-                id: SINGLE_TENANT_ORG_ID,
-            },
-            include: {
-                members: {
-                    where: {
-                        role: {
-                            not: OrgRole.GUEST,
-                        }
+    const defaultOrg = await prisma.org.findUnique({
+        where: {
+            id: SINGLE_TENANT_ORG_ID,
+        },
+        include: {
+            members: {
+                where: {
+                    role: {
+                        not: OrgRole.GUEST,
                     }
-                },
+                }
+            },
+        }
+    });
+
+    // We expect the default org to have been created on app initialization
+    if (defaultOrg === null) {
+        await auditService.createAudit({
+            action: "user.creation_failed",
+            actor: {
+                id: user.id,
+                type: "user"
+            },
+            target: {
+                id: user.id,
+                type: "user"
+            },
+            orgId: SINGLE_TENANT_ORG_ID,
+            metadata: {
+                message: "Default org not found on single tenant user creation"
             }
         });
+        throw new Error("Default org not found on single tenant user creation");
+    }
 
-        if (defaultOrg === null) {
-            await auditService.createAudit({
-                action: "user.creation_failed",
-                actor: {
-                    id: user.id,
-                    type: "user"
+    // If this is the first user to sign up, we make them the owner of the default org.
+    const isFirstUser = defaultOrg.members.length === 0;
+    if (isFirstUser) {
+        await prisma.$transaction(async (tx) => {
+            await tx.org.update({
+                where: {
+                    id: SINGLE_TENANT_ORG_ID,
                 },
-                target: {
-                    id: user.id,
-                    type: "user"
-                },
-                orgId: SINGLE_TENANT_ORG_ID,
-                metadata: {
-                    message: "Default org not found on single tenant user creation"
-                }
-            });
-            throw new Error("Default org not found on single tenant user creation");
-        }
-
-        // Only the first user to sign up will be an owner of the default org.
-        const isFirstUser = defaultOrg.members.length === 0;
-        if (isFirstUser) {
-            await prisma.$transaction(async (tx) => {
-                await tx.org.update({
-                    where: {
-                        id: SINGLE_TENANT_ORG_ID,
-                    },
-                    data: {
-                        members: {
-                            create: {
-                                role: OrgRole.OWNER,
-                                user: {
-                                    connect: {
-                                        id: user.id,
-                                    }
+                data: {
+                    members: {
+                        create: {
+                            role: OrgRole.OWNER,
+                            user: {
+                                connect: {
+                                    id: user.id,
                                 }
                             }
                         }
                     }
-                });
-            });
-
-            await auditService.createAudit({
-                action: "user.owner_created",
-                actor: {
-                    id: user.id,
-                    type: "user"
-                },
-                orgId: SINGLE_TENANT_ORG_ID,
-                target: {
-                    id: SINGLE_TENANT_ORG_ID.toString(),
-                    type: "org"
                 }
             });
-        }
+        });
+
+        await auditService.createAudit({
+            action: "user.owner_created",
+            actor: {
+                id: user.id,
+                type: "user"
+            },
+            orgId: SINGLE_TENANT_ORG_ID,
+            target: {
+                id: SINGLE_TENANT_ORG_ID.toString(),
+                type: "org"
+            }
+        });
+    } else if (!defaultOrg.memberApprovalRequired) { // Else, we add the user to org if approval isn't required
+        await prisma.userToOrg.create({
+            data: {
+                userId: user.id,
+                orgId: SINGLE_TENANT_ORG_ID,
+                role: OrgRole.MEMBER,
+            }
+        });
     }
-}; 
+
+};
 
 export const orgHasAvailability = async (domain: string): Promise<boolean> => {
     const org = await prisma.org.findUnique({
@@ -190,6 +195,42 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
             if (isServiceError(result)) {
                 throw result;
             }
+        }
+
+        // Delete the account request if it exists since we've added the user to the org
+        const accountRequest = await tx.accountRequest.findUnique({
+            where: {
+                requestedById_orgId: {
+                    requestedById: user.id,
+                    orgId: orgId,
+                }
+            },
+        });
+
+        if (accountRequest) {
+            logger.info(`Deleting account request ${accountRequest.id} for user ${user.id} since they've been added to the org`);
+            await tx.accountRequest.delete({
+                where: {
+                    id: accountRequest.id,
+                }
+            });
+        }
+
+        // Delete any invites that may exist for this user since we've added them to the org
+        const invites = await tx.invite.findMany({
+            where: {
+                recipientEmail: user.email!,
+                orgId: org.id,
+            },
+        })
+
+        for (const invite of invites) {
+            logger.info(`Deleting invite ${invite.id} for ${user.email} since they've been added to the org`);
+            await tx.invite.delete({
+                where: {
+                    id: invite.id,
+                },
+            });
         }
     });
 

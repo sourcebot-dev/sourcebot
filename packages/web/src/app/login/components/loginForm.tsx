@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import DemoCard from "@/app/[domain]/onboard/components/demoCard";
+import DemoCard from "@/app/login/components/demoCard";
 import Link from "next/link";
 import { env } from "@/env.mjs";
 import type { AuthProvider } from "@/lib/authProviders";
@@ -19,35 +19,6 @@ interface LoginFormProps {
     providers: AuthProvider[];
     context: "login" | "signup";
 }
-
-// Cookie helpers for dismissing the security banner
-const SECURITY_BANNER_COOKIE = "security-banner-dismissed";
-
-const getSecurityBannerDismissed = (): boolean => {
-    if (typeof document === "undefined") return false;
-    const cookies = document.cookie.split(';').map(cookie => cookie.trim());
-    const targetCookie = cookies.find(cookie => cookie.startsWith(`${SECURITY_BANNER_COOKIE}=`));
-    if (!targetCookie) return false;
-    try {
-        const cookieValue = targetCookie.substring(`${SECURITY_BANNER_COOKIE}=`.length);
-        return JSON.parse(decodeURIComponent(cookieValue));
-    } catch (error) {
-        console.warn('Failed to parse security banner cookie:', error);
-        return false;
-    }
-};
-
-const setSecurityBannerDismissed = (dismissed: boolean) => {
-    if (typeof document === "undefined") return;
-    try {
-        const expires = new Date();
-        expires.setFullYear(expires.getFullYear() + 1);
-        const cookieValue = encodeURIComponent(JSON.stringify(dismissed));
-        document.cookie = `${SECURITY_BANNER_COOKIE}=${cookieValue}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
-    } catch (error) {
-        console.warn('Failed to set security banner cookie:', error);
-    }
-};
 
 export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
@@ -91,17 +62,6 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
         captureEvent(getLoginEventName(providerId), {});
     };
 
-    const [showSecurityBanner, setShowSecurityBanner] = useState(false);
-
-    useEffect(() => {
-        setShowSecurityBanner(!getSecurityBannerDismissed());
-    }, []);
-
-    const handleDismissBanner = () => {
-        setShowSecurityBanner(false);
-        setSecurityBannerDismissed(true);
-    };
-
     return (
         <div className="flex flex-col items-center justify-center w-full">
             <div className="mb-6 flex flex-col items-center">
@@ -128,6 +88,7 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
                     callbackUrl={callbackUrl}
                     context={context}
                     onProviderClick={handleProviderClick}
+                    securityNoticeClosable={true}
                 />
                 <p className="text-sm text-muted-foreground mt-8">
                     {context === "login" ?

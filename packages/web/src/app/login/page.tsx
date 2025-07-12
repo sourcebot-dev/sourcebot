@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
 import { createLogger } from "@sourcebot/logger";
 import { getAuthProviders } from "@/lib/authProviders";
+import { getOrgFromDomain } from "@/data/org";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
 const logger = createLogger('login-page');
 
@@ -20,6 +22,11 @@ export default async function Login({ searchParams }: LoginProps) {
     if (session) {
         logger.info("Session found in login page, redirecting to home");
         return redirect("/");
+    }
+
+    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+    if (!org || !org.isOnboarded) {
+        return redirect("/onboard");
     }
 
     const providers = getAuthProviders();
