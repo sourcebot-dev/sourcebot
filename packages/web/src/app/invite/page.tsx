@@ -1,4 +1,4 @@
-import { auth, getProviders } from "@/auth";
+import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
@@ -9,6 +9,7 @@ import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import { JoinOrganizationButton } from "@/app/invite/components/joinOrganizationButton"
 import { Button } from "@/components/ui/button";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
+import { getAuthProviders } from "@/lib/authProviders";
 
 interface InvitePageProps {
     searchParams: {
@@ -34,18 +35,8 @@ export default async function InvitePage({ searchParams }: InvitePageProps) {
 
     const session = await auth();
     if (!session) {
-        const providers = getProviders();
-        const providerData = providers
-            .map((provider) => {
-                if (typeof provider === "function") {
-                    const providerInfo = provider()
-                    return { id: providerInfo.id, name: providerInfo.name }
-                } else {
-                    return { id: provider.id, name: provider.name }
-                }
-            });
-        
-        return <WelcomeCard inviteId={inviteId} providers={providerData} />;
+        const providers = getAuthProviders();
+        return <WelcomeCard inviteId={inviteId} providers={providers} />;
     }
 
     const membership = await prisma.userToOrg.findUnique({
@@ -102,7 +93,7 @@ function InvalidInviteCard({ message }: { message: string }) {
     );
 }
 
-function WelcomeCard({ inviteId, providers }: { inviteId: string; providers: Array<{ id: string; name: string }> }) {
+function WelcomeCard({ inviteId, providers }: { inviteId: string; providers: import("@/lib/authProviders").AuthProvider[] }) {
     return (
         <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent)]/30 flex items-center justify-center p-6">
             <Card className="w-full max-w-md">

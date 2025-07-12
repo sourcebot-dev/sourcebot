@@ -6,9 +6,10 @@ import { AuthMethodSelector } from "@/app/components/authMethodSelector"
 import { InviteLinkDisplay } from "@/app/components/inviteLinkDisplay"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth";
+import type { AuthProvider } from "@/lib/authProviders";
 
 interface OnboardingPageProps {
-    providers: Array<{ id: string; name: string }>;
+    providers: AuthProvider[];
     searchParams?: { step?: string };
 }
 

@@ -8,6 +8,7 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import DemoCard from "@/app/[domain]/onboard/components/demoCard";
 import Link from "next/link";
 import { env } from "@/env.mjs";
+import type { AuthProvider } from "@/lib/authProviders";
 
 const TERMS_OF_SERVICE_URL = "https://sourcebot.dev/terms";
 const PRIVACY_POLICY_URL = "https://sourcebot.dev/privacy";
@@ -15,7 +16,7 @@ const PRIVACY_POLICY_URL = "https://sourcebot.dev/privacy";
 interface LoginFormProps {
     callbackUrl?: string;
     error?: string;
-    providers: Array<{ id: string; name: string }>;
+    providers: AuthProvider[];
     context: "login" | "signup";
 }
 

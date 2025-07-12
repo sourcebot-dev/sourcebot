@@ -7,9 +7,10 @@ import { MagicLinkForm } from "@/app/login/components/magicLinkForm";
 import { CredentialsForm } from "@/app/login/components/credentialsForm";
 import { DividerSet } from "@/app/components/dividerSet";
 import { ProviderButton } from "@/app/components/providerButton";
+import type { AuthProvider } from "@/lib/authProviders";
 
 interface AuthMethodSelectorProps {
-    providers: Array<{ id: string; name: string }>;
+    providers: AuthProvider[];
     callbackUrl?: string;
     context: "login" | "signup";
     onProviderClick?: (providerId: string) => void;
