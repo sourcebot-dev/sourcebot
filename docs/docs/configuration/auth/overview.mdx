@@ -15,9 +15,6 @@ The first account that's registered on a Sourcebot deployment is made the owner.
 
 All account registrations after the first account must be approved by the owner. The owner can see all join requests by going into **Settings -> Members**.
 
-If you have an [enterprise license](/docs/license-key), you can enable [AUTH_EE_ENABLE_JIT_PROVISIONING](/docs/configuration/auth/overview#enterprise-authentication-providers) to 
-have Sourcebot accounts automatically created and approved on registration.
-
 You can setup emails to be sent when new join requests are created/approved by configurating [transactional emails](/docs/configuration/transactional-emails)
 # Authentication Providers
 
@@ -43,9 +40,6 @@ See [transactional emails](/docs/configuration/transactional-emails) for more de
 ## Enterprise Authentication Providers
 
 The following authentication providers require an [enterprise license](/docs/license-key) to be enabled.
-
-By default, a new user registering using these providers must have their join request accepted by the owner of the organization to join. To allow a user to join automatically when
-they register for the first time, set the `AUTH_EE_ENABLE_JIT_PROVISIONING` environment variable to `true`. 
 
 ### GitHub
 ---

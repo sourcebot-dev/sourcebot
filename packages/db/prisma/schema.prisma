@@ -269,7 +269,6 @@ model User {
   image           String?
   accounts        Account[]
   orgs            UserToOrg[]
-  pendingApproval Boolean @default(true)
   accountRequest  AccountRequest?
 
   /// List of pending invites that the user has created

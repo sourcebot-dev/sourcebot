@@ -2,12 +2,13 @@ import { Card, CardContent } from "@/components/ui/card"
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth"
+import { SubmitAccountRequestButton } from "./submitAccountRequestButton"
 
-interface PendingApprovalCardProps {
+interface SubmitJoinRequestProps {
     domain: string
 }
 
-export const PendingApprovalCard = async ({ domain }: PendingApprovalCardProps) => {
+export const SubmitJoinRequest = async ({ domain }: SubmitJoinRequestProps) => {
     const session = await auth()
     const userId = session?.user?.id
 
@@ -29,29 +30,30 @@ export const PendingApprovalCard = async ({ domain }: PendingApprovalCardProps) 
                             />
                             
                             <div className="space-y-4">
-                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--chart-4)]/20 mx-auto">
-                                    <svg className="w-8 h-8 text-[var(--chart-4)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--highlight)]/20 mx-auto">
+                                    <svg className="w-8 h-8 text-[var(--highlight)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                                     </svg>
                                 </div>
                                 
                                 <div className="space-y-3">
                                     <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                                        Pending Approval
+                                        Join Organization
                                     </h1>
                                     <p className="text-lg text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                                        Your request to join the organization is being reviewed
+                                        Submit a request to join this organization
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
-                                <div className="flex space-x-1">
-                                    <div className="w-2 h-2 bg-[var(--chart-1)] rounded-full animate-pulse"></div>
-                                    <div className="w-2 h-2 bg-[var(--chart-1)]/60 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                                    <div className="w-2 h-2 bg-[var(--chart-1)]/30 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                            <div className="space-y-4">
+                                <div className="flex justify-center">
+                                    <SubmitAccountRequestButton domain={domain} userId={userId} />
                                 </div>
-                                <span>Awaiting review</span>
+                                
+                                <p className="text-sm text-muted-foreground">
+                                    Your request will be reviewed by an organization owner
+                                </p>
                             </div>
                         </div>
                     </CardContent>
@@ -59,4 +61,4 @@ export const PendingApprovalCard = async ({ domain }: PendingApprovalCardProps) 
             </div>
         </div>
     )
-}
+} 

@@ -105,8 +105,7 @@ export const createGuestUser = async (domain: string): Promise<ServiceError | bo
         create: {
             id: SOURCEBOT_GUEST_USER_ID,
             name: "Guest",
-            email: SOURCEBOT_GUEST_USER_EMAIL,
-            pendingApproval: false,
+            email: SOURCEBOT_GUEST_USER_EMAIL
         },
     });
 

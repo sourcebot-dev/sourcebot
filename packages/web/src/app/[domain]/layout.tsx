@@ -14,6 +14,7 @@ import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { notFound, redirect } from "next/navigation";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { PendingApprovalCard } from "./components/pendingApproval";
+import { SubmitJoinRequest } from "./components/submitJoinRequest";
 import { hasEntitlement } from "@sourcebot/shared";
 import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
 import { env } from "@/env.mjs";
@@ -59,17 +60,17 @@ export default async function Layout({
         });
 
         if (!membership) {
-                const user = await prisma.user.findUnique({
+                const hasPendingApproval = await prisma.accountRequest.findFirst({
                     where: {
-                        id: session.user.id
+                        orgId: org.id,
+                        requestedById: session.user.id
                     }
                 });
-                
-                // TODO: Organization join requests are only supported in single-tenant mode
-                if (env.SOURCEBOT_TENANCY_MODE === "single" && user?.pendingApproval) {
+
+                if (hasPendingApproval) {
                     return <PendingApprovalCard domain={domain} />
                 } else {
-                    return notFound();
+                    return <SubmitJoinRequest domain={domain} />
                 }
         }
     }

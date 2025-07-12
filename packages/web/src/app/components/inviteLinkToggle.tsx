@@ -184,7 +184,7 @@ export function InviteLinkToggle({}: InviteLinkToggleProps) {
                                 disabled={!inviteLink}
                             >
                                 {copied ? (
-                                    <Check className="h-4 w-4 text-green-600" />
+                                    <Check className="h-4 w-4 text-[var(--chart-2)]" />
                                 ) : (
                                     <Copy className="h-4 w-4" />
                                 )}

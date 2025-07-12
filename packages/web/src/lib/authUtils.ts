@@ -2,12 +2,10 @@ import type { User as AuthJsUser } from "next-auth";
 import { env } from "@/env.mjs";
 import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
-import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID } from "@/lib/constants";
-import { getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
+import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
+import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { isServiceError } from "@/lib/utils";
-import { orgNotFound, ServiceError, ServiceErrorException, userNotFound } from "@/lib/serviceError";
-import { createAccountRequest } from "@/actions";
-import { handleJITProvisioning } from "@/ee/features/sso/sso";
+import { orgNotFound, ServiceError, userNotFound } from "@/lib/serviceError";
 import { createLogger } from "@sourcebot/logger";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { StatusCodes } from "http-status-codes";
@@ -97,15 +95,6 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                         }
                     }
                 });
-
-                await tx.user.update({
-                    where: {
-                        id: user.id,
-                    },
-                    data: {
-                        pendingApproval: false,
-                    }
-                });
             });
 
             await auditService.createAudit({
@@ -120,77 +109,6 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                     type: "org"
                 }
             });
-        } else {
-            // TODO(auth): handle multi tenant case
-            if (env.AUTH_EE_ENABLE_JIT_PROVISIONING === 'true' && hasEntitlement("sso")) {
-                const res = await handleJITProvisioning(user.id, SINGLE_TENANT_ORG_DOMAIN);
-                if (isServiceError(res)) {
-                    logger.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
-                    await auditService.createAudit({
-                        action: "user.jit_provisioning_failed",
-                        actor: {
-                            id: user.id,
-                            type: "user"
-                        },
-                        target: {
-                            id: SINGLE_TENANT_ORG_ID.toString(),
-                            type: "org"
-                        },
-                        orgId: SINGLE_TENANT_ORG_ID,
-                        metadata: {
-                            message: `Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`
-                        }
-                    });
-                    throw new ServiceErrorException(res);
-                }
-
-                await auditService.createAudit({
-                    action: "user.jit_provisioned",
-                    actor: {
-                        id: user.id,
-                        type: "user"
-                    },
-                    target: {
-                        id: SINGLE_TENANT_ORG_ID.toString(),
-                        type: "org"
-                    },
-                    orgId: SINGLE_TENANT_ORG_ID,
-                });
-            } else {
-                const res = await createAccountRequest(user.id, SINGLE_TENANT_ORG_DOMAIN);
-                if (isServiceError(res)) {
-                    logger.error(`Failed to provision user ${user.id} for org ${SINGLE_TENANT_ORG_DOMAIN}: ${res.message}`);
-                    await auditService.createAudit({
-                        action: "user.join_request_creation_failed",
-                        actor: {
-                            id: user.id,
-                            type: "user"
-                        },
-                        target: {
-                            id: SINGLE_TENANT_ORG_ID.toString(),
-                            type: "org"
-                        },
-                        orgId: SINGLE_TENANT_ORG_ID,
-                        metadata: {
-                            message: res.message
-                        }
-                    });
-                    throw new ServiceErrorException(res);
-                }
-
-                await auditService.createAudit({
-                    action: "user.join_requested",
-                    actor: {
-                        id: user.id,
-                        type: "user"
-                    },
-                    orgId: SINGLE_TENANT_ORG_ID,
-                    target: {
-                        id: SINGLE_TENANT_ORG_ID.toString(),
-                        type: "org"
-                    },
-                });
-            }
         }
     }
 }; 
@@ -264,15 +182,6 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
                 userId: user.id,
                 orgId: org.id,
                 role: OrgRole.MEMBER,
-            }
-        });
-
-        await tx.user.update({
-            where: {
-                id: user.id,
-            },
-            data: {
-                pendingApproval: false,
             }
         });
 

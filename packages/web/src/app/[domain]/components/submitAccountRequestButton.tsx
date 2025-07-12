@@ -6,6 +6,7 @@ import { useState } from "react"
 import { useToast } from "@/components/hooks/use-toast"
 import { createAccountRequest } from "@/actions"
 import { isServiceError } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 interface SubmitButtonProps {
     domain: string
@@ -14,6 +15,7 @@ interface SubmitButtonProps {
 
 export function SubmitAccountRequestButton({ domain, userId }: SubmitButtonProps) {
     const { toast } = useToast()
+    const router = useRouter()
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const handleSubmit = async () => {
@@ -33,15 +35,16 @@ export function SubmitAccountRequestButton({ domain, userId }: SubmitButtonProps
                     variant: "default",
                 })
             }
+            // Refresh the page to trigger layout re-render and show PendingApprovalCard
+            router.refresh()
         } else {
             toast({
                 title: "Failed to Submit",
                 description: `There was an error submitting your request. Reason: ${result.message}`,
                 variant: "destructive",
             })
+            setIsSubmitting(false)
         }
-
-        setIsSubmitting(false)
     }
 
     return (
