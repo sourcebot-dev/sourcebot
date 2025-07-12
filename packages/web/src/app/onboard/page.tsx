@@ -167,13 +167,12 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
     const currentStepData = steps[currentStep]
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent)]/30 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-6">
             <div className="w-full max-w-6xl mx-auto">
-                <Card className="overflow-hidden shadow-2xl border-0 bg-[var(--card)]/95 backdrop-blur-sm">
-                    <CardContent className="p-0">
+                <div className="overflow-hidden bg-[var(--background)]">
                         <div className="flex min-h-[700px]">
                             {/* Left Panel - Progress & Context */}
-                            <div className="w-2/5 bg-gradient-to-br from-[var(--card)] to-[var(--accent)]/50 p-10 border-r border-[var(--border)]/50">
+                            <div className="w-2/5 bg-[var(--background)] p-10 border-r border-[var(--border)]">
                                 <div className="h-full flex flex-col">
                                     <div className="flex-1">
                                         <div className="mb-8">
@@ -234,7 +233,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="pt-8 border-t border-[var(--border)]/30">
+                                    <div className="pt-8 border-t border-[var(--border)]">
                                         <p className="text-xs text-[var(--muted-foreground)] leading-5">
                                             Need help? Check out our{" "}
                                             <a
@@ -269,8 +268,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                                 </div>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
+                </div>
             </div>
         </div>
     )
@@ -278,7 +276,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
 
 function NonOwnerOnboardingMessage() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent)]/30 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-6">
             <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
             <div className="w-full max-w-md mx-auto">
                 <Card className="overflow-hidden shadow-lg border border-[var(--border)] bg-[var(--card)]">
@@ -286,7 +284,8 @@ function NonOwnerOnboardingMessage() {
                         <div className="text-center space-y-6">
                             <div className="w-16 h-16 mx-auto bg-[var(--muted)] rounded-full flex items-center justify-center">
                                 <svg className="w-8 h-8 text-[var(--muted-foreground)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m0 0v2m0-2h2m-2 0H10m8-5a4 4 0 00-8 0v1H8a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2v-6a2 2 0 00-2-2h-2V9z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                             </div>
                             
