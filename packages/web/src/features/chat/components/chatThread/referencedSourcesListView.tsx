@@ -13,7 +13,7 @@ import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExt
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { useDomain } from "@/hooks/useDomain";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
-import { isServiceError, unwrapServiceError } from "@/lib/utils";
+import { cn, isServiceError, unwrapServiceError } from "@/lib/utils";
 import { Range } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
 import { useQueries } from "@tanstack/react-query";
@@ -23,6 +23,7 @@ import { forwardRef, Ref, useCallback, useEffect, useImperativeHandle, useMemo, 
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { FileReference, FileSource, Reference, Source } from "../../types";
 import { createCodeFoldingExtension } from "./codeFoldingExtension";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface ReferencedSourcesListViewProps {
     references: FileReference[];
@@ -95,7 +96,7 @@ export const ReferencedSourcesListView = ({
     // Memoize the computation of references grouped by file source
     const referencesGroupedByFile = useMemo(() => {
         const groupedReferences = new Map<string, FileReference[]>();
-        
+
         for (const fileSource of referencedFileSources) {
             const fileKey = getFileId(fileSource);
             const referencesInFile = references.filter((reference) => {
@@ -106,7 +107,7 @@ export const ReferencedSourcesListView = ({
             });
             groupedReferences.set(fileKey, referencesInFile);
         }
-        
+
         return groupedReferences;
     }, [references, referencedFileSources]);
 
@@ -202,7 +203,7 @@ export const ReferencedSourcesListView = ({
             ref={scrollAreaRef}
             style={style}
         >
-            <div className="space-y-6">
+            <div className="space-y-4">
                 {fileSourceQueries.map((query, index) => {
                     const fileSource = referencedFileSources[index];
                     const fileName = fileSource.path.split('/').pop() ?? fileSource.path;
@@ -292,6 +293,7 @@ const CodeMirrorCodeBlock = ({
     const domain = useDomain();
     const theme = useCodeMirrorTheme();
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
+    const [isExpanded, setIsExpanded] = useState(true);
 
     useImperativeHandle(
         forwardedRef,
@@ -486,10 +488,17 @@ const CodeMirrorCodeBlock = ({
 
     }, [fileName, language, navigateToPath, repoName, revision]);
 
+    const ExpandCollapseIcon = useMemo(() => {
+        return isExpanded ? ChevronDown : ChevronRight;
+    }, [isExpanded]);
+
     return (
         <div className="relative" id={id}>
             {/* Sticky header outside the bordered container */}
-            <div className="sticky top-0 z-10 flex flex-row items-center bg-accent py-1 px-3 gap-1.5 border-l border-r border-t rounded-t-md">
+            <div className={cn("sticky top-0 z-10 flex flex-row items-center bg-accent py-1 px-3 gap-1.5 border-l border-r border-t rounded-t-md", {
+                'rounded-b-md': !isExpanded,
+            })}>
+                <ExpandCollapseIcon className={`h-3 w-3 cursor-pointer`} onClick={() => setIsExpanded(!isExpanded)} />
                 <VscodeFileIcon fileName={fileName} className="h-4 w-4" />
                 <Link
                     className="flex-1 block truncate-start text-foreground text-sm font-mono cursor-pointer hover:underline"
@@ -506,7 +515,11 @@ const CodeMirrorCodeBlock = ({
             </div>
 
             {/* Code container */}
-            <div className="border-l border-r border-b rounded-b-md overflow-hidden">
+            {/* @note: don't conditionally render here since we want to maintain state */}
+            <div className="border-l border-r border-b rounded-b-md overflow-hidden" style={{
+                height: isExpanded ? 'auto' : '0px',
+                visibility: isExpanded ? 'visible' : 'hidden',
+            }}>
                 <CodeMirror
                     ref={setEditorRef}
                     value={code}
