@@ -1,8 +1,7 @@
 'use client';
 
-import { getCodeHostInfoForRepo } from "@/lib/utils";
+import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
-import clsx from "clsx";
 import Image from "next/image";
 import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation";
 import { Copy, CheckCircle2, ChevronRight, MoreHorizontal } from "lucide-react";
@@ -16,6 +15,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 
 interface FileHeaderProps {
     path: string;
@@ -32,6 +32,9 @@ interface FileHeaderProps {
     },
     branchDisplayName?: string;
     branchDisplayTitle?: string;
+    isCodeHostIconVisible?: boolean;
+    isFileIconVisible?: boolean;
+    repoNameClassName?: string;
 }
 
 interface BreadcrumbSegment {
@@ -51,6 +54,9 @@ export const PathHeader = ({
     branchDisplayName,
     branchDisplayTitle,
     pathType = 'blob',
+    isCodeHostIconVisible = true,
+    isFileIconVisible = true,
+    repoNameClassName,
 }: FileHeaderProps) => {
     const info = getCodeHostInfoForRepo({
         name: repo.name,
@@ -64,27 +70,27 @@ export const PathHeader = ({
     const [copied, setCopied] = useState(false);
     const { prefetchFolderContents } = usePrefetchFolderContents();
     const { prefetchFileSource } = usePrefetchFileSource();
-    
+
     const containerRef = useRef<HTMLDivElement>(null);
     const breadcrumbsRef = useRef<HTMLDivElement>(null);
     const [visibleSegmentCount, setVisibleSegmentCount] = useState<number | null>(null);
-    
+
     // Create breadcrumb segments from file path
     const breadcrumbSegments = useMemo(() => {
         const pathParts = path.split('/').filter(Boolean);
         const segments: BreadcrumbSegment[] = [];
-        
+
         let currentPath = '';
         pathParts.forEach((part, index) => {
             currentPath = currentPath ? `${currentPath}/${part}` : part;
             const isLastSegment = index === pathParts.length - 1;
-            
+
             // Calculate highlight range for this segment if it exists
             let segmentHighlight: { from: number; to: number } | undefined;
             if (pathHighlightRange) {
                 const segmentStart = path.indexOf(part, currentPath.length - part.length);
                 const segmentEnd = segmentStart + part.length;
-                
+
                 // Check if highlight overlaps with this segment
                 if (pathHighlightRange.from < segmentEnd && pathHighlightRange.to > segmentStart) {
                     segmentHighlight = {
@@ -93,7 +99,7 @@ export const PathHeader = ({
                     };
                 }
             }
-            
+
             segments.push({
                 name: part,
                 fullPath: currentPath,
@@ -101,7 +107,7 @@ export const PathHeader = ({
                 highlightRange: segmentHighlight
             });
         });
-        
+
         return segments;
     }, [path, pathHighlightRange]);
 
@@ -109,10 +115,10 @@ export const PathHeader = ({
     useEffect(() => {
         const measureSegments = () => {
             if (!containerRef.current || !breadcrumbsRef.current) return;
-            
+
             const containerWidth = containerRef.current.offsetWidth;
             const availableWidth = containerWidth - 175; // Reserve space for copy button and padding
-            
+
             // Create a temporary element to measure segment widths
             const tempElement = document.createElement('div');
             tempElement.style.position = 'absolute';
@@ -120,17 +126,17 @@ export const PathHeader = ({
             tempElement.style.whiteSpace = 'nowrap';
             tempElement.className = 'font-mono text-sm';
             document.body.appendChild(tempElement);
-            
+
             let totalWidth = 0;
             let visibleCount = breadcrumbSegments.length;
-            
+
             // Start from the end (most important segments) and work backwards
             for (let i = breadcrumbSegments.length - 1; i >= 0; i--) {
                 const segment = breadcrumbSegments[i];
                 tempElement.textContent = segment.name;
                 const segmentWidth = tempElement.offsetWidth;
                 const separatorWidth = i < breadcrumbSegments.length - 1 ? 16 : 0; // ChevronRight width
-                
+
                 if (totalWidth + segmentWidth + separatorWidth > availableWidth && i > 0) {
                     // If adding this segment would overflow and it's not the last segment
                     visibleCount = breadcrumbSegments.length - i;
@@ -140,21 +146,21 @@ export const PathHeader = ({
                     }
                     break;
                 }
-                
+
                 totalWidth += segmentWidth + separatorWidth;
             }
-            
+
             document.body.removeChild(tempElement);
             setVisibleSegmentCount(visibleCount);
         };
 
         measureSegments();
-        
+
         const resizeObserver = new ResizeObserver(measureSegments);
         if (containerRef.current) {
             resizeObserver.observe(containerRef.current);
         }
-        
+
         return () => resizeObserver.disconnect();
     }, [breadcrumbSegments]);
 
@@ -221,19 +227,24 @@ export const PathHeader = ({
 
     return (
         <div className="flex flex-row gap-2 items-center w-full overflow-hidden">
-            {info?.icon ? (
-                <a href={info.repoLink} target="_blank" rel="noopener noreferrer">
-                    <Image
-                        src={info.icon}
-                        alt={info.codeHostName}
-                        className={`w-4 h-4 ${info.iconClassName}`}
-                    />
-                </a>
-            ) : (
-                <LaptopIcon className="w-4 h-4" />
+            {isCodeHostIconVisible && (
+                <>
+                    {info?.icon ? (
+                        <a href={info.repoLink} target="_blank" rel="noopener noreferrer">
+                            <Image
+                                src={info.icon}
+                                alt={info.codeHostName}
+                                className={`w-4 h-4 ${info.iconClassName}`}
+                            />
+                        </a>
+                    ) : (
+                        <LaptopIcon className="w-4 h-4" />
+                    )}
+                </>
             )}
+
             <div
-                className="font-medium cursor-pointer hover:underline"
+                className={cn("font-medium cursor-pointer hover:underline", repoNameClassName)}
                 onClick={() => navigateToPath({
                     repoName: repo.name,
                     path: '',
@@ -287,8 +298,11 @@ export const PathHeader = ({
                     )}
                     {visibleSegments.map((segment, index) => (
                         <div key={segment.fullPath} className="flex items-center">
+                            {(isFileIconVisible && index === visibleSegments.length - 1) && (
+                                <VscodeFileIcon fileName={segment.name} className="h-4 w-4 mr-1" />
+                            )}
                             <span
-                                className={clsx(
+                                className={cn(
                                     "font-mono text-sm truncate cursor-pointer hover:underline",
                                 )}
                                 onClick={() => onBreadcrumbClick(segment)}

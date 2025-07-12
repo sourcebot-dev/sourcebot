@@ -38,6 +38,7 @@ export const TreePreviewPanel = async ({ path, repoName, revisionName, domain }:
                         webUrl: repoInfoResponse.webUrl,
                     }}
                     pathType="tree"
+                    isFileIconVisible={false}
                 />
             </div>
             <Separator />

@@ -192,7 +192,7 @@ export const AssistantResponse = memo<AssistantResponseProps>(({ message, isStre
     }, [answerPart]);
 
     const referenceViewerScrollAreaStyle: CSSProperties = useMemo(() => {
-        const maxHeight = 'calc(100vh - 120px)';
+        const maxHeight = 'calc(100vh - 215px)';
 
         return {
             height: answerHeight ? `min(${answerHeight}px, ${maxHeight})` : maxHeight,

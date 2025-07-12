@@ -1,6 +1,7 @@
 'use client';
 
-import { getBrowsePath, useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { fetchFileSource } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,12 +19,11 @@ import { Range } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
 import { useQueries } from "@tanstack/react-query";
 import CodeMirror, { ReactCodeMirrorRef, StateField } from '@uiw/react-codemirror';
-import Link from "next/link";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { forwardRef, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { FileReference, FileSource, Reference, Source } from "../../types";
 import { createCodeFoldingExtension } from "./codeFoldingExtension";
-import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface ReferencedSourcesListViewProps {
     references: FileReference[];
@@ -203,7 +203,7 @@ export const ReferencedSourcesListView = ({
             ref={scrollAreaRef}
             style={style}
         >
-            <div className="space-y-4">
+            <div className="space-y-4 pr-2">
                 {fileSourceQueries.map((query, index) => {
                     const fileSource = referencedFileSources[index];
                     const fileName = fileSource.path.split('/').pop() ?? fileSource.path;
@@ -247,6 +247,8 @@ export const ReferencedSourcesListView = ({
                             language={fileData.language}
                             revision={fileSource.revision}
                             repoName={fileSource.repo}
+                            repoCodeHostType={fileData.repositoryCodeHostType}
+                            repositoryDisplayName={fileData.repositoryDisplayName}
                             fileName={fileData.path}
                             references={referencesInFile}
                             ref={(ref) => setEditorRef(key, ref)}
@@ -269,6 +271,8 @@ interface CodeMirrorCodeBlockProps {
     language: string;
     revision: string;
     repoName: string;
+    repoCodeHostType: string;
+    repositoryDisplayName?: string;
     fileName: string;
     references: FileReference[];
     selectedReference?: FileReference;
@@ -283,6 +287,8 @@ const CodeMirrorCodeBlock = ({
     language,
     revision,
     repoName,
+    repoCodeHostType,
+    repositoryDisplayName,
     fileName,
     references,
     selectedReference,
@@ -496,22 +502,19 @@ const CodeMirrorCodeBlock = ({
         <div className="relative" id={id}>
             {/* Sticky header outside the bordered container */}
             <div className={cn("sticky top-0 z-10 flex flex-row items-center bg-accent py-1 px-3 gap-1.5 border-l border-r border-t rounded-t-md", {
-                'rounded-b-md': !isExpanded,
+                'rounded-b-md border-b': !isExpanded,
             })}>
-                <ExpandCollapseIcon className={`h-3 w-3 cursor-pointer`} onClick={() => setIsExpanded(!isExpanded)} />
-                <VscodeFileIcon fileName={fileName} className="h-4 w-4" />
-                <Link
-                    className="flex-1 block truncate-start text-foreground text-sm font-mono cursor-pointer hover:underline"
-                    href={getBrowsePath({
-                        repoName,
-                        revisionName: revision,
-                        path: fileName,
-                        pathType: 'blob',
-                        domain,
-                    })}
-                >
-                    {fileName}
-                </Link>
+                <ExpandCollapseIcon className={`h-3 w-3 cursor-pointer mt-0.5`} onClick={() => setIsExpanded(!isExpanded)} />
+                <PathHeader
+                    path={fileName}
+                    repo={{
+                        name: repoName,
+                        codeHostType: repoCodeHostType,
+                        displayName: repositoryDisplayName,
+                    }}
+                    branchDisplayName={revision === 'HEAD' ? undefined : revision}
+                    repoNameClassName="font-normal text-muted-foreground text-sm"
+                />
             </div>
 
             {/* Code container */}
