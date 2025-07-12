@@ -3,10 +3,10 @@ import type React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AuthMethodSelector } from "@/app/components/authMethodSelector"
-import { InviteLinkDisplay } from "@/app/components/inviteLinkDisplay"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth";
 import type { AuthProvider } from "@/lib/authProviders";
+import { MemberApprovalRequiredToggle } from "./memberApprovalRequiredToggle";
 
 interface OnboardingPageProps {
     providers: AuthProvider[];
@@ -70,18 +70,18 @@ export default async function OnboardingPage({ providers, searchParams }: Onboar
             ),
         },
         {
-            id: "invite-members",
-            title: "Invite Your Team",
+            id: "configure-org",
+            title: "Configure your Organization",
             description:
-                "Share the invitation link with your team members to get everyone set up and collaborating.",
+                "Configure your organization to enable or disable member approval, and more.",
             component: (
                 <div className="space-y-6">
                     <div className="space-y-4">
                         <p className="text-[var(--muted-foreground)] text-[15px] leading-7">
-                            Share the invite link with your team members to allow them to sign up to your Sourcebot deployment.
+                            Configure your organization settings to control how new members join your deployment.
                         </p>
                     </div>
-                    <InviteLinkDisplay />
+                    <MemberApprovalRequiredToggle />
                     <Button asChild className="w-full h-11 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] transition-all duration-200 font-medium">
                         <a href="/onboard?step=3">Continue →</a>
                     </Button>
@@ -204,14 +204,6 @@ export default async function OnboardingPage({ providers, searchParams }: Onboar
                                                                 index <= currentStep ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]"
                                                             }`}>
                                                                 {step.title}
-                                                            </div>
-                                                            <div className={`text-sm mt-1 transition-all duration-200 ${
-                                                                index === currentStep ? "text-[var(--muted-foreground)]" : "text-[var(--muted-foreground)]/60"
-                                                            }`}>
-                                                                {index === 0 && "Get started with setup"}
-                                                                {index === 1 && "Create your admin account"}
-                                                                {index === 2 && "Add team members"}
-                                                                {index === 3 && "Start using Sourcebot"}
                                                             </div>
                                                         </div>
                                                     </div>

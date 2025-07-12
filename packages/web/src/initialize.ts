@@ -173,16 +173,16 @@ const initSingleTenancy = async () => {
                     id: SINGLE_TENANT_ORG_ID,
                     name: SINGLE_TENANT_ORG_NAME,
                     domain: SINGLE_TENANT_ORG_DOMAIN,
-                    inviteId: crypto.randomUUID(),
+                    inviteLinkId: crypto.randomUUID(),
                 }
             });
-        } else if (!org.inviteId) {
+        } else if (!org.inviteLinkId) {
             await tx.org.update({
                 where: {
                     id: SINGLE_TENANT_ORG_ID,
                 },
                 data: {
-                    inviteId: crypto.randomUUID(),
+                    inviteLinkId: crypto.randomUUID(),
                 }
             });
         }

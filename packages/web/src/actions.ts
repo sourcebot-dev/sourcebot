@@ -1153,7 +1153,7 @@ export const getOrgInviteId = async (domain: string) => sew(() =>
             return notFound();
         }
 
-        return org.inviteId;
+        return org.inviteLinkId;
     }));
 
 export const getMe = async () => sew(() =>
@@ -1195,7 +1195,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         if (isServiceError(user)) {
             return user;
         }
-        
+
         const invite = await prisma.invite.findUnique({
             where: {
                 id: inviteId,
@@ -1744,6 +1744,52 @@ export const createAccountRequest = async (userId: string, domain: string) => se
     }
 });
 
+export const getMemberApprovalRequired = async (domain: string): Promise<boolean | ServiceError> => sew(async () =>
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            return org.memberApprovalRequired;
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    )
+);
+
+export const setMemberApprovalRequired = async (domain: string, required: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { memberApprovalRequired: required },
+            });
+
+            return {
+                success: true,
+            };
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    )
+);
+
+export const getInviteLinkEnabled = async (domain: string): Promise<boolean | ServiceError> => sew(async () =>
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            return org.inviteLinkEnabled;
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    )
+);
+
+export const setInviteLinkEnabled = async (domain: string, enabled: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { inviteLinkEnabled: enabled },
+            });
+
+            return {
+                success: true,
+            };
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    )
+);
+
 export const approveAccountRequest = async (requestId: string, domain: string) => sew(async () =>
     withAuth(async (userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
@@ -1752,7 +1798,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                     action: "user.join_request_approve_failed",
                     actor: {
                         id: userId,
-                        type: "user"    
+                        type: "user"
                     },
                     target: {
                         id: requestId,

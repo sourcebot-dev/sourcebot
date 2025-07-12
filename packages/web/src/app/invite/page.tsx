@@ -18,9 +18,9 @@ interface InvitePageProps {
 }
 
 export default async function InvitePage({ searchParams }: InvitePageProps) {
-    const inviteId = searchParams.id;
+    const inviteLinkId = searchParams.id;
     
-    if (!inviteId) {
+    if (!inviteLinkId) {
         return <InvalidInviteCard message="No invitation ID provided." />;
     }
 
@@ -29,14 +29,14 @@ export default async function InvitePage({ searchParams }: InvitePageProps) {
         return <InvalidInviteCard message="Organization not found." />;
     }
 
-    if (org.inviteId !== inviteId) {
+    if (org.inviteLinkId !== inviteLinkId) {
         return <InvalidInviteCard message="Invalid invitation link." />;
     }
 
     const session = await auth();
     if (!session) {
         const providers = getAuthProviders();
-        return <WelcomeCard inviteId={inviteId} providers={providers} />;
+        return <WelcomeCard inviteLinkId={inviteLinkId} providers={providers} />;
     }
 
     const membership = await prisma.userToOrg.findUnique({
@@ -93,8 +93,8 @@ function InvalidInviteCard({ message }: { message: string }) {
     );
 }
 
-function WelcomeCard({ inviteId, providers }: { inviteId: string; providers: import("@/lib/authProviders").AuthProvider[] }) {
-    return (
+function WelcomeCard({ inviteLinkId, providers }: { inviteLinkId: string; providers: import("@/lib/authProviders").AuthProvider[] }) {
+    return (    
         <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent)]/30 flex items-center justify-center p-6">
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
@@ -108,10 +108,10 @@ function WelcomeCard({ inviteId, providers }: { inviteId: string; providers: imp
                         <p className="text-[var(--muted-foreground)] text-[15px] leading-6">
                             You've been invited to join this Sourcebot deployment. Sign up to get started.
                         </p>
-                    </div>
+                    </div>  
                     <AuthMethodSelector
                         providers={providers}
-                        callbackUrl={`/invite?id=${inviteId}`}
+                        callbackUrl={`/invite?id=${inviteLinkId}`}
                         context="signup"
                     />
                 </CardContent>
