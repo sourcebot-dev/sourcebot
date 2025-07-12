@@ -62,12 +62,6 @@ export function MemberApprovalRequiredToggle({}: MemberApprovalRequiredTogglePro
             }
 
             setEnabled(checked)
-            toast({
-                title: "Settings updated",
-                description: checked 
-                    ? "Member approval is now required" 
-                    : "Member approval is no longer required"
-            })
         } catch (error) {
             console.error("Error updating member approval setting:", error)
             toast({

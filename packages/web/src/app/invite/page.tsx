@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
@@ -24,13 +24,8 @@ export default async function InvitePage({ searchParams }: InvitePageProps) {
     }
 
     const inviteLinkId = searchParams.id;
-    if (!inviteLinkId) {
-        return <InvalidInviteCard message="No invitation ID provided." />;
-    }
-
-
-    if (org.inviteLinkId !== inviteLinkId) {
-        return <InvalidInviteCard message="Invalid invitation link." />;
+    if (!org.inviteLinkEnabled || !inviteLinkId || org.inviteLinkId !== inviteLinkId) {
+        return notFound();
     }
 
     const session = await auth();

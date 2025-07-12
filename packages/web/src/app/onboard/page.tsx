@@ -8,6 +8,12 @@ import { auth } from "@/auth";
 import { getAuthProviders } from "@/lib/authProviders";
 import { MemberApprovalRequiredToggle } from "./components/memberApprovalRequiredToggle";
 import { CompleteOnboardingButton } from "./components/completeOnboardingButton";
+import { getOrgFromDomain } from "@/data/org";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
+import { prisma } from "@/prisma";
+import { OrgRole } from "@sourcebot/db";
+import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
+import { redirect } from "next/navigation";
 
 interface OnboardingProps {
     searchParams?: { step?: string };
@@ -22,7 +28,30 @@ interface OnboardingStep {
 
 export default async function Onboarding({ searchParams }: OnboardingProps) {
     const providers = getAuthProviders();
+    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
     const session = await auth();
+
+    if (org && org.isOnboarded) {
+        redirect('/');
+    }
+
+    // Check if user is authenticated but not the owner
+    if (session?.user) {
+        if (org) {
+            const membership = await prisma.userToOrg.findUnique({
+                where: {
+                    orgId_userId: {
+                        orgId: org.id,
+                        userId: session.user.id
+                    }
+                }
+            });
+
+            if (!membership || membership.role !== OrgRole.OWNER) {
+                return <NonOwnerOnboardingMessage />;
+            }
+        }
+    }
 
     // Determine current step based on URL parameter and authentication state
     const stepParam = searchParams?.step ? parseInt(searchParams.step) : 0;
@@ -245,4 +274,67 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             </div>
         </div>
     )
+}
+
+function NonOwnerOnboardingMessage() {
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent)]/30 flex items-center justify-center p-6">
+            <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
+            <div className="w-full max-w-md mx-auto">
+                <Card className="overflow-hidden shadow-lg border border-[var(--border)] bg-[var(--card)]">
+                    <CardContent className="p-8">
+                        <div className="text-center space-y-6">
+                            <div className="w-16 h-16 mx-auto bg-[var(--muted)] rounded-full flex items-center justify-center">
+                                <svg className="w-8 h-8 text-[var(--muted-foreground)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m0 0v2m0-2h2m-2 0H10m8-5a4 4 0 00-8 0v1H8a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2v-6a2 2 0 00-2-2h-2V9z" />
+                                </svg>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <h1 className="text-2xl font-semibold text-[var(--foreground)]">
+                                    Onboarding In Progress
+                                </h1>
+                                <p className="text-[var(--muted-foreground)] text-base leading-relaxed">
+                                    Your Sourcebot deployment is being configured by the organization owner.
+                                </p>
+                            </div>
+
+                            <div className="p-4 rounded-lg bg-[var(--accent)]/50 border border-[var(--border)]">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-5 h-5 mt-0.5 flex-shrink-0">
+                                        <svg className="w-full h-full text-[var(--chart-1)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-medium text-[var(--foreground)] mb-1">
+                                            Owner Access Required
+                                        </p>
+                                        <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
+                                            Only the organization owner can complete the initial setup and configuration. Once onboarding is complete, you'll be able to access Sourcebot.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="text-xs text-[var(--muted-foreground)] leading-relaxed">
+                                    Need help? Contact your organization owner or check out our{" "}
+                                    <a 
+                                        href="https://docs.sourcebot.dev/docs/overview" 
+                                        className="text-[var(--primary)] hover:text-[var(--primary)]/80 underline transition-colors"
+                                        target="_blank"
+                                        rel="noopener"
+                                    >
+                                        documentation
+                                    </a>
+                                    .
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
 }

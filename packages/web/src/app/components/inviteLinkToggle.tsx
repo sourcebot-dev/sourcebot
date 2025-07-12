@@ -83,13 +83,6 @@ export function InviteLinkToggle() {
             } else {
                 setInviteLink("")
             }
-            
-            toast({
-                title: "Settings updated",
-                description: enabled 
-                    ? "Invite link is now enabled" 
-                    : "Invite link is now disabled"
-            })
         } catch (error) {
             console.error("Error updating invite link setting:", error)
             toast({
