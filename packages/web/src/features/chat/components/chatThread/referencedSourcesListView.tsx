@@ -22,6 +22,7 @@ import Link from "next/link";
 import { forwardRef, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { FileReference, FileSource, Reference, Source } from "../../types";
+import { createCodeFoldingExtension } from "./codeFoldingExtension";
 
 interface ReferencedSourcesListViewProps {
     references: FileReference[];
@@ -91,6 +92,23 @@ export const ReferencedSourcesListView = ({
             );
     }, [references, sources]);
 
+    // Memoize the computation of references grouped by file source
+    const referencesGroupedByFile = useMemo(() => {
+        const groupedReferences = new Map<string, FileReference[]>();
+        
+        for (const fileSource of referencedFileSources) {
+            const fileKey = getFileId(fileSource);
+            const referencesInFile = references.filter((reference) => {
+                if (reference.type !== 'file') {
+                    return false;
+                }
+                return resolveFileReference(reference, [fileSource]) !== undefined;
+            });
+            groupedReferences.set(fileKey, referencesInFile);
+        }
+        
+        return groupedReferences;
+    }, [references, referencedFileSources]);
 
     const fileSourceQueries = useQueries({
         queries: referencedFileSources.map((file) => ({
@@ -217,16 +235,8 @@ export const ReferencedSourcesListView = ({
 
                     const fileData = query.data!;
 
-                    // Resolve a list of references that are in this file.
-                    const referencesInFile =
-                        references.filter((reference) => {
-                            if (reference.type !== 'file') {
-                                return false;
-                            }
-                            return resolveFileReference(reference, [fileSource]) !== undefined;
-                        });
-
                     const key = getFileId(fileSource);
+                    const referencesInFile = referencesGroupedByFile.get(key) || [];
 
                     return (
                         <CodeMirrorCodeBlockWithRef
@@ -326,6 +336,10 @@ const CodeMirrorCodeBlock = ({
         return undefined;
     }, [references]);
 
+    const codeFoldingExtension = useMemo(() => {
+        return createCodeFoldingExtension(references, 3);
+    }, [references]);
+
     const extensions = useMemo(() => {
         return [
             languageExtension,
@@ -334,6 +348,7 @@ const CodeMirrorCodeBlock = ({
             ...(hasCodeNavEntitlement ? [
                 symbolHoverTargetsExtension,
             ] : []),
+            codeFoldingExtension,
             StateField.define<DecorationSet>({
                 create(state) {
                     const decorations: Range<Decoration>[] = [];
@@ -411,6 +426,7 @@ const CodeMirrorCodeBlock = ({
         getReferenceAtPos,
         onSelectedReferenceChanged,
         onHoveredReferenceChanged,
+        codeFoldingExtension,
     ]);
 
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
@@ -500,6 +516,8 @@ const CodeMirrorCodeBlock = ({
                     basicSetup={{
                         highlightActiveLine: false,
                         highlightActiveLineGutter: false,
+                        foldGutter: false,
+                        foldKeymap: false,
                     }}
                 >
                     {editorRef && hasCodeNavEntitlement && (
