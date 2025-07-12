@@ -14,6 +14,7 @@ import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
+import { GitBranchIcon, LockIcon } from "lucide-react";
 
 interface OnboardingProps {
     searchParams?: { step?: string };
@@ -24,6 +25,13 @@ interface OnboardingStep {
     title: string
     subtitle: React.ReactNode
     component: React.ReactNode
+}
+
+interface ResourceCard {
+    title: string
+    description: string
+    href: string
+    icon?: React.ReactNode
 }
 
 export default async function Onboarding({ searchParams }: OnboardingProps) {
@@ -56,6 +64,21 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
     // Determine current step based on URL parameter and authentication state
     const stepParam = searchParams?.step ? parseInt(searchParams.step) : 0;
     const currentStep = session?.user ? Math.max(2, stepParam) : Math.max(0, Math.min(stepParam, 1));
+
+    const resourceCards: ResourceCard[] = [
+        {
+            title: "Connect to your code hosts",
+            description: "Learn how to index repos across Sourcebot's supported platforms",
+            href: "https://docs.sourcebot.dev/docs/connections/overview",
+            icon: <GitBranchIcon className="w-4 h-4" />,
+        },
+        {
+            title: "Setup additional authentication providers",
+            description: "Learn how to setup additional authentication providers for your organization",
+            href: "https://docs.sourcebot.dev/docs/configuration/auth/overview",
+            icon: <LockIcon className="w-4 h-4" />,
+        }
+    ]
 
     const steps: OnboardingStep[] = [
         {
@@ -128,31 +151,35 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             component: (
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 gap-3">
-                        <a 
-                            href="https://docs.sourcebot.dev/docs/connections/overview"
-                            target="_blank"
-                            rel="noopener"
-                            className="p-4 rounded-lg bg-accent hover:bg-accent/80 border border-border hover:border-primary/20 transition-all duration-200 group"
+                        {resourceCards.map((resourceCard) => (
+                            <a 
+                                href={resourceCard.href}
+                                target="_blank"
+                                rel="noopener"
+                                className="p-4 rounded-lg bg-accent hover:bg-accent/80 border border-border hover:border-primary/20 transition-all duration-200 group"
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4V7M4 7c0-2.21 1.79-4 4-4h8c2.21 0 4 1.79 4 4M4 7h16M8 11h8m-8 4h8" />
-                                    </svg>
+                                    {resourceCard.icon && (
+                                        <div className="text-primary">
+                                            {resourceCard.icon}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex-1 text-left">
                                     <div className="font-medium text-foreground text-sm group-hover:text-primary transition-colors">
-                                        Index your repos
+                                        {resourceCard.title}
                                     </div>
                                     <div className="text-muted-foreground text-xs mt-1 leading-4">
-                                        Learn how to index repos across Sourcebot's supported platforms
+                                        {resourceCard.description}
                                     </div>
                                 </div>
                                 <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>
                             </div>
-                        </a>
+                            </a>
+                        ))}
                     </div>
                     <CompleteOnboardingButton />
                 </div>
@@ -183,32 +210,34 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                                         {steps.map((step, index) => (
                                             <div key={step.id} className="flex items-center group">
                                                 <div className="flex items-center space-x-4 flex-1">
-                                                    <div className="relative">
-                                                        <div
-                                                            className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-all duration-300 ${
-                                                                index < currentStep
-                                                                    ? "bg-primary border-primary text-primary-foreground"
-                                                                    : index === currentStep
-                                                                        ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg"
-                                                                        : "bg-background border-border text-muted-foreground"
-                                                            }`}
-                                                        >
-                                                            {index < currentStep ? (
-                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                                                </svg>
-                                                            ) : (
-                                                                <span>{index + 1}</span>
-                                                            )}
-                                                        </div>
-                                                        {index < steps.length - 1 && (
-                                                            <div 
-                                                                className={`absolute top-10 left-1/2 transform -translate-x-1/2 w-0.5 h-8 transition-all duration-300 ${
-                                                                    index < currentStep ? "bg-primary" : "bg-border"
-                                                                }`}
-                                                            />
-                                                        )}
-                                                    </div>
+                                                                                        <div className="relative">
+                                        {/* Connecting line */}
+                                        {index < steps.length - 1 && (
+                                            <div 
+                                                className={`absolute top-10 left-1/2 transform -translate-x-1/2 w-0.5 h-8 transition-all duration-300 ${
+                                                    index < currentStep ? "bg-primary" : "bg-border"
+                                                }`}
+                                            />
+                                        )}
+                                        {/* Circle - positioned above the line with z-index */}
+                                        <div
+                                            className={`relative z-10 w-10 h-10 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-all duration-300 ${
+                                                index < currentStep
+                                                    ? "bg-primary border-primary text-primary-foreground"
+                                                    : index === currentStep
+                                                        ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg"
+                                                        : "bg-background border-border text-muted-foreground"
+                                            }`}
+                                        >
+                                            {index < currentStep ? (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            ) : (
+                                                <span>{index + 1}</span>
+                                            )}
+                                        </div>
+                                    </div>
                                                     <div className="flex-1">
                                                         <div className={`font-medium text-sm transition-all duration-200 ${
                                                             index <= currentStep ? "text-foreground" : "text-muted-foreground"

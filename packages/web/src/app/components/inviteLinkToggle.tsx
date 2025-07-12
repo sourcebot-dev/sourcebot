@@ -139,10 +139,10 @@ export function InviteLinkToggle() {
             </div>
             
             {!isInitializing && (
-                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                <div className={`transition-all duration-300 ease-in-out ${
                     enabled 
                         ? 'max-h-96 opacity-100 transform translate-y-0 mt-4' 
-                        : 'max-h-0 opacity-0 transform -translate-y-2'
+                        : 'max-h-0 opacity-0 transform -translate-y-2 overflow-hidden'
                 }`}>
                     <div className="space-y-4 pt-4 border-t border-[var(--border)]">
                         <div className="space-y-2">
