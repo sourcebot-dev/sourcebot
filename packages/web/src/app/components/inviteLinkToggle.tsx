@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
-import { Copy, Check } from "lucide-react"
+import { Copy, Check, Loader2 } from "lucide-react"
 import { useToast } from "@/components/hooks/use-toast"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { getOrgInviteId, getInviteLinkEnabled, setInviteLinkEnabled } from "@/actions"
@@ -18,20 +18,13 @@ export function InviteLinkToggle() {
     const [copied, setCopied] = useState(false)
     const { toast } = useToast()
 
-    const fetchInviteLink = useCallback(async () => {
-        const inviteId = await getOrgInviteId(SINGLE_TENANT_ORG_DOMAIN)
-        if (!isServiceError(inviteId)) {
-            setInviteLink(`${window.location.origin}/invite?id=${inviteId}`)
-        }
-    }, [])
-
-    // Fetch initial value on component mount
+    // Fetch initial values on component mount
     useEffect(() => {
-        const fetchInitialValue = async () => {
+        const fetchInitialValues = async () => {
             try {
-                const result = await getInviteLinkEnabled(SINGLE_TENANT_ORG_DOMAIN)
+                const enabledResult = await getInviteLinkEnabled(SINGLE_TENANT_ORG_DOMAIN)
                 
-                if (isServiceError(result)) {
+                if (isServiceError(enabledResult)) {
                     toast({
                         title: "Error",
                         description: "Failed to load invite link setting",
@@ -40,11 +33,14 @@ export function InviteLinkToggle() {
                     return
                 }
 
-                setEnabled(result)
+                setEnabled(enabledResult)
                 
                 // If enabled, also fetch the invite link
-                if (result) {
-                    await fetchInviteLink()
+                if (enabledResult) {
+                    const inviteIdResult = await getOrgInviteId(SINGLE_TENANT_ORG_DOMAIN)
+                    if (!isServiceError(inviteIdResult)) {
+                        setInviteLink(`${window.location.origin}/invite?id=${inviteIdResult}`)
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching invite link setting:", error)
@@ -58,13 +54,13 @@ export function InviteLinkToggle() {
             }
         }
 
-        fetchInitialValue()
-    }, [toast, fetchInviteLink])
+        fetchInitialValues()
+    }, [toast])
 
-    const handleToggle = async (enabled: boolean) => {
+    const handleToggle = async (checked: boolean) => {
         setIsLoading(true)
         try {
-            const result = await setInviteLinkEnabled(SINGLE_TENANT_ORG_DOMAIN, enabled)
+            const result = await setInviteLinkEnabled(SINGLE_TENANT_ORG_DOMAIN, checked)
             
             if (isServiceError(result)) {
                 toast({
@@ -75,14 +71,18 @@ export function InviteLinkToggle() {
                 return
             }
 
-            setEnabled(enabled)
+            setEnabled(checked)
             
             // If enabled, fetch the invite link; if disabled, clear it
-            if (enabled) {
-                await fetchInviteLink()
+            if (checked) {
+                const inviteIdResult = await getOrgInviteId(SINGLE_TENANT_ORG_DOMAIN)
+                if (!isServiceError(inviteIdResult)) {
+                    setInviteLink(`${window.location.origin}/invite?id=${inviteIdResult}`)
+                }
             } else {
                 setInviteLink("")
             }
+            
         } catch (error) {
             console.error("Error updating invite link setting:", error)
             toast({
@@ -104,7 +104,7 @@ export function InviteLinkToggle() {
             console.error("Failed to copy text: ", err)
             toast({
                 title: "Error",
-                description: "❌ Failed to copy invite link to clipboard",
+                description: "Failed to copy invite link to clipboard",
                 variant: "destructive",
             })
         }
@@ -126,25 +126,7 @@ export function InviteLinkToggle() {
                 <div className="flex-shrink-0">
                     {isInitializing ? (
                         <div className="flex items-center justify-center w-11 h-6">
-                            <svg 
-                                className="animate-spin h-4 w-4 text-[var(--muted-foreground)]" 
-                                fill="none" 
-                                viewBox="0 0 24 24"
-                            >
-                                <circle 
-                                    className="opacity-25" 
-                                    cx="12" 
-                                    cy="12" 
-                                    r="10" 
-                                    stroke="currentColor" 
-                                    strokeWidth="4"
-                                />
-                                <path 
-                                    className="opacity-75" 
-                                    fill="currentColor" 
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                />
-                            </svg>
+                            <Loader2 className="animate-spin h-4 w-4 text-[var(--muted-foreground)]" />
                         </div>
                     ) : (
                         <Switch
@@ -156,41 +138,42 @@ export function InviteLinkToggle() {
                 </div>
             </div>
             
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                enabled && !isInitializing 
-                    ? 'max-h-96 opacity-100 transform translate-y-0 mt-4' 
-                    : 'max-h-0 opacity-0 transform -translate-y-2'
-            }`}>
-                <div className="space-y-4 pt-4 border-t border-[var(--border)]">
-                    <div className="space-y-2">
-                        <div className="flex gap-2">
-                            <Input
-                                value={inviteLink}
-                                readOnly
-                                className="flex-1 bg-[var(--muted)] border-[var(--border)] text-[var(--foreground)]"
-                                placeholder="Loading invite link..."
-                            />
-                            <Button
-                                onClick={handleCopy}
-                                variant="outline"
-                                size="icon"
-                                className="shrink-0 border-[var(--border)] hover:bg-[var(--muted)]"
-                                disabled={!inviteLink}
-                            >
-                                {copied ? (
-                                    <Check className="h-4 w-4 text-[var(--chart-2)]" />
-                                ) : (
-                                    <Copy className="h-4 w-4" />
-                                )}
-                            </Button>
+            {!isInitializing && (
+                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                    enabled 
+                        ? 'max-h-96 opacity-100 transform translate-y-0 mt-4' 
+                        : 'max-h-0 opacity-0 transform -translate-y-2'
+                }`}>
+                    <div className="space-y-4 pt-4 border-t border-[var(--border)]">
+                        <div className="space-y-2">
+                            <div className="flex gap-2">
+                                <Input
+                                    value={inviteLink}
+                                    readOnly
+                                    className="flex-1 bg-[var(--muted)] border-[var(--border)] text-[var(--foreground)]"
+                                />
+                                <Button
+                                    onClick={handleCopy}
+                                    variant="outline"
+                                    size="icon"
+                                    className="shrink-0 border-[var(--border)] hover:bg-[var(--muted)]"
+                                    disabled={!inviteLink}
+                                >
+                                    {copied ? (
+                                        <Check className="h-4 w-4 text-[var(--chart-2)]" />
+                                    ) : (
+                                        <Copy className="h-4 w-4" />
+                                    )}
+                                </Button>
+                            </div>
                         </div>
+                        
+                        <p className="text-sm text-[var(--muted-foreground)]">
+                            You can find this link again in the <strong>Settings → Members</strong> page.
+                        </p>
                     </div>
-                    
-                    <p className="text-sm text-[var(--muted-foreground)]">
-                        You can find this link again in the <strong>Settings → Members</strong> page.
-                    </p>
                 </div>
-            </div>
+            )}
         </div>
     )
-} 
+}
