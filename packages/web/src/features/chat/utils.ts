@@ -1,6 +1,6 @@
 import { env } from "@/env.mjs"
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { CustomEditor, CustomText, Source, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessageToolTypes, SBChatMessage } from "./types"
+import { CustomEditor, CustomText, Source, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessageToolTypes, SBChatMessage, FileReference } from "./types"
 import { CreateUIMessage, UIMessagePart } from "ai"
 
 export const insertMention = (editor: CustomEditor, data: Source, target?: Range | null) => {
@@ -217,4 +217,21 @@ export const createUIMessage = (text: string, sources: Source[]): CreateUIMessag
 
 export const getFileReferenceId = (fileName: string, range?: { startLine: number, endLine: number }) => {
     return `file-reference-${fileName}${range ? `-${range.startLine}-${range.endLine}` : ''}`;
+}
+
+export const createFileReference = ({ fileName, startLine, endLine }: { fileName: string, startLine?: string, endLine?: string }): FileReference => {
+    const range = startLine && endLine ? {
+        startLine: parseInt(startLine),
+        endLine: parseInt(endLine),
+    } : startLine ? {
+        startLine: parseInt(startLine),
+        endLine: parseInt(startLine),
+    } : undefined;
+
+    return {
+        type: 'file',
+        id: getFileReferenceId(fileName, range),
+        fileName,
+        range,
+    }
 }
