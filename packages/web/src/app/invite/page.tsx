@@ -57,37 +57,6 @@ export default async function InvitePage({ searchParams }: InvitePageProps) {
     );
 }
 
-function InvalidInviteCard({ message }: { message: string }) {
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent)]/30 flex items-center justify-center p-6">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    <SourcebotLogo className="h-12 mb-4 mx-auto" size="large" />
-                    <CardTitle className="text-xl font-semibold text-[var(--destructive)]">
-                        Invalid Invitation
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="text-center space-y-4">
-                    <p className="text-[var(--muted-foreground)]">
-                        {message}
-                    </p>
-                    <div className="p-4 rounded-lg bg-[var(--destructive)]/10 border border-[var(--destructive)]/20">
-                        <p className="text-sm text-[var(--destructive)] flex items-center gap-2">
-                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
-                            </svg>
-                            Please contact your administrator for a valid invitation link.
-                        </p>
-                    </div>
-                    <Button asChild className="w-full">
-                        <a href="/login">Return to Login</a>
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
 function WelcomeCard({ inviteLinkId, providers }: { inviteLinkId: string; providers: import("@/lib/authProviders").AuthProvider[] }) {
     return (    
         <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent)]/30 flex items-center justify-center p-6">

@@ -9,9 +9,7 @@ import { isServiceError } from "@/lib/utils"
 import { useToast } from "@/components/hooks/use-toast"
 import { InviteLinkToggle } from "@/app/components/inviteLinkToggle"
 
-interface MemberApprovalRequiredToggleProps {}
-
-export function MemberApprovalRequiredToggle({}: MemberApprovalRequiredToggleProps) {
+export function MemberApprovalRequiredToggle() {
     const [enabled, setEnabled] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [isInitializing, setIsInitializing] = useState(true)

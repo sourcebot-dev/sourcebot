@@ -1142,19 +1142,11 @@ export const cancelInvite = async (inviteId: string, domain: string): Promise<{ 
     ));
 
 export const getOrgInviteId = async (domain: string) => sew(() =>
-    withAuth(async () => {
-        const org = await prisma.org.findUnique({
-            where: {
-                domain: domain,
-            },
-        });
-
-        if (!org) {
-            return notFound();
-        }
-
-        return org.inviteLinkId;
-    }));
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            return org.inviteLinkId;
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    ));
 
 export const getMe = async () => sew(() =>
     withAuth(async (userId) => {
@@ -1443,19 +1435,6 @@ export const removeMemberFromOrg = async (memberId: string, domain: string): Pro
                     }
                 });
 
-                // TODO: The fact that pendingApproval is set in the user is a bit weird here, since it will prevent approval from working in the multi-tenant case.
-                // We need to set pendingApproval to be true here though so that if the user tries to sign into the deployment again it will send another request. Without
-                // this, the user will never be able to request to join the org again.
-                // TODO(multitenant): Handle this better
-                await tx.user.update({
-                    where: {
-                        id: memberId,
-                    },
-                    data: {
-                        pendingApproval: true,
-                    }
-                });
-
                 if (IS_BILLING_ENABLED) {
                     const result = await decrementOrgSeatCount(org.id, tx);
                     if (isServiceError(result)) {
@@ -1599,14 +1578,6 @@ export const createAccountRequest = async (userId: string, domain: string) => se
 
     if (!user) {
         return notFound("User not found");
-    }
-
-    if (user.pendingApproval == false) {
-        logger.warn(`User ${userId} isn't pending approval. Skipping account request creation.`);
-        return {
-            success: true,
-            existingRequest: false,
-        }
     }
 
     const org = await prisma.org.findUnique({

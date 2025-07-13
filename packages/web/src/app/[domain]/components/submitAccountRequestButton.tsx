@@ -43,8 +43,8 @@ export function SubmitAccountRequestButton({ domain, userId }: SubmitButtonProps
                 description: `There was an error submitting your request. Reason: ${result.message}`,
                 variant: "destructive",
             })
-            setIsSubmitting(false)
         }
+        setIsSubmitting(false)
     }
 
     return (

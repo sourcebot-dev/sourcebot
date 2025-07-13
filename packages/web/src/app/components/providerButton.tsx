@@ -8,7 +8,7 @@ import { LoadingButton } from "@/components/ui/loading-button";
 interface ProviderButtonProps {
     name: string;
     logo: { src: string, className?: string } | null;
-    onClick: () => void;
+    onClick: () => void | Promise<void>;
     className?: string;
     context: "login" | "signup";
 }
@@ -22,12 +22,18 @@ export const ProviderButton = ({
 }: ProviderButtonProps) => {
     const [isLoading, setIsLoading] = useState(false);
 
+    const handleClick = async () => {
+        setIsLoading(true);
+        try {
+            await onClick();
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <LoadingButton
-            onClick={() => {
-                setIsLoading(true);
-                onClick();
-            }}
+            onClick={handleClick}
             className={cn("w-full", className)}
             variant="outline"
             loading={isLoading}
