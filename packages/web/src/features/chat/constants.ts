@@ -1,4 +1,4 @@
-import { addLineNumbers } from "./utils";
+import { addLineNumbers, fileReferenceToString } from "./utils";
 
 interface CreateSystemPromptOptions {
     repos: string[];
@@ -53,20 +53,21 @@ When you have sufficient context, use the \`${toolNames.answerTool}\` tool with 
 
 **Required Response Format:**
 - **CRITICAL**: You MUST provide your complete response in markdown format with embedded code references
-- **CODE REFERENCE REQUIREMENT**: Whenever you mention, discuss, or refer to ANY specific part of the code (files, functions, variables, methods, classes, imports, etc.), you MUST immediately follow with a code reference using the format \`@file:{filename}\` or \`@file:{filename:startLine-endLine}\`. This includes:
-  - Files (e.g., "The \`auth.ts\` file" → must include \`@file:{auth.ts}\`)
-  - Function names (e.g., "The \`getRepos()\` function" → must include \`@file:{auth.ts:15-20}\`)
-  - Variable names (e.g., "The \`suggestionQuery\` variable" → must include \`@file:{search.ts:42-42}\`)
-  - Code patterns (e.g., "using \`file:\${suggestionQuery}\` pattern" → must include \`@file:{search.ts:10-15}\`)
+- **CODE REFERENCE REQUIREMENT**: Whenever you mention, discuss, or refer to ANY specific part of the code (files, functions, variables, methods, classes, imports, etc.), you MUST immediately follow with a code reference using the format \`${fileReferenceToString({ fileName: 'filename'})}\` or \`${fileReferenceToString({ fileName: 'filename', range: { startLine: 1, endLine: 10 } })}\` (where the numbers are the start and end line numbers of the code snippet). This includes:
+  - Files (e.g., "The \`auth.ts\` file" → must include \`${fileReferenceToString({ fileName: 'auth.ts' })}\`)
+  - Function names (e.g., "The \`getRepos()\` function" → must include \`${fileReferenceToString({ fileName: 'auth.ts', range: { startLine: 15, endLine: 20 } })}\`)
+  - Variable names (e.g., "The \`suggestionQuery\` variable" → must include \`${fileReferenceToString({ fileName: 'search.ts', range: { startLine: 42, endLine: 42 } })}\`)
+  - Code patterns (e.g., "using \`file:\${suggestionQuery}\` pattern" → must include \`${fileReferenceToString({ fileName: 'search.ts', range: { startLine: 10, endLine: 15 } })}\`)
   - Any code snippet or line you're explaining
   - Class names, method calls, imports, etc.
 - Be clear and very concise. Use bullet points where appropriate
-- Do NOT explain code without providing the exact location reference. Every code mention requires a corresponding \`@file:{}\` reference
+- Do NOT explain code without providing the exact location reference. Every code mention requires a corresponding \`${FILE_REFERENCE_PREFIX}\` reference
 - If you cannot provide a code reference for something you're discussing, do not mention that specific code element
+- Always prefer to use \`${FILE_REFERENCE_PREFIX}\` over \`\`\`code\`\`\` blocks.
 
 **Example answer structure:**
 \`\`\`markdown
-Authentication in Sourcebot is built on NextAuth.js with a session-based approach using JWT tokens and Prisma as the database adapter @file:{auth.ts:135-140}. The system supports multiple authentication providers and implements organization-based authorization with role-defined permissions.
+Authentication in Sourcebot is built on NextAuth.js with a session-based approach using JWT tokens and Prisma as the database adapter ${fileReferenceToString({ fileName: 'auth.ts', range: { startLine: 135, endLine: 140 } })}. The system supports multiple authentication providers and implements organization-based authorization with role-defined permissions.
 \`\`\`
 
 **Important**: The answer tool is the ONLY way to provide your final response. Do not provide explanations or partial answers outside of the answer tool. You MUST always use the answer tool.
@@ -94,7 +95,8 @@ ${addLineNumbers(file.source)}
     `.trim();
 }
 
-export const FILE_REFERENCE_REGEX = /@file:\{([^:}]+)(?::(\d+)(?:-(\d+))?)?\}/g;
+export const FILE_REFERENCE_PREFIX = '@file:';
+export const FILE_REFERENCE_REGEX = new RegExp(`${FILE_REFERENCE_PREFIX}\\{([^:}]+)(?::(\\d+)(?:-(\\d+))?)?\\}`, 'g');
 
 export const toolNames = {
     searchCode: 'searchCode',

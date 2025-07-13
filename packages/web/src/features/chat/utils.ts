@@ -2,6 +2,7 @@ import { env } from "@/env.mjs"
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
 import { CustomEditor, CustomText, Source, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessageToolTypes, SBChatMessage, FileReference } from "./types"
 import { CreateUIMessage, UIMessagePart } from "ai"
+import { FILE_REFERENCE_PREFIX } from "./constants"
 
 export const insertMention = (editor: CustomEditor, data: Source, target?: Range | null) => {
     const mention: MentionElement = {
@@ -117,7 +118,7 @@ export const slateContentToString = (children: Descendant[]): string => {
 
             switch (type) {
                 case 'file':
-                    return `@file:{${child.data.name}} `;
+                    return `${fileReferenceToString({ fileName: child.data.name })} `;
             }
         }
 
@@ -215,8 +216,12 @@ export const createUIMessage = (text: string, sources: Source[]): CreateUIMessag
     }
 }
 
-export const getFileReferenceId = (fileName: string, range?: { startLine: number, endLine: number }) => {
+export const getFileReferenceId = ({ fileName, range }: Omit<FileReference, 'type' | 'id'>) => {
     return `file-reference-${fileName}${range ? `-${range.startLine}-${range.endLine}` : ''}`;
+}
+
+export const fileReferenceToString = ({ fileName, range }: Omit<FileReference, 'type' | 'id'>) => {
+    return `${FILE_REFERENCE_PREFIX}{${fileName}${range ? `:${range.startLine}-${range.endLine}` : ''}}`;
 }
 
 export const createFileReference = ({ fileName, startLine, endLine }: { fileName: string, startLine?: string, endLine?: string }): FileReference => {
@@ -230,7 +235,7 @@ export const createFileReference = ({ fileName, startLine, endLine }: { fileName
 
     return {
         type: 'file',
-        id: getFileReferenceId(fileName, range),
+        id: getFileReferenceId({ fileName, range }),
         fileName,
         range,
     }

@@ -236,13 +236,13 @@ export const ReferencedSourcesListView = ({
 
                     const fileData = query.data!;
 
-                    const key = getFileId(fileSource);
-                    const referencesInFile = referencesGroupedByFile.get(key) || [];
+                    const fileId = getFileId(fileSource);
+                    const referencesInFile = referencesGroupedByFile.get(fileId) || [];
 
                     return (
                         <CodeMirrorCodeBlockWithRef
-                            key={key}
-                            id={key}
+                            key={fileId}
+                            id={fileId}
                             code={fileData.source}
                             language={fileData.language}
                             revision={fileSource.revision}
@@ -251,11 +251,26 @@ export const ReferencedSourcesListView = ({
                             repositoryDisplayName={fileData.repositoryDisplayName}
                             fileName={fileData.path}
                             references={referencesInFile}
-                            ref={(ref) => setEditorRef(key, ref)}
+                            ref={(ref) => setEditorRef(fileId, ref)}
                             onSelectedReferenceChanged={onSelectedReferenceChanged}
                             onHoveredReferenceChanged={onHoveredReferenceChanged}
                             selectedReference={selectedReference}
                             hoveredReference={hoveredReference}
+                            // When collapsing a file when you are deep in a scroll, it's a better
+                            // experience to have the scroll automatically restored to the top of the file
+                            // s.t., header is still sticky to the top of the scroll area.
+                            onCollapse={() => {
+                                const fileSourceStart = document.getElementById(`${fileId}-start`);
+                                if (!fileSourceStart) {
+                                    return;
+                                }
+
+                                scrollIntoView(fileSourceStart, {
+                                    scrollMode: 'if-needed',
+                                    block: 'start',
+                                    behavior: 'instant',
+                                });
+                            }}
                         />
                     );
                 })}
@@ -279,6 +294,7 @@ interface CodeMirrorCodeBlockProps {
     hoveredReference?: FileReference;
     onSelectedReferenceChanged: (reference?: FileReference) => void;
     onHoveredReferenceChanged: (reference?: FileReference) => void;
+    onCollapse: () => void;
 }
 
 const CodeMirrorCodeBlock = ({
@@ -295,11 +311,18 @@ const CodeMirrorCodeBlock = ({
     hoveredReference,
     onSelectedReferenceChanged,
     onHoveredReferenceChanged,
+    onCollapse,
 }: CodeMirrorCodeBlockProps, forwardedRef: Ref<ReactCodeMirrorRef>) => {
-    const domain = useDomain();
     const theme = useCodeMirrorTheme();
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
-    const [isExpanded, setIsExpanded] = useState(true);
+    const [isExpanded, _setIsExpanded] = useState(true);
+
+    const setIsExpanded = useCallback((isExpanded: boolean) => {
+        _setIsExpanded(isExpanded);
+        if (!isExpanded) {
+            onCollapse();
+        }
+    }, [onCollapse]);
 
     useImperativeHandle(
         forwardedRef,
@@ -500,6 +523,8 @@ const CodeMirrorCodeBlock = ({
 
     return (
         <div className="relative" id={id}>
+            {/* Sentinel element to scroll to when collapsing a file */}
+            <div id={`${id}-start`} />
             {/* Sticky header outside the bordered container */}
             <div className={cn("sticky top-0 z-10 flex flex-row items-center bg-accent py-1 px-3 gap-1.5 border-l border-r border-t rounded-t-md", {
                 'rounded-b-md border-b': !isExpanded,

@@ -24,7 +24,7 @@ export default function Page() {
             defaultSize={85}
         >
             <div className="flex flex-col h-full w-full items-center justify-start pt-[20vh]">
-                <h2 className="text-4xl font-bold mb-8">What can I help you find?</h2>
+                <h2 className="text-4xl font-bold mb-8">What can I help you understand?</h2>
                 <div className="border rounded-md w-full max-w-3xl mx-auto mb-8 shadow-sm">
                     <CustomSlateEditor>
                         <ChatBox
