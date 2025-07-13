@@ -165,7 +165,7 @@ model Org {
   imageUrl    String?
   metadata    Json?       // For schema see orgMetadataSchema in packages/web/src/types.ts
 
-  memberApprovalRequired Boolean @default(false)
+  memberApprovalRequired Boolean @default(true)
 
   stripeCustomerId         String?
   stripeSubscriptionStatus StripeSubscriptionStatus?
@@ -175,7 +175,7 @@ model Org {
   invites Invite[]
   
   /// The invite id for this organization
-  inviteLinkEnabled Boolean @default(true)
+  inviteLinkEnabled Boolean @default(false)
   inviteLinkId String?
 
   audits Audit[]

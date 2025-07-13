@@ -67,7 +67,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
 
     const resourceCards: ResourceCard[] = [
         {
-            title: "Connect to your code hosts",
+            title: "Code host connections",
             description: "Learn how to index repos across Sourcebot's supported platforms",
             href: "https://docs.sourcebot.dev/docs/connections/overview",
             icon: <GitBranchIcon className="w-4 h-4" />,
@@ -75,7 +75,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
         {
             title: "Authentication system",
             description: "Learn how to setup additional auth providers, invite members, and more",
-            href: "https://docs.sourcebot.dev/docs/configuration/auth/overview",
+            href: "https://docs.sourcebot.dev/docs/configuration/auth",
             icon: <LockIcon className="w-4 h-4" />,
         }
     ]
