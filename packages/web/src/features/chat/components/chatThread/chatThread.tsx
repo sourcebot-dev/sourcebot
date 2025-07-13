@@ -227,7 +227,7 @@ export const ChatThread = ({
                 className="flex flex-col h-full w-full p-4 overflow-hidden"
             >
                 <div
-                    className="max-w-[1500px] mx-auto space-y-6"
+                    className="max-w-[1700px] mx-auto space-y-6"
                 >
                     {
                         messagePairs.length === 0 ? (

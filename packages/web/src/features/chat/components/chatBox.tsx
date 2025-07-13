@@ -4,6 +4,7 @@ import { search } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CustomEditor, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
 import { insertMention, slateContentToString, word } from "@/features/chat/utils";
 import { useDomain } from "@/hooks/useDomain";
@@ -257,7 +258,7 @@ export const ChatBox = ({
         >
             <Editable
                 className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                placeholder="Ask, plan, or search your codebase. @mention specific files or repositories."
+                placeholder="Ask, plan, or search your codebase. @mention specific files."
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 onKeyDown={onKeyDown}
@@ -273,27 +274,27 @@ export const ChatBox = ({
                         <Loader2 className="w-4 h-4 animate-spin" />
                     </Button>
                 ) :
-                isGenerating ? (
-                    <Button
-                        variant="default"
-                        size="sm"
-                        className="h-8"
-                        onClick={onStop}
-                    >
-                        <StopCircleIcon className="w-4 h-4" />
-                        Stop
-                    </Button>
-                ) : (
-                    <Button
-                        variant={isSubmitEnabled ? "default" : "outline"}
-                        size="sm"
-                        className="w-6 h-6"
-                        onClick={onSubmit}
-                        disabled={!isSubmitEnabled}
-                    >
-                        <ArrowUp className="w-4 h-4" />
-                    </Button>
-                )}
+                    isGenerating ? (
+                        <Button
+                            variant="default"
+                            size="sm"
+                            className="h-8"
+                            onClick={onStop}
+                        >
+                            <StopCircleIcon className="w-4 h-4" />
+                            Stop
+                        </Button>
+                    ) : (
+                        <Button
+                            variant={isSubmitEnabled ? "default" : "outline"}
+                            size="sm"
+                            className="w-6 h-6"
+                            onClick={onSubmit}
+                            disabled={!isSubmitEnabled}
+                        >
+                            <ArrowUp className="w-4 h-4" />
+                        </Button>
+                    )}
             </div>
             {suggestionMode === "file" && createPortal(
                 <div
@@ -378,32 +379,41 @@ const MentionComponent = ({
     const focused = useFocused();
 
     return data.type === 'file' && (
-        <span
-            {...attributes}
-            contentEditable={false}
-            className={cn(
-                "px-1.5 py-0.5 mr-1.5 align-baseline inline-block rounded bg-muted text-xs font-mono",
-                {
-                    "ring-2 ring-blue-300": selected && focused
-                }
-            )}
-        >
-            <span contentEditable={false} className="flex flex-row items-center select-none">
-                {/* @see: https://github.com/ianstormtaylor/slate/issues/3490 */}
-                {IS_MAC ? (
-                    <Fragment>
-                        {children}
-                        <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-0.5" />
-                        {data.name}
-                    </Fragment>
-                ) : (
-                    <Fragment>
-                        <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-0.5" />
-                        {data.name}
-                        {children}
-                    </Fragment>
-                )}
-            </span>
-        </span>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <span
+                    {...attributes}
+                    contentEditable={false}
+                    className={cn(
+                        "px-1.5 py-0.5 mr-1.5 mb-1 align-baseline inline-block rounded bg-muted text-xs font-mono",
+                        {
+                            "ring-2 ring-blue-300": selected && focused
+                        }
+                    )}
+                >
+                    <span contentEditable={false} className="flex flex-row items-center select-none">
+                        {/* @see: https://github.com/ianstormtaylor/slate/issues/3490 */}
+                        {IS_MAC ? (
+                            <Fragment>
+                                {children}
+                                <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-0.5" />
+                                {data.name}
+                            </Fragment>
+                        ) : (
+                            <Fragment>
+                                <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-0.5" />
+                                {data.name}
+                                {children}
+                            </Fragment>
+                        )}
+                    </span>
+                </span>
+            </TooltipTrigger>
+            <TooltipContent>
+                <span className="text-xs font-mono">
+                    <span className="font-medium">{data.repo.split('/').pop()}</span>/{data.path}
+                </span>
+            </TooltipContent>
+        </Tooltip>
     )
 }
