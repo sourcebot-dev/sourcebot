@@ -25,15 +25,18 @@ test('useExtractReferences extracts file references from answer tool content', (
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toMatchObject({
         fileName: 'auth.ts',
-        id: getFileReferenceId('auth.ts'),
+        id: getFileReferenceId({ fileName: 'auth.ts' }),
         type: 'file',
     });
 
     expect(result.current[1]).toMatchObject({
         fileName: 'auth.ts',
-        id: getFileReferenceId('auth.ts', {
-            startLine: 45,
-            endLine: 60,
+        id: getFileReferenceId({
+            fileName: 'auth.ts',
+            range: {
+                startLine: 45,
+                endLine: 60,
+            }
         }),
         type: 'file',
         range: {
@@ -60,15 +63,18 @@ test('useExtractReferences extracts file references from text content', () => {
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toMatchObject({
         fileName: 'auth.ts',
-        id: getFileReferenceId('auth.ts'),
+        id: getFileReferenceId({ fileName: 'auth.ts' }),
         type: 'file',
     });
 
     expect(result.current[1]).toMatchObject({
         fileName: 'auth.ts',
-        id: getFileReferenceId('auth.ts', {
-            startLine: 45,
-            endLine: 60,
+        id: getFileReferenceId({
+            fileName: 'auth.ts',
+            range: {
+                startLine: 45,
+                endLine: 60,
+            }
         }),
         type: 'file',
         range: {
@@ -95,15 +101,18 @@ test('useExtractReferences extracts file references from reasoning content', () 
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toMatchObject({
         fileName: 'auth.ts',
-        id: getFileReferenceId('auth.ts'),
+        id: getFileReferenceId({ fileName: 'auth.ts' }),
         type: 'file',
     });
 
     expect(result.current[1]).toMatchObject({
         fileName: 'auth.ts',
-        id: getFileReferenceId('auth.ts', {
-            startLine: 45,
-            endLine: 60,
+        id: getFileReferenceId({
+            fileName: 'auth.ts',
+            range: {
+                startLine: 45,
+                endLine: 60,
+            }
         }),
         type: 'file',
         range: {
@@ -144,16 +153,19 @@ test('useExtractReferences extracts file references from multi-part', () => {
     // From text part
     expect(result.current[0]).toMatchObject({
         fileName: 'auth.ts',
-        id: getFileReferenceId('auth.ts'),
+        id: getFileReferenceId({ fileName: 'auth.ts' }),
         type: 'file',
     });
 
     // From reasoning part
     expect(result.current[1]).toMatchObject({
         fileName: 'session.ts',
-        id: getFileReferenceId('session.ts', {
-            startLine: 10,
-            endLine: 20,
+        id: getFileReferenceId({
+            fileName: 'session.ts',
+            range: {
+                startLine: 10,
+                endLine: 20,
+            }
         }),
         type: 'file',
         range: {
@@ -165,15 +177,18 @@ test('useExtractReferences extracts file references from multi-part', () => {
     // From tool-answerTool part
     expect(result.current[2]).toMatchObject({
         fileName: 'config.json',
-        id: getFileReferenceId('config.json'),
+        id: getFileReferenceId({ fileName: 'config.json' }),
         type: 'file',
     });
 
     expect(result.current[3]).toMatchObject({
         fileName: 'utils.ts',
-        id: getFileReferenceId('utils.ts', {
-            startLine: 5,
-            endLine: 5,
+        id: getFileReferenceId({
+            fileName: 'utils.ts',
+            range: {
+                startLine: 5,
+                endLine: 5,
+            }
         }),
         type: 'file',
         range: {
