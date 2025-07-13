@@ -73,8 +73,8 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             icon: <GitBranchIcon className="w-4 h-4" />,
         },
         {
-            title: "Setup additional authentication providers",
-            description: "Learn how to setup additional authentication providers for your organization",
+            title: "Authentication system",
+            description: "Learn how to setup additional auth providers, invite members, and more",
             href: "https://docs.sourcebot.dev/docs/configuration/auth/overview",
             icon: <LockIcon className="w-4 h-4" />,
         }
