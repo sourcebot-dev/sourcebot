@@ -28,6 +28,7 @@ interface OnboardingStep {
 }
 
 interface ResourceCard {
+    id: string
     title: string
     description: string
     href: string
@@ -67,12 +68,14 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
 
     const resourceCards: ResourceCard[] = [
         {
+            id: "code-host-connections",
             title: "Code host connections",
             description: "Learn how to index repos across Sourcebot's supported platforms",
             href: "https://docs.sourcebot.dev/docs/connections/overview",
             icon: <GitBranchIcon className="w-4 h-4" />,
         },
         {
+            id: "authentication-system",
             title: "Authentication system",
             description: "Learn how to setup additional auth providers, invite members, and more",
             href: "https://docs.sourcebot.dev/docs/configuration/auth",
@@ -153,6 +156,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                     <div className="grid grid-cols-1 gap-3">
                         {resourceCards.map((resourceCard) => (
                             <a 
+                                key={resourceCard.id}
                                 href={resourceCard.href}
                                 target="_blank"
                                 rel="noopener"
