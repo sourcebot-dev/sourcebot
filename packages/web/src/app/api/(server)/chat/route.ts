@@ -12,7 +12,7 @@ import { isServiceError } from "@/lib/utils";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createOpenAI } from "@ai-sdk/openai";
+import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import { LanguageModelV2 } from "@ai-sdk/provider";
 import { OrgRole, RepoIndexingStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
@@ -356,6 +356,11 @@ const getModel = (): {
 
             return {
                 model: openai(model),
+                providerOptions: {
+                    openai: {
+                        reasoningEffort: 'medium'
+                    } satisfies OpenAIResponsesProviderOptions,
+                },
             };
         }
         case 'google-generative-ai': {
