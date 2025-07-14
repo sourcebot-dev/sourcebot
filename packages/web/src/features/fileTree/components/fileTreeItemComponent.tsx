@@ -14,7 +14,6 @@ export const FileTreeItemComponent = ({
     isCollapsed = false,
     isCollapseChevronVisible = true,
     onClick,
-    onMouseEnter,
     parentRef,
 }: {
     node: FileTreeItem,
@@ -23,7 +22,6 @@ export const FileTreeItemComponent = ({
     isCollapsed?: boolean,
     isCollapseChevronVisible?: boolean,
     onClick: () => void,
-    onMouseEnter: () => void,
     parentRef: React.RefObject<HTMLDivElement>,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
@@ -67,7 +65,6 @@ export const FileTreeItemComponent = ({
                 }
             }}
             onClick={onClick}
-            onMouseEnter={onMouseEnter}
         >
             <div
                 className="flex flex-row gap-1 cursor-pointer w-4 h-4 flex-shrink-0"
