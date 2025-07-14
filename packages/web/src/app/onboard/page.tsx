@@ -138,7 +138,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
         },
         {
             id: "complete",
-            title: "You're All Set!",
+            title: "You&apos;re All Set!",
             subtitle: (
                 <>
                     Your Sourcebot deployment is ready. Check out these resources to get started.
@@ -354,7 +354,7 @@ function NonOwnerOnboardingMessage() {
                                             Owner Access Required
                                         </p>
                                         <p className="text-sm text-muted-foreground leading-relaxed">
-                                            Only the organization owner can complete the initial setup and configuration. Once onboarding is complete, you'll be able to access Sourcebot.
+                                            Only the organization owner can complete the initial setup and configuration. Once onboarding is complete, you&apos;ll be able to access Sourcebot.
                                         </p>
                                     </div>
                                 </div>

@@ -68,7 +68,7 @@ export default async function Layout({
                 });
 
                 if (hasPendingApproval) {
-                    return <PendingApprovalCard domain={domain} />
+                    return <PendingApprovalCard />
                 } else {
                     return <SubmitJoinRequest domain={domain} />
                 }

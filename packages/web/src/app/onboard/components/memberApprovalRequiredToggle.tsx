@@ -44,7 +44,7 @@ export function MemberApprovalRequiredToggle() {
         }
 
         fetchInitialValue()
-    }, [])
+    }, [toast])
 
     const handleToggle = async (checked: boolean) => {
         setIsLoading(true)

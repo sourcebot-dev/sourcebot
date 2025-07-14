@@ -1,14 +1,10 @@
 import { auth } from "@/auth";
-import { prisma } from "@/prisma";
 import { redirect } from "next/navigation";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
+import { getOrgFromDomain } from "@/data/org";
 
 export default async function Page() {
-    const org = await prisma.org.findUnique({
-        where: {
-            domain: SINGLE_TENANT_ORG_DOMAIN
-        },
-    });
+    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
 
     if (!org || !org.isOnboarded) {
         return redirect("/onboard");

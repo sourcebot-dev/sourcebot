@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import { JoinOrganizationButton } from "@/app/invite/components/joinOrganizationButton"
-import { Button } from "@/components/ui/button";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { getAuthProviders } from "@/lib/authProviders";
 
@@ -70,7 +69,7 @@ function WelcomeCard({ inviteLinkId, providers }: { inviteLinkId: string; provid
                 <CardContent className="space-y-6">
                     <div className="text-center space-y-3">
                         <p className="text-[var(--muted-foreground)] text-[15px] leading-6">
-                            You've been invited to join this Sourcebot deployment. Sign up to get started.
+                            You&apos;ve been invited to join this Sourcebot deployment. Sign up to get started.
                         </p>
                     </div>  
 

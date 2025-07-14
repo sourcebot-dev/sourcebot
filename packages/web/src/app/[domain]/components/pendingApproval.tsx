@@ -3,11 +3,7 @@ import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth"
 
-interface PendingApprovalCardProps {
-    domain: string
-}
-
-export const PendingApprovalCard = async ({ domain }: PendingApprovalCardProps) => {
+export const PendingApprovalCard = async () => {
     const session = await auth()
     const userId = session?.user?.id
 
