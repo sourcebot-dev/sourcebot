@@ -85,7 +85,7 @@ export function MemberApprovalRequiredToggle() {
                             <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
                                 When enabled, new users will need approval from an organization owner before they can access your deployment.{" "}
                                 <a
-                                    href="https://docs.sourcebot.dev/docs/configuration/auth/overview#approving-new-members"
+                                    href="https://docs.sourcebot.dev/docs/configuration/auth/inviting-members"
                                     target="_blank"
                                     rel="noopener"
                                     className="underline text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors"

@@ -138,7 +138,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
         },
         {
             id: "complete",
-            title: "You&apos;re All Set!",
+            title: "You're All Set!",
             subtitle: (
                 <>
                     Your Sourcebot deployment is ready. Check out these resources to get started.
