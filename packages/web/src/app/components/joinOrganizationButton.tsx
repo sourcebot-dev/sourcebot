@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/hooks/use-toast";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { joinOrganization } from "../actions";
+import { joinOrganization } from "../invite/actions";
 import { isServiceError } from "@/lib/utils";
 import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 
-export function JoinOrganizationButton({ inviteLinkId }: { inviteLinkId: string }) {
+export function JoinOrganizationButton({ inviteLinkId }: { inviteLinkId?: string }) {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const { toast } = useToast();

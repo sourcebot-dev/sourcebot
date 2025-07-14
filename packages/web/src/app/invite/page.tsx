@@ -6,9 +6,9 @@ import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
-import { JoinOrganizationButton } from "@/app/invite/components/joinOrganizationButton"
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { getAuthProviders } from "@/lib/authProviders";
+import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 
 interface InvitePageProps {
     searchParams: {
@@ -51,7 +51,7 @@ export default async function InvitePage({ searchParams }: InvitePageProps) {
     return (
         <div className="min-h-screen flex items-center justify-center p-6">
             <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
-            <JoinInvitationCard inviteLinkId={inviteLinkId} />
+            <JoinOrganizationCard inviteLinkId={inviteLinkId} />
         </div>
     );
 }
@@ -79,26 +79,6 @@ function WelcomeCard({ inviteLinkId, providers }: { inviteLinkId: string; provid
                         context="signup"
                         securityNoticeClosable={true}
                     />
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
-function JoinInvitationCard({ inviteLinkId }: { inviteLinkId: string }) {
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent)]/30 flex items-center justify-center p-6">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    <SourcebotLogo className="h-12 mb-4 mx-auto" size="large" />
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="text-center space-y-4">
-                        <p className="text-[var(--muted-foreground)] text-[15px] leading-6">
-                            Welcome to Sourcebot! Click the button below to join this organization.
-                        </p>
-                    </div>
-                    <JoinOrganizationButton inviteLinkId={inviteLinkId} />
                 </CardContent>
             </Card>
         </div>

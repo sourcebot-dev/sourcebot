@@ -19,6 +19,9 @@ import { hasEntitlement } from "@sourcebot/shared";
 import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "./components/gcpIapAuth";
+import { getMemberApprovalRequired } from "@/actions";
+import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
+import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -53,25 +56,39 @@ export default async function Layout({
                     orgId: org.id,
                     userId: session.user.id
                 }
-            }, 
+            },
             include: {
                 user: true
             }
         });
 
+        // There's two reasons why a user might not be a member of an org:
+        // 1. The org doesn't require member approval, but the org was at max capacity when the user registered. In this case, we show them
+        // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
+        // 2. The org requires member approval, and they haven't been approved yet. In this case, we allow them to submit a request to join the org.
         if (!membership) {
+            const memberApprovalRequired = await getMemberApprovalRequired(domain);
+            if (!memberApprovalRequired) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6">
+                        <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
+                        <JoinOrganizationCard />
+                    </div>
+                )
+            } else {
                 const hasPendingApproval = await prisma.accountRequest.findFirst({
                     where: {
                         orgId: org.id,
                         requestedById: session.user.id
                     }
                 });
-
+                
                 if (hasPendingApproval) {
                     return <PendingApprovalCard />
                 } else {
                     return <SubmitJoinRequest domain={domain} />
                 }
+            }
         }
     }
 

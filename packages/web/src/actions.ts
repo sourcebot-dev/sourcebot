@@ -2,7 +2,7 @@
 
 import { env } from "@/env.mjs";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notAuthenticated, notFound, secretAlreadyExists, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
+import { notAuthenticated, notFound, orgNotFound, secretAlreadyExists, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
 import { CodeHostType, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
@@ -1671,13 +1671,19 @@ export const createAccountRequest = async (userId: string, domain: string) => se
     }
 });
 
-export const getMemberApprovalRequired = async (domain: string): Promise<boolean | ServiceError> => sew(async () =>
-    withAuth(async (userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            return org.memberApprovalRequired;
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    )
-);
+export const getMemberApprovalRequired = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (!org) {
+        return orgNotFound();
+    }
+
+    return org.memberApprovalRequired;
+    });
 
 export const setMemberApprovalRequired = async (domain: string, required: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
     withAuth(async (userId) =>

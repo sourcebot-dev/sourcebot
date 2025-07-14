@@ -106,7 +106,13 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                 type: "org"
             }
         });
-    } else if (!defaultOrg.memberApprovalRequired) { // Else, we add the user to org if approval isn't required
+    } else if (!defaultOrg.memberApprovalRequired) { 
+        const hasAvailability = await orgHasAvailability(defaultOrg.domain);
+        if (!hasAvailability) {
+            logger.warn(`onCreateUser: org ${SINGLE_TENANT_ORG_ID} has reached max capacity. User ${user.id} was not added to the org.`);
+            return;
+        }
+
         await prisma.userToOrg.create({
             data: {
                 userId: user.id,

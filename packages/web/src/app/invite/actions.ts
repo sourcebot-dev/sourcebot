@@ -9,7 +9,7 @@ import { prisma } from "@/prisma";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 
-export const joinOrganization = (orgId: number, inviteLinkId: string) => sew(async () =>
+export const joinOrganization = (orgId: number, inviteLinkId?: string) => sew(async () =>
     withAuth(async (userId) => {
         const org = await prisma.org.findUnique({
             where: {
@@ -21,20 +21,23 @@ export const joinOrganization = (orgId: number, inviteLinkId: string) => sew(asy
             return orgNotFound();
         }
 
-        if (!org.inviteLinkEnabled) {
-            return {
-                statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: ErrorCode.INVITE_LINK_NOT_ENABLED,
-                message: "Invite link is not enabled.",
-            } satisfies ServiceError;
-        }
+        // If member approval is required we must be using a valid invite link
+        if (org.memberApprovalRequired) {
+            if (!org.inviteLinkEnabled) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVITE_LINK_NOT_ENABLED,
+                    message: "Invite link is not enabled.",
+                } satisfies ServiceError;
+            }
 
-        if (org.inviteLinkId !== inviteLinkId) {
-            return {
-                statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: ErrorCode.INVALID_INVITE_LINK,
-                message: "Invalid invite link.",
-            } satisfies ServiceError;
+            if (org.inviteLinkId !== inviteLinkId) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_INVITE_LINK,
+                    message: "Invalid invite link.",
+                } satisfies ServiceError;
+            }
         }
 
         const addUserToOrgRes = await addUserToOrganization(userId, org.id);

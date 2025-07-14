@@ -141,7 +141,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             title: "You're All Set!",
             subtitle: (
                 <>
-                    Your Sourcebot deployment is ready. Check out these resources to get started.
+                    Your Sourcebot deployment is ready. Check out these resources to learn how to get the most out of Sourcebot.
                     <div className="text-center space-y-4">
                         <div className="w-16 h-16 mx-auto bg-primary rounded-full flex items-center justify-center">
                             <svg className="w-8 h-8 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
