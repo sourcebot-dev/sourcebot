@@ -83,8 +83,8 @@ export const SettingsDropdown = ({
             <DropdownMenuContent className="w-64">
                 {session?.user ? (
                     <DropdownMenuGroup>
-                        <div className="flex flex-row items-center gap-1 p-2">
-                            <Avatar>
+                        <div className="flex flex-row items-start gap-3 p-2">
+                            <Avatar className="flex-shrink-0">
                                 <AvatarImage
                                     src={session.user.image ?? ""}
                                 />
@@ -92,7 +92,7 @@ export const SettingsDropdown = ({
                                     {session.user.name && session.user.name.length > 0 ? session.user.name[0] : 'U'}
                                 </AvatarFallback>
                             </Avatar>
-                            <p className="text-sm font-medium text-ellipsis">{session.user.email ?? "User"}</p>
+                            <p className="text-sm font-medium break-all flex-1 leading-relaxed">{session.user.email ?? "User"}</p>
                         </div>
                         <DropdownMenuItem
                             onClick={() => {
