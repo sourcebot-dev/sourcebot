@@ -1,32 +1,38 @@
 
 export const getBrowseParamsFromPathParam = (pathParam: string) => {
-    const sentinalIndex = pathParam.search(/\/-\/(tree|blob)\//);
+    const sentinalIndex = pathParam.search(/\/-\/(tree|blob)/);
     if (sentinalIndex === -1) {
         throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain "/-/(tree|blob)/" pattern`);
     }
 
-    const repoAndRevisionName = pathParam.substring(0, sentinalIndex).split('@');
-    const repoName = repoAndRevisionName[0];
-    const revisionName = repoAndRevisionName.length > 1 ? repoAndRevisionName[1] : undefined;
+    const repoAndRevisionPart = pathParam.substring(0, sentinalIndex);
+    const lastAtIndex = repoAndRevisionPart.lastIndexOf('@');
+    
+    const repoName = lastAtIndex === -1 ? repoAndRevisionPart : repoAndRevisionPart.substring(0, lastAtIndex);
+    const revisionName = lastAtIndex === -1 ? undefined : repoAndRevisionPart.substring(lastAtIndex + 1);
 
     const { path, pathType } = ((): { path: string, pathType: 'tree' | 'blob' } => {
         const path = pathParam.substring(sentinalIndex + '/-/'.length);
-        const pathType = path.startsWith('tree/') ? 'tree' : 'blob';
+        const pathType = path.startsWith('tree') ? 'tree' : 'blob';
 
         // @note: decodedURIComponent is needed here incase the path contains a space.
         switch (pathType) {
             case 'tree':
                 return {
-                    path: decodeURIComponent(path.substring('tree/'.length)),
+                    path: decodeURIComponent(path.startsWith('tree/') ? path.substring('tree/'.length) : path.substring('tree'.length)),
                     pathType,
                 };
             case 'blob':
                 return {
-                    path: decodeURIComponent(path.substring('blob/'.length)),
+                    path: decodeURIComponent(path.startsWith('blob/') ? path.substring('blob/'.length) : path.substring('blob'.length)),
                     pathType,
                 };
         }
     })();
+
+    if (pathType === 'blob' && path === '') {
+        throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain a path for blob type`);
+    }
 
     return {
         repoName,
