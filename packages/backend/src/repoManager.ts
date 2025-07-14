@@ -337,7 +337,7 @@ export class RepoManager implements IRepoManager {
                     throw error;
                 }
 
-                const sleepDuration = 5000 * Math.pow(2, attempts - 1);
+                const sleepDuration = (env.REPO_SYNC_RETRY_BASE_SLEEP_SECONDS * 1000) * Math.pow(2, attempts - 1);
                 logger.error(`Failed to sync repository ${repo.name} (id: ${repo.id}), attempt ${attempts}/${maxAttempts}. Sleeping for ${sleepDuration / 1000}s... Error: ${error}`);
                 await new Promise(resolve => setTimeout(resolve, sleepDuration));
             }
