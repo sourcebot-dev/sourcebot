@@ -9,7 +9,7 @@ import { joinOrganization } from "../actions";
 import { isServiceError } from "@/lib/utils";
 import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 
-export function JoinOrganizationButton() {
+export function JoinOrganizationButton({ inviteLinkId }: { inviteLinkId: string }) {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
@@ -18,7 +18,7 @@ export function JoinOrganizationButton() {
         setIsLoading(true);
         
         try {
-            const result = await joinOrganization(SINGLE_TENANT_ORG_ID);
+            const result = await joinOrganization(SINGLE_TENANT_ORG_ID, inviteLinkId);
             
             if (isServiceError(result)) {
                 toast({

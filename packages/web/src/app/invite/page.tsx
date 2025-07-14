@@ -52,7 +52,7 @@ export default async function InvitePage({ searchParams }: InvitePageProps) {
     return (
         <div className="min-h-screen flex items-center justify-center p-6">
             <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
-            <JoinInvitationCard />
+            <JoinInvitationCard inviteLinkId={inviteLinkId} />
         </div>
     );
 }
@@ -86,7 +86,7 @@ function WelcomeCard({ inviteLinkId, providers }: { inviteLinkId: string; provid
     );
 }
 
-function JoinInvitationCard() {
+function JoinInvitationCard({ inviteLinkId }: { inviteLinkId: string }) {
     return (
         <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent)]/30 flex items-center justify-center p-6">
             <Card className="w-full max-w-md">
@@ -99,7 +99,7 @@ function JoinInvitationCard() {
                             Welcome to Sourcebot! Click the button below to join this organization.
                         </p>
                     </div>
-                    <JoinOrganizationButton />
+                    <JoinOrganizationButton inviteLinkId={inviteLinkId} />
                 </CardContent>
             </Card>
         </div>
