@@ -213,7 +213,7 @@ export const ChatBox = ({
         >
             <Editable
                 className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                placeholder="Ask, plan, or search your codebase. @mention specific files."
+                placeholder="Ask, plan, or search your codebase. @mention files and repos to refine your query."
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 onKeyDown={onKeyDown}
