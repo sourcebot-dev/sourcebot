@@ -1,19 +1,14 @@
 'use client';
 
-import Image from "next/image";
-import { signIn } from "next-auth/react";
-import { Fragment, useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { cn, getAuthProviderInfo } from "@/lib/utils";
-import { MagicLinkForm } from "./magicLinkForm";
-import { CredentialsForm } from "./credentialsForm";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
-import { TextSeparator } from "@/app/components/textSeparator";
+import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import DemoCard from "@/app/[domain]/onboard/components/demoCard";
+import DemoCard from "@/app/login/components/demoCard";
 import Link from "next/link";
 import { env } from "@/env.mjs";
-import { LoadingButton } from "@/components/ui/loading-button";
+import type { AuthProvider } from "@/lib/authProviders";
 
 const TERMS_OF_SERVICE_URL = "https://sourcebot.dev/terms";
 const PRIVACY_POLICY_URL = "https://sourcebot.dev/privacy";
@@ -21,17 +16,12 @@ const PRIVACY_POLICY_URL = "https://sourcebot.dev/privacy";
 interface LoginFormProps {
     callbackUrl?: string;
     error?: string;
-    providers: Array<{ id: string; name: string }>;
+    providers: AuthProvider[];
     context: "login" | "signup";
 }
 
 export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
-    const onSignInWithOauth = useCallback((provider: string) => {
-        signIn(provider, {
-            redirectTo: callbackUrl ?? "/"
-        });
-    }, [callbackUrl]);
 
     const errorMessage = useMemo(() => {
         if (!error) {
@@ -46,13 +36,6 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
                 return "An error occurred during authentication. Please try again.";
         }
     }, [error]);
-
-    // Separate OAuth providers from special auth methods
-    const oauthProviders = providers.filter(p => 
-        !["credentials", "nodemailer"].includes(p.id)
-    );
-    const hasCredentials = providers.some(p => p.id === "credentials");
-    const hasMagicLink = providers.some(p => p.id === "nodemailer");
 
     // Helper function to get the correct analytics event name
     const getLoginEventName = (providerId: string) => {
@@ -72,6 +55,11 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
             default:
                 return "wa_login_with_github" as const; // fallback
         }
+    };
+
+    // Analytics callback for provider clicks
+    const handleProviderClick = (providerId: string) => {
+        captureEvent(getLoginEventName(providerId), {});
     };
 
     return (
@@ -95,38 +83,17 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
                         {errorMessage}
                     </div>
                 )}
-                <DividerSet
-                    elements={[
-                        ...(oauthProviders.length > 0 ? [
-                            <div key="oauth-providers" className="w-full space-y-3">
-                                {oauthProviders.map((provider) => {
-                                    const providerInfo = getAuthProviderInfo(provider.id);
-                                    return (
-                                        <ProviderButton
-                                            key={provider.id}
-                                            name={providerInfo.displayName}
-                                            logo={providerInfo.icon}
-                                            onClick={() => {
-                                                captureEvent(getLoginEventName(provider.id), {});
-                                                onSignInWithOauth(provider.id);
-                                            }}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        ] : []),
-                        ...(hasMagicLink ? [
-                            <MagicLinkForm key="magic-link" callbackUrl={callbackUrl} />
-                        ] : []),
-                        ...(hasCredentials ? [
-                            <CredentialsForm key="credentials" callbackUrl={callbackUrl} />
-                        ] : [])
-                    ]}
+                <AuthMethodSelector
+                    providers={providers}
+                    callbackUrl={callbackUrl}
+                    context={context}
+                    onProviderClick={handleProviderClick}
+                    securityNoticeClosable={true}
                 />
                 <p className="text-sm text-muted-foreground mt-8">
                     {context === "login" ?
                         <>
-                            No account yet? <Link className="underline" href="/signup">Sign up</Link>
+                            Don&apos;t have an account? <Link className="underline" href="/signup">Sign up</Link>
                         </>
                     :
                         <>
@@ -140,44 +107,4 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
             )}
         </div>
     )
-}
-
-const ProviderButton = ({
-    name,
-    logo,
-    onClick,
-    className,
-}: {
-    name: string;
-    logo: { src: string, className?: string } | null;
-    onClick: () => void;
-    className?: string;
-}) => {
-    const [isLoading, setIsLoading] = useState(false);
-
-    return (
-        <LoadingButton
-            onClick={() => {
-                setIsLoading(true);
-                onClick();
-            }}
-            className={cn("w-full", className)}
-            variant="outline"
-            loading={isLoading}
-        >
-            {logo && <Image src={logo.src} alt={name} className={cn("w-5 h-5 mr-2", logo.className)} />}
-            Sign in with {name}
-        </LoadingButton>
-    )
-}
-
-const DividerSet = ({ elements }: { elements: React.ReactNode[] }) => {
-    return elements.map((child, index) => {
-        return (
-            <Fragment key={index}>
-                {child}
-                {index < elements.length - 1 && <TextSeparator key={`divider-${index}`} />}
-            </Fragment>
-        )
-    })
 }

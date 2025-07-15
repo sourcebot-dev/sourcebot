@@ -12,6 +12,9 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { RequestsList } from "./components/requestsList";
 import { OrgRole } from "@prisma/client";
+import { MemberApprovalRequiredToggle } from "@/app/onboard/components/memberApprovalRequiredToggle";
+import { headers } from "next/headers";
+import { getBaseUrl, createInviteLink } from "@/lib/utils";
 
 interface MembersSettingsPageProps {
     params: {
@@ -59,6 +62,11 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
     const usedSeats = members.length
     const seatsAvailable = seats === SOURCEBOT_UNLIMITED_SEATS || usedSeats < seats;
 
+    // Get the current URL to construct the full invite link
+    const headersList = headers();
+    const baseUrl = getBaseUrl(headersList);
+    const inviteLink = createInviteLink(baseUrl, org.inviteLinkId);
+
     return (
         <div className="flex flex-col gap-6">
             <div className="flex items-start justify-between">
@@ -77,6 +85,10 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                     </div>
                 )}
             </div>
+
+            {userRoleInOrg === OrgRole.OWNER && (
+                <MemberApprovalRequiredToggle memberApprovalRequired={org.memberApprovalRequired} inviteLinkEnabled={org.inviteLinkEnabled} inviteLink={inviteLink} />
+            )}
 
             <InviteMemberCard
                 currentUserRole={userRoleInOrg}

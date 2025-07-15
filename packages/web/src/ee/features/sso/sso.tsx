@@ -7,13 +7,7 @@ import Keycloak from "next-auth/providers/keycloak";
 import Gitlab from "next-auth/providers/gitlab";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { prisma } from "@/prisma";
-import { notFound, ServiceError } from "@/lib/serviceError";
-import { OrgRole } from "@sourcebot/db";
-import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
-import { StatusCodes } from "http-status-codes";
-import { ErrorCode } from "@/lib/errorCodes";
 import { OAuth2Client } from "google-auth-library";
-import { sew } from "@/actions";
 import Credentials from "next-auth/providers/credentials";
 import type { User as AuthJsUser } from "next-auth";
 import { onCreateUser } from "@/lib/authUtils";
@@ -173,78 +167,3 @@ export const getSSOProviders = (): Provider[] => {
 
     return providers;
 }
-
-export const handleJITProvisioning = async (userId: string, domain: string): Promise<ServiceError | boolean> => sew(async () => {
-    const org = await prisma.org.findUnique({
-        where: {
-            domain,
-        },
-        include: {
-            members: {
-                where: {
-                    role: {
-                        not: OrgRole.GUEST,
-                    }
-                }
-            }
-        }
-    });
-
-    if (!org) {
-        return notFound(`Org ${domain} not found`);
-    }
-
-    const user = await prisma.user.findUnique({
-        where: {
-            id: userId,
-        },
-    });
-
-    if (!user) {
-        return notFound(`User ${userId} not found`);
-    }
-
-    const userToOrg = await prisma.userToOrg.findFirst({
-        where: {
-            userId,
-            orgId: org.id,
-        }
-    });
-
-    if (userToOrg) {
-        logger.warn(`JIT provisioning skipped for user ${userId} since they're already a member of org ${domain}`);
-        return true;
-    }
-
-    const seats = getSeats();
-    const memberCount = org.members.length;
-
-    if (seats != SOURCEBOT_UNLIMITED_SEATS && memberCount >= seats) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
-            message: "Failed to provision user since the organization is at max capacity",
-        } satisfies ServiceError;
-    }
-
-    await prisma.$transaction(async (tx) => {
-        await tx.user.update({
-            where: {
-                id: userId,
-            },
-            data: {
-                pendingApproval: false,
-            },
-        });
-
-        await tx.userToOrg.create({
-            data: {
-                userId,
-                orgId: org.id,
-                role: OrgRole.MEMBER,
-            },
-        });
-    });
-
-    return true;
-}); 

@@ -5,6 +5,8 @@ import { isServiceError } from "@/lib/utils";
 import { AcceptInviteCard } from './components/acceptInviteCard';
 import { LogoutEscapeHatch } from '../components/logoutEscapeHatch';
 import { InviteNotFoundCard } from './components/inviteNotFoundCard';
+import { getOrgFromDomain } from '@/data/org';
+import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 
 interface RedeemPageProps {
     searchParams: {
@@ -13,6 +15,11 @@ interface RedeemPageProps {
 }
 
 export default async function RedeemPage({ searchParams }: RedeemPageProps) {
+    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+    if (!org || !org.isOnboarded) {
+        return redirect("/onboard");
+    }
+
     const inviteId = searchParams.invite_id;
     if (!inviteId) {
         return notFound();

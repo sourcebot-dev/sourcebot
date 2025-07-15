@@ -6,14 +6,16 @@ import { useState } from "react"
 import { useToast } from "@/components/hooks/use-toast"
 import { createAccountRequest } from "@/actions"
 import { isServiceError } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
-interface ResubmitButtonProps {
+interface SubmitButtonProps {
     domain: string
     userId: string
 }
 
-export function ResubmitAccountRequestButton({ domain, userId }: ResubmitButtonProps) {
+export function SubmitAccountRequestButton({ domain, userId }: SubmitButtonProps) {
     const { toast } = useToast()
+    const router = useRouter()
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const handleSubmit = async () => {
@@ -28,19 +30,20 @@ export function ResubmitAccountRequestButton({ domain, userId }: ResubmitButtonP
                 })
             } else {
                 toast({
-                    title: "Request Resubmitted",
-                    description: "Your request to join the organization has been resubmitted.",
+                    title: "Request Submitted",
+                    description: "Your request to join the organization has been submitted.",
                     variant: "default",
                 })
             }
+            // Refresh the page to trigger layout re-render and show PendingApprovalCard
+            router.refresh()
         } else {
             toast({
-                title: "Failed to Resubmit",
-                description: `There was an error resubmitting your request. Reason: ${result.message}`,
+                title: "Failed to Submit",
+                description: `There was an error submitting your request. Reason: ${result.message}`,
                 variant: "destructive",
             })
         }
-
         setIsSubmitting(false)
     }
 
@@ -57,7 +60,7 @@ export function ResubmitAccountRequestButton({ domain, userId }: ResubmitButtonP
                 disabled={isSubmitting}
             >
                 <Clock className="h-4 w-4" />
-                {isSubmitting ? "Submitting..." : "Resubmit Request"}
+                {isSubmitting ? "Submitting..." : "Submit Request"}
             </Button>
         </form>
     )

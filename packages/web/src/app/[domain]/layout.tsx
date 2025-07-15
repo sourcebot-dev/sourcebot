@@ -14,10 +14,14 @@ import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { notFound, redirect } from "next/navigation";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { PendingApprovalCard } from "./components/pendingApproval";
+import { SubmitJoinRequest } from "./components/submitJoinRequest";
 import { hasEntitlement } from "@sourcebot/shared";
 import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "./components/gcpIapAuth";
+import { getMemberApprovalRequired } from "@/actions";
+import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
+import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -34,43 +38,60 @@ export default async function Layout({
         return notFound();
     }
 
+    const session = await auth();
     const publicAccessEnabled = hasEntitlement("public-access") && await getPublicAccessStatus(domain);
-    if (!publicAccessEnabled) {
-        const session = await auth();
-        if (!session) {
-            const ssoEntitlement = await hasEntitlement("sso");
-            if (ssoEntitlement && env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
-                return <GcpIapAuth callbackUrl={`/${domain}`} />;
-            } else {
-                redirect('/login');
-            }
-        }
-
+    
+    // If the user is authenticated, we must check if they're a member of the org
+    if (session) {
         const membership = await prisma.userToOrg.findUnique({
             where: {
                 orgId_userId: {
                     orgId: org.id,
                     userId: session.user.id
                 }
-            }, 
+            },
             include: {
                 user: true
             }
         });
-
+        
+        // There's two reasons why a user might not be a member of an org:
+        // 1. The org doesn't require member approval, but the org was at max capacity when the user registered. In this case, we show them
+        // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
+        // 2. The org requires member approval, and they haven't been approved yet. In this case, we allow them to submit a request to join the org.
         if (!membership) {
-                const user = await prisma.user.findUnique({
+            const memberApprovalRequired = await getMemberApprovalRequired(domain);
+            if (!memberApprovalRequired) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6">
+                        <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
+                        <JoinOrganizationCard />
+                    </div>
+                )
+            } else {
+                const hasPendingApproval = await prisma.accountRequest.findFirst({
                     where: {
-                        id: session.user.id
+                        orgId: org.id,
+                        requestedById: session.user.id
                     }
                 });
                 
-                // TODO: Organization join requests are only supported in single-tenant mode
-                if (env.SOURCEBOT_TENANCY_MODE === "single" && user?.pendingApproval) {
-                    return <PendingApprovalCard domain={domain} />
+                if (hasPendingApproval) {
+                    return <PendingApprovalCard />
                 } else {
-                    return notFound();
+                    return <SubmitJoinRequest domain={domain} />
                 }
+            }
+        }
+    } else {
+        // If the user isn't authenticated and public access isn't enabled, we need to redirect them to the login page.
+        if (!publicAccessEnabled) {
+            const ssoEntitlement = await hasEntitlement("sso");
+            if (ssoEntitlement && env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
+                return <GcpIapAuth callbackUrl={`/${domain}`} />;
+            } else {
+                redirect('/login');
+            }
         }
     }
 

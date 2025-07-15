@@ -14,9 +14,10 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface CredentialsFormProps {
     callbackUrl?: string;
+    context: "login" | "signup";
 }
 
-export const CredentialsForm = ({ callbackUrl }: CredentialsFormProps) => {
+export const CredentialsForm = ({ callbackUrl, context }: CredentialsFormProps) => {
     const captureEvent = useCaptureEvent();
     const [isLoading, setIsLoading] = useState(false);
     const form = useForm<z.infer<typeof verifyCredentialsRequestSchema>>({
@@ -80,7 +81,7 @@ export const CredentialsForm = ({ callbackUrl }: CredentialsFormProps) => {
                     disabled={isLoading}
                 >
                     {isLoading ? <Loader2 className="animate-spin mr-2" /> : ""}
-                    Sign in with credentials
+                    {context === "login" ? "Sign in with credentials" : "Sign up with credentials"}
                 </Button>
             </form>
         </Form>

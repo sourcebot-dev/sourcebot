@@ -1,35 +1,19 @@
 import { auth } from "@/auth";
-import { prisma } from "@/prisma";
 import { redirect } from "next/navigation";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
+import { getOrgFromDomain } from "@/data/org";
 
 export default async function Page() {
+    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+
+    if (!org || !org.isOnboarded) {
+        return redirect("/onboard");
+    }
+
     const session = await auth();
     if (!session) {
         return redirect("/login");
     }
 
-    const firstOrg = await prisma.userToOrg.findFirst({
-        where: {
-            userId: session.user.id,
-            org: {
-                members: {
-                    some: {
-                        userId: session.user.id,
-                    }
-                }
-            }
-        },
-        include: {
-            org: true
-        },
-        orderBy: {
-            joinedAt: "asc"
-        }
-    });
-
-    if (!firstOrg) {
-        return redirect("/onboard");
-    }
-
-    return redirect(`/${firstOrg.org.domain}`);
+    return redirect(`/${SINGLE_TENANT_ORG_DOMAIN}`);
 }

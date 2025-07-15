@@ -114,7 +114,7 @@ const syncDeclarativeConfig = async (configPath: string) => {
 
     if (hasPublicAccessEntitlement) {
         if (enablePublicAccess && env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === 'true') {
-            logger.error(`Audit logging is not supported when public access is enabled. Please disable audit logging or disable public access.`);
+            logger.error(`Audit logging is not supported when public access is enabled. Please disable audit logging (SOURCEBOT_EE_AUDIT_LOGGING_ENABLED) or disable public access.`);
             process.exit(1);
         }
         
@@ -159,15 +159,32 @@ const pruneOldGuestUser = async () => {
 }
 
 const initSingleTenancy = async () => {
-    await prisma.org.upsert({
-        where: {
-            id: SINGLE_TENANT_ORG_ID,
-        },
-        update: {},
-        create: {
-            name: SINGLE_TENANT_ORG_NAME,
-            domain: SINGLE_TENANT_ORG_DOMAIN,
-            id: SINGLE_TENANT_ORG_ID
+    // Back fill the inviteId if the org has already been created to prevent needing to wipe the db
+    await prisma.$transaction(async (tx) => {
+        const org = await tx.org.findUnique({
+            where: {
+                id: SINGLE_TENANT_ORG_ID,
+            },
+        });
+
+        if (!org) {
+            await tx.org.create({
+                data: {
+                    id: SINGLE_TENANT_ORG_ID,
+                    name: SINGLE_TENANT_ORG_NAME,
+                    domain: SINGLE_TENANT_ORG_DOMAIN,
+                    inviteLinkId: crypto.randomUUID(),
+                }
+            });
+        } else if (!org.inviteLinkId) {
+            await tx.org.update({
+                where: {
+                    id: SINGLE_TENANT_ORG_ID,
+                },
+                data: {
+                    inviteLinkId: crypto.randomUUID(),
+                }
+            });
         }
     });
 
@@ -186,17 +203,6 @@ const initSingleTenancy = async () => {
     // Load any connections defined declaratively in the config file.
     const configPath = env.CONFIG_PATH;
     if (configPath) {
-        // If we're given a config file, mark the org as onboarded so we don't go through
-        // the UI connection onboarding flow
-        await prisma.org.update({
-            where: {
-                id: SINGLE_TENANT_ORG_ID,
-            },
-            data: {
-                isOnboarded: true,
-            }
-        });
-        
         await syncDeclarativeConfig(configPath);
         
         // watch for changes assuming it is a local file
