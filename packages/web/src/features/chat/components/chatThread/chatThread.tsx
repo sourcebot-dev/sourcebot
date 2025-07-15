@@ -16,7 +16,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
 import { ChatBox } from '../chatBox';
-import { ChatBoxTools } from '../chatBoxTools';
+import { ChatBoxTools } from '../chatBox/chatBoxTools';
 import { ErrorBanner } from './errorBanner';
 import { MessagePair } from './messagePair';
 

@@ -8,7 +8,7 @@ import { cn, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { AtSignIcon } from "lucide-react";
 import { ReactEditor, useSlate } from "slate-react";
-import { RepoSelector } from "./repoSelector";
+import { RepoSelector } from "../repoSelector";
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { ModelProvider, ModelProviderInfo } from "@/features/chat/types";
 import { useCallback, useMemo } from "react";
