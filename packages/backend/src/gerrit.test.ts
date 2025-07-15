@@ -28,12 +28,15 @@ vi.mock('./utils.js', async () => {
             return result;
         }),
         getTokenFromConfig: vi.fn().mockImplementation(async (token) => {
-            // If token is a string, return it directly (mimicking actual behavior)
+            // String tokens are no longer supported (security measure)
             if (typeof token === 'string') {
-                return token;
+                throw new Error('Invalid token configuration');
             }
             // For objects (env/secret), return mock value
-            return 'mock-password';
+            if (token && typeof token === 'object' && ('secret' in token || 'env' in token)) {
+                return 'mock-password';
+            }
+            throw new Error('Invalid token configuration');
         }),
     };
 });
@@ -947,4 +950,62 @@ test('getGerritReposFromConfig handles concurrent authentication requests', asyn
     // Verify getTokenFromConfig was called for each request
     const { getTokenFromConfig } = await import('./utils.js');
     expect(getTokenFromConfig).toHaveBeenCalledTimes(5);
+});
+
+test('getGerritReposFromConfig rejects invalid token formats (security)', async () => {
+    const configWithStringToken: any = {
+        type: 'gerrit',
+        url: 'https://gerrit.example.com',
+        projects: ['test-project'],
+        auth: {
+            username: 'testuser',
+            password: 'direct-string-password' // This should be rejected
+        }
+    };
+
+    await expect(getGerritReposFromConfig(configWithStringToken, 1, mockDb))
+        .rejects.toThrow('CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS');
+
+    const configWithMalformedToken: any = {
+        type: 'gerrit',
+        url: 'https://gerrit.example.com',
+        projects: ['test-project'],
+        auth: {
+            username: 'testuser',
+            password: { invalid: 'format' } // This should be rejected
+        }
+    };
+
+    await expect(getGerritReposFromConfig(configWithMalformedToken, 1, mockDb))
+        .rejects.toThrow('CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS');
+});
+
+test('getGerritReposFromConfig handles responses with and without XSSI prefix', async () => {
+    const config: GerritConnectionConfig = {
+        type: 'gerrit',
+        url: 'https://gerrit.example.com',
+        projects: ['test-project']
+    };
+
+    // Test with XSSI prefix
+    const responseWithXSSI = {
+        ok: true,
+        text: () => Promise.resolve(')]}\'\n{"test-project": {"id": "test%2Dproject"}}'),
+    };
+    mockFetch.mockResolvedValueOnce(responseWithXSSI as any);
+
+    const result1 = await getGerritReposFromConfig(config, 1, mockDb);
+    expect(result1).toHaveLength(1);
+    expect(result1[0].name).toBe('test-project');
+
+    // Test without XSSI prefix
+    const responseWithoutXSSI = {
+        ok: true,
+        text: () => Promise.resolve('{"test-project": {"id": "test%2Dproject"}}'),
+    };
+    mockFetch.mockResolvedValueOnce(responseWithoutXSSI as any);
+
+    const result2 = await getGerritReposFromConfig(config, 1, mockDb);
+    expect(result2).toHaveLength(1);
+    expect(result2[0].name).toBe('test-project');
 }); 
