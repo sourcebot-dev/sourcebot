@@ -50,7 +50,7 @@ For private/authenticated Gerrit projects, you need to provide credentials:
     "auth": {
         "username": "your-gerrit-username",
         "password": {
-            "secret": "GERRIT_HTTP_PASSWORD"
+            "env": "GERRIT_HTTP_PASSWORD"
         }
     }
 }
@@ -59,8 +59,6 @@ For private/authenticated Gerrit projects, you need to provide credentials:
 <Warning>
 Use **HTTP Password**, not your Gerrit account password. Generate an HTTP password in Gerrit: **Settings → HTTP Credentials → Generate Password**.
 </Warning>
-
-### Environment Variables
 
 Set your Gerrit HTTP password as an environment variable:
 
@@ -273,75 +271,8 @@ Add the authenticated connection to your `config.json`:
     </Accordion>
 </AccordionGroup>
 
-### Debug Steps
 
-1. **Enable Debug Logging**: Set log level to debug in Sourcebot configuration
-2. **Test API Access**: Verify Gerrit API responds correctly
-3. **Check Project Permissions**: Ensure your user has clone permissions
-4. **Validate Configuration**: Use JSON schema validation tools
 
-### Manual Testing Script
-
-You can test Gerrit authentication independently:
-
-```typescript
-// gerrit-test.ts - Test script for Gerrit authentication
-import * as https from 'https';
-import * as child_process from 'child_process';
-
-const GERRIT_URL = 'https://gerrit.example.com';
-const USERNAME = 'your-username';
-const HTTP_PASSWORD = 'your-http-password';
-const PROJECT = 'project-name';
-
-// Test API access
-const auth = 'Basic ' + Buffer.from(`${USERNAME}:${HTTP_PASSWORD}`).toString('base64');
-const options = {
-    hostname: new URL(GERRIT_URL).hostname,
-    path: '/a/projects/',
-    headers: { 'Authorization': auth }
-};
-
-https.get(options, (res) => {
-    console.log(`API Status: ${res.statusCode}`);
-    if (res.statusCode === 200) {
-        console.log('✅ API authentication successful');
-        
-        // Test git clone
-        const cloneUrl = `https://${USERNAME}@${new URL(GERRIT_URL).host}/a/${PROJECT}`;
-        console.log(`Testing git clone: ${cloneUrl}`);
-        
-        // Note: This requires proper credential handling in production
-    } else {
-        console.log('❌ API authentication failed');
-    }
-});
-```
-
-## Implementation Details
-
-### URL Structure
-
-Gerrit uses a specific URL structure for authenticated access:
-
-- **API Access**: `https://gerrit.example.com/a/endpoint`
-- **Git Clone**: `https://username@gerrit.example.com/a/project-name`
-
-The `/a/` prefix is crucial for authenticated operations.
-
-### Credential Flow
-
-1. Sourcebot validates configuration and credentials
-2. API call to `/a/projects/` to list accessible projects
-3. For each project, git clone using `https://username@host/a/project`
-4. Git authentication handled via URL-embedded username and credential helpers
-
-### Security Considerations
-
-- Store HTTP passwords in environment variables, never in config files
-- Use least-privilege Gerrit accounts for Sourcebot
-- Regularly rotate HTTP passwords
-- Monitor access logs for unusual activity
 
 ## Schema Reference
 
@@ -352,12 +283,3 @@ The `/a/` prefix is crucial for authenticated operations.
 
 </Accordion>
 
-## Additional Resources
-
-- [Gerrit HTTP Password Documentation](https://gerrit-review.googlesource.com/Documentation/user-upload.html#http)
-- [Gerrit REST API](https://gerrit-review.googlesource.com/Documentation/rest-api.html)
-- [Git Credential Helpers](https://git-scm.com/docs/gitcredentials)
-
-<Note>
-This documentation is based on extensive testing with Gerrit authentication. If you encounter issues not covered here, please [open an issue](https://github.com/sourcebot-dev/sourcebot/issues) with your specific configuration and error details.
-</Note>
