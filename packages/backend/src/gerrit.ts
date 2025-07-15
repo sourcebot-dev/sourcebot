@@ -109,6 +109,7 @@ export const getGerritReposFromConfig = async (
 
 const fetchAllProjects = async (url: string, auth?: GerritAuthConfig): Promise<GerritProject[]> => {
    // Use authenticated endpoint if auth is provided, otherwise use public endpoint
+   // See: https://gerrit-review.googlesource.com/Documentation/rest-api.html#:~:text=Protocol%20Details-,Authentication,-By%20default%20all
    const projectsEndpoint = auth ? `${url}a/projects/` : `${url}projects/`;
    let allProjects: GerritProject[] = [];
    let start = 0; // Start offset for pagination
