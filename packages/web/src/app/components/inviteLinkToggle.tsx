@@ -1,44 +1,28 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Copy, Check } from "lucide-react"
 import { useToast } from "@/components/hooks/use-toast"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { getOrgInviteId, setInviteLinkEnabled } from "@/actions"
+import { setInviteLinkEnabled } from "@/actions"
 import { isServiceError } from "@/lib/utils"
 
 interface InviteLinkToggleProps {
     inviteLinkEnabled: boolean
+    inviteLinkId?: string
 }
 
-export function InviteLinkToggle({ inviteLinkEnabled }: InviteLinkToggleProps) {
+export function InviteLinkToggle({ inviteLinkEnabled, inviteLinkId }: InviteLinkToggleProps) {
     const [enabled, setEnabled] = useState(inviteLinkEnabled)
     const [isLoading, setIsLoading] = useState(false)
-    const [inviteLink, setInviteLink] = useState("")
     const [copied, setCopied] = useState(false)
     const { toast } = useToast()
+    
+    const inviteLink = inviteLinkId ? `${window.location.origin}/invite?id=${inviteLinkId}` : null
 
-    // Fetch invite link when component mounts if enabled
-    useEffect(() => {
-        const fetchInviteLink = async () => {
-            if (inviteLinkEnabled) {
-                try {
-                    const inviteIdResult = await getOrgInviteId(SINGLE_TENANT_ORG_DOMAIN)
-                    if (!isServiceError(inviteIdResult)) {
-                        setInviteLink(`${window.location.origin}/invite?id=${inviteIdResult}`)
-                    }
-                } catch (error) {
-                    setInviteLink("")
-                    console.error("Error fetching invite link:", error)
-                }
-            }
-        }
-
-        fetchInviteLink()
-    }, [inviteLinkEnabled])
 
     const handleToggle = async (checked: boolean) => {
         setIsLoading(true)
@@ -56,16 +40,6 @@ export function InviteLinkToggle({ inviteLinkEnabled }: InviteLinkToggleProps) {
 
             setEnabled(checked)
             
-            // If enabled, fetch the invite link; if disabled, clear it
-            if (checked) {
-                const inviteIdResult = await getOrgInviteId(SINGLE_TENANT_ORG_DOMAIN)
-                if (!isServiceError(inviteIdResult)) {
-                    setInviteLink(`${window.location.origin}/invite?id=${inviteIdResult}`)
-                }
-            } else {
-                setInviteLink("")
-            }
-            
         } catch (error) {
             console.error("Error updating invite link setting:", error)
             toast({
@@ -79,6 +53,8 @@ export function InviteLinkToggle({ inviteLinkEnabled }: InviteLinkToggleProps) {
     }
 
     const handleCopy = async () => {
+        if (!inviteLink) return
+        
         try {
             await navigator.clipboard.writeText(inviteLink)
             setCopied(true)
@@ -124,9 +100,11 @@ export function InviteLinkToggle({ inviteLinkEnabled }: InviteLinkToggleProps) {
                     <div className="space-y-2">
                         <div className="flex gap-2">
                             <Input
-                                value={inviteLink}
+                                value={inviteLink || "Failed to fetch invite link: org doesn't have inviteId property."}
                                 readOnly
-                                className="flex-1 bg-[var(--muted)] border-[var(--border)] text-[var(--foreground)]"
+                                className={`flex-1 bg-[var(--muted)] border-[var(--border)] ${
+                                    inviteLink ? 'text-[var(--foreground)]' : 'text-red-500'
+                                }`}
                             />
                             <Button
                                 onClick={handleCopy}

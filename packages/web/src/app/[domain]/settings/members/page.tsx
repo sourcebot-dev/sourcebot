@@ -80,7 +80,7 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
             </div>
 
             {userRoleInOrg === OrgRole.OWNER && (
-                <MemberApprovalRequiredToggle memberApprovalRequired={org.memberApprovalRequired} inviteLinkEnabled={org.inviteLinkEnabled} />
+                <MemberApprovalRequiredToggle memberApprovalRequired={org.memberApprovalRequired} inviteLinkEnabled={org.inviteLinkEnabled} inviteLinkId={org.inviteLinkId} />
             )}
 
             <InviteMemberCard
