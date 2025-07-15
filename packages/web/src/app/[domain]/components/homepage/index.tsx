@@ -1,31 +1,37 @@
 'use client';
 
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { ChatBox } from "@/features/chat/components/chatBox";
+import { ChatBoxTools } from "@/features/chat/components/chatBoxTools";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { ModelProviderInfo } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
+import { RepositoryQuery } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useLocalStorage } from "usehooks-ts";
-import { ChatBox } from "../../features/chat/components/chatBox";
-import { ChatBoxTools } from "../../features/chat/components/chatBoxTools";
-import { SearchBar } from "./components/searchBar";
+import { SearchBar } from "../searchBar";
+import { AgenticSearchInfo } from "./agenticSearchInfo";
+import { PreciseSearchInfo } from "./preciseSearchInfo";
 
-type SearchMode = "precise" | "agentic";
-
-interface IntegratedSearchBoxProps {
+interface HomepageProps {
+    initialRepos: RepositoryQuery[];
     modelProviderInfo?: ModelProviderInfo;
 }
 
-export const IntegratedSearchBox = ({
+type SearchMode = "precise" | "agentic";
+
+export const Homepage = ({
+    initialRepos,
     modelProviderInfo,
-}: IntegratedSearchBoxProps) => {
+}: HomepageProps) => {
     const [searchMode, setSearchMode] = useLocalStorage<SearchMode>("search-mode", "precise", { initializeWithValue: false });
-    const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
+    const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
 
     useHotkeys("mod+i", (e) => {
         e.preventDefault();
@@ -46,47 +52,64 @@ export const IntegratedSearchBox = ({
     });
 
     return (
-        <div className="mt-4 w-full max-w-[800px] border rounded-md shadow-sm">
-            {searchMode === "precise" ? (
-                <>
-                    <SearchBar
-                        autoFocus={true}
-                        className="border-none pt-0.5 pb-0"
-                    />
-                    <Separator />
-                    <Toolbar
-                        searchMode={searchMode}
-                        isAgenticSearchEnabled={!!modelProviderInfo?.provider}
-                        onSearchModeChange={setSearchMode}
-                    />
-                </>
-            ) : (
-                <CustomSlateEditor>
-                    <ChatBox
-                        onSubmit={(children) => {
-                            createNewChatThread(children, selectedRepos);
-                        }}
-                        className="min-h-[50px]"
-                        selectedRepos={selectedRepos}
-                        isRedirecting={isLoading}
-                    />
-                    <Separator />
-                    <Toolbar
-                        searchMode={searchMode}
-                        onSearchModeChange={setSearchMode}
-                        isAgenticSearchEnabled={!!modelProviderInfo}
-                    >
-                        <ChatBoxTools
-                            selectedRepos={selectedRepos}
-                            onSelectedReposChange={setSelectedRepos}
-                            modelProviderInfo={modelProviderInfo}
+        <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
+            <div className="max-h-44 w-auto">
+                <SourcebotLogo
+                    className="h-18 md:h-40 w-auto"
+                />
+            </div>
+
+            <div className="mt-4 w-full max-w-[800px] border rounded-md shadow-sm">
+                {searchMode === "precise" ? (
+                    <>
+                        <SearchBar
+                            autoFocus={true}
+                            className="border-none pt-0.5 pb-0"
                         />
-                    </Toolbar>
-                </CustomSlateEditor>
+                        <Separator />
+                        <Toolbar
+                            searchMode={searchMode}
+                            isAgenticSearchEnabled={!!modelProviderInfo?.provider}
+                            onSearchModeChange={setSearchMode}
+                        />
+                    </>
+                ) : (
+                    <CustomSlateEditor>
+                        <ChatBox
+                            onSubmit={(children) => {
+                                createNewChatThread(children, selectedRepos);
+                            }}
+                            className="min-h-[50px]"
+                            selectedRepos={selectedRepos}
+                            isRedirecting={isLoading}
+                        />
+                        <Separator />
+                        <Toolbar
+                            searchMode={searchMode}
+                            onSearchModeChange={setSearchMode}
+                            isAgenticSearchEnabled={!!modelProviderInfo}
+                        >
+                            <ChatBoxTools
+                                selectedRepos={selectedRepos}
+                                onSelectedReposChange={setSelectedRepos}
+                                modelProviderInfo={modelProviderInfo}
+                            />
+                        </Toolbar>
+                    </CustomSlateEditor>
+                )}
+            </div>
+
+            {searchMode === "precise" ? (
+                <PreciseSearchInfo
+                    initialRepos={initialRepos}
+                />
+            ) : (
+                <AgenticSearchInfo />
             )}
         </div>
     )
 }
+
 
 interface ToolbarProps {
     searchMode: SearchMode;
@@ -150,3 +173,5 @@ const Toolbar = ({
         </div>
     )
 }
+
+
