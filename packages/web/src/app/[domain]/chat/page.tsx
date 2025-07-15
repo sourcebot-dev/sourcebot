@@ -2,7 +2,7 @@
 
 import { ResizablePanel } from '@/components/ui/resizable';
 import { ChatBox } from '@/features/chat/components/chatBox';
-import { ChatBoxTools } from '@/features/chat/components/chatBoxTools';
+import { ChatBoxTools } from '@/features/chat/components/chatBox/chatBoxTools';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { useCallback, useState } from 'react';
 import { Descendant } from 'slate';
