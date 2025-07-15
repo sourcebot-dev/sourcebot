@@ -11,10 +11,10 @@ import { InviteLinkToggle } from "@/app/components/inviteLinkToggle"
 interface MemberApprovalRequiredToggleProps {
     memberApprovalRequired: boolean
     inviteLinkEnabled: boolean
-    inviteLinkId?: string
+    inviteLink: string | null
 }
 
-export function MemberApprovalRequiredToggle({ memberApprovalRequired, inviteLinkEnabled, inviteLinkId }: MemberApprovalRequiredToggleProps) {
+export function MemberApprovalRequiredToggle({ memberApprovalRequired, inviteLinkEnabled, inviteLink }: MemberApprovalRequiredToggleProps) {
     const [enabled, setEnabled] = useState(memberApprovalRequired)
     const [isLoading, setIsLoading] = useState(false)
     const { toast } = useToast()
@@ -83,7 +83,7 @@ export function MemberApprovalRequiredToggle({ memberApprovalRequired, inviteLin
                     ? 'max-h-96 opacity-100' 
                     : 'max-h-0 opacity-0 pointer-events-none'
             }`}>
-                <InviteLinkToggle inviteLinkEnabled={inviteLinkEnabled} inviteLinkId={inviteLinkId} />
+                <InviteLinkToggle inviteLinkEnabled={inviteLinkEnabled} inviteLink={inviteLink} />
             </div>
         </div>
     )

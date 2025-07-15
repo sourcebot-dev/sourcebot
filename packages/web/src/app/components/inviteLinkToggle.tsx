@@ -12,17 +12,15 @@ import { isServiceError } from "@/lib/utils"
 
 interface InviteLinkToggleProps {
     inviteLinkEnabled: boolean
-    inviteLinkId?: string
+    inviteLink: string | null
 }
 
-export function InviteLinkToggle({ inviteLinkEnabled, inviteLinkId }: InviteLinkToggleProps) {
+export function InviteLinkToggle({ inviteLinkEnabled, inviteLink }: InviteLinkToggleProps) {
     const [enabled, setEnabled] = useState(inviteLinkEnabled)
     const [isLoading, setIsLoading] = useState(false)
     const [copied, setCopied] = useState(false)
     const { toast } = useToast()
     
-    const inviteLink = inviteLinkId ? `${window.location.origin}/invite?id=${inviteLinkId}` : null
-
 
     const handleToggle = async (checked: boolean) => {
         setIsLoading(true)

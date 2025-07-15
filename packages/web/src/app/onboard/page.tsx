@@ -18,6 +18,8 @@ import { BetweenHorizonalStart, GitBranchIcon, LockIcon } from "lucide-react";
 import { hasEntitlement } from "@sourcebot/shared";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
+import { headers } from "next/headers";
+import { getBaseUrl, createInviteLink } from "@/lib/utils";
 
 interface OnboardingProps {
     searchParams?: { step?: string };
@@ -46,6 +48,11 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
     if (!org) {
         return <div>Error loading organization</div>;
     }
+
+    // Get the current URL to construct the full invite link
+    const headersList = headers();
+    const baseUrl = getBaseUrl(headersList);
+    const inviteLink = createInviteLink(baseUrl, org.inviteLinkId);
 
     if (org && org.isOnboarded) {
         redirect('/');
@@ -149,7 +156,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             subtitle: "Set up your organization's security settings.",
             component: (
                 <div className="space-y-6">
-                    <MemberApprovalRequiredToggle memberApprovalRequired={org.memberApprovalRequired} inviteLinkEnabled={org.inviteLinkEnabled} inviteLinkId={org.inviteLinkId} />
+                    <MemberApprovalRequiredToggle memberApprovalRequired={org.memberApprovalRequired} inviteLinkEnabled={org.inviteLinkEnabled} inviteLink={inviteLink} />
                     <Button asChild className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200 font-medium">
                         <a href="/onboard?step=3">Continue →</a>
                     </Button>
