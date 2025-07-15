@@ -15,6 +15,9 @@ import { OrgRole } from "@sourcebot/db";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
 import { GitBranchIcon, LockIcon } from "lucide-react";
+import { hasEntitlement } from "@sourcebot/shared";
+import { env } from "@/env.mjs";
+import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
 
 interface OnboardingProps {
     searchParams?: { step?: string };
@@ -60,6 +63,12 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                 return <NonOwnerOnboardingMessage />;
             }
         }
+    }
+
+    // If we're using an IAP bridge we need to sign them in now and then redirect them back to the onboarding page
+    const ssoEntitlement = await hasEntitlement("sso");
+    if (ssoEntitlement && env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
+        return <GcpIapAuth callbackUrl={`/onboard`} />;
     }
 
     // Determine current step based on URL parameter and authentication state
