@@ -6,18 +6,32 @@ import { RepositorySnapshot } from "./repositorySnapshot";
 import { RepositoryQuery } from "@/lib/types";
 import { useDomain } from "@/hooks/useDomain";
 import Link from "next/link";
+import { SearchBar } from "../searchBar/searchBar";
+import { Toolbar, ToolbarProps } from "./toolbar";
 
-interface PreciseSearchInfoProps {
+interface PreciseSearchProps {
     initialRepos: RepositoryQuery[];
+    toolBarProps: ToolbarProps;
 }
 
-export const PreciseSearchInfo = ({
+export const PreciseSearch = ({
     initialRepos,
-}: PreciseSearchInfoProps) => {
+    toolBarProps,
+}: PreciseSearchProps) => {
     const domain = useDomain();
 
     return (
         <>
+            <div className="mt-4 w-full max-w-[800px] border rounded-md shadow-sm">
+                <SearchBar
+                    autoFocus={true}
+                    className="border-none pt-0.5 pb-0"
+                />
+                <Separator />
+                <Toolbar
+                    {...toolBarProps}
+                />
+            </div>
             <div className="mt-8">
                 <RepositorySnapshot
                     repos={initialRepos}
