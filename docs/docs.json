@@ -52,7 +52,7 @@
                         "group": "Configuration",
                         "pages": [
                             {
-                                "group": "Connecting your code",
+                                "group": "Indexing your code",
                                 "pages": [
                                     "docs/connections/overview",
                                     "docs/connections/github",
