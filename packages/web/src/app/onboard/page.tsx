@@ -43,6 +43,10 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
     const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
     const session = await auth();
 
+    if (!org) {
+        return <div>Error loading organization</div>;
+    }
+
     if (org && org.isOnboarded) {
         redirect('/');
     }
@@ -138,7 +142,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             subtitle: "Set up your organization preferences and security settings.",
             component: (
                 <div className="space-y-6">
-                    <MemberApprovalRequiredToggle />
+                    <MemberApprovalRequiredToggle memberApprovalRequired={org.memberApprovalRequired} inviteLinkEnabled={org.inviteLinkEnabled} />
                     <Button asChild className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200 font-medium">
                         <a href="/onboard?step=3">Continue →</a>
                     </Button>

@@ -4,58 +4,41 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
-import { Copy, Check, Loader2 } from "lucide-react"
+import { Copy, Check } from "lucide-react"
 import { useToast } from "@/components/hooks/use-toast"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { getOrgInviteId, getInviteLinkEnabled, setInviteLinkEnabled } from "@/actions"
+import { getOrgInviteId, setInviteLinkEnabled } from "@/actions"
 import { isServiceError } from "@/lib/utils"
 
-export function InviteLinkToggle() {
-    const [enabled, setEnabled] = useState(false)
+interface InviteLinkToggleProps {
+    inviteLinkEnabled: boolean
+}
+
+export function InviteLinkToggle({ inviteLinkEnabled }: InviteLinkToggleProps) {
+    const [enabled, setEnabled] = useState(inviteLinkEnabled)
     const [isLoading, setIsLoading] = useState(false)
-    const [isInitializing, setIsInitializing] = useState(true)
     const [inviteLink, setInviteLink] = useState("")
     const [copied, setCopied] = useState(false)
     const { toast } = useToast()
 
-    // Fetch initial values on component mount
+    // Fetch invite link when component mounts if enabled
     useEffect(() => {
-        const fetchInitialValues = async () => {
-            try {
-                const enabledResult = await getInviteLinkEnabled(SINGLE_TENANT_ORG_DOMAIN)
-                
-                if (isServiceError(enabledResult)) {
-                    toast({
-                        title: "Error",
-                        description: "Failed to load invite link setting",
-                        variant: "destructive",
-                    })
-                    return
-                }
-
-                setEnabled(enabledResult)
-                
-                // If enabled, also fetch the invite link
-                if (enabledResult) {
+        const fetchInviteLink = async () => {
+            if (inviteLinkEnabled) {
+                try {
                     const inviteIdResult = await getOrgInviteId(SINGLE_TENANT_ORG_DOMAIN)
                     if (!isServiceError(inviteIdResult)) {
                         setInviteLink(`${window.location.origin}/invite?id=${inviteIdResult}`)
                     }
+                } catch (error) {
+                    setInviteLink("")
+                    console.error("Error fetching invite link:", error)
                 }
-            } catch (error) {
-                console.error("Error fetching invite link setting:", error)
-                toast({
-                    title: "Error",
-                    description: "Failed to load invite link setting",
-                    variant: "destructive",
-                })
-            } finally {
-                setIsInitializing(false)
             }
         }
 
-        fetchInitialValues()
-    }, [toast])
+        fetchInviteLink()
+    }, [inviteLinkEnabled])
 
     const handleToggle = async (checked: boolean) => {
         setIsLoading(true)
@@ -124,56 +107,48 @@ export function InviteLinkToggle() {
                     </div>
                 </div>
                 <div className="flex-shrink-0">
-                    {isInitializing ? (
-                        <div className="flex items-center justify-center w-11 h-6">
-                            <Loader2 className="animate-spin h-4 w-4 text-[var(--muted-foreground)]" />
-                        </div>
-                    ) : (
-                        <Switch
-                            checked={enabled}
-                            onCheckedChange={handleToggle}
-                            disabled={isLoading}
-                        />
-                    )}
+                    <Switch
+                        checked={enabled}
+                        onCheckedChange={handleToggle}
+                        disabled={isLoading}
+                    />
                 </div>
             </div>
             
-            {!isInitializing && (
-                <div className={`transition-all duration-300 ease-in-out ${
-                    enabled 
-                        ? 'max-h-96 opacity-100 transform translate-y-0 mt-4' 
-                        : 'max-h-0 opacity-0 transform -translate-y-2 overflow-hidden'
-                }`}>
-                    <div className="space-y-4 pt-4 border-t border-[var(--border)]">
-                        <div className="space-y-2">
-                            <div className="flex gap-2">
-                                <Input
-                                    value={inviteLink}
-                                    readOnly
-                                    className="flex-1 bg-[var(--muted)] border-[var(--border)] text-[var(--foreground)]"
-                                />
-                                <Button
-                                    onClick={handleCopy}
-                                    variant="outline"
-                                    size="icon"
-                                    className="shrink-0 border-[var(--border)] hover:bg-[var(--muted)]"
-                                    disabled={!inviteLink}
-                                >
-                                    {copied ? (
-                                        <Check className="h-4 w-4 text-[var(--chart-2)]" />
-                                    ) : (
-                                        <Copy className="h-4 w-4" />
-                                    )}
-                                </Button>
-                            </div>
+            <div className={`transition-all duration-300 ease-in-out ${
+                enabled 
+                    ? 'max-h-96 opacity-100 transform translate-y-0 mt-4' 
+                    : 'max-h-0 opacity-0 transform -translate-y-2 overflow-hidden'
+            }`}>
+                <div className="space-y-4 pt-4 border-t border-[var(--border)]">
+                    <div className="space-y-2">
+                        <div className="flex gap-2">
+                            <Input
+                                value={inviteLink}
+                                readOnly
+                                className="flex-1 bg-[var(--muted)] border-[var(--border)] text-[var(--foreground)]"
+                            />
+                            <Button
+                                onClick={handleCopy}
+                                variant="outline"
+                                size="icon"
+                                className="shrink-0 border-[var(--border)] hover:bg-[var(--muted)]"
+                                disabled={!inviteLink}
+                            >
+                                {copied ? (
+                                    <Check className="h-4 w-4 text-[var(--chart-2)]" />
+                                ) : (
+                                    <Copy className="h-4 w-4" />
+                                )}
+                            </Button>
                         </div>
-                        
-                        <p className="text-sm text-[var(--muted-foreground)]">
-                            You can find this link again in the <strong>Settings → Members</strong> page.
-                        </p>
                     </div>
+                    
+                    <p className="text-sm text-[var(--muted-foreground)]">
+                        You can find this link again in the <strong>Settings → Members</strong> page.
+                    </p>
                 </div>
-            )}
+            </div>
         </div>
     )
 }

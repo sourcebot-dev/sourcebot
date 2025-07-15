@@ -1,50 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Switch } from "@/components/ui/switch"
-import { Loader2 } from "lucide-react"
-import { setMemberApprovalRequired, getMemberApprovalRequired } from "@/actions"
+import { setMemberApprovalRequired } from "@/actions"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { isServiceError } from "@/lib/utils"
 import { useToast } from "@/components/hooks/use-toast"
 import { InviteLinkToggle } from "@/app/components/inviteLinkToggle"
 
-export function MemberApprovalRequiredToggle() {
-    const [enabled, setEnabled] = useState(false)
+interface MemberApprovalRequiredToggleProps {
+    memberApprovalRequired: boolean
+    inviteLinkEnabled: boolean
+}
+
+export function MemberApprovalRequiredToggle({ memberApprovalRequired, inviteLinkEnabled }: MemberApprovalRequiredToggleProps) {
+    const [enabled, setEnabled] = useState(memberApprovalRequired)
     const [isLoading, setIsLoading] = useState(false)
-    const [isInitializing, setIsInitializing] = useState(true)
     const { toast } = useToast()
-
-    // Fetch initial value on component mount
-    useEffect(() => {
-        const fetchInitialValue = async () => {
-            try {
-                const result = await getMemberApprovalRequired(SINGLE_TENANT_ORG_DOMAIN)
-                
-                if (isServiceError(result)) {
-                    toast({
-                        title: "Error",
-                        description: "Failed to load member approval setting",
-                        variant: "destructive",
-                    })
-                    return
-                }
-
-                setEnabled(result)
-            } catch (error) {
-                console.error("Error fetching member approval setting:", error)
-                toast({
-                    title: "Error",
-                    description: "Failed to load member approval setting",
-                    variant: "destructive",
-                })
-            } finally {
-                setIsInitializing(false)
-            }
-        }
-
-        fetchInitialValue()
-    }, [toast])
 
     const handleToggle = async (checked: boolean) => {
         setIsLoading(true)
@@ -96,27 +68,21 @@ export function MemberApprovalRequiredToggle() {
                         </div>
                     </div>
                     <div className="flex-shrink-0">
-                        {isInitializing ? (
-                            <div className="flex items-center justify-center w-11 h-6">
-                                <Loader2 className="animate-spin h-4 w-4 text-[var(--muted-foreground)]" />
-                            </div>
-                        ) : (
-                            <Switch
-                                checked={enabled}
-                                onCheckedChange={handleToggle}
-                                disabled={isLoading}
-                            />
-                        )}
+                        <Switch
+                            checked={enabled}
+                            onCheckedChange={handleToggle}
+                            disabled={isLoading}
+                        />
                     </div>
                 </div>
             </div>
             
             <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                enabled && !isInitializing 
+                enabled 
                     ? 'max-h-96 opacity-100 transform translate-y-0' 
                     : 'max-h-0 opacity-0 transform -translate-y-2'
             }`}>
-                <InviteLinkToggle />
+                <InviteLinkToggle inviteLinkEnabled={inviteLinkEnabled} />
             </div>
         </div>
     )

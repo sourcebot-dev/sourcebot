@@ -1683,7 +1683,7 @@ export const getMemberApprovalRequired = async (domain: string): Promise<boolean
     }
 
     return org.memberApprovalRequired;
-    });
+});
 
 export const setMemberApprovalRequired = async (domain: string, required: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
     withAuth(async (userId) =>
@@ -1700,13 +1700,19 @@ export const setMemberApprovalRequired = async (domain: string, required: boolea
     )
 );
 
-export const getInviteLinkEnabled = async (domain: string): Promise<boolean | ServiceError> => sew(async () =>
-    withAuth(async (userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            return org.inviteLinkEnabled;
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    )
-);
+export const getInviteLinkEnabled = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (!org) {
+        return orgNotFound();
+    }
+
+    return org.inviteLinkEnabled;
+});
 
 export const setInviteLinkEnabled = async (domain: string, enabled: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
     withAuth(async (userId) =>
