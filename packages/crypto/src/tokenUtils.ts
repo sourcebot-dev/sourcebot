@@ -3,9 +3,8 @@ import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { decrypt } from "./index.js";
 
 export const getTokenFromConfig = async (token: Token, orgId: number, db: PrismaClient) => {
-    // Handle direct string tokens
-    if (typeof token === 'string') {
-        return token;
+    if (typeof token !== 'object' || token === null) {
+        throw new Error('Invalid token configuration');
     }
     
     if ('secret' in token) {
