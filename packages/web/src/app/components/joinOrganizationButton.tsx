@@ -29,7 +29,7 @@ export function JoinOrganizationButton({ inviteLinkId }: { inviteLinkId?: string
                 return;
             }
 
-            router.push(`/${SINGLE_TENANT_ORG_DOMAIN}`);
+            router.refresh();
         } catch (error) {
             console.error("Error joining organization:", error);
             toast({

@@ -139,7 +139,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
         {
             id: "configure-org",
             title: "Configure your Organization",
-            subtitle: "Set up your organization preferences and security settings.",
+            subtitle: "Set up your organization's security settings.",
             component: (
                 <div className="space-y-6">
                     <MemberApprovalRequiredToggle memberApprovalRequired={org.memberApprovalRequired} inviteLinkEnabled={org.inviteLinkEnabled} />
