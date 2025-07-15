@@ -38,18 +38,11 @@ export default async function Layout({
         return notFound();
     }
 
+    const session = await auth();
     const publicAccessEnabled = hasEntitlement("public-access") && await getPublicAccessStatus(domain);
-    if (!publicAccessEnabled) {
-        const session = await auth();
-        if (!session) {
-            const ssoEntitlement = await hasEntitlement("sso");
-            if (ssoEntitlement && env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
-                return <GcpIapAuth callbackUrl={`/${domain}`} />;
-            } else {
-                redirect('/login');
-            }
-        }
-
+    
+    // If the user is authenticated, we must check if they're a member of the org
+    if (session) {
         const membership = await prisma.userToOrg.findUnique({
             where: {
                 orgId_userId: {
@@ -61,7 +54,7 @@ export default async function Layout({
                 user: true
             }
         });
-
+        
         // There's two reasons why a user might not be a member of an org:
         // 1. The org doesn't require member approval, but the org was at max capacity when the user registered. In this case, we show them
         // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
@@ -88,6 +81,16 @@ export default async function Layout({
                 } else {
                     return <SubmitJoinRequest domain={domain} />
                 }
+            }
+        }
+    } else {
+        // If the user isn't authenticated and public access isn't enabled, we need to redirect them to the login page.
+        if (!publicAccessEnabled) {
+            const ssoEntitlement = await hasEntitlement("sso");
+            if (ssoEntitlement && env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
+                return <GcpIapAuth callbackUrl={`/${domain}`} />;
+            } else {
+                redirect('/login');
             }
         }
     }

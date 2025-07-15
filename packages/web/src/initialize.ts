@@ -114,7 +114,7 @@ const syncDeclarativeConfig = async (configPath: string) => {
 
     if (hasPublicAccessEntitlement) {
         if (enablePublicAccess && env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === 'true') {
-            logger.error(`Audit logging is not supported when public access is enabled. Please disable audit logging or disable public access.`);
+            logger.error(`Audit logging is not supported when public access is enabled. Please disable audit logging (SOURCEBOT_EE_AUDIT_LOGGING_ENABLED) or disable public access.`);
             process.exit(1);
         }
         
