@@ -47,10 +47,6 @@ export const SubmitJoinRequest = async ({ domain }: SubmitJoinRequestProps) => {
                         <div className="flex justify-center">
                             <SubmitAccountRequestButton domain={domain} userId={userId} />
                         </div>
-                        
-                        <p className="text-sm text-[var(--muted-foreground)]">
-                            An admin will review your request and notify you once it's approved.
-                        </p>
                     </div>
                 </div>
             </div>

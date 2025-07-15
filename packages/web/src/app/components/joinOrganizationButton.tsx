@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { joinOrganization } from "../invite/actions";
 import { isServiceError } from "@/lib/utils";
-import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID } from "@/lib/constants";
+import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 
 export function JoinOrganizationButton({ inviteLinkId }: { inviteLinkId?: string }) {
     const [isLoading, setIsLoading] = useState(false);
