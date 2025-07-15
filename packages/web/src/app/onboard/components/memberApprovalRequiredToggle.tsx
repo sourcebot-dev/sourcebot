@@ -79,8 +79,8 @@ export function MemberApprovalRequiredToggle({ memberApprovalRequired, inviteLin
             
             <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
                 enabled 
-                    ? 'max-h-96 opacity-100 transform translate-y-0' 
-                    : 'max-h-0 opacity-0 transform -translate-y-2'
+                    ? 'max-h-96 opacity-100' 
+                    : 'max-h-0 opacity-0 pointer-events-none'
             }`}>
                 <InviteLinkToggle inviteLinkEnabled={inviteLinkEnabled} />
             </div>
