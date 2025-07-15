@@ -166,7 +166,9 @@ const fetchAllProjects = async (url: string, auth?: GerritAuthConfig): Promise<G
 
       const text = await response.text();
       // Remove XSSI protection prefix that Gerrit adds to JSON responses
-      const jsonText = text.replace(/^\)\]\}'\n/, '');
+      // The regex /^\)\]\}'\n/ matches the literal string ")]}'" at the start of the response
+      // followed by a newline character, which Gerrit adds to prevent JSON hijacking
+      const jsonText = text.startsWith(")]}'") ? text.replace(/^\)\]\}'\n/, '') : text;
       const data: GerritProjects = JSON.parse(jsonText);
 
       // Add fetched projects to allProjects
