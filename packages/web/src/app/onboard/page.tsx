@@ -14,7 +14,7 @@ import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
-import { GitBranchIcon, LockIcon } from "lucide-react";
+import { BetweenHorizonalStart, GitBranchIcon, LockIcon } from "lucide-react";
 import { hasEntitlement } from "@sourcebot/shared";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
@@ -82,17 +82,24 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
     const resourceCards: ResourceCard[] = [
         {
             id: "code-host-connections",
-            title: "Code host connections",
+            title: "Code Host Connections",
             description: "Learn how to index repos across Sourcebot's supported platforms",
             href: "https://docs.sourcebot.dev/docs/connections/overview",
             icon: <GitBranchIcon className="w-4 h-4" />,
         },
         {
             id: "authentication-system",
-            title: "Authentication system",
+            title: "Authentication System",
             description: "Learn how to setup additional auth providers, invite members, and more",
             href: "https://docs.sourcebot.dev/docs/configuration/auth",
             icon: <LockIcon className="w-4 h-4" />,
+        },
+        {
+            id: "mcp-server",
+            title: "MCP Server",
+            description: "Learn how to setup Sourcebot's MCP server to provide code context to your AI agents",
+            href: "https://docs.sourcebot.dev/docs/features/mcp-server",
+            icon: <BetweenHorizonalStart className="w-4 h-4" />,
         }
     ]
 
