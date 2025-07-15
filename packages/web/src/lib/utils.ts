@@ -269,7 +269,7 @@ export const getCodeHostInfoForRepo = (repo: {
     }
 }
 
-export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, className?: string } | null => {
+export const getCodeHostIcon = (codeHostType: string): { src: string, className?: string } | null => {
     switch (codeHostType) {
         case "github":
             return {

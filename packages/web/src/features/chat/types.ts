@@ -17,8 +17,17 @@ const fileSourceSchema = z.object({
 });
 export type FileSource = z.infer<typeof fileSourceSchema>;
 
+const repoSourceSchema = z.object({
+    type: z.literal('repo'),
+    name: z.string(),
+    displayName: z.string().optional(),
+    codeHostType: z.string()
+});
+export type RepoSource = z.infer<typeof repoSourceSchema>;
+
 export const sourceSchema = z.discriminatedUnion('type', [
     fileSourceSchema,
+    repoSourceSchema,
 ]);
 export type Source = z.infer<typeof sourceSchema>;
 

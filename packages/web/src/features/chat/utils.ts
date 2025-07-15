@@ -119,6 +119,8 @@ export const slateContentToString = (children: Descendant[]): string => {
             switch (type) {
                 case 'file':
                     return `${fileReferenceToString({ fileName: child.data.name })} `;
+                case 'repo':
+                    return `repo:${child.data.name}`;
             }
         }
 
