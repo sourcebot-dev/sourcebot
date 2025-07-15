@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "postinstall": "yarn build"
+    "postinstall": "yarn build",
+    "test": "cross-env SKIP_ENV_VALIDATION=1 vitest --config ./vitest.config.ts"
   },
   "dependencies": {
     "@sourcebot/db": "*",
@@ -14,6 +15,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.7.5",
-    "typescript": "^5.7.3"
+    "cross-env": "^7.0.3",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.9"
   }
 }

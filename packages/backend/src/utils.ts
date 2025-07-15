@@ -21,16 +21,8 @@ export const marshalBool = (value?: boolean) => {
     return !!value ? '1' : '0';
 }
 
-export const isRemotePath = (path: string) => {
-    return path.startsWith('https://') || path.startsWith('http://');
-}
 
 export const getTokenFromConfig = async (token: Token, orgId: number, db: PrismaClient, logger?: Logger) => {
-    // Handle direct string tokens (for backward compatibility and Gerrit auth)
-    if (typeof token === 'string') {
-        return token;
-    }
-    
     try {
         return await getTokenFromConfigBase(token, orgId, db);
     } catch (error: unknown) {
