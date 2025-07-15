@@ -9,7 +9,6 @@ export interface GiteaConnectionConfig {
    * A Personal Access Token (PAT).
    */
   token?:
-    | string
     | {
         /**
          * The name of the secret that contains the token.

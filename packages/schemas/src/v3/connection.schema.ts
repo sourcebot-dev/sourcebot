@@ -21,15 +21,11 @@ const schema = {
           ],
           "anyOf": [
             {
-              "type": "string",
-              "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)",
-              "minLength": 1
-            },
-            {
               "type": "object",
               "properties": {
                 "secret": {
                   "type": "string",
+                  "minLength": 1,
                   "description": "The name of the secret that contains the token."
                 }
               },
@@ -43,6 +39,7 @@ const schema = {
               "properties": {
                 "env": {
                   "type": "string",
+                  "minLength": 1,
                   "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                 }
               },
@@ -239,15 +236,11 @@ const schema = {
           ],
           "anyOf": [
             {
-              "type": "string",
-              "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)",
-              "minLength": 1
-            },
-            {
               "type": "object",
               "properties": {
                 "secret": {
                   "type": "string",
+                  "minLength": 1,
                   "description": "The name of the secret that contains the token."
                 }
               },
@@ -261,6 +254,7 @@ const schema = {
               "properties": {
                 "env": {
                   "type": "string",
+                  "minLength": 1,
                   "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                 }
               },
@@ -446,15 +440,11 @@ const schema = {
           ],
           "anyOf": [
             {
-              "type": "string",
-              "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)",
-              "minLength": 1
-            },
-            {
               "type": "object",
               "properties": {
                 "secret": {
                   "type": "string",
+                  "minLength": 1,
                   "description": "The name of the secret that contains the token."
                 }
               },
@@ -468,6 +458,7 @@ const schema = {
               "properties": {
                 "env": {
                   "type": "string",
+                  "minLength": 1,
                   "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                 }
               },
@@ -623,7 +614,7 @@ const schema = {
               ]
             },
             "password": {
-              "description": "Gerrit HTTP password (not your account password). Generate this in Gerrit → Settings → HTTP Credentials → Generate Password.",
+              "description": "Gerrit HTTP password (not your account password). Generate this in Gerrit → Settings → HTTP Credentials → Generate Password. Note: HTTP password authentication requires Gerrit's auth.gitBasicAuthPolicy to be set to HTTP or HTTP_LDAP.",
               "examples": [
                 {
                   "env": "GERRIT_HTTP_PASSWORD"
@@ -634,15 +625,11 @@ const schema = {
               ],
               "anyOf": [
                 {
-                  "type": "string",
-                  "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)",
-                  "minLength": 1
-                },
-                {
                   "type": "object",
                   "properties": {
                     "secret": {
                       "type": "string",
+                      "minLength": 1,
                       "description": "The name of the secret that contains the token."
                     }
                   },
@@ -656,6 +643,7 @@ const schema = {
                   "properties": {
                     "env": {
                       "type": "string",
+                      "minLength": 1,
                       "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                     }
                   },
@@ -744,15 +732,11 @@ const schema = {
           ],
           "anyOf": [
             {
-              "type": "string",
-              "description": "Direct token value (SECURITY RISK: not recommended for production - use secrets or environment variables instead)",
-              "minLength": 1
-            },
-            {
               "type": "object",
               "properties": {
                 "secret": {
                   "type": "string",
+                  "minLength": 1,
                   "description": "The name of the secret that contains the token."
                 }
               },
@@ -766,6 +750,7 @@ const schema = {
               "properties": {
                 "env": {
                   "type": "string",
+                  "minLength": 1,
                   "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                 }
               },
