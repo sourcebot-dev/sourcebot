@@ -13,7 +13,6 @@ export interface BitbucketConnectionConfig {
    * An authentication token.
    */
   token?:
-    | string
     | {
         /**
          * The name of the secret that contains the token.
