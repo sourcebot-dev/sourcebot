@@ -81,20 +81,18 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP)
             <Accordion title="VS Code">
                 [VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers)
 
-                Add the following to your [settings.json](https://code.visualstudio.com/docs/copilot/chat/mcp-servers):
+                Add the following to your [.vscode/mcp.json](https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server-to-your-workspace) file:
                 
                 ```json
                 {
-                    "mcp": {
-                        "servers": {
-                            "sourcebot": {
-                                "type": "stdio",
-                                "command": "npx",
-                                "args": ["-y", "@sourcebot/mcp@latest"],
-                                "env": {
-                                    "SOURCEBOT_HOST": "http://localhost:3000",
-                                    "SOURCEBOT_API_KEY": "your-api-key"
-                                }
+                    "servers": {
+                        "sourcebot": {
+                            "type": "stdio",
+                            "command": "npx",
+                            "args": ["-y", "@sourcebot/mcp@latest"],
+                            "env": {
+                                "SOURCEBOT_HOST": "http://localhost:3000",
+                                "SOURCEBOT_API_KEY": "your-api-key"
                             }
                         }
                     }
