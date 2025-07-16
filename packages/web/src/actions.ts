@@ -141,7 +141,7 @@ export const withOrgMembership = async <T>(userId: string, domain: string, fn: (
         return notFound("User not a member of this organization");
     }
 
-    const getAuthorizationPrecendence = (role: OrgRole): number => {
+    const getAuthorizationPrecedence = (role: OrgRole): number => {
         switch (role) {
             case OrgRole.GUEST:
                 return 0;
@@ -153,7 +153,7 @@ export const withOrgMembership = async <T>(userId: string, domain: string, fn: (
     }
 
 
-    if (getAuthorizationPrecendence(membership.role) < getAuthorizationPrecendence(minRequiredRole)) {
+    if (getAuthorizationPrecedence(membership.role) < getAuthorizationPrecedence(minRequiredRole)) {
         return {
             statusCode: StatusCodes.FORBIDDEN,
             errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
@@ -710,7 +710,7 @@ export const getRepoInfoByName = async (repoName: string, domain: string) => sew
             // In this scenario, both repos will be named "github.com/sourcebot-dev/sourcebot".
             // We will leave this as an edge case for now since it's unlikely to happen in practice.
             //
-            // @v4-todo: we could add a unique contraint on repo name + orgId to help de-duplicate
+            // @v4-todo: we could add a unique constraint on repo name + orgId to help de-duplicate
             // these cases.
             // @see: repoCompileUtils.ts
             const repo = await prisma.repo.findFirst({

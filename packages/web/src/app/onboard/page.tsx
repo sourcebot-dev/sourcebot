@@ -14,7 +14,7 @@ import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
-import { BetweenHorizonalStart, GitBranchIcon, LockIcon } from "lucide-react";
+import { BetweenHorizontalStart, GitBranchIcon, LockIcon } from "lucide-react";
 import { hasEntitlement } from "@sourcebot/shared";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
@@ -106,7 +106,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             title: "MCP Server",
             description: "Learn how to setup Sourcebot's MCP server to provide code context to your AI agents",
             href: "https://docs.sourcebot.dev/docs/features/mcp-server",
-            icon: <BetweenHorizonalStart className="w-4 h-4" />,
+            icon: <BetweenHorizontalStart className="w-4 h-4" />,
         }
     ]
 
@@ -182,7 +182,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 gap-3">
                         {resourceCards.map((resourceCard) => (
-                            <a 
+                            <a
                                 key={resourceCard.id}
                                 href={resourceCard.href}
                                 target="_blank"
@@ -244,7 +244,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                                                                                         <div className="relative">
                                         {/* Connecting line */}
                                         {index < steps.length - 1 && (
-                                            <div 
+                                            <div
                                                 className={`absolute top-10 left-1/2 transform -translate-x-1/2 w-0.5 h-8 transition-all duration-300 ${
                                                     index < currentStep ? "bg-primary" : "bg-border"
                                                 }`}
@@ -359,7 +359,7 @@ function NonOwnerOnboardingMessage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                             </div>
-                            
+
                             <div className="space-y-3">
                                 <h1 className="text-2xl font-semibold text-foreground">
                                     Onboarding In Progress
@@ -390,8 +390,8 @@ function NonOwnerOnboardingMessage() {
                             <div className="space-y-3">
                                 <div className="text-xs text-muted-foreground leading-relaxed">
                                     Need help? Contact your organization owner or check out our{" "}
-                                    <a 
-                                        href="https://docs.sourcebot.dev/docs/overview" 
+                                    <a
+                                        href="https://docs.sourcebot.dev/docs/overview"
                                         className="text-primary hover:text-primary/80 underline transition-colors"
                                         target="_blank"
                                         rel="noopener"

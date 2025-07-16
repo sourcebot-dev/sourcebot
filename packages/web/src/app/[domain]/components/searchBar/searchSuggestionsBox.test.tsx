@@ -34,7 +34,7 @@ test('splitQuery groups all parts together when a quote capture group is not clo
     expect(cursorIndex).toBe(0);
 });
 
-test('splitQuery correclty locates the cursor index given the cursor position (1)', () => {
+test('splitQuery correctly locates the cursor index given the cursor position (1)', () => {
     const query = 'foo bar "fizz buzz"';
 
     const { queryParts: parts1, cursorIndex: index1 } = splitQuery(query, 0);
@@ -50,7 +50,7 @@ test('splitQuery correclty locates the cursor index given the cursor position (1
     expect(parts3[index3]).toBe('"fizz buzz"');
 });
 
-test('splitQuery correclty locates the cursor index given the cursor position (2)', () => {
+test('splitQuery correctly locates the cursor index given the cursor position (2)', () => {
     const query = 'a b';
     expect(splitQuery(query, 0).cursorIndex).toBe(0);
     expect(splitQuery(query, 1).cursorIndex).toBe(0);
