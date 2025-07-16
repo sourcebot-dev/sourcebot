@@ -23,30 +23,12 @@ import {
     CommandList,
     CommandSeparator,
 } from "@/components/ui/command";
+import { RepoMentionData } from "../../types";
 
-
-/**
- * Props for MultiSelect component
- */
 interface RepoSelectorProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    /**
-     * An array of option objects to be displayed in the multi-select component.
-     * Each option object has a label, value, and an optional icon.
-     */
-    values: string[];
-
-    selectedValues: string[];
-
-    /**
-     * Callback function triggered when the selected values change.
-     * Receives an array of the new selected values.
-     */
-    onValueChange: (value: string[]) => void;
-
-    /**
-     * Additional class names to apply custom styles to the multi-select component.
-     * Optional, can be used to add custom styles.
-     */
+    repos: RepoMentionData[];
+    selectedRepos: RepoMentionData[];
+    onSelectedReposChange: (repos: RepoMentionData[]) => void;
     className?: string;
 }
 
@@ -56,10 +38,10 @@ export const RepoSelector = React.forwardRef<
 >(
     (
         {
-            values,
-            onValueChange,
+            repos,
+            onSelectedReposChange,
             className,
-            selectedValues,
+            selectedRepos,
             ...props
         },
         ref
@@ -72,21 +54,21 @@ export const RepoSelector = React.forwardRef<
             if (event.key === "Enter") {
                 setIsPopoverOpen(true);
             } else if (event.key === "Backspace" && !event.currentTarget.value) {
-                const newSelectedValues = [...selectedValues];
-                newSelectedValues.pop();
-                onValueChange(newSelectedValues);
+                const newSelectedRepos = [...selectedRepos];
+                newSelectedRepos.pop();
+                onSelectedReposChange(newSelectedRepos);
             }
         };
 
-        const toggleOption = (option: string) => {
-            const newSelectedValues = selectedValues.includes(option)
-                ? selectedValues.filter((value) => value !== option)
-                : [...selectedValues, option];
-            onValueChange(newSelectedValues);
+        const toggleRepo = (repo: RepoMentionData) => {
+            const newSelectedRepos = selectedRepos.some((selectedRepo) => selectedRepo.name === repo.name)
+                ? selectedRepos.filter((selectedRepo) => selectedRepo.name !== repo.name)
+                : [...selectedRepos, repo];
+            onSelectedReposChange(newSelectedRepos);
         };
 
         const handleClear = () => { 
-            onValueChange([]);
+            onSelectedReposChange([]);
         };
 
         const handleTogglePopover = () => {
@@ -113,13 +95,13 @@ export const RepoSelector = React.forwardRef<
                             <span
                                 className={cn(
                                     "text-sm text-muted-foreground mx-1",
-                                    selectedValues.length > 0 ? "font-medium" : "font-normal"
+                                    selectedRepos.length > 0 ? "font-medium" : "font-normal"
                                 )}
                             >
                                 {
-                                    selectedValues.length === 0 ? `${values.length} repo${values.length === 1 ? '' : 's'}` :
-                                        selectedValues.length === 1 ? `${selectedValues[0].split('/').pop()}` :
-                                            `${selectedValues.length} repo${selectedValues.length === 1 ? '' : 's'}`
+                                    selectedRepos.length === 0 ? `${repos.length} repo${repos.length === 1 ? '' : 's'}` :
+                                        selectedRepos.length === 1 ? `${selectedRepos[0].displayName ?? selectedRepos[0].name}` :
+                                            `${selectedRepos.length} repo${selectedRepos.length === 1 ? '' : 's'}`
                                 }
                             </span>
                             <ChevronDown className="h-4 cursor-pointer text-muted-foreground ml-2" />
@@ -140,12 +122,12 @@ export const RepoSelector = React.forwardRef<
                             <CommandEmpty>No results found.</CommandEmpty>
                             <CommandGroup>
 
-                                {values.map((value) => {
-                                    const isSelected = selectedValues.includes(value);
+                                {repos.map((repo) => {
+                                    const isSelected = selectedRepos.some((selectedRepo) => selectedRepo.name === repo.name);
                                     return (
                                         <CommandItem
-                                            key={value}
-                                            onSelect={() => toggleOption(value)}
+                                            key={repo.name}
+                                            onSelect={() => toggleRepo(repo)}
                                             className="cursor-pointer"
                                         >
                                             <div
@@ -158,12 +140,12 @@ export const RepoSelector = React.forwardRef<
                                             >
                                                 <CheckIcon className="h-4 w-4" />
                                             </div>
-                                            <span>{value}</span>
+                                            <span>{repo.displayName ?? repo.name}</span>
                                         </CommandItem>
                                     );
                                 })}
                             </CommandGroup>
-                            {selectedValues.length > 0 && (
+                            {selectedRepos.length > 0 && (
                                 <>
                                     <CommandSeparator />
                                     <CommandItem

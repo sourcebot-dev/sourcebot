@@ -28,7 +28,6 @@ interface ChatThreadProps {
     id?: string | undefined;
     initialMessages?: SBChatMessage[];
     inputMessage?: CreateUIMessage<SBChatMessage>;
-    defaultSelectedRepos?: string[];
     modelProviderInfo?: ModelProviderInfo;
 }
 
@@ -36,11 +35,9 @@ export const ChatThread = ({
     id,
     initialMessages,
     inputMessage,
-    defaultSelectedRepos,
     modelProviderInfo,
 }: ChatThreadProps = {}) => {
     const domain = useDomain();
-    const [selectedRepos, setSelectedRepos] = useState<string[]>(defaultSelectedRepos ?? []);
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const latestMessagePairRef = useRef<HTMLDivElement>(null);
@@ -68,8 +65,9 @@ export const ChatThread = ({
         messages: initialMessages,
         transport: new DefaultChatTransport({
             api: '/api/chat',
+            // @todo: extract the selected repos from the message.
             body: {
-                selectedRepos,
+                selectedRepos: [],
             },
             headers: {
                 "X-Org-Domain": domain,
@@ -203,7 +201,6 @@ export const ChatThread = ({
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-
         const message = createUIMessage(text, mentions.map(({ data }) => data));
         sendMessage(message);
 
@@ -287,14 +284,11 @@ export const ChatThread = ({
                         onSubmit={onSubmit}
                         className="min-h-[80px]"
                         preferredSuggestionsBoxPlacement="top-start"
-                        selectedRepos={selectedRepos}
                         isGenerating={status === "streaming" || status === "submitted"}
                         onStop={stop}
                     />
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                         <ChatBoxTools
-                            selectedRepos={selectedRepos}
-                            onSelectedReposChange={setSelectedRepos}
                             modelProviderInfo={modelProviderInfo}
                         />
                     </div>

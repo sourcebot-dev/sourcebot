@@ -1,10 +1,10 @@
 import { env } from "@/env.mjs"
-import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { CustomEditor, CustomText, Source, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessageToolTypes, SBChatMessage, FileReference } from "./types"
 import { CreateUIMessage, UIMessagePart } from "ai"
+import { Descendant, Editor, Point, Range, Transforms } from "slate"
 import { FILE_REFERENCE_PREFIX } from "./constants"
+import { CustomEditor, CustomText, FileReference, FileSource, MentionData, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessage, SBChatMessageToolTypes, Source } from "./types"
 
-export const insertMention = (editor: CustomEditor, data: Source, target?: Range | null) => {
+export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
     const mention: MentionElement = {
         type: 'mention',
         data,
@@ -120,7 +120,7 @@ export const slateContentToString = (children: Descendant[]): string => {
                 case 'file':
                     return `${fileReferenceToString({ fileName: child.data.name })} `;
                 case 'repo':
-                    return `repo:${child.data.name}`;
+                    return child.data.name;
             }
         }
 
@@ -202,7 +202,26 @@ export const getConfiguredModelProviderInfo = (): ModelProviderInfo | undefined 
     return undefined;
 }
 
-export const createUIMessage = (text: string, sources: Source[]): CreateUIMessage<SBChatMessage> => {
+export const createUIMessage = (text: string, mentions: MentionData[]): CreateUIMessage<SBChatMessage> => {
+    // Converts applicable mentions into sources.
+    const sources: Source[] = mentions
+        .map((mention) => {
+            if (mention.type === 'file') {
+                const fileSource: FileSource = {
+                    type: 'file',
+                    path: mention.path,
+                    repo: mention.repo,
+                    name: mention.name,
+                    language: mention.language,
+                    revision: mention.revision,
+                }
+                return fileSource;
+            }
+
+            return undefined;
+        })
+        .filter((source) => source !== undefined);
+
     return {
         role: 'user',
         parts: [

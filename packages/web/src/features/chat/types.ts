@@ -17,17 +17,8 @@ const fileSourceSchema = z.object({
 });
 export type FileSource = z.infer<typeof fileSourceSchema>;
 
-const repoSourceSchema = z.object({
-    type: z.literal('repo'),
-    name: z.string(),
-    displayName: z.string().optional(),
-    codeHostType: z.string()
-});
-export type RepoSource = z.infer<typeof repoSourceSchema>;
-
 export const sourceSchema = z.discriminatedUnion('type', [
     fileSourceSchema,
-    repoSourceSchema,
 ]);
 export type Source = z.infer<typeof sourceSchema>;
 
@@ -69,6 +60,8 @@ export type SBChatMessageToolTypes = {
 }
 
 export type SBChatMessage = UIMessage<SBChatMessageMetadata, {
+    // The `source` data type allows us to know what sources the LLM saw
+    // during retrieval.
     "source": Source,
 }, SBChatMessageToolTypes>;
 
@@ -82,9 +75,27 @@ export type ParagraphElement = {
     children: Descendant[];
 }
 
+export type FileMentionData = {
+    type: 'file';
+    repo: string;
+    path: string;
+    name: string;
+    language: string;
+    revision: string;
+}
+
+export type RepoMentionData = {
+    type: 'repo';
+    name: string;
+    displayName?: string;
+    codeHostType: string;
+}
+
+export type MentionData = FileMentionData | RepoMentionData;
+
 export type MentionElement = {
     type: 'mention';
-    data: Source;
+    data: MentionData;
     children: CustomText[];
 }
 
@@ -119,7 +130,6 @@ export const SET_CHAT_STATE_QUERY_PARAM = 'setChatState';
 
 export type SetChatStatePayload = {
     inputMessage: CreateUIMessage<SBChatMessage>;
-    selectedRepos: string[];
 }
 
 export const SOURCEBOT_CHAT_MODEL_PROVIDER = [

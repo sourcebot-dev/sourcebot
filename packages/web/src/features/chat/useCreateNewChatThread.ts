@@ -20,7 +20,7 @@ export const useCreateNewChatThread = () => {
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    const createNewChatThread = useCallback(async (children: Descendant[], selectedRepos: string[]) => {
+    const createNewChatThread = useCallback(async (children: Descendant[]) => {
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
         const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data));
@@ -38,7 +38,6 @@ export const useCreateNewChatThread = () => {
         const url = createPathWithQueryParams(`/${domain}/chat/${response.id}`,
             [SET_CHAT_STATE_QUERY_PARAM, JSON.stringify({
                 inputMessage,
-                selectedRepos,
             } satisfies SetChatStatePayload)],
         );
 
