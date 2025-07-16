@@ -81,7 +81,6 @@ export const AgenticSearch = ({
 }: AgenticSearchProps) => {
     const [selectedSuggestionType, _setSelectedSuggestionType] = useState<SuggestionType | undefined>(undefined);
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
-    const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const editor = useSlate();
 
@@ -113,10 +112,9 @@ export const AgenticSearch = ({
             >
                 <ChatBox
                     onSubmit={(children) => {
-                        createNewChatThread(children, selectedRepos);
+                        createNewChatThread(children);
                     }}
                     className="min-h-[50px]"
-                    selectedRepos={selectedRepos}
                     isRedirecting={isLoading}
                 />
                 <Separator />
@@ -125,8 +123,6 @@ export const AgenticSearch = ({
                         {...toolBarProps}
                     >
                         <ChatBoxTools
-                            selectedRepos={selectedRepos}
-                            onSelectedReposChange={setSelectedRepos}
                             modelProviderInfo={modelProviderInfo}
                         />
                     </Toolbar>

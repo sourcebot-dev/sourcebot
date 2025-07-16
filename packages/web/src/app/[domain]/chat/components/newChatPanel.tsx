@@ -6,7 +6,7 @@ import { ChatBoxTools } from "@/features/chat/components/chatBox/chatBoxTools";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { ModelProviderInfo } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { Descendant } from "slate";
 
 interface NewChatPanelProps {
@@ -16,12 +16,11 @@ interface NewChatPanelProps {
 export const NewChatPanel = ({
     modelProviderInfo,
 }: NewChatPanelProps) => {
-    const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
 
     const onSubmit = useCallback((children: Descendant[]) => {
-        createNewChatThread(children, selectedRepos);
-    }, [createNewChatThread, selectedRepos]);
+        createNewChatThread(children);
+    }, [createNewChatThread]);
 
 
     return (
@@ -38,13 +37,10 @@ export const NewChatPanel = ({
                             onSubmit={onSubmit}
                             className="min-h-[80px]"
                             preferredSuggestionsBoxPlacement="bottom-start"
-                            selectedRepos={[]}
                             isRedirecting={isLoading}
                         />
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                             <ChatBoxTools
-                                selectedRepos={selectedRepos}
-                                onSelectedReposChange={setSelectedRepos}
                                 modelProviderInfo={modelProviderInfo}
                             />
                         </div>

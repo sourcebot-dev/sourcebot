@@ -29,7 +29,6 @@ export const ChatThreadPanel = ({
     const router = useRouter();
     const searchParams = useSearchParams();
     const [inputMessage, setInputMessage] = useState<CreateUIMessage<SBChatMessage> | undefined>(undefined);
-    const [defaultSelectedRepos, setDefaultSelectedRepos] = useState<string[]>([]);
 
     const { data: messages, isPending, isError } = useQuery({
         queryKey: ['load-chat', chatId, domain],
@@ -50,9 +49,8 @@ export const ChatThreadPanel = ({
         }
 
         try {
-            const { inputMessage, selectedRepos } = JSON.parse(setChatState) as SetChatStatePayload;
+            const { inputMessage } = JSON.parse(setChatState) as SetChatStatePayload;
             setInputMessage(inputMessage);
-            setDefaultSelectedRepos(selectedRepos);
         } catch {
             console.error('Invalid message in URL');
         }
@@ -84,7 +82,6 @@ export const ChatThreadPanel = ({
                         id={chatId}
                         initialMessages={messages}
                         inputMessage={inputMessage}
-                        defaultSelectedRepos={defaultSelectedRepos}
                         modelProviderInfo={modelProviderInfo}
                     />
                 )}

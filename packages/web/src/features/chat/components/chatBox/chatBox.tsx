@@ -21,7 +21,6 @@ import Image from "next/image";
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
     onStop?: () => void;
-    selectedRepos: string[];
     preferredSuggestionsBoxPlacement?: "top-start" | "bottom-start";
     className?: string;
     isRedirecting?: boolean;
@@ -31,7 +30,6 @@ interface ChatBoxProps {
 export const ChatBox = ({
     onSubmit: _onSubmit,
     onStop,
-    selectedRepos,
     preferredSuggestionsBoxPlacement = "bottom-start",
     className,
     isRedirecting,
@@ -44,7 +42,6 @@ export const ChatBox = ({
     const { suggestions, isLoading } = useSuggestionsData({
         suggestionMode,
         suggestionQuery,
-        selectedRepos,
     });
 
     // Reset the index when the suggestion mode changes.

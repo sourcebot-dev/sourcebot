@@ -8,12 +8,12 @@ import { search } from "@/app/api/(client)/client";
 import { useMemo } from "react";
 import Fuse from "fuse.js";
 import { getRepos } from "@/actions";
+import { useRepoMentions } from "../../useRepoMentions";
 
 
 interface Props {
     suggestionMode: SuggestionMode;
     suggestionQuery: string;
-    selectedRepos: string[];
 }
 
 const refineSuggestions: RefineSuggestion[] = [
@@ -34,16 +34,16 @@ const refineSuggestions: RefineSuggestion[] = [
 export const useSuggestionsData = ({
     suggestionMode,
     suggestionQuery,
-    selectedRepos,
 }: Props): { isLoading: boolean, suggestions: Suggestion[] } => {
     const domain = useDomain();
+    const selectedRepos = useRepoMentions();
 
     const { data: fileSuggestions, isLoading: _isLoadingFileSuggestions } = useQuery({
         queryKey: ["fileSuggestions-agentic", suggestionQuery, domain, selectedRepos],
         queryFn: () => {
             let query = `file:${suggestionQuery}`;
             if (selectedRepos.length > 0) {
-                query += ` reposet:${selectedRepos.join(',')}`;
+                query += ` reposet:${selectedRepos.map((repo) => repo.name).join(',')}`;
             }
 
             return unwrapServiceError(search({

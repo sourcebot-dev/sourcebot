@@ -8,9 +8,9 @@ import { cn, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { AtSignIcon } from "lucide-react";
 import { ReactEditor, useSlate } from "slate-react";
-import { RepoSelector } from "../repoSelector";
+import { RepoSelector } from "./repoSelector";
 import { RepoIndexingStatus } from "@sourcebot/db";
-import { ModelProvider, ModelProviderInfo } from "@/features/chat/types";
+import { ModelProvider, ModelProviderInfo, RepoMentionData } from "@/features/chat/types";
 import { useCallback, useMemo } from "react";
 import anthropicLogo from "@/public/anthropic.svg";
 import openaiLogo from "@/public/openai.svg";
@@ -20,16 +20,15 @@ import Image from "next/image";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { useHotkeys } from "react-hotkeys-hook";
+import { insertMention, isMentionElement } from "@/features/chat/utils";
+import { Descendant, Transforms } from "slate";
+import { useRepoMentions } from "../../useRepoMentions";
 
 interface ChatBoxToolsProps {
-    selectedRepos: string[];
-    onSelectedReposChange: (repos: string[]) => void;
     modelProviderInfo?: ModelProviderInfo;
 }
 
 export const ChatBoxTools = ({
-    selectedRepos,
-    onSelectedReposChange,
     modelProviderInfo,
 }: ChatBoxToolsProps) => {
     const domain = useDomain();
@@ -54,7 +53,35 @@ export const ChatBoxTools = ({
         enableOnFormTags: true,
         enableOnContentEditable: true,
         description: "Add context", 
-    })
+    });
+
+    const selectedRepos = useRepoMentions();
+
+    const onSelectedReposChange = useCallback((repos: RepoMentionData[]) => {
+        const addedRepos = repos.filter((repo) => !selectedRepos.some((selectedRepo) => selectedRepo.name === repo.name));
+        const removedRepos = selectedRepos.filter((repo) => !repos.some((selectedRepo) => selectedRepo.name === repo.name));
+
+        addedRepos.forEach((repo) => {
+            console.log('adding repo', repo);
+            insertMention(editor, {
+                type: 'repo',
+                name: repo.name,
+                displayName: repo.displayName,
+                codeHostType: repo.codeHostType,
+            })
+        });
+
+        Transforms.removeNodes(editor, {
+            at: [],
+            match: (node) => {
+                const descendant = node as Descendant;
+                return isMentionElement(descendant) &&
+                    descendant.data.type === 'repo' &&
+                    removedRepos.some((repo) => repo.name === descendant.data.name);
+            }
+        });
+
+    }, [editor, selectedRepos]);
 
     return (
         <>
@@ -83,9 +110,14 @@ export const ChatBoxTools = ({
                 <TooltipTrigger asChild>
                     <RepoSelector
                         className="bg-inherit w-fit h-6 min-h-6"
-                        values={repos?.map((repo) => repo.repoName) ?? []}
-                        selectedValues={selectedRepos}
-                        onValueChange={onSelectedReposChange}
+                        repos={repos?.map((repo) => ({
+                            type: 'repo',
+                            name: repo.repoName,
+                            displayName: repo.repoDisplayName,
+                            codeHostType: repo.codeHostType,
+                        })) ?? []}
+                        selectedRepos={selectedRepos}
+                        onSelectedReposChange={onSelectedReposChange}
                     />
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
