@@ -114,6 +114,7 @@ export const env = createEnv({
 
         SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS: numberSchema.default(5000),
         SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.default(0.3),
+        SOURCEBOT_CHAT_FILE_MAX_CHARACTERS: numberSchema.default(4000),
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
     },
     // @NOTE: Please make sure of the following:

@@ -48,6 +48,7 @@ export const ReadFilesToolComponent = ({ part }: { part: ReadFilesToolUIPart }) 
                                     key={file.path}
                                     path={file.path}
                                     repoName={file.repository}
+                                    isTruncated={file.isOutputTruncated}
                                 />
                             )
                         })}

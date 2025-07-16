@@ -58,6 +58,7 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
                                                 key={file.fileName}
                                                 path={file.fileName}
                                                 repoName={file.repository}
+                                                isTruncated={file.isOutputTruncated}
                                             />
                                         )
                                     })}

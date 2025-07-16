@@ -1,4 +1,4 @@
-import { addLineNumbers, fileReferenceToString } from "./utils";
+import { sourceCodeToModelOutput, fileReferenceToString } from "./utils";
 
 interface CreateSystemPromptOptions {
     repos: string[];
@@ -89,7 +89,7 @@ const createMentionedFilesSystemPrompt = (files: {
 The user has mentioned the following files, which are automatically included for analysis.
 
 ${files.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}" revision="${file.revision}">
-${addLineNumbers(file.source)}
+${sourceCodeToModelOutput(file.source)}
 </file>`).join('\n\n')}
 </mentioned_files>
     `.trim();
