@@ -6,7 +6,7 @@ import { isServiceError } from "@/lib/utils";
 import { getFileSource } from "../search/fileSourceApi";
 import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/actions";
 import { FileSourceResponse } from "../search/types";
-import { addLineNumbers } from "./utils";
+import { sourceCodeChunksToModelOutput, sourceCodeToModelOutput } from "./utils";
 import { toolNames } from "./constants";
 
 export const findSymbolReferencesTool = tool({
@@ -28,17 +28,22 @@ export const findSymbolReferencesTool = tool({
             return response;
         }
 
-        return response.files.map((file) => ({
-            fileName: file.fileName,
-            repository: file.repository,
-            language: file.language,
-            matches: file.matches.map(({ lineContent, range }) => {
-                return addLineNumbers(lineContent, range.start.lineNumber);
-            }),
-            revision,
-        }));
-    },
+        return response.files.map((file) => {
+            const matches = sourceCodeChunksToModelOutput(file.matches.map(({ lineContent, range }) => ({
+                source: lineContent,
+                startLine: range.start.lineNumber,
+            })))
 
+            return {
+                fileName: file.fileName,
+                repository: file.repository,
+                language: file.language,
+                matches,
+                revision,
+                isOutputTruncated: matches.some(({ isTruncated }) => isTruncated),
+            }
+        });
+    },
 });
 
 export type FindSymbolReferencesTool = InferUITool<typeof findSymbolReferencesTool>;
@@ -65,15 +70,21 @@ export const findSymbolDefinitionsTool = tool({
             return response;
         }
 
-        return response.files.map((file) => ({
-            fileName: file.fileName,
-            repository: file.repository,
-            language: file.language,
-            matches: file.matches.map(({ lineContent, range }) => {
-                return addLineNumbers(lineContent, range.start.lineNumber);
-            }),
-            revision,
-        }));
+        return response.files.map((file) => {
+            const matches = sourceCodeChunksToModelOutput(file.matches.map(({ lineContent, range }) => ({
+                source: lineContent,
+                startLine: range.start.lineNumber,
+            })))
+
+            return {
+                fileName: file.fileName,
+                repository: file.repository,
+                language: file.language,
+                matches,
+                revision,
+                isOutputTruncated: matches.some(({ isTruncated }) => isTruncated),
+            }
+        });
     }
 });
 
@@ -104,13 +115,18 @@ export const readFilesTool = tool({
             return firstError!;
         }
 
-        return (responses as FileSourceResponse[]).map((response) => ({
-            path: response.path,
-            repository: response.repository,
-            language: response.language,
-            source: addLineNumbers(response.source),
-            revision,
-        }));
+        return (responses as FileSourceResponse[]).map((response) => {
+            const { output: source, isTruncated } = sourceCodeToModelOutput(response.source);
+
+            return {
+                path: response.path,
+                repository: response.repository,
+                language: response.language,
+                source,
+                revision,
+                isOutputTruncated: isTruncated,
+            }
+        });
     }
 });
 
@@ -145,16 +161,22 @@ export const createCodeSearchTool = (repos: string[]) => tool({
         }
 
         return {
-            files: response.files.map((file) => ({
-                fileName: file.fileName.text,
-                repository: file.repository,
-                language: file.language,
-                matches: file.chunks.map(({ content, contentStart }) => {
-                    return addLineNumbers(content, contentStart.lineNumber);
-                }),
-                // @todo: make revision configurable.
-                revision: 'HEAD',
-            })),
+            files: response.files.map((file) => {
+                const matches = sourceCodeChunksToModelOutput(file.chunks.map(({ content, contentStart }) => ({
+                    source: content,
+                    startLine: contentStart.lineNumber,
+                })))
+
+                return {
+                    fileName: file.fileName.text,
+                    repository: file.repository,
+                    language: file.language,
+                    matches,
+                    // @todo: make revision configurable.
+                    revision: 'HEAD',
+                    isOutputTruncated: matches.some(({ isTruncated }) => isTruncated),
+                }
+            }),
             query,
         }
     },
