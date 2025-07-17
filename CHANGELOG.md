@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Fixed typos in UI, docs, code [#369](https://github.com/sourcebot-dev/sourcebot/pull/369)
+
 ## [4.5.1] - 2025-07-14
 
 ### Changed
@@ -234,7 +239,7 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 
 ### Added
 
-- Added `maxTrigramCount` to the config to control the maximum allowable of trigrams per document. 
+- Added `maxTrigramCount` to the config to control the maximum allowable of trigrams per document.
 
 ### Fixed
 
@@ -292,7 +297,7 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 - Added config option `settings.maxFileSize` to control the maximum file size zoekt will index. ([#118](https://github.com/sourcebot-dev/sourcebot/pull/118))
 
 ### Fixed
- 
+
 - Fixed syntax highlighting for zoekt query language. ([#115](https://github.com/sourcebot-dev/sourcebot/pull/115))
 - Fixed issue with Gerrit repo fetching not paginating. ([#114](https://github.com/sourcebot-dev/sourcebot/pull/114))
 - Fixed visual issues with filter panel. ([#105](https://github.com/sourcebot-dev/sourcebot/pull/105))
@@ -344,13 +349,13 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 ### Added
 
 - Added `DOMAIN_SUB_PATH` environment variable to allow overriding the default domain subpath. ([#74](https://github.com/sourcebot-dev/sourcebot/pull/74))
-- Added option `all` to the GitLab index schema, allowing for indexing all projects in a self-hosted GitLab instance. ([#84](https://github.com/sourcebot-dev/sourcebot/pull/84)) 
+- Added option `all` to the GitLab index schema, allowing for indexing all projects in a self-hosted GitLab instance. ([#84](https://github.com/sourcebot-dev/sourcebot/pull/84))
 
 ## [2.4.3] - 2024-11-18
 
 ### Changed
 
-- Bumped NodeJS version to v20. ([#78](https://github.com/sourcebot-dev/sourcebot/pull/78)) 
+- Bumped NodeJS version to v20. ([#78](https://github.com/sourcebot-dev/sourcebot/pull/78))
 
 ## [2.4.2] - 2024-11-14
 

@@ -19,7 +19,7 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
 
 - Building custom LLM horizontal agents like like compliance auditing agents, migration agents, etc.
     - _"Find all instances of hardcoded credentials"_
-    - _"Identify repositories that depend on this depreacted api"_
+    - _"Identify repositories that depend on this deprecated api"_
 
 
 ## Getting Started

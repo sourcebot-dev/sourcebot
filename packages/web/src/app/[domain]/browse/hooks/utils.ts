@@ -1,18 +1,18 @@
 
 export const getBrowseParamsFromPathParam = (pathParam: string) => {
-    const sentinalIndex = pathParam.search(/\/-\/(tree|blob)/);
-    if (sentinalIndex === -1) {
+    const sentinelIndex = pathParam.search(/\/-\/(tree|blob)/);
+    if (sentinelIndex === -1) {
         throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain "/-/(tree|blob)/" pattern`);
     }
 
-    const repoAndRevisionPart = pathParam.substring(0, sentinalIndex);
+    const repoAndRevisionPart = pathParam.substring(0, sentinelIndex);
     const lastAtIndex = repoAndRevisionPart.lastIndexOf('@');
     
     const repoName = lastAtIndex === -1 ? repoAndRevisionPart : repoAndRevisionPart.substring(0, lastAtIndex);
     const revisionName = lastAtIndex === -1 ? undefined : repoAndRevisionPart.substring(lastAtIndex + 1);
 
     const { path, pathType } = ((): { path: string, pathType: 'tree' | 'blob' } => {
-        const path = pathParam.substring(sentinalIndex + '/-/'.length);
+        const path = pathParam.substring(sentinelIndex + '/-/'.length);
         const pathType = path.startsWith('tree') ? 'tree' : 'blob';
 
         // @note: decodedURIComponent is needed here incase the path contains a space.

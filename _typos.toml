@@ -1,0 +1,6 @@
+[default.extend-words]
+# Don't correct the surname "Do Not Exists"
+dne = "dne"
+
+[files]
+extend-exclude = ["vendor/**/*", "CHANGELOG.md", "packages/web/src/lib/languageMetadata.ts"]

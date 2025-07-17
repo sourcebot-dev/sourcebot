@@ -13,11 +13,11 @@ export type FileTreeNode = Omit<RawFileTreeNode, 'children'> & {
     children: FileTreeNode[];
 }
 
-const buildCollapsableTree = (tree: RawFileTreeNode): FileTreeNode => {
+const buildCollapsibleTree = (tree: RawFileTreeNode): FileTreeNode => {
     return {
         ...tree,
         isCollapsed: true,
-        children: tree.children.map(buildCollapsableTree),
+        children: tree.children.map(buildCollapsibleTree),
     }
 }
 
@@ -39,15 +39,15 @@ interface PureFileTreePanelProps {
 }
 
 export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps) => {
-    const [tree, setTree] = useState<FileTreeNode>(buildCollapsableTree(_tree));
+    const [tree, setTree] = useState<FileTreeNode>(buildCollapsibleTree(_tree));
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { navigateToPath } = useBrowseNavigation();
     const { repoName, revisionName } = useBrowseParams();
 
     // @note: When `_tree` changes, it indicates that a new tree has been loaded.
-    // In that case, we need to rebuild the collapsable tree.
+    // In that case, we need to rebuild the collapsible tree.
     useEffect(() => {
-        setTree(buildCollapsableTree(_tree));
+        setTree(buildCollapsibleTree(_tree));
     }, [_tree]);
 
     const setIsCollapsed = useCallback((path: string, isCollapsed: boolean) => {
