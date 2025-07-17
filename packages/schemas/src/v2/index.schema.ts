@@ -684,7 +684,7 @@ const schema = {
                 "type": "string",
                 "pattern": ".+"
               },
-              "description": "List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always exluded.",
+              "description": "List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always excluded.",
               "default": [],
               "examples": [
                 [
@@ -1386,7 +1386,7 @@ const schema = {
                     "type": "string",
                     "pattern": ".+"
                   },
-                  "description": "List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always exluded.",
+                  "description": "List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always excluded.",
                   "default": [],
                   "examples": [
                     [
@@ -2170,7 +2170,7 @@ const schema = {
                       "type": "string",
                       "pattern": ".+"
                     },
-                    "description": "List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always exluded.",
+                    "description": "List of paths relative to the provided `path` to exclude from the index. .git, .hg, and .svn are always excluded.",
                     "default": [],
                     "examples": [
                       [

@@ -27,7 +27,7 @@ To get Sourcebot to index these repositories:
 
 <Steps>
     <Step title="Mount a volume">
-        We need to mount a docker volume to the `repos` directory so Sourcebot can read it's contents. Sourcebot will **not** write to local repositories, so we can mount a seperate **read-only** volume:
+        We need to mount a docker volume to the `repos` directory so Sourcebot can read it's contents. Sourcebot will **not** write to local repositories, so we can mount a separate **read-only** volume:
 
         ``` bash
         docker run \

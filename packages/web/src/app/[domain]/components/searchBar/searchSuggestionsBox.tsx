@@ -438,7 +438,7 @@ export { SearchSuggestionsBox };
 
 export const splitQuery = (query: string, cursorPos: number) => {
     const queryParts = [];
-    const seperator = " ";
+    const separator = " ";
     let cursorIndex = 0;
     let accumulator = "";
     let isInQuoteCapture = false;
@@ -452,7 +452,7 @@ export const splitQuery = (query: string, cursorPos: number) => {
             isInQuoteCapture = !isInQuoteCapture;
         }
 
-        if (!isInQuoteCapture && query[i] === seperator) {
+        if (!isInQuoteCapture && query[i] === separator) {
             queryParts.push(accumulator);
             accumulator = "";
             continue;

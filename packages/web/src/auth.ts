@@ -190,7 +190,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // to the client.
             session.user = {
                 ...session.user,
-                // Propogate the userId to the session.
+                // Propagate the userId to the session.
                 id: token.userId,
             }
             return session;
