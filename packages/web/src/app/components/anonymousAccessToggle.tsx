@@ -78,7 +78,7 @@ export function AnonymousAccessToggle({ hasAnonymousAccessEntitlement, anonymous
                                         />
                                     </svg>
                                     <span>
-                                        Your current plan doesn't allow for anonymous access. Please{" "}
+                                        Your current plan doesn&apos;t allow for anonymous access. Please{" "}
                                         <a
                                             href="https://www.sourcebot.dev/contact"
                                             target="_blank"

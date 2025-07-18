@@ -14,5 +14,6 @@ export const DEFAULT_SETTINGS: Settings = {
     maxRepoIndexingJobConcurrency: 8,
     maxRepoGarbageCollectionJobConcurrency: 8,
     repoGarbageCollectionGracePeriodMs: 10 * 1000, // 10 seconds
-    repoIndexTimeoutMs: 1000 * 60 * 60 * 2 // 2 hours
+    repoIndexTimeoutMs: 1000 * 60 * 60 * 2, // 2 hours
+    enablePublicAccess: false // deprected, use FORCE_ENABLE_ANONYMOUS_ACCESS instead
 }

@@ -16,11 +16,8 @@ import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
 import { BetweenHorizontalStart, GitBranchIcon, LockIcon } from "lucide-react";
 import { hasEntitlement } from "@sourcebot/shared";
-import { getAnonymousAccessStatus } from "@/actions";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
-import { headers } from "next/headers";
-import { getBaseUrl, createInviteLink, isServiceError } from "@/lib/utils";
 
 interface OnboardingProps {
     searchParams?: { step?: string };
@@ -49,16 +46,6 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
     if (!org) {
         return <div>Error loading organization</div>;
     }
-
-    // Get anonymous access status
-    const anonymousAccessEntitlement = hasEntitlement("anonymous-access");
-    const anonymousAccessStatus = await getAnonymousAccessStatus(SINGLE_TENANT_ORG_DOMAIN);
-    const anonymousAccessEnabled = anonymousAccessEntitlement && !isServiceError(anonymousAccessStatus) && anonymousAccessStatus;
-
-    // Get the current URL to construct the full invite link
-    const headersList = headers();
-    const baseUrl = getBaseUrl(headersList);
-    const inviteLink = createInviteLink(baseUrl, org.inviteLinkId);
 
     if (org && org.isOnboarded) {
         redirect('/');
@@ -161,7 +148,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             title: "Configure Access Settings",
             subtitle: (
                 <>
-                    Set up your organization's access settings.{" "}
+                    Set up your organization&apos;s access settings.{" "}
                     <a
                         href="https://docs.sourcebot.dev/docs/configuration/auth/access-settings"
                         target="_blank"

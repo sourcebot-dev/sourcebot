@@ -20,6 +20,8 @@ export const env = createEnv({
         ZOEKT_MAX_WALL_TIME_MS: numberSchema.default(10000),
         
         // Auth
+        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
+        
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
@@ -80,7 +82,6 @@ export const env = createEnv({
 
         // Misc UI flags
         SECURITY_CARD_ENABLED: booleanSchema.default('false'),
-        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
 
         // EE License
         SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),

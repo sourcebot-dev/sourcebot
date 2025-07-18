@@ -11,6 +11,7 @@ import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { createLogger } from "@sourcebot/logger";
 import { createGuestUser } from '@/lib/authUtils';
 import { getOrgFromDomain } from './data/org';
+import { getOrgMetadata } from './types';
 
 const logger = createLogger('web-initialize');
 
@@ -113,14 +114,16 @@ const syncDeclarativeConfig = async (configPath: string) => {
         } else {
             const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
             if (org) {
-                const currentMetadata = org.metadata ? org.metadata as any : {};
+                const currentMetadata = getOrgMetadata(org);
+                const mergedMetadata = {
+                    ...(currentMetadata ?? {}),
+                    anonymousAccessEnabled: true,
+                };
+                
                 await prisma.org.update({
                     where: { id: org.id },
                     data: { 
-                        metadata: { 
-                            ...currentMetadata,
-                            anonymousAccessEnabled: true 
-                        } 
+                        metadata: mergedMetadata,
                     },
                 });
                 logger.info(`Anonymous access enabled via FORCE_ENABLE_ANONYMOUS_ACCESS environment variable`);
