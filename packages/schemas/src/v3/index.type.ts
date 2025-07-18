@@ -79,6 +79,11 @@ export interface Settings {
    * The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.
    */
   repoIndexTimeoutMs?: number;
+  /**
+   * @deprecated
+   * This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.
+   */
+  enablePublicAccess?: boolean;
 }
 /**
  * Search context

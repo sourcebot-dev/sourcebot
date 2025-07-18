@@ -62,6 +62,12 @@ const schema = {
           "type": "number",
           "description": "The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.",
           "minimum": 1
+        },
+        "enablePublicAccess": {
+          "type": "boolean",
+          "deprecated": true,
+          "description": "This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.",
+          "default": false
         }
       },
       "additionalProperties": false
@@ -171,6 +177,12 @@ const schema = {
           "type": "number",
           "description": "The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.",
           "minimum": 1
+        },
+        "enablePublicAccess": {
+          "type": "boolean",
+          "deprecated": true,
+          "description": "This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.",
+          "default": false
         }
       },
       "additionalProperties": false
