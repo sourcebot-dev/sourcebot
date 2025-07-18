@@ -2,10 +2,16 @@ import { NewsItem } from "./types";
 
 export const newsData: NewsItem[] = [
     {
+        unique_id: "anonymous-access",
+        header: "Anonymous Access",
+        sub_header: "We've added the ability to disable the need for users to login to Sourcebot.",
+        url: "https://docs.sourcebot.dev/docs/configuration/auth/access-settings"
+    },
+    {
         unique_id: "member-approval",
         header: "Member Approval",
         sub_header: "We've added a toggle to control whether new users need to be approved.",
-        url: "https://docs.sourcebot.dev/docs/configuration/auth/inviting-members"
+        url: "https://docs.sourcebot.dev/docs/configuration/auth/access-settings"
     },
     {
         unique_id: "analytics",
