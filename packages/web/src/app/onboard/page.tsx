@@ -162,7 +162,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             subtitle: "Set up your organization's security settings.",
             component: (
                 <div className="space-y-6">
-                    <OrganizationAccessSettings anonymousAccessEnabled={anonymousAccessEnabled} memberApprovalRequired={org.memberApprovalRequired} inviteLinkEnabled={org.inviteLinkEnabled} inviteLink={inviteLink} />
+                    <OrganizationAccessSettings />
                     <Button asChild className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200 font-medium">
                         <a href="/onboard?step=3">Continue →</a>
                     </Button>

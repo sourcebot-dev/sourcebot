@@ -10,6 +10,7 @@ import { ServiceErrorException } from './lib/serviceError';
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { createLogger } from "@sourcebot/logger";
 import { createGuestUser } from '@/lib/authUtils';
+import { getOrgFromDomain } from './data/org';
 
 const logger = createLogger('web-initialize');
 
@@ -177,6 +178,15 @@ const initSingleTenancy = async () => {
         const res = await createGuestUser(SINGLE_TENANT_ORG_DOMAIN);
         if (isServiceError(res)) {
             throw new ServiceErrorException(res);
+        }
+    } else {
+        // If anonymous access entitlement is not enabled, set the flag to false in the org on init
+        const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+        if (org) {
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { metadata: { anonymousAccessEnabled: false } },
+            });
         }
     }
 

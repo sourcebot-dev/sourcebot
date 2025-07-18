@@ -1,51 +1,40 @@
-"use client"
-
-import { useState } from "react"
+import { createInviteLink, getBaseUrl } from "@/lib/utils"
 import { AnonymousAccessToggle } from "./anonymousAccessToggle"
-import { MemberApprovalRequiredToggle } from "./memberApprovalRequiredToggle"
-import { InviteLinkToggle } from "./inviteLinkToggle"
+import { OrganizationAccessSettingsWrapper } from "./organizationAccessSettingsWrapper"
+import { getOrgFromDomain } from "@/data/org"
+import { getOrgMetadata } from "@/types"
+import { headers } from "next/headers"
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
+import { hasEntitlement } from "@sourcebot/shared"
 
-interface OrganizationAccessSettingsProps {
-    anonymousAccessEnabled: boolean
-    memberApprovalRequired: boolean
-    inviteLinkEnabled: boolean
-    inviteLink: string | null
-}
-
-export function OrganizationAccessSettings({ 
-    anonymousAccessEnabled,
-    memberApprovalRequired, 
-    inviteLinkEnabled, 
-    inviteLink 
-}: OrganizationAccessSettingsProps) {
-    const [showInviteLink, setShowInviteLink] = useState(memberApprovalRequired && !anonymousAccessEnabled)
-    const handleMemberApprovalToggle = (checked: boolean) => {
-        setShowInviteLink(checked)
+export async function OrganizationAccessSettings() {
+    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+    if (!org) {
+        return <div>Error loading organization</div>
     }
+
+    const metadata = getOrgMetadata(org);
+    const anonymousAccessEnabled = metadata?.anonymousAccessEnabled ?? false;
+
+    const headersList = headers();
+    const baseUrl = getBaseUrl(headersList);
+    const inviteLink = createInviteLink(baseUrl, org.inviteLinkId)
+
+    const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
 
     return (
         <div className="space-y-6">
             <AnonymousAccessToggle 
+                hasAnonymousAccessEntitlement={hasAnonymousAccessEntitlement}
                 anonymousAccessEnabled={anonymousAccessEnabled}
             />
 
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden max-h-96 opacity-100`}>
-                <MemberApprovalRequiredToggle 
-                    memberApprovalRequired={memberApprovalRequired}
-                    onToggleChange={handleMemberApprovalToggle}
-                />
-            </div>
-            
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                showInviteLink 
-                    ? 'max-h-96 opacity-100' 
-                    : 'max-h-0 opacity-0 pointer-events-none'
-            }`}>
-                <InviteLinkToggle 
-                    inviteLinkEnabled={inviteLinkEnabled} 
-                    inviteLink={inviteLink} 
-                />
-            </div>
+            <OrganizationAccessSettingsWrapper
+                memberApprovalRequired={org.memberApprovalRequired}
+                inviteLinkEnabled={org.inviteLinkEnabled}
+                inviteLink={inviteLink}
+                anonymousAccessEnabled={anonymousAccessEnabled}
+            />
         </div>
     )
 }
