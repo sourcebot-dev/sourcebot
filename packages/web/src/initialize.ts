@@ -5,11 +5,11 @@ import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID
 import { watch } from 'fs';
 import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { hasEntitlement, loadConfig, isRemotePath, syncSearchContexts } from '@sourcebot/shared';
-import { createGuestUser, setPublicAccessStatus } from '@/ee/features/publicAccess/publicAccess';
 import { isServiceError } from './lib/utils';
 import { ServiceErrorException } from './lib/serviceError';
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { createLogger } from "@sourcebot/logger";
+import { createGuestUser } from '@/lib/authUtils';
 
 const logger = createLogger('web-initialize');
 
@@ -105,26 +105,6 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
 const syncDeclarativeConfig = async (configPath: string) => {
     const config = await loadConfig(configPath);
 
-    const hasPublicAccessEntitlement = hasEntitlement("public-access");
-    const enablePublicAccess = config.settings?.enablePublicAccess;
-    if (enablePublicAccess !== undefined && !hasPublicAccessEntitlement) {
-        logger.error(`Public access flag is set in the config file but your license doesn't have public access entitlement. Please contact ${SOURCEBOT_SUPPORT_EMAIL} to request a license upgrade.`);
-        process.exit(1);
-    }
-
-    if (hasPublicAccessEntitlement) {
-        if (enablePublicAccess && env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === 'true') {
-            logger.error(`Audit logging is not supported when public access is enabled. Please disable audit logging (SOURCEBOT_EE_AUDIT_LOGGING_ENABLED) or disable public access.`);
-            process.exit(1);
-        }
-        
-        logger.info(`Setting public access status to ${!!enablePublicAccess} for org ${SINGLE_TENANT_ORG_DOMAIN}`);
-        const res = await setPublicAccessStatus(SINGLE_TENANT_ORG_DOMAIN, !!enablePublicAccess);
-        if (isServiceError(res)) {
-            throw new ServiceErrorException(res);
-        }
-    }
-
     await syncConnections(config.connections);
     await syncSearchContexts({
         contexts: config.contexts,
@@ -192,8 +172,8 @@ const initSingleTenancy = async () => {
     // To keep things simple, we'll just delete the old guest user if it exists in the DB
     await pruneOldGuestUser();
 
-    const hasPublicAccessEntitlement = hasEntitlement("public-access");
-    if (hasPublicAccessEntitlement) {
+    const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+    if (hasAnonymousAccessEntitlement) {
         const res = await createGuestUser(SINGLE_TENANT_ORG_DOMAIN);
         if (isServiceError(res)) {
             throw new ServiceErrorException(res);

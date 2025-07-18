@@ -48,5 +48,5 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
                 webUrl: file.webUrl,
             } satisfies FileSourceResponse;
 
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 );

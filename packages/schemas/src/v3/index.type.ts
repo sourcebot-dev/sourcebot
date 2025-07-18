@@ -79,10 +79,6 @@ export interface Settings {
    * The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.
    */
   repoIndexTimeoutMs?: number;
-  /**
-   * [Sourcebot EE] When enabled, allows unauthenticated users to access Sourcebot. Requires an enterprise license with an unlimited number of seats.
-   */
-  enablePublicAccess?: boolean;
 }
 /**
  * Search context
