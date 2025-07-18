@@ -106,6 +106,28 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
 const syncDeclarativeConfig = async (configPath: string) => {
     const config = await loadConfig(configPath);
 
+    if (config.settings?.forceEnableAnonymousAccess) {
+        const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+        if (!hasAnonymousAccessEntitlement) {
+            logger.warn(`forceEnableAnonymousAccess is set to true but anonymous access entitlement is not available. Setting will be ignored.`);
+        } else {
+            const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+            if (org) {
+                const currentMetadata = org.metadata ? org.metadata as any : {};
+                await prisma.org.update({
+                    where: { id: org.id },
+                    data: { 
+                        metadata: { 
+                            ...currentMetadata,
+                            anonymousAccessEnabled: true 
+                        } 
+                    },
+                });
+                logger.info(`Anonymous access enabled via forceEnableAnonymousAccess setting`);
+            }
+        }
+    }
+
     await syncConnections(config.connections);
     await syncSearchContexts({
         contexts: config.contexts,
