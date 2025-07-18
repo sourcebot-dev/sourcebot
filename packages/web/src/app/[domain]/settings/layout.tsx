@@ -65,6 +65,10 @@ export default async function SettingsLayout({
             }
         ] : []),
         {
+            title: "Access",
+            href: `/${domain}/settings/access`,
+        },
+        {
             title: (
                 <div className="flex items-center gap-2">
                     Members

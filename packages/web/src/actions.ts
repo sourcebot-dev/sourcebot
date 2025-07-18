@@ -37,7 +37,7 @@ import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import { createLogger } from "@sourcebot/logger";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
-import { orgMetadataSchema } from "@/types";
+import { getOrgMetadata } from "@/types";
 import { getOrgFromDomain } from "./data/org";
 
 const ajv = new Ajv({
@@ -1952,8 +1952,8 @@ export const getAnonymousAccessStatus = async (domain: string): Promise<boolean 
         return false;
     }
 
-    const orgMetadata = orgMetadataSchema.safeParse(org.metadata);
-    if (!orgMetadata.success) {
+    const orgMetadata = getOrgMetadata(org);
+    if (!orgMetadata) {
         return {
             statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
             errorCode: ErrorCode.INVALID_ORG_METADATA,
@@ -1961,7 +1961,7 @@ export const getAnonymousAccessStatus = async (domain: string): Promise<boolean 
         } satisfies ServiceError;
     }
 
-    return !!orgMetadata.data.anonymousAccessEnabled;
+    return !!orgMetadata.anonymousAccessEnabled;
 });
 
 export const setAnonymousAccessStatus = async (domain: string, enabled: boolean): Promise<ServiceError | boolean> => sew(async () => {
@@ -1978,9 +1978,9 @@ export const setAnonymousAccessStatus = async (domain: string, enabled: boolean)
                 } satisfies ServiceError;
             }
 
-            const currentMetadata = orgMetadataSchema.safeParse(org.metadata);
+            const currentMetadata = getOrgMetadata(org);
             const mergedMetadata = {
-                ...(currentMetadata.success ? currentMetadata.data : {}),
+                ...(currentMetadata ?? {}),
                 anonymousAccessEnabled: enabled,
             };
 
