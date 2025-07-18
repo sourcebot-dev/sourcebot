@@ -62,10 +62,6 @@ const schema = {
           "type": "number",
           "description": "The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.",
           "minimum": 1
-        },
-        "forceEnableAnonymousAccess": {
-          "type": "boolean",
-          "description": "Force enable anonymous access. When set to true, anonymous access will be enabled and the UI toggle will be disabled."
         }
       },
       "additionalProperties": false
@@ -175,10 +171,6 @@ const schema = {
           "type": "number",
           "description": "The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.",
           "minimum": 1
-        },
-        "forceEnableAnonymousAccess": {
-          "type": "boolean",
-          "description": "Force enable anonymous access. When set to true, anonymous access will be enabled and the UI toggle will be disabled."
         }
       },
       "additionalProperties": false

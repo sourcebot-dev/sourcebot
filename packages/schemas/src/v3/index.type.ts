@@ -79,10 +79,6 @@ export interface Settings {
    * The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.
    */
   repoIndexTimeoutMs?: number;
-  /**
-   * Force enable anonymous access. When set to true, anonymous access will be enabled and the UI toggle will be disabled.
-   */
-  forceEnableAnonymousAccess?: boolean;
 }
 /**
  * Search context

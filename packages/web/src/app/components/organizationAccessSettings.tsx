@@ -5,11 +5,8 @@ import { getOrgFromDomain } from "@/data/org"
 import { getOrgMetadata } from "@/types"
 import { headers } from "next/headers"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { hasEntitlement, loadConfig } from "@sourcebot/shared"
+import { hasEntitlement } from "@sourcebot/shared"
 import { env } from "@/env.mjs"
-import { createLogger } from "@sourcebot/logger";
-
-const logger = createLogger("OrganizationAccessSettings");
 
 export async function OrganizationAccessSettings() {
     const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
@@ -26,13 +23,7 @@ export async function OrganizationAccessSettings() {
 
     const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
 
-    let forceEnableAnonymousAccess = false;
-    if (env.CONFIG_PATH) {
-        const config = await loadConfig(env.CONFIG_PATH);
-        forceEnableAnonymousAccess = config.settings?.forceEnableAnonymousAccess ?? false;
-    } else {
-        logger.warn("CONFIG_PATH is not set, so forceEnableAnonymousAccess will be false");
-    }
+    const forceEnableAnonymousAccess = env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true';
 
     return (
         <div className="space-y-6">

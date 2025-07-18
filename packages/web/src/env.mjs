@@ -80,6 +80,7 @@ export const env = createEnv({
 
         // Misc UI flags
         SECURITY_CARD_ENABLED: booleanSchema.default('false'),
+        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
 
         // EE License
         SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),

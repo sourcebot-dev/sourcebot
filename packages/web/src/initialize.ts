@@ -106,10 +106,10 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
 const syncDeclarativeConfig = async (configPath: string) => {
     const config = await loadConfig(configPath);
 
-    if (config.settings?.forceEnableAnonymousAccess) {
+    if (env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true') {
         const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
         if (!hasAnonymousAccessEntitlement) {
-            logger.warn(`forceEnableAnonymousAccess is set to true but anonymous access entitlement is not available. Setting will be ignored.`);
+            logger.warn(`FORCE_ENABLE_ANONYMOUS_ACCESS env var is set to true but anonymous access entitlement is not available. Setting will be ignored.`);
         } else {
             const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
             if (org) {
@@ -123,7 +123,7 @@ const syncDeclarativeConfig = async (configPath: string) => {
                         } 
                     },
                 });
-                logger.info(`Anonymous access enabled via forceEnableAnonymousAccess setting`);
+                logger.info(`Anonymous access enabled via FORCE_ENABLE_ANONYMOUS_ACCESS environment variable`);
             }
         }
     }
