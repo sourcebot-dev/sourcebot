@@ -1,8 +1,8 @@
 import type { User as AuthJsUser } from "next-auth";
 import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
-import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
-import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
+import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_EMAIL, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
+import { getPlan, getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { isServiceError } from "@/lib/utils";
 import { orgNotFound, ServiceError, userNotFound } from "@/lib/serviceError";
 import { createLogger } from "@sourcebot/logger";
@@ -11,6 +11,7 @@ import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { incrementOrgSeatCount } from "@/ee/features/billing/serverUtils";
+import { getOrgFromDomain } from "@/data/org";
 
 const logger = createLogger('web-auth-utils');
 const auditService = getAuditService();
@@ -122,6 +123,67 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         });
     }
 
+};
+
+
+export const createGuestUser = async (domain: string): Promise<ServiceError | boolean> => {
+    const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+    if (!hasAnonymousAccessEntitlement) {
+        console.error(`Anonymous access isn't supported in your current plan: ${getPlan()}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+        return {
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+            message: "Public access is not supported in your current plan",
+        } satisfies ServiceError;
+    }
+
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        return {
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "Organization not found",
+        } satisfies ServiceError;
+    }
+
+    const user = await prisma.user.upsert({
+        where: {
+            id: SOURCEBOT_GUEST_USER_ID,
+        },
+        update: {},
+        create: {
+            id: SOURCEBOT_GUEST_USER_ID,
+            name: "Guest",
+            email: SOURCEBOT_GUEST_USER_EMAIL,
+        },
+    });
+
+    await prisma.org.update({
+        where: {
+            id: org.id,
+        },
+        data: {
+            members: {
+                upsert: {
+                    where: {
+                        orgId_userId: {
+                            orgId: org.id,
+                            userId: user.id,
+                        },
+                    },
+                    update: {},
+                    create: {
+                        role: OrgRole.GUEST,
+                        user: {
+                            connect: { id: user.id },
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    return true;
 };
 
 export const orgHasAvailability = async (domain: string): Promise<boolean> => {

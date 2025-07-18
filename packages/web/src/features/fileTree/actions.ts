@@ -77,7 +77,7 @@ export const getTree = async (params: { repoName: string, revisionName: string }
                 tree,
             }
 
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true)
 );
 
 /**
@@ -154,7 +154,7 @@ export const getFolderContents = async (params: { repoName: string, revisionName
             });
 
             return contents;
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true)
 );
 
 export const getFiles = async (params: { repoName: string, revisionName: string }, domain: string) => sew(() =>
@@ -205,7 +205,7 @@ export const getFiles = async (params: { repoName: string, revisionName: string 
 
             return files;
 
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true)
 );
 
 const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {

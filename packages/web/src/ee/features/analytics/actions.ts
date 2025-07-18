@@ -99,5 +99,5 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
     
 
       return rows;
-    }, /* minRequiredRole = */ OrgRole.MEMBER), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
+    }, /* minRequiredRole = */ OrgRole.MEMBER), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 ); 

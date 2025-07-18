@@ -41,7 +41,7 @@ export const findSearchBasedSymbolReferences = async (
             }
 
             return parseRelatedSymbolsSearchResponse(searchResult);
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true)
 );
 
 
@@ -74,7 +74,7 @@ export const findSearchBasedSymbolDefinitions = async (
             }
 
             return parseRelatedSymbolsSearchResponse(searchResult);
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true)
 );
 
 const parseRelatedSymbolsSearchResponse = (searchResult: SearchResponse) => {

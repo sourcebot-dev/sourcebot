@@ -16,10 +16,9 @@ import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
 import { hasEntitlement } from "@sourcebot/shared";
-import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "./components/gcpIapAuth";
-import { getMemberApprovalRequired } from "@/actions";
+import { getAnonymousAccessStatus, getMemberApprovalRequired } from "@/actions";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 
@@ -39,7 +38,7 @@ export default async function Layout({
     }
 
     const session = await auth();
-    const publicAccessEnabled = hasEntitlement("public-access") && await getPublicAccessStatus(domain);
+    const anonymousAccessEnabled = hasEntitlement("anonymous-access") && await getAnonymousAccessStatus(domain);
     
     // If the user is authenticated, we must check if they're a member of the org
     if (session) {
@@ -84,8 +83,8 @@ export default async function Layout({
             }
         }
     } else {
-        // If the user isn't authenticated and public access isn't enabled, we need to redirect them to the login page.
-        if (!publicAccessEnabled) {
+        // If the user isn't authenticated and anonymous access isn't enabled, we need to redirect them to the login page.
+        if (!anonymousAccessEnabled) {
             const ssoEntitlement = await hasEntitlement("sso");
             if (ssoEntitlement && env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
                 return <GcpIapAuth callbackUrl={`/${domain}`} />;

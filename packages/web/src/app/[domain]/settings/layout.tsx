@@ -64,6 +64,12 @@ export default async function SettingsLayout({
                 href: `/${domain}/settings/billing`,
             }
         ] : []),
+        ...(userRoleInOrg === OrgRole.OWNER ? [
+            {
+                title: "Access",
+                href: `/${domain}/settings/access`,
+            }
+        ] : []),
         {
             title: (
                 <div className="flex items-center gap-2">

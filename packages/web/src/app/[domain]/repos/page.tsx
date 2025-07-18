@@ -7,7 +7,7 @@ export default async function ReposPage({ params: { domain } }: { params: { doma
     const org = await getOrgFromDomain(domain);
     if (!org) {
         return <PageNotFound />
-}
+    }
 
     return (
         <div>

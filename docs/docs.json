@@ -73,7 +73,7 @@
                                 "pages": [
                                     "docs/configuration/auth/overview",
                                     "docs/configuration/auth/providers",
-                                    "docs/configuration/auth/inviting-members",
+                                    "docs/configuration/auth/access-settings",
                                     "docs/configuration/auth/roles-and-permissions",
                                     "docs/configuration/auth/faq"
                                 ]
