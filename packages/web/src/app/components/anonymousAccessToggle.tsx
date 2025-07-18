@@ -59,15 +59,7 @@ export function AnonymousAccessToggle({ hasAnonymousAccessEntitlement, anonymous
                     </h3>
                     <div className="max-w-2xl">
                         <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
-                            When enabled, users can access your deployment without logging in.{" "}
-                            <a
-                                href="https://docs.sourcebot.dev/docs/configuration/auth/anonymous-access"
-                                target="_blank"
-                                rel="noopener"
-                                className="underline text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors"
-                            >
-                                Learn More
-                            </a>
+                            When enabled, users can access your deployment without logging in.
                         </p>
                         {showPlanMessage && (
                             <div className="mt-3 p-3 rounded-md bg-[var(--muted)] border border-[var(--border)]">

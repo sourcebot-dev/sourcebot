@@ -158,8 +158,20 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
         },
         {
             id: "configure-org",
-            title: "Configure Your Organization",
-            subtitle: "Set up your organization's security settings.",
+            title: "Configure Access Settings",
+            subtitle: (
+                <>
+                    Set up your organization's access settings.{" "}
+                    <a
+                        href="https://docs.sourcebot.dev/docs/configuration/auth/access-settings"
+                        target="_blank"
+                        rel="noopener"
+                        className="underline text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors"
+                    >
+                        Learn more
+                    </a>
+                </>
+            ),
             component: (
                 <div className="space-y-6">
                     <OrganizationAccessSettings />
