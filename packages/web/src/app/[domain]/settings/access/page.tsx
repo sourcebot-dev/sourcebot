@@ -22,7 +22,7 @@ export default async function AccessPage({ params: { domain } }: AccessPageProps
                         href="https://docs.sourcebot.dev/docs/configuration/auth/access-settings"
                         target="_blank"
                         rel="noopener"
-                        className="underline text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors"
+                        className="underline text-primary hover:text-primary/80 transition-colors"
                     >
                         Learn more
                     </a>

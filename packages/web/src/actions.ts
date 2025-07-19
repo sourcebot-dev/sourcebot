@@ -37,7 +37,7 @@ import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import { createLogger } from "@sourcebot/logger";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
-import { getOrgMetadata } from "@/types";
+import { getOrgMetadata } from "@/lib/utils";
 import { getOrgFromDomain } from "./data/org";
 
 const ajv = new Ajv({

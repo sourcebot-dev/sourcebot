@@ -5,13 +5,12 @@ import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID
 import { watch } from 'fs';
 import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { hasEntitlement, loadConfig, isRemotePath, syncSearchContexts } from '@sourcebot/shared';
-import { isServiceError } from './lib/utils';
+import { isServiceError, getOrgMetadata } from './lib/utils';
 import { ServiceErrorException } from './lib/serviceError';
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { createLogger } from "@sourcebot/logger";
 import { createGuestUser } from '@/lib/authUtils';
 import { getOrgFromDomain } from './data/org';
-import { getOrgMetadata } from './types';
 
 const logger = createLogger('web-initialize');
 
@@ -107,7 +106,8 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
 const syncDeclarativeConfig = async (configPath: string) => {
     const config = await loadConfig(configPath);
 
-    if (env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true') {
+    const forceEnableAnonymousAccess = config.settings?.enablePublicAccess ?? env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true';
+    if (forceEnableAnonymousAccess) {
         const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
         if (!hasAnonymousAccessEntitlement) {
             logger.warn(`FORCE_ENABLE_ANONYMOUS_ACCESS env var is set to true but anonymous access entitlement is not available. Setting will be ignored.`);
@@ -208,9 +208,14 @@ const initSingleTenancy = async () => {
         // If anonymous access entitlement is not enabled, set the flag to false in the org on init
         const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
         if (org) {
+            const currentMetadata = getOrgMetadata(org);
+            const mergedMetadata = {
+                ...(currentMetadata ?? {}),
+                anonymousAccessEnabled: false,
+            };
             await prisma.org.update({
                 where: { id: org.id },
-                data: { metadata: { anonymousAccessEnabled: false } },
+                data: { metadata: mergedMetadata },
             });
         }
     }

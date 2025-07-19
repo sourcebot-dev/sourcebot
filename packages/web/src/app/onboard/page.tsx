@@ -110,7 +110,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             subtitle: "This onboarding flow will guide you through creating your owner account and configuring your organization.",
             component: (
                 <div className="space-y-6">
-                    <Button asChild className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200 font-medium">
+                    <Button asChild className="w-full">
                         <a href="/onboard?step=1">Get Started →</a>
                     </Button>
                 </div>
@@ -126,7 +126,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                         href="https://docs.sourcebot.dev/docs/configuration/auth/overview"
                         target="_blank"
                         rel="noopener"
-                        className="underline text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors"
+                        className="underline text-primary hover:text-primary/80 transition-colors"
                     >
                         documentation
                     </a>.
@@ -153,7 +153,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                         href="https://docs.sourcebot.dev/docs/configuration/auth/access-settings"
                         target="_blank"
                         rel="noopener"
-                        className="underline text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors"
+                        className="underline text-primary hover:text-primary/80 transition-colors"
                     >
                         Learn more
                     </a>
@@ -162,7 +162,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             component: (
                 <div className="space-y-6">
                     <OrganizationAccessSettings />
-                    <Button asChild className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200 font-medium">
+                    <Button asChild className="w-full">
                         <a href="/onboard?step=3">Continue →</a>
                     </Button>
                 </div>

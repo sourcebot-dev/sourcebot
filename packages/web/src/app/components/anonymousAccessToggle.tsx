@@ -83,7 +83,7 @@ export function AnonymousAccessToggle({ hasAnonymousAccessEntitlement, anonymous
                                             href="https://www.sourcebot.dev/contact"
                                             target="_blank"
                                             rel="noopener"
-                                            className="font-medium text-[var(--primary)] hover:text-[var(--primary)]/80 underline underline-offset-2 transition-colors"
+                                            className="font-medium text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
                                         >
                                             reach out
                                         </a>

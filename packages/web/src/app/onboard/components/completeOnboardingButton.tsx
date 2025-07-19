@@ -45,7 +45,7 @@ export function CompleteOnboardingButton() {
         <Button 
             onClick={handleCompleteOnboarding}
             disabled={isLoading}
-            className="w-full h-11 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] transition-all duration-200 font-medium"
+            className="w-full"
         >
             {isLoading ? "Completing..." : "Complete Onboarding →"}
         </Button>
