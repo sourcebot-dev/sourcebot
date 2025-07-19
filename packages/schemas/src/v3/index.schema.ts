@@ -65,7 +65,8 @@ const schema = {
         },
         "enablePublicAccess": {
           "type": "boolean",
-          "description": "[Sourcebot EE] When enabled, allows unauthenticated users to access Sourcebot. Requires an enterprise license with an unlimited number of seats.",
+          "deprecated": true,
+          "description": "This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.",
           "default": false
         }
       },
@@ -179,7 +180,8 @@ const schema = {
         },
         "enablePublicAccess": {
           "type": "boolean",
-          "description": "[Sourcebot EE] When enabled, allows unauthenticated users to access Sourcebot. Requires an enterprise license with an unlimited number of seats.",
+          "deprecated": true,
+          "description": "This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.",
           "default": false
         }
       },

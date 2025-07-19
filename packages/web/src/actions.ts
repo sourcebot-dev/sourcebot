@@ -32,12 +32,13 @@ import { decrementOrgSeatCount, getSubscriptionForOrg } from "./ee/features/bill
 import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
 import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
 import { getPlan, hasEntitlement } from "@sourcebot/shared";
-import { getPublicAccessStatus } from "./ee/features/publicAccess/publicAccess";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import { createLogger } from "@sourcebot/logger";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
+import { getOrgMetadata } from "@/lib/utils";
+import { getOrgFromDomain } from "./data/org";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -62,13 +63,13 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
     }
 }
 
-export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | undefined) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false, apiKey: ApiKeyPayload | undefined = undefined) => {
+export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | undefined) => Promise<T>, allowAnonymousAccess: boolean = false, apiKey: ApiKeyPayload | undefined = undefined) => {
     const session = await auth();
 
     if (!session) {
         // First we check if public access is enabled and supported. If not, then we check if an api key was provided. If not,
         // then this is an invalid unauthed request and we return a 401.
-        const publicAccessEnabled = await getPublicAccessStatus(SINGLE_TENANT_ORG_DOMAIN);
+        const anonymousAccessEnabled = await getAnonymousAccessStatus(SINGLE_TENANT_ORG_DOMAIN);
         if (apiKey) {
             const apiKeyOrError = await verifyApiKey(apiKey);
             if (isServiceError(apiKeyOrError)) {
@@ -98,18 +99,17 @@ export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | unde
 
             return fn(user.id, apiKeyOrError.apiKey.hash);
         } else if (
-            env.SOURCEBOT_TENANCY_MODE === 'single' &&
-            allowSingleTenantUnauthedAccess &&
-            !isServiceError(publicAccessEnabled) &&
-            publicAccessEnabled
+            allowAnonymousAccess &&
+            !isServiceError(anonymousAccessEnabled) &&
+            anonymousAccessEnabled
         ) {
-            if (!hasEntitlement("public-access")) {
+            if (!hasEntitlement("anonymous-access")) {
                 const plan = getPlan();
-                logger.error(`Public access isn't supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+                logger.error(`Anonymous access isn't supported in your current plan: ${plan}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
                 return notAuthenticated();
             }
 
-            // To support unauthed access a guest user is created in initialize.ts, which we return here
+            // To support anonymous access a guest user is created in initialize.ts, which we return here
             return fn(SOURCEBOT_GUEST_USER_ID, undefined);
         }
         return notAuthenticated();
@@ -672,7 +672,7 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,
             }));
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
 export const getRepoInfoByName = async (repoName: string, domain: string) => sew(() =>
@@ -734,7 +734,7 @@ export const getRepoInfoByName = async (repoName: string, domain: string) => sew
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,
             }
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
 export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
@@ -933,7 +933,7 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ userRole }) => {
             return userRole;
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
 export const createInvites = async (emails: string[], domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
@@ -1863,7 +1863,7 @@ export const getSearchContexts = async (domain: string) => sew(() =>
                 name: context.name,
                 description: context.description ?? undefined,
             }));
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
 export const getRepoImage = async (repoId: number, domain: string): Promise<ArrayBuffer | ServiceError> => sew(async () => {
@@ -1934,7 +1934,68 @@ export const getRepoImage = async (repoId: number, domain: string): Promise<Arra
                 return notFound();
             }
         }, /* minRequiredRole = */ OrgRole.GUEST);
-    }, /* allowSingleTenantUnauthedAccess = */ true);
+    }, /* allowAnonymousAccess = */ true);
+});
+
+export const getAnonymousAccessStatus = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        return {
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "Organization not found",
+        } satisfies ServiceError;
+    }
+
+    // If no metadata is set we don't try to parse it since it'll result in a parse error
+    if (org.metadata === null) {
+        return false;
+    }
+
+    const orgMetadata = getOrgMetadata(org);
+    if (!orgMetadata) {
+        return {
+            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+            errorCode: ErrorCode.INVALID_ORG_METADATA,
+            message: "Invalid organization metadata",
+        } satisfies ServiceError;
+    }
+
+    return !!orgMetadata.anonymousAccessEnabled;
+});
+
+export const setAnonymousAccessStatus = async (domain: string, enabled: boolean): Promise<ServiceError | boolean> => sew(async () => {
+    return await withAuth(async (userId) => {
+        return await withOrgMembership(userId, domain, async ({ org }) => {
+            const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+            if (!hasAnonymousAccessEntitlement) {
+                const plan = getPlan();
+                console.error(`Anonymous access isn't supported in your current plan: ${plan}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+                return {
+                    statusCode: StatusCodes.FORBIDDEN,
+                    errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+                    message: "Anonymous access is not supported in your current plan",
+                } satisfies ServiceError;
+            }
+
+            const currentMetadata = getOrgMetadata(org);
+            const mergedMetadata = {
+                ...(currentMetadata ?? {}),
+                anonymousAccessEnabled: enabled,
+            };
+
+            await prisma.org.update({
+                where: {
+                    id: org.id,
+                },
+                data: {
+                    metadata: mergedMetadata,
+                },
+            });
+
+            return true;
+        }, /* minRequiredRole = */ OrgRole.OWNER);
+    });
 });
 
 ////// Helpers ///////

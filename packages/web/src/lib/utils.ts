@@ -14,6 +14,8 @@ import { ServiceError } from "./serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
 import { NextRequest } from "next/server";
+import { Org } from "@sourcebot/db";
+import { OrgMetadata, orgMetadataSchema } from "@/types";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -452,3 +454,8 @@ export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, do
         return imageUrl;
     }
 };
+
+export const getOrgMetadata = (org: Org): OrgMetadata | null => {
+    const currentMetadata = orgMetadataSchema.safeParse(org.metadata);
+    return currentMetadata.success ? currentMetadata.data : null;
+}
