@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.5.2] - 2025-07-19
+
 ### Changed
 - Fixed typos in UI, docs, code [#369](https://github.com/sourcebot-dev/sourcebot/pull/369)
 - Add anonymous access option to core and deprecate the `enablePublicAccess` config setting. [#385](https://github.com/sourcebot-dev/sourcebot/pull/385)
