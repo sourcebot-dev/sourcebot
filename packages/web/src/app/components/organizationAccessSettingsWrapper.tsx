@@ -8,16 +8,14 @@ interface OrganizationAccessSettingsWrapperProps {
     memberApprovalRequired: boolean
     inviteLinkEnabled: boolean
     inviteLink: string | null
-    anonymousAccessEnabled: boolean
 }
 
 export function OrganizationAccessSettingsWrapper({ 
     memberApprovalRequired, 
     inviteLinkEnabled, 
-    inviteLink,
-    anonymousAccessEnabled 
+    inviteLink
 }: OrganizationAccessSettingsWrapperProps) {
-    const [showInviteLink, setShowInviteLink] = useState(memberApprovalRequired && !anonymousAccessEnabled)
+    const [showInviteLink, setShowInviteLink] = useState(memberApprovalRequired)
     
     const handleMemberApprovalToggle = (checked: boolean) => {
         setShowInviteLink(checked)

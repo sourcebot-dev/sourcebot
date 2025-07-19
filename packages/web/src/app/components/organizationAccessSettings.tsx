@@ -37,7 +37,6 @@ export async function OrganizationAccessSettings() {
                 memberApprovalRequired={org.memberApprovalRequired}
                 inviteLinkEnabled={org.inviteLinkEnabled}
                 inviteLink={inviteLink}
-                anonymousAccessEnabled={anonymousAccessEnabled}
             />
         </div>
     )
