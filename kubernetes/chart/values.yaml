@@ -14,11 +14,11 @@ image:
   # -- Container image repository.
   repository: ghcr.io/sourcebot-dev/sourcebot
   # -- Container image tag.
-  tag: latest
+  # tag: ""
   # -- Container image digest (used instead of tag if set).
   # digest: ""
   # -- Image pull policy.
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 # -- Configure image pull secrets for private registries.
 imagePullSecrets: []
@@ -29,17 +29,17 @@ command: []
 # -- Override the default arguments of the container.
 args: []
 
-# -- Configure the database secret.
+# -- Configure the database secret by providing database.secretName and database.secretKey to use a Kubernetes secret.
 database: {}
 # secretName: sourcebot-database-url
 # secretKey: url
 
-# -- Configure the Redis secret.
+# -- Configure the Redis secret by providing redis.secretName and redis.secretKey to use a Kubernetes secret.
 redis: {}
 # secretName: sourcebot-redis-url
 # secretKey: url
 
-# -- Configure the enterprise license key secret.
+# -- Configure the enterprise license key secret by providing license.secretName and license.secretKey to use a Kubernetes secret.
 license: {}
 # secretName: sourcebot-ee-license-key
 # secretKey: key
@@ -212,6 +212,7 @@ autoscaling:
   targetMemoryUtilizationPercentage: 80
 
 # -- Define additional volumes.
+# See: https://kubernetes.io/docs/concepts/storage/volumes/
 volumes: []
 # - name: foo
 #   secret:
@@ -219,6 +220,7 @@ volumes: []
 #     optional: false
 
 # -- Define volume mounts for the container.
+# See: https://kubernetes.io/docs/concepts/storage/volumes/
 volumeMounts: []
 # - name: foo
 #   mountPath: "/etc/foo"
@@ -263,3 +265,15 @@ affinity: {}
 # -- Set the priority class name for pods.
 # See: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
 priorityClassName: ""
+
+# -- Configure persistent storage for the application (volume is mounted at /data) to use the internal database.
+storage:
+  # -- Enable or disable persistent storage.
+  enabled: true
+  # -- Access modes for the persistent volume.
+  accessModes:
+    - ReadWriteOnce
+  # -- Storage class name for the persistent volume.
+  className: ""
+  # -- Size of the persistent volume.
+  size: "10Gi"

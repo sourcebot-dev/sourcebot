@@ -1,6 +1,6 @@
 # sourcebot
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v4.5.1](https://img.shields.io/badge/AppVersion-v4.5.1-informational?style=flat-square)
 
 The open source Sourcegraph alternative. Sourcebot gives you a powerful interface to search though all your repos and branches across multiple code hosts.
 
@@ -27,14 +27,13 @@ The open source Sourcegraph alternative. Sourcebot gives you a powerful interfac
 | command | list | `[]` | Override the default command of the container. |
 | config | object | `{"$schema":"https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json","connections":{},"settings":{}}` | Configure Sourcebot-specific application settings. |
 | containerSecurityContext | object | `{}` | Set the container-level security context. |
-| database | object | `{}` | Configure the database secret. |
+| database | object | `{}` | Configure the database secret by providing database.secretName and database.secretKey to use a Kubernetes secret. |
 | envSecrets | list | `[]` | Set environment variables from Kubernetes secrets. |
 | envs | list | `[]` | Set additional environment variables. |
 | fullnameOverride | string | `""` | Override the full name of the chart. |
-| image | object | `{"pullPolicy":"Always","repository":"ghcr.io/sourcebot-dev/sourcebot","tag":"latest"}` | Configure the container image. |
-| image.pullPolicy | string | `"Always"` | Image pull policy. |
+| image | object | `{"pullPolicy":"IfNotPresent","repository":"ghcr.io/sourcebot-dev/sourcebot"}` | Configure the container image. |
+| image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
 | image.repository | string | `"ghcr.io/sourcebot-dev/sourcebot"` | Container image repository. |
-| image.tag | string | `"latest"` | Container image tag. |
 | imagePullSecrets | list | `[]` | Configure image pull secrets for private registries. |
 | ingress | object | `{"annotations":{},"className":"","enabled":false,"hosts":[],"tls":[]}` | Configure ingress for Sourcebot. |
 | ingress.annotations | object | `{}` | Ingress annotations. |
@@ -43,7 +42,7 @@ The open source Sourcegraph alternative. Sourcebot gives you a powerful interfac
 | ingress.hosts | list | `[]` | List of hostnames and paths for ingress rules. |
 | ingress.tls | list | `[]` | TLS settings for ingress. |
 | initContainers | list | `[]` | Configure init containers to run before the main container. |
-| license | object | `{}` | Configure the enterprise license key secret. |
+| license | object | `{}` | Configure the enterprise license key secret by providing license.secretName and license.secretKey to use a Kubernetes secret. |
 | livenessProbe | object | `{"failureThreshold":5,"httpGet":{"path":"/","port":"http"},"initialDelaySeconds":10,"periodSeconds":10}` | Liveness probe to check if the container is alive. |
 | livenessProbe.failureThreshold | int | `5` | Number of consecutive failures before marking the container as unhealthy. |
 | livenessProbe.httpGet | object | `{"path":"/","port":"http"}` | Http GET request to check if the container is alive. |
@@ -67,7 +66,7 @@ The open source Sourcegraph alternative. Sourcebot gives you a powerful interfac
 | readinessProbe.httpGet.port | string | `"http"` | Port to check. |
 | readinessProbe.initialDelaySeconds | int | `10` | Initial delay before the first probe. |
 | readinessProbe.periodSeconds | int | `10` | Frequency of the probe. |
-| redis | object | `{}` | Configure the Redis secret. |
+| redis | object | `{}` | Configure the Redis secret by providing redis.secretName and redis.secretKey to use a Kubernetes secret. |
 | replicaCount | int | `1` | Set the number of replicas for the deployment. |
 | resources | object | `{}` | Configure resource requests and limits for the container. |
 | service | object | `{"annotations":{},"containerPort":3000,"port":3000,"type":"ClusterIP"}` | Configure the Sourcebot Kubernetes service. |
@@ -86,7 +85,12 @@ The open source Sourcegraph alternative. Sourcebot gives you a powerful interfac
 | startupProbe.httpGet.path | string | `"/"` | Path to check. |
 | startupProbe.httpGet.port | string | `"http"` | Port to check. |
 | startupProbe.periodSeconds | int | `30` | Initial delay before the first probe. |
+| storage | object | `{"accessModes":["ReadWriteOnce"],"className":"","enabled":true,"size":"10Gi"}` | Configure persistent storage for the application (volume is mounted at /data) to use the internal database. |
+| storage.accessModes | list | `["ReadWriteOnce"]` | Access modes for the persistent volume. |
+| storage.className | string | `""` | Storage class name for the persistent volume. |
+| storage.enabled | bool | `true` | Enable or disable persistent storage. |
+| storage.size | string | `"10Gi"` | Size of the persistent volume. |
 | tolerations | list | `[]` | Set tolerations for pod scheduling. See: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
-| volumeMounts | list | `[]` | Define volume mounts for the container. |
-| volumes | list | `[]` | Define additional volumes. |
+| volumeMounts | list | `[]` | Define volume mounts for the container. See: https://kubernetes.io/docs/concepts/storage/volumes/ |
+| volumes | list | `[]` | Define additional volumes. See: https://kubernetes.io/docs/concepts/storage/volumes/ |
 

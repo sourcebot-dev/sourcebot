@@ -1,11 +1,18 @@
 ---
 apiVersion: apps/v1
+{{- if $.Values.storage }}
+kind: StatefulSet
+{{- else }}
 kind: Deployment
+{{- end }}
 metadata:
   name: {{ include "sourcebot.fullname" $ }}
   labels:
     {{- include "sourcebot.labels" $ | nindent 4 }}
 spec:
+  {{- if $.Values.storage }}
+  serviceName: {{ include "sourcebot.fullname" $ }}
+  {{- end }}
   {{- if not $.Values.autoscaling.enabled }}
   replicas: {{ $.Values.replicaCount }}
   {{- end }}
@@ -106,6 +113,10 @@ spec:
               mountPath: /etc/sourcebot/config.json
               subPath: config.json
               readOnly: true
+          {{- if $.Values.storage }}
+            - name: sourcebot-data
+              mountPath: /data
+          {{- end }}
           {{- with $.Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -134,3 +145,15 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  {{- if $.Values.storage }}
+  volumeClaimTemplates:
+    - metadata:
+        name: sourcebot-data
+      spec:
+        accessModes:
+          {{- $.Values.storage.accessModes | toYaml | nindent 10 }}
+        storageClassName: {{ $.Values.storage.className }}
+        resources:
+          requests:
+            storage: {{ $.Values.storage.size }}
+  {{- end }}

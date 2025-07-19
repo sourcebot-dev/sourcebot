@@ -419,6 +419,33 @@
     },
     "priorityClassName": {
       "type": "string"
+    },
+    "storage": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "size": {
+          "type": "string",
+          "pattern": "^[0-9]+Gi$"
+        },
+        "accessModes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ReadWriteOnce",
+              "ReadOnlyMany",
+              "ReadWriteMany"
+            ]
+          },
+          "minItems": 1
+        },
+        "className": {
+          "type": "string"
+        }
+      }
     }
   },
   "definitions": {
