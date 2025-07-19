@@ -6,12 +6,24 @@ sidebarTitle: Overview
 import SupportedPlatforms from '/snippets/platform-support.mdx'
 import ConfigSchema from '/snippets/schemas/v3/index.schema.mdx'
 
-A **connection** in Sourcebot represents a link to a code host (such as GitHub, GitLab, Bitbucket, etc.). Each connection defines how Sourcebot should authenticate and interact with a particular host, and which repositories to sync and index from that host. Connections are uniquely identified by their name.
+To index your code with Sourcebot, you must provide a configuration file. When running Sourcebot, this file must be mounted in a volume that is accessible to the container, with its
+path specified in the `CONFIG_PATH` environment variable. For example:
 
-A JSON configuration file is used to specify connections. For example:
+```bash icon="terminal" Passing in a CONFIG_PATH to Sourcebot
+docker run \
+    -v $(pwd)/config.json:/data/config.json \
+    -e CONFIG_PATH=/data/config.json \
+    ... \ # other config
+    ghcr.io/sourcebot-dev/sourcebot:latest
+```
 
-```json
-// Specifies two connections:
+## Config Schema
+
+The configuration file defines a set of **connections**.  A connection in Sourcebot represents a link to a code host (such as GitHub, GitLab, Bitbucket, etc.). 
+
+Each connection defines how Sourcebot should authenticate and interact with a particular host, and which repositories to sync and index from that host. Connections are uniquely identified by their name.
+
+```json wrap icon="code" Example config with two connections
 {
     "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
     "connections": {
@@ -43,16 +55,7 @@ A JSON configuration file is used to specify connections. For example:
 
 Configuration files must conform to the [JSON schema](#schema-reference).
 
-When running Sourcebot, this file must be mounted in a volume that is accessible to the container, with its path specified in the `CONFIG_PATH` environment variable. For example:
-
-```bash
-docker run \
-    -v $(pwd)/config.json:/data/config.json \
-    -e CONFIG_PATH=/data/config.json \
-    ... \ # other config
-    ghcr.io/sourcebot-dev/sourcebot:latest
-```
-
+## Config Syncing
 Sourcebot performs syncing in the background. Syncing consists of two steps:
 1. Fetch the latest changes from `HEAD` (and any [additional branches](/docs/features/search/multi-branch-indexing)) from the code host.
 2. Re-indexes the repository.
@@ -70,10 +73,9 @@ On the home page, you can view the sync status of ongoing jobs:
     src="https://framerusercontent.com/assets/7YyxK8ctPEy9Rf68X2kIdMI.mp4"
 ></video>
 
-## Getting started
----
+## Platform Connection Guides
 
-To get started, pick a platform below and follow the instructions to connect your code.
+To learn more about how to create a connection for a specific code host, check out the guides below.
 
 <SupportedPlatforms />
 

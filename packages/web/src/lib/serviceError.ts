@@ -96,6 +96,22 @@ export const notFound = (message?: string): ServiceError => {
     }
 }
 
+export const userNotFound = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.NOT_FOUND,
+        errorCode: ErrorCode.USER_NOT_FOUND,
+        message: "User not found",
+    }
+}
+
+export const orgNotFound = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.NOT_FOUND,
+        errorCode: ErrorCode.ORG_NOT_FOUND,
+        message: "Organization not found",
+    }
+}
+
 export const orgDomainExists = (): ServiceError => {
     return {
         statusCode: StatusCodes.CONFLICT,

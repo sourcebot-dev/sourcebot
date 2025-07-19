@@ -19,7 +19,7 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
 
 - Building custom LLM horizontal agents like like compliance auditing agents, migration agents, etc.
     - _"Find all instances of hardcoded credentials"_
-    - _"Identify repositories that depend on this depreacted api"_
+    - _"Identify repositories that depend on this deprecated api"_
 
 
 ## Getting Started
@@ -87,20 +87,18 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
 
     [VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers)
 
-    Add the following to your [settings.json](https://code.visualstudio.com/docs/copilot/chat/mcp-servers):
+    Add the following to your [.vscode/mcp.json](https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server-to-your-workspace) file:
 
     ```json
     {
-        "mcp": {
-            "servers": {
-                "sourcebot": {
-                    "type": "stdio",
-                    "command": "npx",
-                    "args": ["-y", "@sourcebot/mcp@latest"],
-                    // Optional - if not specified, https://demo.sourcebot.dev is used
-                    "env": {
-                        "SOURCEBOT_HOST": "http://localhost:3000"
-                    }
+        "servers": {
+            "sourcebot": {
+                "type": "stdio",
+                "command": "npx",
+                "args": ["-y", "@sourcebot/mcp@latest"],
+                // Optional - if not specified, https://demo.sourcebot.dev is used
+                "env": {
+                    "SOURCEBOT_HOST": "http://localhost:3000"
                 }
             }
         }

@@ -110,7 +110,7 @@ export const getPlan = (): Plan => {
 }
 
 export const getSeats = (): number => {
-    const licenseKey = getLicenseKey();
+const licenseKey = getLicenseKey();
     return licenseKey?.seats ?? SOURCEBOT_UNLIMITED_SEATS;
 }
 

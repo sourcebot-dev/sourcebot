@@ -2,6 +2,12 @@ import { NewsItem } from "./types";
 
 export const newsData: NewsItem[] = [
     {
+        unique_id: "member-approval",
+        header: "Member Approval",
+        sub_header: "We've added a toggle to control whether new users need to be approved.",
+        url: "https://docs.sourcebot.dev/docs/configuration/auth/inviting-members"
+    },
+    {
         unique_id: "analytics",
         header: "Analytics Dashboard",
         sub_header: "Understand your team's Sourcebot usage",
@@ -9,25 +15,25 @@ export const newsData: NewsItem[] = [
     },
     {
         unique_id: "audit-logs",
-        header: "Audit logs",
+        header: "Audit Logs",
         sub_header: "We've added support for audit logs",
         url: "https://docs.sourcebot.dev/docs/configuration/audit-logs"
     },
     {
         unique_id: "file-explorer",
-        header: "File explorer",
+        header: "File Explorer",
         sub_header: "We've added support for a file explorer when browsing files.",
         url: "https://github.com/sourcebot-dev/sourcebot/releases/tag/v4.2.0"
     },
     {
         unique_id: "structured-logging",
-        header: "Structured logging",
+        header: "Structured Logging",
         sub_header: "We've added support for structured logging",
         url: "https://docs.sourcebot.dev/docs/configuration/structured-logging"
     },
     {
         unique_id: "code-nav",
-        header: "Code navigation",
+        header: "Code Navigation",
         sub_header: "Built in go-to definition and find references",
         url: "https://docs.sourcebot.dev/docs/features/code-navigation"
     },
@@ -39,7 +45,7 @@ export const newsData: NewsItem[] = [
     },
     {
         unique_id: "search-contexts",
-        header: "Search contexts",
+        header: "Search Contexts",
         sub_header: "Filter searches by groups of repos",
         url: "https://docs.sourcebot.dev/docs/features/search/search-contexts"
     }

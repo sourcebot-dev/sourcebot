@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Fixed typos in UI, docs, code [#369](https://github.com/sourcebot-dev/sourcebot/pull/369)
+
+## [4.5.1] - 2025-07-14
+
+### Changed
+- Revamped onboarding experience. [#376](https://github.com/sourcebot-dev/sourcebot/pull/376)
+
 ### Fixed
 - Fixed issue with external source code links being broken for paths with spaces. [#364](https://github.com/sourcebot-dev/sourcebot/pull/364)
+- Makes base retry indexing configuration configurable and move from a default of `5s` to `60s`. [#377](https://github.com/sourcebot-dev/sourcebot/pull/377)
+- Fixed issue where files would sometimes never load in the code browser. [#365](https://github.com/sourcebot-dev/sourcebot/pull/365)
 
 ## [4.5.0] - 2025-06-21
 
@@ -229,7 +239,7 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 
 ### Added
 
-- Added `maxTrigramCount` to the config to control the maximum allowable of trigrams per document. 
+- Added `maxTrigramCount` to the config to control the maximum allowable of trigrams per document.
 
 ### Fixed
 
@@ -287,7 +297,7 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 - Added config option `settings.maxFileSize` to control the maximum file size zoekt will index. ([#118](https://github.com/sourcebot-dev/sourcebot/pull/118))
 
 ### Fixed
- 
+
 - Fixed syntax highlighting for zoekt query language. ([#115](https://github.com/sourcebot-dev/sourcebot/pull/115))
 - Fixed issue with Gerrit repo fetching not paginating. ([#114](https://github.com/sourcebot-dev/sourcebot/pull/114))
 - Fixed visual issues with filter panel. ([#105](https://github.com/sourcebot-dev/sourcebot/pull/105))
@@ -339,13 +349,13 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 ### Added
 
 - Added `DOMAIN_SUB_PATH` environment variable to allow overriding the default domain subpath. ([#74](https://github.com/sourcebot-dev/sourcebot/pull/74))
-- Added option `all` to the GitLab index schema, allowing for indexing all projects in a self-hosted GitLab instance. ([#84](https://github.com/sourcebot-dev/sourcebot/pull/84)) 
+- Added option `all` to the GitLab index schema, allowing for indexing all projects in a self-hosted GitLab instance. ([#84](https://github.com/sourcebot-dev/sourcebot/pull/84))
 
 ## [2.4.3] - 2024-11-18
 
 ### Changed
 
-- Bumped NodeJS version to v20. ([#78](https://github.com/sourcebot-dev/sourcebot/pull/78)) 
+- Bumped NodeJS version to v20. ([#78](https://github.com/sourcebot-dev/sourcebot/pull/78))
 
 ## [2.4.2] - 2024-11-14
 

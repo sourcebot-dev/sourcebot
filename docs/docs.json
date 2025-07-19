@@ -52,7 +52,7 @@
                         "group": "Configuration",
                         "pages": [
                             {
-                                "group": "Connecting your code",
+                                "group": "Indexing your code",
                                 "pages": [
                                     "docs/connections/overview",
                                     "docs/connections/github",
@@ -72,7 +72,10 @@
                                 "group": "Authentication",
                                 "pages": [
                                     "docs/configuration/auth/overview",
-                                    "docs/configuration/auth/roles-and-permissions"
+                                    "docs/configuration/auth/providers",
+                                    "docs/configuration/auth/inviting-members",
+                                    "docs/configuration/auth/roles-and-permissions",
+                                    "docs/configuration/auth/faq"
                                 ]
                             },
                             "docs/configuration/transactional-emails",

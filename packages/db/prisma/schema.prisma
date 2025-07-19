@@ -165,12 +165,18 @@ model Org {
   imageUrl    String?
   metadata    Json?       // For schema see orgMetadataSchema in packages/web/src/types.ts
 
+  memberApprovalRequired Boolean @default(true)
+
   stripeCustomerId         String?
   stripeSubscriptionStatus StripeSubscriptionStatus?
   stripeLastUpdatedAt      DateTime?
 
   /// List of pending invites to this organization
   invites Invite[]
+  
+  /// The invite id for this organization
+  inviteLinkEnabled Boolean @default(false)
+  inviteLinkId String?
 
   audits Audit[]
 
@@ -263,7 +269,6 @@ model User {
   image           String?
   accounts        Account[]
   orgs            UserToOrg[]
-  pendingApproval Boolean @default(true)
   accountRequest  AccountRequest?
 
   /// List of pending invites that the user has created

@@ -6,7 +6,6 @@ import React, { useCallback, useMemo, useState, useEffect, useRef } from "react"
 import { FileTreeItemComponent } from "./fileTreeItemComponent";
 import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
-import { usePrefetchFileSource } from "@/hooks/usePrefetchFileSource";
 
 
 export type FileTreeNode = Omit<RawFileTreeNode, 'children'> & {
@@ -14,11 +13,11 @@ export type FileTreeNode = Omit<RawFileTreeNode, 'children'> & {
     children: FileTreeNode[];
 }
 
-const buildCollapsableTree = (tree: RawFileTreeNode): FileTreeNode => {
+const buildCollapsibleTree = (tree: RawFileTreeNode): FileTreeNode => {
     return {
         ...tree,
         isCollapsed: true,
-        children: tree.children.map(buildCollapsableTree),
+        children: tree.children.map(buildCollapsibleTree),
     }
 }
 
@@ -40,16 +39,15 @@ interface PureFileTreePanelProps {
 }
 
 export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps) => {
-    const [tree, setTree] = useState<FileTreeNode>(buildCollapsableTree(_tree));
+    const [tree, setTree] = useState<FileTreeNode>(buildCollapsibleTree(_tree));
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { navigateToPath } = useBrowseNavigation();
     const { repoName, revisionName } = useBrowseParams();
-    const { prefetchFileSource } = usePrefetchFileSource();
 
     // @note: When `_tree` changes, it indicates that a new tree has been loaded.
-    // In that case, we need to rebuild the collapsable tree.
+    // In that case, we need to rebuild the collapsible tree.
     useEffect(() => {
-        setTree(buildCollapsableTree(_tree));
+        setTree(buildCollapsibleTree(_tree));
     }, [_tree]);
 
     const setIsCollapsed = useCallback((path: string, isCollapsed: boolean) => {
@@ -89,18 +87,6 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
         }
     }, [setIsCollapsed, navigateToPath, repoName, revisionName]);
 
-    // @note: We prefetch the file source when the user hovers over a file.
-    // This is to try and mitigate having a loading spinner appear when
-    // the user clicks on a file to open it.
-    // @see: /browse/[...path]/page.tsx
-    const onNodeMouseEnter = useCallback((node: FileTreeNode) => {
-        if (node.type !== 'blob') {
-            return;
-        }
-
-        prefetchFileSource(repoName, revisionName ?? 'HEAD', node.path);
-    }, [prefetchFileSource, repoName, revisionName]);
-
     const renderTree = useCallback((nodes: FileTreeNode, depth = 0): React.ReactNode => {
         return (
             <>
@@ -115,7 +101,6 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
                                 isCollapsed={node.isCollapsed}
                                 isCollapseChevronVisible={node.type === 'tree'}
                                 onClick={() => onNodeClicked(node)}
-                                onMouseEnter={() => onNodeMouseEnter(node)}
                                 parentRef={scrollAreaRef}
                             />
                             {node.children.length > 0 && !node.isCollapsed && renderTree(node, depth + 1)}
@@ -124,7 +109,7 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
                 })}
             </>
         );
-    }, [path, onNodeClicked, onNodeMouseEnter]);
+    }, [path, onNodeClicked]);
 
     const renderedTree = useMemo(() => renderTree(tree), [tree, renderTree]);
 

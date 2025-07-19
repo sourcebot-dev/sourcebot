@@ -48,6 +48,7 @@ export const env = createEnv({
         CONFIG_PATH: z.string().optional(),
 
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
+        REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

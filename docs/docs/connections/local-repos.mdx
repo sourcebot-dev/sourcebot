@@ -5,7 +5,7 @@ icon: folder
 
 import GenericGitHost from '/snippets/schemas/v3/genericGitHost.schema.mdx'
 
-Sourcebot can sync code from generic git repositories stored in a local directory. This can be helpful in scenarios where you already have a large number of repos already checked out. Local repositories are treated as **read-only**, meaing Sourcebot will **not** `git fetch` new revisions.
+Sourcebot can sync code from generic git repositories stored in a local directory. This can be helpful in scenarios where you already have a large number of repos already checked out. Local repositories are treated as **read-only**, meaning Sourcebot will **not** `git fetch` new revisions.
 
 ## Getting Started
 
@@ -27,7 +27,7 @@ To get Sourcebot to index these repositories:
 
 <Steps>
     <Step title="Mount a volume">
-        We need to mount a docker volume to the `repos` directory so Sourcebot can read it's contents. Sourcebot will **not** write to local repositories, so we can mount a seperate **read-only** volume:
+        We need to mount a docker volume to the `repos` directory so Sourcebot can read it's contents. Sourcebot will **not** write to local repositories, so we can mount a separate **read-only** volume:
 
         ``` bash
         docker run \

@@ -1,9 +1,11 @@
 import { auth } from "@/auth";
 import { LoginForm } from "../login/components/loginForm";
 import { redirect } from "next/navigation";
-import { getProviders } from "@/auth";
 import { Footer } from "@/app/components/footer";
 import { createLogger } from "@sourcebot/logger";
+import { getAuthProviders } from "@/lib/authProviders";
+import { getOrgFromDomain } from "@/data/org";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
 const logger = createLogger('signup-page');
 
@@ -21,24 +23,19 @@ export default async function Signup({ searchParams }: LoginProps) {
         return redirect("/");
     }
 
-    const providers = getProviders();
-    const providerData = providers
-        .map((provider) => {
-            if (typeof provider === "function") {
-                const providerInfo = provider()
-                return { id: providerInfo.id, name: providerInfo.name }
-            } else {
-                return { id: provider.id, name: provider.name }
-            }
-        });
+    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+    if (!org || !org.isOnboarded) {
+        return redirect("/onboard");
+    }
 
+    const providers = getAuthProviders();
     return (
         <div className="flex flex-col min-h-screen bg-backgroundSecondary">
             <div className="flex-1 flex flex-col items-center p-4 sm:p-12 w-full">
                 <LoginForm
                     callbackUrl={searchParams.callbackUrl}
                     error={searchParams.error}
-                    providers={providerData}
+                    providers={providers}
                     context="signup"
                 />
             </div>

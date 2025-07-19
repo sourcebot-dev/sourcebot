@@ -1,0 +1,46 @@
+---
+title: FAQ
+---
+
+This page covers a range of frequently asked questions about Sourcebot's built-in authentication system.
+
+<AccordionGroup>
+<Accordion title="Can I disable the authentication system?">
+    No, at this time it's not possible to disable the authentication system. If this is preventing you from deploying Sourcebot
+    within your organization please [reach out](https://www.sourcebot.dev/contact)
+</Accordion>
+
+<Accordion title="I don't want to restrict access to my Sourcebot deployment, what should I do?">
+    Every user must register an account within your Sourcebot deployment. However, this dosn't mean their access
+    is restricted.
+
+    Unless member approval is required, anyone can sign up for an account on your deployment and immediately be granted access.
+</Accordion>
+
+<Accordion title="Does any data related to authentication (emails, passwords, etc) leave my deployment?">
+    **No data related to authentication (or your code) leaves your deployment**. Authentication is handled
+    purely by your deployment and the authentication providers you configure. 
+
+    This data does not leave your device and is stored within in the database managed by your deployment. If you're
+    using credential login, passwords are encrypted at rest and in transit.
+</Accordion>
+
+<Accordion title="I'm deploying Sourcebot behind an identity proxy, do I still need to create an account in Sourcebot?">
+    <Note>Please note that IAP bridges are an enterprise feature</Note>
+    Sourcebot supports connecting your identity proxy directly into the built-in auth system using an IAP bridge. This allows Sourcebot to
+    register and authenticate automatically on a successful identity proxy log in.
+
+    Sourcebot currently supports [GCP IAP](/docs/configuration/auth/providers#gcp-iap). If you're using a different IAP
+    and require support, please [reach out](https://www.sourcebot.dev/contact)
+</Accordion>
+
+<Accordion title="How does Sourcebot implement authentication?">
+    Sourcebot uses [Auth.js](https://authjs.dev/) as its underlying authentication framework. Auth.js provides authentication providers
+    (credientials, Google, GitHub, etc) and an interface to enable user registration and log in. Internally, Auth.js uses JWT to provide
+    Sourcebot secure and reliable information about user authentication.
+</Accordion>
+</AccordionGroup>
+
+
+Have a question that's not answered here? Submit it on our [GitHub discussions](https://github.com/sourcebot-dev/sourcebot/discussions)
+page and we'll get back to you as soon as we can!
