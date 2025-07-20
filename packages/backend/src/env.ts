@@ -49,6 +49,8 @@ export const env = createEnv({
 
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
         REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
+
+        GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS: numberSchema.default(60 * 10),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

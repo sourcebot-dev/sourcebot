@@ -29,6 +29,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
         ...(config.url ? {
             host: config.url,
         } : {}),
+        queryTimeout: env.GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS * 1000,
     });
 
     let allRepos: ProjectSchema[] = [];
