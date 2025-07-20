@@ -175,6 +175,10 @@ To connect to a GitLab host other than `gitlab.com`, provide the `url` property 
 }
 ```
 
+## Troubleshooting
+
+- If you're seeing errors like `GitbeakerTimeoutError: Query timeout was reached` when syncing a large number of projects, you can increase the client's timeout by setting the `GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS` environment variable. [#162](https://github.com/sourcebot-dev/sourcebot/issues/162)
+
 ## Schema reference
 
 <Accordion title="Reference">
