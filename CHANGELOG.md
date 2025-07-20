@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Relicense core to FSL-1.1-ALv2. [#388](https://github.com/sourcebot-dev/sourcebot/pull/388)
+
 ### Added
 - Added `GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS` env var to configure the GitLab client's query timeout. [#390](https://github.com/sourcebot-dev/sourcebot/pull/390)
 
