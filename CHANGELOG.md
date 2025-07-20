@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.5.3] - 2025-07-20
+
 ### Changed
 - Relicense core to FSL-1.1-ALv2. [#388](https://github.com/sourcebot-dev/sourcebot/pull/388)
 
