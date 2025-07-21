@@ -7,20 +7,20 @@ import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { Brain, CheckCircle, ChevronDown, ChevronRight, Clock, Copy, Cpu, InfoIcon, Loader2, ThumbsDown, ThumbsUp, Zap } from 'lucide-react';
+import { Brain, CheckCircle, ChevronDown, ChevronRight, Clock, Cpu, InfoIcon, Loader2, Zap } from 'lucide-react';
 import { CSSProperties, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { ANSWER_TAG } from '../../constants';
 import { Reference, referenceSchema, SBChatMessage, SBChatMessageMetadata, Source } from "../../types";
 import { useExtractReferences } from '../../useExtractReferences';
-import { groupMessageIntoSteps } from '../../utils';
+import { getAnswerPartFromAssistantMessage, groupMessageIntoSteps } from '../../utils';
+import { AnswerCard } from './answerCard';
 import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
 import { ReferencedSourcesListView } from './referencedSourcesListView';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
 import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
-import { AnswerCard } from './answerCard';
 
 interface ChatThreadListItemProps {
     userMessage: SBChatMessage;
@@ -58,21 +58,12 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
     }, [assistantMessage?.metadata]);
 
     const answerPart = useMemo(() => {
-        const lastTextPart = assistantMessage?.parts
-            .findLast((part) => part.type === 'text')
-
-        if (lastTextPart?.text.startsWith(ANSWER_TAG)) {
-            return lastTextPart;
+        if (!assistantMessage) {
+            return undefined;
         }
 
-        // If the agent did not include the answer tag, then fallback to using the last text part.
-        // Only do this when we are no longer streaming since the agent may still be thinking.
-        if (!isStreaming && lastTextPart) {
-            return lastTextPart;
-        }
-
-        return undefined;
-    }, [assistantMessage?.parts, isStreaming]);
+        return getAnswerPartFromAssistantMessage(assistantMessage, isStreaming);
+    }, [assistantMessage, isStreaming]);
 
 
     const thinkingSteps = useMemo(() => {

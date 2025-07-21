@@ -3,7 +3,7 @@ import { env } from "@/env.mjs";
 import { saveChatMessages, updateChatName } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
 import { SBChatMessage } from "@/features/chat/types";
-import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
+import { getAnswerPartFromAssistantMessage, getConfiguredModelProviderInfo } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -14,7 +14,7 @@ import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import { LanguageModelV2 } from "@ai-sdk/provider";
 import { OrgRole } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, generateText, JSONValue, StreamTextResult, UIMessageStreamOptions, UIMessageStreamWriter } from "ai";
+import { createUIMessageStream, createUIMessageStreamResponse, generateText, JSONValue, ModelMessage, StreamTextResult, UIMessageStreamOptions, UIMessageStreamWriter } from "ai";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 
@@ -86,19 +86,39 @@ const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[
             ) {
                 const content = messages[0].parts[0].text;
 
-                logger.debug("Generating chat title...");
                 const title = await generateChatTitle(content, model);
                 if (title) {
-                    logger.debug("Chat title generated:", title);
                     updateChatName({
                         chatId: id,
                         name: title,
                     }, domain);
                 }
                 else {
-                    logger.debug("Failed to generate chat title.");
+                    logger.error("Failed to generate chat title.");
                 }
             }
+
+            // Extract user messages and assistant answers.
+            // We will use this as the context we carry between messages.
+            const messageHistory =
+                messages.map((message): ModelMessage | undefined => {
+                    if (message.role === 'user') {
+                        return {
+                            role: 'user',
+                            content: message.parts[0].type === 'text' ? message.parts[0].text : '',
+                        };
+                    }
+
+                    if (message.role === 'assistant') {
+                        const answerPart = getAnswerPartFromAssistantMessage(message, false);
+                        if (answerPart) {
+                            return {
+                                role: 'assistant',
+                                content: [answerPart]
+                            }
+                        }
+                    }
+                }).filter(message => message !== undefined);
 
             try {
                 const stream = createUIMessageStream<SBChatMessage>({
@@ -113,8 +133,7 @@ const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[
                             model,
                             providerOptions,
                             headers,
-                            // @todo: we will need to incorporate the previous messages into the prompt.
-                            inputMessages: convertToModelMessages([latestMessage]),
+                            inputMessages: messageHistory,
                             inputSources: sources,
                             selectedRepos,
                             onWriteSource: (source) => {

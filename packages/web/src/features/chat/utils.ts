@@ -1,7 +1,7 @@
 import { env } from "@/env.mjs"
-import { CreateUIMessage, UIMessagePart } from "ai"
+import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai"
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants"
+import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants"
 import { CustomEditor, CustomText, FileReference, FileSource, MentionData, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessage, SBChatMessagePart, SBChatMessageToolTypes, Source } from "./types"
 
 export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
@@ -354,4 +354,23 @@ export const groupMessageIntoSteps = (parts: SBChatMessagePart[]) => {
     }
     
     return steps;
+}
+
+// Attempts to find the part of the assistant's message
+// that contains the answer.
+export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isStreaming: boolean): TextUIPart | undefined => {
+    const lastTextPart = message.parts
+        .findLast((part) => part.type === 'text')
+
+    if (lastTextPart?.text.startsWith(ANSWER_TAG)) {
+        return lastTextPart;
+    }
+
+    // If the agent did not include the answer tag, then fallback to using the last text part.
+    // Only do this when we are no longer streaming since the agent may still be thinking.
+    if (!isStreaming && lastTextPart) {
+        return lastTextPart;
+    }
+
+    return undefined;
 }

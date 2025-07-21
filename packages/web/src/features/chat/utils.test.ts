@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'vitest'
-import { fileReferenceToString, groupMessageIntoSteps, sourceCodeChunksToModelOutput, sourceCodeToModelOutput } from './utils'
-import { FILE_REFERENCE_REGEX } from './constants';
-import { SBChatMessagePart } from './types';
+import { fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, sourceCodeChunksToModelOutput, sourceCodeToModelOutput } from './utils'
+import { FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
+import { SBChatMessage, SBChatMessagePart } from './types';
 
 // Mock the env module
 vi.mock('@/env.mjs', () => ({
@@ -287,4 +287,99 @@ test('groupMessageIntoSteps returns a single group when there is no step-start p
             }
         ]
     ]);
+});
+
+test('getAnswerPartFromAssistantMessage returns text part when it starts with ANSWER_TAG while not streaming', () => {
+    const message: SBChatMessage = {
+        role: 'assistant',
+        parts: [
+            {
+                type: 'text',
+                text: 'Some initial text'
+            },
+            {
+                type: 'text',
+                text: `${ANSWER_TAG}This is the answer to your question.`
+            }
+        ]
+    } as SBChatMessage;
+
+    const result = getAnswerPartFromAssistantMessage(message, false);
+
+    expect(result).toEqual({
+        type: 'text',
+        text: `${ANSWER_TAG}This is the answer to your question.`
+    });
+});
+
+test('getAnswerPartFromAssistantMessage returns text part when it starts with ANSWER_TAG while streaming', () => {
+    const message: SBChatMessage = {
+        role: 'assistant',
+        parts: [
+            {
+                type: 'text',
+                text: 'Some initial text'
+            },
+            {
+                type: 'text',
+                text: `${ANSWER_TAG}This is the answer to your question.`
+            }
+        ]
+    } as SBChatMessage;
+
+    const result = getAnswerPartFromAssistantMessage(message, true);
+
+    expect(result).toEqual({
+        type: 'text',
+        text: `${ANSWER_TAG}This is the answer to your question.`
+    });
+});
+
+test('getAnswerPartFromAssistantMessage returns last text part as fallback when not streaming and no ANSWER_TAG', () => {
+    const message: SBChatMessage = {
+        role: 'assistant',
+        parts: [
+            {
+                type: 'text',
+                text: 'First text part'
+            },
+            {
+                type: 'tool-call',
+                id: 'call-1',
+                name: 'search',
+                args: {}
+            },
+            {
+                type: 'text',
+                text: 'This is the last text part without answer tag'
+            }
+        ]
+    } as SBChatMessage;
+
+    const result = getAnswerPartFromAssistantMessage(message, false);
+
+    expect(result).toEqual({
+        type: 'text',
+        text: 'This is the last text part without answer tag'
+    });
+});
+
+test('getAnswerPartFromAssistantMessage returns undefined when streaming and no ANSWER_TAG', () => {
+    const message: SBChatMessage = {
+        role: 'assistant',
+        parts: [
+            {
+                type: 'text',
+                text: 'Some text without answer tag'
+            },
+            {
+                type: 'text',
+                text: 'Another text part'
+            }
+        ]
+    } as SBChatMessage;
+
+    const result = getAnswerPartFromAssistantMessage(message, true);
+
+    expect(result).toBeUndefined();
 });
