@@ -12,19 +12,32 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { CopyIconButton } from "@/app/[domain]/components/copyIconButton";
 import { useToast } from "@/components/hooks/use-toast";
 import { convertLLMOutputToPortableMarkdown } from "../../utils";
+import { submitFeedback } from "../../actions";
+import { isServiceError } from "@/lib/utils";
+import { useDomain } from "@/hooks/useDomain";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface AnswerCardProps {
     answerText: string;
+    messageId: string;
+    chatId: string;
+    feedback?: 'like' | 'dislike' | undefined;
 }
 
 export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
     answerText,
+    messageId,
+    chatId,
+    feedback: _feedback,
 }, forwardedRef) => {
-
     const markdownRendererRef = useRef<HTMLDivElement>(null);
     const { tocItems, activeId } = useExtractTOCItems({ target: markdownRendererRef.current });
     const [isTOCButtonToggled, setIsTOCButtonToggled] = useState(false);
     const { toast } = useToast();
+    const domain = useDomain();
+    const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+    const [feedback, setFeedback] = useState<'like' | 'dislike' | undefined>(_feedback);
+    const captureEvent = useCaptureEvent();
 
     useImperativeHandle(
         forwardedRef,
@@ -39,6 +52,35 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
         });
         return true;
     }, [answerText, toast]);
+
+    const onFeedback = useCallback(async (feedbackType: 'like' | 'dislike') => {
+        setIsSubmittingFeedback(true);
+        
+        const response = await submitFeedback({
+            chatId,
+            messageId,
+            feedbackType
+        }, domain);
+        
+        if (isServiceError(response)) {
+            toast({
+                description: `❌ Failed to submit feedback: ${response.message}`,
+                variant: "destructive"
+            });
+        } else {
+            toast({
+                description: `✅ Feedback submitted`,
+            });
+            setFeedback(feedbackType);
+            captureEvent('wa_chat_feedback_submitted', {
+                feedback: feedbackType,
+                chatId,
+                messageId,
+            });
+        }
+        
+        setIsSubmittingFeedback(false);
+    }, [chatId, messageId, domain, toast, captureEvent]);
 
     return (
         <div className="flex flex-row w-full relative scroll-mt-16">
@@ -100,16 +142,20 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
                 <Separator className="my-2" />
                 <div className="flex gap-2">
                     <Button
-                        variant="ghost"
+                        variant={feedback === 'like' ? "default" : "ghost"}
                         size="sm"
                         className="h-8 px-2"
+                        onClick={() => onFeedback('like')}
+                        disabled={isSubmittingFeedback || feedback !== undefined}
                     >
                         <ThumbsUp className="h-4 w-4" />
                     </Button>
                     <Button
-                        variant="ghost"
+                        variant={feedback === 'dislike' ? "default" : "ghost"}
                         size="sm"
                         className="h-8 px-2"
+                        onClick={() => onFeedback('dislike')}
+                        disabled={isSubmittingFeedback || feedback !== undefined}
                     >
                         <ThumbsDown className="h-4 w-4" />
                     </Button>

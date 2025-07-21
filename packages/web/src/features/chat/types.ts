@@ -44,6 +44,11 @@ export const sbChatMessageMetadataSchema = z.object({
     totalOutputTokens: z.number().optional(),
     totalTokens: z.number().optional(),
     totalResponseTimeMs: z.number().optional(),
+    feedback: z.object({
+        type: z.enum(['like', 'dislike']),
+        timestamp: z.string(), // ISO date string
+        userId: z.string(),
+    }).optional(),
 });
 
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;

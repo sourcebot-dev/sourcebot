@@ -1,7 +1,6 @@
 'use client';
 
 import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
@@ -21,7 +20,6 @@ import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinition
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
 import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
-import { TableOfContents } from './tableOfContents';
 import { AnswerCard } from './answerCard';
 
 interface ChatThreadListItemProps {
@@ -29,6 +27,7 @@ interface ChatThreadListItemProps {
     assistantMessage?: SBChatMessage;
     isStreaming: boolean;
     sources: Source[];
+    chatId: string;
 }
 
 export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemProps>(({
@@ -36,6 +35,7 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
     assistantMessage,
     isStreaming,
     sources,
+    chatId,
 }, ref) => {
     const leftPanelRef = useRef<HTMLDivElement>(null);
     const [leftPanelHeight, setLeftPanelHeight] = useState<number | null>(null);
@@ -414,10 +414,13 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
 
 
                         {/* Answer section */}
-                        {answerPart ? (
+                        {(answerPart && assistantMessage) ? (
                             <AnswerCard
                                 ref={markdownRendererRef}
                                 answerText={answerPart.text.replace(ANSWER_TAG, '').trim()}
+                                chatId={chatId}
+                                messageId={assistantMessage.id}
+                                feedback={messageMetadata?.feedback?.type}
                             />
                         ) : !isStreaming && (
                             <p className="text-destructive">Error: No answer response was provided</p>

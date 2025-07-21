@@ -188,3 +188,55 @@ export const getChatInfo = async ({ chatId }: { chatId: string }, domain: string
             }
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
 )
+
+export const submitFeedback = async ({ 
+    chatId, 
+    messageId, 
+    feedbackType 
+}: { 
+    chatId: string, 
+    messageId: string, 
+    feedbackType: 'like' | 'dislike' 
+}, domain: string) => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const chat = await prisma.chat.findUnique({
+                where: {
+                    id: chatId,
+                    orgId: org.id,
+                    createdById: userId,
+                },
+            });
+
+            if (!chat) {
+                return notFound();
+            }
+
+            const messages = chat.messages as unknown as SBChatMessage[];
+            const updatedMessages = messages.map(message => {
+                if (message.id === messageId && message.role === 'assistant') {
+                    return {
+                        ...message,
+                        metadata: {
+                            ...message.metadata,
+                            feedback: {
+                                type: feedbackType,
+                                timestamp: new Date().toISOString(),
+                                userId: userId,
+                            }
+                        }
+                    };
+                }
+                return message;
+            });
+
+            await prisma.chat.update({
+                where: { id: chatId },
+                data: {
+                    messages: updatedMessages as unknown as Prisma.InputJsonValue,
+                },
+            });
+
+            return { success: true };
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+);

@@ -32,7 +32,7 @@ interface ChatThreadProps {
 }
 
 export const ChatThread = ({
-    id,
+    id: defaultChatId,
     initialMessages,
     inputMessage,
     modelProviderInfo,
@@ -60,8 +60,9 @@ export const ChatThread = ({
         error,
         status,
         stop,
+        id: chatId,
     } = useChat<SBChatMessage>({
-        id,
+        id: defaultChatId,
         messages: initialMessages,
         transport: new DefaultChatTransport({
             api: '/api/chat',
@@ -238,6 +239,7 @@ export const ChatThread = ({
                                         <>
                                             <ChatThreadListItem
                                                 key={index}
+                                                chatId={chatId}
                                                 userMessage={userMessage}
                                                 assistantMessage={assistantMessage}
                                                 isStreaming={isStreaming}
