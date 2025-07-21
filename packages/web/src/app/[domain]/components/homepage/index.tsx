@@ -1,7 +1,7 @@
 'use client';
 
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
-import { ModelProviderInfo } from "@/features/chat/types";
+import { LanguageModelInfo } from "@/features/chat/types";
 import { RepositoryQuery } from "@/lib/types";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useLocalStorage } from "usehooks-ts";
@@ -12,15 +12,16 @@ import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 
 interface HomepageProps {
     initialRepos: RepositoryQuery[];
-    modelProviderInfo?: ModelProviderInfo;
+    languageModels: LanguageModelInfo[];
 }
 
 
 export const Homepage = ({
     initialRepos,
-    modelProviderInfo,
+    languageModels,
 }: HomepageProps) => {
     const [searchMode, setSearchMode] = useLocalStorage<SearchMode>("search-mode", "precise", { initializeWithValue: false });
+    const isAgenticSearchEnabled = languageModels.length > 0;
 
     useHotkeys("mod+i", (e) => {
         e.preventDefault();
@@ -53,7 +54,7 @@ export const Homepage = ({
                     initialRepos={initialRepos}
                     toolBarProps={{
                         searchMode: "precise",
-                        isAgenticSearchEnabled: !!modelProviderInfo?.provider,
+                        isAgenticSearchEnabled,
                         onSearchModeChange: setSearchMode,
                     }}
                 />
@@ -62,10 +63,10 @@ export const Homepage = ({
                     <AgenticSearch
                         toolBarProps={{
                             searchMode: "agentic",
-                            isAgenticSearchEnabled: !!modelProviderInfo?.provider,
+                            isAgenticSearchEnabled,
                             onSearchModeChange: setSearchMode,
                         }}
-                        modelProviderInfo={modelProviderInfo}
+                        languageModels={languageModels}
                     />
                 </CustomSlateEditor>
             )}

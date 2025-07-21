@@ -1,12 +1,12 @@
-import { getConfiguredModelProviderInfo } from '@/features/chat/utils';
 import { ChatThreadPanel } from './components/chatThreadPanel';
+import { getConfiguredLanguageModelsInfo } from '@/features/chat/actions';
 
-export default function Page() {
-    const modelProviderInfo = getConfiguredModelProviderInfo();
+export default async function Page() {
+    const languageModels = await getConfiguredLanguageModelsInfo();
 
     return (
         <ChatThreadPanel
-            modelProviderInfo={modelProviderInfo}
+            languageModels={languageModels}
             order={2}
         />
     )

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
-import { CustomEditor, ModelProviderInfo, SBChatMessage, Source } from '@/features/chat/types';
+import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, Source } from '@/features/chat/types';
 import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useDomain } from '@/hooks/useDomain';
 import { useChat } from '@ai-sdk/react';
@@ -19,6 +19,8 @@ import { ChatBox } from '../chatBox';
 import { ChatBoxTools } from '../chatBox/chatBoxTools';
 import { ChatThreadListItem } from './chatThreadListItem';
 import { ErrorBanner } from './errorBanner';
+import { useSelectedLanguageModel } from '../../useSelectedLanguageModel';
+import { useToast } from '@/components/hooks/use-toast';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -28,15 +30,15 @@ interface ChatThreadProps {
     id?: string | undefined;
     initialMessages?: SBChatMessage[];
     inputMessage?: CreateUIMessage<SBChatMessage>;
-    modelProviderInfo?: ModelProviderInfo;
+    languageModels: LanguageModelInfo[];
 }
 
 export const ChatThread = ({
     id: defaultChatId,
     initialMessages,
     inputMessage,
-    modelProviderInfo,
-}: ChatThreadProps = {}) => {
+    languageModels,
+}: ChatThreadProps) => {
     const domain = useDomain();
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -44,6 +46,7 @@ export const ChatThread = ({
     const hasSubmittedInputMessage = useRef(false);
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
     const queryClient = useQueryClient();
+    const { toast } = useToast();
 
     // Initial state is from attachments that exist in in the chat history.
     const [sources, setSources] = useState<Source[]>(
@@ -53,6 +56,8 @@ export const ChatThread = ({
                 .map((part) => part.data)
         ) ?? []
     );
+
+    const { selectedLanguageModel } = useSelectedLanguageModel();
 
     const {
         messages,
@@ -66,10 +71,6 @@ export const ChatThread = ({
         messages: initialMessages,
         transport: new DefaultChatTransport({
             api: '/api/chat',
-            // @todo: extract the selected repos from the message.
-            body: {
-                selectedRepos: [],
-            },
             headers: {
                 "X-Org-Domain": domain,
             }
@@ -90,14 +91,28 @@ export const ChatThread = ({
     });
 
     const sendMessage = useCallback((message: CreateUIMessage<SBChatMessage>) => {
+        if (!selectedLanguageModel) {
+            toast({
+                description: "Failed to send message. No language model selected.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         // Keeps sources added by the user in sync.
         const sources = message.parts
             .filter((part) => part.type === 'data-source')
             .map((part) => part.data);
         setSources((prev) => [...prev, ...sources]);
 
-        _sendMessage(message);
-    }, [_sendMessage]);
+        _sendMessage(message, {
+            body: {
+                // @todo: extract the selected repos from the message.
+                selectedRepos: [],
+                languageModelId: selectedLanguageModel.model,
+            } satisfies AdditionalChatRequestParams,
+        });
+    }, [_sendMessage, selectedLanguageModel, toast]);
 
 
     const messagePairs = useMessagePairs(messages);
@@ -287,7 +302,7 @@ export const ChatThread = ({
                     />
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                         <ChatBoxTools
-                            modelProviderInfo={modelProviderInfo}
+                            languageModels={languageModels}
                         />
                     </div>
                 </CustomSlateEditor>

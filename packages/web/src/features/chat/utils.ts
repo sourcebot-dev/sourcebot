@@ -2,7 +2,19 @@ import { env } from "@/env.mjs"
 import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai"
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants"
-import { CustomEditor, CustomText, FileReference, FileSource, MentionData, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessage, SBChatMessagePart, SBChatMessageToolTypes, Source } from "./types"
+import {
+    CustomEditor,
+    CustomText,
+    FileReference,
+    FileSource,
+    MentionData,
+    MentionElement,
+    ParagraphElement,
+    SBChatMessage,
+    SBChatMessagePart,
+    SBChatMessageToolTypes,
+    Source,
+} from "./types"
 
 export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
     const mention: MentionElement = {
@@ -206,43 +218,6 @@ export const sourceCodeChunksToModelOutput = (chunks: { source: string, startLin
             isTruncated,
         };
     });
-}
-
-export const getConfiguredModelProviderInfo = (): ModelProviderInfo | undefined => {
-    if (env.ANTHROPIC_API_KEY && env.ANTHROPIC_MODEL) {
-        return {
-            provider: 'anthropic',
-            model: env.ANTHROPIC_MODEL,
-        };
-    }
-
-    if (env.OPENAI_API_KEY && env.OPENAI_MODEL) {
-        return {
-            provider: 'openai',
-            model: env.OPENAI_MODEL,
-        };
-    }
-
-    if (env.GOOGLE_GENERATIVE_AI_API_KEY && env.GOOGLE_GENERATIVE_AI_MODEL) {
-        return {
-            provider: 'google-generative-ai',
-            model: env.GOOGLE_GENERATIVE_AI_MODEL,
-        };
-    }
-
-    if (
-        env.AWS_BEDROCK_MODEL &&
-        env.AWS_ACCESS_KEY_ID &&
-        env.AWS_SECRET_ACCESS_KEY
-    ) {
-        return {
-            provider: 'aws-bedrock',
-            model: env.AWS_BEDROCK_MODEL,
-            displayName: env.AWS_BEDROCK_MODEL_DISPLAY_NAME,
-        };
-    }
-
-    return undefined;
 }
 
 export const createUIMessage = (text: string, mentions: MentionData[]): CreateUIMessage<SBChatMessage> => {

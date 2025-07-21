@@ -7,7 +7,9 @@ import { prisma } from "@/prisma";
 import { OrgRole, Prisma } from "@sourcebot/db";
 import fs from 'fs';
 import path from 'path';
-import { SBChatMessage } from "./types";
+import { LanguageModelInfo, SBChatMessage } from "./types";
+import { loadConfig } from "@sourcebot/shared";
+import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
 
 export const createChat = async (domain: string) => sew(() =>
     withAuth((userId) =>
@@ -240,3 +242,36 @@ export const submitFeedback = async ({
             return { success: true };
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
 );
+
+/**
+ * Returns the subset of information about the configured language models
+ * that we can safely send to the client.
+ */
+export const getConfiguredLanguageModelsInfo = async (): Promise<LanguageModelInfo[]> => {
+    const models = await _getConfiguredLanguageModelsFull();
+    return models.map((model): LanguageModelInfo => ({
+        provider: model.provider,
+        model: model.model,
+        displayName: model.displayName,
+    }));
+}
+
+/**
+ * Returns the full configuration of the language models.
+ * 
+ * @warning Do NOT call this function from the client,
+ * or pass the result of calling this function to the client.
+ */
+export const _getConfiguredLanguageModelsFull = async (): Promise<LanguageModel[]> => {
+    if (!env.CONFIG_PATH) {
+        return [];
+    }
+
+    try {
+        const config = await loadConfig(env.CONFIG_PATH);
+        return config.models ?? [];
+    } catch (error) {
+        console.error(`Failed to load config file ${env.CONFIG_PATH}: ${error}`);
+        return [];
+    }
+}

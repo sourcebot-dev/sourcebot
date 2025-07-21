@@ -5,7 +5,7 @@ import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
 import { FindSymbolDefinitionsTool, FindSymbolReferencesTool, ReadFilesTool, SearchCodeTool } from "./tools";
 import { toolNames } from "./constants";
-
+import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
 
 const fileSourceSchema = z.object({
     type: z.literal('file'),
@@ -144,17 +144,20 @@ export type SetChatStatePayload = {
     inputMessage: CreateUIMessage<SBChatMessage>;
 }
 
-export const SOURCEBOT_CHAT_MODEL_PROVIDER = [
-    'anthropic',
-    'openai',
-    'google-generative-ai',
-    'aws-bedrock',
-] as const;
 
-export type ModelProvider = (typeof SOURCEBOT_CHAT_MODEL_PROVIDER)[number];
+export type LanguageModelProvider = LanguageModel['provider'];
 
-export type ModelProviderInfo = {
-    provider: ModelProvider;
-    model: string;
-    displayName?: string;
+// This is a subset of information about a configured
+// language model that we can safely send to the client.
+export type LanguageModelInfo = {
+    provider: LanguageModelProvider,
+    model: LanguageModel['model'],
+    displayName?: LanguageModel['displayName'],
 }
+
+// Additional request body data that we send along to the chat API.
+export const additionalChatRequestParamsSchema = z.object({
+    languageModelId: z.string(),
+    selectedRepos: z.array(z.string()),
+});
+export type AdditionalChatRequestParams = z.infer<typeof additionalChatRequestParamsSchema>;

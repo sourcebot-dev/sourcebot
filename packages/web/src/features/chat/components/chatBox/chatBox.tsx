@@ -17,6 +17,7 @@ import { Suggestion } from "./types";
 import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { useSuggestionsData } from "./useSuggestionsData";
 import Image from "next/image";
+import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
@@ -43,6 +44,7 @@ export const ChatBox = ({
         suggestionMode,
         suggestionQuery,
     });
+    const { selectedLanguageModel } = useSelectedLanguageModel();
 
     // Reset the index when the suggestion mode changes.
     useEffect(() => {
@@ -77,9 +79,10 @@ export const ChatBox = ({
         return (
             slateContentToString(editor.children).trim().length > 0 &&
             !isRedirecting &&
-            !isGenerating
+            !isGenerating &&
+            selectedLanguageModel !== undefined
         )
-    }, [editor.children, isRedirecting, isGenerating]);
+    }, [editor.children, isRedirecting, isGenerating, selectedLanguageModel]);
 
     const onSubmit = useCallback(() => {
         if (!isSubmitEnabled) {

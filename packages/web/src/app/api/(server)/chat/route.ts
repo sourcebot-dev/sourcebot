@@ -1,29 +1,42 @@
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { env } from "@/env.mjs";
-import { saveChatMessages, updateChatName } from "@/features/chat/actions";
+import { _getConfiguredLanguageModelsFull, saveChatMessages, updateChatName } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
-import { SBChatMessage } from "@/features/chat/types";
-import { getAnswerPartFromAssistantMessage, getConfiguredModelProviderInfo } from "@/features/chat/utils";
+import { additionalChatRequestParamsSchema, SBChatMessage } from "@/features/chat/types";
+import { getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
+import { prisma } from "@/prisma";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
-import { LanguageModelV2 } from "@ai-sdk/provider";
+import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
+import { getTokenFromConfig } from "@sourcebot/crypto";
 import { OrgRole } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { createUIMessageStream, createUIMessageStreamResponse, generateText, JSONValue, ModelMessage, StreamTextResult, UIMessageStreamOptions, UIMessageStreamWriter } from "ai";
+import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
+import {
+    createUIMessageStream,
+    createUIMessageStreamResponse,
+    generateText,
+    JSONValue,
+    ModelMessage,
+    StreamTextResult,
+    UIMessageStreamOptions,
+    UIMessageStreamWriter,
+} from "ai";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 
 const logger = createLogger('chat-api');
 
 const chatRequestSchema = z.object({
+    // These paramt
     messages: z.array(z.any()),
     id: z.string(),
-    selectedRepos: z.array(z.string()),
+    ...additionalChatRequestParamsSchema.shape,
 })
 
 export async function POST(req: Request) {
@@ -42,11 +55,12 @@ export async function POST(req: Request) {
         return serviceErrorResponse(schemaValidationError(parsed.error));
     }
 
-    const { messages, id, selectedRepos } = parsed.data;
+    const { messages, id, selectedRepos, languageModelId } = parsed.data;
     const response = await chatHandler({
         messages,
         id,
         selectedRepos,
+        languageModelId,
     }, domain);
 
     if (isServiceError(response)) {
@@ -66,16 +80,36 @@ const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMe
     })));
 }
 
+interface ChatHandlerProps {
+    messages: SBChatMessage[];
+    id: string;
+    selectedRepos: string[];
+    languageModelId: string;
+}
 
-const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[], id: string, selectedRepos: string[] }, domain: string) => sew(async () =>
+const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandlerProps, domain: string) => sew(async () =>
     withAuth((userId) =>
-        withOrgMembership(userId, domain, async () => {
+        withOrgMembership(userId, domain, async ({ org }) => {
             const latestMessage = messages[messages.length - 1];
             const sources = latestMessage.parts
                 .filter((part) => part.type === 'data-source')
                 .map((part) => part.data);
 
-            const { model, providerOptions, headers, displayName } = getModel();
+            // From the language model ID, attempt to find the
+            // corresponding config in `config.json`.
+            const languageModelConfig =
+                (await _getConfiguredLanguageModelsFull())
+                .find((model) => model.model === languageModelId);
+
+            if (!languageModelConfig) {
+                return serviceErrorResponse({
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Language model ${languageModelId} is not configured.`,
+                });
+            }
+
+            const { model, providerOptions, headers } = await getAISDKLanguageModelAndOptions(languageModelConfig, org.id);
 
             // @todo: refactor this
             if (
@@ -159,7 +193,7 @@ const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[
                                 totalInputTokens: totalUsage.inputTokens,
                                 totalOutputTokens: totalUsage.outputTokens,
                                 totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
-                                modelName: displayName,
+                                modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                             }
                         })
 
@@ -194,7 +228,7 @@ const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
     ));
 
-const generateChatTitle = async (message: string, model: LanguageModelV2) => {
+const generateChatTitle = async (message: string, model: AISDKLanguageModelV2) => {
     try {
         const prompt = `Convert this question into a short topic title (max 50 characters). 
 
@@ -225,28 +259,27 @@ User question: ${message}`;
     }
 }
 
-const getModel = (): {
-    model: LanguageModelV2,
-    displayName: string,
+const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: number): Promise<{
+    model: AISDKLanguageModelV2,
     providerOptions?: Record<string, Record<string, JSONValue>>,
     headers?: Record<string, string>,
-} => {
-    const providerInfo = getConfiguredModelProviderInfo();
-    if (!providerInfo) {
-        throw new Error("No model configured.");
-    }
+}> => {
 
-    const { provider, model } = providerInfo;
+    const { provider, model: modelId } = config;
 
     switch (provider) {
         case 'anthropic': {
             const anthropic = createAnthropic({
-                apiKey: env.ANTHROPIC_API_KEY,
+                baseURL: config.baseUrl,
+                ...(config.token ? {
+                    apiKey: (await getTokenFromConfig(config.token, orgId, prisma)),
+                } : {
+                    apiKey: env.ANTHROPIC_API_KEY,
+                }),
             });
 
             return {
-                model: anthropic(model),
-                displayName: providerInfo.displayName ?? model,
+                model: anthropic(modelId),
                 providerOptions: {
                     anthropic: {
                         thinking: {
@@ -263,39 +296,55 @@ const getModel = (): {
         }
         case 'openai': {
             const openai = createOpenAI({
-                apiKey: env.OPENAI_API_KEY,
+                baseURL: config.baseUrl,
+                ...(config.token ? {
+                    apiKey: (await getTokenFromConfig(config.token, orgId, prisma)),
+                } : {
+                    apiKey: env.OPENAI_API_KEY,
+                }),
             });
 
             return {
-                model: openai(model),
-                displayName: providerInfo.displayName ?? model,
+                model: openai(modelId),
                 providerOptions: {
                     openai: {
-                        reasoningEffort: 'medium'
+                        reasoningEffort: 'high'
                     } satisfies OpenAIResponsesProviderOptions,
                 },
             };
         }
         case 'google-generative-ai': {
             const google = createGoogleGenerativeAI({
-                apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
+                baseURL: config.baseUrl,
+                ...(config.token ? {
+                    apiKey: (await getTokenFromConfig(config.token, orgId, prisma)),
+                } : {
+                    apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
+                }),
             });
 
             return {
-                model: google(model),
-                displayName: providerInfo.displayName ?? model,
+                model: google(modelId),
             };
         }
-        case 'aws-bedrock': {
+        case 'amazon-bedrock': {
             const aws = createAmazonBedrock({
-                region: env.AWS_REGION,
-                accessKeyId: env.AWS_ACCESS_KEY_ID,
-                secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+                baseURL: config.baseUrl,
+                region: config.region ?? env.AWS_REGION,
+                ...(config.accessKeyId ? {
+                    accessKeyId: (await getTokenFromConfig(config.accessKeyId, orgId, prisma)),
+                } : {
+                    accessKeyId: env.AWS_ACCESS_KEY_ID,
+                }),
+                ...(config.accessKeySecret ? {
+                    secretAccessKey: (await getTokenFromConfig(config.accessKeySecret, orgId, prisma)),
+                } : {
+                    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+                }),
             });
 
             return {
-                model: aws(model),
-                displayName: providerInfo.displayName ?? model,
+                model: aws(modelId),
             };
         }
     }

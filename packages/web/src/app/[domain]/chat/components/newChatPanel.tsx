@@ -4,17 +4,17 @@ import { ResizablePanel } from "@/components/ui/resizable";
 import { ChatBox } from "@/features/chat/components/chatBox";
 import { ChatBoxTools } from "@/features/chat/components/chatBox/chatBoxTools";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
-import { ModelProviderInfo } from "@/features/chat/types";
+import { LanguageModelInfo } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { useCallback } from "react";
 import { Descendant } from "slate";
 
 interface NewChatPanelProps {
-    modelProviderInfo?: ModelProviderInfo;
+    languageModels: LanguageModelInfo[];
 }
 
 export const NewChatPanel = ({
-    modelProviderInfo,
+    languageModels,
 }: NewChatPanelProps) => {
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
 
@@ -41,7 +41,7 @@ export const NewChatPanel = ({
                         />
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                             <ChatBoxTools
-                                modelProviderInfo={modelProviderInfo}
+                                languageModels={languageModels}
                             />
                         </div>
                     </CustomSlateEditor>

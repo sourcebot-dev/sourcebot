@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ChatBox } from "@/features/chat/components/chatBox";
 import { ChatBoxTools } from "@/features/chat/components/chatBox/chatBoxTools";
-import { ModelProviderInfo } from "@/features/chat/types";
+import { LanguageModelInfo } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { FileIcon, LucideIcon, SearchCodeIcon, SearchIcon } from "lucide-react";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
@@ -72,12 +72,12 @@ const suggestions: Record<SuggestionType, {
 
 interface AgenticSearchProps {
     toolBarProps: ToolbarProps;
-    modelProviderInfo?: ModelProviderInfo;
+    languageModels: LanguageModelInfo[];
 }
 
 export const AgenticSearch = ({
     toolBarProps,
-    modelProviderInfo,
+    languageModels,
 }: AgenticSearchProps) => {
     const [selectedSuggestionType, _setSelectedSuggestionType] = useState<SuggestionType | undefined>(undefined);
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
@@ -123,7 +123,7 @@ export const AgenticSearch = ({
                         {...toolBarProps}
                     >
                         <ChatBoxTools
-                            modelProviderInfo={modelProviderInfo}
+                            languageModels={languageModels}
                         />
                     </Toolbar>
 

@@ -97,17 +97,11 @@ export const env = createEnv({
         REVIEW_AGENT_REVIEW_COMMAND: z.string().default('review'),
 
         ANTHROPIC_API_KEY: z.string().optional(),
-        ANTHROPIC_MODEL: z.string().optional(),
         ANTHROPIC_THINKING_BUDGET_TOKENS: numberSchema.default(12000),
 
         OPENAI_API_KEY: z.string().optional(),
-        OPENAI_MODEL: z.string().optional(),
-
         GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
-        GOOGLE_GENERATIVE_AI_MODEL: z.string().optional(),
 
-        AWS_BEDROCK_MODEL_DISPLAY_NAME: z.string().optional(),
-        AWS_BEDROCK_MODEL: z.string().optional(),
         AWS_ACCESS_KEY_ID: z.string().optional(),
         AWS_SECRET_ACCESS_KEY: z.string().optional(),
         AWS_REGION: z.string().optional(),

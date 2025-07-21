@@ -1,12 +1,13 @@
 import { getRepos } from "@/actions";
 import { Footer } from "@/app/components/footer";
 import { getOrgFromDomain } from "@/data/org";
-import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
 import { Homepage } from "./components/homepage";
 import { NavigationMenu } from "./components/navigationMenu";
 import { PageNotFound } from "./components/pageNotFound";
 import { UpgradeToast } from "./components/upgradeToast";
 import { isServiceError } from "@/lib/utils";
+import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
+
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -15,7 +16,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
     }
 
     const repos = await getRepos(domain);
-    const modelProviderInfo = getConfiguredModelProviderInfo();
+    const models = await getConfiguredLanguageModelsInfo();
 
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
@@ -26,7 +27,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
 
             <Homepage
                 initialRepos={isServiceError(repos) ? [] : repos}
-                modelProviderInfo={modelProviderInfo}
+                languageModels={models}
             />
             <Footer />
         </div>

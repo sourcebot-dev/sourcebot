@@ -1,35 +1,32 @@
 'use client';
 
 import { getRepos } from "@/actions";
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { LanguageModelInfo, RepoMentionData } from "@/features/chat/types";
+import { insertMention, isMentionElement } from "@/features/chat/utils";
 import { useDomain } from "@/hooks/useDomain";
-import { cn, unwrapServiceError } from "@/lib/utils";
+import { unwrapServiceError } from "@/lib/utils";
+import { RepoIndexingStatus } from "@sourcebot/db";
 import { useQuery } from "@tanstack/react-query";
 import { AtSignIcon } from "lucide-react";
-import { ReactEditor, useSlate } from "slate-react";
-import { RepoSelector } from "./repoSelector";
-import { RepoIndexingStatus } from "@sourcebot/db";
-import { ModelProvider, ModelProviderInfo, RepoMentionData } from "@/features/chat/types";
-import { useCallback, useMemo } from "react";
-import anthropicLogo from "@/public/anthropic.svg";
-import openaiLogo from "@/public/openai.svg";
-import geminiLogo from "@/public/gemini.svg";
-import bedrockLogo from "@/public/bedrock.svg";
-import Image from "next/image";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { useCallback } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { insertMention, isMentionElement } from "@/features/chat/utils";
 import { Descendant, Transforms } from "slate";
+import { ReactEditor, useSlate } from "slate-react";
 import { useRepoMentions } from "../../useRepoMentions";
+import { LanguageModelSelector } from "./languageModelSelector";
+import { RepoSelector } from "./repoSelector";
+import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 
 interface ChatBoxToolsProps {
-    modelProviderInfo?: ModelProviderInfo;
+    languageModels: LanguageModelInfo[];
 }
 
 export const ChatBoxTools = ({
-    modelProviderInfo,
+    languageModels,
 }: ChatBoxToolsProps) => {
     const domain = useDomain();
     const { data: repos } = useQuery({
@@ -56,6 +53,7 @@ export const ChatBoxTools = ({
     });
 
     const selectedRepos = useRepoMentions();
+    const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel();
 
     const onSelectedReposChange = useCallback((repos: RepoMentionData[]) => {
         const addedRepos = repos.filter((repo) => !selectedRepos.some((selectedRepo) => selectedRepo.name === repo.name));
@@ -124,20 +122,16 @@ export const ChatBoxTools = ({
                     <span>Scope to selected repositories</span>
                 </TooltipContent>
             </Tooltip>
-            {!!modelProviderInfo && (
+            {languageModels.length > 0 && (
                 <>
                     <Separator orientation="vertical" className="h-3 ml-1 mr-2" />
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <div className="flex items-center">
-                                <ModelProviderLogo
-                                    provider={modelProviderInfo.provider}
-                                    className="mr-1"
-                                />
-                                <p className="text-sm text-muted-foreground cursor-default">
-                                    {modelProviderInfo.displayName ?? modelProviderInfo.model}
-                                </p>
-                            </div>
+                            <LanguageModelSelector
+                                languageModels={languageModels}
+                                onSelectedModelChange={setSelectedLanguageModel}
+                                selectedModel={selectedLanguageModel}
+                            />
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
                             <span>Configured language model</span>
@@ -146,53 +140,5 @@ export const ChatBoxTools = ({
                 </>
             )}
         </>
-    )
-}
-
-interface ModelProviderLogoProps {
-    provider: ModelProvider;
-    className?: string;
-}
-
-const ModelProviderLogo = ({
-    provider,
-    className,
-}: ModelProviderLogoProps) => {
-
-    const { src, className: logoClassName } = useMemo(() => {
-        switch (provider) {
-            case 'aws-bedrock':
-                return {
-                    src: bedrockLogo,
-                    className: 'w-3.5 h-3.5 dark:invert'
-                };
-            case 'anthropic':
-                return {
-                    src: anthropicLogo,
-                    className: 'dark:invert'
-                };
-            case 'openai':
-                return {
-                    src: openaiLogo,
-                    className: 'dark:invert w-3.5 h-3.5'
-                };
-            case 'google-generative-ai':
-                return {
-                    src: geminiLogo,
-                    className: 'w-3.5 h-3.5'
-                };
-        }
-    }, [provider]);
-
-    return (
-        <Image
-            src={src}
-            alt={provider}
-            className={cn(
-                'w-4 h-4',
-                logoClassName,
-                className
-            )}
-        />
     )
 }
