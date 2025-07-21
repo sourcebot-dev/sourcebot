@@ -1,9 +1,9 @@
-import { CreateUIMessage, UIMessage } from "ai";
+import { CreateUIMessage, UIMessage, UIMessagePart } from "ai";
 import { BaseEditor, Descendant } from "slate";
 import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
-import { AnswerTool, FindSymbolDefinitionsTool, FindSymbolReferencesTool, ReadFilesTool, SearchCodeTool } from "./tools";
+import { FindSymbolDefinitionsTool, FindSymbolReferencesTool, ReadFilesTool, SearchCodeTool } from "./tools";
 import { toolNames } from "./constants";
 
 
@@ -39,14 +39,11 @@ export const referenceSchema = z.discriminatedUnion('type', [
 export type Reference = z.infer<typeof referenceSchema>;
 
 export const sbChatMessageMetadataSchema = z.object({
-    researchDuration: z.number().optional(),
-    totalUsage: z.object({
-        inputTokens: z.number().optional(),
-        outputTokens: z.number().optional(),
-        totalTokens: z.number().optional(),
-        reasoningTokens: z.number().optional(),
-        cachedInputTokens: z.number().optional(),
-    }).optional(),
+    modelName: z.string().optional(),
+    totalInputTokens: z.number().optional(),
+    totalOutputTokens: z.number().optional(),
+    totalTokens: z.number().optional(),
+    totalResponseTimeMs: z.number().optional(),
 });
 
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
@@ -56,14 +53,24 @@ export type SBChatMessageToolTypes = {
     [toolNames.readFiles]: ReadFilesTool,
     [toolNames.findSymbolReferences]: FindSymbolReferencesTool,
     [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool,
-    [toolNames.answerTool]: AnswerTool,
 }
 
-export type SBChatMessage = UIMessage<SBChatMessageMetadata, {
+export type SBChatMessageDataParts = {
     // The `source` data type allows us to know what sources the LLM saw
     // during retrieval.
     "source": Source,
-}, SBChatMessageToolTypes>;
+}
+
+export type SBChatMessage = UIMessage<
+    SBChatMessageMetadata,
+    SBChatMessageDataParts,
+    SBChatMessageToolTypes
+>;
+
+export type SBChatMessagePart = UIMessagePart<
+    SBChatMessageDataParts,
+    SBChatMessageToolTypes
+>;
 
 // Slate specific types //
 

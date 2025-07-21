@@ -1,3 +1,4 @@
+'use client';
 
 import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
@@ -5,15 +6,15 @@ import { ChatSidePanel } from './components/chatSidePanel';
 import { TopBar } from '../components/topBar';
 import { ChatName } from './components/chatName';
 import { NavigationGuardProvider } from 'next-navigation-guard';
+import { useDomain } from '@/hooks/useDomain';
 
 interface LayoutProps {
     children: React.ReactNode;
-    params: {
-        domain: string;
-    }
 }
 
-export default function Layout({ children, params: { domain } }: LayoutProps) {
+export default function Layout({ children }: LayoutProps) {
+    const domain = useDomain();
+
     return (
         // @note: we use a navigation guard here since we don't support resuming streams yet.
         // @see: https://ai-sdk.dev/docs/ai-sdk-ui/chatbot-message-persistence#resuming-ongoing-streams

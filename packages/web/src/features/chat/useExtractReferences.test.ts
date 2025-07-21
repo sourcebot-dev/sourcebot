@@ -4,48 +4,6 @@ import { renderHook } from '@testing-library/react-hooks';
 import { useExtractReferences } from './useExtractReferences';
 import { getFileReferenceId } from './utils';
 
-test('useExtractReferences extracts file references from answer tool content', () => {
-    const message: SBChatMessage = {
-        id: 'msg1',
-        role: 'assistant',
-        parts: [
-                {
-                    type: 'tool-answerTool',
-                    toolCallId: 'test-id',
-                    state: 'input-available',
-                    input: {
-                        answer: 'The auth flow is implemented in @file:{auth.ts} and uses sessions @file:{auth.ts:45-60}.'
-                    },
-                }
-        ]
-    };
-
-    const { result } = renderHook(() => useExtractReferences(message));
-
-    expect(result.current).toHaveLength(2);
-    expect(result.current[0]).toMatchObject({
-        fileName: 'auth.ts',
-        id: getFileReferenceId({ fileName: 'auth.ts' }),
-        type: 'file',
-    });
-
-    expect(result.current[1]).toMatchObject({
-        fileName: 'auth.ts',
-        id: getFileReferenceId({
-            fileName: 'auth.ts',
-            range: {
-                startLine: 45,
-                endLine: 60,
-            }
-        }),
-        type: 'file',
-        range: {
-            startLine: 45,
-            endLine: 60,
-        }
-    });
-});
-
 test('useExtractReferences extracts file references from text content', () => {
     const message: SBChatMessage = {
         id: 'msg1',
@@ -136,12 +94,8 @@ test('useExtractReferences extracts file references from multi-part', () => {
                 text: 'We need to check the session handling in @file:{session.ts:10-20}.'
             },
             {
-                type: 'tool-answerTool',
-                toolCallId: 'test-id',
-                state: 'input-available',
-                input: {
-                    answer: 'The configuration is stored in @file:{config.json} and @file:{utils.ts:5}.'
-                },
+                type: 'text',
+                text: 'The configuration is stored in @file:{config.json} and @file:{utils.ts:5}.'
             }
         ]
     };
@@ -174,7 +128,6 @@ test('useExtractReferences extracts file references from multi-part', () => {
         }
     });
 
-    // From tool-answerTool part
     expect(result.current[2]).toMatchObject({
         fileName: 'config.json',
         id: getFileReferenceId({ fileName: 'config.json' }),

@@ -1,6 +1,7 @@
 import { expect, test, vi } from 'vitest'
-import { fileReferenceToString, sourceCodeChunksToModelOutput, sourceCodeToModelOutput } from './utils'
+import { fileReferenceToString, groupMessageIntoSteps, sourceCodeChunksToModelOutput, sourceCodeToModelOutput } from './utils'
 import { FILE_REFERENCE_REGEX } from './constants';
+import { SBChatMessagePart } from './types';
 
 // Mock the env module
 vi.mock('@/env.mjs', () => ({
@@ -181,4 +182,109 @@ test('sourceCodeChunksToModelOutput handles single line chunks', () => {
     expect(result[1].output).toBe('15:const b = 2;');
     expect(result[0].isTruncated).toBe(false);
     expect(result[1].isTruncated).toBe(false);
+});
+
+
+test('groupMessageIntoSteps returns an empty array when there are no parts', () => {
+    const parts: SBChatMessagePart[] = []
+
+    const steps = groupMessageIntoSteps(parts);
+
+    expect(steps).toEqual([]);
+});
+
+test('groupMessageIntoSteps returns a single group when there is only one step-start part', () => {
+    const parts: SBChatMessagePart[] = [
+        {
+            type: 'step-start',
+        },
+        {
+            type: 'text',
+            text: 'Hello, world!',
+        }
+    ]
+
+    const steps = groupMessageIntoSteps(parts);
+
+    expect(steps).toEqual([
+        [
+            {
+                type: 'step-start',
+            },
+            {
+                type: 'text',
+                text: 'Hello, world!',
+            }
+        ]
+    ]);
+});
+
+test('groupMessageIntoSteps returns a multiple groups when there is multiple step-start parts', () => {
+    const parts: SBChatMessagePart[] = [
+        {
+            type: 'step-start',
+        },
+        {
+            type: 'text',
+            text: 'Hello, world!',
+        },
+        {
+            type: 'step-start',
+        },
+        {
+            type: 'text',
+            text: 'Ok lets go',
+        },
+    ]
+
+    const steps = groupMessageIntoSteps(parts);
+
+    expect(steps).toEqual([
+        [
+            {
+                type: 'step-start',
+            },
+            {
+                type: 'text',
+                text: 'Hello, world!',
+            }
+        ],
+        [
+            {
+                type: 'step-start',
+            },
+            {
+                type: 'text',
+                text: 'Ok lets go',
+            }
+        ]
+    ]);
+});
+
+test('groupMessageIntoSteps returns a single group when there is no step-start part', () => {
+    const parts: SBChatMessagePart[] = [
+        {
+            type: 'text',
+            text: 'Hello, world!',
+        },
+        {
+            type: 'text',
+            text: 'Ok lets go',
+        },
+    ]
+
+    const steps = groupMessageIntoSteps(parts);
+
+    expect(steps).toEqual([
+        [
+            {
+                type: 'text',
+                text: 'Hello, world!',
+            },
+            {
+                type: 'text',
+                text: 'Ok lets go',
+            }
+        ]
+    ]);
 });

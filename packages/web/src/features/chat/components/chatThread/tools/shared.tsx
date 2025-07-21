@@ -99,7 +99,7 @@ export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpa
         <div
             tabIndex={0}
             className={cn(
-                "flex flex-row items-center gap-2 text-muted-foreground group w-fit select-none",
+                "flex flex-row items-center gap-2 group w-fit select-none",
                 {
                     'hover:text-foreground cursor-pointer': !isLoading,
                 },

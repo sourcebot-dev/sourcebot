@@ -1,11 +1,9 @@
-import { getRepos, sew, withAuth, withOrgMembership } from "@/actions";
+import { sew, withAuth, withOrgMembership } from "@/actions";
 import { env } from "@/env.mjs";
 import { saveChatMessages, updateChatName } from "@/features/chat/actions";
-import { createSystemPrompt, toolNames } from "@/features/chat/constants";
-import { answerTool, createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool } from "@/features/chat/tools";
-import { SBChatMessage, SBChatMessageMetadata } from "@/features/chat/types";
+import { createAgentStream } from "@/features/chat/agent";
+import { SBChatMessage } from "@/features/chat/types";
 import { getConfiguredModelProviderInfo } from "@/features/chat/utils";
-import { getFileSource } from "@/features/search/fileSourceApi";
 import { ErrorCode } from "@/lib/errorCodes";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -14,9 +12,9 @@ import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import { LanguageModelV2 } from "@ai-sdk/provider";
-import { OrgRole, RepoIndexingStatus } from "@sourcebot/db";
+import { OrgRole } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, generateText, hasToolCall, JSONValue, streamText } from "ai";
+import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, generateText, JSONValue, StreamTextResult, UIMessageStreamOptions, UIMessageStreamWriter } from "ai";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 
@@ -58,6 +56,16 @@ export async function POST(req: Request) {
     return response;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMessageStreamWriter<SBChatMessage>, options: UIMessageStreamOptions<SBChatMessage> = {}) => {
+    await new Promise<void>((resolve) => writer.merge(stream.toUIMessageStream({
+        ...options,
+        onFinish: async () => {
+            resolve();
+        }
+    })));
+}
+
 
 const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[], id: string, selectedRepos: string[] }, domain: string) => sew(async () =>
     withAuth((userId) =>
@@ -67,61 +75,9 @@ const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[
                 .filter((part) => part.type === 'data-source')
                 .map((part) => part.data);
 
-            // @todo: we can probably cache files per chat session.
-            // That way we don't have to refetch files for every message.
-            const files = sources.length > 0 ?
-                (await Promise.all(
-                    sources
-                        .filter((source) => source.type === 'file')
-                        .map(async (data) => {
-                            const { path, repo, revision } = data;
+            const { model, providerOptions, headers, displayName } = getModel();
 
-                            const fileSource = await getFileSource({
-                                fileName: path,
-                                repository: repo,
-                                branch: revision,
-                            }, domain);
-
-                            if (isServiceError(fileSource)) {
-                                // @todo: handle this
-                                logger.error("Error fetching file source:", fileSource)
-                                return undefined;
-                            }
-
-                            return {
-                                ...fileSource,
-                                path,
-                                repo,
-                                revision,
-                            };
-
-                        }))
-                ).filter((file) => file !== undefined) : undefined;
-
-
-            // The set of repos that the AI has access to.
-            const reposAccessibleToLLM = await (async () => {
-                if (selectedRepos.length > 0) {
-                    return selectedRepos;
-                }
-
-                const repos = await getRepos(domain, {
-                    status: [RepoIndexingStatus.INDEXED]
-                });
-                if (isServiceError(repos)) {
-                    logger.error("Error fetching repos:", repos)
-                    return [];
-                }
-
-                return repos.map((repo) => repo.repoName);
-            })();
-
-            const { model, providerOptions, headers } = getModel();
-            const systemPrompt = createSystemPrompt({
-                files,
-                repos: reposAccessibleToLLM,
-            });
-
+            // @todo: refactor this
             if (
                 messages.length === 1 &&
                 messages[0].role === "user" &&
@@ -129,18 +85,20 @@ const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[
                 messages[0].parts[0].type === 'text'
             ) {
                 const content = messages[0].parts[0].text;
-                // non-blocking
-                generateChatTitle(content, model).then((title) => {
-                    if (title) {
-                        updateChatName({
-                            chatId: id,
-                            name: title,
-                        }, domain);
-                    }
-                })
-            }
 
-            const startTime = new Date();
+                logger.debug("Generating chat title...");
+                const title = await generateChatTitle(content, model);
+                if (title) {
+                    logger.debug("Chat title generated:", title);
+                    updateChatName({
+                        chatId: id,
+                        name: title,
+                    }, domain);
+                }
+                else {
+                    logger.debug("Failed to generate chat title.");
+                }
+            }
 
             try {
                 const stream = createUIMessageStream<SBChatMessage>({
@@ -149,110 +107,43 @@ const chatHandler = ({ messages, id, selectedRepos }: { messages: SBChatMessage[
                             type: 'start',
                         });
 
-                        const stream = streamText({
+                        const startTime = new Date();
+
+                        const researchStream = await createAgentStream({
                             model,
                             providerOptions,
                             headers,
-                            system: systemPrompt,
-                            messages: convertToModelMessages(messages),
-                            tools: {
-                                [toolNames.searchCode]: createCodeSearchTool(selectedRepos),
-                                [toolNames.readFiles]: readFilesTool,
-                                [toolNames.findSymbolReferences]: findSymbolReferencesTool,
-                                [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
-                                [toolNames.answerTool]: answerTool,
+                            // @todo: we will need to incorporate the previous messages into the prompt.
+                            inputMessages: convertToModelMessages([latestMessage]),
+                            inputSources: sources,
+                            selectedRepos,
+                            onWriteSource: (source) => {
+                                writer.write({
+                                    type: 'data-source',
+                                    data: source,
+                                });
                             },
-                            temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
-                            stopWhen: [
-                                hasToolCall(toolNames.answerTool)
-                            ],
-                            maxOutputTokens: env.SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS, // Increased for tool results and responses
-                            toolChoice: "auto", // Let the model decide when to use tools
-                            onStepFinish: ({ toolResults }) => {
-                                // This takes care of extracting any sources that the LLM has seen as part of
-                                // the tool call it made.
-                                toolResults.forEach(({ output, toolName }) => {
-                                    if (isServiceError(output)) {
-                                        // is there something we want to do here?
-                                        return;
-                                    }
-
-                                    if (toolName === toolNames.readFiles) {
-                                        output.forEach((file) => {
-                                            writer.write({
-                                                type: 'data-source',
-                                                data: {
-                                                    type: 'file',
-                                                    language: file.language,
-                                                    repo: file.repository,
-                                                    path: file.path,
-                                                    revision: file.revision,
-                                                    name: file.path.split('/').pop() ?? file.path,
-                                                }
-                                            })
-                                        })
-                                    }
-                                    else if (toolName === toolNames.searchCode) {
-                                        output.files.forEach((file) => {
-                                            writer.write({
-                                                type: 'data-source',
-                                                data: {
-                                                    type: 'file',
-                                                    language: file.language,
-                                                    repo: file.repository,
-                                                    path: file.fileName,
-                                                    revision: file.revision,
-                                                    name: file.fileName.split('/').pop() ?? file.fileName,
-                                                }
-                                            })
-                                        })
-                                    }
-                                    else if (toolName === toolNames.findSymbolDefinitions || toolName === toolNames.findSymbolReferences) {
-                                        output.forEach((file) => {
-                                            writer.write({
-                                                type: 'data-source',
-                                                data: {
-                                                    type: 'file',
-                                                    language: file.language,
-                                                    repo: file.repository,
-                                                    path: file.fileName,
-                                                    revision: file.revision,
-                                                    name: file.fileName.split('/').pop() ?? file.fileName,
-                                                }
-                                            })
-                                        })
-                                    }
-                                })
-                            }
                         });
 
-                        await new Promise<void>((resolve) => writer.merge(stream.toUIMessageStream({
+                        await mergeStreamAsync(researchStream, writer, {
                             sendReasoning: true,
                             sendStart: false,
                             sendFinish: false,
-                            messageMetadata: ({ part }): SBChatMessageMetadata | undefined => {
-                                if (part.type === 'tool-call' && part.toolName === toolNames.answerTool) {
-                                    return {
-                                        researchDuration: new Date().getTime() - startTime.getTime(),
-                                    };
-                                }
+                        });
 
-                                if (part.type === 'finish') {
-                                    return {
-                                        totalUsage: {
-                                            inputTokens: part.totalUsage.inputTokens,
-                                            outputTokens: part.totalUsage.outputTokens,
-                                            totalTokens: part.totalUsage.totalTokens,
-                                            reasoningTokens: part.totalUsage.reasoningTokens,
-                                            cachedInputTokens: part.totalUsage.cachedInputTokens,
-                                        },
-                                    }
-                                }
-                            },
-                            onFinish: async () => {
-                                resolve();
+                        const totalUsage = await researchStream.totalUsage;
+
+                        writer.write({
+                            type: 'message-metadata',
+                            messageMetadata: {
+                                totalTokens: totalUsage.totalTokens,
+                                totalInputTokens: totalUsage.inputTokens,
+                                totalOutputTokens: totalUsage.outputTokens,
+                                totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
+                                modelName: displayName,
                             }
-                        })));
+                        })
+
 
                         writer.write({
                             type: 'finish',
@@ -317,6 +208,7 @@ User question: ${message}`;
 
 const getModel = (): {
     model: LanguageModelV2,
+    displayName: string,
     providerOptions?: Record<string, Record<string, JSONValue>>,
     headers?: Record<string, string>,
 } => {
@@ -335,6 +227,7 @@ const getModel = (): {
 
             return {
                 model: anthropic(model),
+                displayName: providerInfo.displayName ?? model,
                 providerOptions: {
                     anthropic: {
                         thinking: {
@@ -343,10 +236,10 @@ const getModel = (): {
                         }
                     } satisfies AnthropicProviderOptions,
                 },
-                // headers: {
-                //     // @see: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#interleaved-thinking
-                //     'anthropic-beta': 'interleaved-thinking-2025-05-14',
-                // },
+                headers: {
+                    // @see: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#interleaved-thinking
+                    'anthropic-beta': 'interleaved-thinking-2025-05-14',
+                },
             };
         }
         case 'openai': {
@@ -356,6 +249,7 @@ const getModel = (): {
 
             return {
                 model: openai(model),
+                displayName: providerInfo.displayName ?? model,
                 providerOptions: {
                     openai: {
                         reasoningEffort: 'medium'
@@ -370,6 +264,7 @@ const getModel = (): {
 
             return {
                 model: google(model),
+                displayName: providerInfo.displayName ?? model,
             };
         }
         case 'aws-bedrock': {
@@ -381,6 +276,7 @@ const getModel = (): {
 
             return {
                 model: aws(model),
+                displayName: providerInfo.displayName ?? model,
             };
         }
     }

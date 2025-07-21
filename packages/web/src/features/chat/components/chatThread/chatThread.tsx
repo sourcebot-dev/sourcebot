@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
-import { Source, CustomEditor, ModelProviderInfo, SBChatMessage } from '@/features/chat/types';
+import { CustomEditor, ModelProviderInfo, SBChatMessage, Source } from '@/features/chat/types';
 import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useDomain } from '@/hooks/useDomain';
 import { useChat } from '@ai-sdk/react';
@@ -17,8 +17,8 @@ import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
 import { ChatBox } from '../chatBox';
 import { ChatBoxTools } from '../chatBox/chatBoxTools';
+import { ChatThreadListItem } from './chatThreadListItem';
 import { ErrorBanner } from './errorBanner';
-import { MessagePair } from './messagePair';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -182,7 +182,7 @@ export const ChatThread = ({
         }
 
         latestMessagePairRef.current.scrollIntoView({
-            behavior: 'instant',
+            behavior: 'smooth',
             block: 'end',
             inline: 'nearest',
         });
@@ -223,9 +223,6 @@ export const ChatThread = ({
                 ref={scrollAreaRef}
                 className="flex flex-col h-full w-full p-4 overflow-hidden"
             >
-                <div
-                    className="max-w-[1700px] mx-auto space-y-6"
-                >
                     {
                         messagePairs.length === 0 ? (
                             <div className="flex items-center justify-center text-center h-full">
@@ -239,16 +236,16 @@ export const ChatThread = ({
                                     
                                     return (
                                         <>
-                                            <MessagePair
+                                            <ChatThreadListItem
                                                 key={index}
                                                 userMessage={userMessage}
                                                 assistantMessage={assistantMessage}
                                                 isStreaming={isStreaming}
                                                 sources={sources}
-                                                ref={isLastPair ? latestMessagePairRef : null}
+                                                ref={isLastPair ? latestMessagePairRef : undefined}
                                             />
                                             {index !== messagePairs.length - 1 && (
-                                                <Separator className="my-4" />
+                                                <Separator className="my-12" />
                                             )}
                                         </>
                                     );
@@ -276,7 +273,6 @@ export const ChatThread = ({
                             </div>
                         )
                     }
-                </div>
             </ScrollArea>
             <div className="border rounded-md w-full max-w-3xl mx-auto mb-8 shadow-sm">
                 <CustomSlateEditor>

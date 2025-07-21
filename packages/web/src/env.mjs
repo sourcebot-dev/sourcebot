@@ -112,9 +112,11 @@ export const env = createEnv({
         AWS_SECRET_ACCESS_KEY: z.string().optional(),
         AWS_REGION: z.string().optional(),
 
-        SOURCEBOT_CHAT_MAX_OUTPUT_TOKENS: numberSchema.default(5000),
         SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.default(0.3),
         SOURCEBOT_CHAT_FILE_MAX_CHARACTERS: numberSchema.default(4000),
+
+        SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(20),
+
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
     },
     // @NOTE: Please make sure of the following:

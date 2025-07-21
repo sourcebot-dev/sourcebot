@@ -135,7 +135,7 @@ export type ReadFilesToolInput = InferToolInput<typeof readFilesTool>;
 export type ReadFilesToolOutput = InferToolOutput<typeof readFilesTool>;
 export type ReadFilesToolUIPart = ToolUIPart<{ [toolNames.readFiles]: ReadFilesTool }>
 
-export const createCodeSearchTool = (repos: string[]) => tool({
+export const createCodeSearchTool = (selectedRepos: string[]) => tool({
     description: `Fetches code that matches the provided regex pattern in \`query\`. This is NOT a semantic search.
     Results are returned as an array of matching files, with the file's URL, repository, and language.`,
     inputSchema: z.object({
@@ -143,8 +143,8 @@ export const createCodeSearchTool = (repos: string[]) => tool({
     }),
     execute: async ({ query: _query }) => {
         let query = `${_query}`;
-        if (repos.length > 0) {
-            query += ` reposet:${repos.join(',')}`;
+        if (selectedRepos.length > 0) {
+            query += ` reposet:${selectedRepos.join(',')}`;
         }
 
         const response = await search({
@@ -186,19 +186,3 @@ export type SearchCodeTool = InferUITool<ReturnType<typeof createCodeSearchTool>
 export type SearchCodeToolInput = InferToolInput<ReturnType<typeof createCodeSearchTool>>;
 export type SearchCodeToolOutput = InferToolOutput<ReturnType<typeof createCodeSearchTool>>;
 export type SearchCodeToolUIPart = ToolUIPart<{ [toolNames.searchCode]: SearchCodeTool }>;
-
-export const answerTool = tool({
-    description: `Provides the final structured answer to the user's question. Use this tool ONLY after you have completed your research phase and gathered all necessary context. The answer should be a complete, well-formatted markdown response with proper code references.`,
-    inputSchema: z.object({
-        answer: z.string().describe("Complete markdown-formatted answer with code references using @file:{filename:startLine-endLine} format. This should be your final, comprehensive response to the user's question."),
-    }),
-    execute: async ({ answer }) => {
-        return {
-            answer,
-        };
-    }
-});
-
-export type AnswerTool = InferUITool<typeof answerTool>;
-export type AnswerToolUIPart = ToolUIPart<{ [toolNames.answerTool]: AnswerTool }>;
-

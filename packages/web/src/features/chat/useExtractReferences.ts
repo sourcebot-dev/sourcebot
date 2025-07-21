@@ -5,16 +5,15 @@ import { SBChatMessage, FileReference } from "./types";
 import { FILE_REFERENCE_REGEX } from "./constants";
 import { createFileReference } from "./utils";
 
-export const useExtractReferences = (message: SBChatMessage) => {
+export const useExtractReferences = (message?: SBChatMessage) => {
     return useMemo(() => {
         const references: FileReference[] = [];
 
-        message.parts.forEach((part) => {
+        message?.parts.forEach((part) => {
             switch (part.type) {
                 case 'text':
-                case 'reasoning':
-                case 'tool-answerTool': {
-                    const content = part.type === 'tool-answerTool' ? part.input?.answer : part.text;
+                case 'reasoning': {
+                    const content = part.text;
                     FILE_REFERENCE_REGEX.lastIndex = 0;
 
                     let match;

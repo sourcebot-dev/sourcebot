@@ -2,7 +2,7 @@ import { env } from "@/env.mjs"
 import { CreateUIMessage, UIMessagePart } from "ai"
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
 import { FILE_REFERENCE_PREFIX } from "./constants"
-import { CustomEditor, CustomText, FileReference, FileSource, MentionData, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessage, SBChatMessageToolTypes, Source } from "./types"
+import { CustomEditor, CustomText, FileReference, FileSource, MentionData, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessage, SBChatMessagePart, SBChatMessageToolTypes, Source } from "./types"
 
 export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
     const mention: MentionElement = {
@@ -303,4 +303,33 @@ export const createFileReference = ({ fileName, startLine, endLine }: { fileName
         fileName,
         range,
     }
+}
+
+// Groups message parts into groups based on step-start delimiters.
+export const groupMessageIntoSteps = (parts: SBChatMessagePart[]) => {
+    if (!parts || parts.length === 0) {
+        return [];
+    }
+
+    const steps: SBChatMessagePart[][] = [];
+    let currentStep: SBChatMessagePart[] = [];
+    
+    for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        
+        if (part.type === 'step-start') {
+            if (currentStep.length > 0) {
+                steps.push([...currentStep]);
+            }
+            currentStep = [part];
+        } else {
+            currentStep.push(part);
+        }
+    }
+    
+    if (currentStep.length > 0) {
+        steps.push(currentStep);
+    }
+    
+    return steps;
 }
