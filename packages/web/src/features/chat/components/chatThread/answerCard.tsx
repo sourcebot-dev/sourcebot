@@ -1,0 +1,113 @@
+'use client';
+
+import { useExtractTOCItems } from "../../useTOCItems";
+import { TableOfContents } from "./tableOfContents";
+import { Button } from "@/components/ui/button";
+import { Copy, TableOfContentsIcon, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { MarkdownRenderer } from "./markdownRenderer";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { Toggle } from "@/components/ui/toggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+interface AnswerCardProps {
+    answerText: string;
+}
+
+export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
+    answerText,
+}, forwardedRef) => {
+
+    const markdownRendererRef = useRef<HTMLDivElement>(null);
+    const { tocItems, activeId } = useExtractTOCItems({ target: markdownRendererRef.current });
+    const [isTOCButtonToggled, setIsTOCButtonToggled] = useState(false);
+
+    useImperativeHandle(
+        forwardedRef,
+        () => markdownRendererRef.current as HTMLDivElement
+    );
+
+    return (
+        <div className="flex flex-row w-full relative scroll-mt-16">
+            {(isTOCButtonToggled && tocItems.length > 0) && (
+                <TableOfContents
+                    tocItems={tocItems}
+                    activeId={activeId}
+                    className="sticky top-0 h-fit max-w-44 py-2 mr-1.5"
+                />
+            )}
+            <div className="flex flex-col w-full bg-[#fcfcfc] dark:bg-[#0e1320] px-4 py-2 rounded-lg shadow-sm">
+                <div className="flex flex-col z-10 bg-inherit py-2 sticky top-0">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="font-semibold text-muted-foreground">Answer</p>
+                        <div className="flex items-center gap-2">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 text-muted-foreground"
+                                    >
+                                        <Copy className="h-3 w-3" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                    side="bottom"
+                                >
+                                    Copy answer
+                                </TooltipContent>
+                            </Tooltip>
+                            {tocItems.length > 0 && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Toggle
+                                            className="h-6 w-6 px-3 min-w-6 text-muted-foreground"
+                                            pressed={isTOCButtonToggled}
+                                            onPressedChange={setIsTOCButtonToggled}
+                                        >
+                                            <TableOfContentsIcon className="h-3 w-3" />
+                                        </Toggle>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                        side="bottom"
+                                    >
+                                        Toggle table of contents
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </div>
+                    </div>
+                    <Separator />
+                </div>
+                <MarkdownRenderer
+                    ref={markdownRendererRef}
+                    content={answerText}
+                    isStreaming={false}
+                    // scroll-mt offsets the scroll position for headings to take account
+                    // of the sticky "answer" header.
+                    className="prose prose-sm max-w-none prose-headings:scroll-mt-14"
+                />
+                <Separator className="my-2" />
+                <div className="flex gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                    >
+                        <ThumbsUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                    >
+                        <ThumbsDown className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+
+        </div>
+    )
+})
+
+AnswerCard.displayName = 'AnswerCard';

@@ -21,6 +21,8 @@ import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinition
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
 import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
+import { TableOfContents } from './tableOfContents';
+import { AnswerCard } from './answerCard';
 
 interface ChatThreadListItemProps {
     userMessage: SBChatMessage;
@@ -247,7 +249,7 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
                 >
                     <div
                         ref={leftPanelRef}
-                        className="py-4"
+                        className="py-4 h-full"
                     >
                         <div className="flex flex-row gap-2 mb-4">
                             {isStreaming ? (
@@ -413,41 +415,10 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
 
                         {/* Answer section */}
                         {answerPart ? (
-                            <div className="flex flex-col w-full rounded-lg py-2 px-4 bg-[#fcfcfc] dark:bg-[#0e1320] shadow-sm">
-                                <div className="flex items-center justify-between mb-2">
-                                    <p className="font-semibold text-muted-foreground">Answer</p>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 w-6 text-muted-foreground"
-                                    >
-                                        <Copy className="h-3 w-3" />
-                                    </Button>
-                                </div>
-                                <MarkdownRenderer
-                                    ref={markdownRendererRef}
-                                    content={answerPart.text.replace(ANSWER_TAG, '').trim()}
-                                    isStreaming={false}
-                                    className="prose prose-sm max-w-none"
-                                />
-                                <Separator className="my-2" />
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 px-2"
-                                    >
-                                        <ThumbsUp className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 px-2"
-                                    >
-                                        <ThumbsDown className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
+                            <AnswerCard
+                                ref={markdownRendererRef}
+                                answerText={answerPart.text.replace(ANSWER_TAG, '').trim()}
+                            />
                         ) : !isStreaming && (
                             <p className="text-destructive">Error: No answer response was provided</p>
                         )}
