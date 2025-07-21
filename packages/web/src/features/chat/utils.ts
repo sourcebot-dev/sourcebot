@@ -1,7 +1,7 @@
 import { env } from "@/env.mjs"
 import { CreateUIMessage, UIMessagePart } from "ai"
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { FILE_REFERENCE_PREFIX } from "./constants"
+import { FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants"
 import { CustomEditor, CustomText, FileReference, FileSource, MentionData, MentionElement, ModelProviderInfo, ParagraphElement, SBChatMessage, SBChatMessagePart, SBChatMessageToolTypes, Source } from "./types"
 
 export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
@@ -303,6 +303,28 @@ export const createFileReference = ({ fileName, startLine, endLine }: { fileName
         fileName,
         range,
     }
+}
+
+/**
+ * Converts LLM text that includes references (e.g., @file:...) into a portable
+ * Markdown format. Practically, this means converting references into Markdown
+ * links.
+ */
+export const convertLLMOutputToPortableMarkdown = (text: string): string => {
+    return text.replace(FILE_REFERENCE_REGEX, (_, fileName, startLine, endLine) => {
+        const displayName = fileName.split('/').pop() || fileName;
+        
+        let linkText = displayName;
+        if (startLine) {
+            if (endLine && startLine !== endLine) {
+                linkText += `:${startLine}-${endLine}`;
+            } else {
+                linkText += `:${startLine}`;
+            }
+        }
+        
+        return `[${linkText}](${fileName})`;
+    });
 }
 
 // Groups message parts into groups based on step-start delimiters.

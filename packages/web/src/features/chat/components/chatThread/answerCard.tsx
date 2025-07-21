@@ -3,12 +3,15 @@
 import { useExtractTOCItems } from "../../useTOCItems";
 import { TableOfContents } from "./tableOfContents";
 import { Button } from "@/components/ui/button";
-import { Copy, TableOfContentsIcon, ThumbsDown, ThumbsUp } from "lucide-react";
+import { TableOfContentsIcon, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { MarkdownRenderer } from "./markdownRenderer";
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { CopyIconButton } from "@/app/[domain]/components/copyIconButton";
+import { useToast } from "@/components/hooks/use-toast";
+import { convertLLMOutputToPortableMarkdown } from "../../utils";
 
 interface AnswerCardProps {
     answerText: string;
@@ -21,11 +24,21 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
     const markdownRendererRef = useRef<HTMLDivElement>(null);
     const { tocItems, activeId } = useExtractTOCItems({ target: markdownRendererRef.current });
     const [isTOCButtonToggled, setIsTOCButtonToggled] = useState(false);
+    const { toast } = useToast();
 
     useImperativeHandle(
         forwardedRef,
         () => markdownRendererRef.current as HTMLDivElement
     );
+
+    const onCopyAnswer = useCallback(() => {
+        const markdownText = convertLLMOutputToPortableMarkdown(answerText);
+        navigator.clipboard.writeText(markdownText);
+        toast({
+            description: "✅ Copied to clipboard",
+        });
+        return true;
+    }, [answerText, toast]);
 
     return (
         <div className="flex flex-row w-full relative scroll-mt-16">
@@ -43,13 +56,10 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
                         <div className="flex items-center gap-2">
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
+                                    <CopyIconButton
+                                        onCopy={onCopyAnswer}
                                         className="h-6 w-6 text-muted-foreground"
-                                    >
-                                        <Copy className="h-3 w-3" />
-                                    </Button>
+                                    />
                                 </TooltipTrigger>
                                 <TooltipContent
                                     side="bottom"

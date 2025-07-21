@@ -4,7 +4,7 @@ import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation";
-import { Copy, CheckCircle2, ChevronRight, MoreHorizontal } from "lucide-react";
+import { ChevronRight, MoreHorizontal } from "lucide-react";
 import { useCallback, useState, useMemo, useRef, useEffect } from "react";
 import { useToast } from "@/components/hooks/use-toast";
 import {
@@ -14,6 +14,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
+import { CopyIconButton } from "./copyIconButton";
 
 interface FileHeaderProps {
     path: string;
@@ -65,7 +66,6 @@ export const PathHeader = ({
 
     const { navigateToPath } = useBrowseNavigation();
     const { toast } = useToast();
-    const [copied, setCopied] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const breadcrumbsRef = useRef<HTMLDivElement>(null);
     const [visibleSegmentCount, setVisibleSegmentCount] = useState<number | null>(null);
@@ -175,9 +175,8 @@ export const PathHeader = ({
 
     const onCopyPath = useCallback(() => {
         navigator.clipboard.writeText(path);
-        setCopied(true);
         toast({ description: "✅ Copied to clipboard" });
-        setTimeout(() => setCopied(false), 1500);
+        return true;
     }, [path, toast]);
 
     const onBreadcrumbClick = useCallback((segment: BreadcrumbSegment) => {
@@ -296,18 +295,10 @@ export const PathHeader = ({
                         </div>
                     ))}
                 </div>
-                <button
-                    className="ml-2 p-1 rounded transition-colors flex-shrink-0"
-                    onClick={onCopyPath}
-                    aria-label="Copy file path"
-                    type="button"
-                >
-                    {copied ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    ) : (
-                        <Copy className="h-4 w-4 text-muted-foreground" />
-                    )}
-                </button>
+                <CopyIconButton
+                    onCopy={onCopyPath}
+                    className="ml-2"
+                />
             </div>
         </div>
     )
