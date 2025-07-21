@@ -7,7 +7,7 @@ import { BrowseStateProvider } from "./browseStateProvider";
 import { FileTreePanel } from "@/features/fileTree/components/fileTreePanel";
 import { TopBar } from "@/app/[domain]/components/topBar";
 import { useBrowseParams } from "./hooks/useBrowseParams";
-import { FileSearchCommandDialog } from "@/app/[domain]/components/fileSearchCommandDialog";
+import { FileSearchCommandDialog } from "./components/fileSearchCommandDialog";
 import { useBrowseState } from "./hooks/useBrowseState";
 import { useDomain } from "@/hooks/useDomain";
 import { useBrowseNavigation } from "./hooks/useBrowseNavigation";

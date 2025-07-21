@@ -25,22 +25,12 @@ type SearchResult = {
     };
 }
 
-interface FileSearchCommandDialogProps {
-    repoName: string;
-    revisionName?: string;
-    isOpen: boolean;
-    onOpenChange: (isOpen: boolean) => void;
-    onSelect: (file: FileTreeItem) => void;
-}
 
-export const FileSearchCommandDialog = ({
-    repoName,
-    revisionName,
-    isOpen,
-    onOpenChange,
-    onSelect: _onSelect,
-}: FileSearchCommandDialogProps) => {
+export const FileSearchCommandDialog = () => {
+    const { repoName, revisionName } = useBrowseParams();
     const domain = useDomain();
+    const { state: { isFileSearchOpen }, updateBrowseState } = useBrowseState();
+
     const commandListRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -50,7 +40,9 @@ export const FileSearchCommandDialog = ({
 
     useHotkeys("mod+p", (event) => {
         event.preventDefault();
-        onOpenChange(!isOpen);
+        updateBrowseState({
+            isFileSearchOpen: !isFileSearchOpen,
+        });
     }, {
         enableOnFormTags: true,
         enableOnContentEditable: true,
@@ -59,15 +51,15 @@ export const FileSearchCommandDialog = ({
 
     // Whenever we open the dialog, clear the search query
     useEffect(() => {
-        if (isOpen) {
+        if (isFileSearchOpen) {
             setSearchQuery('');
         }
-    }, [isOpen]);
+    }, [isFileSearchOpen]);
 
     const { data: files, isLoading, isError } = useQuery({
         queryKey: ['files', repoName, revisionName, domain],
         queryFn: () => unwrapServiceError(getFiles({ repoName, revisionName: revisionName ?? 'HEAD' }, domain)),
-        enabled: isOpen,
+        enabled: isFileSearchOpen,
     });
 
     const { filteredFiles, maxResultsHit } = useMemo((): { filteredFiles: SearchResult[]; maxResultsHit: boolean } => {
@@ -117,9 +109,16 @@ export const FileSearchCommandDialog = ({
             const filtered = prev.filter(f => f.path !== file.path);
             return [file, ...filtered];
         });
-        onOpenChange(false);
-        _onSelect(file);
-    }, [setRecentlyOpened, onOpenChange, _onSelect]);
+        navigateToPath({
+            repoName,
+            revisionName,
+            path: file.path,
+            pathType: 'blob',
+        });
+        updateBrowseState({
+            isFileSearchOpen: false,
+        });
+    }, [navigateToPath, repoName, revisionName, setRecentlyOpened, updateBrowseState]);
 
     // @note: We were hitting issues when the user types into the input field while the files are still
     // loading. The workaround was to set `disabled` when loading and then focus the input field when
@@ -132,9 +131,11 @@ export const FileSearchCommandDialog = ({
 
     return (
         <Dialog
-            open={isOpen}
+            open={isFileSearchOpen}
             onOpenChange={(isOpen) => {
-                onOpenChange(isOpen);
+                updateBrowseState({
+                    isFileSearchOpen: isOpen,
+                });
             }}
             modal={true}
         >
