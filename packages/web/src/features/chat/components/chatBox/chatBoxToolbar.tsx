@@ -43,14 +43,9 @@ export const ChatBoxToolbar = ({
         description: "Add context", 
     });
 
-    const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel();
-
-    // Default to the first language model if one is not selected.
-    useEffect(() => {
-        if (!selectedLanguageModel && languageModels.length > 0) {
-            setSelectedLanguageModel(languageModels[0]);
-        }
-    }, [languageModels, selectedLanguageModel, setSelectedLanguageModel]);
+    const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel({
+        initialLanguageModel: languageModels.length > 0 ? languageModels[0] : undefined,
+    });
 
     return (
         <>

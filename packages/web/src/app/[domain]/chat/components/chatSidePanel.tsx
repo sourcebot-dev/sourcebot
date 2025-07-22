@@ -24,7 +24,6 @@ import { useChatId } from "../useChatId";
 import { RenameChatDialog } from "./renameChatDialog";
 import { DeleteChatDialog } from "./deleteChatDialog";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 
 interface ChatSidePanelProps {
     order: number;
@@ -33,11 +32,13 @@ interface ChatSidePanelProps {
         name: string | null;
         createdAt: Date;
     }[];
+    isAuthenticated: boolean;
 }
 
 export const ChatSidePanel = ({
     order,
     chatHistory,
+    isAuthenticated,
 }: ChatSidePanelProps) => {
     const domain = useDomain();
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -49,7 +50,6 @@ export const ChatSidePanel = ({
     const [chatIdToRename, setChatIdToRename] = useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [chatIdToDelete, setChatIdToDelete] = useState<string | null>(null);
-    const { status: authStatus } = useSession();
 
     useHotkeys("mod+b", () => {
         if (isCollapsed) {
@@ -140,9 +140,7 @@ export const ChatSidePanel = ({
                     <ScrollArea className="flex flex-col h-full px-2.5">
                         <p className="text-sm font-medium mb-4">Recent Chats</p>
                         <div className="flex flex-col gap-1">
-                            {authStatus === 'loading' ? (
-                                <ChatHistorySkeleton />
-                            ) : authStatus === 'unauthenticated' ? (
+                            {!isAuthenticated ? (
                                 <div className="flex flex-col">
                                     <p className="text-sm text-muted-foreground mb-4">
                                         <Link

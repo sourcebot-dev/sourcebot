@@ -3,10 +3,16 @@
 import { useLocalStorage } from "usehooks-ts";
 import { LanguageModelInfo } from "./types";
 
-export const useSelectedLanguageModel = () => {
+type Props = {
+    initialLanguageModel?: LanguageModelInfo;
+}
+
+export const useSelectedLanguageModel = ({
+    initialLanguageModel,
+}: Props = {}) => {
     const [selectedLanguageModel, setSelectedLanguageModel] = useLocalStorage<LanguageModelInfo | undefined>(
         "selectedLanguageModel",
-        undefined,
+        initialLanguageModel,
         {
             initializeWithValue: false,
         }

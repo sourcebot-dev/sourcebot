@@ -128,6 +128,7 @@ export const AgenticSearch = ({
                     }}
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
+                    languageModels={chatBoxToolbarProps.languageModels}
                 />
                 <Separator />
                 <div className="relative">

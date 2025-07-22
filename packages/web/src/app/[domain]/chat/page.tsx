@@ -18,11 +18,13 @@ export default async function Page({ params }: PageProps) {
         throw new ServiceErrorException(repos);
     }
 
+    const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
+
     return (
         <NewChatPanel
             chatBoxToolbarProps={{
                 languageModels,
-                repos,
+                repos: indexedRepos,
             }}
             order={2}
         />

@@ -62,7 +62,9 @@ export const ChatThread = ({
         ) ?? []
     );
 
-    const { selectedLanguageModel } = useSelectedLanguageModel();
+    const { selectedLanguageModel } = useSelectedLanguageModel({
+        initialLanguageModel: chatBoxToolbarProps.languageModels.length > 0 ? chatBoxToolbarProps.languageModels[0] : undefined,
+    });
 
     const {
         messages,
@@ -307,6 +309,7 @@ export const ChatThread = ({
                         preferredSuggestionsBoxPlacement="top-start"
                         isGenerating={status === "streaming" || status === "submitted"}
                         onStop={stop}
+                        languageModels={chatBoxToolbarProps.languageModels}
                     />
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                         <ChatBoxToolbar

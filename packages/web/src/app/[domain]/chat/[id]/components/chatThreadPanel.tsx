@@ -1,50 +1,34 @@
 'use client';
 
-import { ChatThread } from '@/features/chat/components/chatThread';
-import { useDomain } from '@/hooks/useDomain';
-import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { SBChatMessage, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
-import { loadChatMessages } from '@/features/chat/actions';
-import { unwrapServiceError } from '@/lib/utils';
 import { ResizablePanel } from '@/components/ui/resizable';
-import { useChatId } from '../../useChatId';
-import { CreateUIMessage } from 'ai';
 import { ChatBoxToolbarProps } from '@/features/chat/components/chatBox/chatBoxToolbar';
+import { ChatThread } from '@/features/chat/components/chatThread';
+import { SBChatMessage, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
+import { CreateUIMessage } from 'ai';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useChatId } from '../../useChatId';
 
 interface ChatThreadPanelProps {
     chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
     order: number;
+    messages: SBChatMessage[];
 }
 
 export const ChatThreadPanel = ({
     chatBoxToolbarProps,
     order,
+    messages,
 }: ChatThreadPanelProps) => {
     // @note: we are guaranteed to have a chatId because this component will only be
     // mounted when on a /chat/[id] route.
     const chatId = useChatId()!;
-    const domain = useDomain();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [inputMessage, setInputMessage] = useState<CreateUIMessage<SBChatMessage> | undefined>(undefined);
     const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
 
-    const { data: messages, isPending, isError } = useQuery({
-        queryKey: ['load-chat', chatId, domain],
-        queryFn: () => unwrapServiceError(loadChatMessages({ chatId }, domain)),
-    });
-
     useEffect(() => {
-        // @note: there was a bug when navigating from the home page to a chat thread with
-        // the setChatState query param would cause the `isPending` flag to never be set to false.
-        // The workaround was to only set the input message if the `loadChatMessages` query was not pending.
-        if (isPending) {
-            return;
-        }
-
         const setChatState = searchParams.get(SET_CHAT_STATE_QUERY_PARAM);
         if (!setChatState) {
             return;
@@ -62,7 +46,7 @@ export const ChatThreadPanel = ({
         const newSearchParams = new URLSearchParams(searchParams.toString());
         newSearchParams.delete(SET_CHAT_STATE_QUERY_PARAM);
         router.replace(`?${newSearchParams.toString()}`, { scroll: false });
-    }, [searchParams, router, isPending]);
+    }, [searchParams, router]);
 
     return (
         <ResizablePanel
@@ -71,25 +55,14 @@ export const ChatThreadPanel = ({
             defaultSize={85}
         >
             <div className="flex flex-col h-full w-full">
-                {isPending ? (
-                    <div className="flex-1 flex flex-col items-center gap-2 justify-center text-muted-foreground">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <p>Loading chat...</p>
-                    </div>
-                ) : isError ? (
-                    <div className="flex-1 flex items-center justify-center">
-                        <p>Error loading chat</p>
-                    </div>
-                ) : (
-                    <ChatThread
-                        id={chatId}
-                        initialMessages={messages}
-                        inputMessage={inputMessage}
-                        chatBoxToolbarProps={chatBoxToolbarProps}
-                        selectedRepos={selectedRepos}
-                        onSelectedReposChange={setSelectedRepos}
-                    />
-                )}
+                <ChatThread
+                    id={chatId}
+                    initialMessages={messages}
+                    inputMessage={inputMessage}
+                    chatBoxToolbarProps={chatBoxToolbarProps}
+                    selectedRepos={selectedRepos}
+                    onSelectedReposChange={setSelectedRepos}
+                />
             </div>
         </ResizablePanel>
     )

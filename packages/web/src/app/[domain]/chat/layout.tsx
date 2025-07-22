@@ -46,6 +46,7 @@ export default async function Layout({ children, params: { domain } }: LayoutPro
                     <ChatSidePanel
                         order={1}
                         chatHistory={chatHistory}
+                        isAuthenticated={!!session}
                     />
                     <AnimatedResizableHandle />
                     {children}

@@ -30,6 +30,8 @@ export default async function Home({ params: { domain } }: { params: { domain: s
         throw new ServiceErrorException(chatHistory);
     }
 
+    const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
+
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
             <NavigationMenu
@@ -38,7 +40,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
             <UpgradeToast />
 
             <Homepage
-                initialRepos={repos}
+                initialRepos={indexedRepos}
                 languageModels={models}
                 chatHistory={chatHistory}
             />

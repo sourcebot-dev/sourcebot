@@ -3,7 +3,7 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { CustomEditor, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
+import { CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { cn, IS_MAC } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
@@ -25,6 +25,7 @@ interface ChatBoxProps {
     className?: string;
     isRedirecting?: boolean;
     isGenerating?: boolean;
+    languageModels: LanguageModelInfo[];
 }
 
 export const ChatBox = ({
@@ -34,6 +35,7 @@ export const ChatBox = ({
     className,
     isRedirecting,
     isGenerating,
+    languageModels,
 }: ChatBoxProps) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
@@ -45,7 +47,9 @@ export const ChatBox = ({
         // @todo: add selected repos.
         selectedRepos: [],
     });
-    const { selectedLanguageModel } = useSelectedLanguageModel();
+    const { selectedLanguageModel } = useSelectedLanguageModel({
+        initialLanguageModel: languageModels.length > 0 ? languageModels[0] : undefined,
+    });
 
     // Reset the index when the suggestion mode changes.
     useEffect(() => {

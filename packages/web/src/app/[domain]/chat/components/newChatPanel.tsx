@@ -40,6 +40,7 @@ export const NewChatPanel = ({
                             className="min-h-[80px]"
                             preferredSuggestionsBoxPlacement="bottom-start"
                             isRedirecting={isLoading}
+                            languageModels={chatBoxToolbarProps.languageModels}
                         />
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                             <ChatBoxToolbar
