@@ -276,7 +276,9 @@ class CodeFoldingExpandButtonWidget extends WidgetType {
         );
 
         // Store references for potential updates
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (container as any)._codeFoldingRoot = root;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (container as any)._updateStyling = (newGutterWidth: number) => {
             this.updateContainerStyling(container, newGutterWidth);
         };
@@ -448,6 +450,7 @@ export const createCodeFoldingExtension = (
                 
                 // Update all expand button containers
                 const expandContainers = update.view.dom.querySelectorAll('.cm-code-folding-expand-container');
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 expandContainers.forEach((container: any) => {
                     if (container._updateStyling) {
                         container._updateStyling(newGutterWidth);

@@ -134,7 +134,6 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
                 <MarkdownRenderer
                     ref={markdownRendererRef}
                     content={answerText}
-                    isStreaming={false}
                     // scroll-mt offsets the scroll position for headings to take account
                     // of the sticky "answer" header.
                     className="prose prose-sm max-w-none prose-headings:scroll-mt-14"

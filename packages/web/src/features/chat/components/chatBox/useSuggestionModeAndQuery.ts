@@ -62,16 +62,6 @@ export const useSuggestionModeAndQuery = () => {
             };
         }
 
-        // Repo mode.
-        match = text.match(/^@repo:(.*)$/);
-        if (match) {
-            return {
-                suggestionMode: "repo",
-                suggestionQuery: match[1],
-                range,
-            };
-        }
-
         // If the user starts typing, fallback to file mode.
         // In the future, it would be nice to have a "all" mode that
         // searches across all mode types.

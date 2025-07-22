@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { LanguageModelInfo } from "@/features/chat/types";
 import { RepositoryQuery } from "@/lib/types";
 import { AtSignIcon } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { ReactEditor, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";

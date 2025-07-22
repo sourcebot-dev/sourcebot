@@ -38,12 +38,13 @@ export const CodeFoldingExpandButton = ({
         } else {
             onExpand(direction);
         }
-    }, []);
+    }, [onExpand]);
 
     return (
         <>
-            {expandDirections.map((direction) => (
+            {expandDirections.map((direction, index) => (
                 <div
+                    key={index}
                     className="py-[3px] px-1.5 bg-chat-reference hover:bg-chat-reference-hover cursor-pointer" onClick={() => onClick(direction)}
                 >
                     {direction === 'up' && <PiArrowLineUp className="w-4 h-4" />}

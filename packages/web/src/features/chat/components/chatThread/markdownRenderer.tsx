@@ -95,11 +95,10 @@ const remarkTocExtractor = () => {
 
 interface MarkdownRendererProps {
     content: string;
-    isStreaming: boolean;
     className?: string;
 }
 
-export const MarkdownRenderer = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, isStreaming, className }, ref) => {
+export const MarkdownRenderer = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className }, ref) => {
     const domain = useDomain();
     const router = useRouter();
 
@@ -196,7 +195,7 @@ export const MarkdownRenderer = forwardRef<HTMLDivElement, MarkdownRendererProps
             </span>
         )
 
-    }, [isStreaming, domain, router]);
+    }, [domain, router]);
 
     return (
         <div

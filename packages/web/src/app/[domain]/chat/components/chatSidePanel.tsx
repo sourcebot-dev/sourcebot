@@ -7,7 +7,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ResizablePanel } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteChat, updateChatName } from "@/features/chat/actions";
 import { useDomain } from "@/hooks/useDomain";
@@ -263,24 +262,3 @@ export const ChatSidePanel = ({
         </>
     )
 }
-
-const ChatHistorySkeleton = () => {
-    return (
-        <div className="flex flex-col gap-1">
-            {Array.from({ length: 20 }).map((_, index) => (
-                <Skeleton
-                    key={index}
-                    className={cn(
-                        "h-7 rounded-md",
-                        index % 6 === 0 ? "w-[70%]" :
-                            index % 6 === 1 ? "w-[85%]" :
-                                index % 6 === 2 ? "w-full" :
-                                    index % 6 === 3 ? "w-[85%]" :
-                                        index % 6 === 4 ? "w-[70%]" :
-                                            "w-[85%]"
-                    )}
-                />
-            ))}
-        </div>
-    )
-}   

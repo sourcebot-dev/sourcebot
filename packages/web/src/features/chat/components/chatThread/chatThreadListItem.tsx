@@ -250,7 +250,6 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
                             )}
                             <MarkdownRenderer
                                 content={`**${userQuestion.trim()}**`}
-                                isStreaming={false}
                                 className="prose-p:m-0"
                             />
                         </div>
@@ -359,7 +358,6 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
                                                                     <MarkdownRenderer
                                                                         key={index}
                                                                         content={part.text}
-                                                                        isStreaming={isStreaming}
                                                                         className="text-sm"
                                                                     />
                                                                 )

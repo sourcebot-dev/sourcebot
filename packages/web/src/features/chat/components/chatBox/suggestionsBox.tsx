@@ -1,14 +1,12 @@
 'use client';
 
-import { createPortal } from "react-dom";
-import { FileSuggestion, RefineSuggestion, RepoSuggestion, Suggestion } from "./types";
-import { forwardRef, useMemo } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
-import Image from "next/image";
-import { BookIcon } from "lucide-react";
-import { VscFiles, VscRepo } from "react-icons/vsc";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { forwardRef, useMemo } from "react";
+import { createPortal } from "react-dom";
+import { VscFiles } from "react-icons/vsc";
+import { FileSuggestion, RefineSuggestion, Suggestion } from "./types";
 
 interface SuggestionBoxProps {
     selectedIndex: number;
@@ -68,11 +66,6 @@ export const SuggestionBox = forwardRef<HTMLDivElement, SuggestionBoxProps>(({
                                             <RefineSuggestionListItem refine={suggestion} />
                                         )
                                     }
-                                    {
-                                        suggestion.type === 'repo' && (
-                                            <RepoSuggestionListItem repo={suggestion} />
-                                        )
-                                    }
                                 </div>
                             ))}
                         </div>
@@ -105,8 +98,6 @@ const RefineSuggestionListItem = ({ refine }: { refine: RefineSuggestion }) => {
 
     const Icon = useMemo(() => {
         switch (refine.targetSuggestionMode) {
-            case 'repo':
-                return VscRepo;
             case 'file':
                 return VscFiles;
         }
@@ -121,35 +112,6 @@ const RefineSuggestionListItem = ({ refine }: { refine: RefineSuggestion }) => {
                 </span>
                 <span className="text-xs text-muted-foreground">
                     {refine.description}
-                </span>
-            </div>
-        </>
-    )
-}
-
-const RepoSuggestionListItem = ({ repo }: { repo: RepoSuggestion }) => {
-    const info = getCodeHostInfoForRepo({
-        codeHostType: repo.codeHostType,
-        name: repo.name,
-    });
-
-    return (
-        <>
-            {info?.icon ? (
-                <Image
-                    src={info.icon}
-                    alt={info.codeHostName}
-                    className={`w-4 h-4 ${info.iconClassName} flex-shrink-0 mt-1`}
-                />
-            ) : (
-                <BookIcon className="w-4 h-4 flex-shrink-0 mt-1" />
-            )}
-            <div className="flex flex-col w-full">
-                <span className="text-sm font-medium">
-                    {repo.name.split('/').pop()}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                    {repo.name}
                 </span>
             </div>
         </>
