@@ -11,6 +11,10 @@ import { useState } from "react";
 
 export type SearchMode = "precise" | "agentic";
 
+const PRECISE_SEARCH_DOCS_URL = "https://docs.sourcebot.dev/docs/features/search/syntax-reference";
+// @tood: point this to the actual docs page
+const AGENTIC_SEARCH_DOCS_URL = "https://docs.sourcebot.dev/docs/features/agentic-search/overview";
+
 export interface ToolbarProps {
     searchMode: SearchMode;
     isAgenticSearchEnabled: boolean;
@@ -76,7 +80,7 @@ export const Toolbar = ({
                                             <Separator orientation="horizontal" className="w-full my-0.5" />
                                             <p>Search for exact matches using regular expressions and filters.</p>
                                             <Link
-                                                href="https://docs.sourcebot.dev/docs/features/search/syntax-reference"
+                                                href={PRECISE_SEARCH_DOCS_URL}
                                                 className="text-link hover:underline"
                                             >
                                                 Docs
@@ -122,12 +126,12 @@ export const Toolbar = ({
                                         <p className="font-semibold">Agentic Search</p>
                                     </div>
                                     {!isAgenticSearchEnabled && (
-                                        <p className="text-destructive">Language model not configured.</p>
+                                        <p className="text-destructive">Language model not configured. See <Link href={AGENTIC_SEARCH_DOCS_URL} className="text-link hover:underline">setup instructions.</Link></p>
                                     )}
                                     <Separator orientation="horizontal" className="w-full my-0.5" />
                                     <p>Use natural language to search, summarize and understand your codebase using a reasoning agent.</p>
                                     <Link
-                                        href="https://docs.sourcebot.dev/docs/features/search/agentic-search"
+                                        href={AGENTIC_SEARCH_DOCS_URL}
                                         className="text-link hover:underline"
                                     >
                                         Docs
