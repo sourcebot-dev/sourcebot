@@ -10,6 +10,9 @@ import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
 import { ReactEditor, useSlate } from "slate-react";
 import { resetEditor } from "@/features/chat/utils";
 import { ChatBoxToolbar, ChatBoxToolbarProps } from "@/features/chat/components/chatBox/chatBoxToolbar";
+import { getDisplayTime } from "@/lib/utils";
+import { useDomain } from "@/hooks/useDomain";
+import Link from "next/link";
 
 // @todo: we should probably rename this to a different type since it sort-of clashes
 // with the Suggestion system we have built into the chat box.
@@ -68,22 +71,31 @@ const suggestions: Record<SuggestionType, {
     ],
 }
 
+const MAX_RECENT_CHAT_HISTORY_COUNT = 10;
+
 
 interface AgenticSearchProps {
     searchModeSelectorProps: SearchModeSelectorProps;
     chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
+    chatHistory: {
+        id: string;
+        createdAt: Date;
+        name: string | null;
+    }[];
 }
 
 export const AgenticSearch = ({
     searchModeSelectorProps,
     chatBoxToolbarProps,
+    chatHistory,
 }: AgenticSearchProps) => {
     const [selectedSuggestionType, _setSelectedSuggestionType] = useState<SuggestionType | undefined>(undefined);
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const dropdownRef = useRef<HTMLDivElement>(null);
     const editor = useSlate();
     const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
-    
+    const domain = useDomain();
+
     const setSelectedSuggestionType = useCallback((type: SuggestionType | undefined) => {
         _setSelectedSuggestionType(type);
         if (type) {
@@ -172,6 +184,40 @@ export const AgenticSearch = ({
                     ))}
                 </div>
             </div>
+            {chatHistory.length > 0 && (
+                <div className="flex flex-col items-center w-[80%]">
+                    <Separator className="my-6" />
+                    <span className="font-semibold mb-2">Recent conversations</span>
+                    <div
+                        className="flex flex-col gap-1 w-full"
+                    >
+                        {chatHistory
+                            .slice(0, MAX_RECENT_CHAT_HISTORY_COUNT)
+                            .map((chat) => (
+                                <Link
+                                    key={chat.id}
+                                    className="flex flex-row items-center justify-between gap-1 w-full rounded-md hover:bg-muted px-2 py-0.5 cursor-pointer group"
+                                    href={`/${domain}/chat/${chat.id}`}
+                                >
+                                    <span className="text-sm text-muted-foreground group-hover:text-foreground">
+                                        {chat.name ?? "Untitled Chat"}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground group-hover:text-foreground">
+                                        {getDisplayTime(chat.createdAt)}
+                                    </span>
+                                </Link>
+                            ))}
+                    </div>
+                    {chatHistory.length > MAX_RECENT_CHAT_HISTORY_COUNT && (
+                        <Link
+                            href={`/${domain}/chat`}
+                            className="text-sm text-link hover:underline mt-6"
+                        >
+                            View all
+                        </Link>
+                    )}
+                </div>
+            )}
         </div>
     )
 }

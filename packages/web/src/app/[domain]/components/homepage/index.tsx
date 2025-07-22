@@ -13,12 +13,18 @@ import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 interface HomepageProps {
     initialRepos: RepositoryQuery[];
     languageModels: LanguageModelInfo[];
+    chatHistory: {
+        id: string;
+        createdAt: Date;
+        name: string | null;
+    }[];
 }
 
 
 export const Homepage = ({
     initialRepos,
     languageModels,
+    chatHistory,
 }: HomepageProps) => {
     const [searchMode, setSearchMode] = useLocalStorage<SearchMode>("search-mode", "precise", { initializeWithValue: false });
     const isAgenticSearchEnabled = languageModels.length > 0;
@@ -70,6 +76,7 @@ export const Homepage = ({
                             repos: initialRepos,
                             languageModels,
                         }}
+                        chatHistory={chatHistory}
                     />
                 </CustomSlateEditor>
             )}

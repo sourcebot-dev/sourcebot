@@ -7,6 +7,7 @@ import { NavigationGuardProvider } from 'next-navigation-guard';
 import { getRecentChats } from '@/features/chat/actions';
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
+import { auth } from '@/auth';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -16,7 +17,8 @@ interface LayoutProps {
 }
 
 export default async function Layout({ children, params: { domain } }: LayoutProps) {
-    const chatHistory = await getRecentChats(domain);
+    const session = await auth();
+    const chatHistory = session ? await getRecentChats(domain) : [];
 
     if (isServiceError(chatHistory)) {
         throw new ServiceErrorException(chatHistory);

@@ -1,12 +1,14 @@
 import { getRepos } from "@/actions";
 import { Footer } from "@/app/components/footer";
 import { getOrgFromDomain } from "@/data/org";
-import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
+import { getConfiguredLanguageModelsInfo, getRecentChats } from "@/features/chat/actions";
 import { isServiceError } from "@/lib/utils";
 import { Homepage } from "./components/homepage";
 import { NavigationMenu } from "./components/navigationMenu";
 import { PageNotFound } from "./components/pageNotFound";
 import { UpgradeToast } from "./components/upgradeToast";
+import { ServiceErrorException } from "@/lib/serviceError";
+import { auth } from "@/auth";
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -14,8 +16,19 @@ export default async function Home({ params: { domain } }: { params: { domain: s
         return <PageNotFound />
     }
 
-    const repos = await getRepos(domain);
+    const session = await auth();
+
     const models = await getConfiguredLanguageModelsInfo();
+    const repos = await getRepos(domain);
+    const chatHistory = session ? await getRecentChats(domain) : [];
+
+    if (isServiceError(repos)) {
+        throw new ServiceErrorException(repos);
+    }
+
+    if (isServiceError(chatHistory)) {
+        throw new ServiceErrorException(chatHistory);
+    }
 
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
@@ -25,8 +38,9 @@ export default async function Home({ params: { domain } }: { params: { domain: s
             <UpgradeToast />
 
             <Homepage
-                initialRepos={isServiceError(repos) ? [] : repos}
+                initialRepos={repos}
                 languageModels={models}
+                chatHistory={chatHistory}
             />
             <Footer />
         </div>

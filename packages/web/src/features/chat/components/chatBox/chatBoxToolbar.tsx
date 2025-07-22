@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { LanguageModelInfo } from "@/features/chat/types";
 import { RepositoryQuery } from "@/lib/types";
 import { AtSignIcon } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { ReactEditor, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
@@ -44,6 +44,13 @@ export const ChatBoxToolbar = ({
     });
 
     const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel();
+
+    // Default to the first language model if one is not selected.
+    useEffect(() => {
+        if (!selectedLanguageModel && languageModels.length > 0) {
+            setSelectedLanguageModel(languageModels[0]);
+        }
+    }, [languageModels, selectedLanguageModel, setSelectedLanguageModel]);
 
     return (
         <>
