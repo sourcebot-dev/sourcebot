@@ -2,6 +2,12 @@ import { NewsItem } from "./types";
 
 export const newsData: NewsItem[] = [
     {
+        unique_id: "agentic-search",
+        header: "Agentic Search",
+        sub_header: "Ask Sourcebot to search, summarize, and explain code. Bring your own LLM.",
+        url: "https://docs.sourcebot.dev/docs/features/search/agentic-search/overview"
+    },
+    {
         unique_id: "anonymous-access",
         header: "Anonymous Access",
         sub_header: "We've added the ability to disable the need for users to login to Sourcebot.",
