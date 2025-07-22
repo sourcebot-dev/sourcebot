@@ -2,23 +2,29 @@
 
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { env } from "@/env.mjs";
-import { notFound } from "@/lib/serviceError";
+import { chatIsReadonly, notFound, ServiceError } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
-import { OrgRole, Prisma } from "@sourcebot/db";
+import { ChatVisibility, OrgRole, Prisma } from "@sourcebot/db";
 import fs from 'fs';
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from "./types";
 import { loadConfig } from "@sourcebot/shared";
 import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
+import { SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
+import { StatusCodes } from "http-status-codes";
 
 export const createChat = async (domain: string) => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
+
+            const isGuestUser = userId === SOURCEBOT_GUEST_USER_ID;
+
             const chat = await prisma.chat.create({
                 data: {
                     orgId: org.id,
                     messages: [] as unknown as Prisma.InputJsonValue,
                     createdById: userId,
+                    visibility: isGuestUser ? ChatVisibility.PUBLIC : ChatVisibility.PRIVATE,
                 },
             });
 
@@ -28,14 +34,13 @@ export const createChat = async (domain: string) => sew(() =>
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
 );
 
-export const loadChatMessages = async ({ chatId }: { chatId: string }, domain: string) => sew(() =>
+export const getChatInfo = async ({ chatId }: { chatId: string }, domain: string) => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const chat = await prisma.chat.findUnique({
                 where: {
                     id: chatId,
                     orgId: org.id,
-                    createdById: userId,
                 },
             });
 
@@ -43,23 +48,39 @@ export const loadChatMessages = async ({ chatId }: { chatId: string }, domain: s
                 return notFound();
             }
 
-            return chat.messages as unknown as SBChatMessage[];
+            if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
+                return notFound();
+            }
+
+            return {
+                messages: chat.messages as unknown as SBChatMessage[],
+                visibility: chat.visibility,
+                name: chat.name,
+                isReadonly: chat.isReadonly,
+            };
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
 );
 
-export const saveChatMessages = async ({ chatId, messages }: { chatId: string, messages: SBChatMessage[] }, domain: string) => sew(() =>
+export const updateChatMessages = async ({ chatId, messages }: { chatId: string, messages: SBChatMessage[] }, domain: string) => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const chat = await prisma.chat.findUnique({
                 where: {
                     id: chatId,
                     orgId: org.id,
-                    createdById: userId,
                 },
             });
 
             if (!chat) {
                 return notFound();
+            }
+
+            if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
+                return notFound();
+            }
+
+            if (chat.isReadonly) {
+                return chatIsReadonly();
             }
 
             await prisma.chat.update({
@@ -87,10 +108,9 @@ export const saveChatMessages = async ({ chatId, messages }: { chatId: string, m
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
 );
 
-export const getRecentChats = async (domain: string) => sew(() =>
+export const getUserChatHistory = async (domain: string) => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
-            // @todo: this should be filtered on the user
             const chats = await prisma.chat.findMany({
                 where: {
                     orgId: org.id,
@@ -105,6 +125,7 @@ export const getRecentChats = async (domain: string) => sew(() =>
                 id: chat.id,
                 createdAt: chat.createdAt,
                 name: chat.name,
+                visibility: chat.visibility,
             }))
         })
     )
@@ -117,12 +138,19 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
                 where: {
                     id: chatId,
                     orgId: org.id,
-                    createdById: userId,
                 },
             });
 
             if (!chat) {
                 return notFound();
+            }
+
+            if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
+                return notFound();
+            }
+
+            if (chat.isReadonly) {
+                return chatIsReadonly();
             }
 
             await prisma.chat.update({
@@ -148,11 +176,24 @@ export const deleteChat = async ({ chatId }: { chatId: string }, domain: string)
                 where: {
                     id: chatId,
                     orgId: org.id,
-                    createdById: userId,
                 },
             });
 
             if (!chat) {
+                return notFound();
+            }
+
+            // Public chats cannot be deleted.
+            if (chat.visibility === ChatVisibility.PUBLIC) {
+                return {
+                    statusCode: StatusCodes.FORBIDDEN,
+                    errorCode: 'FORBIDDEN',
+                    message: 'You are not allowed to delete this chat.',
+                } satisfies ServiceError;
+            }
+
+            // Only the creator of a chat can delete it.
+            if (chat.createdById !== userId) {
                 return notFound();
             }
 
@@ -170,27 +211,6 @@ export const deleteChat = async ({ chatId }: { chatId: string }, domain: string)
     )
 );
 
-export const getChatInfo = async ({ chatId }: { chatId: string }, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const chat = await prisma.chat.findUnique({
-                where: {
-                    id: chatId,
-                    orgId: org.id,
-                    createdById: userId,
-                },
-            });
-
-            if (!chat) {
-                return notFound();
-            }
-
-            return {
-                name: chat.name,
-            }
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
-)
-
 export const submitFeedback = async ({ 
     chatId, 
     messageId, 
@@ -206,11 +226,15 @@ export const submitFeedback = async ({
                 where: {
                     id: chatId,
                     orgId: org.id,
-                    createdById: userId,
                 },
             });
 
             if (!chat) {
+                return notFound();
+            }
+
+            // When a chat is private, only the creator can submit feedback.
+            if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
                 return notFound();
             }
 

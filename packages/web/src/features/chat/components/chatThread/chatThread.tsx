@@ -34,6 +34,7 @@ interface ChatThreadProps {
     chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
     selectedRepos: string[];
     onSelectedReposChange: (repos: string[]) => void;
+    isChatReadonly: boolean;
 }
 
 export const ChatThread = ({
@@ -43,6 +44,7 @@ export const ChatThread = ({
     chatBoxToolbarProps,
     selectedRepos,
     onSelectedReposChange,
+    isChatReadonly,
 }: ChatThreadProps) => {
     const domain = useDomain();
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
@@ -130,7 +132,7 @@ export const ChatThread = ({
         if (wasPending && isFinished) {
             router.refresh();
         }
-    }, [prevStatus, status, router]); 
+    }, [prevStatus, status, router]);
 
     useEffect(() => {
         if (!inputMessage || hasSubmittedInputMessage.current) {
@@ -214,7 +216,7 @@ export const ChatThread = ({
         });
 
     }, [isAutoScrollEnabled, messages]);
-    
+
 
     // Keep the error state & banner visibility in sync.
     useEffect(() => {
@@ -249,77 +251,79 @@ export const ChatThread = ({
                 ref={scrollAreaRef}
                 className="flex flex-col h-full w-full p-4 overflow-hidden"
             >
-                    {
-                        messagePairs.length === 0 ? (
-                            <div className="flex items-center justify-center text-center h-full">
-                                <p className="text-muted-foreground">no messages</p>
-                            </div>
-                        ) : (
-                            <>
-                                {messagePairs.map(([userMessage, assistantMessage], index) => {
-                                    const isLastPair = index === messagePairs.length - 1;
-                                    const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
-                                    
-                                    return (
-                                        <>
-                                            <ChatThreadListItem
-                                                key={index}
-                                                chatId={chatId}
-                                                userMessage={userMessage}
-                                                assistantMessage={assistantMessage}
-                                                isStreaming={isStreaming}
-                                                sources={sources}
-                                                ref={isLastPair ? latestMessagePairRef : undefined}
-                                            />
-                                            {index !== messagePairs.length - 1 && (
-                                                <Separator className="my-12" />
-                                            )}
-                                        </>
-                                    );
-                                })}
-                            </>
-                        )
-                    }
-                    {
-                        (!isAutoScrollEnabled && status === "streaming") && (
-                            <div className="absolute bottom-5 left-0 right-0 h-10 flex flex-row items-center justify-center">
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="rounded-full animate-bounce-slow h-8 w-8"
-                                    onClick={() => {
-                                        latestMessagePairRef.current?.scrollIntoView({
-                                            behavior: 'instant',
-                                            block: 'end',
-                                            inline: 'nearest',
-                                        });
-                                    }}
-                                >
-                                    <ArrowDownIcon className="w-4 h-4" />
-                                </Button>
-                            </div>
-                        )
-                    }
+                {
+                    messagePairs.length === 0 ? (
+                        <div className="flex items-center justify-center text-center h-full">
+                            <p className="text-muted-foreground">no messages</p>
+                        </div>
+                    ) : (
+                        <>
+                            {messagePairs.map(([userMessage, assistantMessage], index) => {
+                                const isLastPair = index === messagePairs.length - 1;
+                                const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
+
+                                return (
+                                    <>
+                                        <ChatThreadListItem
+                                            key={index}
+                                            chatId={chatId}
+                                            userMessage={userMessage}
+                                            assistantMessage={assistantMessage}
+                                            isStreaming={isStreaming}
+                                            sources={sources}
+                                            ref={isLastPair ? latestMessagePairRef : undefined}
+                                        />
+                                        {index !== messagePairs.length - 1 && (
+                                            <Separator className="my-12" />
+                                        )}
+                                    </>
+                                );
+                            })}
+                        </>
+                    )
+                }
+                {
+                    (!isAutoScrollEnabled && status === "streaming") && (
+                        <div className="absolute bottom-5 left-0 right-0 h-10 flex flex-row items-center justify-center">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="rounded-full animate-bounce-slow h-8 w-8"
+                                onClick={() => {
+                                    latestMessagePairRef.current?.scrollIntoView({
+                                        behavior: 'instant',
+                                        block: 'end',
+                                        inline: 'nearest',
+                                    });
+                                }}
+                            >
+                                <ArrowDownIcon className="w-4 h-4" />
+                            </Button>
+                        </div>
+                    )
+                }
             </ScrollArea>
-            <div className="border rounded-md w-full max-w-3xl mx-auto mb-8 shadow-sm">
-                <CustomSlateEditor>
-                    <ChatBox
-                        onSubmit={onSubmit}
-                        className="min-h-[80px]"
-                        preferredSuggestionsBoxPlacement="top-start"
-                        isGenerating={status === "streaming" || status === "submitted"}
-                        onStop={stop}
-                        languageModels={chatBoxToolbarProps.languageModels}
-                    />
-                    <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
-                        <ChatBoxToolbar
-                            {...chatBoxToolbarProps}
-                            selectedRepos={selectedRepos}
-                            onSelectedReposChange={onSelectedReposChange}
+            {!isChatReadonly && (
+                <div className="border rounded-md w-full max-w-3xl mx-auto mb-8 shadow-sm">
+                    <CustomSlateEditor>
+                        <ChatBox
+                            onSubmit={onSubmit}
+                            className="min-h-[80px]"
+                            preferredSuggestionsBoxPlacement="top-start"
+                            isGenerating={status === "streaming" || status === "submitted"}
+                            onStop={stop}
+                            languageModels={chatBoxToolbarProps.languageModels}
                         />
-                    </div>
-                </CustomSlateEditor>
-            </div>
+                        <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
+                            <ChatBoxToolbar
+                                {...chatBoxToolbarProps}
+                                selectedRepos={selectedRepos}
+                                onSelectedReposChange={onSelectedReposChange}
+                            />
+                        </div>
+                    </CustomSlateEditor>
+                </div>
+            )}
         </>
     );
 }

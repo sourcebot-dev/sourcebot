@@ -1,7 +1,7 @@
 import { getRepos } from "@/actions";
 import { Footer } from "@/app/components/footer";
 import { getOrgFromDomain } from "@/data/org";
-import { getConfiguredLanguageModelsInfo, getRecentChats } from "@/features/chat/actions";
+import { getConfiguredLanguageModelsInfo, getUserChatHistory } from "@/features/chat/actions";
 import { isServiceError } from "@/lib/utils";
 import { Homepage } from "./components/homepage";
 import { NavigationMenu } from "./components/navigationMenu";
@@ -20,7 +20,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
 
     const models = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos(domain);
-    const chatHistory = session ? await getRecentChats(domain) : [];
+    const chatHistory = session ? await getUserChatHistory(domain) : [];
 
     if (isServiceError(repos)) {
         throw new ServiceErrorException(repos);

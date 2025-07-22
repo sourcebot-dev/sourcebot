@@ -13,12 +13,14 @@ interface ChatThreadPanelProps {
     chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
     order: number;
     messages: SBChatMessage[];
+    isChatReadonly: boolean;
 }
 
 export const ChatThreadPanel = ({
     chatBoxToolbarProps,
     order,
     messages,
+    isChatReadonly,
 }: ChatThreadPanelProps) => {
     // @note: we are guaranteed to have a chatId because this component will only be
     // mounted when on a /chat/[id] route.
@@ -62,6 +64,7 @@ export const ChatThreadPanel = ({
                     chatBoxToolbarProps={chatBoxToolbarProps}
                     selectedRepos={selectedRepos}
                     onSelectedReposChange={setSelectedRepos}
+                    isChatReadonly={isChatReadonly}
                 />
             </div>
         </ResizablePanel>

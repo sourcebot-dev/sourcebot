@@ -33,15 +33,17 @@ interface ChatSidePanelProps {
         createdAt: Date;
     }[];
     isAuthenticated: boolean;
+    isCollapsedInitially: boolean;
 }
 
 export const ChatSidePanel = ({
     order,
     chatHistory,
     isAuthenticated,
+    isCollapsedInitially,
 }: ChatSidePanelProps) => {
     const domain = useDomain();
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(isCollapsedInitially);
     const sidePanelRef = useRef<ImperativePanelHandle>(null);
     const router = useRouter();
     const { toast } = useToast();
@@ -83,7 +85,7 @@ export const ChatSidePanel = ({
             });
             router.refresh();
         }
-    }, [chatId, router, toast, domain]);
+    }, [router, toast, domain]);
 
     const onDeleteChat = useCallback(async (chatIdToDelete: string) => {
         if (!chatIdToDelete) {

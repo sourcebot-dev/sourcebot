@@ -1,11 +1,11 @@
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { env } from "@/env.mjs";
-import { _getConfiguredLanguageModelsFull, saveChatMessages, updateChatName } from "@/features/chat/actions";
+import { _getConfiguredLanguageModelsFull, updateChatMessages, updateChatName } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema, SBChatMessage } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
-import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { notFound, schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
@@ -90,6 +90,25 @@ interface ChatHandlerProps {
 const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandlerProps, domain: string) => sew(async () =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
+            const chat = await prisma.chat.findUnique({
+                where: {
+                    orgId: org.id,
+                    id,
+                },
+            });
+
+            if (!chat) {
+                return notFound();
+            }
+
+            if (chat.isReadonly) {
+                return serviceErrorResponse({
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "Chat is readonly and cannot be edited.",
+                });
+            }
+
             const latestMessage = messages[messages.length - 1];
             const sources = latestMessage.parts
                 .filter((part) => part.type === 'data-source')
@@ -205,7 +224,7 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
                     onError: errorHandler,
                     originalMessages: messages,
                     onFinish: async ({ messages }) => {
-                        await saveChatMessages({
+                        await updateChatMessages({
                             chatId: id,
                             messages
                         }, domain);

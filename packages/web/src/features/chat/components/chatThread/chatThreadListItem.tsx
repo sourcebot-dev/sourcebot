@@ -44,7 +44,7 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
     const [hoveredReference, setHoveredReference] = useState<Reference | undefined>(undefined);
     const [selectedReference, setSelectedReference] = useState<Reference | undefined>(undefined);
     const references = useExtractReferences(assistantMessage);
-    const [isDetailsPanelExpanded, _setIsDetailsPanelExpanded] = useState(true);
+    const [isDetailsPanelExpanded, _setIsDetailsPanelExpanded] = useState(isStreaming);
     const hasAutoCollapsed = useRef(false);
     const userHasManuallyExpanded = useRef(false);
 
