@@ -2,8 +2,7 @@
 export type SuggestionMode = 
     "none" |
     "refine" |
-    "file" |
-    "repo"
+    "file"
 ;
 
 export type RefineSuggestion = {
@@ -22,11 +21,4 @@ export type FileSuggestion = {
     revision: string;
 }
 
-export type RepoSuggestion = {
-    type: 'repo';
-    name: string;
-    displayName?: string;
-    codeHostType: string;
-}
-
-export type Suggestion = FileSuggestion | RepoSuggestion | RefineSuggestion;
+export type Suggestion = FileSuggestion | RefineSuggestion;

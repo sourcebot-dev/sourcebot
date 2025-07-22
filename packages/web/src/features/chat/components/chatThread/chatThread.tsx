@@ -31,7 +31,9 @@ interface ChatThreadProps {
     id?: string | undefined;
     initialMessages?: SBChatMessage[];
     inputMessage?: CreateUIMessage<SBChatMessage>;
-    chatBoxToolbarProps: ChatBoxToolbarProps;
+    chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
+    selectedRepos: string[];
+    onSelectedReposChange: (repos: string[]) => void;
 }
 
 export const ChatThread = ({
@@ -39,6 +41,8 @@ export const ChatThread = ({
     initialMessages,
     inputMessage,
     chatBoxToolbarProps,
+    selectedRepos,
+    onSelectedReposChange,
 }: ChatThreadProps) => {
     const domain = useDomain();
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
@@ -101,12 +105,11 @@ export const ChatThread = ({
 
         _sendMessage(message, {
             body: {
-                // @todo: extract the selected repos from the message.
-                selectedRepos: [],
+                selectedRepos,
                 languageModelId: selectedLanguageModel.model,
             } satisfies AdditionalChatRequestParams,
         });
-    }, [_sendMessage, selectedLanguageModel, toast]);
+    }, [_sendMessage, selectedLanguageModel, selectedRepos, toast]);
 
 
     const messagePairs = useMessagePairs(messages);
@@ -308,6 +311,8 @@ export const ChatThread = ({
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                         <ChatBoxToolbar
                             {...chatBoxToolbarProps}
+                            selectedRepos={selectedRepos}
+                            onSelectedReposChange={onSelectedReposChange}
                         />
                     </div>
                 </CustomSlateEditor>

@@ -156,7 +156,7 @@ Your workflow has two distinct phases:
 </workflow>
 
 <available_repositories>
-The following repositories are available for analysis:
+The user has selected the following repositories for analysis:
 ${selectedRepos.map(repo => `- ${repo}`).join('\n')}
 </available_repositories>
 

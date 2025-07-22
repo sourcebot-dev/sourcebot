@@ -71,7 +71,7 @@ const suggestions: Record<SuggestionType, {
 
 interface AgenticSearchProps {
     searchModeSelectorProps: SearchModeSelectorProps;
-    chatBoxToolbarProps: ChatBoxToolbarProps;
+    chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
 }
 
 export const AgenticSearch = ({
@@ -82,7 +82,8 @@ export const AgenticSearch = ({
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const dropdownRef = useRef<HTMLDivElement>(null);
     const editor = useSlate();
-
+    const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
+    
     const setSelectedSuggestionType = useCallback((type: SuggestionType | undefined) => {
         _setSelectedSuggestionType(type);
         if (type) {
@@ -111,7 +112,7 @@ export const AgenticSearch = ({
             >
                 <ChatBox
                     onSubmit={(children) => {
-                        createNewChatThread(children);
+                        createNewChatThread(children, selectedRepos);
                     }}
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
@@ -121,6 +122,8 @@ export const AgenticSearch = ({
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                         <ChatBoxToolbar
                             {...chatBoxToolbarProps}
+                            selectedRepos={selectedRepos}
+                            onSelectedReposChange={setSelectedRepos}
                         />
                         <SearchModeSelector
                             {...searchModeSelectorProps}

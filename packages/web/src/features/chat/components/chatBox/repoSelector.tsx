@@ -23,12 +23,11 @@ import {
     CommandList,
     CommandSeparator,
 } from "@/components/ui/command";
-import { RepoMentionData } from "../../types";
 
 interface RepoSelectorProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    repos: RepoMentionData[];
-    selectedRepos: RepoMentionData[];
-    onSelectedReposChange: (repos: RepoMentionData[]) => void;
+    repos: string[];
+    selectedRepos: string[];
+    onSelectedReposChange: (repos: string[]) => void;
     className?: string;
 }
 
@@ -60,11 +59,11 @@ export const RepoSelector = React.forwardRef<
             }
         };
 
-        const toggleRepo = (repo: RepoMentionData) => {
-            const newSelectedRepos = selectedRepos.some((selectedRepo) => selectedRepo.name === repo.name)
-                ? selectedRepos.filter((selectedRepo) => selectedRepo.name !== repo.name)
+        const toggleRepo = (repo: string) => {
+            const newSelectedValues = selectedRepos.includes(repo)
+                ? selectedRepos.filter((value) => value !== repo)
                 : [...selectedRepos, repo];
-            onSelectedReposChange(newSelectedRepos);
+            onSelectedReposChange(newSelectedValues);
         };
 
         const handleClear = () => { 
@@ -100,7 +99,7 @@ export const RepoSelector = React.forwardRef<
                             >
                                 {
                                     selectedRepos.length === 0 ? `${repos.length} repo${repos.length === 1 ? '' : 's'}` :
-                                        selectedRepos.length === 1 ? `${selectedRepos[0].displayName ?? selectedRepos[0].name}` :
+                                        selectedRepos.length === 1 ? `${selectedRepos[0].split('/').pop()}` :
                                             `${selectedRepos.length} repo${selectedRepos.length === 1 ? '' : 's'}`
                                 }
                             </span>
@@ -123,10 +122,10 @@ export const RepoSelector = React.forwardRef<
                             <CommandGroup>
 
                                 {repos.map((repo) => {
-                                    const isSelected = selectedRepos.some((selectedRepo) => selectedRepo.name === repo.name);
+                                    const isSelected = selectedRepos.includes(repo);
                                     return (
                                         <CommandItem
-                                            key={repo.name}
+                                            key={repo}
                                             onSelect={() => toggleRepo(repo)}
                                             className="cursor-pointer"
                                         >
@@ -140,7 +139,7 @@ export const RepoSelector = React.forwardRef<
                                             >
                                                 <CheckIcon className="h-4 w-4" />
                                             </div>
-                                            <span>{repo.displayName ?? repo.name}</span>
+                                            <span>{repo}</span>
                                         </CommandItem>
                                     );
                                 })}

@@ -5,11 +5,11 @@ import { ChatBox } from "@/features/chat/components/chatBox";
 import { ChatBoxToolbar, ChatBoxToolbarProps } from "@/features/chat/components/chatBox/chatBoxToolbar";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Descendant } from "slate";
 
 interface NewChatPanelProps {
-    chatBoxToolbarProps: ChatBoxToolbarProps;
+    chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
     order: number;
 }
 
@@ -17,11 +17,12 @@ export const NewChatPanel = ({
     chatBoxToolbarProps,
     order,
 }: NewChatPanelProps) => {
+    const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
 
     const onSubmit = useCallback((children: Descendant[]) => {
-        createNewChatThread(children);
-    }, [createNewChatThread]);
+        createNewChatThread(children, selectedRepos);
+    }, [createNewChatThread, selectedRepos]);
 
 
     return (
@@ -43,6 +44,8 @@ export const NewChatPanel = ({
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                             <ChatBoxToolbar
                                 {...chatBoxToolbarProps}
+                                selectedRepos={selectedRepos}
+                                onSelectedReposChange={setSelectedRepos}
                             />
                         </div>
                     </CustomSlateEditor>

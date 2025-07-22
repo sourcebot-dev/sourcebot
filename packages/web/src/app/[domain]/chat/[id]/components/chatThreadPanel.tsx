@@ -15,7 +15,7 @@ import { CreateUIMessage } from 'ai';
 import { ChatBoxToolbarProps } from '@/features/chat/components/chatBox/chatBoxToolbar';
 
 interface ChatThreadPanelProps {
-    chatBoxToolbarProps: ChatBoxToolbarProps;
+    chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
     order: number;
 }
 
@@ -30,6 +30,7 @@ export const ChatThreadPanel = ({
     const router = useRouter();
     const searchParams = useSearchParams();
     const [inputMessage, setInputMessage] = useState<CreateUIMessage<SBChatMessage> | undefined>(undefined);
+    const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
 
     const { data: messages, isPending, isError } = useQuery({
         queryKey: ['load-chat', chatId, domain],
@@ -50,8 +51,9 @@ export const ChatThreadPanel = ({
         }
 
         try {
-            const { inputMessage } = JSON.parse(setChatState) as SetChatStatePayload;
+            const { inputMessage, selectedRepos } = JSON.parse(setChatState) as SetChatStatePayload;
             setInputMessage(inputMessage);
+            setSelectedRepos(selectedRepos);
         } catch {
             console.error('Invalid message in URL');
         }
@@ -84,6 +86,8 @@ export const ChatThreadPanel = ({
                         initialMessages={messages}
                         inputMessage={inputMessage}
                         chatBoxToolbarProps={chatBoxToolbarProps}
+                        selectedRepos={selectedRepos}
+                        onSelectedReposChange={setSelectedRepos}
                     />
                 )}
             </div>

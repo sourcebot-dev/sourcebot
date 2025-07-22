@@ -96,14 +96,7 @@ export type FileMentionData = {
     revision: string;
 }
 
-export type RepoMentionData = {
-    type: 'repo';
-    name: string;
-    displayName?: string;
-    codeHostType: string;
-}
-
-export type MentionData = FileMentionData | RepoMentionData;
+export type MentionData = FileMentionData;
 
 export type MentionElement = {
     type: 'mention';
@@ -142,6 +135,7 @@ export const SET_CHAT_STATE_QUERY_PARAM = 'setChatState';
 
 export type SetChatStatePayload = {
     inputMessage: CreateUIMessage<SBChatMessage>;
+    selectedRepos: string[];
 }
 
 
