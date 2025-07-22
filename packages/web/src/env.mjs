@@ -20,6 +20,8 @@ export const env = createEnv({
         ZOEKT_MAX_WALL_TIME_MS: numberSchema.default(10000),
         
         // Auth
+        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
+        
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),

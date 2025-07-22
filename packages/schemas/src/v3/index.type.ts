@@ -80,7 +80,8 @@ export interface Settings {
    */
   repoIndexTimeoutMs?: number;
   /**
-   * [Sourcebot EE] When enabled, allows unauthenticated users to access Sourcebot. Requires an enterprise license with an unlimited number of seats.
+   * @deprecated
+   * This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.
    */
   enablePublicAccess?: boolean;
 }
