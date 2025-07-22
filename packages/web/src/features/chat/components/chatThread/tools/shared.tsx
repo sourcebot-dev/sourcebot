@@ -13,11 +13,9 @@ import { getBrowsePath } from '@/app/[domain]/browse/hooks/useBrowseNavigation';
 export const FileListItem = ({
     path,
     repoName,
-    isTruncated,
 }: {
     path: string,
     repoName: string,
-    isTruncated?: boolean,
 }) => {
     const domain = useDomain();
 
@@ -36,11 +34,6 @@ export const FileListItem = ({
             >
                 {path}
             </Link>
-            {isTruncated && (
-                <span className="text-xs text-muted-foreground ml-2">
-                    (truncated)
-                </span>
-            )}
         </div>
     )
 }

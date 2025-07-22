@@ -53,7 +53,6 @@ export const FindSymbolDefinitionsToolComponent = ({ part }: { part: FindSymbolD
                                                 key={file.fileName}
                                                 path={file.fileName}
                                                 repoName={file.repository}
-                                                isTruncated={file.isOutputTruncated}
                                             />
                                         )
                                     })}

@@ -8,7 +8,7 @@ import { LanguageModel, ModelMessage, StopCondition, streamText } from "ai";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
 import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool } from "./tools";
 import { FileSource, Source } from "./types";
-import { fileReferenceToString, sourceCodeToModelOutput } from "./utils";
+import { addLineNumbers, fileReferenceToString } from "./utils";
 
 const logger = createLogger('chat-agent');
 
@@ -213,7 +213,7 @@ const createFileSourcesSystemPrompt = async ({ files }: FileSourcesSystemPromptO
 The user has mentioned the following files, which are automatically included for analysis.
 
 ${files.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}" revision="${file.revision}">
-${sourceCodeToModelOutput(file.source).output}
+${addLineNumbers(file.source)}
 </file>`).join('\n\n')}
     `.trim();
 }

@@ -1,4 +1,3 @@
-import { env } from "@/env.mjs"
 import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai"
 import { Descendant, Editor, Point, Range, Transforms } from "slate"
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants"
@@ -171,53 +170,8 @@ export const resetEditor = (editor: CustomEditor) => {
     }];
 }
 
-// Adding line numbers to the source code makes it easier for LLMs to
-// reference specific ranges within the code.
-export const sourceCodeToModelOutput = (source: string, options: {
-    // The line number to start from in the output.
-    lineOffset?: number,
-    // The number of characters that have been accumulated so far.
-    // This is used to truncate the output if the total number of characters
-    // exceeds the limit.
-    charAccum?: number,
-} = {}) => {
-    const {
-        lineOffset = 1,
-        charAccum = 0,
-    } = options;
-
-    let output = source.split('\n')
-        .map((line, index) => `${index + lineOffset}:${line}`)
-        .join('\n');
-    let isTruncated = false;
-
-    if (charAccum + output.length > env.SOURCEBOT_CHAT_FILE_MAX_CHARACTERS) {
-        output = output.slice(0, env.SOURCEBOT_CHAT_FILE_MAX_CHARACTERS - charAccum);
-        isTruncated = true;
-    }
-
-    return {
-        output,
-        isTruncated,
-    };
-}
-
-export const sourceCodeChunksToModelOutput = (chunks: { source: string, startLine: number }[]) => {
-    let accum = 0;
-
-    return chunks.map((chunk) => {
-        const { output, isTruncated } = sourceCodeToModelOutput(chunk.source, {
-            lineOffset: chunk.startLine,
-            charAccum: accum,
-        });
-
-        accum += output.length;
-
-        return {
-            output,
-            isTruncated,
-        };
-    });
+export const addLineNumbers = (source: string, lineOffset = 1) => {
+    return source.split('\n').map((line, index) => `${index + lineOffset}:${line}`).join('\n');
 }
 
 export const createUIMessage = (text: string, mentions: MentionData[]): CreateUIMessage<SBChatMessage> => {
