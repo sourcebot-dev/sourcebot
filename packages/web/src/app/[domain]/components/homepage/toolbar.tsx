@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { TriangleAlert } from "lucide-react";
+import { MessageCircleIcon, SearchIcon, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -32,16 +32,20 @@ export const SearchModeSelector = ({
 
     return (
         <div className={cn("flex flex-row items-center", className)}>
-            <p className="text-sm text-muted-foreground mr-1.5">Search mode:</p>
             <Select
                 value={searchMode}
                 onValueChange={(value) => onSearchModeChange(value as "precise" | "agentic")}
             >
                 <SelectTrigger
-                    className="h-6 mt-0.5 font-mono font-semibold text-xs p-0 w-fit border-none bg-inherit"
+                    className="flex flex-row items-center h-6 mt-0.5 font-mono font-semibold text-xs p-0 w-fit border-none bg-inherit rounded-md"
                 >
+                    {searchMode === "precise" ? (
+                        <SearchIcon className="w-4 h-4 text-muted-foreground mr-1.5" />
+                    ) : (
+                        <MessageCircleIcon className="w-4 h-4 text-muted-foreground mr-1.5" />
+                    )}
                     <SelectValue>
-                        {searchMode === "precise" ? "Precise" : "Agentic"}
+                        {searchMode === "precise" ? "Code Search" : "Ask"}
                     </SelectValue>
                 </SelectTrigger>
 
@@ -61,10 +65,12 @@ export const SearchModeSelector = ({
                                     value="precise"
                                     className="cursor-pointer"
                                 >
-                                    <div className="flex flex-row items-center gap-2">
-                                        <span>Precise</span>
-                                        <Separator orientation="vertical" className="h-4" />
-                                        <KeyboardShortcutHint shortcut="⌘ P" />
+                                    <div className="flex flex-row items-center justify-between w-full gap-1.5">
+                                        <span>Search</span>
+                                        <div className="flex flex-row items-center gap-2">
+                                            <Separator orientation="vertical" className="h-4" />
+                                            <KeyboardShortcutHint shortcut="⌘ P" />
+                                        </div>
                                     </div>
 
                                 </SelectItem>
@@ -74,7 +80,7 @@ export const SearchModeSelector = ({
                                     sideOffset={8}
                                 >
                                     <div className="flex flex-col gap-2">
-                                        <p className="font-semibold">Precise Search</p>
+                                        <p className="font-semibold">Code Search</p>
                                         <Separator orientation="horizontal" className="w-full my-0.5" />
                                         <p>Search for exact matches using regular expressions and filters.</p>
                                         <Link
@@ -93,22 +99,27 @@ export const SearchModeSelector = ({
                             <div
                                 onMouseEnter={() => setFocusedSearchMode("agentic")}
                                 onFocus={() => setFocusedSearchMode("agentic")}
+                                className={cn({
+                                    "cursor-not-allowed": !isAgenticSearchEnabled,
+                                })}
                             >
                                 <SelectItem
                                     value="agentic"
+                                    disabled={!isAgenticSearchEnabled}
                                     className={cn({
-                                        "cursor-not-allowed": !isAgenticSearchEnabled,
                                         "cursor-pointer": isAgenticSearchEnabled,
                                     })}
-                                    disabled={!isAgenticSearchEnabled}
                                 >
+                                    <div className="flex flex-row items-center justify-between w-full gap-1.5">
+                                        <span>Ask</span>
 
-                                    <div className="flex flex-row items-center gap-2">
-                                        <span>Agentic</span>
-                                        <Separator orientation="vertical" className="h-4" />
-                                        <KeyboardShortcutHint shortcut="⌘ I" />
+                                        <div className="flex flex-row items-center gap-2">
+                                            <Separator orientation="vertical" className="h-4" />
+                                            <KeyboardShortcutHint shortcut="⌘ I" />
+                                        </div>
                                     </div>
                                 </SelectItem>
+
                             </div>
                         </TooltipTrigger>
                         <TooltipContent
@@ -121,10 +132,10 @@ export const SearchModeSelector = ({
                                     {!isAgenticSearchEnabled && (
                                         <TriangleAlert className="w-4 h-4 text-destructive flex-shrink-0 text-yellow-300" />
                                     )}
-                                    <p className="font-semibold">Agentic Search</p>
+                                    <p className="font-semibold">Ask Sourcebot</p>
                                 </div>
                                 {!isAgenticSearchEnabled && (
-                                    <p className="text-destructive">Language model not configured. See <Link href={AGENTIC_SEARCH_DOCS_URL} className="text-link hover:underline">setup instructions.</Link></p>
+                                    <p className="text-destructive">Language model not configured. <Link href={AGENTIC_SEARCH_DOCS_URL} className="text-link hover:underline">See setup instructions.</Link></p>
                                 )}
                                 <Separator orientation="horizontal" className="w-full my-0.5" />
                                 <p>Use natural language to search, summarize and understand your codebase using a reasoning agent.</p>
