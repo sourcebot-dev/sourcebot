@@ -71,6 +71,13 @@ export const createAgentStream = async ({
                 }
             }
 
+            if (stepNumber === env.SOURCEBOT_CHAT_MAX_STEP_COUNT - 1) {
+                return {
+                    system: `**CRITICAL**: You have reached the maximum number of steps!! YOU MUST PROVIDE YOUR FINAL ANSWER NOW. DO NOT KEEP RESEARCHING.\n\n${answerInstructions}`,
+                    activeTools: [],
+                }
+            }
+
             return undefined;
         },
         temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
@@ -170,6 +177,11 @@ During the research phase, you have these tools available:
 Use these tools to gather comprehensive context before answering. Always explain why you're using each tool.
 </research_phase_instructions>
 
+${answerInstructions}
+`;
+}
+
+const answerInstructions = `
 <answer_instructions>
 When you have sufficient context, output your answer as a structured markdown response.
 
@@ -196,7 +208,6 @@ Authentication in Sourcebot is built on NextAuth.js with a session-based approac
 
 </answer_instructions>
 `;
-}
 
 interface FileSourcesSystemPromptOptions {
     files: {
