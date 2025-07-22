@@ -1,41 +1,31 @@
 'use client';
 
-import { getRepos } from "@/actions";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { LanguageModelInfo, RepoMentionData } from "@/features/chat/types";
 import { insertMention, isMentionElement } from "@/features/chat/utils";
-import { useDomain } from "@/hooks/useDomain";
-import { unwrapServiceError } from "@/lib/utils";
-import { RepoIndexingStatus } from "@sourcebot/db";
-import { useQuery } from "@tanstack/react-query";
+import { RepositoryQuery } from "@/lib/types";
 import { AtSignIcon } from "lucide-react";
 import { useCallback } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Descendant, Transforms } from "slate";
 import { ReactEditor, useSlate } from "slate-react";
 import { useRepoMentions } from "../../useRepoMentions";
+import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { LanguageModelSelector } from "./languageModelSelector";
 import { RepoSelector } from "./repoSelector";
-import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 
-interface ChatBoxToolsProps {
+export interface ChatBoxToolbarProps {
     languageModels: LanguageModelInfo[];
+    repos: RepositoryQuery[];
 }
 
-export const ChatBoxTools = ({
+export const ChatBoxToolbar = ({
     languageModels,
-}: ChatBoxToolsProps) => {
-    const domain = useDomain();
-    const { data: repos } = useQuery({
-        queryKey: ["repos", domain],
-        queryFn: () => unwrapServiceError(getRepos(domain, {
-            status: [RepoIndexingStatus.INDEXED]
-        })),
-    });
-
+    repos,
+}: ChatBoxToolbarProps) => {
     const editor = useSlate();
 
     const onAddContext = useCallback(() => {

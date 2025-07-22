@@ -15,133 +15,130 @@ const PRECISE_SEARCH_DOCS_URL = "https://docs.sourcebot.dev/docs/features/search
 // @tood: point this to the actual docs page
 const AGENTIC_SEARCH_DOCS_URL = "https://docs.sourcebot.dev/docs/features/agentic-search/overview";
 
-export interface ToolbarProps {
+export interface SearchModeSelectorProps {
     searchMode: SearchMode;
     isAgenticSearchEnabled: boolean;
     onSearchModeChange: (searchMode: SearchMode) => void;
-    children?: React.ReactNode;
+    className?: string;
 }
 
-export const Toolbar = ({
+export const SearchModeSelector = ({
     searchMode,
     isAgenticSearchEnabled,
     onSearchModeChange,
-    children: tools,
-}: ToolbarProps) => {
+    className,
+}: SearchModeSelectorProps) => {
     const [focusedSearchMode, setFocusedSearchMode] = useState<SearchMode>(searchMode);
 
     return (
-        <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
-            {tools}
-            <div className="flex flex-row items-center ml-auto">
-                <p className="text-sm text-muted-foreground mr-1.5">Search mode:</p>
-                <Select
-                    value={searchMode}
-                    onValueChange={(value) => onSearchModeChange(value as "precise" | "agentic")}
+        <div className={cn("flex flex-row items-center", className)}>
+            <p className="text-sm text-muted-foreground mr-1.5">Search mode:</p>
+            <Select
+                value={searchMode}
+                onValueChange={(value) => onSearchModeChange(value as "precise" | "agentic")}
+            >
+                <SelectTrigger
+                    className="h-6 mt-0.5 font-mono font-semibold text-xs p-0 w-fit border-none bg-inherit"
                 >
-                    <SelectTrigger
-                        className="h-6 mt-0.5 font-mono font-semibold text-xs p-0 w-fit border-none bg-inherit"
+                    <SelectValue>
+                        {searchMode === "precise" ? "Precise" : "Agentic"}
+                    </SelectValue>
+                </SelectTrigger>
+
+                <SelectContent
+                    className="overflow-visible relative"
+                >
+                    <Tooltip
+                        delayDuration={100}
+                        open={focusedSearchMode === "precise"}
                     >
-                        <SelectValue>
-                            {searchMode === "precise" ? "Precise" : "Agentic"}
-                        </SelectValue>
-                    </SelectTrigger>
-
-                    <SelectContent
-                        className="overflow-visible relative"
-                    >
-                        <Tooltip
-                            delayDuration={100}
-                            open={focusedSearchMode === "precise"}
-                        >
-                            <TooltipTrigger asChild>
-                                <div
-                                    onMouseEnter={() => setFocusedSearchMode("precise")}
-                                    onFocus={() => setFocusedSearchMode("precise")}
-                                >
-                                    <SelectItem
-                                        value="precise"
-                                        className="cursor-pointer"
-                                    >
-                                        <div className="flex flex-row items-center gap-2">
-                                            <span>Precise</span>
-                                            <Separator orientation="vertical" className="h-4" />
-                                            <KeyboardShortcutHint shortcut="⌘ P" />
-                                        </div>
-
-                                    </SelectItem>
-                                    <TooltipContent
-                                        side="right"
-                                        className="w-64 z-50"
-                                        sideOffset={8}
-                                    >
-                                        <div className="flex flex-col gap-2">
-                                            <p className="font-semibold">Precise Search</p>
-                                            <Separator orientation="horizontal" className="w-full my-0.5" />
-                                            <p>Search for exact matches using regular expressions and filters.</p>
-                                            <Link
-                                                href={PRECISE_SEARCH_DOCS_URL}
-                                                className="text-link hover:underline"
-                                            >
-                                                Docs
-                                            </Link>
-                                        </div>
-                                    </TooltipContent>
-                                </div>
-                            </TooltipTrigger>
-                        </Tooltip>
-                        <Tooltip delayDuration={100} open={focusedSearchMode === "agentic"}>
-                            <TooltipTrigger asChild>
-                                <div
-                                    onMouseEnter={() => setFocusedSearchMode("agentic")}
-                                    onFocus={() => setFocusedSearchMode("agentic")}
-                                >
-                                    <SelectItem
-                                        value="agentic"
-                                        className={cn({
-                                            "cursor-not-allowed": !isAgenticSearchEnabled,
-                                            "cursor-pointer": isAgenticSearchEnabled,
-                                        })}
-                                        disabled={!isAgenticSearchEnabled}
-                                    >
-
-                                        <div className="flex flex-row items-center gap-2">
-                                            <span>Agentic</span>
-                                            <Separator orientation="vertical" className="h-4" />
-                                            <KeyboardShortcutHint shortcut="⌘ I" />
-                                        </div>
-                                    </SelectItem>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent
-                                side="right"
-                                className="w-64 z-50"
-                                sideOffset={8}
+                        <TooltipTrigger asChild>
+                            <div
+                                onMouseEnter={() => setFocusedSearchMode("precise")}
+                                onFocus={() => setFocusedSearchMode("precise")}
                             >
-                                <div className="flex flex-col gap-2">
+                                <SelectItem
+                                    value="precise"
+                                    className="cursor-pointer"
+                                >
                                     <div className="flex flex-row items-center gap-2">
-                                        {!isAgenticSearchEnabled && (
-                                            <TriangleAlert className="w-4 h-4 text-destructive flex-shrink-0 text-yellow-300" />
-                                        )}
-                                        <p className="font-semibold">Agentic Search</p>
+                                        <span>Precise</span>
+                                        <Separator orientation="vertical" className="h-4" />
+                                        <KeyboardShortcutHint shortcut="⌘ P" />
                                     </div>
+
+                                </SelectItem>
+                                <TooltipContent
+                                    side="right"
+                                    className="w-64 z-50"
+                                    sideOffset={8}
+                                >
+                                    <div className="flex flex-col gap-2">
+                                        <p className="font-semibold">Precise Search</p>
+                                        <Separator orientation="horizontal" className="w-full my-0.5" />
+                                        <p>Search for exact matches using regular expressions and filters.</p>
+                                        <Link
+                                            href={PRECISE_SEARCH_DOCS_URL}
+                                            className="text-link hover:underline"
+                                        >
+                                            Docs
+                                        </Link>
+                                    </div>
+                                </TooltipContent>
+                            </div>
+                        </TooltipTrigger>
+                    </Tooltip>
+                    <Tooltip delayDuration={100} open={focusedSearchMode === "agentic"}>
+                        <TooltipTrigger asChild>
+                            <div
+                                onMouseEnter={() => setFocusedSearchMode("agentic")}
+                                onFocus={() => setFocusedSearchMode("agentic")}
+                            >
+                                <SelectItem
+                                    value="agentic"
+                                    className={cn({
+                                        "cursor-not-allowed": !isAgenticSearchEnabled,
+                                        "cursor-pointer": isAgenticSearchEnabled,
+                                    })}
+                                    disabled={!isAgenticSearchEnabled}
+                                >
+
+                                    <div className="flex flex-row items-center gap-2">
+                                        <span>Agentic</span>
+                                        <Separator orientation="vertical" className="h-4" />
+                                        <KeyboardShortcutHint shortcut="⌘ I" />
+                                    </div>
+                                </SelectItem>
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent
+                            side="right"
+                            className="w-64 z-50"
+                            sideOffset={8}
+                        >
+                            <div className="flex flex-col gap-2">
+                                <div className="flex flex-row items-center gap-2">
                                     {!isAgenticSearchEnabled && (
-                                        <p className="text-destructive">Language model not configured. See <Link href={AGENTIC_SEARCH_DOCS_URL} className="text-link hover:underline">setup instructions.</Link></p>
+                                        <TriangleAlert className="w-4 h-4 text-destructive flex-shrink-0 text-yellow-300" />
                                     )}
-                                    <Separator orientation="horizontal" className="w-full my-0.5" />
-                                    <p>Use natural language to search, summarize and understand your codebase using a reasoning agent.</p>
-                                    <Link
-                                        href={AGENTIC_SEARCH_DOCS_URL}
-                                        className="text-link hover:underline"
-                                    >
-                                        Docs
-                                    </Link>
+                                    <p className="font-semibold">Agentic Search</p>
                                 </div>
-                            </TooltipContent>
-                        </Tooltip>
-                    </SelectContent>
-                </Select>
-            </div>
+                                {!isAgenticSearchEnabled && (
+                                    <p className="text-destructive">Language model not configured. See <Link href={AGENTIC_SEARCH_DOCS_URL} className="text-link hover:underline">setup instructions.</Link></p>
+                                )}
+                                <Separator orientation="horizontal" className="w-full my-0.5" />
+                                <p>Use natural language to search, summarize and understand your codebase using a reasoning agent.</p>
+                                <Link
+                                    href={AGENTIC_SEARCH_DOCS_URL}
+                                    className="text-link hover:underline"
+                                >
+                                    Docs
+                                </Link>
+                            </div>
+                        </TooltipContent>
+                    </Tooltip>
+                </SelectContent>
+            </Select>
         </div>
     )
 }

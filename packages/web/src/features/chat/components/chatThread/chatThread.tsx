@@ -1,26 +1,27 @@
 'use client';
 
+import { useToast } from '@/components/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
-import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, Source } from '@/features/chat/types';
+import { AdditionalChatRequestParams, CustomEditor, SBChatMessage, Source } from '@/features/chat/types';
 import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useDomain } from '@/hooks/useDomain';
 import { useChat } from '@ai-sdk/react';
-import { useQueryClient } from '@tanstack/react-query';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon } from 'lucide-react';
 import { useNavigationGuard } from 'next-navigation-guard';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
+import { useSelectedLanguageModel } from '../../useSelectedLanguageModel';
 import { ChatBox } from '../chatBox';
-import { ChatBoxTools } from '../chatBox/chatBoxTools';
+import { ChatBoxToolbar, ChatBoxToolbarProps } from '../chatBox/chatBoxToolbar';
 import { ChatThreadListItem } from './chatThreadListItem';
 import { ErrorBanner } from './errorBanner';
-import { useSelectedLanguageModel } from '../../useSelectedLanguageModel';
-import { useToast } from '@/components/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+import { usePrevious } from '@uidotdev/usehooks';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -30,14 +31,14 @@ interface ChatThreadProps {
     id?: string | undefined;
     initialMessages?: SBChatMessage[];
     inputMessage?: CreateUIMessage<SBChatMessage>;
-    languageModels: LanguageModelInfo[];
+    chatBoxToolbarProps: ChatBoxToolbarProps;
 }
 
 export const ChatThread = ({
     id: defaultChatId,
     initialMessages,
     inputMessage,
-    languageModels,
+    chatBoxToolbarProps,
 }: ChatThreadProps) => {
     const domain = useDomain();
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
@@ -45,8 +46,8 @@ export const ChatThread = ({
     const latestMessagePairRef = useRef<HTMLDivElement>(null);
     const hasSubmittedInputMessage = useRef(false);
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
-    const queryClient = useQueryClient();
     const { toast } = useToast();
+    const router = useRouter();
 
     // Initial state is from attachments that exist in in the chat history.
     const [sources, setSources] = useState<Source[]>(
@@ -75,13 +76,6 @@ export const ChatThread = ({
                 "X-Org-Domain": domain,
             }
         }),
-        onFinish: () => {
-            queryClient.invalidateQueries(
-                {
-                    queryKey: ['chat'],
-                },
-            );
-        },
         onData: (dataPart) => {
             // Keeps sources added by the assistant in sync.
             if (dataPart.type === 'data-source') {
@@ -121,6 +115,17 @@ export const ChatThread = ({
         enabled: status === "streaming" || status === "submitted",
         confirm: () => window.confirm("You have unsaved changes that will be lost.")
     });
+
+    // When the chat is finished, refresh the page to update the chat history.
+    const prevStatus = usePrevious(status);
+    useEffect(() => {
+        const wasPending = prevStatus === "submitted" || prevStatus === "streaming";
+        const isFinished = status === "error" || status === "ready";
+
+        if (wasPending && isFinished) {
+            router.refresh();
+        }
+    }, [prevStatus, status, router]); 
 
     useEffect(() => {
         if (!inputMessage || hasSubmittedInputMessage.current) {
@@ -301,8 +306,8 @@ export const ChatThread = ({
                         onStop={stop}
                     />
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
-                        <ChatBoxTools
-                            languageModels={languageModels}
+                        <ChatBoxToolbar
+                            {...chatBoxToolbarProps}
                         />
                     </div>
                 </CustomSlateEditor>

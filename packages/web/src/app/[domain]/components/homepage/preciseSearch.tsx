@@ -7,16 +7,16 @@ import { RepositoryQuery } from "@/lib/types";
 import { useDomain } from "@/hooks/useDomain";
 import Link from "next/link";
 import { SearchBar } from "../searchBar/searchBar";
-import { Toolbar, ToolbarProps } from "./toolbar";
+import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
 
 interface PreciseSearchProps {
     initialRepos: RepositoryQuery[];
-    toolBarProps: ToolbarProps;
+    searchModeSelectorProps: SearchModeSelectorProps;
 }
 
 export const PreciseSearch = ({
     initialRepos,
-    toolBarProps,
+    searchModeSelectorProps,
 }: PreciseSearchProps) => {
     const domain = useDomain();
 
@@ -28,9 +28,12 @@ export const PreciseSearch = ({
                     className="border-none pt-0.5 pb-0"
                 />
                 <Separator />
-                <Toolbar
-                    {...toolBarProps}
-                />
+                <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
+                    <SearchModeSelector
+                        {...searchModeSelectorProps}
+                        className="ml-auto"
+                    />
+                </div>
             </div>
             <div className="mt-8">
                 <RepositorySnapshot

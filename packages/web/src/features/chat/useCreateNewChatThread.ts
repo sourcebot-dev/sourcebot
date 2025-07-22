@@ -7,7 +7,6 @@ import { slateContentToString } from "./utils";
 import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
 import { createChat } from "./actions";
 import { isServiceError } from "@/lib/utils";
 import { createPathWithQueryParams } from "@/lib/utils";
@@ -18,7 +17,6 @@ export const useCreateNewChatThread = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
-    const queryClient = useQueryClient();
 
     const createNewChatThread = useCallback(async (children: Descendant[]) => {
         const text = slateContentToString(children);
@@ -41,12 +39,9 @@ export const useCreateNewChatThread = () => {
             } satisfies SetChatStatePayload)],
         );
 
-        queryClient.invalidateQueries({
-            queryKey: ['chat'],
-        }).then(() => {
-            router.push(url);
-        });
-    }, [domain, router, toast, queryClient]);
+        router.push(url);
+        router.refresh();
+    }, [domain, router, toast]);
 
     return {
         createNewChatThread,

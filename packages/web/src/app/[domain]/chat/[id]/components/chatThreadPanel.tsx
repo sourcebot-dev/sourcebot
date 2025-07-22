@@ -6,20 +6,21 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LanguageModelInfo, SBChatMessage, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
+import { SBChatMessage, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
 import { loadChatMessages } from '@/features/chat/actions';
 import { unwrapServiceError } from '@/lib/utils';
 import { ResizablePanel } from '@/components/ui/resizable';
 import { useChatId } from '../../useChatId';
 import { CreateUIMessage } from 'ai';
+import { ChatBoxToolbarProps } from '@/features/chat/components/chatBox/chatBoxToolbar';
 
 interface ChatThreadPanelProps {
-    languageModels: LanguageModelInfo[];
+    chatBoxToolbarProps: ChatBoxToolbarProps;
     order: number;
 }
 
 export const ChatThreadPanel = ({
-    languageModels,
+    chatBoxToolbarProps,
     order,
 }: ChatThreadPanelProps) => {
     // @note: we are guaranteed to have a chatId because this component will only be
@@ -82,7 +83,7 @@ export const ChatThreadPanel = ({
                         id={chatId}
                         initialMessages={messages}
                         inputMessage={inputMessage}
-                        languageModels={languageModels}
+                        chatBoxToolbarProps={chatBoxToolbarProps}
                     />
                 )}
             </div>

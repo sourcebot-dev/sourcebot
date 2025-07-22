@@ -3,14 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ChatBox } from "@/features/chat/components/chatBox";
-import { ChatBoxTools } from "@/features/chat/components/chatBox/chatBoxTools";
-import { LanguageModelInfo } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { FileIcon, LucideIcon, SearchCodeIcon, SearchIcon } from "lucide-react";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { Toolbar, ToolbarProps } from "./toolbar";
+import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
 import { ReactEditor, useSlate } from "slate-react";
 import { resetEditor } from "@/features/chat/utils";
+import { ChatBoxToolbar, ChatBoxToolbarProps } from "@/features/chat/components/chatBox/chatBoxToolbar";
 
 // @todo: we should probably rename this to a different type since it sort-of clashes
 // with the Suggestion system we have built into the chat box.
@@ -71,13 +70,13 @@ const suggestions: Record<SuggestionType, {
 
 
 interface AgenticSearchProps {
-    toolBarProps: ToolbarProps;
-    languageModels: LanguageModelInfo[];
+    searchModeSelectorProps: SearchModeSelectorProps;
+    chatBoxToolbarProps: ChatBoxToolbarProps;
 }
 
 export const AgenticSearch = ({
-    toolBarProps,
-    languageModels,
+    searchModeSelectorProps,
+    chatBoxToolbarProps,
 }: AgenticSearchProps) => {
     const [selectedSuggestionType, _setSelectedSuggestionType] = useState<SuggestionType | undefined>(undefined);
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
@@ -119,13 +118,15 @@ export const AgenticSearch = ({
                 />
                 <Separator />
                 <div className="relative">
-                    <Toolbar
-                        {...toolBarProps}
-                    >
-                        <ChatBoxTools
-                            languageModels={languageModels}
+                    <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
+                        <ChatBoxToolbar
+                            {...chatBoxToolbarProps}
                         />
-                    </Toolbar>
+                        <SearchModeSelector
+                            {...searchModeSelectorProps}
+                            className="ml-auto"
+                        />
+                    </div>
 
                     {selectedSuggestionType && (
                         <div

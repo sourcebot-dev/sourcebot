@@ -1,30 +1,37 @@
 'use client';
 
-import { getChatInfo, updateChatName } from "@/features/chat/actions";
-import { useChatId } from "../useChatId";
-import { useQuery } from "@tanstack/react-query";
-import { useDomain } from "@/hooks/useDomain";
-import { isServiceError, unwrapServiceError } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { LockIcon } from "lucide-react";
-import { RenameChatDialog } from "./renameChatDialog";
-import { useCallback, useMemo, useState } from "react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/hooks/use-toast";
-import { useSession } from "next-auth/react";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { updateChatName } from "@/features/chat/actions";
+import { useDomain } from "@/hooks/useDomain";
+import { isServiceError } from "@/lib/utils";
 import { GlobeIcon } from "@radix-ui/react-icons";
+import { LockIcon } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
+import { useChatId } from "../useChatId";
+import { RenameChatDialog } from "./renameChatDialog";
 
-export const ChatName = () => {
+interface ChatNameProps {
+    chatHistory: {
+        id: string;
+        createdAt: Date;
+        name: string | null;
+    }[];
+}
+
+export const ChatName = ({ chatHistory }: ChatNameProps) => {
     const chatId = useChatId();
-    const domain = useDomain();
     const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
     const { toast } = useToast();
+    const domain = useDomain();
+    const router = useRouter();
 
-    const { data: chatInfo, isPending, isError, refetch } = useQuery({
-        queryKey: ['chat', 'info', chatId, domain],
-        queryFn: () => unwrapServiceError(getChatInfo({ chatId: chatId! }, domain)),
-        enabled: !!chatId,
-    });
+    const name = useMemo(() => {
+        return chatHistory.find((chat) => chat.id === chatId)?.name ?? null;
+    }, [chatHistory, chatId]);
 
     const onRenameChat = useCallback(async (name: string) => {
         if (!chatId) {
@@ -44,9 +51,9 @@ export const ChatName = () => {
             toast({
                 description: `✅ Chat renamed successfully`
             });
-            refetch();
+            router.refresh();
         }
-    }, [chatId, domain]);
+    }, [chatId, domain, toast]);
 
     const { status: authStatus } = useSession();
 
@@ -58,7 +65,7 @@ export const ChatName = () => {
         return authStatus === 'authenticated' ? 'private' : 'public';
     }, [authStatus]);
 
-    if (isPending || isError) {
+    if (!chatId) {
         return null;
     }
 
@@ -73,7 +80,7 @@ export const ChatName = () => {
                                 setIsRenameDialogOpen(true);
                             }}
                         >
-                            {chatInfo.name ?? 'Untitled chat'}
+                            {name ?? 'Untitled chat'}
                         </p>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -104,7 +111,7 @@ export const ChatName = () => {
                 isOpen={isRenameDialogOpen}
                 onOpenChange={setIsRenameDialogOpen}
                 onRename={onRenameChat}
-                currentName={chatInfo.name ?? ""}
+                currentName={name ?? ""}
             />
         </>
     )

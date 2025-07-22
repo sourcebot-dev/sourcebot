@@ -52,7 +52,7 @@ export const Homepage = ({
             {searchMode === "precise" ? (
                 <PreciseSearch
                     initialRepos={initialRepos}
-                    toolBarProps={{
+                    searchModeSelectorProps={{
                         searchMode: "precise",
                         isAgenticSearchEnabled,
                         onSearchModeChange: setSearchMode,
@@ -61,12 +61,15 @@ export const Homepage = ({
             ) : (
                 <CustomSlateEditor>
                     <AgenticSearch
-                        toolBarProps={{
+                        searchModeSelectorProps={{
                             searchMode: "agentic",
                             isAgenticSearchEnabled,
                             onSearchModeChange: setSearchMode,
                         }}
-                        languageModels={languageModels}
+                        chatBoxToolbarProps={{
+                            repos: initialRepos,
+                            languageModels,
+                        }}
                     />
                 </CustomSlateEditor>
             )}

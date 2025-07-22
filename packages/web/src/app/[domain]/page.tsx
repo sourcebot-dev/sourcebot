@@ -1,13 +1,12 @@
 import { getRepos } from "@/actions";
 import { Footer } from "@/app/components/footer";
 import { getOrgFromDomain } from "@/data/org";
+import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
+import { isServiceError } from "@/lib/utils";
 import { Homepage } from "./components/homepage";
 import { NavigationMenu } from "./components/navigationMenu";
 import { PageNotFound } from "./components/pageNotFound";
 import { UpgradeToast } from "./components/upgradeToast";
-import { isServiceError } from "@/lib/utils";
-import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
-
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);

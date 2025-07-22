@@ -9,10 +9,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getRecentChats, updateChatName, deleteChat } from "@/features/chat/actions";
+import { deleteChat, updateChatName } from "@/features/chat/actions";
 import { useDomain } from "@/hooks/useDomain";
-import { cn, isServiceError, unwrapServiceError } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { cn, isServiceError } from "@/lib/utils";
 import { CirclePlusIcon, EllipsisIcon, PencilIcon, TrashIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
@@ -29,10 +28,16 @@ import { useSession } from "next-auth/react";
 
 interface ChatSidePanelProps {
     order: number;
+    chatHistory: {
+        id: string;
+        name: string | null;
+        createdAt: Date;
+    }[];
 }
 
 export const ChatSidePanel = ({
     order,
+    chatHistory,
 }: ChatSidePanelProps) => {
     const domain = useDomain();
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -58,12 +63,6 @@ export const ChatSidePanel = ({
         description: "Toggle side panel",
     });
 
-    const { data: recentChats, isPending, isError, refetch: refetchRecentChats } = useQuery({
-        queryKey: ['chat', 'recents', domain],
-        queryFn: () => unwrapServiceError(getRecentChats(domain)),
-        enabled: authStatus === 'authenticated',
-    });
-
     const onRenameChat = useCallback(async (name: string, chatId: string) => {
         if (!chatId) {
             return;
@@ -82,9 +81,9 @@ export const ChatSidePanel = ({
             toast({
                 description: `✅ Chat renamed successfully`
             });
-            refetchRecentChats();
+            router.refresh();
         }
-    }, [chatId, refetchRecentChats]);
+    }, [chatId, router, toast, domain]);
 
     const onDeleteChat = useCallback(async (chatIdToDelete: string) => {
         if (!chatIdToDelete) {
@@ -107,9 +106,9 @@ export const ChatSidePanel = ({
                 router.push(`/${domain}/chat`);
             }
 
-            refetchRecentChats();
+            router.refresh();
         }
-    }, [chatId, refetchRecentChats, router, toast, domain]);
+    }, [chatId, router, toast, domain]);
 
     return (
         <>
@@ -154,15 +153,11 @@ export const ChatSidePanel = ({
                                         </Link> to access your chat history.
                                     </p>
                                 </div>
-                            ) : isPending ? (
-                                <ChatHistorySkeleton />
-                            ) : isError ? (
-                                <p>Error loading recent chats</p>
-                            ) : recentChats.length === 0 ? (
+                            ) : chatHistory.length === 0 ? (
                                 <div className="mx-auto w-full h-52 border border-dashed border-muted-foreground rounded-md flex items-center justify-center p-6">
                                     <p className="text-sm text-muted-foreground text-center">Recent chats will appear here.</p>
                                 </div>
-                            ) : recentChats.map((chat) => (
+                            ) : chatHistory.map((chat) => (
                                 <div
                                     key={chat.id}
                                     className={cn("group flex flex-row items-center justify-between hover:bg-muted rounded-md px-2 py-1.5 cursor-pointer",
@@ -254,7 +249,7 @@ export const ChatSidePanel = ({
                         onRenameChat(name, chatIdToRename);
                     }
                 }}
-                currentName={recentChats?.find((chat) => chat.id === chatIdToRename)?.name ?? ""}
+                currentName={chatHistory?.find((chat) => chat.id === chatIdToRename)?.name ?? ""}
             />
             <DeleteChatDialog
                 isOpen={isDeleteDialogOpen}
