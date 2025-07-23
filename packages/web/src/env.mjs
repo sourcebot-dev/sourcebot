@@ -101,6 +101,9 @@ export const env = createEnv({
 
         OPENAI_API_KEY: z.string().optional(),
         GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
+        GOOGLE_VERTEX_PROJECT: z.string().optional(),
+        GOOGLE_VERTEX_REGION: z.string().default('us-central1'),
+        GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
 
         AWS_ACCESS_KEY_ID: z.string().optional(),
         AWS_SECRET_ACCESS_KEY: z.string().optional(),

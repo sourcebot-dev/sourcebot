@@ -11,6 +11,7 @@ import { prisma } from "@/prisma";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createVertex } from '@ai-sdk/google-vertex';
 import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import { getTokenFromConfig } from "@sourcebot/crypto";
@@ -364,6 +365,21 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
 
             return {
                 model: aws(modelId),
+            };
+        }
+        case 'google-vertex': {
+            const vertex = createVertex({
+                project: config.project ?? env.GOOGLE_VERTEX_PROJECT,
+                location: config.region ?? env.GOOGLE_VERTEX_REGION,
+                ...(config.credentials ? {
+                    googleAuthOptions: {
+                        keyFilename: await getTokenFromConfig(config.credentials, orgId, prisma),
+                    }
+                } : {}),
+            });
+
+            return {
+                model: vertex(modelId),
             };
         }
     }

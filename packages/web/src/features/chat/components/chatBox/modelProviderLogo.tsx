@@ -36,6 +36,7 @@ export const ModelProviderLogo = ({
                     className: 'dark:invert w-3.5 h-3.5'
                 };
             case 'google-generative-ai':
+            case 'google-vertex':
                 return {
                     src: geminiLogo,
                     className: 'w-3.5 h-3.5'
