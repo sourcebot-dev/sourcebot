@@ -95,7 +95,7 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
         }
 
         setIsSubmittingFeedback(false);
-    }, [chatId, messageId, domain, toast, captureEvent]);
+    }, [chatId, messageId, domain, toast, captureEvent, traceId]);
 
     return (
         <div className="flex flex-row w-full relative scroll-mt-16">

@@ -12,6 +12,7 @@ import { loadConfig } from "@sourcebot/shared";
 import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
 import { SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
 import { StatusCodes } from "http-status-codes";
+import { ErrorCode } from "@/lib/errorCodes";
 
 export const createChat = async (domain: string) => sew(() =>
     withAuth((userId) =>
@@ -187,7 +188,7 @@ export const deleteChat = async ({ chatId }: { chatId: string }, domain: string)
             if (chat.visibility === ChatVisibility.PUBLIC) {
                 return {
                     statusCode: StatusCodes.FORBIDDEN,
-                    errorCode: 'FORBIDDEN',
+                    errorCode: ErrorCode.UNEXPECTED_ERROR,
                     message: 'You are not allowed to delete this chat.',
                 } satisfies ServiceError;
             }

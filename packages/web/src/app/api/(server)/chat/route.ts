@@ -15,6 +15,7 @@ import { createVertex } from '@ai-sdk/google-vertex';
 import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
+import * as Sentry from "@sentry/nextjs";
 import { getTokenFromConfig } from "@sourcebot/crypto";
 import { OrgRole } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
@@ -244,6 +245,7 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
             } catch (error) {
                 logger.error("Error:", error)
                 logger.error("Error stack:", error instanceof Error ? error.stack : "No stack trace")
+                Sentry.captureException(error);
 
                 return serviceErrorResponse({
                     statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
