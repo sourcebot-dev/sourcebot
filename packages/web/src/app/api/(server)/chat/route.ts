@@ -243,7 +243,7 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
                     stream,
                 });
             } catch (error) {
-                logger.error("Error:", error)
+                logger.error(error)
                 logger.error("Error stack:", error instanceof Error ? error.stack : "No stack trace")
                 Sentry.captureException(error);
 
@@ -409,6 +409,8 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
 }
 
 const errorHandler = (error: unknown) => {
+    logger.error(error);
+
     if (error == null) {
         return 'unknown error';
     }

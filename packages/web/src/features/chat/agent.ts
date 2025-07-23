@@ -141,6 +141,9 @@ export const createAgentStream = async ({
                 langfuseTraceId: traceId,
             },
         },
+        onError: (error) => {
+            logger.error(error);
+        },
     });
 
     return stream;
