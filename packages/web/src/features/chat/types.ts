@@ -50,6 +50,7 @@ export const sbChatMessageMetadataSchema = z.object({
         userId: z.string(),
     }).optional(),
     selectedRepos: z.array(z.string()).optional(),
+    traceId: z.string().optional(),
 });
 
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;

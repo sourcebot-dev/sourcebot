@@ -410,6 +410,7 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
                                 chatId={chatId}
                                 messageId={assistantMessage.id}
                                 feedback={messageMetadata?.feedback?.type}
+                                traceId={messageMetadata?.traceId}
                             />
                         ) : !isStreaming && (
                             <p className="text-destructive">Error: No answer response was provided</p>

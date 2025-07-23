@@ -16,19 +16,28 @@ import { submitFeedback } from "../../actions";
 import { isServiceError } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { LangfuseWeb } from "langfuse";
+import { env } from "@/env.mjs";
 
 interface AnswerCardProps {
     answerText: string;
     messageId: string;
     chatId: string;
     feedback?: 'like' | 'dislike' | undefined;
+    traceId?: string;
 }
+
+const langfuseWeb = new LangfuseWeb({
+    publicKey: env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY,
+    baseUrl: env.NEXT_PUBLIC_LANGFUSE_BASE_URL,
+});
 
 export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
     answerText,
     messageId,
     chatId,
     feedback: _feedback,
+    traceId,
 }, forwardedRef) => {
     const markdownRendererRef = useRef<HTMLDivElement>(null);
     const { tocItems, activeId } = useExtractTOCItems({ target: markdownRendererRef.current });
@@ -55,13 +64,13 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
 
     const onFeedback = useCallback(async (feedbackType: 'like' | 'dislike') => {
         setIsSubmittingFeedback(true);
-        
+
         const response = await submitFeedback({
             chatId,
             messageId,
             feedbackType
         }, domain);
-        
+
         if (isServiceError(response)) {
             toast({
                 description: `❌ Failed to submit feedback: ${response.message}`,
@@ -77,8 +86,14 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
                 chatId,
                 messageId,
             });
+
+            langfuseWeb.score({
+                traceId: traceId,
+                name: 'user_feedback',
+                value: feedbackType === 'like' ? 1 : 0,
+            })
         }
-        
+
         setIsSubmittingFeedback(false);
     }, [chatId, messageId, domain, toast, captureEvent]);
 

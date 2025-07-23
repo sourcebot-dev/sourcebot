@@ -20,6 +20,7 @@ interface AgentOptions {
     inputMessages: ModelMessage[];
     inputSources: Source[];
     onWriteSource: (source: Source) => void;
+    traceId: string;
 }
 
 // If the agent exceeds the step count, then we will stop.
@@ -36,6 +37,7 @@ export const createAgentStream = async ({
     inputSources,
     selectedRepos,
     onWriteSource,
+    traceId,
 }: AgentOptions) => {
     const baseSystemPrompt = createBaseSystemPrompt({
         selectedRepos,
@@ -131,7 +133,14 @@ export const createAgentStream = async ({
                     })
                 }
             })
-        }
+        },
+        // Only enable langfuse traces in cloud environments.
+        experimental_telemetry: {
+            isEnabled: env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined,
+            metadata: {
+                langfuseTraceId: traceId,
+            },
+        },
     });
 
     return stream;

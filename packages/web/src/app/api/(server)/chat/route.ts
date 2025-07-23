@@ -29,6 +29,7 @@ import {
     UIMessageStreamOptions,
     UIMessageStreamWriter,
 } from "ai";
+import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 
@@ -153,6 +154,8 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
                 }
             }
 
+            const traceId = randomUUID();
+
             // Extract user messages and assistant answers.
             // We will use this as the context we carry between messages.
             const messageHistory =
@@ -197,6 +200,7 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
                                     data: source,
                                 });
                             },
+                            traceId,
                         });
 
                         await mergeStreamAsync(researchStream, writer, {
@@ -215,6 +219,7 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
                                 totalOutputTokens: totalUsage.outputTokens,
                                 totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
                                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
+                                traceId,
                             }
                         })
 
