@@ -50,3 +50,7 @@ Being a web app is less convenient than being in your IDE, but it allows Sourceb
 
 We believe this experience of understanding your codebase is superior, and we hope you find it useful. We'd love to know what you think! Feel free to join the discussion on our
 [GitHub](https://github.com/sourcebot-dev/sourcebot/discussions).
+
+# Troubleshooting
+
+- **Network timeouts**: If you are hitting generic "network error" message while the answer is streaming when Sourcebot is deployed in a production environment, it may be due to your load balancer or proxy not being configured to handle long-lived connections. The timeout should be configured to a sufficiently large value (e.g., 5 minutes).
