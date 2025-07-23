@@ -2,3 +2,183 @@
 title: Language Model Providers
 sidebarTitle: Language model providers
 ---
+
+To use [Ask Sourcebot](/docs/features/ask) you must define at least one Language Model Provider. These providers are defined within the [config file](/docs/configuration/config-file) you
+provide Sourcebot.
+
+
+```json wrap icon="code" Example config with language model provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        // 1. Google Vertex config for Gemini 2.5 Pro
+        {
+            "provider": "google-vertex",
+            "model": "gemini-2.5-pro",
+            "displayName": "Gemini 2.5 Pro",
+            "project": "sourcebot",
+            "credentials": {
+                "env": "GOOGLE_APPLICATION_CREDENTIALS"
+            }
+        },
+        // 2. OpenAI config for o3 
+        {
+            "provider": "openai",
+            "model": "o3",
+            "displayName": "o3",
+            "token": {
+                "env": "OPENAI_API_KEY"
+            }
+        }
+    ]
+}
+```
+
+# Supported Providers
+
+Sourcebot uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction), so it can integrate with any provider the SDK supports. If you don't see your provider below please submit
+a [feature request](https://github.com/sourcebot-dev/sourcebot/discussions/categories/feature-requests).
+
+For a detailed description of all the providers, please refer to the [schema](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/languageModel.json).
+
+<Note>Any parameter defined using `env` will read the value from the corresponding environment variable you provide Sourcebot</Note>
+
+### Amazon Bedrock
+
+[Vercel AI SDK Amazon Bedrock Docs](https://ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock)
+
+```json wrap icon="code" Example config with Amazon Bedrock provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "amazon-bedrock",
+            "model": "YOUR_MODEL_HERE",
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "accessKeyId": {
+                "env": "AWS_ACCESS_KEY_ID"
+            },
+            "accessKeySecret": {
+                "env": "AWS_SECRET_ACCESS_KEY"
+            },
+            "region": "YOUR_REGION_HERE", // defaults to the AWS_REGION env var if not set
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
+
+### Anthropic
+
+[Vercel AI SDK Anthropic Docs](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic)
+
+```json wrap icon="code" Example config with Anthropic provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "anthropic",
+            "model": "YOUR_MODEL_HERE",
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "token": {
+                "env": "ANTHROPIC_API_KEY"
+            },
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
+
+### Google Generative AI
+
+[Vercel AI SDK Google Generative AI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai)
+
+```json wrap icon="code" Example config with Google Generative AI provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "google-generative-ai",
+            "model": "YOUR_MODEL_HERE",
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "token": {
+                "env": "GOOGLE_GENERATIVE_AI_API_KEY"
+            },
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
+
+### Google Vertex
+
+<Note>If you're using an Anthropic model on Google Vertex, you must define a [Google Vertex Anthropic](#google-vertex-anthropic) provider instead</Note>
+<Note>The `credentials` paramater here expects a **path** to a [credentials](https://console.cloud.google.com/apis/credentials) file. This file **must be in a volume mounted by Sourcebot** for it to be readable.</Note>
+
+[Vercel AI SDK Google Vertex AI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex)
+
+```json wrap icon="code" Example config with Google Vertex provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "google-vertex",
+            "model": "YOUR_MODEL_HERE", // e.g., "gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "project": "YOUR_PROJECT_ID", // defaults to the GOOGLE_VERTEX_PROJECT env var if not set
+            "region": "YOUR_REGION_HERE", // defaults to the GOOGLE_VERTEX_REGION env var if not set, e.g., "us-central1", "us-east1", "europe-west1"
+            "credentials": {
+                "env": "GOOGLE_APPLICATION_CREDENTIALS"
+            },
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
+
+### Google Vertex Anthropic
+
+<Note>The `credentials` paramater here expects a **path** to a [credentials](https://console.cloud.google.com/apis/credentials) file. This file **must be in a volume mounted by Sourcebot** for it to be readable.</Note>
+
+
+[Vercel AI SDK Google Vertex Anthropic Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex#google-vertex-anthropic-provider-usage)
+
+```json wrap icon="code" Example config with Google Vertex Anthropic provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "google-vertex-anthropic",
+            "model": "YOUR_MODEL_HERE", // e.g., "claude-sonnet-4"
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "project": "YOUR_PROJECT_ID", // defaults to the GOOGLE_VERTEX_PROJECT env var if not set
+            "region": "YOUR_REGION_HERE", // defaults to the GOOGLE_VERTEX_REGION env var if not set, e.g., "us-central1", "us-east1", "europe-west1"
+            "credentials": {
+                "env": "GOOGLE_APPLICATION_CREDENTIALS"
+            },
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
+
+### OpenAI
+
+[Vercel AI SDK OpenAI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/openai)
+
+```json wrap icon="code" Example config with OpenAI provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "openai",
+            "model": "YOUR_MODEL_HERE", // e.g., "gpt-4.1", "o4-mini", "o3", "o3-deep-research"
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "token": {
+                "env": "OPENAI_API_KEY"
+            },
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
