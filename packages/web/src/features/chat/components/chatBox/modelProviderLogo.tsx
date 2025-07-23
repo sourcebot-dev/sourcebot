@@ -41,6 +41,11 @@ export const ModelProviderLogo = ({
                     src: geminiLogo,
                     className: 'w-3.5 h-3.5'
                 };
+            case 'google-vertex-anthropic':
+                return {
+                    src: anthropicLogo,
+                    className: 'dark:invert'
+                };
         }
     }, [provider]);
 

@@ -20,18 +20,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/anthropic@npm:2.0.0-beta.6":
-  version: 2.0.0-beta.6
-  resolution: "@ai-sdk/anthropic@npm:2.0.0-beta.6"
-  dependencies:
-    "@ai-sdk/provider": "npm:2.0.0-beta.1"
-    "@ai-sdk/provider-utils": "npm:3.0.0-beta.3"
-  peerDependencies:
-    zod: ^3.25.49 || ^4
-  checksum: 10c0/e25fc9417866775a8fe5c3a2a20766c4bdf0b5e8a1ef353025baccc36bcc544bdc8d02bef93ba5817e245dbf4808341db93447c1744fbba3a4f5cc68d1f02e6f
-  languageName: node
-  linkType: hard
-
 "@ai-sdk/anthropic@npm:2.0.0-beta.8":
   version: 2.0.0-beta.8
   resolution: "@ai-sdk/anthropic@npm:2.0.0-beta.8"
@@ -6398,7 +6386,7 @@ __metadata:
   resolution: "@sourcebot/web@workspace:packages/web"
   dependencies:
     "@ai-sdk/amazon-bedrock": "npm:3.0.0-beta.7"
-    "@ai-sdk/anthropic": "npm:2.0.0-beta.6"
+    "@ai-sdk/anthropic": "npm:2.0.0-beta.8"
     "@ai-sdk/google": "npm:2.0.0-beta.11"
     "@ai-sdk/google-vertex": "npm:3.0.0-beta.15"
     "@ai-sdk/openai": "npm:2.0.0-beta.9"

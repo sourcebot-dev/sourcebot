@@ -198,6 +198,54 @@
                 "model"
             ],
             "additionalProperties": false
+        },
+        "GoogleVertexAnthropicLanguageModel": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "const": "google-vertex-anthropic",
+                    "description": "Google Vertex AI Anthropic Configuration"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "The name of the Anthropic language model running on Google Vertex.",
+                    "examples": [
+                        "claude-sonnet-4"
+                    ]
+                },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional display name."
+                },
+                "project": {
+                    "type": "string",
+                    "description": "The Google Cloud project ID. Defaults to the `GOOGLE_VERTEX_PROJECT` environment variable."
+                },
+                "region": {
+                    "type": "string",
+                    "description": "The Google Cloud region. Defaults to the `GOOGLE_VERTEX_REGION` environment variable.",
+                    "examples": [
+                        "us-central1",
+                        "us-east1",
+                        "europe-west1"
+                    ]
+                },
+                "credentials": {
+                    "$ref": "./shared.json#/definitions/Token",
+                    "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials."
+                },
+                "baseUrl": {
+                    "type": "string",
+                    "format": "url",
+                    "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+                    "description": "Optional base URL."
+                }
+            },
+            "required": [
+                "provider",
+                "model"
+            ],
+            "additionalProperties": false
         }
     },
     "oneOf": [
@@ -215,6 +263,9 @@
         },
         {
             "$ref": "#/definitions/GoogleVertexLanguageModel"
+        },
+        {
+            "$ref": "#/definitions/GoogleVertexAnthropicLanguageModel"
         }
     ]
 }

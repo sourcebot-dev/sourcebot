@@ -16,7 +16,8 @@ export type LanguageModel =
   | AmazonBedrockLanguageModel
   | AnthropicLanguageModel
   | GoogleGenerativeAILanguageModel
-  | GoogleVertexLanguageModel;
+  | GoogleVertexLanguageModel
+  | GoogleVertexAnthropicLanguageModel;
 
 export interface SourcebotConfig {
   $schema?: string;
@@ -590,6 +591,48 @@ export interface GoogleVertexLanguageModel {
   provider: "google-vertex";
   /**
    * The name of the language model.
+   */
+  model: string;
+  /**
+   * Optional display name.
+   */
+  displayName?: string;
+  /**
+   * The Google Cloud project ID. Defaults to the `GOOGLE_VERTEX_PROJECT` environment variable.
+   */
+  project?: string;
+  /**
+   * The Google Cloud region. Defaults to the `GOOGLE_VERTEX_REGION` environment variable.
+   */
+  region?: string;
+  /**
+   * Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.
+   */
+  credentials?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
+  /**
+   * Optional base URL.
+   */
+  baseUrl?: string;
+}
+export interface GoogleVertexAnthropicLanguageModel {
+  /**
+   * Google Vertex AI Anthropic Configuration
+   */
+  provider: "google-vertex-anthropic";
+  /**
+   * The name of the Anthropic language model running on Google Vertex.
    */
   model: string;
   /**
