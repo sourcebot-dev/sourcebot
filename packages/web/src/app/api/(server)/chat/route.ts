@@ -410,6 +410,7 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
 
 const errorHandler = (error: unknown) => {
     logger.error(error);
+    Sentry.captureException(error);
 
     if (error == null) {
         return 'unknown error';
