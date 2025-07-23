@@ -30,7 +30,9 @@ export const ChatThreadPanel = ({
     const router = useRouter();
     const searchParams = useSearchParams();
     const [inputMessage, setInputMessage] = useState<CreateUIMessage<SBChatMessage> | undefined>(undefined);
-    const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
+
+    // Use the last user's last message to determine what repos we should select by default.
+    const [selectedRepos, setSelectedRepos] = useState<string[]>(messages.findLast((message) => message.role === "user")?.metadata?.selectedRepos ?? []);
 
     useEffect(() => {
         const setChatState = searchParams.get(SET_CHAT_STATE_QUERY_PARAM);

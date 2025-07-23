@@ -68,7 +68,7 @@ export const RepoSelector = React.forwardRef<
             onSelectedReposChange(newSelectedValues);
         };
 
-        const handleClear = () => { 
+        const handleClear = () => {
             onSelectedReposChange([]);
         };
 
@@ -94,13 +94,10 @@ export const RepoSelector = React.forwardRef<
                         <div className="flex items-center justify-between w-full mx-auto">
                             <BookMarkedIcon className="h-4 w-4 text-muted-foreground mr-1" />
                             <span
-                                className={cn(
-                                    "text-sm text-muted-foreground mx-1",
-                                    selectedRepos.length > 0 ? "font-medium" : "font-normal"
-                                )}
+                                className={cn("text-sm text-muted-foreground mx-1 font-medium")}
                             >
                                 {
-                                    selectedRepos.length === 0 ? `${repos.length} repo${repos.length === 1 ? '' : 's'}` :
+                                    selectedRepos.length === 0 ? `Select a repo` :
                                         selectedRepos.length === 1 ? `${selectedRepos[0].split('/').pop()}` :
                                             `${selectedRepos.length} repo${selectedRepos.length === 1 ? '' : 's'}`
                                 }

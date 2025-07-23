@@ -130,7 +130,7 @@ export const SearchModeSelector = ({
                             <div className="flex flex-col gap-2">
                                 <div className="flex flex-row items-center gap-2">
                                     {!isAgenticSearchEnabled && (
-                                        <TriangleAlert className="w-4 h-4 text-destructive flex-shrink-0 text-yellow-300" />
+                                        <TriangleAlert className="w-4 h-4 flex-shrink-0 text-warning" />
                                     )}
                                     <p className="font-semibold">Ask Sourcebot</p>
                                 </div>

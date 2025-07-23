@@ -92,6 +92,8 @@
     --chat-reference-hover: #02225f22;
     --chat-reference-selected: #3b83f640;
     --chat-reference-selected-border: #e052b8;
+
+    --warning: #ca8a04;
   }
 
   .dark {
@@ -177,6 +179,8 @@
     --chat-reference-hover: #374151;
     --chat-reference-selected: #1e3b8a87;
     --chat-reference-selected-border: #60a5fa;
+
+    --warning: #fde047;
   }
 }
 

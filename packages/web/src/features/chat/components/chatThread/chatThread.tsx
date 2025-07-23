@@ -233,13 +233,13 @@ export const ChatThread = ({
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-        const message = createUIMessage(text, mentions.map(({ data }) => data));
+        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedRepos);
         sendMessage(message);
 
         setIsAutoScrollEnabled(true);
 
         resetEditor(editor);
-    }, [sendMessage]);
+    }, [sendMessage, selectedRepos]);
 
     return (
         <>
@@ -317,6 +317,8 @@ export const ChatThread = ({
                             isGenerating={status === "streaming" || status === "submitted"}
                             onStop={stop}
                             languageModels={languageModels}
+                            selectedRepos={selectedRepos}
+                            onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
                         />
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                             <ChatBoxToolbar

@@ -15,6 +15,7 @@ import Link from "next/link";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { ReactEditor, useSlate } from "slate-react";
 import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
+import { useLocalStorage } from "usehooks-ts";
 
 // @todo: we should probably rename this to a different type since it sort-of clashes
 // with the Suggestion system we have built into the chat box.
@@ -125,7 +126,7 @@ export const AgenticSearch = ({
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const dropdownRef = useRef<HTMLDivElement>(null);
     const editor = useSlate();
-    const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
+    const [selectedRepos, setSelectedRepos] = useLocalStorage<string[]>("selectedRepos", []);
     const domain = useDomain();
     const [isRepoSelectorOpen, setIsRepoSelectorOpen] = useState(false);
 
@@ -162,6 +163,8 @@ export const AgenticSearch = ({
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
                     languageModels={languageModels}
+                    selectedRepos={selectedRepos}
+                    onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
                 />
                 <Separator />
                 <div className="relative">

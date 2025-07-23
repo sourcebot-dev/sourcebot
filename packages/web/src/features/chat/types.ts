@@ -49,6 +49,7 @@ export const sbChatMessageMetadataSchema = z.object({
         timestamp: z.string(), // ISO date string
         userId: z.string(),
     }).optional(),
+    selectedRepos: z.array(z.string()).optional(),
 });
 
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;

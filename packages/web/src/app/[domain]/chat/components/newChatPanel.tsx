@@ -9,6 +9,7 @@ import { LanguageModelInfo } from "@/features/chat/types";
 import { RepositoryQuery } from "@/lib/types";
 import { useCallback, useState } from "react";
 import { Descendant } from "slate";
+import { useLocalStorage } from "usehooks-ts";
 
 interface NewChatPanelProps {
     languageModels: LanguageModelInfo[];
@@ -21,7 +22,7 @@ export const NewChatPanel = ({
     repos,
     order,
 }: NewChatPanelProps) => {
-    const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
+    const [selectedRepos, setSelectedRepos] = useLocalStorage<string[]>("selectedRepos", []);
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [isRepoSelectorOpen, setIsRepoSelectorOpen] = useState(false);
 
@@ -46,6 +47,8 @@ export const NewChatPanel = ({
                             preferredSuggestionsBoxPlacement="bottom-start"
                             isRedirecting={isLoading}
                             languageModels={languageModels}
+                            selectedRepos={selectedRepos}
+                            onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
                         />
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                             <ChatBoxToolbar

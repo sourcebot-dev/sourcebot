@@ -86,7 +86,7 @@ export const ChatBoxToolbar = ({
                     />
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                    <span>Scope to selected repositories</span>
+                    <span>Repositories to scope conversation to.</span>
                 </TooltipContent>
             </Tooltip>
             {languageModels.length > 0 && (

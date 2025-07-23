@@ -66,6 +66,7 @@ const config = {
     				border: 'var(--sidebar-border)',
     				ring: 'var(--sidebar-ring)'
     			},
+				warning: 'var(--warning)',
     			editor: {
     				background: 'var(--editor-background)',
     				foreground: 'var(--editor-foreground)',

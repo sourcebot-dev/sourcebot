@@ -21,7 +21,7 @@ export const useCreateNewChatThread = () => {
     const createNewChatThread = useCallback(async (children: Descendant[], selectedRepos: string[]) => {
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
-        const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data));
+        const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedRepos);
 
         setIsLoading(true);
         const response = await createChat(domain);
