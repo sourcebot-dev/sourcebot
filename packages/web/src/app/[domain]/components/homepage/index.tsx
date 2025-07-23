@@ -72,10 +72,8 @@ export const Homepage = ({
                             isAgenticSearchEnabled,
                             onSearchModeChange: setSearchMode,
                         }}
-                        chatBoxToolbarProps={{
-                            repos: initialRepos,
-                            languageModels,
-                        }}
+                        languageModels={languageModels}
+                        repos={initialRepos}
                         chatHistory={chatHistory}
                     />
                 </CustomSlateEditor>

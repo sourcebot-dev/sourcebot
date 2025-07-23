@@ -1,23 +1,25 @@
 'use client';
 
 import { ResizablePanel } from '@/components/ui/resizable';
-import { ChatBoxToolbarProps } from '@/features/chat/components/chatBox/chatBoxToolbar';
 import { ChatThread } from '@/features/chat/components/chatThread';
-import { SBChatMessage, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
+import { LanguageModelInfo, SBChatMessage, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
+import { RepositoryQuery } from '@/lib/types';
 import { CreateUIMessage } from 'ai';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useChatId } from '../../useChatId';
 
 interface ChatThreadPanelProps {
-    chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
+    languageModels: LanguageModelInfo[];
+    repos: RepositoryQuery[];
     order: number;
     messages: SBChatMessage[];
     isChatReadonly: boolean;
 }
 
 export const ChatThreadPanel = ({
-    chatBoxToolbarProps,
+    languageModels,
+    repos,
     order,
     messages,
     isChatReadonly,
@@ -61,7 +63,8 @@ export const ChatThreadPanel = ({
                     id={chatId}
                     initialMessages={messages}
                     inputMessage={inputMessage}
-                    chatBoxToolbarProps={chatBoxToolbarProps}
+                    languageModels={languageModels}
+                    repos={repos}
                     selectedRepos={selectedRepos}
                     onSelectedReposChange={setSelectedRepos}
                     isChatReadonly={isChatReadonly}

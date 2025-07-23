@@ -72,10 +72,8 @@ export default async function Page({ params }: PageProps) {
                 />
                 <AnimatedResizableHandle />
                 <ChatThreadPanel
-                    chatBoxToolbarProps={{
-                        languageModels,
-                        repos: indexedRepos,
-                    }}
+                    languageModels={languageModels}
+                    repos={indexedRepos}
                     messages={messages}
                     order={2}
                     isChatReadonly={isReadonly}

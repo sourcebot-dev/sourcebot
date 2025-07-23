@@ -3,16 +3,18 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ChatBox } from "@/features/chat/components/chatBox";
+import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolbar";
+import { LanguageModelInfo } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
-import { FileIcon, LucideIcon, SearchCodeIcon, SearchIcon } from "lucide-react";
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
-import { ReactEditor, useSlate } from "slate-react";
 import { resetEditor } from "@/features/chat/utils";
-import { ChatBoxToolbar, ChatBoxToolbarProps } from "@/features/chat/components/chatBox/chatBoxToolbar";
-import { getDisplayTime } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
+import { RepositoryQuery } from "@/lib/types";
+import { getDisplayTime } from "@/lib/utils";
+import { BrainIcon, FileIcon, LucideIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { ReactEditor, useSlate } from "slate-react";
+import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
 
 // @todo: we should probably rename this to a different type since it sort-of clashes
 // with the Suggestion system we have built into the chat box.
@@ -24,7 +26,7 @@ const suggestionTypes: Record<SuggestionType, {
     description: string;
 }> = {
     understand: {
-        icon: SearchCodeIcon,
+        icon: BrainIcon,
         title: "Understand",
         description: "Understand the codebase",
     },
@@ -40,6 +42,7 @@ const suggestionTypes: Record<SuggestionType, {
     },
 }
 
+
 const Highlight = ({ children }: { children: React.ReactNode }) => {
     return (
         <span className="text-highlight">
@@ -48,26 +51,53 @@ const Highlight = ({ children }: { children: React.ReactNode }) => {
     )
 }
 
-
 const suggestions: Record<SuggestionType, {
     queryText: string;
     queryNode?: ReactNode;
+    openRepoSelector?: boolean;
 }[]> = {
     understand: [
         {
-            queryText: "How does authentication work in this codebase? @repo:",
-            queryNode: <span>How does authentication work in this codebase? <Highlight>@repo:</Highlight></span>,
+            queryText: "How does authentication work in this codebase?",
+            openRepoSelector: true,
+        },
+        {
+            queryText: "How are API endpoints structured and organized?",
+            openRepoSelector: true,
+        },
+        {
+            queryText: "How does the build and deployment process work?",
+            openRepoSelector: true,
+        },
+        {
+            queryText: "How is error handling implemented across the application?",
+            openRepoSelector: true,
         },
     ],
     find: [
         {
-            queryText: "todo",
+            queryText: "Find examples of different logging libraries used throughout the codebase.",
         },
+        {
+            queryText: "Find examples of potential security vulnerabilities or authentication issues.",
+        },
+        {
+            queryText: "Find examples of API endpoints and route handlers.",
+        }
     ],
     summarize: [
         {
-            queryText: "todo",
+            queryText: "Summarize the purpose of this file @file:",
+            queryNode: <span>Summarize the purpose of this file <Highlight>@file:</Highlight></span>
         },
+        {
+            queryText: "Summarize the project structure and architecture.",
+            openRepoSelector: true,
+        },
+        {
+            queryText: "Provide a quick start guide for ramping up on this codebase.",
+            openRepoSelector: true,
+        }
     ],
 }
 
@@ -76,7 +106,8 @@ const MAX_RECENT_CHAT_HISTORY_COUNT = 10;
 
 interface AgenticSearchProps {
     searchModeSelectorProps: SearchModeSelectorProps;
-    chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
+    languageModels: LanguageModelInfo[];
+    repos: RepositoryQuery[];
     chatHistory: {
         id: string;
         createdAt: Date;
@@ -86,7 +117,8 @@ interface AgenticSearchProps {
 
 export const AgenticSearch = ({
     searchModeSelectorProps,
-    chatBoxToolbarProps,
+    languageModels,
+    repos,
     chatHistory,
 }: AgenticSearchProps) => {
     const [selectedSuggestionType, _setSelectedSuggestionType] = useState<SuggestionType | undefined>(undefined);
@@ -95,6 +127,7 @@ export const AgenticSearch = ({
     const editor = useSlate();
     const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
     const domain = useDomain();
+    const [isRepoSelectorOpen, setIsRepoSelectorOpen] = useState(false);
 
     const setSelectedSuggestionType = useCallback((type: SuggestionType | undefined) => {
         _setSelectedSuggestionType(type);
@@ -128,15 +161,18 @@ export const AgenticSearch = ({
                     }}
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
-                    languageModels={chatBoxToolbarProps.languageModels}
+                    languageModels={languageModels}
                 />
                 <Separator />
                 <div className="relative">
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                         <ChatBoxToolbar
-                            {...chatBoxToolbarProps}
+                            languageModels={languageModels}
+                            repos={repos}
                             selectedRepos={selectedRepos}
                             onSelectedReposChange={setSelectedRepos}
+                            isRepoSelectorOpen={isRepoSelectorOpen}
+                            onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
                         />
                         <SearchModeSelector
                             {...searchModeSelectorProps}
@@ -152,7 +188,7 @@ export const AgenticSearch = ({
                             <p className="text-muted-foreground text-sm mb-2">
                                 {suggestionTypes[selectedSuggestionType].title}
                             </p>
-                            {suggestions[selectedSuggestionType].map(({ queryText, queryNode }, index) => (
+                            {suggestions[selectedSuggestionType].map(({ queryText, queryNode, openRepoSelector }, index) => (
                                 <div
                                     key={index}
                                     className="flex flex-row items-center gap-2 cursor-pointer hover:bg-muted rounded-md px-1 py-0.5"
@@ -160,7 +196,12 @@ export const AgenticSearch = ({
                                         resetEditor(editor);
                                         editor.insertText(queryText);
                                         setSelectedSuggestionType(undefined);
-                                        ReactEditor.focus(editor);
+
+                                        if (openRepoSelector) {
+                                            setIsRepoSelectorOpen(true);
+                                        } else {
+                                            ReactEditor.focus(editor);
+                                        }
                                     }}
                                 >
                                     <SearchIcon className="w-4 h-4" />

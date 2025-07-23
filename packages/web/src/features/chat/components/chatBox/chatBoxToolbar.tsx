@@ -19,6 +19,8 @@ export interface ChatBoxToolbarProps {
     repos: RepositoryQuery[];
     selectedRepos: string[];
     onSelectedReposChange: (repos: string[]) => void;
+    isRepoSelectorOpen: boolean;
+    onRepoSelectorOpenChanged: (isOpen: boolean) => void;
 }
 
 export const ChatBoxToolbar = ({
@@ -26,6 +28,8 @@ export const ChatBoxToolbar = ({
     repos,
     selectedRepos,
     onSelectedReposChange,
+    isRepoSelectorOpen,
+    onRepoSelectorOpenChanged,
 }: ChatBoxToolbarProps) => {
     const editor = useSlate();
 
@@ -77,6 +81,8 @@ export const ChatBoxToolbar = ({
                         repos={repos.map((repo) => repo.repoName)}
                         selectedRepos={selectedRepos}
                         onSelectedReposChange={onSelectedReposChange}
+                        isOpen={isRepoSelectorOpen}
+                        onOpenChanged={onRepoSelectorOpenChanged}
                     />
                 </TooltipTrigger>
                 <TooltipContent side="bottom">

@@ -47,10 +47,8 @@ export default async function Page({ params }: PageProps) {
                 />
                 <AnimatedResizableHandle />
                 <NewChatPanel
-                    chatBoxToolbarProps={{
-                        languageModels,
-                        repos: indexedRepos,
-                    }}
+                    languageModels={languageModels}
+                    repos={indexedRepos}
                     order={2}
                 />
             </ResizablePanelGroup>

@@ -29,6 +29,8 @@ interface RepoSelectorProps extends React.ButtonHTMLAttributes<HTMLButtonElement
     selectedRepos: string[];
     onSelectedReposChange: (repos: string[]) => void;
     className?: string;
+    isOpen: boolean;
+    onOpenChanged: (isOpen: boolean) => void;
 }
 
 export const RepoSelector = React.forwardRef<
@@ -41,17 +43,17 @@ export const RepoSelector = React.forwardRef<
             onSelectedReposChange,
             className,
             selectedRepos,
+            isOpen,
+            onOpenChanged,
             ...props
         },
         ref
     ) => {
-        const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
-
         const handleInputKeyDown = (
             event: React.KeyboardEvent<HTMLInputElement>
         ) => {
             if (event.key === "Enter") {
-                setIsPopoverOpen(true);
+                onOpenChanged(true);
             } else if (event.key === "Backspace" && !event.currentTarget.value) {
                 const newSelectedRepos = [...selectedRepos];
                 newSelectedRepos.pop();
@@ -71,13 +73,13 @@ export const RepoSelector = React.forwardRef<
         };
 
         const handleTogglePopover = () => {
-            setIsPopoverOpen((prev) => !prev);
+            onOpenChanged(!isOpen);
         };
 
         return (
             <Popover
-                open={isPopoverOpen}
-                onOpenChange={setIsPopoverOpen}
+                open={isOpen}
+                onOpenChange={onOpenChanged}
             >
                 <PopoverTrigger asChild>
                     <Button
@@ -110,7 +112,7 @@ export const RepoSelector = React.forwardRef<
                 <PopoverContent
                     className="w-auto p-0"
                     align="start"
-                    onEscapeKeyDown={() => setIsPopoverOpen(false)}
+                    onEscapeKeyDown={() => onOpenChanged(false)}
                 >
                     <Command>
                         <CommandInput

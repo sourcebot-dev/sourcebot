@@ -249,7 +249,7 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
                                 <CheckCircle className="w-4 h-4 text-green-700 flex-shrink-0 mt-1.5" />
                             )}
                             <MarkdownRenderer
-                                content={`**${userQuestion.trim()}**`}
+                                content={userQuestion.trim()}
                                 className="prose-p:m-0"
                             />
                         </div>

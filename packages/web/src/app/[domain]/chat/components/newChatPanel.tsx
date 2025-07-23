@@ -2,23 +2,28 @@
 
 import { ResizablePanel } from "@/components/ui/resizable";
 import { ChatBox } from "@/features/chat/components/chatBox";
-import { ChatBoxToolbar, ChatBoxToolbarProps } from "@/features/chat/components/chatBox/chatBoxToolbar";
+import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolbar";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
+import { LanguageModelInfo } from "@/features/chat/types";
+import { RepositoryQuery } from "@/lib/types";
 import { useCallback, useState } from "react";
 import { Descendant } from "slate";
 
 interface NewChatPanelProps {
-    chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
+    languageModels: LanguageModelInfo[];
+    repos: RepositoryQuery[];
     order: number;
 }
 
 export const NewChatPanel = ({
-    chatBoxToolbarProps,
+    languageModels,
+    repos,
     order,
 }: NewChatPanelProps) => {
     const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
+    const [isRepoSelectorOpen, setIsRepoSelectorOpen] = useState(false);
 
     const onSubmit = useCallback((children: Descendant[]) => {
         createNewChatThread(children, selectedRepos);
@@ -40,13 +45,16 @@ export const NewChatPanel = ({
                             className="min-h-[80px]"
                             preferredSuggestionsBoxPlacement="bottom-start"
                             isRedirecting={isLoading}
-                            languageModels={chatBoxToolbarProps.languageModels}
+                            languageModels={languageModels}
                         />
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                             <ChatBoxToolbar
-                                {...chatBoxToolbarProps}
+                                languageModels={languageModels}
+                                repos={repos}
                                 selectedRepos={selectedRepos}
                                 onSelectedReposChange={setSelectedRepos}
+                                isRepoSelectorOpen={isRepoSelectorOpen}
+                                onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
                             />
                         </div>
                     </CustomSlateEditor>

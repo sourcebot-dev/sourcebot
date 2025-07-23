@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
-import { AdditionalChatRequestParams, CustomEditor, SBChatMessage, Source } from '@/features/chat/types';
+import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, Source } from '@/features/chat/types';
 import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useDomain } from '@/hooks/useDomain';
 import { useChat } from '@ai-sdk/react';
@@ -17,11 +17,12 @@ import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
 import { useSelectedLanguageModel } from '../../useSelectedLanguageModel';
 import { ChatBox } from '../chatBox';
-import { ChatBoxToolbar, ChatBoxToolbarProps } from '../chatBox/chatBoxToolbar';
+import { ChatBoxToolbar } from '../chatBox/chatBoxToolbar';
 import { ChatThreadListItem } from './chatThreadListItem';
 import { ErrorBanner } from './errorBanner';
 import { useRouter } from 'next/navigation';
 import { usePrevious } from '@uidotdev/usehooks';
+import { RepositoryQuery } from '@/lib/types';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -31,7 +32,8 @@ interface ChatThreadProps {
     id?: string | undefined;
     initialMessages?: SBChatMessage[];
     inputMessage?: CreateUIMessage<SBChatMessage>;
-    chatBoxToolbarProps: Omit<ChatBoxToolbarProps, "selectedRepos" | "onSelectedReposChange">;
+    languageModels: LanguageModelInfo[];
+    repos: RepositoryQuery[];
     selectedRepos: string[];
     onSelectedReposChange: (repos: string[]) => void;
     isChatReadonly: boolean;
@@ -41,7 +43,8 @@ export const ChatThread = ({
     id: defaultChatId,
     initialMessages,
     inputMessage,
-    chatBoxToolbarProps,
+    languageModels,
+    repos,
     selectedRepos,
     onSelectedReposChange,
     isChatReadonly,
@@ -54,6 +57,7 @@ export const ChatThread = ({
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const [isRepoSelectorOpen, setIsRepoSelectorOpen] = useState(false);
 
     // Initial state is from attachments that exist in in the chat history.
     const [sources, setSources] = useState<Source[]>(
@@ -65,7 +69,7 @@ export const ChatThread = ({
     );
 
     const { selectedLanguageModel } = useSelectedLanguageModel({
-        initialLanguageModel: chatBoxToolbarProps.languageModels.length > 0 ? chatBoxToolbarProps.languageModels[0] : undefined,
+        initialLanguageModel: languageModels.length > 0 ? languageModels[0] : undefined,
     });
 
     const {
@@ -312,13 +316,16 @@ export const ChatThread = ({
                             preferredSuggestionsBoxPlacement="top-start"
                             isGenerating={status === "streaming" || status === "submitted"}
                             onStop={stop}
-                            languageModels={chatBoxToolbarProps.languageModels}
+                            languageModels={languageModels}
                         />
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                             <ChatBoxToolbar
-                                {...chatBoxToolbarProps}
+                                languageModels={languageModels}
+                                repos={repos}
                                 selectedRepos={selectedRepos}
                                 onSelectedReposChange={onSelectedReposChange}
+                                isRepoSelectorOpen={isRepoSelectorOpen}
+                                onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
                             />
                         </div>
                     </CustomSlateEditor>

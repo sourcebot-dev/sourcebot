@@ -110,7 +110,7 @@ export const env = createEnv({
         AWS_REGION: z.string().optional(),
 
         SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.default(0.3),
-        SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(10),
+        SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(20),
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
     },
