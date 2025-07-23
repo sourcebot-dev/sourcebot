@@ -5,7 +5,7 @@ export const newsData: NewsItem[] = [
         unique_id: "ask-sourcebot",
         header: "Ask Sourcebot",
         sub_header: "Ask Sourcebot to search, summarize, and explain code. Bring your own LLM.",
-        url: "https://docs.sourcebot.dev/docs/features/search/agentic-search/overview"
+        url: "https://docs.sourcebot.dev/docs/features/ask/overview"
     },
     {
         unique_id: "anonymous-access",

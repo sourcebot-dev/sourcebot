@@ -27,10 +27,10 @@ interface AnswerCardProps {
     traceId?: string;
 }
 
-const langfuseWeb = new LangfuseWeb({
+const langfuseWeb = (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined && env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY) ? new LangfuseWeb({
     publicKey: env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY,
     baseUrl: env.NEXT_PUBLIC_LANGFUSE_BASE_URL,
-});
+}) : null;
 
 export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
     answerText,
@@ -87,7 +87,7 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
                 messageId,
             });
 
-            langfuseWeb.score({
+            langfuseWeb?.score({
                 traceId: traceId,
                 name: 'user_feedback',
                 value: feedbackType === 'like' ? 1 : 0,

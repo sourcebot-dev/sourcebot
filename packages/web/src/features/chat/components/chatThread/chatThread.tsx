@@ -12,7 +12,7 @@ import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon } from 'lucide-react';
 import { useNavigationGuard } from 'next-navigation-guard';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
 import { useSelectedLanguageModel } from '../../useSelectedLanguageModel';
@@ -267,9 +267,8 @@ export const ChatThread = ({
                                 const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
 
                                 return (
-                                    <>
+                                    <Fragment key={index}>
                                         <ChatThreadListItem
-                                            key={index}
                                             chatId={chatId}
                                             userMessage={userMessage}
                                             assistantMessage={assistantMessage}
@@ -280,7 +279,7 @@ export const ChatThread = ({
                                         {index !== messagePairs.length - 1 && (
                                             <Separator className="my-12" />
                                         )}
-                                    </>
+                                    </Fragment>
                                 );
                             })}
                         </>
