@@ -1,0 +1,46 @@
+---
+title: Ask Sourcebot
+---
+
+Ask Sourcebot gives you the ability to ask complex questions about your codebase in natural language. 
+
+It uses Sourcebot’s existing [code search](/docs/features/search/overview) and [navigation](/docs/features/code-navigation) tools to allow reasoning models to search your code, 
+follow code nav references, and provide an answer that’s rich with inline citations and navigable code snippets.
+
+<CardGroup>
+<Card title="Configure language models" icon="robot" href="/docs/configuration/language-model-providers" horizontal="true">
+    Learn how to connect your language model to Sourcebot
+</Card>
+<Card title="Index repos" icon="book" href="/docs/connections/overview" horizontal="true">
+    Learn how to index your repos so you can ask questions about them
+</Card>
+</CardGroup>
+
+<video
+  autoPlay
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video"
+  src="/images/ask_sourcebot_low_res.mp4"
+></video>
+
+# Why do we need another AI dev tool?
+
+Existing AI dev tools (Cursor, Claude Code, Copilot) are great at generating code. However, we believe one of the hardest parts of being
+a software engineer is **understanding code**. 
+
+In this domain, these tools fall short:
+- You can only ask questions about the code you have checked out locally
+- You get a wall of text that's difficult to parse, requiring you to go back and forth through different code snippets in the response
+- The richness of the explanation is limited by the fact that you're in your IDE
+
+We built Ask Sourcebot to address these problems. With Ask Sourcebot, you can:
+- Ask questions about your teams entire codebase (even on repos you don't have locally) 
+- Easily parse the response with side-by-side citations and code navigation
+- Share answers with your team to spread the knowledge
+
+Being a web app is less convenient than being in your IDE, but it allows Sourcebot to provide responses in a richer UI that isn't constrained by the IDE.
+
+We believe this experience of understanding your codebase is superior, and we hope you find it useful. We'd love to know what you think! Feel free to join the discussion on our
+[GitHub](https://github.com/sourcebot-dev/sourcebot/discussions).
