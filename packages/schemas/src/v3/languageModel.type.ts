@@ -1,47 +1,18 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
 export type LanguageModel =
-  | OpenAILanguageModel
   | AmazonBedrockLanguageModel
   | AnthropicLanguageModel
+  | AzureLanguageModel
+  | DeepSeekLanguageModel
   | GoogleGenerativeAILanguageModel
+  | GoogleVertexAnthropicLanguageModel
   | GoogleVertexLanguageModel
-  | GoogleVertexAnthropicLanguageModel;
+  | MistralLanguageModel
+  | OpenAILanguageModel
+  | OpenRouterLanguageModel
+  | XaiLanguageModel;
 
-export interface OpenAILanguageModel {
-  /**
-   * OpenAI Configuration
-   */
-  provider: "openai";
-  /**
-   * The name of the language model.
-   */
-  model: string;
-  /**
-   * Optional display name.
-   */
-  displayName?: string;
-  /**
-   * Optional API key to use with the model. Defaults to the `OPENAI_API_KEY` environment variable.
-   */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
-  /**
-   * Optional base URL.
-   */
-  baseUrl?: string;
-}
 export interface AmazonBedrockLanguageModel {
   /**
    * Amazon Bedrock Configuration
@@ -130,6 +101,82 @@ export interface AnthropicLanguageModel {
    */
   baseUrl?: string;
 }
+export interface AzureLanguageModel {
+  /**
+   * Azure Configuration
+   */
+  provider: "azure";
+  /**
+   * The deployment name of the Azure model.
+   */
+  model: string;
+  /**
+   * Optional display name.
+   */
+  displayName?: string;
+  /**
+   * Azure resource name. Defaults to the `AZURE_RESOURCE_NAME` environment variable.
+   */
+  resourceName?: string;
+  /**
+   * Optional API key to use with the model. Defaults to the `AZURE_API_KEY` environment variable.
+   */
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
+  /**
+   * Sets a custom api version. Defaults to `preview`.
+   */
+  apiVersion?: string;
+  /**
+   * Use a different URL prefix for API calls. Either this or `resourceName` can be used.
+   */
+  baseUrl?: string;
+}
+export interface DeepSeekLanguageModel {
+  /**
+   * DeepSeek Configuration
+   */
+  provider: "deepseek";
+  /**
+   * The name of the language model.
+   */
+  model: string;
+  /**
+   * Optional display name.
+   */
+  displayName?: string;
+  /**
+   * Optional API key to use with the model. Defaults to the `DEEPSEEK_API_KEY` environment variable.
+   */
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
+  /**
+   * Optional base URL.
+   */
+  baseUrl?: string;
+}
 export interface GoogleGenerativeAILanguageModel {
   /**
    * Google Generative AI Configuration
@@ -147,6 +194,48 @@ export interface GoogleGenerativeAILanguageModel {
    * Optional API key to use with the model. Defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
    */
   token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
+  /**
+   * Optional base URL.
+   */
+  baseUrl?: string;
+}
+export interface GoogleVertexAnthropicLanguageModel {
+  /**
+   * Google Vertex AI Anthropic Configuration
+   */
+  provider: "google-vertex-anthropic";
+  /**
+   * The name of the Anthropic language model running on Google Vertex.
+   */
+  model: string;
+  /**
+   * Optional display name.
+   */
+  displayName?: string;
+  /**
+   * The Google Cloud project ID. Defaults to the `GOOGLE_VERTEX_PROJECT` environment variable.
+   */
+  project?: string;
+  /**
+   * The Google Cloud region. Defaults to the `GOOGLE_VERTEX_REGION` environment variable.
+   */
+  region?: string;
+  /**
+   * Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.
+   */
+  credentials?:
     | {
         /**
          * The name of the secret that contains the token.
@@ -206,13 +295,13 @@ export interface GoogleVertexLanguageModel {
    */
   baseUrl?: string;
 }
-export interface GoogleVertexAnthropicLanguageModel {
+export interface MistralLanguageModel {
   /**
-   * Google Vertex AI Anthropic Configuration
+   * Mistral AI Configuration
    */
-  provider: "google-vertex-anthropic";
+  provider: "mistral";
   /**
-   * The name of the Anthropic language model running on Google Vertex.
+   * The name of the language model.
    */
   model: string;
   /**
@@ -220,17 +309,111 @@ export interface GoogleVertexAnthropicLanguageModel {
    */
   displayName?: string;
   /**
-   * The Google Cloud project ID. Defaults to the `GOOGLE_VERTEX_PROJECT` environment variable.
+   * Optional API key to use with the model. Defaults to the `MISTRAL_API_KEY` environment variable.
    */
-  project?: string;
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
   /**
-   * The Google Cloud region. Defaults to the `GOOGLE_VERTEX_REGION` environment variable.
+   * Optional base URL.
    */
-  region?: string;
+  baseUrl?: string;
+}
+export interface OpenAILanguageModel {
   /**
-   * Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.
+   * OpenAI Configuration
    */
-  credentials?:
+  provider: "openai";
+  /**
+   * The name of the language model.
+   */
+  model: string;
+  /**
+   * Optional display name.
+   */
+  displayName?: string;
+  /**
+   * Optional API key to use with the model. Defaults to the `OPENAI_API_KEY` environment variable.
+   */
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
+  /**
+   * Optional base URL.
+   */
+  baseUrl?: string;
+}
+export interface OpenRouterLanguageModel {
+  /**
+   * OpenRouter Configuration
+   */
+  provider: "openrouter";
+  /**
+   * The name of the language model.
+   */
+  model: string;
+  /**
+   * Optional display name.
+   */
+  displayName?: string;
+  /**
+   * Optional API key to use with the model. Defaults to the `OPENROUTER_API_KEY` environment variable.
+   */
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
+  /**
+   * Optional base URL.
+   */
+  baseUrl?: string;
+}
+export interface XaiLanguageModel {
+  /**
+   * xAI Configuration
+   */
+  provider: "xai";
+  /**
+   * The name of the language model.
+   */
+  model: string;
+  /**
+   * Optional display name.
+   */
+  displayName?: string;
+  /**
+   * Optional API key to use with the model. Defaults to the `XAI_API_KEY` environment variable.
+   */
+  token?:
     | {
         /**
          * The name of the secret that contains the token.

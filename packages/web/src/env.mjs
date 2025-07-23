@@ -99,7 +99,19 @@ export const env = createEnv({
         ANTHROPIC_API_KEY: z.string().optional(),
         ANTHROPIC_THINKING_BUDGET_TOKENS: numberSchema.default(12000),
 
+        AZURE_API_KEY: z.string().optional(),
+        AZURE_RESOURCE_NAME: z.string().optional(),
+
+        DEEPSEEK_API_KEY: z.string().optional(),
+
         OPENAI_API_KEY: z.string().optional(),
+
+        OPENROUTER_API_KEY: z.string().optional(),
+
+        XAI_API_KEY: z.string().optional(),
+
+        MISTRAL_API_KEY: z.string().optional(),
+
         GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
         GOOGLE_VERTEX_PROJECT: z.string().optional(),
         GOOGLE_VERTEX_REGION: z.string().default('us-central1'),

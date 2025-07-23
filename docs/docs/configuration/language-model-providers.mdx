@@ -45,7 +45,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 ### Amazon Bedrock
 
-[Vercel AI SDK Amazon Bedrock Docs](https://ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock)
+[Vercel AI SDK Amazon Bedrock Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock)
 
 ```json wrap icon="code" Example config with Amazon Bedrock provider
 {
@@ -70,7 +70,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 ### Anthropic
 
-[Vercel AI SDK Anthropic Docs](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic)
+[Vercel AI SDK Anthropic Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/anthropic)
 
 ```json wrap icon="code" Example config with Anthropic provider
 {
@@ -89,9 +89,53 @@ For a detailed description of all the providers, please refer to the [schema](ht
 }
 ```
 
+### Azure OpenAI
+
+[Vercel AI SDK Azure OpenAI Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/azure)
+
+```json wrap icon="code" Example config with Azure AI provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "azure",
+            "model": "YOUR_MODEL_HERE",
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "resourceName": "YOUR_RESOURCE_NAME", // defaults to the AZURE_RESOURCE_NAME env var if not set
+            "apiVersion": "OPTIONAL_API_VERSION", // defailts to 'preview' if not set
+            "token": {
+                "env": "AZURE_API_KEY"
+            },
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
+
+### Deepseek
+
+[Vercel AI SDK Deepseek Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/deepseek)
+
+```json wrap icon="code" Example config with Deepseek provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "deepseek",
+            "model": "YOUR_MODEL_HERE",
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "token": {
+                "env": "DEEPSEEK_API_KEY"
+            },
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
+
 ### Google Generative AI
 
-[Vercel AI SDK Google Generative AI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai)
+[Vercel AI SDK Google Generative AI Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai)
 
 ```json wrap icon="code" Example config with Google Generative AI provider
 {
@@ -115,7 +159,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 <Note>If you're using an Anthropic model on Google Vertex, you must define a [Google Vertex Anthropic](#google-vertex-anthropic) provider instead</Note>
 <Note>The `credentials` paramater here expects a **path** to a [credentials](https://console.cloud.google.com/apis/credentials) file. This file **must be in a volume mounted by Sourcebot** for it to be readable.</Note>
 
-[Vercel AI SDK Google Vertex AI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex)
+[Vercel AI SDK Google Vertex AI Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-vertex)
 
 ```json wrap icon="code" Example config with Google Vertex provider
 {
@@ -123,10 +167,10 @@ For a detailed description of all the providers, please refer to the [schema](ht
     "models": [
         {
             "provider": "google-vertex",
-            "model": "YOUR_MODEL_HERE", // e.g., "gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"
+            "model": "YOUR_MODEL_HERE",
             "displayName": "OPTIONAL_DISPLAY_NAME",
             "project": "YOUR_PROJECT_ID", // defaults to the GOOGLE_VERTEX_PROJECT env var if not set
-            "region": "YOUR_REGION_HERE", // defaults to the GOOGLE_VERTEX_REGION env var if not set, e.g., "us-central1", "us-east1", "europe-west1"
+            "region": "YOUR_REGION_HERE", // defaults to the GOOGLE_VERTEX_REGION env var if not set
             "credentials": {
                 "env": "GOOGLE_APPLICATION_CREDENTIALS"
             },
@@ -141,7 +185,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 <Note>The `credentials` paramater here expects a **path** to a [credentials](https://console.cloud.google.com/apis/credentials) file. This file **must be in a volume mounted by Sourcebot** for it to be readable.</Note>
 
 
-[Vercel AI SDK Google Vertex Anthropic Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex#google-vertex-anthropic-provider-usage)
+[Vercel AI SDK Google Vertex Anthropic Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-vertex#google-vertex-anthropic-provider-usage)
 
 ```json wrap icon="code" Example config with Google Vertex Anthropic provider
 {
@@ -149,10 +193,10 @@ For a detailed description of all the providers, please refer to the [schema](ht
     "models": [
         {
             "provider": "google-vertex-anthropic",
-            "model": "YOUR_MODEL_HERE", // e.g., "claude-sonnet-4"
+            "model": "YOUR_MODEL_HERE",
             "displayName": "OPTIONAL_DISPLAY_NAME",
             "project": "YOUR_PROJECT_ID", // defaults to the GOOGLE_VERTEX_PROJECT env var if not set
-            "region": "YOUR_REGION_HERE", // defaults to the GOOGLE_VERTEX_REGION env var if not set, e.g., "us-central1", "us-east1", "europe-west1"
+            "region": "YOUR_REGION_HERE", // defaults to the GOOGLE_VERTEX_REGION env var if not set
             "credentials": {
                 "env": "GOOGLE_APPLICATION_CREDENTIALS"
             },
@@ -162,9 +206,30 @@ For a detailed description of all the providers, please refer to the [schema](ht
 }
 ```
 
+### Mistral
+
+[Vercel AI SDK Mistral Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/mistral)
+
+```json wrap icon="code" Example config with Mistral provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "mistral",
+            "model": "YOUR_MODEL_HERE",
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "token": {
+                "env": "MISTRAL_API_KEY"
+            },
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
+
 ### OpenAI
 
-[Vercel AI SDK OpenAI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/openai)
+[Vercel AI SDK OpenAI Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/openai)
 
 ```json wrap icon="code" Example config with OpenAI provider
 {
@@ -172,10 +237,52 @@ For a detailed description of all the providers, please refer to the [schema](ht
     "models": [
         {
             "provider": "openai",
-            "model": "YOUR_MODEL_HERE", // e.g., "gpt-4.1", "o4-mini", "o3", "o3-deep-research"
+            "model": "YOUR_MODEL_HERE",
             "displayName": "OPTIONAL_DISPLAY_NAME",
             "token": {
                 "env": "OPENAI_API_KEY"
+            },
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
+
+### OpenRouter
+
+[Vercel AI SDK OpenRouter Docs](https://v5.ai-sdk.dev/providers/community-providers/openrouter)
+
+```json wrap icon="code" Example config with OpenRouter provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "openai",
+            "model": "YOUR_MODEL_HERE",
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "token": {
+                "env": "OPENROUTER_API_KEY"
+            },
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
+
+### xAI
+
+[Vercel AI SDK xAI Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/xai)
+
+```json wrap icon="code" Example config with xAI provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "xai",
+            "model": "YOUR_MODEL_HERE",
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "token": {
+                "env": "XAI_API_KEY"
             },
             "baseUrl": "OPTIONAL_BASE_URL"
         }

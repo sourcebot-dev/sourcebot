@@ -4,71 +4,6 @@
   "type": "object",
   "title": "LanguageModel",
   "definitions": {
-    "OpenAILanguageModel": {
-      "type": "object",
-      "properties": {
-        "provider": {
-          "const": "openai",
-          "description": "OpenAI Configuration"
-        },
-        "model": {
-          "type": "string",
-          "description": "The name of the language model.",
-          "examples": [
-            "gpt-4.1",
-            "o4-mini",
-            "o3",
-            "o3-deep-research"
-          ]
-        },
-        "displayName": {
-          "type": "string",
-          "description": "Optional display name."
-        },
-        "token": {
-          "description": "Optional API key to use with the model. Defaults to the `OPENAI_API_KEY` environment variable.",
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "secret": {
-                  "type": "string",
-                  "description": "The name of the secret that contains the token."
-                }
-              },
-              "required": [
-                "secret"
-              ],
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "env": {
-                  "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
-                }
-              },
-              "required": [
-                "env"
-              ],
-              "additionalProperties": false
-            }
-          ]
-        },
-        "baseUrl": {
-          "type": "string",
-          "format": "url",
-          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
-          "description": "Optional base URL."
-        }
-      },
-      "required": [
-        "provider",
-        "model"
-      ],
-      "additionalProperties": false
-    },
     "AmazonBedrockLanguageModel": {
       "type": "object",
       "properties": {
@@ -227,6 +162,132 @@
       ],
       "additionalProperties": false
     },
+    "AzureLanguageModel": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "const": "azure",
+          "description": "Azure Configuration"
+        },
+        "model": {
+          "type": "string",
+          "description": "The deployment name of the Azure model."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name."
+        },
+        "resourceName": {
+          "type": "string",
+          "description": "Azure resource name. Defaults to the `AZURE_RESOURCE_NAME` environment variable."
+        },
+        "token": {
+          "description": "Optional API key to use with the model. Defaults to the `AZURE_API_KEY` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string",
+                  "description": "The name of the secret that contains the token."
+                }
+              },
+              "required": [
+                "secret"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "env": {
+                  "type": "string",
+                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "apiVersion": {
+          "type": "string",
+          "description": "Sets a custom api version. Defaults to `preview`."
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "url",
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+          "description": "Use a different URL prefix for API calls. Either this or `resourceName` can be used."
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "DeepSeekLanguageModel": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "const": "deepseek",
+          "description": "DeepSeek Configuration"
+        },
+        "model": {
+          "type": "string",
+          "description": "The name of the language model."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name."
+        },
+        "token": {
+          "description": "Optional API key to use with the model. Defaults to the `DEEPSEEK_API_KEY` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string",
+                  "description": "The name of the secret that contains the token."
+                }
+              },
+              "required": [
+                "secret"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "env": {
+                  "type": "string",
+                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "url",
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+          "description": "Optional base URL."
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "additionalProperties": false
+    },
     "GoogleGenerativeAILanguageModel": {
       "type": "object",
       "properties": {
@@ -244,6 +305,81 @@
         },
         "token": {
           "description": "Optional API key to use with the model. Defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string",
+                  "description": "The name of the secret that contains the token."
+                }
+              },
+              "required": [
+                "secret"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "env": {
+                  "type": "string",
+                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "url",
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+          "description": "Optional base URL."
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "GoogleVertexAnthropicLanguageModel": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "const": "google-vertex-anthropic",
+          "description": "Google Vertex AI Anthropic Configuration"
+        },
+        "model": {
+          "type": "string",
+          "description": "The name of the Anthropic language model running on Google Vertex.",
+          "examples": [
+            "claude-sonnet-4"
+          ]
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name."
+        },
+        "project": {
+          "type": "string",
+          "description": "The Google Cloud project ID. Defaults to the `GOOGLE_VERTEX_PROJECT` environment variable."
+        },
+        "region": {
+          "type": "string",
+          "description": "The Google Cloud region. Defaults to the `GOOGLE_VERTEX_REGION` environment variable.",
+          "examples": [
+            "us-central1",
+            "us-east1",
+            "europe-west1"
+          ]
+        },
+        "credentials": {
+          "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.",
           "anyOf": [
             {
               "type": "object",
@@ -363,39 +499,23 @@
       ],
       "additionalProperties": false
     },
-    "GoogleVertexAnthropicLanguageModel": {
+    "MistralLanguageModel": {
       "type": "object",
       "properties": {
         "provider": {
-          "const": "google-vertex-anthropic",
-          "description": "Google Vertex AI Anthropic Configuration"
+          "const": "mistral",
+          "description": "Mistral AI Configuration"
         },
         "model": {
           "type": "string",
-          "description": "The name of the Anthropic language model running on Google Vertex.",
-          "examples": [
-            "claude-sonnet-4"
-          ]
+          "description": "The name of the language model."
         },
         "displayName": {
           "type": "string",
           "description": "Optional display name."
         },
-        "project": {
-          "type": "string",
-          "description": "The Google Cloud project ID. Defaults to the `GOOGLE_VERTEX_PROJECT` environment variable."
-        },
-        "region": {
-          "type": "string",
-          "description": "The Google Cloud region. Defaults to the `GOOGLE_VERTEX_REGION` environment variable.",
-          "examples": [
-            "us-central1",
-            "us-east1",
-            "europe-west1"
-          ]
-        },
-        "credentials": {
-          "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.",
+        "token": {
+          "description": "Optional API key to use with the model. Defaults to the `MISTRAL_API_KEY` environment variable.",
           "anyOf": [
             {
               "type": "object",
@@ -437,10 +557,8 @@
         "model"
       ],
       "additionalProperties": false
-    }
-  },
-  "oneOf": [
-    {
+    },
+    "OpenAILanguageModel": {
       "type": "object",
       "properties": {
         "provider": {
@@ -505,6 +623,130 @@
       ],
       "additionalProperties": false
     },
+    "OpenRouterLanguageModel": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "const": "openrouter",
+          "description": "OpenRouter Configuration"
+        },
+        "model": {
+          "type": "string",
+          "description": "The name of the language model."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name."
+        },
+        "token": {
+          "description": "Optional API key to use with the model. Defaults to the `OPENROUTER_API_KEY` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string",
+                  "description": "The name of the secret that contains the token."
+                }
+              },
+              "required": [
+                "secret"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "env": {
+                  "type": "string",
+                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "url",
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+          "description": "Optional base URL."
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "XaiLanguageModel": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "const": "xai",
+          "description": "xAI Configuration"
+        },
+        "model": {
+          "type": "string",
+          "description": "The name of the language model.",
+          "examples": [
+            "grok-beta",
+            "grok-vision-beta"
+          ]
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name."
+        },
+        "token": {
+          "description": "Optional API key to use with the model. Defaults to the `XAI_API_KEY` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string",
+                  "description": "The name of the secret that contains the token."
+                }
+              },
+              "required": [
+                "secret"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "env": {
+                  "type": "string",
+                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "url",
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+          "description": "Optional base URL."
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
     {
       "type": "object",
       "properties": {
@@ -667,6 +909,132 @@
       "type": "object",
       "properties": {
         "provider": {
+          "const": "azure",
+          "description": "Azure Configuration"
+        },
+        "model": {
+          "type": "string",
+          "description": "The deployment name of the Azure model."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name."
+        },
+        "resourceName": {
+          "type": "string",
+          "description": "Azure resource name. Defaults to the `AZURE_RESOURCE_NAME` environment variable."
+        },
+        "token": {
+          "description": "Optional API key to use with the model. Defaults to the `AZURE_API_KEY` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string",
+                  "description": "The name of the secret that contains the token."
+                }
+              },
+              "required": [
+                "secret"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "env": {
+                  "type": "string",
+                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "apiVersion": {
+          "type": "string",
+          "description": "Sets a custom api version. Defaults to `preview`."
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "url",
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+          "description": "Use a different URL prefix for API calls. Either this or `resourceName` can be used."
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "const": "deepseek",
+          "description": "DeepSeek Configuration"
+        },
+        "model": {
+          "type": "string",
+          "description": "The name of the language model."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name."
+        },
+        "token": {
+          "description": "Optional API key to use with the model. Defaults to the `DEEPSEEK_API_KEY` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string",
+                  "description": "The name of the secret that contains the token."
+                }
+              },
+              "required": [
+                "secret"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "env": {
+                  "type": "string",
+                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "url",
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+          "description": "Optional base URL."
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "provider": {
           "const": "google-generative-ai",
           "description": "Google Generative AI Configuration"
         },
@@ -680,6 +1048,81 @@
         },
         "token": {
           "description": "Optional API key to use with the model. Defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string",
+                  "description": "The name of the secret that contains the token."
+                }
+              },
+              "required": [
+                "secret"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "env": {
+                  "type": "string",
+                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "url",
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+          "description": "Optional base URL."
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "const": "google-vertex-anthropic",
+          "description": "Google Vertex AI Anthropic Configuration"
+        },
+        "model": {
+          "type": "string",
+          "description": "The name of the Anthropic language model running on Google Vertex.",
+          "examples": [
+            "claude-sonnet-4"
+          ]
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name."
+        },
+        "project": {
+          "type": "string",
+          "description": "The Google Cloud project ID. Defaults to the `GOOGLE_VERTEX_PROJECT` environment variable."
+        },
+        "region": {
+          "type": "string",
+          "description": "The Google Cloud region. Defaults to the `GOOGLE_VERTEX_REGION` environment variable.",
+          "examples": [
+            "us-central1",
+            "us-east1",
+            "europe-west1"
+          ]
+        },
+        "credentials": {
+          "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.",
           "anyOf": [
             {
               "type": "object",
@@ -803,35 +1246,206 @@
       "type": "object",
       "properties": {
         "provider": {
-          "const": "google-vertex-anthropic",
-          "description": "Google Vertex AI Anthropic Configuration"
+          "const": "mistral",
+          "description": "Mistral AI Configuration"
         },
         "model": {
           "type": "string",
-          "description": "The name of the Anthropic language model running on Google Vertex.",
+          "description": "The name of the language model."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name."
+        },
+        "token": {
+          "description": "Optional API key to use with the model. Defaults to the `MISTRAL_API_KEY` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string",
+                  "description": "The name of the secret that contains the token."
+                }
+              },
+              "required": [
+                "secret"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "env": {
+                  "type": "string",
+                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "url",
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+          "description": "Optional base URL."
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "const": "openai",
+          "description": "OpenAI Configuration"
+        },
+        "model": {
+          "type": "string",
+          "description": "The name of the language model.",
           "examples": [
-            "claude-sonnet-4"
+            "gpt-4.1",
+            "o4-mini",
+            "o3",
+            "o3-deep-research"
           ]
         },
         "displayName": {
           "type": "string",
           "description": "Optional display name."
         },
-        "project": {
-          "type": "string",
-          "description": "The Google Cloud project ID. Defaults to the `GOOGLE_VERTEX_PROJECT` environment variable."
-        },
-        "region": {
-          "type": "string",
-          "description": "The Google Cloud region. Defaults to the `GOOGLE_VERTEX_REGION` environment variable.",
-          "examples": [
-            "us-central1",
-            "us-east1",
-            "europe-west1"
+        "token": {
+          "description": "Optional API key to use with the model. Defaults to the `OPENAI_API_KEY` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string",
+                  "description": "The name of the secret that contains the token."
+                }
+              },
+              "required": [
+                "secret"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "env": {
+                  "type": "string",
+                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "additionalProperties": false
+            }
           ]
         },
-        "credentials": {
-          "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.",
+        "baseUrl": {
+          "type": "string",
+          "format": "url",
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+          "description": "Optional base URL."
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "const": "openrouter",
+          "description": "OpenRouter Configuration"
+        },
+        "model": {
+          "type": "string",
+          "description": "The name of the language model."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name."
+        },
+        "token": {
+          "description": "Optional API key to use with the model. Defaults to the `OPENROUTER_API_KEY` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "secret": {
+                  "type": "string",
+                  "description": "The name of the secret that contains the token."
+                }
+              },
+              "required": [
+                "secret"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "env": {
+                  "type": "string",
+                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                }
+              },
+              "required": [
+                "env"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "url",
+          "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+          "description": "Optional base URL."
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "const": "xai",
+          "description": "xAI Configuration"
+        },
+        "model": {
+          "type": "string",
+          "description": "The name of the language model.",
+          "examples": [
+            "grok-beta",
+            "grok-vision-beta"
+          ]
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name."
+        },
+        "token": {
+          "description": "Optional API key to use with the model. Defaults to the `XAI_API_KEY` environment variable.",
           "anyOf": [
             {
               "type": "object",

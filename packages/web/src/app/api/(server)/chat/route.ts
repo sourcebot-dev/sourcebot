@@ -14,12 +14,17 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createVertex } from '@ai-sdk/google-vertex';
 import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
+import { createMistral } from '@ai-sdk/mistral';
+import { createXai } from '@ai-sdk/xai';
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import * as Sentry from "@sentry/nextjs";
 import { getTokenFromConfig } from "@sourcebot/crypto";
 import { OrgRole } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
+import { createAzure } from '@ai-sdk/azure';
+import { createDeepSeek } from '@ai-sdk/deepseek';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import {
     createUIMessageStream,
     createUIMessageStreamResponse,
@@ -122,7 +127,7 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
             // corresponding config in `config.json`.
             const languageModelConfig =
                 (await _getConfiguredLanguageModelsFull())
-                .find((model) => model.model === languageModelId);
+                    .find((model) => model.model === languageModelId);
 
             if (!languageModelConfig) {
                 return serviceErrorResponse({
@@ -296,14 +301,28 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
     const { provider, model: modelId } = config;
 
     switch (provider) {
+        case 'amazon-bedrock': {
+            const aws = createAmazonBedrock({
+                baseURL: config.baseUrl,
+                region: config.region ?? env.AWS_REGION,
+                accessKeyId: config.accessKeyId
+                    ? await getTokenFromConfig(config.accessKeyId, orgId, prisma)
+                    : env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: config.accessKeySecret
+                    ? await getTokenFromConfig(config.accessKeySecret, orgId, prisma)
+                    : env.AWS_SECRET_ACCESS_KEY,
+            });
+
+            return {
+                model: aws(modelId),
+            };
+        }
         case 'anthropic': {
             const anthropic = createAnthropic({
                 baseURL: config.baseUrl,
-                ...(config.token ? {
-                    apiKey: (await getTokenFromConfig(config.token, orgId, prisma)),
-                } : {
-                    apiKey: env.ANTHROPIC_API_KEY,
-                }),
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.ANTHROPIC_API_KEY,
             });
 
             return {
@@ -322,57 +341,38 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
                 },
             };
         }
-        case 'openai': {
-            const openai = createOpenAI({
+        case 'azure': {
+            const azure = createAzure({
                 baseURL: config.baseUrl,
-                ...(config.token ? {
-                    apiKey: (await getTokenFromConfig(config.token, orgId, prisma)),
-                } : {
-                    apiKey: env.OPENAI_API_KEY,
-                }),
+                apiKey: config.token ? (await getTokenFromConfig(config.token, orgId, prisma)) : env.AZURE_API_KEY,
+                apiVersion: config.apiVersion,
+                resourceName: config.resourceName ?? env.AZURE_RESOURCE_NAME,
             });
 
             return {
-                model: openai(modelId),
-                providerOptions: {
-                    openai: {
-                        reasoningEffort: 'high'
-                    } satisfies OpenAIResponsesProviderOptions,
-                },
+                model: azure(modelId),
+            };
+        }
+        case 'deepseek': {
+            const deepseek = createDeepSeek({
+                baseURL: config.baseUrl,
+                apiKey: config.token ? (await getTokenFromConfig(config.token, orgId, prisma)) : env.DEEPSEEK_API_KEY,
+            });
+
+            return {
+                model: deepseek(modelId),
             };
         }
         case 'google-generative-ai': {
             const google = createGoogleGenerativeAI({
                 baseURL: config.baseUrl,
-                ...(config.token ? {
-                    apiKey: (await getTokenFromConfig(config.token, orgId, prisma)),
-                } : {
-                    apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
-                }),
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.GOOGLE_GENERATIVE_AI_API_KEY,
             });
 
             return {
                 model: google(modelId),
-            };
-        }
-        case 'amazon-bedrock': {
-            const aws = createAmazonBedrock({
-                baseURL: config.baseUrl,
-                region: config.region ?? env.AWS_REGION,
-                ...(config.accessKeyId ? {
-                    accessKeyId: (await getTokenFromConfig(config.accessKeyId, orgId, prisma)),
-                } : {
-                    accessKeyId: env.AWS_ACCESS_KEY_ID,
-                }),
-                ...(config.accessKeySecret ? {
-                    secretAccessKey: (await getTokenFromConfig(config.accessKeySecret, orgId, prisma)),
-                } : {
-                    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-                }),
-            });
-
-            return {
-                model: aws(modelId),
             };
         }
         case 'google-vertex': {
@@ -403,6 +403,59 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
 
             return {
                 model: vertexAnthropic(modelId),
+            };
+        }
+        case 'mistral': {
+            const mistral = createMistral({
+                baseURL: config.baseUrl,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.MISTRAL_API_KEY,
+            });
+
+            return {
+                model: mistral(modelId),
+            };
+        }
+        case 'openai': {
+            const openai = createOpenAI({
+                baseURL: config.baseUrl,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.OPENAI_API_KEY,
+            });
+
+            return {
+                model: openai(modelId),
+                providerOptions: {
+                    openai: {
+                        reasoningEffort: 'high'
+                    } satisfies OpenAIResponsesProviderOptions,
+                },
+            };
+        }
+        case 'openrouter': {
+            const openrouter = createOpenRouter({
+                baseURL: config.baseUrl,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.OPENROUTER_API_KEY,
+            });
+
+            return {
+                model: openrouter(modelId),
+            };
+        }
+        case 'xai': {
+            const xai = createXai({
+                baseURL: config.baseUrl,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.XAI_API_KEY,
+            });
+
+            return {
+                model: xai(modelId),
             };
         }
     }
