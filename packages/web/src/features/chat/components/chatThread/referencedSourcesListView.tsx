@@ -147,10 +147,11 @@ export const ReferencedSourcesListView = ({
 
         // If we have a range, we can scroll to the starting line number.
         if (
-            selectedReference.range
-            && editorRef
-            && editorRef.view
-            && scrollAreaViewport
+            selectedReference.range &&
+            editorRef &&
+            editorRef.view &&
+            scrollAreaViewport &&
+            selectedReference.range.startLine <= editorRef.view.state.doc.lines
         ) {
             const view = editorRef.view;
             const lineNumber = selectedReference.range.startLine;
@@ -393,6 +394,11 @@ const CodeMirrorCodeBlock = ({
                         const isSelected = id === selectedReference?.id;
 
                         for (let line = range.startLine; line <= range.endLine; line++) {
+                            // Skip lines that are outside the document bounds.
+                            if (line > state.doc.lines) {
+                                continue;
+                            }
+
                             if (isSelected) {
                                 decorations.push(selectedLineDecoration.range(state.doc.line(line).from));
                             } else {

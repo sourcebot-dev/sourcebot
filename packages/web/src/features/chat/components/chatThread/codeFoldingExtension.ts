@@ -308,6 +308,17 @@ const createDecorations = (state: EditorState, foldingState: FoldingState): Deco
 
     // Create decorations for each hidden region
     foldingState.hiddenRegions.forEach((region, index) => {
+
+        // Catch cases where the region is outside the document bounds.
+        if (
+            region.startLine < 1 ||
+            region.startLine > state.doc.lines ||
+            region.endLine < 1 ||
+            region.endLine > state.doc.lines
+        ) {
+            return;
+        }
+
         const from = state.doc.line(region.startLine).from;
         const to = state.doc.line(region.endLine).to;
         const hiddenLineCount = region.endLine - region.startLine + 1;
