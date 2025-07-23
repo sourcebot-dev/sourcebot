@@ -1,0 +1,52 @@
+/* Generic range border radius - applies 2px border radius along the perimeter */
+.cm-range-border-radius {
+    border-radius: 2px;
+}
+
+/* First line in a range: rounded top corners only */
+.cm-range-border-radius:has(+ .cm-range-border-radius):not(.cm-range-border-radius + .cm-range-border-radius) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Middle lines: no rounded corners */
+.cm-range-border-radius+.cm-range-border-radius:has(+ .cm-range-border-radius) {
+    border-radius: 0;
+}
+
+/* Last line in a range: rounded bottom corners only */
+.cm-range-border-radius+.cm-range-border-radius:not(:has(+ .cm-range-border-radius)) {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+/* Generic range border shadow - applies 1px box shadow along the perimeter */
+.cm-range-border-shadow {
+    /* Default to transparent if no color is set */
+    --cm-range-border-shadow-color: transparent;
+}
+
+/* Single line (not adjacent to other range border shadow elements) */
+.cm-range-border-shadow:not(.cm-range-border-shadow + .cm-range-border-shadow):not(:has(+ .cm-range-border-shadow)) {
+    box-shadow: inset 0 0 0 1px var(--cm-range-border-shadow-color);
+}
+
+/* First line in a range: top and sides only */
+.cm-range-border-shadow:has(+ .cm-range-border-shadow):not(.cm-range-border-shadow + .cm-range-border-shadow) {
+    box-shadow: inset 1px 0 0 0 var(--cm-range-border-shadow-color),
+        inset -1px 0 0 0 var(--cm-range-border-shadow-color),
+        inset 0 1px 0 0 var(--cm-range-border-shadow-color);
+}
+
+/* Middle lines: sides only */
+.cm-range-border-shadow+.cm-range-border-shadow:has(+ .cm-range-border-shadow) {
+    box-shadow: inset 1px 0 0 0 var(--cm-range-border-shadow-color),
+        inset -1px 0 0 0 var(--cm-range-border-shadow-color);
+}
+
+/* Last line in a range: bottom and sides only */
+.cm-range-border-shadow+.cm-range-border-shadow:not(:has(+ .cm-range-border-shadow)) {
+    box-shadow: inset 1px 0 0 0 var(--cm-range-border-shadow-color),
+        inset -1px 0 0 0 var(--cm-range-border-shadow-color),
+        inset 0 -1px 0 0 var(--cm-range-border-shadow-color);
+}

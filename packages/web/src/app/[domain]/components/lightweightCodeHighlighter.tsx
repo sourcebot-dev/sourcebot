@@ -153,7 +153,6 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
                         </span>
                     )}
                     <span
-                        className="cm-line"
                         style={{
                             flex: 1,
                             paddingLeft: '6px',

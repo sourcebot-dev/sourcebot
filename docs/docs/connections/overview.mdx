@@ -6,20 +6,7 @@ sidebarTitle: Overview
 import SupportedPlatforms from '/snippets/platform-support.mdx'
 import ConfigSchema from '/snippets/schemas/v3/index.schema.mdx'
 
-To index your code with Sourcebot, you must provide a configuration file. When running Sourcebot, this file must be mounted in a volume that is accessible to the container, with its
-path specified in the `CONFIG_PATH` environment variable. For example:
-
-```bash icon="terminal" Passing in a CONFIG_PATH to Sourcebot
-docker run \
-    -v $(pwd)/config.json:/data/config.json \
-    -e CONFIG_PATH=/data/config.json \
-    ... \ # other config
-    ghcr.io/sourcebot-dev/sourcebot:latest
-```
-
-## Config Schema
-
-The configuration file defines a set of **connections**.  A connection in Sourcebot represents a link to a code host (such as GitHub, GitLab, Bitbucket, etc.). 
+A **connection** represents Sourcebot's link to a code host platform (GitHub, GitLab, etc). Connections are defined within the [config file](/docs/configuration/config-file) you provide Sourcebot.
 
 Each connection defines how Sourcebot should authenticate and interact with a particular host, and which repositories to sync and index from that host. Connections are uniquely identified by their name.
 
@@ -55,10 +42,11 @@ Each connection defines how Sourcebot should authenticate and interact with a pa
 
 Configuration files must conform to the [JSON schema](#schema-reference).
 
-## Config Syncing
-Sourcebot performs syncing in the background. Syncing consists of two steps:
-1. Fetch the latest changes from `HEAD` (and any [additional branches](/docs/features/search/multi-branch-indexing)) from the code host.
-2. Re-indexes the repository.
+## Connection Syncing
+
+When a connection is first discovered, or the `resyncConnectionIntervalMs` [setting](/docs/configuration/config-file#settings) has exceeded, the connection will be synced. This consists of:
+1. Fetching the latest changes from `HEAD` (and any [additional branches](/docs/features/search/multi-branch-indexing)) from the code host.
+2. Re-indexing the repository.
 
 This is processed in a [job queue](/docs/overview#architecture), and is parallelized across multiple worker processes. Jobs will take longer to complete the first time a repository is synced, or when a diff is large.
 

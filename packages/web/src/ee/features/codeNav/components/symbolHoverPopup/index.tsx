@@ -101,7 +101,6 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
 
     useHotkeys('alt+shift+f12', () => {
         if (symbolInfo?.symbolName) {
-            console.log('here!');
             onFindReferences(symbolInfo.symbolName);
         }
     }, {

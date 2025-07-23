@@ -14,7 +14,8 @@ const ScrollArea = React.forwardRef<
     className={cn("relative overflow-hidden", className)}
     {...props}
   >
-    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
+    {/* @see: https://github.com/radix-ui/primitives/issues/926#issuecomment-1447283516 */}
+    <ScrollAreaPrimitive.Viewport className="h-full w-full [&>div]:!block rounded-[inherit]">
       {children}
     </ScrollAreaPrimitive.Viewport>
     <ScrollBar />
