@@ -4,11 +4,12 @@ import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { LanguageModelInfo } from "@/features/chat/types";
 import { RepositoryQuery } from "@/lib/types";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useLocalStorage } from "usehooks-ts";
 import { AgenticSearch } from "./agenticSearch";
 import { PreciseSearch } from "./preciseSearch";
 import { SearchMode } from "./toolbar";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
+import { setSearchModeCookie } from "@/actions";
+import { useCallback, useState } from "react";
 
 interface HomepageProps {
     initialRepos: RepositoryQuery[];
@@ -18,6 +19,7 @@ interface HomepageProps {
         createdAt: Date;
         name: string | null;
     }[];
+    initialSearchMode: SearchMode;
 }
 
 
@@ -25,13 +27,19 @@ export const Homepage = ({
     initialRepos,
     languageModels,
     chatHistory,
+    initialSearchMode,
 }: HomepageProps) => {
-    const [searchMode, setSearchMode] = useLocalStorage<SearchMode>("search-mode", "precise", { initializeWithValue: false });
+    const [searchMode, setSearchMode] = useState<SearchMode>(initialSearchMode);
     const isAgenticSearchEnabled = languageModels.length > 0;
+
+    const onSearchModeChanged = useCallback(async (newMode: SearchMode) => {
+        setSearchMode(newMode);
+        await setSearchModeCookie(newMode);
+    }, [setSearchMode]);
 
     useHotkeys("mod+i", (e) => {
         e.preventDefault();
-        setSearchMode("agentic");
+        onSearchModeChanged("agentic");
     }, {
         enableOnFormTags: true,
         enableOnContentEditable: true,
@@ -40,7 +48,7 @@ export const Homepage = ({
 
     useHotkeys("mod+p", (e) => {
         e.preventDefault();
-        setSearchMode("precise");
+        onSearchModeChanged("precise");
     }, {
         enableOnFormTags: true,
         enableOnContentEditable: true,
@@ -61,7 +69,7 @@ export const Homepage = ({
                     searchModeSelectorProps={{
                         searchMode: "precise",
                         isAgenticSearchEnabled,
-                        onSearchModeChange: setSearchMode,
+                        onSearchModeChange: onSearchModeChanged,
                     }}
                 />
             ) : (
@@ -70,7 +78,7 @@ export const Homepage = ({
                         searchModeSelectorProps={{
                             searchMode: "agentic",
                             isAgenticSearchEnabled,
-                            onSearchModeChange: setSearchMode,
+                            onSearchModeChange: onSearchModeChanged,
                         }}
                         languageModels={languageModels}
                         repos={initialRepos}

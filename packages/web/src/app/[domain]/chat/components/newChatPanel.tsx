@@ -22,7 +22,7 @@ export const NewChatPanel = ({
     repos,
     order,
 }: NewChatPanelProps) => {
-    const [selectedRepos, setSelectedRepos] = useLocalStorage<string[]>("selectedRepos", []);
+    const [selectedRepos, setSelectedRepos] = useLocalStorage<string[]>("selectedRepos", [], { initializeWithValue: false });
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [isRepoSelectorOpen, setIsRepoSelectorOpen] = useState(false);
 

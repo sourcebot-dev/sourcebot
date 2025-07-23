@@ -126,7 +126,7 @@ export const AgenticSearch = ({
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const dropdownRef = useRef<HTMLDivElement>(null);
     const editor = useSlate();
-    const [selectedRepos, setSelectedRepos] = useLocalStorage<string[]>("selectedRepos", []);
+    const [selectedRepos, setSelectedRepos] = useLocalStorage<string[]>("selectedRepos", [], { initializeWithValue: false });
     const domain = useDomain();
     const [isRepoSelectorOpen, setIsRepoSelectorOpen] = useState(false);
 
