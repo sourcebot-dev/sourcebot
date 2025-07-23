@@ -394,7 +394,6 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
                 } : {}),
             });
 
-            console.log(modelId);
             return {
                 model: vertexAnthropic(modelId),
             };
