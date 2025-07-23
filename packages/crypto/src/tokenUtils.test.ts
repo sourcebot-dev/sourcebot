@@ -19,8 +19,8 @@ describe('tokenUtils', () => {
         };
 
         vi.clearAllMocks();
-        delete process.env.TEST_TOKEN;
-        delete process.env.EMPTY_TOKEN;
+        process.env.TEST_TOKEN = undefined;
+        process.env.EMPTY_TOKEN = undefined;
     });
 
     describe('getTokenFromConfig', () => {

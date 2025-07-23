@@ -16,11 +16,10 @@ Sourcebot can sync code from self-hosted Gerrit instances, including both public
 
 ### Authentication Methods
 
-Gerrit supports multiple authentication methods with Sourcebot:
+Gerrit supports these authentication methods with Sourcebot:
 
 1. **Public Access**: For publicly accessible projects (no authentication required)
 2. **HTTP Basic Auth**: Using Gerrit username and HTTP password
-3. **Cookie-based Auth**: Using Gerrit session cookies (advanced)
 
 If you're not familiar with Sourcebot [connections](/docs/connections/overview), please read that overview first.
 
@@ -72,61 +71,17 @@ When running with Docker:
 docker run -e GERRIT_HTTP_PASSWORD="your-http-password" ...
 ```
 
-## Authentication Setup Guide
+## Authentication Setup
 
-### Step 1: Generate HTTP Password in Gerrit
+### Generate HTTP Password
 
 1. Log into your Gerrit instance
-2. Go to **Settings** (top-right menu)
-3. Navigate to **HTTP Credentials**
-4. Click **Generate Password**
-5. Copy the generated password (this is your HTTP password)
-
-### Step 2: Test API Access
-
-Verify your credentials work with Gerrit's API:
-
-```bash
-curl -u "username:http-password" \
-  "https://gerrit.example.com/a/projects/?d"
-```
-
-Expected response: JSON list of projects you have access to.
-
-### Step 3: Test Git Clone Access
-
-Verify git clone works with your credentials:
-
-```bash
-git clone https://username@gerrit.example.com/a/project-name
-# When prompted, enter your HTTP password
-```
+2. Go to **Settings** → **HTTP Credentials** → **Generate Password**
+3. Copy the generated password (this is your HTTP password)
 
 <Note>
-**Special Characters in Passwords**: If your HTTP password contains special characters like `/`, `+`, or `=`, Sourcebot automatically handles URL encoding for git operations. No manual encoding is required on your part.
+**Special Characters**: If your HTTP password contains special characters like `/`, `+`, or `=`, Sourcebot automatically handles URL encoding for git operations.
 </Note>
-
-### Step 4: Configure Sourcebot
-
-Add the authenticated connection to your `config.json`:
-
-```json
-{
-    "connections": {
-        "my-gerrit": {
-            "type": "gerrit",
-            "url": "https://gerrit.example.com",
-            "projects": ["project-name"],
-            "auth": {
-                "username": "your-username",
-                "password": {
-                    "env": "GERRIT_HTTP_PASSWORD"
-                }
-            }
-        }
-    }
-}
-```
 
 ## Examples
 
@@ -203,76 +158,6 @@ Add the authenticated connection to your `config.json`:
         ```
     </Accordion>
 </AccordionGroup>
-
-## Troubleshooting
-
-### Common Issues
-
-<AccordionGroup>
-    <Accordion title="Authentication Failed / 401 Unauthorized">
-        **Symptoms**: Sourcebot logs show authentication errors or 401 status codes.
-        
-        **Solutions**:
-        1. Verify you're using the **HTTP password**, not your account password
-        2. Test credentials manually:
-           ```bash
-           curl -u "username:password" "https://gerrit.example.com/a/projects/"
-           ```
-        3. Check if your Gerrit username is correct
-        4. Regenerate HTTP password in Gerrit settings
-        5. Ensure the environment variable is properly set
-    </Accordion>
-    
-    <Accordion title="No Projects Found / 0 Repos Synced">
-        **Symptoms**: Sourcebot connects but finds 0 repositories to sync.
-        
-        **Solutions**:
-        1. Verify project names exist and are accessible
-        2. Check project permissions in Gerrit
-        3. Test project access manually:
-           ```bash
-           curl -u "username:password" \
-             "https://gerrit.example.com/a/projects/project-name"
-           ```
-        4. Use glob patterns if unsure of exact project names:
-           ```json
-           "projects": ["*"]  // Sync all accessible projects
-           ```
-    </Accordion>
-    
-    <Accordion title="Git Clone Failures">
-        **Symptoms**: Git clone operations fail during repository sync.
-        
-        **Solutions**:
-        1. Verify git clone works manually:
-           ```bash
-           git clone https://username@gerrit.example.com/a/project-name
-           ```
-        2. Check network connectivity and firewall rules
-        3. Ensure Gerrit server supports HTTPS
-        4. Verify the `/a/` prefix is included in clone URLs
-    </Accordion>
-    
-    <Accordion title="Schema Validation Errors">
-        **Symptoms**: Config validation errors about additional properties.
-        
-        **Solutions**:
-        1. Ensure your configuration matches the schema exactly
-        2. Check that all required fields are present
-        3. Verify the `auth` object structure:
-           ```json
-           "auth": {
-               "username": "string",
-               "password": {
-                   "env": "ENVIRONMENT_VARIABLE"
-               }
-           }
-           ```
-    </Accordion>
-</AccordionGroup>
-
-
-
 
 ## Schema Reference
 
