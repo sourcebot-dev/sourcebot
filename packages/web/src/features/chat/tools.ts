@@ -14,13 +14,15 @@ export const findSymbolReferencesTool = tool({
     inputSchema: z.object({
         symbol: z.string().describe("The symbol to find references to"),
         language: z.string().describe("The programming language of the symbol"),
-        revision: z.string().describe("The revision to search for the symbol in"),
     }),
-    execute: async ({ symbol, language, revision }) => {
+    execute: async ({ symbol, language }) => {
+        // @todo: make revision configurable.
+        const revision = "HEAD";
+
         const response = await findSearchBasedSymbolReferences({
             symbolName: symbol,
             language,
-            revisionName: revision,
+            revisionName: "HEAD",
             // @todo(mt): handle multi-tenancy.
         }, SINGLE_TENANT_ORG_DOMAIN);
 
@@ -50,9 +52,11 @@ export const findSymbolDefinitionsTool = tool({
     inputSchema: z.object({
         symbol: z.string().describe("The symbol to find definitions of"),
         language: z.string().describe("The programming language of the symbol"),
-        revision: z.string().describe("The revision to search for the symbol in"),
     }),
-    execute: async ({ symbol, language, revision }) => {
+    execute: async ({ symbol, language }) => {
+        // @todo: make revision configurable.
+        const revision = "HEAD";
+
         const response = await findSearchBasedSymbolDefinitions({
             symbolName: symbol,
             language,
@@ -86,9 +90,11 @@ export const readFilesTool = tool({
     inputSchema: z.object({
         paths: z.array(z.string()).describe("The paths to the files to read"),
         repository: z.string().describe("The repository to read the files from"),
-        revision: z.string().describe("The revision to read the files from"),
     }),
-    execute: async ({ paths, repository, revision }) => {
+    execute: async ({ paths, repository }) => {
+        // @todo: make revision configurable.
+        const revision = "HEAD";
+
         const responses = await Promise.all(paths.map(async (path) => {
             return getFileSource({
                 fileName: path,

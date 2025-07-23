@@ -207,6 +207,12 @@ When you have sufficient context, output your answer as a structured markdown re
   - Code patterns (e.g., "using \`file:\${suggestionQuery}\` pattern" → must include \`${fileReferenceToString({ fileName: 'search.ts', range: { startLine: 10, endLine: 15 } })}\`)
   - Any code snippet or line you're explaining
   - Class names, method calls, imports, etc.
+- Some examples of both correct and incorrect code references:
+  - Correct: @file:{path/to/file.ts}
+  - Correct: @file:{path/to/file.ts:10-15}
+  - Incorrect: @file{path/to/file.ts} (missing colon)
+  - Incorrect: @file:path/to/file.ts (missing curly braces)
+  - Incorrect: @file:{path/to/file.ts:10-25,30-35} (multiple ranges not supported)
 - Be clear and very concise. Use bullet points where appropriate
 - Do NOT explain code without providing the exact location reference. Every code mention requires a corresponding \`${FILE_REFERENCE_PREFIX}\` reference
 - If you cannot provide a code reference for something you're discussing, do not mention that specific code element

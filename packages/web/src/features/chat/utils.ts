@@ -243,7 +243,7 @@ export const createFileReference = ({ fileName, startLine, endLine }: { fileName
 export const convertLLMOutputToPortableMarkdown = (text: string): string => {
     return text.replace(FILE_REFERENCE_REGEX, (_, fileName, startLine, endLine) => {
         const displayName = fileName.split('/').pop() || fileName;
-        
+
         let linkText = displayName;
         if (startLine) {
             if (endLine && startLine !== endLine) {
@@ -252,7 +252,7 @@ export const convertLLMOutputToPortableMarkdown = (text: string): string => {
                 linkText += `:${startLine}`;
             }
         }
-        
+
         return `[${linkText}](${fileName})`;
     });
 }
@@ -265,10 +265,10 @@ export const groupMessageIntoSteps = (parts: SBChatMessagePart[]) => {
 
     const steps: SBChatMessagePart[][] = [];
     let currentStep: SBChatMessagePart[] = [];
-    
+
     for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
-        
+
         if (part.type === 'step-start') {
             if (currentStep.length > 0) {
                 steps.push([...currentStep]);
@@ -278,13 +278,26 @@ export const groupMessageIntoSteps = (parts: SBChatMessagePart[]) => {
             currentStep.push(part);
         }
     }
-    
+
     if (currentStep.length > 0) {
         steps.push(currentStep);
     }
-    
+
     return steps;
 }
+
+// LLMs like to not follow instructions... this takes care of some common mistakes they tend to make.
+export const repairCitations = (text: string): string => {
+    return text
+        // Fix missing colon: @file{...} -> @file:{...}
+        .replace(/@file\{([^}]+)\}/g, '@file:{$1}')
+        // Fix missing braces: @file:filename -> @file:{filename}
+        .replace(/@file:([^\s{]\S*?)(\s|[,;!?](?:\s|$)|\.(?:\s|$)|$)/g, '@file:{$1}$2')
+        // Fix multiple ranges: keep only first range
+        .replace(/@file:\{([^:}]+):(\d+-\d+),[\d,-]+\}/g, '@file:{$1:$2}')
+        // Fix malformed ranges
+        .replace(/@file:\{([^:}]+):(\d+)-(\d+)-(\d+)\}/g, '@file:{$1:$2-$3}');
+};
 
 // Attempts to find the part of the assistant's message
 // that contains the answer.
@@ -293,13 +306,19 @@ export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isStre
         .findLast((part) => part.type === 'text')
 
     if (lastTextPart?.text.startsWith(ANSWER_TAG)) {
-        return lastTextPart;
+        return {
+            ...lastTextPart,
+            text: repairCitations(lastTextPart.text),
+        };
     }
 
     // If the agent did not include the answer tag, then fallback to using the last text part.
     // Only do this when we are no longer streaming since the agent may still be thinking.
     if (!isStreaming && lastTextPart) {
-        return lastTextPart;
+        return {
+            ...lastTextPart,
+            text: repairCitations(lastTextPart.text),
+        };
     }
 
     return undefined;
