@@ -27,9 +27,38 @@ export const loadConfig = async (configPath: string): Promise<SourcebotConfig> =
             }
             return response.text();
         } else {
-            return readFile(configPath, {
-                encoding: 'utf-8',
-            });
+            // Retry logic for handling race conditions with mounted volumes
+            const maxAttempts = 5;
+            const retryDelayMs = 2000;
+            let lastError: Error | null = null;
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                    return await readFile(configPath, {
+                        encoding: 'utf-8',
+                    });
+                } catch (error) {
+                    lastError = error as Error;
+                    
+                    // Only retry on ENOENT errors (file not found)
+                    if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+                        throw error; // Throw immediately for non-ENOENT errors
+                    }
+                    
+                    // Log warning before retry (except on the last attempt)
+                    if (attempt < maxAttempts) {
+                        console.warn(`Config file not found, retrying in 2s... (Attempt ${attempt}/${maxAttempts})`);
+                        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+                    }
+                }
+            }
+            
+            // If we've exhausted all retries, throw the last ENOENT error
+            if (lastError) {
+                throw lastError;
+            }
+            
+            throw new Error('Failed to load config after all retry attempts');
         }
     })();
 
