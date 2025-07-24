@@ -59,6 +59,11 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
     } catch (e) {
         Sentry.captureException(e);
         logger.error(e);
+
+        if (e instanceof Error) {
+            return unexpectedError(e.message);
+        }
+
         return unexpectedError(`An unexpected error occurred. Please try again later.`);
     }
 }

@@ -1,7 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { serviceErrorSchema } from '@/lib/serviceError';
 import { AlertCircle, X } from "lucide-react";
+import { useMemo } from 'react';
 
 interface ErrorBannerProps {
     error: Error;
@@ -14,6 +16,16 @@ export const ErrorBanner = ({ error, isVisible, onClose }: ErrorBannerProps) => 
         return null;
     }
 
+    const errorMessage = useMemo(() => {
+        try {
+            const errorJson = JSON.parse(error.message);
+            const serviceError = serviceErrorSchema.parse(errorJson);
+            return serviceError.message;
+        } catch {
+            return error.message;
+        }
+    }, [error]);
+
     return (
         <div className="bg-red-50 border-b border-red-200 dark:bg-red-950/20 dark:border-red-800">
             <div className="max-w-5xl mx-auto px-4 py-3">
@@ -24,7 +36,7 @@ export const ErrorBanner = ({ error, isVisible, onClose }: ErrorBannerProps) => 
                             Error occurred
                         </span>
                         <span className="text-sm text-red-600 dark:text-red-400">
-                            {error.message || "An unexpected error occurred. Please try again."}
+                            {errorMessage}
                         </span>
                     </div>
                     <Button

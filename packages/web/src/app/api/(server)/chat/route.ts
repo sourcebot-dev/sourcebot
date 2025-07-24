@@ -10,21 +10,21 @@ import { isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
+import { createAzure } from '@ai-sdk/azure';
+import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createVertex } from '@ai-sdk/google-vertex';
 import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import { createMistral } from '@ai-sdk/mistral';
-import { createXai } from '@ai-sdk/xai';
+import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
+import { createXai } from '@ai-sdk/xai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import * as Sentry from "@sentry/nextjs";
 import { getTokenFromConfig } from "@sourcebot/crypto";
 import { OrgRole } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
-import { createAzure } from '@ai-sdk/azure';
-import { createDeepSeek } from '@ai-sdk/deepseek';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import {
     createUIMessageStream,
     createUIMessageStreamResponse,
@@ -139,7 +139,6 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
 
             const { model, providerOptions, headers } = await getAISDKLanguageModelAndOptions(languageModelConfig, org.id);
 
-            // @todo: refactor this
             if (
                 messages.length === 1 &&
                 messages[0].role === "user" &&
@@ -149,15 +148,10 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
                 const content = messages[0].parts[0].text;
 
                 const title = await generateChatTitle(content, model);
-                if (title) {
-                    updateChatName({
-                        chatId: id,
-                        name: title,
-                    }, domain);
-                }
-                else {
-                    logger.error("Failed to generate chat title.");
-                }
+                await updateChatName({
+                    chatId: id,
+                    name: title,
+                }, domain);
             }
 
             const traceId = randomUUID();
@@ -184,86 +178,73 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
                     }
                 }).filter(message => message !== undefined);
 
-            try {
-                const stream = createUIMessageStream<SBChatMessage>({
-                    execute: async ({ writer }) => {
-                        writer.write({
-                            type: 'start',
-                        });
+            const stream = createUIMessageStream<SBChatMessage>({
+                execute: async ({ writer }) => {
+                    writer.write({
+                        type: 'start',
+                    });
 
-                        const startTime = new Date();
+                    const startTime = new Date();
 
-                        const researchStream = await createAgentStream({
-                            model,
-                            providerOptions,
-                            headers,
-                            inputMessages: messageHistory,
-                            inputSources: sources,
-                            selectedRepos,
-                            onWriteSource: (source) => {
-                                writer.write({
-                                    type: 'data-source',
-                                    data: source,
-                                });
-                            },
+                    const researchStream = await createAgentStream({
+                        model,
+                        providerOptions,
+                        headers,
+                        inputMessages: messageHistory,
+                        inputSources: sources,
+                        selectedRepos,
+                        onWriteSource: (source) => {
+                            writer.write({
+                                type: 'data-source',
+                                data: source,
+                            });
+                        },
+                        traceId,
+                    });
+
+                    await mergeStreamAsync(researchStream, writer, {
+                        sendReasoning: true,
+                        sendStart: false,
+                        sendFinish: false,
+                    });
+
+                    const totalUsage = await researchStream.totalUsage;
+
+                    writer.write({
+                        type: 'message-metadata',
+                        messageMetadata: {
+                            totalTokens: totalUsage.totalTokens,
+                            totalInputTokens: totalUsage.inputTokens,
+                            totalOutputTokens: totalUsage.outputTokens,
+                            totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
+                            modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                             traceId,
-                        });
-
-                        await mergeStreamAsync(researchStream, writer, {
-                            sendReasoning: true,
-                            sendStart: false,
-                            sendFinish: false,
-                        });
-
-                        const totalUsage = await researchStream.totalUsage;
-
-                        writer.write({
-                            type: 'message-metadata',
-                            messageMetadata: {
-                                totalTokens: totalUsage.totalTokens,
-                                totalInputTokens: totalUsage.inputTokens,
-                                totalOutputTokens: totalUsage.outputTokens,
-                                totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
-                                modelName: languageModelConfig.displayName ?? languageModelConfig.model,
-                                traceId,
-                            }
-                        })
+                        }
+                    })
 
 
-                        writer.write({
-                            type: 'finish',
-                        });
-                    },
-                    onError: errorHandler,
-                    originalMessages: messages,
-                    onFinish: async ({ messages }) => {
-                        await updateChatMessages({
-                            chatId: id,
-                            messages
-                        }, domain);
-                    },
-                });
+                    writer.write({
+                        type: 'finish',
+                    });
+                },
+                onError: errorHandler,
+                originalMessages: messages,
+                onFinish: async ({ messages }) => {
+                    await updateChatMessages({
+                        chatId: id,
+                        messages
+                    }, domain);
+                },
+            });
 
-                return createUIMessageStreamResponse({
-                    stream,
-                });
-            } catch (error) {
-                logger.error(error)
-                logger.error("Error stack:", error instanceof Error ? error.stack : "No stack trace")
-                Sentry.captureException(error);
-
-                return serviceErrorResponse({
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.UNEXPECTED_ERROR,
-                    message: error instanceof Error ? error.message : "Unknown error",
-                });
-            }
+            return createUIMessageStreamResponse({
+                stream,
+            });
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
     ));
 
 const generateChatTitle = async (message: string, model: AISDKLanguageModelV2) => {
-    try {
-        const prompt = `Convert this question into a short topic title (max 50 characters). 
+    const prompt = `Convert this question into a short topic title (max 50 characters). 
 
 Rules:
 - Do NOT include question words (what, where, how, why, when, which)
@@ -279,17 +260,12 @@ Examples:
 
 User question: ${message}`;
 
-        const result = await generateText({
-            model,
-            prompt,
-            maxOutputTokens: 20,
-        });
+    const result = await generateText({
+        model,
+        prompt,
+    });
 
-        return result.text;
-    } catch (error) {
-        logger.error("Error generating summary:", error)
-        return undefined;
-    }
+    return result.text;
 }
 
 const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: number): Promise<{
