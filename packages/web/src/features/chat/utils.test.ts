@@ -13,26 +13,30 @@ vi.mock('@/env.mjs', () => ({
 
 test('fileReferenceToString formats file references correctly', () => {
     expect(fileReferenceToString({
-        fileName: 'auth.ts'
-    })).toBe('@file:{auth.ts}');
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'auth.ts'
+    })).toBe('@file:{github.com/sourcebot-dev/sourcebot::auth.ts}');
 
     expect(fileReferenceToString({
-        fileName: 'auth.ts',
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'auth.ts',
         range: {
             startLine: 45,
             endLine: 60,
         }
-    })).toBe('@file:{auth.ts:45-60}');
+    })).toBe('@file:{github.com/sourcebot-dev/sourcebot::auth.ts:45-60}');
 });
 
 test('fileReferenceToString matches FILE_REFERENCE_REGEX', () => {
     expect(FILE_REFERENCE_REGEX.test(fileReferenceToString({
-        fileName: 'auth.ts'
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'auth.ts'
     }))).toBe(true);
 
     FILE_REFERENCE_REGEX.lastIndex = 0;
     expect(FILE_REFERENCE_REGEX.test(fileReferenceToString({
-        fileName: 'auth.ts',
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'auth.ts',
         range: {
             startLine: 45,
             endLine: 60,
@@ -240,55 +244,55 @@ test('getAnswerPartFromAssistantMessage returns undefined when streaming and no 
 });
 
 test('repairCitations fixes missing colon after @file', () => {
-    const input = 'See the function in @file{auth.ts} for details.';
-    const expected = 'See the function in @file:{auth.ts} for details.';
+    const input = 'See the function in @file{github.com/sourcebot-dev/sourcebot::auth.ts} for details.';
+    const expected = 'See the function in @file:{github.com/sourcebot-dev/sourcebot::auth.ts} for details.';
     expect(repairCitations(input)).toBe(expected);
 });
 
 test('repairCitations fixes missing colon with range', () => {
-    const input = 'Check @file{config.ts:15-20} for the configuration.';
-    const expected = 'Check @file:{config.ts:15-20} for the configuration.';
+    const input = 'Check @file{github.com/sourcebot-dev/sourcebot::config.ts:15-20} for the configuration.';
+    const expected = 'Check @file:{github.com/sourcebot-dev/sourcebot::config.ts:15-20} for the configuration.';
     expect(repairCitations(input)).toBe(expected);
 });
 
 test('repairCitations fixes missing braces around filename', () => {
-    const input = 'The logic is in @file:utils.js and handles validation.';
-    const expected = 'The logic is in @file:{utils.js} and handles validation.';
+    const input = 'The logic is in @file:github.com/sourcebot-dev/sourcebot::utils.js and handles validation.';
+    const expected = 'The logic is in @file:{github.com/sourcebot-dev/sourcebot::utils.js} and handles validation.';
     expect(repairCitations(input)).toBe(expected);
 });
 
 test('repairCitations fixes missing braces with path', () => {
-    const input = 'Look at @file:src/components/Button.tsx for the component.';
-    const expected = 'Look at @file:{src/components/Button.tsx} for the component.';
+    const input = 'Look at @file:github.com/sourcebot-dev/sourcebot::src/components/Button.tsx for the component.';
+    const expected = 'Look at @file:{github.com/sourcebot-dev/sourcebot::src/components/Button.tsx} for the component.';
     expect(repairCitations(input)).toBe(expected);
 });
 
 test('repairCitations removes multiple ranges keeping only first', () => {
-    const input = 'See @file:{service.ts:10-15,20-25,30-35} for implementation.';
-    const expected = 'See @file:{service.ts:10-15} for implementation.';
+    const input = 'See @file:{github.com/sourcebot-dev/sourcebot::service.ts:10-15,20-25,30-35} for implementation.';
+    const expected = 'See @file:{github.com/sourcebot-dev/sourcebot::service.ts:10-15} for implementation.';
     expect(repairCitations(input)).toBe(expected);
 });
 
 test('repairCitations fixes malformed triple number ranges', () => {
-    const input = 'Check @file:{handler.ts:5-10-15} for the logic.';
-    const expected = 'Check @file:{handler.ts:5-10} for the logic.';
+    const input = 'Check @file:{github.com/sourcebot-dev/sourcebot::handler.ts:5-10-15} for the logic.';
+    const expected = 'Check @file:{github.com/sourcebot-dev/sourcebot::handler.ts:5-10} for the logic.';
     expect(repairCitations(input)).toBe(expected);
 });
 
 test('repairCitations handles multiple citations in same text', () => {
-    const input = 'See @file{auth.ts} and @file:config.js for setup details.';
-    const expected = 'See @file:{auth.ts} and @file:{config.js} for setup details.';
+    const input = 'See @file{github.com/sourcebot-dev/sourcebot::auth.ts} and @file:github.com/sourcebot-dev/sourcebot::config.js for setup details.';
+    const expected = 'See @file:{github.com/sourcebot-dev/sourcebot::auth.ts} and @file:{github.com/sourcebot-dev/sourcebot::config.js} for setup details.';
     expect(repairCitations(input)).toBe(expected);
 });
 
 test('repairCitations leaves correctly formatted citations unchanged', () => {
-    const input = 'The function @file:{utils.ts:42-50} handles validation correctly.';
+    const input = 'The function @file:{github.com/sourcebot-dev/sourcebot::utils.ts:42-50} handles validation correctly.';
     expect(repairCitations(input)).toBe(input);
 });
 
 test('repairCitations handles edge cases with spaces and punctuation', () => {
-    const input = 'Functions like @file:helper.ts, @file{main.js}, and @file:{app.ts:1-5,10-15} work.';
-    const expected = 'Functions like @file:{helper.ts}, @file:{main.js}, and @file:{app.ts:1-5} work.';
+    const input = 'Functions like @file:github.com/sourcebot-dev/sourcebot::helper.ts, @file{github.com/sourcebot-dev/sourcebot::main.js}, and @file:{github.com/sourcebot-dev/sourcebot::app.ts:1-5,10-15} work.';
+    const expected = 'Functions like @file:{github.com/sourcebot-dev/sourcebot::helper.ts}, @file:{github.com/sourcebot-dev/sourcebot::main.js}, and @file:{github.com/sourcebot-dev/sourcebot::app.ts:1-5} work.';
     expect(repairCitations(input)).toBe(expected);
 });
 
@@ -302,24 +306,24 @@ test('repairCitations returns text without citations unchanged', () => {
 });
 
 test('repairCitations handles complex file paths correctly', () => {
-    const input = 'Check @file:src/components/ui/Button/index.tsx for implementation.';
-    const expected = 'Check @file:{src/components/ui/Button/index.tsx} for implementation.';
+    const input = 'Check @file:github.com/sourcebot-dev/sourcebot::src/components/ui/Button/index.tsx for implementation.';
+    const expected = 'Check @file:{github.com/sourcebot-dev/sourcebot::src/components/ui/Button/index.tsx} for implementation.';
     expect(repairCitations(input)).toBe(expected);
 });
 
 test('repairCitations handles files with numbers and special characters', () => {
-    const input = 'See @file{utils-v2.0.1.ts} and @file:config_2024.json for setup.';
-    const expected = 'See @file:{utils-v2.0.1.ts} and @file:{config_2024.json} for setup.';
+    const input = 'See @file{github.com/sourcebot-dev/sourcebot::utils-v2.0.1.ts} and @file:github.com/sourcebot-dev/sourcebot::config_2024.json for setup.';
+    const expected = 'See @file:{github.com/sourcebot-dev/sourcebot::utils-v2.0.1.ts} and @file:{github.com/sourcebot-dev/sourcebot::config_2024.json} for setup.';
     expect(repairCitations(input)).toBe(expected);
 });
 
 test('repairCitations handles citation at end of sentence', () => {
-    const input = 'The implementation is in @file:helper.ts.';
-    const expected = 'The implementation is in @file:{helper.ts}.';
+    const input = 'The implementation is in @file:github.com/sourcebot-dev/sourcebot::helper.ts.';
+    const expected = 'The implementation is in @file:{github.com/sourcebot-dev/sourcebot::helper.ts}.';
     expect(repairCitations(input)).toBe(expected);
 });
 
 test('repairCitations preserves already correct citations with ranges', () => {
-    const input = 'The function @file:{utils.ts:10-20} and variable @file:{config.js:5} work correctly.';
+    const input = 'The function @file:{github.com/sourcebot-dev/sourcebot::utils.ts:10-20} and variable @file:{github.com/sourcebot-dev/sourcebot::config.js:5} work correctly.';
     expect(repairCitations(input)).toBe(input);
 });

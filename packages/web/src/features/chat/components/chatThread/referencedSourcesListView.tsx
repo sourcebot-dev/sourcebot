@@ -36,7 +36,10 @@ interface ReferencedSourcesListViewProps {
 }
 
 const resolveFileReference = (reference: FileReference, sources: FileSource[]): FileSource | undefined => {
-    return sources.find((source) => source.path.endsWith(reference.fileName));
+    return sources.find(
+        (source) => source.repo.endsWith(reference.repo) &&
+        source.path.endsWith(reference.path)
+    );
 }
 
 const getFileId = (fileSource: FileSource) => {
