@@ -12,10 +12,6 @@ interface ErrorBannerProps {
 }
 
 export const ErrorBanner = ({ error, isVisible, onClose }: ErrorBannerProps) => {
-    if (!isVisible) {
-        return null;
-    }
-
     const errorMessage = useMemo(() => {
         try {
             const errorJson = JSON.parse(error.message);
@@ -25,6 +21,10 @@ export const ErrorBanner = ({ error, isVisible, onClose }: ErrorBannerProps) => 
             return error.message;
         }
     }, [error]);
+
+    if (!isVisible) {
+        return null;
+    }
 
     return (
         <div className="bg-red-50 border-b border-red-200 dark:bg-red-950/20 dark:border-red-800">
