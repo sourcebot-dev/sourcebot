@@ -129,7 +129,7 @@ export const slateContentToString = (children: Descendant[]): string => {
 
             switch (type) {
                 case 'file':
-                    return `${fileReferenceToString({ fileName: child.data.name })} `;
+                    return `${fileReferenceToString({ repo: child.data.repo, path: child.data.path })} `;
             }
         }
 
@@ -210,15 +210,15 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedR
     }
 }
 
-export const getFileReferenceId = ({ fileName, range }: Omit<FileReference, 'type' | 'id'>) => {
-    return `file-reference-${fileName}${range ? `-${range.startLine}-${range.endLine}` : ''}`;
+export const getFileReferenceId = ({ repo, path, range }: Omit<FileReference, 'type' | 'id'>) => {
+    return `file-reference-${repo}::${path}${range ? `-${range.startLine}-${range.endLine}` : ''}`;
 }
 
-export const fileReferenceToString = ({ fileName, range }: Omit<FileReference, 'type' | 'id'>) => {
-    return `${FILE_REFERENCE_PREFIX}{${fileName}${range ? `:${range.startLine}-${range.endLine}` : ''}}`;
+export const fileReferenceToString = ({ repo, path, range }: Omit<FileReference, 'type' | 'id'>) => {
+    return `${FILE_REFERENCE_PREFIX}{${repo}::${path}${range ? `:${range.startLine}-${range.endLine}` : ''}}`;
 }
 
-export const createFileReference = ({ fileName, startLine, endLine }: { fileName: string, startLine?: string, endLine?: string }): FileReference => {
+export const createFileReference = ({ repo, path, startLine, endLine }: { repo: string, path: string, startLine?: string, endLine?: string }): FileReference => {
     const range = startLine && endLine ? {
         startLine: parseInt(startLine),
         endLine: parseInt(endLine),
@@ -229,8 +229,9 @@ export const createFileReference = ({ fileName, startLine, endLine }: { fileName
 
     return {
         type: 'file',
-        id: getFileReferenceId({ fileName, range }),
-        fileName,
+        id: getFileReferenceId({ repo, path, range }),
+        repo,
+        path,
         range,
     }
 }
@@ -241,7 +242,7 @@ export const createFileReference = ({ fileName, startLine, endLine }: { fileName
  * links.
  */
 export const convertLLMOutputToPortableMarkdown = (text: string): string => {
-    return text.replace(FILE_REFERENCE_REGEX, (_, fileName, startLine, endLine) => {
+    return text.replace(FILE_REFERENCE_REGEX, (_, _repo, fileName, startLine, endLine) => {
         const displayName = fileName.split('/').pop() || fileName;
 
         let linkText = displayName;
@@ -294,9 +295,9 @@ export const repairCitations = (text: string): string => {
         // Fix missing braces: @file:filename -> @file:{filename}
         .replace(/@file:([^\s{]\S*?)(\s|[,;!?](?:\s|$)|\.(?:\s|$)|$)/g, '@file:{$1}$2')
         // Fix multiple ranges: keep only first range
-        .replace(/@file:\{([^:}]+):(\d+-\d+),[\d,-]+\}/g, '@file:{$1:$2}')
+        .replace(/@file:\{(.+?):(\d+-\d+),[\d,-]+\}/g, '@file:{$1:$2}')
         // Fix malformed ranges
-        .replace(/@file:\{([^:}]+):(\d+)-(\d+)-(\d+)\}/g, '@file:{$1:$2-$3}');
+        .replace(/@file:\{(.+?):(\d+)-(\d+)-(\d+)\}/g, '@file:{$1:$2-$3}');
 };
 
 // Attempts to find the part of the assistant's message

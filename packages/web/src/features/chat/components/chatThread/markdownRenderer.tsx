@@ -45,12 +45,13 @@ function remarkReferencesPlugin() {
     return function (tree: Nodes) {
         findAndReplace(tree, [
             FILE_REFERENCE_REGEX,
-            (_, fileName: string, startLine?: string, endLine?: string) => {
+            (_, repo: string, fileName: string, startLine?: string, endLine?: string) => {
                 // Create display text
                 let displayText = fileName.split('/').pop() ?? fileName;
 
                 const fileReference = createFileReference({
-                    fileName,
+                    repo: repo,
+                    path: fileName,
                     startLine,
                     endLine,
                 });

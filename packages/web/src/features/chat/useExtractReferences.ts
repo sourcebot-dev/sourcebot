@@ -18,10 +18,11 @@ export const useExtractReferences = (message?: SBChatMessage) => {
 
                     let match;
                     while ((match = FILE_REFERENCE_REGEX.exec(content ?? '')) !== null && match !== null) {
-                        const [_, fileName, startLine, endLine] = match;
+                        const [_, repo, fileName, startLine, endLine] = match;
 
                         const fileReference = createFileReference({
-                            fileName,
+                            repo: repo,
+                            path: fileName,
                             startLine,
                             endLine,
                         });

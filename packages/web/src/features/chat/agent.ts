@@ -200,19 +200,19 @@ When you have sufficient context, output your answer as a structured markdown re
 **Required Response Format:**
 - **CRITICAL**: You MUST always prefix your answer with a \`${ANSWER_TAG}\` tag at the very top of your response
 - **CRITICAL**: You MUST provide your complete response in markdown format with embedded code references
-- **CODE REFERENCE REQUIREMENT**: Whenever you mention, discuss, or refer to ANY specific part of the code (files, functions, variables, methods, classes, imports, etc.), you MUST immediately follow with a code reference using the format \`${fileReferenceToString({ fileName: 'filename'})}\` or \`${fileReferenceToString({ fileName: 'filename', range: { startLine: 1, endLine: 10 } })}\` (where the numbers are the start and end line numbers of the code snippet). This includes:
-  - Files (e.g., "The \`auth.ts\` file" → must include \`${fileReferenceToString({ fileName: 'auth.ts' })}\`)
-  - Function names (e.g., "The \`getRepos()\` function" → must include \`${fileReferenceToString({ fileName: 'auth.ts', range: { startLine: 15, endLine: 20 } })}\`)
-  - Variable names (e.g., "The \`suggestionQuery\` variable" → must include \`${fileReferenceToString({ fileName: 'search.ts', range: { startLine: 42, endLine: 42 } })}\`)
-  - Code patterns (e.g., "using \`file:\${suggestionQuery}\` pattern" → must include \`${fileReferenceToString({ fileName: 'search.ts', range: { startLine: 10, endLine: 15 } })}\`)
+- **CODE REFERENCE REQUIREMENT**: Whenever you mention, discuss, or refer to ANY specific part of the code (files, functions, variables, methods, classes, imports, etc.), you MUST immediately follow with a code reference using the format \`${fileReferenceToString({ repo: 'repository', path: 'filename'})}\` or \`${fileReferenceToString({ repo: 'repository', path: 'filename', range: { startLine: 1, endLine: 10 } })}\` (where the numbers are the start and end line numbers of the code snippet). This includes:
+  - Files (e.g., "The \`auth.ts\` file" → must include \`${fileReferenceToString({ repo: 'repository', path: 'auth.ts' })}\`)
+  - Function names (e.g., "The \`getRepos()\` function" → must include \`${fileReferenceToString({ repo: 'repository', path: 'auth.ts', range: { startLine: 15, endLine: 20 } })}\`)
+  - Variable names (e.g., "The \`suggestionQuery\` variable" → must include \`${fileReferenceToString({ repo: 'repository', path: 'search.ts', range: { startLine: 42, endLine: 42 } })}\`)
   - Any code snippet or line you're explaining
   - Class names, method calls, imports, etc.
 - Some examples of both correct and incorrect code references:
-  - Correct: @file:{path/to/file.ts}
-  - Correct: @file:{path/to/file.ts:10-15}
-  - Incorrect: @file{path/to/file.ts} (missing colon)
-  - Incorrect: @file:path/to/file.ts (missing curly braces)
-  - Incorrect: @file:{path/to/file.ts:10-25,30-35} (multiple ranges not supported)
+  - Correct: @file:{repository::path/to/file.ts}
+  - Correct: @file:{repository::path/to/file.ts:10-15}
+  - Incorrect: @file{repository::path/to/file.ts} (missing colon)
+  - Incorrect: @file:repository::path/to/file.ts (missing curly braces)
+  - Incorrect: @file:{repository::path/to/file.ts:10-25,30-35} (multiple ranges not supported)
+  - Incorrect: @file:{path/to/file.ts} (missing repository)
 - Be clear and very concise. Use bullet points where appropriate
 - Do NOT explain code without providing the exact location reference. Every code mention requires a corresponding \`${FILE_REFERENCE_PREFIX}\` reference
 - If you cannot provide a code reference for something you're discussing, do not mention that specific code element
@@ -221,7 +221,7 @@ When you have sufficient context, output your answer as a structured markdown re
 **Example answer structure:**
 \`\`\`markdown
 ${ANSWER_TAG}
-Authentication in Sourcebot is built on NextAuth.js with a session-based approach using JWT tokens and Prisma as the database adapter ${fileReferenceToString({ fileName: 'auth.ts', range: { startLine: 135, endLine: 140 } })}. The system supports multiple authentication providers and implements organization-based authorization with role-defined permissions.
+Authentication in Sourcebot is built on NextAuth.js with a session-based approach using JWT tokens and Prisma as the database adapter ${fileReferenceToString({ repo: 'github.com/sourcebot-dev/sourcebot', path: 'auth.ts', range: { startLine: 135, endLine: 140 } })}. The system supports multiple authentication providers and implements organization-based authorization with role-defined permissions.
 \`\`\`
 
 </answer_instructions>

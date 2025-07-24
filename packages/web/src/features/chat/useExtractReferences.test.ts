@@ -11,7 +11,7 @@ test('useExtractReferences extracts file references from text content', () => {
         parts: [
                 {
                     type: 'text',
-                    text: 'The auth flow is implemented in @file:{auth.ts} and uses sessions @file:{auth.ts:45-60}.'
+                    text: 'The auth flow is implemented in @file:{github.com/sourcebot-dev/sourcebot::auth.ts} and uses sessions @file:{github.com/sourcebot-dev/sourcebot::auth.ts:45-60}.'
                 }
         ]
     };
@@ -20,15 +20,18 @@ test('useExtractReferences extracts file references from text content', () => {
 
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toMatchObject({
-        fileName: 'auth.ts',
-        id: getFileReferenceId({ fileName: 'auth.ts' }),
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'auth.ts',
+        id: getFileReferenceId({ repo: 'github.com/sourcebot-dev/sourcebot', path: 'auth.ts' }),
         type: 'file',
     });
 
     expect(result.current[1]).toMatchObject({
-        fileName: 'auth.ts',
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'auth.ts',
         id: getFileReferenceId({
-            fileName: 'auth.ts',
+            repo: 'github.com/sourcebot-dev/sourcebot',
+            path: 'auth.ts',
             range: {
                 startLine: 45,
                 endLine: 60,
@@ -49,7 +52,7 @@ test('useExtractReferences extracts file references from reasoning content', () 
         parts: [
                 {
                     type: 'reasoning',
-                    text: 'The auth flow is implemented in @file:{auth.ts} and uses sessions @file:{auth.ts:45-60}.'
+                    text: 'The auth flow is implemented in @file:{github.com/sourcebot-dev/sourcebot::auth.ts} and uses sessions @file:{github.com/sourcebot-dev/sourcebot::auth.ts:45-60}.'
                 }
         ]
     };
@@ -58,15 +61,18 @@ test('useExtractReferences extracts file references from reasoning content', () 
 
     expect(result.current).toHaveLength(2);
     expect(result.current[0]).toMatchObject({
-        fileName: 'auth.ts',
-        id: getFileReferenceId({ fileName: 'auth.ts' }),
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'auth.ts',
+        id: getFileReferenceId({ repo: 'github.com/sourcebot-dev/sourcebot', path: 'auth.ts' }),
         type: 'file',
     });
 
     expect(result.current[1]).toMatchObject({
-        fileName: 'auth.ts',
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'auth.ts',
         id: getFileReferenceId({
-            fileName: 'auth.ts',
+            repo: 'github.com/sourcebot-dev/sourcebot',
+            path: 'auth.ts',
             range: {
                 startLine: 45,
                 endLine: 60,
@@ -87,15 +93,15 @@ test('useExtractReferences extracts file references from multi-part', () => {
         parts: [
             {
                 type: 'text',
-                text: 'The auth flow is implemented in @file:{auth.ts}.'
+                text: 'The auth flow is implemented in @file:{github.com/sourcebot-dev/sourcebot::auth.ts}.'
             },
             {
                 type: 'reasoning',
-                text: 'We need to check the session handling in @file:{session.ts:10-20}.'
+                text: 'We need to check the session handling in @file:{github.com/sourcebot-dev/sourcebot::session.ts:10-20}.'
             },
             {
                 type: 'text',
-                text: 'The configuration is stored in @file:{config.json} and @file:{utils.ts:5}.'
+                text: 'The configuration is stored in @file:{github.com/sourcebot-dev/sourcebot::config.json} and @file:{github.com/sourcebot-dev/sourcebot::utils.ts:5}.'
             }
         ]
     };
@@ -106,16 +112,19 @@ test('useExtractReferences extracts file references from multi-part', () => {
     
     // From text part
     expect(result.current[0]).toMatchObject({
-        fileName: 'auth.ts',
-        id: getFileReferenceId({ fileName: 'auth.ts' }),
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'auth.ts',
+        id: getFileReferenceId({ repo: 'github.com/sourcebot-dev/sourcebot', path: 'auth.ts' }),
         type: 'file',
     });
 
     // From reasoning part
     expect(result.current[1]).toMatchObject({
-        fileName: 'session.ts',
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'session.ts',
         id: getFileReferenceId({
-            fileName: 'session.ts',
+            repo: 'github.com/sourcebot-dev/sourcebot',
+            path: 'session.ts',
             range: {
                 startLine: 10,
                 endLine: 20,
@@ -129,15 +138,18 @@ test('useExtractReferences extracts file references from multi-part', () => {
     });
 
     expect(result.current[2]).toMatchObject({
-        fileName: 'config.json',
-        id: getFileReferenceId({ fileName: 'config.json' }),
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'config.json',
+        id: getFileReferenceId({ repo: 'github.com/sourcebot-dev/sourcebot', path: 'config.json' }),
         type: 'file',
     });
 
     expect(result.current[3]).toMatchObject({
-        fileName: 'utils.ts',
+        repo: 'github.com/sourcebot-dev/sourcebot',
+        path: 'utils.ts',
         id: getFileReferenceId({
-            fileName: 'utils.ts',
+            repo: 'github.com/sourcebot-dev/sourcebot',
+            path: 'utils.ts',
             range: {
                 startLine: 5,
                 endLine: 5,

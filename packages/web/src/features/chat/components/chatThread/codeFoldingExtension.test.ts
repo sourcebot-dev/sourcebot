@@ -17,13 +17,14 @@ describe('calculateVisibleRanges', () => {
     test('applies padding to a single range', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
                 range: {
                     startLine: 10,
                     endLine: 15
-                }
+                },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -38,16 +39,18 @@ describe('calculateVisibleRanges', () => {
     test('merges overlapping ranges', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 10, endLine: 15 }
+                range: { startLine: 10, endLine: 15 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             },
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '2',
                 type: 'file',
-                range: { startLine: 12, endLine: 20 }
+                range: { startLine: 12, endLine: 20 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -62,16 +65,18 @@ describe('calculateVisibleRanges', () => {
     test('merges adjacent ranges (including padding)', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 10, endLine: 15 }
+                range: { startLine: 10, endLine: 15 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             },
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '2',
                 type: 'file',
-                range: { startLine: 19, endLine: 25 }
+                range: { startLine: 19, endLine: 25 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -88,16 +93,18 @@ describe('calculateVisibleRanges', () => {
     test('keeps separate ranges when they dont overlap', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 10, endLine: 15 }
+                range: { startLine: 10, endLine: 15 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             },
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '2',
                 type: 'file',
-                range: { startLine: 25, endLine: 30 }
+                range: { startLine: 25, endLine: 30 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -112,10 +119,11 @@ describe('calculateVisibleRanges', () => {
     test('respects file boundaries - start of file', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 1, endLine: 5 }
+                range: { startLine: 1, endLine: 5 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -130,10 +138,11 @@ describe('calculateVisibleRanges', () => {
     test('respects file boundaries - end of file', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 95, endLine: 100 }
+                range: { startLine: 95, endLine: 100 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -148,28 +157,32 @@ describe('calculateVisibleRanges', () => {
     test('handles multiple ranges with complex overlaps', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 10, endLine: 15 }
+                range: { startLine: 10, endLine: 15 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             },
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '2',
                 type: 'file',
-                range: { startLine: 20, endLine: 25 }
+                range: { startLine: 20, endLine: 25 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             },
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '3',
                 type: 'file',
-                range: { startLine: 22, endLine: 30 }
+                range: { startLine: 22, endLine: 30 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             },
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '4',
                 type: 'file',
-                range: { startLine: 50, endLine: 55 }
+                range: { startLine: 50, endLine: 55 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -195,16 +208,18 @@ describe('calculateVisibleRanges', () => {
     test('ignores references without ranges', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
                 // No range property
+                repo: 'github.com/sourcebot-dev/sourcebot'
             },
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '2',
                 type: 'file',
-                range: { startLine: 10, endLine: 15 }
+                range: { startLine: 10, endLine: 15 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -219,10 +234,11 @@ describe('calculateVisibleRanges', () => {
     test('works with zero padding', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 10, endLine: 15 }
+                range: { startLine: 10, endLine: 15 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -237,10 +253,11 @@ describe('calculateVisibleRanges', () => {
     test('handles single line ranges', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 10, endLine: 10 }
+                range: { startLine: 10, endLine: 10 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -255,22 +272,25 @@ describe('calculateVisibleRanges', () => {
     test('sorts ranges by start line', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 50, endLine: 55 }
+                range: { startLine: 50, endLine: 55 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             },
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '2',
                 type: 'file',
-                range: { startLine: 10, endLine: 15 }
+                range: { startLine: 10, endLine: 15 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             },
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '3',
                 type: 'file',
-                range: { startLine: 30, endLine: 35 }
+                range: { startLine: 30, endLine: 35 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -380,16 +400,18 @@ describe('StateField Integration', () => {
     test('initial state calculation with references', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 10, endLine: 15 }
+                range: { startLine: 10, endLine: 15 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             },
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '2',
                 type: 'file',
-                range: { startLine: 25, endLine: 30 }
+                range: { startLine: 25, endLine: 30 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -457,7 +479,7 @@ describe('StateField Integration', () => {
         // Update references
         const newReferences: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
                 range: { startLine: 10, endLine: 15 }
@@ -482,10 +504,11 @@ describe('StateField Integration', () => {
     test('expandRegionEffect expands hidden region up', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 20, endLine: 25 }
+                range: { startLine: 20, endLine: 25 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -528,10 +551,11 @@ describe('StateField Integration', () => {
     test('expandRegionEffect expands hidden region down', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 20, endLine: 25 }
+                range: { startLine: 20, endLine: 25 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -564,10 +588,11 @@ describe('StateField Integration', () => {
     test('document changes recalculate state', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 10, endLine: 15 }
+                range: { startLine: 10, endLine: 15 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -606,10 +631,11 @@ describe('StateField Integration', () => {
     test('action creators work correctly', () => {
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 10, endLine: 15 }
+                range: { startLine: 10, endLine: 15 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
@@ -647,16 +673,18 @@ describe('StateField Integration', () => {
         // Add references
         const references: FileReference[] = [
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 20, endLine: 25 }
+                range: { startLine: 20, endLine: 25 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             },
             {
-                fileName: 'test.ts',
+                path: 'test.ts',
                 id: '2',
                 type: 'file',
-                range: { startLine: 60, endLine: 65 }
+                range: { startLine: 60, endLine: 65 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 
