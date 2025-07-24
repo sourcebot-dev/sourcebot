@@ -38,7 +38,7 @@ in {
     };
     authEnabled = mkOption {
       type = types.bool;
-      default = false;
+      default = true;
       description = "Enables authentication in SourceBot";
     };
     telemetryDisabled = mkOption {
@@ -75,6 +75,11 @@ in {
       type = types.int;
       default = 16379;
       description = "TCP port for the SourceBot Redis server to listen on";
+    };
+    databaseUrl = mkOption {
+      type = types.nullOr types.str;
+      default = "postgresql://sourcebot@localhost:${toString config.services.postgresql.settings.port}/sourcebot";
+      description = "PostgreSQL connection URL for SourceBot. If not set, a local PostgreSQL server will be configured and used.";
     };
   };
 
@@ -155,8 +160,8 @@ in {
         Group = "sourcebot";
         ExecStart = "${pkgs.prisma}/bin/prisma migrate deploy --schema ${cfg.package}/packages/db/prisma/schema.prisma";
         Environment = [
-          "DATABASE_URL=postgresql://sourcebot@localhost:${toString config.services.postgresql.settings.port}/sourcebot"
           "PATH=${makeBinPath (with pkgs; [prisma openssl])}"
+          "DATABASE_URL=${cfg.databaseUrl}"
         ];
         Restart = "on-failure";
         RestartSec = "5s";
@@ -178,15 +183,15 @@ in {
             "DATA_CACHE_DIR=${cfg.dataCacheDir}"
             "PORT=${toString cfg.port}"
             "HOSTNAME=${cfg.hostname}"
-            "DATABASE_URL=postgresql://sourcebot@localhost:${toString config.services.postgresql.settings.port}/sourcebot"
+            "DATABASE_URL=${cfg.databaseUrl}"
             "REDIS_URL=redis://localhost:${toString cfg.redisPort}"
             "CONFIG_PATH=${cfg.configPath}"
             "SOURCEBOT_LOG_LEVEL=${cfg.logLevel}"
             "SOURCEBOT_TENANCY_MODE=single"
-            "SOURCEBOT_AUTH_ENABLED=${boolToString cfg.authEnabled}"
+            "AUTH_CREDENTIALS_LOGIN_ENABLED=${boolToString cfg.authEnabled}"
             "SOURCEBOT_TELEMETRY_DISABLED=${boolToString cfg.telemetryDisabled}"
             "SOURCEBOT_PUBLIC_KEY_PATH=${cfg.package}/public.pem"
-            "AUTH_URL=${cfg.authUrl}"
+            "AUTH_URL=http://${cfg.hostname}:${toString cfg.port}"
           ]
           ++ optional (cfg.envFile == null) [
             "AUTH_SECRET=00000000000000000000000000000000000000000000"
@@ -217,7 +222,7 @@ in {
             "CONFIG_PATH=${cfg.configPath}"
             "SOURCEBOT_LOG_LEVEL=${cfg.logLevel}"
             "SOURCEBOT_TENANCY_MODE=single"
-            "SOURCEBOT_AUTH_ENABLED=${boolToString cfg.authEnabled}"
+            "AUTH_CREDENTIALS_LOGIN_ENABLED=${boolToString cfg.authEnabled}"
             "SOURCEBOT_TELEMETRY_DISABLED=${boolToString cfg.telemetryDisabled}"
             "SOURCEBOT_PUBLIC_KEY_PATH=${cfg.package}/public.pem"
             "AUTH_URL=http://${cfg.hostname}:${toString cfg.port}"

@@ -21,7 +21,22 @@
       nixosConfigurations.testing = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
-          self.nixosModules.sourcebot
+          ({
+            pkgs,
+            lib,
+            ...
+          }: {
+            imports = [
+              self.nixosModules.sourcebot
+            ];
+            system.stateVersion = "25.05";
+            boot.isContainer = true; # stop nix flake check complaining about missing root fs
+            documentation.nixos.enable = false; # skip generating nixos docs
+            virtualisation.vmVariant = {
+              boot.isContainer = lib.mkForce false; # let vm variant create a virtual disk
+              virtualisation.graphics = false; # connect serial console to terminal
+            };
+          })
         ];
       };
 
