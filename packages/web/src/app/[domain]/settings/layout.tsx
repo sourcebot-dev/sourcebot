@@ -70,11 +70,11 @@ export default async function SettingsLayout({
                 href: `/${domain}/settings/access`,
             }
         ] : []),
-        {
+        ...(userRoleInOrg === OrgRole.OWNER ? [{
             title: (
                 <div className="flex items-center gap-2">
                     Members
-                    {userRoleInOrg === OrgRole.OWNER && numJoinRequests !== undefined && numJoinRequests > 0 && (
+                    {numJoinRequests !== undefined && numJoinRequests > 0 && (
                         <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
                             {numJoinRequests}
                         </span>
@@ -82,7 +82,7 @@ export default async function SettingsLayout({
                 </div>
             ),
             href: `/${domain}/settings/members`,
-        },
+        }] : []),
         {
             title: "Secrets",
             href: `/${domain}/settings/secrets`,
