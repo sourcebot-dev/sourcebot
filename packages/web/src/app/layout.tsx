@@ -12,7 +12,7 @@ import { getEntitlements } from "@sourcebot/shared";
 
 export const metadata: Metadata = {
     title: "Sourcebot",
-    description: "Sourcebot",
+    description: "Sourcebot is a self-hosted code understanding tool. Ask questions about your codebase and get rich Markdown answers with inline citations.",
     manifest: "/manifest.json",
 };
 

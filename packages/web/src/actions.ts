@@ -25,7 +25,7 @@ import { auth } from "./auth";
 import { getConnection } from "./data/connection";
 import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
-import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
+import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SEARCH_MODE_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { TenancyMode, ApiKeyPayload } from "./lib/types";
 import { decrementOrgSeatCount, getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
@@ -59,6 +59,11 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
     } catch (e) {
         Sentry.captureException(e);
         logger.error(e);
+
+        if (e instanceof Error) {
+            return unexpectedError(e.message);
+        }
+
         return unexpectedError(`An unexpected error occurred. Please try again later.`);
     }
 }
@@ -1997,6 +2002,13 @@ export const setAnonymousAccessStatus = async (domain: string, enabled: boolean)
         }, /* minRequiredRole = */ OrgRole.OWNER);
     });
 });
+
+export async function setSearchModeCookie(searchMode: "precise" | "agentic") {
+    const cookieStore = await cookies();
+    cookieStore.set(SEARCH_MODE_COOKIE_NAME, searchMode, {
+        httpOnly: false, // Allow client-side access
+    });
+}
 
 ////// Helpers ///////
 

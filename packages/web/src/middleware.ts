@@ -35,6 +35,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
     // https://nextjs.org/docs/app/building-your-application/routing/middleware#matcher
     matcher: [
-        '/((?!api|_next/static|ingest|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.json|logo_192.png|logo_512.png|sb_logo_light_large.png|arrow.png|placeholder_avatar.png).*)',
+        '/((?!api|_next/static|ingest|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.json|logo_192.png|logo_512.png|sb_logo_light_large.png|arrow.png|placeholder_avatar.png|sb_logo_dark_small.png|sb_logo_light_small.png).*)',
     ],
 }

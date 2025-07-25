@@ -2,7 +2,10 @@
 title: "Overview"
 ---
 
-[Sourcebot]((https://github.com/sourcebot-dev/sourcebot)) is an open-source, self-hosted code search tool. It allows you to search and navigate across millions of lines of code across several code host platforms.
+[Sourcebot](https://github.com/sourcebot-dev/sourcebot) is a self-hosted tool that helps you understand your codebase. 
+
+- [Code search](/docs/features/search/overview): Search and navigate across all your repos and branches, no matter where they’re hosted
+- [Ask Sourcebot](/docs/features/ask): Ask questions about your codebase and have Sourcebot provide detailed answers grounded with inline citations
 
 <CardGroup>
 <Card title="Deployment guide" icon="server" href="/docs/deployment-guide" horizontal="true">
@@ -30,9 +33,28 @@ title: "Overview"
   Find an overview of all Sourcebot features below. For details, see the individual documentation pages.
 </Info>
 
-### Fast indexed based search
+### Ask Sourcebot
 
-Search across millions of lines of code instantly using Sourcebot's blazingly fast indexed search. Find exactly what you are looking for with regular expressions, search filters, boolean logic, and more.
+[Ask Sourcebot](/docs/features/ask) gives you the ability to ask complex questions about your codebase, and have Sourcebot provide detailed answers with inline citations.
+
+<Accordion title="Key benefits">
+- **Bring your own model:** [Configure](/docs/configuration/language-model-providers) to any language model you'd like
+- **Inline citations:** Every answer Sourcebot provides is grounded with inline citations directly into your codebase
+- **Mutli-repo:** Ask questions about any repository you have indexed on Sourcebot
+</Accordion>
+
+<video
+  autoPlay
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video"
+  src="/images/ask_sourcebot_low_res.mp4"
+></video>
+
+### Code Search
+
+Search across all your repos/branches across any code host platform. Blazingly fast, and supports regular expressions, repo/language search filters, boolean logic, and more.
 
 <Accordion title="Key benefits">
 - **Regex support:** Use regular expressions to find code with precision.

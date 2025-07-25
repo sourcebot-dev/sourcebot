@@ -143,3 +143,11 @@ export const stripeClientNotInitialized = (): ServiceError => {
         message: "Stripe client is not initialized.",
     }
 }
+
+export const chatIsReadonly = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.FORBIDDEN,
+        errorCode: ErrorCode.CHAT_IS_READONLY,
+        message: "This chat is read-only and cannot be modified.",
+    }
+}

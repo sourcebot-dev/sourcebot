@@ -269,7 +269,7 @@ export const getCodeHostInfoForRepo = (repo: {
     }
 }
 
-export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, className?: string } | null => {
+export const getCodeHostIcon = (codeHostType: string): { src: string, className?: string } | null => {
     switch (codeHostType) {
         case "github":
             return {
@@ -459,3 +459,5 @@ export const getOrgMetadata = (org: Org): OrgMetadata | null => {
     const currentMetadata = orgMetadataSchema.safeParse(org.metadata);
     return currentMetadata.success ? currentMetadata.data : null;
 }
+
+export const IS_MAC = typeof navigator !== 'undefined' && /Mac OS X/.test(navigator.userAgent);
