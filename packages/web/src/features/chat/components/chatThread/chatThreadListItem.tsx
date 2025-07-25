@@ -409,7 +409,6 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
                                 answerText={answerPart.text.replace(ANSWER_TAG, '').trim()}
                                 chatId={chatId}
                                 messageId={assistantMessage.id}
-                                feedback={messageMetadata?.feedback?.type}
                                 traceId={messageMetadata?.traceId}
                             />
                         ) : !isStreaming && (

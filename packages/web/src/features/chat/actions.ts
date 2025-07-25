@@ -212,14 +212,14 @@ export const deleteChat = async ({ chatId }: { chatId: string }, domain: string)
     )
 );
 
-export const submitFeedback = async ({ 
-    chatId, 
-    messageId, 
-    feedbackType 
-}: { 
-    chatId: string, 
-    messageId: string, 
-    feedbackType: 'like' | 'dislike' 
+export const submitFeedback = async ({
+    chatId,
+    messageId,
+    feedbackType
+}: {
+    chatId: string,
+    messageId: string,
+    feedbackType: 'like' | 'dislike'
 }, domain: string) => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
@@ -246,13 +246,16 @@ export const submitFeedback = async ({
                         ...message,
                         metadata: {
                             ...message.metadata,
-                            feedback: {
-                                type: feedbackType,
-                                timestamp: new Date().toISOString(),
-                                userId: userId,
-                            }
+                            feedback: [
+                                ...(message.metadata?.feedback ?? []),
+                                {
+                                    type: feedbackType,
+                                    timestamp: new Date().toISOString(),
+                                    userId: userId,
+                                }
+                            ]
                         }
-                    };
+                    } satisfies SBChatMessage;
                 }
                 return message;
             });
