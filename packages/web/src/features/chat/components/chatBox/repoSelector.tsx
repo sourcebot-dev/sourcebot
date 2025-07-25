@@ -49,6 +49,9 @@ export const RepoSelector = React.forwardRef<
         },
         ref
     ) => {
+        const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+        const scrollPosition = React.useRef<number>(0);
+
         const handleInputKeyDown = (
             event: React.KeyboardEvent<HTMLInputElement>
         ) => {
@@ -62,6 +65,11 @@ export const RepoSelector = React.forwardRef<
         };
 
         const toggleRepo = (repo: string) => {
+            // Store current scroll position before state update
+            if (scrollContainerRef.current) {
+                scrollPosition.current = scrollContainerRef.current.scrollTop;
+            }
+
             const newSelectedValues = selectedRepos.includes(repo)
                 ? selectedRepos.filter((value) => value !== repo)
                 : [...selectedRepos, repo];
@@ -75,6 +83,26 @@ export const RepoSelector = React.forwardRef<
         const handleTogglePopover = () => {
             onOpenChanged(!isOpen);
         };
+
+        const sortedRepos = React.useMemo(() => {
+            return repos
+                .map((repo) => ({
+                    repo,
+                    isSelected: selectedRepos.includes(repo)
+                }))
+                .sort((a, b) => {
+                    if (a.isSelected && !b.isSelected) return -1;
+                    if (!a.isSelected && b.isSelected) return 1;
+                    return 0;
+                })
+        }, [repos, selectedRepos]);
+
+        // Restore scroll position after re-render
+        React.useEffect(() => {
+            if (scrollContainerRef.current && scrollPosition.current > 0) {
+                scrollContainerRef.current.scrollTop = scrollPosition.current;
+            }
+        }, [sortedRepos]);
 
         return (
             <Popover
@@ -116,12 +144,10 @@ export const RepoSelector = React.forwardRef<
                             placeholder="Search repos..."
                             onKeyDown={handleInputKeyDown}
                         />
-                        <CommandList>
+                        <CommandList ref={scrollContainerRef}>
                             <CommandEmpty>No results found.</CommandEmpty>
                             <CommandGroup>
-
-                                {repos.map((repo) => {
-                                    const isSelected = selectedRepos.includes(repo);
+                                {sortedRepos.map(({ repo, isSelected }) => {
                                     return (
                                         <CommandItem
                                             key={repo}
@@ -143,18 +169,18 @@ export const RepoSelector = React.forwardRef<
                                     );
                                 })}
                             </CommandGroup>
-                            {selectedRepos.length > 0 && (
-                                <>
-                                    <CommandSeparator />
-                                    <CommandItem
-                                        onSelect={handleClear}
-                                        className="flex-1 justify-center cursor-pointer"
-                                    >
-                                        Clear
-                                    </CommandItem>
-                                </>
-                            )}
                         </CommandList>
+                        {selectedRepos.length > 0 && (
+                            <>
+                                <CommandSeparator />
+                                <CommandItem
+                                    onSelect={handleClear}
+                                    className="flex-1 justify-center cursor-pointer"
+                                >
+                                    Clear
+                                </CommandItem>
+                            </>
+                        )}
                     </Command>
                 </PopoverContent>
             </Popover>
