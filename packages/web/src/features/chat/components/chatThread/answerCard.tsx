@@ -23,7 +23,6 @@ interface AnswerCardProps {
     answerText: string;
     messageId: string;
     chatId: string;
-    feedback?: 'like' | 'dislike' | undefined;
     traceId?: string;
 }
 
@@ -36,7 +35,6 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
     answerText,
     messageId,
     chatId,
-    feedback: _feedback,
     traceId,
 }, forwardedRef) => {
     const markdownRendererRef = useRef<HTMLDivElement>(null);
@@ -45,7 +43,7 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
     const { toast } = useToast();
     const domain = useDomain();
     const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
-    const [feedback, setFeedback] = useState<'like' | 'dislike' | undefined>(_feedback);
+    const [feedback, setFeedback] = useState<'like' | 'dislike' | undefined>(undefined);
     const captureEvent = useCaptureEvent();
 
     useImperativeHandle(
