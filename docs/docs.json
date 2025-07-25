@@ -28,11 +28,19 @@
                         "group": "Features",
                         "pages": [
                             {
-                                "group": "Search",
+                                "group": "Code Search",
                                 "pages": [
+                                    "docs/features/search/overview",
                                     "docs/features/search/syntax-reference",
                                     "docs/features/search/multi-branch-indexing",
                                     "docs/features/search/search-contexts"
+                                ]
+                            },
+                            {
+                                "group": "Ask Sourcebot",
+                                "pages": [
+                                    "docs/features/ask/overview",
+                                    "docs/features/ask/add-model-providers"
                                 ]
                             },
                             "docs/features/code-navigation",
@@ -51,6 +59,7 @@
                     {
                         "group": "Configuration",
                         "pages": [
+                            "docs/configuration/config-file",
                             {
                                 "group": "Indexing your code",
                                 "pages": [
@@ -66,18 +75,19 @@
                                     "docs/connections/request-new"
                                 ]
                             },
-                            "docs/license-key",
-                            "docs/configuration/environment-variables",
+                            "docs/configuration/language-model-providers",
                             {
                                 "group": "Authentication",
                                 "pages": [
                                     "docs/configuration/auth/overview",
                                     "docs/configuration/auth/providers",
-                                    "docs/configuration/auth/inviting-members",
+                                    "docs/configuration/auth/access-settings",
                                     "docs/configuration/auth/roles-and-permissions",
                                     "docs/configuration/auth/faq"
                                 ]
                             },
+                            "docs/configuration/environment-variables",
+                            "docs/license-key",
                             "docs/configuration/transactional-emails",
                             "docs/configuration/structured-logging",
                             "docs/configuration/audit-logs"

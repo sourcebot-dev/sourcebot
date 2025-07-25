@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import DemoCard from "@/app/login/components/demoCard";
 import Link from "next/link";
 import { env } from "@/env.mjs";
 import type { AuthProvider } from "@/lib/authProviders";
@@ -72,11 +71,6 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
                     {context === "login" ? "Sign in to your account" : "Create a new account"}
                 </h2>
             </div>
-            {env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined && (
-                <div className="w-full sm:w-[500px] max-w-[500px]">
-                    <DemoCard />
-                </div>
-            )}
             <Card className="flex flex-col items-center border p-6 sm:p-12 rounded-lg gap-4 sm:gap-6 w-full sm:w-[500px] max-w-[500px] bg-background">
                 {error && (
                     <div className="text-sm text-destructive text-center text-wrap border p-2 rounded-md border-destructive">

@@ -77,7 +77,6 @@ export const CredentialsForm = ({ callbackUrl, context }: CredentialsFormProps) 
                 <Button
                     type="submit"
                     className="w-full"
-                    variant="outline"
                     disabled={isLoading}
                 >
                     {isLoading ? <Loader2 className="animate-spin mr-2" /> : ""}

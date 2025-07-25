@@ -1,7 +1,7 @@
 'use server';
 
 import escapeStringRegexp from "escape-string-regexp";
-import { fileNotFound, ServiceError } from "../../lib/serviceError";
+import { fileNotFound, ServiceError, unexpectedError } from "../../lib/serviceError";
 import { FileSourceRequest, FileSourceResponse } from "./types";
 import { isServiceError } from "../../lib/utils";
 import { search } from "./searchApi";
@@ -41,12 +41,23 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
             const file = files[0];
             const source = file.content ?? '';
             const language = file.language;
+
+            const repoInfo = searchResponse.repositoryInfo.find((repo) => repo.id === file.repositoryId);
+            if (!repoInfo) {
+                // This should never happen.
+                return unexpectedError("Repository info not found");
+            }
             
             return {
                 source,
                 language,
+                path: fileName,
+                repository,
+                repositoryCodeHostType: repoInfo.codeHostType,
+                repositoryDisplayName: repoInfo.displayName,
+                branch,
                 webUrl: file.webUrl,
             } satisfies FileSourceResponse;
 
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 );

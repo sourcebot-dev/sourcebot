@@ -44,16 +44,20 @@
 
 # About
 
-Sourcebot is the open source Sourcegraph alternative. Index all your repos and branches across multiple code hosts (GitHub, GitLab, Bitbucket, Gitea, or Gerrit) and search through them using a blazingly fast interface.
+Sourcebot is a self-hosted tool that helps you understand your codebase. 
 
-https://github.com/user-attachments/assets/ced355f3-967e-4f37-ae6e-74ab8c06b9ec
+- **Ask Sourcebot:** Ask questions about your codebase and have Sourcebot provide detailed answers grounded with inline citations.
+- **Code search:** Search and navigate across all your repos and branches, no matter where they’re hosted.
+
+https://github.com/user-attachments/assets/286ad97a-a543-4eef-a2f1-4fa31bea1b32
 
 
 ## Features
 - 💻 **One-command deployment**: Get started instantly using Docker on your own machine.
-- 🔍 **Multi-repo search**: Index and search through multiple public and private repositories and branches on GitHub, GitLab, Bitbucket, Gitea, or Gerrit.
-- ⚡**Lightning fast performance**: Built on top of the powerful [Zoekt](https://github.com/sourcegraph/zoekt) search engine.
-- 🎨 **Modern web app**: Enjoy a sleek interface with features like syntax highlighting, light/dark mode, and vim-style navigation 
+- 🤖 **Bring your own model**: Connect Sourcebot to any of the reasoning models you're already using.
+- 🔍 **Multi-repo support**: Index and search through multiple public and private repositories and branches on GitHub, GitLab, Bitbucket, Gitea, or Gerrit.
+- ⚡ **Lightning fast performance**: Built on top of the powerful [Zoekt](https://github.com/sourcegraph/zoekt) search engine.
+- 🎨 **Modern web app**: Enjoy a sleek interface with features like syntax highlighting, light/dark mode, and vim-style navigation.
 - 📂 **Full file visualization**: Instantly view the entire file when selecting any search result.
 
 You can try out our public hosted demo [here](https://demo.sourcebot.dev)!

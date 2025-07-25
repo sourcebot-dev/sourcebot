@@ -17,7 +17,7 @@ export const createAuditAction = async (event: Omit<AuditEvent, 'sourcebotVersio
   withAuth((userId) =>
     withOrgMembership(userId, domain, async ({ org }) => {
       await auditService.createAudit({ ...event, orgId: org.id, actor: { id: userId, type: "user" }, target: { id: org.id.toString(), type: "org" } })
-    }, /* minRequiredRole = */ OrgRole.MEMBER), /* allowSingleTenantUnauthedAccess = */ true)
+    }, /* minRequiredRole = */ OrgRole.MEMBER), /* allowAnonymousAccess = */ true)
 );
 
 export const fetchAuditRecords = async (domain: string, apiKey: string | undefined = undefined) => sew(() =>
@@ -55,5 +55,5 @@ export const fetchAuditRecords = async (domain: string, apiKey: string | undefin
             message: "Failed to fetch audit logs",
         } satisfies ServiceError;
       }
-    }, /* minRequiredRole = */ OrgRole.OWNER), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
+    }, /* minRequiredRole = */ OrgRole.OWNER), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 );

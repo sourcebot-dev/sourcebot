@@ -8,6 +8,8 @@ import GitHubSchema from '/snippets/schemas/v3/github.schema.mdx'
 
 Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub Enterprise Cloud.
 
+If you're not familiar with Sourcebot [connections](/docs/connections/overview), please read that overview first.
+
 ## Examples
 
 <AccordionGroup>
@@ -104,11 +106,29 @@ Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub En
 
 ## Authenticating with GitHub
 
-In order to index private repositories, you'll need to generate a GitHub Personal Access Token (PAT). Create a new PAT [here](https://github.com/settings/tokens/new) and make sure you select the `repo` scope:
+In order to index private repositories, you'll need to generate a access token and provide it to Sourcebot. GitHub provides [two types](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#types-of-personal-access-tokens) of access tokens:
 
-![GitHub PAT Scope](/images/github_pat_scopes.png)
 
-Next, provide the PAT via the `token` property, either as an environment variable or a secret:
+<AccordionGroup>
+    <Accordion title="Fine-grained personal access tokens" defaultOpen>
+        Create a new fine-grained PAT [here](https://github.com/settings/personal-access-tokens/new). First, select the resource owner and the repositories that you want Sourcebot to have access to.
+
+        Next, under "Repository permissions", select permissions `Contents` and `Metadata` with access `Read-only`. The permissions should look like the following:
+
+        ![GitHub PAT Scope](/images/github_pat_scopes_fine_grained.png)
+
+        [GitHub docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#fine-grained-personal-access-tokens)
+    </Accordion>
+    <Accordion title="Personal access tokens (classic)">
+        Create a new PAT [here](https://github.com/settings/tokens/new) and make sure you select the `repo` scope:
+        
+        ![GitHub PAT Scope](/images/github_pat_scopes.png)
+
+        [GitHub docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic)
+    </Accordion>
+</AccordionGroup>
+
+Next, provide the access token via the `token` property, either as an environment variable or a secret:
 
 <Tabs>
     <Tab title="Environment Variable">

@@ -10,4 +10,5 @@ Each member has a role which defines their permissions within an organization:
 | Role | Permission |
 | :--- | :--------- |
 | `Owner` | Each organization has a single `Owner`. This user has full access rights, including: connection management, organization management, and inviting new members. |
-| `Member` | Read-only access to the organization. A `Member` can search across the repos indexed by an organization's connections, but may not manage the organization or its connections. |
+| `Member` | Read-only access to the organization. A `Member` can search across the repos indexed by an organization's connections, as well as view the organizations configuration and member list. However, they cannot modify this configuration or invite new members. |
+| `Guest` | When accessing Sourcebot [anonymously](/docs/configuration/auth/access-settings#anonymous-access), a user has the `Guest` role. `Guest`'s can search across repos indexed by an organization's connections, but cannot view any information regarding the organizations configuration or members. |

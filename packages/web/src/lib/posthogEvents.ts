@@ -275,5 +275,11 @@ export type PosthogEventMap = {
     wa_browse_goto_definition_pressed: {},
     //////////////////////////////////////////////////////////////////
     wa_explore_menu_reference_clicked: {},
+    //////////////////////////////////////////////////////////////////
+    wa_chat_feedback_submitted: {
+        feedback: 'like' | 'dislike',
+        chatId: string,
+        messageId: string,
+    },
 } 
 export type PosthogEvent = keyof PosthogEventMap;

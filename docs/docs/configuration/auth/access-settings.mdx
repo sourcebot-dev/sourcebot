@@ -1,0 +1,40 @@
+---
+title: Access Settings
+sidebarTitle: Access settings
+---
+
+There are various settings to control how users access your Sourcebot deployment.
+
+# Anonymous access
+
+<Note>Anonymous access cannot be enabled if you have an enterprise license. If you have any questions about this restriction [reach out to us](https://www.sourcebot.dev/contact).</Note>
+
+By default, your Sourcebot deployment is gated with a login page. If you'd like users to access the deployment anonymously, you can enable anonymous access. 
+
+This can be enabled by navigating to **Settings -> Access** or by setting the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable.
+
+When accessing Sourcebot anonymously, a user's permissions are limited to that of the  [Guest](/docs/configuration/auth/roles-and-permissions) role.
+
+# Member Approval 
+
+By default, Sourcebot requires new members to be approved by the owner of the deployment. This section explains how approvals work and how
+to configure this behavior.
+
+### Configuration
+Member approval can be configured by the owner of the deployment by navigating to **Settings -> Members**:
+
+![Member Approval Toggle](/images/member_approval_toggle.png)
+
+### Managing Requests
+
+If member approval is enabled, new members will be asked to submit a join request after signing up. They will not have access to the Sourcebot deployment
+until this request is approved by the owner.
+
+The owner can see and manage all pending join requests by navigating to **Settings -> Members**.
+
+## Invite link
+
+If member approval is required, an owner of the deployment can enable an invite link. When enabled, users
+can use this invite link to register and be automatically added to the organization without approval:
+
+![Invite Link Toggle](/images/invite_link_toggle.png)

@@ -238,7 +238,6 @@
         }
     },
     "settings": {
-        "reindexIntervalMs": 86400000, // 24 hours
-        "enablePublicAccess": true
+        "reindexIntervalMs": 86400000 // 24 hours
     }
 }

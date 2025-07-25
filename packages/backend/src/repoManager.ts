@@ -174,7 +174,7 @@ export class RepoManager implements IRepoManager {
     // We can no longer use repo.cloneUrl directly since it doesn't contain the token for security reasons. As a result, we need to
     // fetch the token here using the connections from the repo. Multiple connections could be referencing this repo, and each
     // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
-    // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referrencing.
+    // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
     private async getCloneCredentialsForRepo(repo: RepoWithConnections, db: PrismaClient): Promise<{ username?: string, password: string } | undefined> {
 
         for (const { connection } of repo.connections) {

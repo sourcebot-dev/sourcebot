@@ -1,3 +1,5 @@
+'use server';
+
 import { env } from "@/env.mjs";
 import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
 import { isServiceError } from "../../lib/utils";
@@ -346,5 +348,5 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             });
 
             return parser.parseAsync(searchBody);
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true, apiKey ? { apiKey, domain } : undefined)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
     );

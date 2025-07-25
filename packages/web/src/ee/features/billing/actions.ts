@@ -62,7 +62,7 @@ export const createOnboardingSubscription = async (domain: string) => sew(() =>
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.SUBSCRIPTION_ALREADY_EXISTS,
-                    message: "Attemped to create a trial subscription for an organization that already has an active subscription",
+                    message: "Attempted to create a trial subscription for an organization that already has an active subscription",
                 } satisfies ServiceError;
             }
 

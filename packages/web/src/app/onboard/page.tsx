@@ -6,7 +6,7 @@ import { AuthMethodSelector } from "@/app/components/authMethodSelector"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth";
 import { getAuthProviders } from "@/lib/authProviders";
-import { MemberApprovalRequiredToggle } from "./components/memberApprovalRequiredToggle";
+import { OrganizationAccessSettings } from "@/app/components/organizationAccessSettings";
 import { CompleteOnboardingButton } from "./components/completeOnboardingButton";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
@@ -14,12 +14,10 @@ import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
-import { BetweenHorizonalStart, GitBranchIcon, LockIcon } from "lucide-react";
+import { BetweenHorizontalStart, GitBranchIcon, LockIcon } from "lucide-react";
 import { hasEntitlement } from "@sourcebot/shared";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
-import { headers } from "next/headers";
-import { getBaseUrl, createInviteLink } from "@/lib/utils";
 
 interface OnboardingProps {
     searchParams?: { step?: string };
@@ -48,11 +46,6 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
     if (!org) {
         return <div>Error loading organization</div>;
     }
-
-    // Get the current URL to construct the full invite link
-    const headersList = headers();
-    const baseUrl = getBaseUrl(headersList);
-    const inviteLink = createInviteLink(baseUrl, org.inviteLinkId);
 
     if (org && org.isOnboarded) {
         redirect('/');
@@ -106,7 +99,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             title: "MCP Server",
             description: "Learn how to setup Sourcebot's MCP server to provide code context to your AI agents",
             href: "https://docs.sourcebot.dev/docs/features/mcp-server",
-            icon: <BetweenHorizonalStart className="w-4 h-4" />,
+            icon: <BetweenHorizontalStart className="w-4 h-4" />,
         }
     ]
 
@@ -117,7 +110,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             subtitle: "This onboarding flow will guide you through creating your owner account and configuring your organization.",
             component: (
                 <div className="space-y-6">
-                    <Button asChild className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200 font-medium">
+                    <Button asChild className="w-full">
                         <a href="/onboard?step=1">Get Started →</a>
                     </Button>
                 </div>
@@ -133,7 +126,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                         href="https://docs.sourcebot.dev/docs/configuration/auth/overview"
                         target="_blank"
                         rel="noopener"
-                        className="underline text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors"
+                        className="underline text-primary hover:text-primary/80 transition-colors"
                     >
                         documentation
                     </a>.
@@ -152,12 +145,24 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
         },
         {
             id: "configure-org",
-            title: "Configure Your Organization",
-            subtitle: "Set up your organization's security settings.",
+            title: "Configure Access Settings",
+            subtitle: (
+                <>
+                    Set up your organization&apos;s access settings.{" "}
+                    <a
+                        href="https://docs.sourcebot.dev/docs/configuration/auth/access-settings"
+                        target="_blank"
+                        rel="noopener"
+                        className="underline text-primary hover:text-primary/80 transition-colors"
+                    >
+                        Learn more
+                    </a>
+                </>
+            ),
             component: (
                 <div className="space-y-6">
-                    <MemberApprovalRequiredToggle memberApprovalRequired={org.memberApprovalRequired} inviteLinkEnabled={org.inviteLinkEnabled} inviteLink={inviteLink} />
-                    <Button asChild className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200 font-medium">
+                    <OrganizationAccessSettings />
+                    <Button asChild className="w-full">
                         <a href="/onboard?step=3">Continue →</a>
                     </Button>
                 </div>
@@ -182,7 +187,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 gap-3">
                         {resourceCards.map((resourceCard) => (
-                            <a 
+                            <a
                                 key={resourceCard.id}
                                 href={resourceCard.href}
                                 target="_blank"
@@ -244,7 +249,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                                                                                         <div className="relative">
                                         {/* Connecting line */}
                                         {index < steps.length - 1 && (
-                                            <div 
+                                            <div
                                                 className={`absolute top-10 left-1/2 transform -translate-x-1/2 w-0.5 h-8 transition-all duration-300 ${
                                                     index < currentStep ? "bg-primary" : "bg-border"
                                                 }`}
@@ -359,7 +364,7 @@ function NonOwnerOnboardingMessage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                             </div>
-                            
+
                             <div className="space-y-3">
                                 <h1 className="text-2xl font-semibold text-foreground">
                                     Onboarding In Progress
@@ -390,8 +395,8 @@ function NonOwnerOnboardingMessage() {
                             <div className="space-y-3">
                                 <div className="text-xs text-muted-foreground leading-relaxed">
                                     Need help? Contact your organization owner or check out our{" "}
-                                    <a 
-                                        href="https://docs.sourcebot.dev/docs/overview" 
+                                    <a
+                                        href="https://docs.sourcebot.dev/docs/overview"
                                         className="text-primary hover:text-primary/80 underline transition-colors"
                                         target="_blank"
                                         rel="noopener"

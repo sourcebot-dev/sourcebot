@@ -33,7 +33,7 @@ export type Plan = keyof typeof planLabels;
 const entitlements = [
     "search-contexts",
     "billing",
-    "public-access",
+    "anonymous-access",
     "multi-tenancy",
     "sso",
     "code-nav",
@@ -43,12 +43,12 @@ const entitlements = [
 export type Entitlement = (typeof entitlements)[number];
 
 const entitlementsByPlan: Record<Plan, Entitlement[]> = {
-    oss: [],
+    oss: ["anonymous-access"],
     "cloud:team": ["billing", "multi-tenancy", "sso", "code-nav"],
     "self-hosted:enterprise": ["search-contexts", "sso", "code-nav", "audit", "analytics"],
-    "self-hosted:enterprise-unlimited": ["search-contexts", "public-access", "sso", "code-nav", "audit", "analytics"],
+    "self-hosted:enterprise-unlimited": ["search-contexts", "anonymous-access", "sso", "code-nav", "audit", "analytics"],
     // Special entitlement for https://demo.sourcebot.dev
-    "cloud:demo": ["public-access", "code-nav", "search-contexts"],
+    "cloud:demo": ["anonymous-access", "code-nav", "search-contexts"],
 } as const;
 
 
