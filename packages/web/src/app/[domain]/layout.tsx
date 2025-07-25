@@ -94,7 +94,8 @@ export default async function Layout({
         }
     }
 
-    if (!org.isOnboarded) {
+    // If the org is not onboarded, and GCP IAP is not enabled, show the onboarding page
+    if (!org.isOnboarded && !(env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE)) {
         return (
             <OnboardGuard>
                 {children}
