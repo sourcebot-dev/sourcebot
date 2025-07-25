@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed 
+- Fixed onboarding infinite loop when GCP IAP Auth is enabled. [#381](https://github.com/sourcebot-dev/sourcebot/pull/381)
+
 ### Added
 - Introducing Ask Sourcebot - ask natural langauge about your codebase. Get back comprehensive Markdown responses with inline citations back to the code. Bring your own LLM api key. [#392](https://github.com/sourcebot-dev/sourcebot/pull/392) 
 
