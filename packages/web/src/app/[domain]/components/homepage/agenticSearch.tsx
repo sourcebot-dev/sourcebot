@@ -8,7 +8,7 @@ import { LanguageModelInfo } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { resetEditor } from "@/features/chat/utils";
 import { useDomain } from "@/hooks/useDomain";
-import { RepositoryQuery } from "@/lib/types";
+import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { getDisplayTime } from "@/lib/utils";
 import { BrainIcon, FileIcon, LucideIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
@@ -16,6 +16,7 @@ import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { ReactEditor, useSlate } from "slate-react";
 import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
 import { useLocalStorage } from "usehooks-ts";
+import { ContextItem } from "@/features/chat/components/chatBox/contextSelector";
 
 // @todo: we should probably rename this to a different type since it sort-of clashes
 // with the Suggestion system we have built into the chat box.
@@ -109,6 +110,7 @@ interface AgenticSearchProps {
     searchModeSelectorProps: SearchModeSelectorProps;
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
+    searchContexts: SearchContextQuery[];
     chatHistory: {
         id: string;
         createdAt: Date;
@@ -120,15 +122,16 @@ export const AgenticSearch = ({
     searchModeSelectorProps,
     languageModels,
     repos,
+    searchContexts,
     chatHistory,
 }: AgenticSearchProps) => {
     const [selectedSuggestionType, _setSelectedSuggestionType] = useState<SuggestionType | undefined>(undefined);
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const dropdownRef = useRef<HTMLDivElement>(null);
     const editor = useSlate();
-    const [selectedRepos, setSelectedRepos] = useLocalStorage<string[]>("selectedRepos", [], { initializeWithValue: false });
+    const [selectedItems, setSelectedItems] = useLocalStorage<ContextItem[]>("selectedContextItems", [], { initializeWithValue: false });
     const domain = useDomain();
-    const [isRepoSelectorOpen, setIsRepoSelectorOpen] = useState(false);
+    const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
 
     const setSelectedSuggestionType = useCallback((type: SuggestionType | undefined) => {
         _setSelectedSuggestionType(type);
@@ -158,13 +161,14 @@ export const AgenticSearch = ({
             >
                 <ChatBox
                     onSubmit={(children) => {
-                        createNewChatThread(children, selectedRepos);
+                        createNewChatThread(children, selectedItems);
                     }}
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
                     languageModels={languageModels}
-                    selectedRepos={selectedRepos}
-                    onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
+                    selectedItems={selectedItems}
+                    searchContexts={searchContexts}
+                    onContextSelectorOpenChanged={setIsContextSelectorOpen}
                 />
                 <Separator />
                 <div className="relative">
@@ -172,10 +176,11 @@ export const AgenticSearch = ({
                         <ChatBoxToolbar
                             languageModels={languageModels}
                             repos={repos}
-                            selectedRepos={selectedRepos}
-                            onSelectedReposChange={setSelectedRepos}
-                            isRepoSelectorOpen={isRepoSelectorOpen}
-                            onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
+                            searchContexts={searchContexts}
+                            selectedItems={selectedItems}
+                            onSelectedItemsChange={setSelectedItems}
+                            isContextSelectorOpen={isContextSelectorOpen}
+                            onContextSelectorOpenChanged={setIsContextSelectorOpen}
                         />
                         <SearchModeSelector
                             {...searchModeSelectorProps}
@@ -201,7 +206,7 @@ export const AgenticSearch = ({
                                         setSelectedSuggestionType(undefined);
 
                                         if (openRepoSelector) {
-                                            setIsRepoSelectorOpen(true);
+                                            setIsContextSelectorOpen(true);
                                         } else {
                                             ReactEditor.focus(editor);
                                         }
