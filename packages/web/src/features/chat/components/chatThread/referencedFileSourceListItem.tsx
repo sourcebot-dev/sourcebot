@@ -41,7 +41,8 @@ interface ReferencedFileSourceListItemProps {
     revision: string;
     repoName: string;
     repoCodeHostType: string;
-    repositoryDisplayName?: string;
+    repoDisplayName?: string;
+    repoWebUrl?: string;
     fileName: string;
     references: FileReference[];
     selectedReference?: FileReference;
@@ -59,7 +60,8 @@ const ReferencedFileSourceListItem = ({
     revision,
     repoName,
     repoCodeHostType,
-    repositoryDisplayName,
+    repoDisplayName,
+    repoWebUrl,
     fileName,
     references,
     selectedReference,
@@ -310,7 +312,8 @@ const ReferencedFileSourceListItem = ({
                     repo={{
                         name: repoName,
                         codeHostType: repoCodeHostType,
-                        displayName: repositoryDisplayName,
+                        displayName: repoDisplayName,
+                        webUrl: repoWebUrl,
                     }}
                     branchDisplayName={revision === 'HEAD' ? undefined : revision}
                     repoNameClassName="font-normal text-muted-foreground text-sm"

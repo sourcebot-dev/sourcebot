@@ -241,7 +241,8 @@ export const ReferencedSourcesListView = ({
                             revision={fileSource.revision}
                             repoName={fileSource.repo}
                             repoCodeHostType={fileData.repositoryCodeHostType}
-                            repositoryDisplayName={fileData.repositoryDisplayName}
+                            repoDisplayName={fileData.repositoryDisplayName}
+                            repoWebUrl={fileData.repositoryWebUrl}
                             fileName={fileData.path}
                             references={referencesInFile}
                             ref={(ref) => setEditorRef(fileId, ref)}
