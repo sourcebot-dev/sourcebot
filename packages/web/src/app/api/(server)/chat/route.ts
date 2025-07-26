@@ -387,6 +387,14 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
 
             return {
                 model: vertex(modelId),
+                providerOptions: {
+                    google: {
+                        thinkingConfig: {
+                            thinkingBudget: env.GOOGLE_VERTEX_THINKING_BUDGET_TOKENS,
+                            includeThoughts: env.GOOGLE_VERTEX_INCLUDE_THOUGHTS === 'true',
+                        }
+                    }
+                },
             };
         }
         case 'google-vertex-anthropic': {

@@ -278,6 +278,7 @@ export const ChatThread = ({
                                 return (
                                     <Fragment key={index}>
                                         <ChatThreadListItem
+                                            index={index}
                                             chatId={chatId}
                                             userMessage={userMessage}
                                             assistantMessage={assistantMessage}
