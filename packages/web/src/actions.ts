@@ -1868,9 +1868,10 @@ export const getSearchContexts = async (domain: string) => sew(() =>
             });
 
             return searchContexts.map((context) => ({
+                id: context.id,
                 name: context.name,
                 description: context.description ?? undefined,
-                repoCount: context.repos.length,
+                repoNames: context.repos.map((repo) => repo.name),
             }));
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));

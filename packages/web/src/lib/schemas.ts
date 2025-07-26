@@ -29,9 +29,10 @@ export const repositoryQuerySchema = z.object({
 });
 
 export const searchContextQuerySchema = z.object({
+    id: z.number(),
     name: z.string(),
     description: z.string().optional(),
-    repoCount: z.number(),
+    repoNames: z.array(z.string()),
 });
 
 export const verifyCredentialsRequestSchema = z.object({

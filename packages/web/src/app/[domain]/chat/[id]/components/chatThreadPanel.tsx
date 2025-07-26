@@ -55,7 +55,7 @@ export const ChatThreadPanel = ({
                 type: 'context' as const,
                 value: contextName,
                 name: contextName,
-                repoCount: context?.repoCount || 0
+                repoCount: context?.repoNames.length || 0
             };
         })
     ]);
@@ -79,13 +79,13 @@ export const ChatThreadPanel = ({
                         codeHostType: repoInfo?.codeHostType || ''
                     };
                 }),
-                ...(selectedContexts || []).map(contextName => {
+                ...selectedContexts.map(contextName => {
                     const context = searchContexts.find(c => c.name === contextName);
                     return {
                         type: 'context' as const,
                         value: contextName,
                         name: contextName,  
-                        repoCount: context?.repoCount || 0
+                        repoCount: context?.repoNames.length || 0
                     };
                 })
             ]);

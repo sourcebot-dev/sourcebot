@@ -19,6 +19,7 @@ import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { useSuggestionsData } from "./useSuggestionsData";
 import { useToast } from "@/components/hooks/use-toast";
 import { ContextItem } from "./contextSelector";
+import { SearchContextQuery } from "@/lib/types";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
@@ -29,6 +30,7 @@ interface ChatBoxProps {
     isGenerating?: boolean;
     languageModels: LanguageModelInfo[];
     selectedItems: ContextItem[];
+    searchContexts: SearchContextQuery[];
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
 
@@ -41,6 +43,7 @@ export const ChatBox = ({
     isGenerating,
     languageModels,
     selectedItems,
+    searchContexts,
     onContextSelectorOpenChanged,
 }: ChatBoxProps) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
@@ -50,7 +53,20 @@ export const ChatBox = ({
     const { suggestions, isLoading } = useSuggestionsData({
         suggestionMode,
         suggestionQuery,
-        selectedRepos: selectedItems.filter(item => item.type === 'repo').map(item => item.value),
+        selectedRepos: selectedItems.map((item) => {
+            if (item.type === 'repo') {
+                return [item.value];
+            }
+
+            if (item.type === 'context') {
+                const context = searchContexts.find((context) => context.name === item.value);
+                if (context) {
+                    return context.repoNames;
+                }
+            }
+
+            return [];
+        }).flat(),
     });
     const { selectedLanguageModel } = useSelectedLanguageModel({
         initialLanguageModel: languageModels.length > 0 ? languageModels[0] : undefined,

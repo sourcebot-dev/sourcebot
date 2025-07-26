@@ -51,6 +51,7 @@ export const NewChatPanel = ({
                             isRedirecting={isLoading}
                             languageModels={languageModels}
                             selectedItems={selectedItems}
+                            searchContexts={searchContexts}
                             onContextSelectorOpenChanged={setIsContextSelectorOpen}
                         />
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">

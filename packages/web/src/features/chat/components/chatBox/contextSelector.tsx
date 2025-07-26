@@ -118,7 +118,7 @@ export const ContextSelector = React.forwardRef<
                 type: 'context' as const,
                 value: context.name,
                 name: context.name,
-                repoCount: context.repoCount
+                repoCount: context.repoNames.length
             }));
             
             const repoItems: ContextItem[] = repos.map(repo => ({

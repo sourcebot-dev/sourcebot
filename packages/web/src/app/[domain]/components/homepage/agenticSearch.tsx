@@ -167,6 +167,7 @@ export const AgenticSearch = ({
                     isRedirecting={isLoading}
                     languageModels={languageModels}
                     selectedItems={selectedItems}
+                    searchContexts={searchContexts}
                     onContextSelectorOpenChanged={setIsContextSelectorOpen}
                 />
                 <Separator />
