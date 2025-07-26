@@ -111,6 +111,7 @@
     "ai": "5.0.0-beta.28",
     "ajv": "^8.17.1",
     "bcryptjs": "^3.0.2",
+    "chokidar": "^4.0.3",
     "class-variance-authority": "^0.7.0",
     "client-only": "^0.0.1",
     "clsx": "^2.1.1",
