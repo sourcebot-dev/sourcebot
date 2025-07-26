@@ -482,7 +482,8 @@ describe('StateField Integration', () => {
                 path: 'test.ts',
                 id: '1',
                 type: 'file',
-                range: { startLine: 10, endLine: 15 }
+                range: { startLine: 10, endLine: 15 },
+                repo: 'github.com/sourcebot-dev/sourcebot'
             }
         ];
 

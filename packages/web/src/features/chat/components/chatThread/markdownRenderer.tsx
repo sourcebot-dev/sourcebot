@@ -63,9 +63,12 @@ function remarkReferencesPlugin() {
                 return {
                     type: 'html',
                     // @note: if you add additional attributes to this span, make sure to update the rehypeSanitize plugin to allow them.
+                    //
+                    // @note: we attach the reference id to the DOM element as a class name since there may be multiple reference elements
+                    // with the same id (i.e., referencing the same file & range).
                     value: `<span
                         role="button"
-                        id="${fileReference.id}"
+                        class="${fileReference.id}"
                         className="font-mono cursor-pointer text-xs border px-1 py-[1.5px] rounded-md transition-all duration-150 bg-chat-reference"
                         title="Click to navigate to code"
                         ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(fileReference))}"

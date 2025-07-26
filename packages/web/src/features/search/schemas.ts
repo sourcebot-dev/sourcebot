@@ -118,6 +118,7 @@ export const fileSourceResponseSchema = z.object({
     repository: z.string(),
     repositoryCodeHostType: z.string(),
     repositoryDisplayName: z.string().optional(),
+    repositoryWebUrl: z.string().optional(),
     branch: z.string().optional(),
     webUrl: z.string().optional(),
 });

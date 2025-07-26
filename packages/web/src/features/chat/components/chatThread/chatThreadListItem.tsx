@@ -1,26 +1,19 @@
 'use client';
 
 import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
-import { Card, CardContent } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
-import { Brain, CheckCircle, ChevronDown, ChevronRight, Clock, Cpu, InfoIcon, Loader2, Zap } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 import { CSSProperties, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { ANSWER_TAG } from '../../constants';
-import { Reference, referenceSchema, SBChatMessage, SBChatMessageMetadata, Source } from "../../types";
+import { Reference, referenceSchema, SBChatMessage, Source } from "../../types";
 import { useExtractReferences } from '../../useExtractReferences';
-import { getAnswerPartFromAssistantMessage, groupMessageIntoSteps } from '../../utils';
+import { getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences } from '../../utils';
 import { AnswerCard } from './answerCard';
+import { DetailsCard } from './detailsCard';
 import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
 import { ReferencedSourcesListView } from './referencedSourcesListView';
-import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
-import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
-import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
-import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
+import { uiVisiblePartTypes } from '../../constants';
 
 interface ChatThreadListItemProps {
     userMessage: SBChatMessage;
@@ -28,34 +21,56 @@ interface ChatThreadListItemProps {
     isStreaming: boolean;
     sources: Source[];
     chatId: string;
+    index: number;
 }
 
 export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemProps>(({
     userMessage,
-    assistantMessage,
+    assistantMessage: _assistantMessage,
     isStreaming,
     sources,
     chatId,
+    index,
 }, ref) => {
     const leftPanelRef = useRef<HTMLDivElement>(null);
     const [leftPanelHeight, setLeftPanelHeight] = useState<number | null>(null);
-    const markdownRendererRef = useRef<HTMLDivElement>(null);
+    const answerRef = useRef<HTMLDivElement>(null);
 
     const [hoveredReference, setHoveredReference] = useState<Reference | undefined>(undefined);
     const [selectedReference, setSelectedReference] = useState<Reference | undefined>(undefined);
-    const references = useExtractReferences(assistantMessage);
     const [isDetailsPanelExpanded, _setIsDetailsPanelExpanded] = useState(isStreaming);
     const hasAutoCollapsed = useRef(false);
     const userHasManuallyExpanded = useRef(false);
-
 
     const userQuestion = useMemo(() => {
         return userMessage.parts.length > 0 && userMessage.parts[0].type === 'text' ? userMessage.parts[0].text : '';
     }, [userMessage]);
 
-    const messageMetadata = useMemo((): SBChatMessageMetadata | undefined => {
-        return assistantMessage?.metadata;
-    }, [assistantMessage?.metadata]);
+    // Take the assistant message and repair any references that are not properly formatted.
+    // This applies to parts that are text (i.e., text & reasoning).
+    const assistantMessage = useMemo(() => {
+        if (!_assistantMessage) {
+            return undefined;
+        }
+
+        return {
+            ..._assistantMessage,
+            ...(_assistantMessage.parts ? {
+                parts: _assistantMessage.parts.map(part => {
+                    switch (part.type) {
+                        case 'text':
+                        case 'reasoning':
+                            return {
+                                ...part,
+                                text: repairReferences(part.text),
+                            }
+                        default:
+                            return part;
+                    }
+                }),
+            } : {}),
+        } satisfies SBChatMessage;
+    }, [_assistantMessage]);
 
     const answerPart = useMemo(() => {
         if (!assistantMessage) {
@@ -65,11 +80,33 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
         return getAnswerPartFromAssistantMessage(assistantMessage, isStreaming);
     }, [assistantMessage, isStreaming]);
 
+    const references = useExtractReferences(answerPart);
 
-    const thinkingSteps = useMemo(() => {
+    // Groups parts into steps that are associated with thinking steps that
+    // should be visible to the user. By "steps", we mean parts that originated
+    // from the same LLM invocation. By "visibile", we mean parts that have some
+    // visual representation in the UI (e.g., text, reasoning, tool calls, etc.).
+    const uiVisibleThinkingSteps = useMemo(() => {
         const steps = groupMessageIntoSteps(assistantMessage?.parts ?? []);
+
         // Filter out the answerPart and empty steps
-        return steps.map(step => step.filter(part => part !== answerPart)).filter(step => step.length > 0);
+        return steps
+            .map(
+                (step) => step
+                    // First, filter out any parts that are not text
+                    .filter((part) => {
+                        if (part.type !== 'text') {
+                            return true;
+                        }
+
+                        return part.text !== answerPart?.text;
+                    })
+                    .filter((part) => {
+                        return uiVisiblePartTypes.includes(part.type);
+                    })
+            )
+            // Then, filter out any steps that are empty
+            .filter(step => step.length > 0);
     }, [answerPart, assistantMessage?.parts]);
 
     // "thinking" is when the agent is generating output that is not the answer.
@@ -123,13 +160,14 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
         };
     }, [leftPanelHeight]);
 
-
+    // Handles mouse over and click events on reference elements, syncing these events
+    // with the `hoveredReference` and `selectedReference` state.
     useEffect(() => {
-        if (!markdownRendererRef.current) {
+        if (!answerRef.current) {
             return;
         }
 
-        const markdownRenderer = markdownRendererRef.current;
+        const markdownRenderer = answerRef.current;
 
         const handleMouseOver = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
@@ -175,44 +213,59 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
         };
     }, [answerPart, selectedReference?.id]); // Re-run when answerPart changes to ensure we catch new content
 
-
+    // When the selected reference changes, highlight all associated reference elements
+    // and scroll to the nearest one, if needed.
     useEffect(() => {
         if (!selectedReference) {
             return;
         }
 
-        const referenceElement = document.getElementById(`user-content-${selectedReference.id}`);
-        if (!referenceElement) {
+        // The reference id is attached to the DOM element as a class name.
+        // @see: markdownRenderer.tsx
+        const referenceElements = Array.from(answerRef.current?.getElementsByClassName(selectedReference.id) ?? []);
+        if (referenceElements.length === 0) {
             return;
         }
 
-        scrollIntoView(referenceElement, {
+        const nearestReferenceElement = getNearestReferenceElement(referenceElements);
+        scrollIntoView(nearestReferenceElement, {
             behavior: 'smooth',
             scrollMode: 'if-needed',
             block: 'center',
         });
 
-        referenceElement.classList.add('chat-reference--selected');
+        referenceElements.forEach(element => {
+            element.classList.add('chat-reference--selected');
+        });
 
         return () => {
-            referenceElement.classList.remove('chat-reference--selected');
+            referenceElements.forEach(element => {
+                element.classList.remove('chat-reference--selected');
+            });
         };
     }, [selectedReference]);
 
+    // When the hovered reference changes, highlight all associated reference elements.
     useEffect(() => {
         if (!hoveredReference) {
             return;
         }
 
-        const referenceElement = document.getElementById(`user-content-${hoveredReference.id}`);
-        if (!referenceElement) {
+        // The reference id is attached to the DOM element as a class name.
+        // @see: markdownRenderer.tsx
+        const referenceElements = Array.from(answerRef.current?.getElementsByClassName(hoveredReference.id) ?? []);
+        if (referenceElements.length === 0) {
             return;
         }
 
-        referenceElement.classList.add('chat-reference--hover');
+        referenceElements.forEach(element => {
+            element.classList.add('chat-reference--hover');
+        });
 
         return () => {
-            referenceElement.classList.remove('chat-reference--hover');
+            referenceElements.forEach(element => {
+                element.classList.remove('chat-reference--hover');
+            });
         };
     }, [hoveredReference]);
 
@@ -265,151 +318,22 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
                             </div>
                         )}
 
-                        <Card className="mb-4">
-                            <Collapsible open={isDetailsPanelExpanded} onOpenChange={onExpandDetailsPanel}>
-                                <CollapsibleTrigger asChild>
-                                    <CardContent
-                                        className={cn("p-3 cursor-pointer hover:bg-muted", {
-                                            "rounded-lg": !isDetailsPanelExpanded,
-                                            "rounded-t-lg": isDetailsPanelExpanded,
-                                        })}
-                                    >
-                                        <div className="flex items-center justify-between w-full">
-                                            <div className="flex items-center space-x-4">
+                        <DetailsCard
+                            isExpanded={isDetailsPanelExpanded}
+                            onExpandedChanged={onExpandDetailsPanel}
+                            isThinking={isThinking}
+                            isStreaming={isStreaming}
+                            thinkingSteps={uiVisibleThinkingSteps}
+                            metadata={assistantMessage?.metadata}
+                        />
 
-                                                <p className="flex items-center font-semibold text-muted-foreground text-sm">
-                                                    {isThinking ? (
-                                                        <>
-                                                            <Loader2 className="w-4 h-4 animate-spin mr-1 flex-shrink-0" />
-                                                            Thinking...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <InfoIcon className="w-4 h-4 mr-1 flex-shrink-0" />
-                                                            Details
-                                                        </>
-                                                    )}
-                                                </p>
-                                                {!isStreaming && (
-                                                    <>
-                                                        <Separator orientation="vertical" className="h-4" />
-                                                        {messageMetadata?.modelName && (
-                                                            <div className="flex items-center text-xs">
-                                                                <Cpu className="w-3 h-3 mr-1 flex-shrink-0" />
-                                                                {messageMetadata?.modelName}
-                                                            </div>
-                                                        )}
-                                                        {messageMetadata?.totalTokens && (
-                                                            <div className="flex items-center text-xs">
-                                                                <Zap className="w-3 h-3 mr-1 flex-shrink-0" />
-                                                                {messageMetadata?.totalTokens} tokens
-                                                            </div>
-                                                        )}
-                                                        {messageMetadata?.totalResponseTimeMs && (
-                                                            <div className="flex items-center text-xs">
-                                                                <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
-                                                                {messageMetadata?.totalResponseTimeMs / 1000} seconds
-                                                            </div>
-                                                        )}
-                                                        <div className="flex items-center text-xs">
-                                                            <Brain className="w-3 h-3 mr-1 flex-shrink-0" />
-                                                            {`${thinkingSteps.length} step${thinkingSteps.length === 1 ? '' : 's'}`}
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
-
-                                            {isDetailsPanelExpanded ? (
-                                                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                            ) : (
-                                                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                    <CardContent className="mt-2 space-y-6">
-                                        {thinkingSteps.length === 0 ? (
-                                            isStreaming ? (
-                                                <Skeleton className="h-24 w-full" />
-                                            ) : (
-                                                <p className="text-sm text-muted-foreground">No thinking steps</p>
-                                            )
-                                        ) : thinkingSteps.map((step, index) => {
-                                            return (
-                                                <div
-                                                    key={index}
-                                                    className="border-l-2 pl-4 relative border-muted"
-                                                >
-                                                    <div
-                                                        className={`absolute left-[-9px] top-1 w-4 h-4 rounded-full flex items-center justify-center bg-muted`}
-                                                    >
-                                                        <span
-                                                            className={`text-xs font-semibold`}
-                                                        >
-                                                            {index + 1}
-                                                        </span>
-                                                    </div>
-                                                    {step.map((part, index) => {
-                                                        switch (part.type) {
-                                                            case 'reasoning':
-                                                            case 'text':
-                                                                return (
-                                                                    <MarkdownRenderer
-                                                                        key={index}
-                                                                        content={part.text}
-                                                                        className="text-sm"
-                                                                    />
-                                                                )
-                                                            case 'tool-readFiles':
-                                                                return (
-                                                                    <ReadFilesToolComponent
-                                                                        key={index}
-                                                                        part={part}
-                                                                    />
-                                                                )
-                                                            case 'tool-searchCode':
-                                                                return (
-                                                                    <SearchCodeToolComponent
-                                                                        key={index}
-                                                                        part={part}
-                                                                    />
-                                                                )
-                                                            case 'tool-findSymbolDefinitions':
-                                                                return (
-                                                                    <FindSymbolDefinitionsToolComponent
-                                                                        key={index}
-                                                                        part={part}
-                                                                    />
-                                                                )
-                                                            case 'tool-findSymbolReferences':
-                                                                return (
-                                                                    <FindSymbolReferencesToolComponent
-                                                                        key={index}
-                                                                        part={part}
-                                                                    />
-                                                                )
-                                                            default:
-                                                                return null;
-                                                        }
-                                                    })}
-                                                </div>
-                                            )
-                                        })}
-                                    </CardContent>
-                                </CollapsibleContent>
-                            </Collapsible>
-                        </Card>
-
-
-                        {/* Answer section */}
                         {(answerPart && assistantMessage) ? (
                             <AnswerCard
-                                ref={markdownRendererRef}
-                                answerText={answerPart.text.replace(ANSWER_TAG, '').trim()}
+                                ref={answerRef}
+                                answerText={answerPart.text}
                                 chatId={chatId}
                                 messageId={assistantMessage.id}
-                                traceId={messageMetadata?.traceId}
+                                traceId={assistantMessage.metadata?.traceId}
                             />
                         ) : !isStreaming && (
                             <p className="text-destructive">Error: No answer response was provided</p>
@@ -432,6 +356,7 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
                     >
                         {references.length > 0 ? (
                             <ReferencedSourcesListView
+                                index={index}
                                 references={references}
                                 sources={sources}
                                 hoveredReference={hoveredReference}
@@ -459,3 +384,20 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
 });
 
 ChatThreadListItem.displayName = 'ChatThreadListItem';
+
+// Finds the nearest reference element to the viewport center.
+const getNearestReferenceElement = (referenceElements: Element[]) => {
+    return referenceElements.reduce((nearest, current) => {
+        if (!nearest) return current;
+
+        const nearestRect = nearest.getBoundingClientRect();
+        const currentRect = current.getBoundingClientRect();
+
+        // Calculate distance from element center to viewport center
+        const viewportCenter = window.innerHeight / 2;
+        const nearestDistance = Math.abs((nearestRect.top + nearestRect.bottom) / 2 - viewportCenter);
+        const currentDistance = Math.abs((currentRect.top + currentRect.bottom) / 2 - viewportCenter);
+
+        return currentDistance < nearestDistance ? current : nearest;
+    });
+}

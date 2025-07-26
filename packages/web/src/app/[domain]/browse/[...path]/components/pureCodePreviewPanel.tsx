@@ -136,7 +136,9 @@ export const PureCodePreviewPanel = ({
     }, [editorRef, highlightRange]);
 
     const onFindReferences = useCallback((symbolName: string) => {
-        captureEvent('wa_browse_find_references_pressed', {});
+        captureEvent('wa_find_references_pressed', {
+            source: 'browse',
+        });
         createAuditAction({
             action: "user.performed_find_references",
             metadata: {
@@ -160,7 +162,9 @@ export const PureCodePreviewPanel = ({
     // If we resolve multiple matches, instead of navigating to the first match, we should
     // instead popup the bottom sheet with the list of matches.
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
-        captureEvent('wa_browse_goto_definition_pressed', {});
+        captureEvent('wa_goto_definition_pressed', {
+            source: 'browse',
+        });
         createAuditAction({
             action: "user.performed_goto_definition",
             metadata: {
