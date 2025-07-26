@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.0] - 2025-07-25
+
 ### Added
 - Introducing Ask Sourcebot - ask natural langauge about your codebase. Get back comprehensive Markdown responses with inline citations back to the code. Bring your own LLM api key. [#392](https://github.com/sourcebot-dev/sourcebot/pull/392) 
 
