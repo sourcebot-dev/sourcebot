@@ -11,7 +11,7 @@ import {
 import Image from "next/image";
 
 import { cn, getCodeHostIcon } from "@/lib/utils";
-import { RepositoryQuery } from "@/lib/types";
+import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -29,18 +29,25 @@ import {
     CommandSeparator,
 } from "@/components/ui/command";
 
-export type ContextItem = {
-    type: 'repo' | 'context';
+export type RepoContextItem = {
+    type: 'repo';
     value: string;
     name: string;
-    description?: string;
-    codeHostType?: string; // For repos only
-    repoCount?: number; // For search contexts only
-};
+    codeHostType: string;
+}
+
+export type SearchContextItem = {
+    type: 'context';
+    value: string;
+    name: string;
+    repoCount: number;
+}
+
+export type ContextItem = RepoContextItem | SearchContextItem;
 
 interface ContextSelectorProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     repos: RepositoryQuery[];
-    searchContexts: { name: string; description?: string; repoCount: number }[];
+    searchContexts: SearchContextQuery[];
     selectedItems: ContextItem[];
     onSelectedItemsChange: (items: ContextItem[]) => void;
     className?: string;
@@ -111,7 +118,6 @@ export const ContextSelector = React.forwardRef<
                 type: 'context' as const,
                 value: context.name,
                 name: context.name,
-                description: context.description,
                 repoCount: context.repoCount
             }));
             
@@ -236,7 +242,7 @@ export const ContextSelector = React.forwardRef<
                                                         <span className="font-medium">
                                                             {item.name}
                                                         </span>
-                                                        {item.type === 'context' && item.repoCount !== undefined && (
+                                                        {item.type === 'context' && item.repoCount && (
                                                             <Badge 
                                                                 variant="default" 
                                                                 className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground"
@@ -245,11 +251,6 @@ export const ContextSelector = React.forwardRef<
                                                             </Badge>
                                                         )}
                                                     </div>
-                                                    {item.description && (
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {item.description}
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </div>
                                         </CommandItem>

@@ -12,7 +12,7 @@ import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon } from 'lucide-react';
 import { useNavigationGuard } from 'next-navigation-guard';
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
 import { useSelectedLanguageModel } from '../../useSelectedLanguageModel';
@@ -61,6 +61,12 @@ export const ChatThread = ({
     const { toast } = useToast();
     const router = useRouter();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
+
+    const { selectedRepos, selectedContexts } = useMemo(() => {
+        const repos = selectedItems.filter(item => item.type === 'repo').map(item => item.value);
+        const contexts = selectedItems.filter(item => item.type === 'context').map(item => item.value);
+        return { selectedRepos: repos, selectedContexts: contexts };
+    }, [selectedItems]);
 
     // Initial state is from attachments that exist in in the chat history.
     const [sources, setSources] = useState<Source[]>(
@@ -114,10 +120,6 @@ export const ChatThread = ({
             .map((part) => part.data);
         setSources((prev) => [...prev, ...sources]);
 
-        // Extract repos and contexts from selectedItems
-        const selectedRepos = selectedItems.filter(item => item.type === 'repo').map(item => item.value);
-        const selectedContexts = selectedItems.filter(item => item.type === 'context').map(item => item.value);
-
         _sendMessage(message, {
             body: {
                 selectedRepos,
@@ -125,7 +127,7 @@ export const ChatThread = ({
                 languageModelId: selectedLanguageModel.model,
             } satisfies AdditionalChatRequestParams,
         });
-    }, [_sendMessage, selectedLanguageModel, selectedItems, toast]);
+    }, [_sendMessage, selectedLanguageModel, toast, selectedRepos, selectedContexts]);
 
 
     const messagePairs = useMessagePairs(messages);
@@ -241,16 +243,13 @@ export const ChatThread = ({
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-        // Extract repos and contexts from selectedItems for createUIMessage
-        const selectedRepos = selectedItems.filter(item => item.type === 'repo').map(item => item.value);
-        const selectedContexts = selectedItems.filter(item => item.type === 'context').map(item => item.value);
         const message = createUIMessage(text, mentions.map(({ data }) => data), selectedRepos, selectedContexts);
         sendMessage(message);
 
         setIsAutoScrollEnabled(true);
 
         resetEditor(editor);
-    }, [sendMessage, selectedItems]);
+    }, [sendMessage, selectedRepos, selectedContexts]);
 
     return (
         <>

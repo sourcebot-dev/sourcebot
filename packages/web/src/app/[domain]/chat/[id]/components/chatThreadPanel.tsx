@@ -46,10 +46,18 @@ export const ChatThreadPanel = ({
                 type: 'repo' as const,
                 value: repoName,
                 name: repoInfo?.repoDisplayName || repoName.split('/').pop() || repoName,
-                codeHostType: repoInfo?.codeHostType
+                codeHostType: repoInfo?.codeHostType || ''
             };
         }),
-        ...defaultSelectedContexts.map(context => ({ type: 'context' as const, value: context, name: context }))
+        ...defaultSelectedContexts.map(contextName => {
+            const context = searchContexts.find(c => c.name === contextName);
+            return {
+                type: 'context' as const,
+                value: contextName,
+                name: contextName,
+                repoCount: context?.repoCount || 0
+            };
+        })
     ]);
 
     useEffect(() => {
@@ -68,10 +76,18 @@ export const ChatThreadPanel = ({
                         type: 'repo' as const,
                         value: repoName,
                         name: repoInfo?.repoDisplayName || repoName.split('/').pop() || repoName,
-                        codeHostType: repoInfo?.codeHostType
+                        codeHostType: repoInfo?.codeHostType || ''
                     };
                 }),
-                ...(selectedContexts || []).map(context => ({ type: 'context' as const, value: context, name: context }))
+                ...(selectedContexts || []).map(contextName => {
+                    const context = searchContexts.find(c => c.name === contextName);
+                    return {
+                        type: 'context' as const,
+                        value: contextName,
+                        name: contextName,  
+                        repoCount: context?.repoCount || 0
+                    };
+                })
             ]);
         } catch {
             console.error('Invalid message in URL');
@@ -81,7 +97,7 @@ export const ChatThreadPanel = ({
         const newSearchParams = new URLSearchParams(searchParams.toString());
         newSearchParams.delete(SET_CHAT_STATE_QUERY_PARAM);
         router.replace(`?${newSearchParams.toString()}`, { scroll: false });
-    }, [searchParams, router, repos]);
+    }, [searchParams, router, repos, searchContexts]);
 
     return (
         <ResizablePanel
