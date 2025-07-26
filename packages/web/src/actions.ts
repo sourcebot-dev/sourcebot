@@ -1862,11 +1862,15 @@ export const getSearchContexts = async (domain: string) => sew(() =>
                 where: {
                     orgId: org.id,
                 },
+                include: {
+                    repos: true,
+                },
             });
 
             return searchContexts.map((context) => ({
                 name: context.name,
                 description: context.description ?? undefined,
+                repoCount: context.repos.length,
             }));
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));

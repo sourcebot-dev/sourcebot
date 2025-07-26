@@ -8,6 +8,7 @@ import { CreateUIMessage } from 'ai';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useChatId } from '../../useChatId';
+import { ContextItem } from '@/features/chat/components/chatBox/contextSelector';
 
 interface ChatThreadPanelProps {
     languageModels: LanguageModelInfo[];
@@ -31,8 +32,23 @@ export const ChatThreadPanel = ({
     const searchParams = useSearchParams();
     const [inputMessage, setInputMessage] = useState<CreateUIMessage<SBChatMessage> | undefined>(undefined);
 
-    // Use the last user's last message to determine what repos we should select by default.
-    const [selectedRepos, setSelectedRepos] = useState<string[]>(messages.findLast((message) => message.role === "user")?.metadata?.selectedRepos ?? []);
+    // Use the last user's last message to determine what repos and contexts we should select by default.
+    const lastUserMessage = messages.findLast((message) => message.role === "user");
+    const defaultSelectedRepos = lastUserMessage?.metadata?.selectedRepos ?? [];
+    const defaultSelectedContexts = lastUserMessage?.metadata?.selectedContexts ?? [];
+    
+    const [selectedItems, setSelectedItems] = useState<ContextItem[]>([
+        ...defaultSelectedRepos.map(repoName => {
+            const repoInfo = repos.find(r => r.repoName === repoName);
+            return {
+                type: 'repo' as const,
+                value: repoName,
+                name: repoInfo?.repoDisplayName || repoName.split('/').pop() || repoName,
+                codeHostType: repoInfo?.codeHostType
+            };
+        }),
+        ...defaultSelectedContexts.map(context => ({ type: 'context' as const, value: context, name: context }))
+    ]);
 
     useEffect(() => {
         const setChatState = searchParams.get(SET_CHAT_STATE_QUERY_PARAM);
@@ -41,9 +57,20 @@ export const ChatThreadPanel = ({
         }
 
         try {
-            const { inputMessage, selectedRepos } = JSON.parse(setChatState) as SetChatStatePayload;
+            const { inputMessage, selectedRepos, selectedContexts } = JSON.parse(setChatState) as SetChatStatePayload;
             setInputMessage(inputMessage);
-            setSelectedRepos(selectedRepos);
+            setSelectedItems([
+                ...selectedRepos.map(repoName => {
+                    const repoInfo = repos.find(r => r.repoName === repoName);
+                    return {
+                        type: 'repo' as const,
+                        value: repoName,
+                        name: repoInfo?.repoDisplayName || repoName.split('/').pop() || repoName,
+                        codeHostType: repoInfo?.codeHostType
+                    };
+                }),
+                ...(selectedContexts || []).map(context => ({ type: 'context' as const, value: context, name: context }))
+            ]);
         } catch {
             console.error('Invalid message in URL');
         }
@@ -52,7 +79,7 @@ export const ChatThreadPanel = ({
         const newSearchParams = new URLSearchParams(searchParams.toString());
         newSearchParams.delete(SET_CHAT_STATE_QUERY_PARAM);
         router.replace(`?${newSearchParams.toString()}`, { scroll: false });
-    }, [searchParams, router]);
+    }, [searchParams, router, repos]);
 
     return (
         <ResizablePanel
@@ -67,8 +94,8 @@ export const ChatThreadPanel = ({
                     inputMessage={inputMessage}
                     languageModels={languageModels}
                     repos={repos}
-                    selectedRepos={selectedRepos}
-                    onSelectedReposChange={setSelectedRepos}
+                    selectedItems={selectedItems}
+                    onSelectedItemsChange={setSelectedItems}
                     isChatReadonly={isChatReadonly}
                 />
             </div>

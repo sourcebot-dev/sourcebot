@@ -18,6 +18,7 @@ import { Suggestion } from "./types";
 import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { useSuggestionsData } from "./useSuggestionsData";
 import { useToast } from "@/components/hooks/use-toast";
+import { ContextItem } from "./contextSelector";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
@@ -27,8 +28,8 @@ interface ChatBoxProps {
     isRedirecting?: boolean;
     isGenerating?: boolean;
     languageModels: LanguageModelInfo[];
-    selectedRepos: string[];
-    onRepoSelectorOpenChanged: (isOpen: boolean) => void;
+    selectedItems: ContextItem[];
+    onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
 
 export const ChatBox = ({
@@ -39,8 +40,8 @@ export const ChatBox = ({
     isRedirecting,
     isGenerating,
     languageModels,
-    selectedRepos,
-    onRepoSelectorOpenChanged,
+    selectedItems,
+    onContextSelectorOpenChanged,
 }: ChatBoxProps) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
@@ -49,7 +50,7 @@ export const ChatBox = ({
     const { suggestions, isLoading } = useSuggestionsData({
         suggestionMode,
         suggestionQuery,
-        selectedRepos,
+        selectedRepos: selectedItems.filter(item => item.type === 'repo').map(item => item.value),
     });
     const { selectedLanguageModel } = useSelectedLanguageModel({
         initialLanguageModel: languageModels.length > 0 ? languageModels[0] : undefined,
@@ -113,7 +114,7 @@ export const ChatBox = ({
             }
         }
 
-        if (selectedRepos.length === 0) {
+        if (selectedItems.length === 0) {
             return {
                 isSubmitDisabled: true,
                 isSubmitDisabledReason: "no-repos-selected",
@@ -137,7 +138,7 @@ export const ChatBox = ({
         editor.children,
         isRedirecting,
         isGenerating,
-        selectedRepos.length,
+        selectedItems.length,
         selectedLanguageModel,
     ])
 
@@ -145,17 +146,17 @@ export const ChatBox = ({
         if (isSubmitDisabled) {
             if (isSubmitDisabledReason === "no-repos-selected") {
                 toast({
-                    description: "⚠️ One or more repositories must be selected.",
+                    description: "⚠️ One or more repositories or contexts must be selected.",
                     variant: "destructive",
                 });
-                onRepoSelectorOpenChanged(true);
+                onContextSelectorOpenChanged(true);
             }
 
             return;
         }
 
         _onSubmit(editor.children, editor);
-    }, [_onSubmit, editor, isSubmitDisabled, isSubmitDisabledReason, toast, onRepoSelectorOpenChanged]);
+    }, [_onSubmit, editor, isSubmitDisabled, isSubmitDisabledReason, toast, onContextSelectorOpenChanged]);
 
     const onInsertSuggestion = useCallback((suggestion: Suggestion) => {
         switch (suggestion.type) {

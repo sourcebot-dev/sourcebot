@@ -11,6 +11,7 @@ import { createChat } from "./actions";
 import { isServiceError } from "@/lib/utils";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from "./types";
+import { ContextItem } from "./components/chatBox/contextSelector";
 
 export const useCreateNewChatThread = () => {
     const domain = useDomain();
@@ -18,10 +19,15 @@ export const useCreateNewChatThread = () => {
     const { toast } = useToast();
     const router = useRouter();
 
-    const createNewChatThread = useCallback(async (children: Descendant[], selectedRepos: string[]) => {
+    const createNewChatThread = useCallback(async (children: Descendant[], selectedItems: ContextItem[]) => {
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
-        const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedRepos);
+        
+        // Extract repos and contexts from selectedItems
+        const selectedRepos = selectedItems.filter(item => item.type === 'repo').map(item => item.value);
+        const selectedContexts = selectedItems.filter(item => item.type === 'context').map(item => item.value);
+        
+        const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedRepos, selectedContexts);
 
         setIsLoading(true);
         const response = await createChat(domain);
@@ -37,6 +43,7 @@ export const useCreateNewChatThread = () => {
             [SET_CHAT_STATE_QUERY_PARAM, JSON.stringify({
                 inputMessage,
                 selectedRepos,
+                selectedContexts,
             } satisfies SetChatStatePayload)],
         );
 

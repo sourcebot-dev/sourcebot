@@ -51,6 +51,7 @@ export const sbChatMessageMetadataSchema = z.object({
         userId: z.string(),
     })).optional(),
     selectedRepos: z.array(z.string()).optional(),
+    selectedContexts: z.array(z.string()).optional(),
     traceId: z.string().optional(),
 });
 
@@ -139,6 +140,7 @@ export const SET_CHAT_STATE_QUERY_PARAM = 'setChatState';
 export type SetChatStatePayload = {
     inputMessage: CreateUIMessage<SBChatMessage>;
     selectedRepos: string[];
+    selectedContexts?: string[];
 }
 
 
@@ -156,5 +158,6 @@ export type LanguageModelInfo = {
 export const additionalChatRequestParamsSchema = z.object({
     languageModelId: z.string(),
     selectedRepos: z.array(z.string()),
+    selectedContexts: z.array(z.string()).optional(),
 });
 export type AdditionalChatRequestParams = z.infer<typeof additionalChatRequestParamsSchema>;
