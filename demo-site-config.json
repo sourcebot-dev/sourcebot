@@ -225,7 +225,8 @@
                 "nextauthjs/next-auth",
                 "flameshot-org/flameshot",
                 "envoyproxy/envoy",
-                "sourcebot-dev/zoekt"
+                "sourcebot-dev/zoekt",
+                "django/django"
             ]
         },
         // Defines the GitLab repositories.
