@@ -22,7 +22,7 @@ import { ChatThreadListItem } from './chatThreadListItem';
 import { ErrorBanner } from './errorBanner';
 import { useRouter } from 'next/navigation';
 import { usePrevious } from '@uidotdev/usehooks';
-import { RepositoryQuery } from '@/lib/types';
+import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
 import { ContextItem } from '../chatBox/contextSelector';
 
 type ChatHistoryState = {
@@ -35,6 +35,7 @@ interface ChatThreadProps {
     inputMessage?: CreateUIMessage<SBChatMessage>;
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
+    searchContexts: SearchContextQuery[];
     selectedItems: ContextItem[];
     onSelectedItemsChange: (items: ContextItem[]) => void;
     isChatReadonly: boolean;
@@ -46,6 +47,7 @@ export const ChatThread = ({
     inputMessage,
     languageModels,
     repos,
+    searchContexts,
     selectedItems,
     onSelectedItemsChange,
     isChatReadonly,
@@ -333,6 +335,7 @@ export const ChatThread = ({
                             <ChatBoxToolbar
                                 languageModels={languageModels}
                                 repos={repos}
+                                searchContexts={searchContexts}
                                 selectedItems={selectedItems}
                                 onSelectedItemsChange={onSelectedItemsChange}
                                 isContextSelectorOpen={isContextSelectorOpen}

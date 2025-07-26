@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { LanguageModelInfo } from "@/features/chat/types";
-import { RepositoryQuery } from "@/lib/types";
+import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { AtSignIcon } from "lucide-react";
 import { useCallback } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -13,14 +13,11 @@ import { ReactEditor, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { LanguageModelSelector } from "./languageModelSelector";
 import { ContextSelector, type ContextItem } from "./contextSelector";
-import { useQuery } from "@tanstack/react-query";
-import { getSearchContexts } from "@/actions";
-import { useDomain } from "@/hooks/useDomain";
-import { isServiceError } from "@/lib/utils";
 
 export interface ChatBoxToolbarProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
+    searchContexts: SearchContextQuery[];
     selectedItems: ContextItem[];
     onSelectedItemsChange: (items: ContextItem[]) => void;
     isContextSelectorOpen: boolean;
@@ -30,25 +27,14 @@ export interface ChatBoxToolbarProps {
 export const ChatBoxToolbar = ({
     languageModels,
     repos,
+    searchContexts,
     selectedItems,
     onSelectedItemsChange,
     isContextSelectorOpen,
     onContextSelectorOpenChanged,
 }: ChatBoxToolbarProps) => {
     const editor = useSlate();
-    const domain = useDomain();
     
-    const { data: searchContexts } = useQuery({
-        queryKey: ["searchContexts", domain],
-        queryFn: () => getSearchContexts(domain),
-        select: (data) => {
-            if (isServiceError(data)) {
-                return [];
-            }
-            return data;
-        },
-    });
-
     const onAddContext = useCallback(() => {
         editor.insertText("@");
         ReactEditor.focus(editor);
@@ -95,7 +81,7 @@ export const ChatBoxToolbar = ({
                     <ContextSelector
                         className="bg-inherit w-fit h-6 min-h-6"
                         repos={repos}
-                        searchContexts={searchContexts || []}
+                        searchContexts={searchContexts}
                         selectedItems={selectedItems}
                         onSelectedItemsChange={onSelectedItemsChange}
                         isOpen={isContextSelectorOpen}

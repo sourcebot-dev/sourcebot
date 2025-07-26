@@ -6,7 +6,7 @@ import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolba
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { LanguageModelInfo } from "@/features/chat/types";
-import { RepositoryQuery } from "@/lib/types";
+import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { useCallback, useState } from "react";
 import { Descendant } from "slate";
 import { useLocalStorage } from "usehooks-ts";
@@ -15,12 +15,14 @@ import { ContextItem } from "@/features/chat/components/chatBox/contextSelector"
 interface NewChatPanelProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
+    searchContexts: SearchContextQuery[];
     order: number;
 }
 
 export const NewChatPanel = ({
     languageModels,
     repos,
+    searchContexts,
     order,
 }: NewChatPanelProps) => {
     const [selectedItems, setSelectedItems] = useLocalStorage<ContextItem[]>("selectedContextItems", [], { initializeWithValue: false });
@@ -55,6 +57,7 @@ export const NewChatPanel = ({
                             <ChatBoxToolbar
                                 languageModels={languageModels}
                                 repos={repos}
+                                searchContexts={searchContexts}
                                 selectedItems={selectedItems}
                                 onSelectedItemsChange={setSelectedItems}
                                 isContextSelectorOpen={isContextSelectorOpen}

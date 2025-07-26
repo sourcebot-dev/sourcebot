@@ -1,4 +1,4 @@
-import { getRepos } from "@/actions";
+import { getRepos, getSearchContexts } from "@/actions";
 import { Footer } from "@/app/components/footer";
 import { getOrgFromDomain } from "@/data/org";
 import { getConfiguredLanguageModelsInfo, getUserChatHistory } from "@/features/chat/actions";
@@ -22,10 +22,15 @@ export default async function Home({ params: { domain } }: { params: { domain: s
 
     const models = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos(domain);
+    const searchContexts = await getSearchContexts(domain);
     const chatHistory = session ? await getUserChatHistory(domain) : [];
 
     if (isServiceError(repos)) {
         throw new ServiceErrorException(repos);
+    }
+
+    if (isServiceError(searchContexts)) {
+        throw new ServiceErrorException(searchContexts);
     }
 
     if (isServiceError(chatHistory)) {
@@ -52,6 +57,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
 
             <Homepage
                 initialRepos={indexedRepos}
+                searchContexts={searchContexts}
                 languageModels={models}
                 chatHistory={chatHistory}
                 initialSearchMode={initialSearchMode}

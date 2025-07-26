@@ -8,7 +8,7 @@ import { LanguageModelInfo } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { resetEditor } from "@/features/chat/utils";
 import { useDomain } from "@/hooks/useDomain";
-import { RepositoryQuery } from "@/lib/types";
+import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { getDisplayTime } from "@/lib/utils";
 import { BrainIcon, FileIcon, LucideIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
@@ -110,6 +110,7 @@ interface AgenticSearchProps {
     searchModeSelectorProps: SearchModeSelectorProps;
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
+    searchContexts: SearchContextQuery[];
     chatHistory: {
         id: string;
         createdAt: Date;
@@ -121,6 +122,7 @@ export const AgenticSearch = ({
     searchModeSelectorProps,
     languageModels,
     repos,
+    searchContexts,
     chatHistory,
 }: AgenticSearchProps) => {
     const [selectedSuggestionType, _setSelectedSuggestionType] = useState<SuggestionType | undefined>(undefined);
@@ -173,6 +175,7 @@ export const AgenticSearch = ({
                         <ChatBoxToolbar
                             languageModels={languageModels}
                             repos={repos}
+                            searchContexts={searchContexts}
                             selectedItems={selectedItems}
                             onSelectedItemsChange={setSelectedItems}
                             isContextSelectorOpen={isContextSelectorOpen}

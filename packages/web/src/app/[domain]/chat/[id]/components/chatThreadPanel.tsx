@@ -3,7 +3,7 @@
 import { ResizablePanel } from '@/components/ui/resizable';
 import { ChatThread } from '@/features/chat/components/chatThread';
 import { LanguageModelInfo, SBChatMessage, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
-import { RepositoryQuery } from '@/lib/types';
+import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
 import { CreateUIMessage } from 'ai';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -13,6 +13,7 @@ import { ContextItem } from '@/features/chat/components/chatBox/contextSelector'
 interface ChatThreadPanelProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
+    searchContexts: SearchContextQuery[];
     order: number;
     messages: SBChatMessage[];
     isChatReadonly: boolean;
@@ -21,6 +22,7 @@ interface ChatThreadPanelProps {
 export const ChatThreadPanel = ({
     languageModels,
     repos,
+    searchContexts,
     order,
     messages,
     isChatReadonly,
@@ -94,6 +96,7 @@ export const ChatThreadPanel = ({
                     inputMessage={inputMessage}
                     languageModels={languageModels}
                     repos={repos}
+                    searchContexts={searchContexts}
                     selectedItems={selectedItems}
                     onSelectedItemsChange={setSelectedItems}
                     isChatReadonly={isChatReadonly}
