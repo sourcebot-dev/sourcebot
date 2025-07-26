@@ -14,7 +14,7 @@ const numberSchema = z.coerce.number();
 export const env = createEnv({
     server: {
         // Zoekt
-        ZOEKT_WEBSERVER_URL: z.string().url().default("http://localhost:6070"),
+        ZOEKT_WEBSERVER_URL: z.string().url(),
         SHARD_MAX_MATCH_COUNT: numberSchema.default(10000),
         TOTAL_MAX_MATCH_COUNT: numberSchema.default(100000),
         ZOEKT_MAX_WALL_TIME_MS: numberSchema.default(10000),
@@ -57,6 +57,7 @@ export const env = createEnv({
         DATA_CACHE_DIR: z.string(),
 
         SOURCEBOT_PUBLIC_KEY_PATH: z.string(),
+        SOURCEBOT_ENCRYPTION_KEY: z.string(),
 
         // Email
         SMTP_CONNECTION_URL: z.string().url().optional(),

@@ -1,0 +1,111 @@
+services:
+  sourcebot-web:
+    build:
+      context: .
+      dockerfile: packages/web/Dockerfile
+      args:
+        - NEXT_PUBLIC_SOURCEBOT_VERSION=${NEXT_PUBLIC_SOURCEBOT_VERSION}
+        - NEXT_PUBLIC_POSTHOG_PAPIK=${NEXT_PUBLIC_POSTHOG_PAPIK}
+        - NEXT_PUBLIC_SENTRY_ENVIRONMENT=${NEXT_PUBLIC_SENTRY_ENVIRONMENT}
+    restart: always
+    ports:
+      - 3000:3000
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - sourcebot_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      zoekt:
+        condition: service_healthy
+    environment:
+      - AUTH_URL=http://localhost:3000
+      - AUTH_SECRET=mysecret # CHANGEME 
+      - DATA_CACHE_DIR=${DATA_CACHE_DIR:-/data}
+      - CONFIG_PATH=/app/config.json
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres # CHANGEME
+      - SOURCEBOT_ENCRYPTION_KEY=00000000000000000000000000000000 # CHANGEME
+      - ZOEKT_WEBSERVER_URL=http://zoekt:6070 # CHANGEME
+
+  worker:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+      args:
+        - NEXT_PUBLIC_SOURCEBOT_VERSION=${NEXT_PUBLIC_SOURCEBOT_VERSION}
+        - NEXT_PUBLIC_SENTRY_BACKEND_DSN=${NEXT_PUBLIC_SENTRY_BACKEND_DSN}
+        - SENTRY_ORG=${SENTRY_ORG}
+        - SENTRY_BACKEND_PROJECT=${SENTRY_BACKEND_PROJECT}
+        - SENTRY_SMUAT=${SENTRY_SMUAT}
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - 8080:8080
+    volumes:
+      - sourcebot_data:/data
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres # CHANGEME
+      - DATA_CACHE_DIR=${DATA_CACHE_DIR:-/data}
+      - SOURCEBOT_ENCRYPTION_KEY=00000000000000000000000000000000 # CHANGEME
+      - REDIS_URL=redis://redis:6379 # CHANGEME
+
+  zoekt:
+    build:
+      context: .
+      dockerfile: Dockerfile.zoekt
+    ports:
+      - 127.0.0.1:6070:6070
+    volumes:
+      - sourcebot_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:6070/healthz"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    
+
+  postgres:
+    image: docker.io/postgres:${POSTGRES_VERSION:-latest}
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres # CHANGEME
+      POSTGRES_DB: postgres
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - sourcebot_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: docker.io/redis:${REDIS_VERSION:-latest}
+    restart: always
+    # CHANGEME: row below to secure redis password
+    # command: >
+    #   --requirepass ${REDIS_AUTH:-myredissecret}
+    ports:
+      - 127.0.0.1:6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - sourcebot_redis_data:/data
+
+
+volumes:
+  sourcebot_data:
+    driver: local
+  sourcebot_postgres_data:
+    driver: local
+  sourcebot_redis_data:
+    driver: local

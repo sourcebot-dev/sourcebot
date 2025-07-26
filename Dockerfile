@@ -189,6 +189,7 @@ ENV DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
 ENV REDIS_URL="redis://localhost:6379"
 ENV SRC_TENANT_ENFORCEMENT_MODE=strict
 ENV SOURCEBOT_PUBLIC_KEY_PATH=/app/public.pem
+ENV ZOEKT_WEBSERVER_URL=http://localhost:6070
 
 # Valid values are: debug, info, warn, error
 ENV SOURCEBOT_LOG_LEVEL=info
