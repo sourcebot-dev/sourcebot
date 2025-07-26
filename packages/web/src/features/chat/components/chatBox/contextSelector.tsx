@@ -4,9 +4,9 @@ import * as React from "react";
 import {
     CheckIcon,
     ChevronDown,
-    BookMarkedIcon,
     FolderIcon,
     LayersIcon,
+    LibraryBigIcon,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -213,7 +213,7 @@ export const ContextSelector = React.forwardRef<
                                             </div>
                                             <div className="flex items-center gap-2 flex-1">
                                                 {item.type === 'context' ? (
-                                                    <BookMarkedIcon className="h-4 w-4 text-muted-foreground" />
+                                                    <LibraryBigIcon className="h-4 w-4 text-muted-foreground" />
                                                 ) : (
                                                     // Render code host icon for repos
                                                     (() => {
