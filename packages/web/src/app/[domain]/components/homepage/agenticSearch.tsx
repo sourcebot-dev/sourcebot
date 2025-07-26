@@ -16,6 +16,7 @@ import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { ReactEditor, useSlate } from "slate-react";
 import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
 import { useLocalStorage } from "usehooks-ts";
+import { ContextItem } from "@/features/chat/components/chatBox/contextSelector";
 
 // @todo: we should probably rename this to a different type since it sort-of clashes
 // with the Suggestion system we have built into the chat box.
@@ -126,9 +127,9 @@ export const AgenticSearch = ({
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const dropdownRef = useRef<HTMLDivElement>(null);
     const editor = useSlate();
-    const [selectedRepos, setSelectedRepos] = useLocalStorage<string[]>("selectedRepos", [], { initializeWithValue: false });
+    const [selectedItems, setSelectedItems] = useLocalStorage<ContextItem[]>("selectedContextItems", [], { initializeWithValue: false });
     const domain = useDomain();
-    const [isRepoSelectorOpen, setIsRepoSelectorOpen] = useState(false);
+    const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
 
     const setSelectedSuggestionType = useCallback((type: SuggestionType | undefined) => {
         _setSelectedSuggestionType(type);
@@ -158,13 +159,13 @@ export const AgenticSearch = ({
             >
                 <ChatBox
                     onSubmit={(children) => {
-                        createNewChatThread(children, selectedRepos);
+                        createNewChatThread(children, selectedItems);
                     }}
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
                     languageModels={languageModels}
-                    selectedRepos={selectedRepos}
-                    onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
+                    selectedItems={selectedItems}
+                    onContextSelectorOpenChanged={setIsContextSelectorOpen}
                 />
                 <Separator />
                 <div className="relative">
@@ -172,10 +173,10 @@ export const AgenticSearch = ({
                         <ChatBoxToolbar
                             languageModels={languageModels}
                             repos={repos}
-                            selectedRepos={selectedRepos}
-                            onSelectedReposChange={setSelectedRepos}
-                            isRepoSelectorOpen={isRepoSelectorOpen}
-                            onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
+                            selectedItems={selectedItems}
+                            onSelectedItemsChange={setSelectedItems}
+                            isContextSelectorOpen={isContextSelectorOpen}
+                            onContextSelectorOpenChanged={setIsContextSelectorOpen}
                         />
                         <SearchModeSelector
                             {...searchModeSelectorProps}
@@ -201,7 +202,7 @@ export const AgenticSearch = ({
                                         setSelectedSuggestionType(undefined);
 
                                         if (openRepoSelector) {
-                                            setIsRepoSelectorOpen(true);
+                                            setIsContextSelectorOpen(true);
                                         } else {
                                             ReactEditor.focus(editor);
                                         }

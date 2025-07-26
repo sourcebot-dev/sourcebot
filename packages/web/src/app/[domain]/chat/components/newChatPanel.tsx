@@ -10,6 +10,7 @@ import { RepositoryQuery } from "@/lib/types";
 import { useCallback, useState } from "react";
 import { Descendant } from "slate";
 import { useLocalStorage } from "usehooks-ts";
+import { ContextItem } from "@/features/chat/components/chatBox/contextSelector";
 
 interface NewChatPanelProps {
     languageModels: LanguageModelInfo[];
@@ -22,13 +23,13 @@ export const NewChatPanel = ({
     repos,
     order,
 }: NewChatPanelProps) => {
-    const [selectedRepos, setSelectedRepos] = useLocalStorage<string[]>("selectedRepos", [], { initializeWithValue: false });
+    const [selectedItems, setSelectedItems] = useLocalStorage<ContextItem[]>("selectedContextItems", [], { initializeWithValue: false });
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
-    const [isRepoSelectorOpen, setIsRepoSelectorOpen] = useState(false);
+    const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
 
     const onSubmit = useCallback((children: Descendant[]) => {
-        createNewChatThread(children, selectedRepos);
-    }, [createNewChatThread, selectedRepos]);
+        createNewChatThread(children, selectedItems);
+    }, [createNewChatThread, selectedItems]);
 
 
     return (
@@ -47,17 +48,17 @@ export const NewChatPanel = ({
                             preferredSuggestionsBoxPlacement="bottom-start"
                             isRedirecting={isLoading}
                             languageModels={languageModels}
-                            selectedRepos={selectedRepos}
-                            onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
+                            selectedItems={selectedItems}
+                            onContextSelectorOpenChanged={setIsContextSelectorOpen}
                         />
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                             <ChatBoxToolbar
                                 languageModels={languageModels}
                                 repos={repos}
-                                selectedRepos={selectedRepos}
-                                onSelectedReposChange={setSelectedRepos}
-                                isRepoSelectorOpen={isRepoSelectorOpen}
-                                onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
+                                selectedItems={selectedItems}
+                                onSelectedItemsChange={setSelectedItems}
+                                isContextSelectorOpen={isContextSelectorOpen}
+                                onContextSelectorOpenChanged={setIsContextSelectorOpen}
                             />
                         </div>
                     </CustomSlateEditor>
