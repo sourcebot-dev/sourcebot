@@ -17,7 +17,9 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { forwardRef, Ref, useCallback, useImperativeHandle, useMemo, useState } from "react";
 import { FileReference } from "../../types";
 import { createCodeFoldingExtension } from "./codeFoldingExtension";
-
+import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { createAuditAction } from "@/ee/features/audit/actions";
+import { useDomain } from "@/hooks/useDomain";
 
 const lineDecoration = Decoration.line({
     attributes: { class: "cm-range-border-radius chat-lineHighlight" },
@@ -69,6 +71,8 @@ const ReferencedFileSourceListItem = ({
 }: ReferencedFileSourceListItemProps, forwardedRef: Ref<ReactCodeMirrorRef>) => {
     const theme = useCodeMirrorTheme();
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
+    const captureEvent = useCaptureEvent();
+    const domain = useDomain();
 
     useImperativeHandle(
         forwardedRef,
@@ -216,6 +220,16 @@ const ReferencedFileSourceListItem = ({
             return;
         }
 
+        captureEvent('wa_goto_definition_pressed', {
+            source: 'chat',
+        });
+        createAuditAction({
+            action: "user.performed_goto_definition",
+            metadata: {
+                message: symbolName,
+            },
+        }, domain);
+
         if (symbolDefinitions.length === 1) {
             const symbolDefinition = symbolDefinitions[0];
             const { fileName, repoName } = symbolDefinition;
@@ -246,9 +260,19 @@ const ReferencedFileSourceListItem = ({
             });
 
         }
-    }, [navigateToPath, revision, repoName, fileName, language]);
+    }, [captureEvent, domain, navigateToPath, revision, repoName, fileName, language]);
 
     const onFindReferences = useCallback((symbolName: string) => {
+        captureEvent('wa_find_references_pressed', {
+            source: 'chat',
+        });
+        createAuditAction({
+            action: "user.performed_find_references",
+            metadata: {
+                message: symbolName,
+            },
+        }, domain);
+
         navigateToPath({
             repoName,
             revisionName: revision,
@@ -266,7 +290,7 @@ const ReferencedFileSourceListItem = ({
             }
         })
 
-    }, [fileName, language, navigateToPath, repoName, revision]);
+    }, [captureEvent, domain, fileName, language, navigateToPath, repoName, revision]);
 
     const ExpandCollapseIcon = useMemo(() => {
         return isExpanded ? ChevronDown : ChevronRight;
