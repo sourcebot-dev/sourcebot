@@ -172,7 +172,7 @@ export const addLineNumbers = (source: string, lineOffset = 1) => {
     return source.split('\n').map((line, index) => `${index + lineOffset}:${line}`).join('\n');
 }
 
-export const createUIMessage = (text: string, mentions: MentionData[], selectedRepos: string[]): CreateUIMessage<SBChatMessage> => {
+export const createUIMessage = (text: string, mentions: MentionData[], selectedRepos: string[], selectedContexts: string[]): CreateUIMessage<SBChatMessage> => {
     // Converts applicable mentions into sources.
     const sources: Source[] = mentions
         .map((mention) => {
@@ -206,6 +206,7 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedR
         ],
         metadata: {
             selectedRepos,
+            selectedContexts,
         },
     }
 }

@@ -12,7 +12,7 @@ import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon } from 'lucide-react';
 import { useNavigationGuard } from 'next-navigation-guard';
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
 import { useSelectedLanguageModel } from '../../useSelectedLanguageModel';
@@ -22,7 +22,8 @@ import { ChatThreadListItem } from './chatThreadListItem';
 import { ErrorBanner } from './errorBanner';
 import { useRouter } from 'next/navigation';
 import { usePrevious } from '@uidotdev/usehooks';
-import { RepositoryQuery } from '@/lib/types';
+import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
+import { ContextItem } from '../chatBox/contextSelector';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -34,8 +35,9 @@ interface ChatThreadProps {
     inputMessage?: CreateUIMessage<SBChatMessage>;
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
-    selectedRepos: string[];
-    onSelectedReposChange: (repos: string[]) => void;
+    searchContexts: SearchContextQuery[];
+    selectedItems: ContextItem[];
+    onSelectedItemsChange: (items: ContextItem[]) => void;
     isChatReadonly: boolean;
 }
 
@@ -45,8 +47,9 @@ export const ChatThread = ({
     inputMessage,
     languageModels,
     repos,
-    selectedRepos,
-    onSelectedReposChange,
+    searchContexts,
+    selectedItems,
+    onSelectedItemsChange,
     isChatReadonly,
 }: ChatThreadProps) => {
     const domain = useDomain();
@@ -57,7 +60,13 @@ export const ChatThread = ({
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
-    const [isRepoSelectorOpen, setIsRepoSelectorOpen] = useState(false);
+    const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
+
+    const { selectedRepos, selectedContexts } = useMemo(() => {
+        const repos = selectedItems.filter(item => item.type === 'repo').map(item => item.value);
+        const contexts = selectedItems.filter(item => item.type === 'context').map(item => item.value);
+        return { selectedRepos: repos, selectedContexts: contexts };
+    }, [selectedItems]);
 
     // Initial state is from attachments that exist in in the chat history.
     const [sources, setSources] = useState<Source[]>(
@@ -114,10 +123,11 @@ export const ChatThread = ({
         _sendMessage(message, {
             body: {
                 selectedRepos,
+                selectedContexts,
                 languageModelId: selectedLanguageModel.model,
             } satisfies AdditionalChatRequestParams,
         });
-    }, [_sendMessage, selectedLanguageModel, selectedRepos, toast]);
+    }, [_sendMessage, selectedLanguageModel, toast, selectedRepos, selectedContexts]);
 
 
     const messagePairs = useMessagePairs(messages);
@@ -233,13 +243,13 @@ export const ChatThread = ({
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedRepos);
+        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedRepos, selectedContexts);
         sendMessage(message);
 
         setIsAutoScrollEnabled(true);
 
         resetEditor(editor);
-    }, [sendMessage, selectedRepos]);
+    }, [sendMessage, selectedRepos, selectedContexts]);
 
     return (
         <>
@@ -317,17 +327,19 @@ export const ChatThread = ({
                             isGenerating={status === "streaming" || status === "submitted"}
                             onStop={stop}
                             languageModels={languageModels}
-                            selectedRepos={selectedRepos}
-                            onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
+                            selectedItems={selectedItems}
+                            searchContexts={searchContexts}
+                            onContextSelectorOpenChanged={setIsContextSelectorOpen}
                         />
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                             <ChatBoxToolbar
                                 languageModels={languageModels}
                                 repos={repos}
-                                selectedRepos={selectedRepos}
-                                onSelectedReposChange={onSelectedReposChange}
-                                isRepoSelectorOpen={isRepoSelectorOpen}
-                                onRepoSelectorOpenChanged={setIsRepoSelectorOpen}
+                                searchContexts={searchContexts}
+                                selectedItems={selectedItems}
+                                onSelectedItemsChange={onSelectedItemsChange}
+                                isContextSelectorOpen={isContextSelectorOpen}
+                                onContextSelectorOpenChanged={setIsContextSelectorOpen}
                             />
                         </div>
                     </CustomSlateEditor>

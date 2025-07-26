@@ -64,11 +64,12 @@ export async function POST(req: Request) {
         return serviceErrorResponse(schemaValidationError(parsed.error));
     }
 
-    const { messages, id, selectedRepos, languageModelId } = parsed.data;
+    const { messages, id, selectedRepos, selectedContexts, languageModelId } = parsed.data;
     const response = await chatHandler({
         messages,
         id,
         selectedRepos,
+        selectedContexts,
         languageModelId,
     }, domain);
 
@@ -93,10 +94,11 @@ interface ChatHandlerProps {
     messages: SBChatMessage[];
     id: string;
     selectedRepos: string[];
+    selectedContexts?: string[];
     languageModelId: string;
 }
 
-const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandlerProps, domain: string) => sew(async () =>
+const chatHandler = ({ messages, id, selectedRepos, selectedContexts, languageModelId }: ChatHandlerProps, domain: string) => sew(async () =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const chat = await prisma.chat.findUnique({
@@ -186,13 +188,34 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
 
                     const startTime = new Date();
 
+                    // Expand search contexts to repos
+                    let expandedRepos = [...selectedRepos];
+                    if (selectedContexts && selectedContexts.length > 0) {
+                        const searchContexts = await prisma.searchContext.findMany({
+                            where: {
+                                orgId: org.id,
+                                name: { in: selectedContexts }
+                            },
+                            include: {
+                                repos: true
+                            }
+                        });
+                        
+                        const contextRepos = searchContexts.flatMap(context => 
+                            context.repos.map(repo => repo.name)
+                        );
+                        
+                        // Combine and deduplicate repos
+                        expandedRepos = Array.from(new Set([...selectedRepos, ...contextRepos]));
+                    }
+
                     const researchStream = await createAgentStream({
                         model,
                         providerOptions,
                         headers,
                         inputMessages: messageHistory,
                         inputSources: sources,
-                        selectedRepos,
+                        selectedRepos: expandedRepos,
                         onWriteSource: (source) => {
                             writer.write({
                                 type: 'data-source',

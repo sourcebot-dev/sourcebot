@@ -1,4 +1,4 @@
-import { getRepos } from '@/actions';
+import { getRepos, getSearchContexts } from '@/actions';
 import { getUserChatHistory, getConfiguredLanguageModelsInfo, getChatInfo } from '@/features/chat/actions';
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
@@ -22,6 +22,7 @@ interface PageProps {
 export default async function Page({ params }: PageProps) {
     const languageModels = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos(params.domain);
+    const searchContexts = await getSearchContexts(params.domain);
     const chatInfo = await getChatInfo({ chatId: params.id }, params.domain);
     const session = await auth();
     const chatHistory = session ? await getUserChatHistory(params.domain) : [];
@@ -32,6 +33,10 @@ export default async function Page({ params }: PageProps) {
 
     if (isServiceError(repos)) {
         throw new ServiceErrorException(repos);
+    }
+
+    if (isServiceError(searchContexts)) {
+        throw new ServiceErrorException(searchContexts);
     }
 
     if (isServiceError(chatInfo)) {
@@ -74,6 +79,7 @@ export default async function Page({ params }: PageProps) {
                 <ChatThreadPanel
                     languageModels={languageModels}
                     repos={indexedRepos}
+                    searchContexts={searchContexts}
                     messages={messages}
                     order={2}
                     isChatReadonly={isReadonly}

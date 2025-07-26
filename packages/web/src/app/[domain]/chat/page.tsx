@@ -1,4 +1,4 @@
-import { getRepos } from "@/actions";
+import { getRepos, getSearchContexts } from "@/actions";
 import { getUserChatHistory, getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -18,6 +18,7 @@ interface PageProps {
 export default async function Page({ params }: PageProps) {
     const languageModels = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos(params.domain);
+    const searchContexts = await getSearchContexts(params.domain);
     const session = await auth();
     const chatHistory = session ? await getUserChatHistory(params.domain) : [];
 
@@ -27,6 +28,10 @@ export default async function Page({ params }: PageProps) {
 
     if (isServiceError(repos)) {
         throw new ServiceErrorException(repos);
+    }
+
+    if (isServiceError(searchContexts)) {
+        throw new ServiceErrorException(searchContexts);
     }
 
     const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
@@ -48,6 +53,7 @@ export default async function Page({ params }: PageProps) {
                 <AnimatedResizableHandle />
                 <NewChatPanel
                     languageModels={languageModels}
+                    searchContexts={searchContexts}
                     repos={indexedRepos}
                     order={2}
                 />

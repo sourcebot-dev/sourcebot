@@ -2,7 +2,7 @@
 
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { LanguageModelInfo } from "@/features/chat/types";
-import { RepositoryQuery } from "@/lib/types";
+import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { useHotkeys } from "react-hotkeys-hook";
 import { AgenticSearch } from "./agenticSearch";
 import { PreciseSearch } from "./preciseSearch";
@@ -13,6 +13,7 @@ import { useCallback, useState } from "react";
 
 interface HomepageProps {
     initialRepos: RepositoryQuery[];
+    searchContexts: SearchContextQuery[];
     languageModels: LanguageModelInfo[];
     chatHistory: {
         id: string;
@@ -25,6 +26,7 @@ interface HomepageProps {
 
 export const Homepage = ({
     initialRepos,
+    searchContexts,
     languageModels,
     chatHistory,
     initialSearchMode,
@@ -82,6 +84,7 @@ export const Homepage = ({
                         }}
                         languageModels={languageModels}
                         repos={initialRepos}
+                        searchContexts={searchContexts}
                         chatHistory={chatHistory}
                     />
                 </CustomSlateEditor>

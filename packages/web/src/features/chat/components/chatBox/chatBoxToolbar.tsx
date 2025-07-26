@@ -5,34 +5,36 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { LanguageModelInfo } from "@/features/chat/types";
-import { RepositoryQuery } from "@/lib/types";
+import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { AtSignIcon } from "lucide-react";
 import { useCallback } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { ReactEditor, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { LanguageModelSelector } from "./languageModelSelector";
-import { RepoSelector } from "./repoSelector";
+import { ContextSelector, type ContextItem } from "./contextSelector";
 
 export interface ChatBoxToolbarProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
-    selectedRepos: string[];
-    onSelectedReposChange: (repos: string[]) => void;
-    isRepoSelectorOpen: boolean;
-    onRepoSelectorOpenChanged: (isOpen: boolean) => void;
+    searchContexts: SearchContextQuery[];
+    selectedItems: ContextItem[];
+    onSelectedItemsChange: (items: ContextItem[]) => void;
+    isContextSelectorOpen: boolean;
+    onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
 
 export const ChatBoxToolbar = ({
     languageModels,
     repos,
-    selectedRepos,
-    onSelectedReposChange,
-    isRepoSelectorOpen,
-    onRepoSelectorOpenChanged,
+    searchContexts,
+    selectedItems,
+    onSelectedItemsChange,
+    isContextSelectorOpen,
+    onContextSelectorOpenChanged,
 }: ChatBoxToolbarProps) => {
     const editor = useSlate();
-
+    
     const onAddContext = useCallback(() => {
         editor.insertText("@");
         ReactEditor.focus(editor);
@@ -76,17 +78,18 @@ export const ChatBoxToolbar = ({
             <Separator orientation="vertical" className="h-3 mx-1" />
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <RepoSelector
+                    <ContextSelector
                         className="bg-inherit w-fit h-6 min-h-6"
-                        repos={repos.map((repo) => repo.repoName)}
-                        selectedRepos={selectedRepos}
-                        onSelectedReposChange={onSelectedReposChange}
-                        isOpen={isRepoSelectorOpen}
-                        onOpenChanged={onRepoSelectorOpenChanged}
+                        repos={repos}
+                        searchContexts={searchContexts}
+                        selectedItems={selectedItems}
+                        onSelectedItemsChange={onSelectedItemsChange}
+                        isOpen={isContextSelectorOpen}
+                        onOpenChanged={onContextSelectorOpenChanged}
                     />
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                    <span>Repositories to scope conversation to.</span>
+                    <span>Search contexts and repositories to scope conversation to.</span>
                 </TooltipContent>
             </Tooltip>
             {languageModels.length > 0 && (
