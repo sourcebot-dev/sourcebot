@@ -23,11 +23,14 @@ export const TEAM_FEATURES = [
 ]
 
 export const MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME = 'sb.mobile-unsupported-splash-screen-dismissed';
+export const SEARCH_MODE_COOKIE_NAME = 'sb.search-mode';
 
-export const SINGLE_TENANT_USER_ID = '1';
-export const SINGLE_TENANT_USER_EMAIL = 'default@sourcebot.dev';
+// NOTE: changing SOURCEBOT_GUEST_USER_ID may break backwards compatibility since this value is used
+// to detect old guest users in the DB. If you change this value ensure it doesn't break upgrade flows
+export const SOURCEBOT_GUEST_USER_ID = '1';
+export const SOURCEBOT_GUEST_USER_EMAIL = 'guest@sourcebot.dev';
 export const SINGLE_TENANT_ORG_ID = 1;
 export const SINGLE_TENANT_ORG_DOMAIN = '~';
 export const SINGLE_TENANT_ORG_NAME = 'default';
 
-export const SOURCEBOT_SUPPORT_EMAIL = 'team@sourcebot.dev';
+export { SOURCEBOT_SUPPORT_EMAIL } from "@sourcebot/shared/client";

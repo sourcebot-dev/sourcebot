@@ -17,6 +17,8 @@ ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
 ARG NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
 ARG NEXT_PUBLIC_SENTRY_WEBAPP_DSN
 ARG NEXT_PUBLIC_SENTRY_BACKEND_DSN
+ARG NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY
+ARG NEXT_PUBLIC_LANGFUSE_BASE_URL
 
 FROM node:20-alpine3.19 AS node-alpine
 FROM golang:1.23.4-alpine3.19 AS go-alpine
@@ -42,11 +44,15 @@ COPY ./packages/db ./packages/db
 COPY ./packages/schemas ./packages/schemas
 COPY ./packages/crypto ./packages/crypto
 COPY ./packages/error ./packages/error
+COPY ./packages/logger ./packages/logger
+COPY ./packages/shared ./packages/shared
 
 RUN yarn workspace @sourcebot/db install
 RUN yarn workspace @sourcebot/schemas install
 RUN yarn workspace @sourcebot/crypto install
 RUN yarn workspace @sourcebot/error install
+RUN yarn workspace @sourcebot/logger install
+RUN yarn workspace @sourcebot/shared install
 # ------------------------------------
 
 # ------ Build Web ------
@@ -63,6 +69,10 @@ ARG NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
 ENV NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT=$NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
 ARG NEXT_PUBLIC_SENTRY_WEBAPP_DSN
 ENV NEXT_PUBLIC_SENTRY_WEBAPP_DSN=$NEXT_PUBLIC_SENTRY_WEBAPP_DSN
+ARG NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY
+ENV NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY=$NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY
+ARG NEXT_PUBLIC_LANGFUSE_BASE_URL
+ENV NEXT_PUBLIC_LANGFUSE_BASE_URL=$NEXT_PUBLIC_LANGFUSE_BASE_URL
 
 # To upload source maps to Sentry, we need to set the following build-time args.
 # It's important that we don't set these for oss builds, otherwise the Sentry
@@ -89,6 +99,8 @@ COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
+COPY --from=shared-libs-builder /app/packages/logger ./packages/logger
+COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 
 # Fixes arm64 timeouts
 RUN yarn workspace @sourcebot/web install
@@ -128,6 +140,8 @@ COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
+COPY --from=shared-libs-builder /app/packages/logger ./packages/logger
+COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 RUN yarn workspace @sourcebot/backend install
 RUN yarn workspace @sourcebot/backend build
 
@@ -156,6 +170,10 @@ ARG NEXT_PUBLIC_SENTRY_WEBAPP_DSN
 ENV NEXT_PUBLIC_SENTRY_WEBAPP_DSN=$NEXT_PUBLIC_SENTRY_WEBAPP_DSN
 ARG NEXT_PUBLIC_SENTRY_BACKEND_DSN
 ENV NEXT_PUBLIC_SENTRY_BACKEND_DSN=$NEXT_PUBLIC_SENTRY_BACKEND_DSN
+ARG NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY
+ENV NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY=$NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY
+ARG NEXT_PUBLIC_LANGFUSE_BASE_URL
+ENV NEXT_PUBLIC_LANGFUSE_BASE_URL=$NEXT_PUBLIC_LANGFUSE_BASE_URL
 # -----------
 
 RUN echo "Sourcebot Version: $NEXT_PUBLIC_SOURCEBOT_VERSION"
@@ -170,6 +188,7 @@ ENV REDIS_DATA_DIR=$DATA_CACHE_DIR/redis
 ENV DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
 ENV REDIS_URL="redis://localhost:6379"
 ENV SRC_TENANT_ENFORCEMENT_MODE=strict
+ENV SOURCEBOT_PUBLIC_KEY_PATH=/app/public.pem
 
 # Valid values are: debug, info, warn, error
 ENV SOURCEBOT_LOG_LEVEL=info
@@ -177,7 +196,7 @@ ENV SOURCEBOT_LOG_LEVEL=info
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
-COPY package.json yarn.lock* .yarnrc.yml ./
+COPY package.json yarn.lock* .yarnrc.yml public.pem ./
 COPY .yarn ./.yarn
 
 # Configure zoekt
@@ -209,6 +228,8 @@ COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
+COPY --from=shared-libs-builder /app/packages/logger ./packages/logger
+COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 
 # Configure dependencies
 RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib openssl util-linux unzip

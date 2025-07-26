@@ -11,11 +11,7 @@ import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { env } from "@/env.mjs";
 
-interface RepositoryTableProps {
-    isAddNewRepoButtonVisible: boolean;
-}
-
-export const RepositoryTable = ({ isAddNewRepoButtonVisible }: RepositoryTableProps) => {
+export const RepositoryTable = () => {
     const domain = useDomain();
 
     const { data: repos, isLoading: reposLoading, error: reposError } = useQuery({
@@ -29,6 +25,7 @@ export const RepositoryTable = ({ isAddNewRepoButtonVisible }: RepositoryTablePr
 
     const tableRepos = useMemo(() => {
         if (reposLoading) return Array(4).fill(null).map(() => ({
+            repoId: 0,
             name: "",
             connections: [],
             repoIndexingStatus: RepoIndexingStatus.NEW,
@@ -39,6 +36,7 @@ export const RepositoryTable = ({ isAddNewRepoButtonVisible }: RepositoryTablePr
 
         if (!repos) return [];
         return repos.map((repo): RepositoryColumnInfo => ({
+            repoId: repo.repoId,
             name: repo.repoDisplayName ?? repo.repoName,
             imageUrl: repo.imageUrl,
             connections: repo.linkedConnections,
@@ -52,7 +50,7 @@ export const RepositoryTable = ({ isAddNewRepoButtonVisible }: RepositoryTablePr
 
     const tableColumns = useMemo(() => {
         if (reposLoading) {
-            return columns(domain, isAddNewRepoButtonVisible).map((column) => {
+            return columns(domain).map((column) => {
                 if ('accessorKey' in column && column.accessorKey === "name") {
                     return {
                         ...column,
@@ -76,8 +74,8 @@ export const RepositoryTable = ({ isAddNewRepoButtonVisible }: RepositoryTablePr
             })
         }
 
-        return columns(domain, isAddNewRepoButtonVisible);
-    }, [reposLoading, domain, isAddNewRepoButtonVisible]);
+        return columns(domain);
+    }, [reposLoading, domain]);
 
 
     if (reposError) {

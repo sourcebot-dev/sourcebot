@@ -1,0 +1,211 @@
+---
+title: Audit Logs
+sidebarTitle: Audit logs
+---
+
+import LicenseKeyRequired from '/snippets/license-key-required.mdx'
+
+<LicenseKeyRequired />
+
+Audit logs are a collection of notable events performed by users within a Sourcebot deployment. Each audit log records information on the action taken, the user who performed the 
+action, and when the action took place. 
+
+This feature gives security and compliance teams the necessary information to ensure proper governance and administration of your Sourcebot deployment.
+
+## Enabling/Disabling Audit Logs
+Audit logs are enabled by default and can be controlled with the `SOURCEBOT_EE_AUDIT_LOGGING_ENABLED` [environment variable](/docs/configuration/environment-variables).
+
+## Fetching Audit Logs
+Audit logs are stored in the [postgres database](/docs/overview#architecture) connected to Sourcebot. To fetch all of the audit logs, you can use the following API:
+
+```bash icon="terminal" Fetch audit logs
+curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
+  --header 'X-Org-Domain: ~' \
+  --header 'X-Sourcebot-Api-Key: $SOURCEBOT_OWNER_API_KEY'
+```
+
+```json icon="brackets-curly" wrap expandable Fetch audit logs example response
+[
+  {
+    "id": "cmc146k7m0003xgo2tri5t4br",
+    "timestamp": "2025-06-17T22:48:08.914Z",
+    "action": "api_key.created",
+    "actorId": "cmc12tnje0000xgn58jj8655h",
+    "actorType": "user",
+    "targetId": "205d1da1c6c3772b81d4ad697f5851fa11195176c211055ff0c1509772645d6d",
+    "targetType": "api_key",
+    "sourcebotVersion": "unknown",
+    "orgId": 1
+  },
+  {
+    "id": "cmc146c8r0001xgo2xyu0p463",
+    "timestamp": "2025-06-17T22:47:58.587Z",
+    "action": "user.performed_code_search",
+    "actorId": "cmc12tnje0000xgn58jj8655h",
+    "actorType": "user",
+    "targetId": "1",
+    "targetType": "org",
+    "sourcebotVersion": "unknown",
+    "metadata": {
+      "message": "render branch:HEAD"
+    },
+    "orgId": 1
+  },
+  {
+    "id": "cmc12vqgb0008xgn5nv5hl9y5",
+    "timestamp": "2025-06-17T22:11:44.171Z",
+    "action": "user.performed_code_search",
+    "actorId": "cmc12tnje0000xgn58jj8655h",
+    "actorType": "user",
+    "targetId": "1",
+    "targetType": "org",
+    "sourcebotVersion": "unknown",
+    "metadata": {
+      "message": "render branch:HEAD"
+    },
+    "orgId": 1
+  },
+  {
+    "id": "cmc12txwn0006xgn51ow1odid",
+    "timestamp": "2025-06-17T22:10:20.519Z",
+    "action": "user.performed_code_search",
+    "actorId": "cmc12tnje0000xgn58jj8655h",
+    "actorType": "user",
+    "targetId": "1",
+    "targetType": "org",
+    "sourcebotVersion": "unknown",
+    "metadata": {
+      "message": "render branch:HEAD"
+    },
+    "orgId": 1
+  },
+  {
+    "id": "cmc12tnjx0004xgn5qqeiv1ao",
+    "timestamp": "2025-06-17T22:10:07.101Z",
+    "action": "user.owner_created",
+    "actorId": "cmc12tnje0000xgn58jj8655h",
+    "actorType": "user",
+    "targetId": "1",
+    "targetType": "org",
+    "sourcebotVersion": "unknown",
+    "metadata": null,
+    "orgId": 1
+  },
+  {
+    "id": "cmc12tnjh0002xgn5h6vzu3rl",
+    "timestamp": "2025-06-17T22:10:07.086Z",
+    "action": "user.signed_in",
+    "actorId": "cmc12tnje0000xgn58jj8655h",
+    "actorType": "user",
+    "targetId": "cmc12tnje0000xgn58jj8655h",
+    "targetType": "user",
+    "sourcebotVersion": "unknown",
+    "metadata": null,
+    "orgId": 1
+  }
+]
+```
+
+## Audit action types
+
+| Action  | Actor Type | Target Type |
+| :------- | :------ | :------|
+| `api_key.creation_failed`             | `user` | `org` |
+| `api_key.created`                     | `user` | `api_key` |
+| `api_key.deletion_failed`             | `user` | `org` |
+| `api_key.deleted`                     | `user` | `api_key` |
+| `user.creation_failed`                | `user` | `user` |
+| `user.owner_created`                  | `user` | `org` |
+| `user.performed_code_search`              | `user` | `org` |
+| `user.performed_find_references` | `user` | `org` |
+| `user.performed_goto_definition` | `user` | `org` |
+| `user.jit_provisioning_failed`        | `user` | `org` |
+| `user.jit_provisioned`                | `user` | `org` |
+| `user.join_request_creation_failed`   | `user` | `org` |
+| `user.join_requested`                 | `user` | `org` |
+| `user.join_request_approve_failed`    | `user` | `account_join_request` |
+| `user.join_request_approved`          | `user` | `account_join_request` |
+| `user.invite_failed`                  | `user` | `org` |
+| `user.invites_created`                | `user` | `org` |
+| `user.invite_accept_failed`           | `user` | `invite` |
+| `user.invite_accepted`                | `user` | `invite` |
+| `user.signed_in`                      | `user` | `user` |
+| `user.signed_out`                     | `user` | `user` |
+| `org.ownership_transfer_failed`       | `user` | `org` |
+| `org.ownership_transferred`           | `user` | `org` |
+
+
+## Response schema
+
+```json icon="brackets-curly" expandable wrap Audit log fetch response schema
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FetchAuditLogsResponse",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "timestamp",
+      "action",
+      "actorId",
+      "actorType",
+      "targetId",
+      "targetType",
+      "sourcebotVersion",
+      "metadata",
+      "orgId"
+    ],
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "action": {
+        "type": "string"
+      },
+      "actorId": {
+        "type": "string"
+      },
+      "actorType": {
+        "type": "string",
+        "enum": ["user", "api_key"]
+      },
+      "targetId": {
+        "type": "string"
+      },
+      "targetType": {
+        "type": "string",
+        "enum": ["user", "org", "file", "api_key", "account_join_request", "invite"]
+      },
+      "sourcebotVersion": {
+        "type": "string"
+      },
+      "metadata": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "message": { "type": "string" },
+              "api_key": { "type": "string" },
+              "emails": { "type": "string" }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "orgId": {
+        "type": "integer"
+      }
+    },
+    "additionalProperties": false
+  }
+}
+
+```

@@ -8,11 +8,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "next-auth/react";
 import { env } from "@/env.mjs";
 import { PlanProvider } from "@/features/entitlements/planProvider";
-import { getPlan } from "@/features/entitlements/server";
+import { getEntitlements } from "@sourcebot/shared";
 
 export const metadata: Metadata = {
     title: "Sourcebot",
-    description: "Sourcebot",
+    description: "Sourcebot is a self-hosted code understanding tool. Ask questions about your codebase and get rich Markdown answers with inline citations.",
+    manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -29,7 +30,7 @@ export default function RootLayout({
             <body>
                 <Toaster />
                 <SessionProvider>
-                    <PlanProvider plan={getPlan()}>
+                    <PlanProvider entitlements={getEntitlements()}>
                         <PostHogProvider disabled={env.SOURCEBOT_TELEMETRY_DISABLED === "true"}>
                             <ThemeProvider
                                 attribute="class"

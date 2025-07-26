@@ -1,6 +1,6 @@
 'use client';
 
-import { getDisplayTime } from "@/lib/utils";
+import { getDisplayTime, getRepoImageSrc } from "@/lib/utils";
 import Image from "next/image";
 import { StatusIcon } from "../../components/statusIcon";
 import { RepoIndexingStatus } from "@sourcebot/db";
@@ -46,14 +46,16 @@ export const RepoListItem = ({
         }
     }, [status]);
 
+    const imageSrc = getRepoImageSrc(imageUrl, repoId, domain);
+
     return (
         <div
             className="flex flex-row items-center p-4 border rounded-lg bg-background justify-between"
         >
             <div className="flex flex-row items-center gap-2">
-                {imageUrl ? (
+                {imageSrc ? (
                     <Image
-                        src={imageUrl}
+                        src={imageSrc}
                         alt={name}
                         width={32}
                         height={32}

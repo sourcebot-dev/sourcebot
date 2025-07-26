@@ -1,3 +1,5 @@
+'use server';
+
 import { env } from "@/env.mjs";
 import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
 import { isServiceError } from "../../lib/utils";
@@ -6,10 +8,11 @@ import { prisma } from "@/prisma";
 import { ErrorCode } from "../../lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { zoektSearchResponseSchema } from "./zoektSchema";
-import { SearchRequest, SearchResponse, SearchResultRange } from "./types";
-import { Repo } from "@sourcebot/db";
+import { SearchRequest, SearchResponse, SourceRange } from "./types";
+import { OrgRole, Repo } from "@sourcebot/db";
 import * as Sentry from "@sentry/nextjs";
 import { sew, withAuth, withOrgMembership } from "@/actions";
+import { base64Decode } from "@sourcebot/shared";
 
 // List of supported query prefixes in zoekt.
 // @see : https://github.com/sourcebot-dev/zoekt/blob/main/query/parse.go#L417
@@ -105,13 +108,14 @@ const getFileWebUrl = (template: string, branch: string, fileName: string): stri
 
     const url =
         template.substring("{{URLJoinPath ".length, template.indexOf("}}"))
-            .replace(".Version", branch)
-            .replace(".Path", fileName)
             .split(" ")
             .map((part) => {
                 // remove wrapping quotes
                 if (part.startsWith("\"")) part = part.substring(1);
                 if (part.endsWith("\"")) part = part.substring(0, part.length - 1);
+                // Replace variable references
+                if (part == ".Version") part = branch;
+                if (part == ".Path") part = fileName;
                 return part;
             })
             .join("/");
@@ -124,10 +128,10 @@ const getFileWebUrl = (template: string, branch: string, fileName: string): stri
     return encodeURI(url + optionalQueryParams);
 }
 
-export const search = async ({ query, matches, contextLines, whole }: SearchRequest, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const transformedQuery = await transformZoektQuery(query, orgId);
+export const search = async ({ query, matches, contextLines, whole }: SearchRequest, domain: string, apiKey: string | undefined = undefined) => sew(() =>
+    withAuth((userId, _apiKeyHash) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const transformedQuery = await transformZoektQuery(query, org.id);
             if (isServiceError(transformedQuery)) {
                 return transformedQuery;
             }
@@ -160,7 +164,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
 
             let header: Record<string, string> = {};
             header = {
-                "X-Tenant-ID": orgId.toString()
+                "X-Tenant-ID": org.id.toString()
             };
 
             const searchResponse = await zoektFetch({
@@ -177,7 +181,6 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             const searchBody = await searchResponse.json();
 
             const parser = zoektSearchResponseSchema.transform(async ({ Result }) => {
-
                 // @note (2025-05-12): in zoekt, repositories are identified by the `RepositoryID` field
                 // which corresponds to the `id` in the Repo table. In order to efficiently fetch repository
                 // metadata when transforming (potentially thousands) of file matches, we aggregate a unique
@@ -200,7 +203,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                         id: {
                             in: Array.from(repoIdentifiers).filter((id) => typeof id === "number"),
                         },
-                        orgId,
+                        orgId: org.id,
                     }
                 })).forEach(repo => repos.set(repo.id, repo));
 
@@ -209,9 +212,95 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                         name: {
                             in: Array.from(repoIdentifiers).filter((id) => typeof id === "string"),
                         },
-                        orgId,
+                        orgId: org.id,
                     }
                 })).forEach(repo => repos.set(repo.name, repo));
+
+                const files = Result.Files?.map((file) => {
+                    const fileNameChunks = file.ChunkMatches.filter((chunk) => chunk.FileName);
+
+                    const webUrl = (() => {
+                        const template: string | undefined = Result.RepoURLs[file.Repository];
+                        if (!template) {
+                            return undefined;
+                        }
+
+                        // If there are multiple branches pointing to the same revision of this file, it doesn't
+                        // matter which branch we use here, so use the first one.
+                        const branch = file.Branches && file.Branches.length > 0 ? file.Branches[0] : "HEAD";
+                        return getFileWebUrl(template, branch, file.FileName);
+                    })();
+
+                    const identifier = file.RepositoryID ?? file.Repository;
+                    const repo = repos.get(identifier);
+
+                    // This should never happen... but if it does, we skip the file.
+                    if (!repo) {
+                        Sentry.captureMessage(
+                            `Repository not found for identifier: ${identifier}; skipping file "${file.FileName}"`,
+                            'warning'
+                        );
+                        return undefined;
+                    }
+
+                    return {
+                        fileName: {
+                            text: file.FileName,
+                            matchRanges: fileNameChunks.length === 1 ? fileNameChunks[0].Ranges.map((range) => ({
+                                start: {
+                                    byteOffset: range.Start.ByteOffset,
+                                    column: range.Start.Column,
+                                    lineNumber: range.Start.LineNumber,
+                                },
+                                end: {
+                                    byteOffset: range.End.ByteOffset,
+                                    column: range.End.Column,
+                                    lineNumber: range.End.LineNumber,
+                                }
+                            })) : [],
+                        },
+                        repository: repo.name,
+                        repositoryId: repo.id,
+                        webUrl: webUrl,
+                        language: file.Language,
+                        chunks: file.ChunkMatches
+                            .filter((chunk) => !chunk.FileName) // Filter out filename chunks.
+                            .map((chunk) => {
+                                return {
+                                    content: base64Decode(chunk.Content),
+                                    matchRanges: chunk.Ranges.map((range) => ({
+                                        start: {
+                                            byteOffset: range.Start.ByteOffset,
+                                            column: range.Start.Column,
+                                            lineNumber: range.Start.LineNumber,
+                                        },
+                                        end: {
+                                            byteOffset: range.End.ByteOffset,
+                                            column: range.End.Column,
+                                            lineNumber: range.End.LineNumber,
+                                        }
+                                    }) satisfies SourceRange),
+                                    contentStart: {
+                                        byteOffset: chunk.ContentStart.ByteOffset,
+                                        column: chunk.ContentStart.Column,
+                                        lineNumber: chunk.ContentStart.LineNumber,
+                                    },
+                                    symbols: chunk.SymbolInfo?.map((symbol) => {
+                                        return {
+                                            symbol: symbol.Sym,
+                                            kind: symbol.Kind,
+                                            parent: symbol.Parent.length > 0 ? {
+                                                symbol: symbol.Parent,
+                                                kind: symbol.ParentKind,
+                                            } : undefined,
+                                        }
+                                    }) ?? undefined,
+                                }
+                            }),
+                        branches: file.Branches,
+                        content: file.Content ? base64Decode(file.Content) : undefined,
+                    }
+                }).filter((file) => file !== undefined) ?? [];
 
                 return {
                     zoektStats: {
@@ -236,91 +325,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                         regexpsConsidered: Result.RegexpsConsidered,
                         flushReason: Result.FlushReason,
                     },
-                    files: Result.Files?.map((file) => {
-                        const fileNameChunks = file.ChunkMatches.filter((chunk) => chunk.FileName);
-
-                        const webUrl = (() => {
-                            const template: string | undefined = Result.RepoURLs[file.Repository];
-                            if (!template) {
-                                return undefined;
-                            }
-
-                            // If there are multiple branches pointing to the same revision of this file, it doesn't
-                            // matter which branch we use here, so use the first one.
-                            const branch = file.Branches && file.Branches.length > 0 ? file.Branches[0] : "HEAD";
-                            return getFileWebUrl(template, branch, file.FileName);
-                        })();
-
-                        const identifier = file.RepositoryID ?? file.Repository;
-                        const repo = repos.get(identifier);
-
-                        // This should never happen... but if it does, we skip the file.
-                        if (!repo) {
-                            Sentry.captureMessage(
-                                `Repository not found for identifier: ${identifier}; skipping file "${file.FileName}"`,
-                                'warning'
-                            );
-                            return undefined;
-                        }
-
-                        return {
-                            fileName: {
-                                text: file.FileName,
-                                matchRanges: fileNameChunks.length === 1 ? fileNameChunks[0].Ranges.map((range) => ({
-                                    start: {
-                                        byteOffset: range.Start.ByteOffset,
-                                        column: range.Start.Column,
-                                        lineNumber: range.Start.LineNumber,
-                                    },
-                                    end: {
-                                        byteOffset: range.End.ByteOffset,
-                                        column: range.End.Column,
-                                        lineNumber: range.End.LineNumber,
-                                    }
-                                })) : [],
-                            },
-                            repository: repo.name,
-                            repositoryId: repo.id,
-                            webUrl: webUrl,
-                            language: file.Language,
-                            chunks: file.ChunkMatches
-                                .filter((chunk) => !chunk.FileName) // Filter out filename chunks.
-                                .map((chunk) => {
-                                    return {
-                                        content: chunk.Content,
-                                        matchRanges: chunk.Ranges.map((range) => ({
-                                            start: {
-                                                byteOffset: range.Start.ByteOffset,
-                                                column: range.Start.Column,
-                                                lineNumber: range.Start.LineNumber,
-                                            },
-                                            end: {
-                                                byteOffset: range.End.ByteOffset,
-                                                column: range.End.Column,
-                                                lineNumber: range.End.LineNumber,
-                                            }
-                                        }) satisfies SearchResultRange),
-                                        contentStart: {
-                                            byteOffset: chunk.ContentStart.ByteOffset,
-                                            column: chunk.ContentStart.Column,
-                                            lineNumber: chunk.ContentStart.LineNumber,
-                                        },
-                                        symbols: chunk.SymbolInfo?.map((symbol) => {
-                                            return {
-                                                symbol: symbol.Sym,
-                                                kind: symbol.Kind,
-                                                parent: symbol.Parent.length > 0 ? {
-                                                    symbol: symbol.Parent,
-                                                    kind: symbol.ParentKind,
-                                                } : undefined,
-                                            }
-                                        }) ?? undefined,
-                                    }
-                                }),
-                            branches: file.Branches,
-                            content: file.Content,
-                        }
-                    }).filter((file) => file !== undefined) ?? [],
+                    files,
                     repositoryInfo: Array.from(repos.values()).map((repo) => ({
                         id: repo.id,
                         codeHostType: repo.external_codeHostType,
@@ -329,9 +334,19 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                         webUrl: repo.webUrl ?? undefined,
                     })),
                     isBranchFilteringEnabled: isBranchFilteringEnabled,
+                    stats: {
+                        matchCount: files.reduce(
+                            (acc, file) =>
+                                acc + file.chunks.reduce(
+                                    (acc, chunk) => acc + chunk.matchRanges.length,
+                                    0,
+                                ),
+                            0,
+                        )
+                    }
                 } satisfies SearchResponse;
             });
 
             return parser.parseAsync(searchBody);
-        }), /* allowSingleTenantUnauthedAccess = */ true)
-)
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
+    );

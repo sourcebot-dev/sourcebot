@@ -14,6 +14,8 @@ import { TrialNavIndicator } from "./trialNavIndicator";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { env } from "@/env.mjs";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
+import { auth } from "@/auth";
+import WhatsNewIndicator from "./whatsNewIndicator";
 
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
@@ -26,9 +28,11 @@ export const NavigationMenu = async ({
     domain,
 }: NavigationMenuProps) => {
     const subscription = IS_BILLING_ENABLED ? await getSubscriptionInfo(domain) : null;
+    const session = await auth();
+    const isAuthenticated = session?.user !== undefined;
 
     return (
-        <div className="flex flex-col w-screen h-fit bg-background">
+        <div className="flex flex-col w-full h-fit bg-background">
             <div className="flex flex-row justify-between items-center py-1.5 px-3">
                 <div className="flex flex-row items-center">
                     <Link
@@ -60,36 +64,38 @@ export const NavigationMenu = async ({
                                 </Link>
                             </NavigationMenuItem>
                             <NavigationMenuItem>
-                                <Link href={`/${domain}/agents`} legacyBehavior passHref>
-                                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                        Agents
-                                    </NavigationMenuLink>
-                                </Link>
-                            </NavigationMenuItem>
-                            <NavigationMenuItem>
                                 <Link href={`/${domain}/repos`} legacyBehavior passHref>
                                     <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                                         Repositories
                                     </NavigationMenuLink>
                                 </Link>
                             </NavigationMenuItem>
-                            {env.SOURCEBOT_AUTH_ENABLED === 'true' && (
-                                <NavigationMenuItem>
-                                    <Link href={`/${domain}/connections`} legacyBehavior passHref>
-                                        <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                            Connections
-                                        </NavigationMenuLink>
-                                    </Link>
-                                </NavigationMenuItem>
-                            )}
-                            {env.SOURCEBOT_AUTH_ENABLED === 'true' && (
-                                <NavigationMenuItem>
-                                    <Link href={`/${domain}/settings`} legacyBehavior passHref>
-                                        <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                            Settings
-                                        </NavigationMenuLink>
-                                    </Link>
-                                </NavigationMenuItem>
+                            {isAuthenticated && (
+                                <>
+                                    {env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined && (
+                                        <NavigationMenuItem>
+                                            <Link href={`/${domain}/agents`} legacyBehavior passHref>
+                                                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                                    Agents
+                                                </NavigationMenuLink>
+                                            </Link>
+                                        </NavigationMenuItem>
+                                    )}
+                                    <NavigationMenuItem>
+                                        <Link href={`/${domain}/connections`} legacyBehavior passHref>
+                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                                Connections
+                                            </NavigationMenuLink>
+                                        </Link>
+                                    </NavigationMenuItem>
+                                    <NavigationMenuItem>
+                                        <Link href={`/${domain}/settings`} legacyBehavior passHref>
+                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                                Settings
+                                            </NavigationMenuLink>
+                                        </Link>
+                                    </NavigationMenuItem>
+                                </>
                             )}
                         </NavigationMenuList>
                     </NavigationMenuBase>
@@ -100,6 +106,7 @@ export const NavigationMenu = async ({
                     <WarningNavIndicator />
                     <ErrorNavIndicator />
                     <TrialNavIndicator subscription={subscription} />
+                    <WhatsNewIndicator />
                     <form
                         action={async () => {
                             "use server";
@@ -128,7 +135,7 @@ export const NavigationMenu = async ({
                             <GitHubLogoIcon className="w-4 h-4" />
                         </Button>
                     </form>
-                    <SettingsDropdown displaySettingsOption={env.SOURCEBOT_AUTH_ENABLED === 'true'} />
+                    <SettingsDropdown />
                 </div>
             </div>
             <Separator />

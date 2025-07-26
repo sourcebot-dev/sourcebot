@@ -1,0 +1,14 @@
+{
+    "name": "Sourcebot",
+    "short_name": "Sourcebot",
+    "display": "standalone",
+    "start_url": "/",
+    "icons": [
+      {
+        "src": "/logo_512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ]
+  }
+  

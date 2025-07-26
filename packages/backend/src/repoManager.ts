@@ -1,6 +1,6 @@
 import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
-import { createLogger } from "./logger.js";
+import { createLogger } from "@sourcebot/logger";
 import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings, repoMetadataSchema } from "./types.js";
@@ -10,8 +10,10 @@ import { existsSync, readdirSync, promises } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import { PromClient } from './promClient.js';
 import * as Sentry from "@sentry/node";
+import { env } from './env.js';
 
 interface IRepoManager {
+    validateIndexedReposHaveShards: () => Promise<void>;
     blockingPollLoop: () => void;
     dispose: () => void;
 }
@@ -28,12 +30,13 @@ type RepoGarbageCollectionPayload = {
     repo: Repo,
 }
 
+const logger = createLogger('repo-manager');
+
 export class RepoManager implements IRepoManager {
     private indexWorker: Worker;
     private indexQueue: Queue<RepoIndexingPayload>;
     private gcWorker: Worker;
     private gcQueue: Queue<RepoGarbageCollectionPayload>;
-    private logger = createLogger('RepoManager');
 
     constructor(
         private db: PrismaClient,
@@ -104,8 +107,10 @@ export class RepoManager implements IRepoManager {
                     name: 'repoIndexJob',
                     data: { repo },
                     opts: {
-                        priority: priority
-                    }
+                        priority: priority,
+                        removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                        removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+                    },
                 })));
 
                 // Increment pending jobs counter for each repo added
@@ -113,12 +118,12 @@ export class RepoManager implements IRepoManager {
                     this.promClient.pendingRepoIndexingJobs.inc({ repo: repo.id.toString() });
                 });
 
-                this.logger.info(`Added ${orgRepos.length} jobs to indexQueue for org ${orgId} with priority ${priority}`);
+                logger.info(`Added ${orgRepos.length} jobs to indexQueue for org ${orgId} with priority ${priority}`);
             }
 
 
         }).catch((err: unknown) => {
-            this.logger.error(`Failed to add jobs to indexQueue for repos ${repos.map(repo => repo.id).join(', ')}: ${err}`);
+            logger.error(`Failed to add jobs to indexQueue for repos ${repos.map(repo => repo.id).join(', ')}: ${err}`);
         });
     }
 
@@ -169,14 +174,14 @@ export class RepoManager implements IRepoManager {
     // We can no longer use repo.cloneUrl directly since it doesn't contain the token for security reasons. As a result, we need to
     // fetch the token here using the connections from the repo. Multiple connections could be referencing this repo, and each
     // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
-    // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referrencing.
+    // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
     private async getCloneCredentialsForRepo(repo: RepoWithConnections, db: PrismaClient): Promise<{ username?: string, password: string } | undefined> {
 
         for (const { connection } of repo.connections) {
             if (connection.connectionType === 'github') {
                 const config = connection.config as unknown as GithubConnectionConfig;
                 if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
+                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
                     return {
                         password: token,
                     }
@@ -186,7 +191,7 @@ export class RepoManager implements IRepoManager {
             else if (connection.connectionType === 'gitlab') {
                 const config = connection.config as unknown as GitlabConnectionConfig;
                 if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
+                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
                     return {
                         username: 'oauth2',
                         password: token,
@@ -197,7 +202,7 @@ export class RepoManager implements IRepoManager {
             else if (connection.connectionType === 'gitea') {
                 const config = connection.config as unknown as GiteaConnectionConfig;
                 if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
+                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
                     return {
                         password: token,
                     }
@@ -207,7 +212,7 @@ export class RepoManager implements IRepoManager {
             else if (connection.connectionType === 'bitbucket') {
                 const config = connection.config as unknown as BitbucketConnectionConfig;
                 if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, this.logger);
+                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
                     const username = config.user ?? 'x-token-auth';
                     return {
                         username,
@@ -228,23 +233,23 @@ export class RepoManager implements IRepoManager {
         // If the repo was already in the indexing state, this job was likely killed and picked up again. As a result,
         // to ensure the repo state is valid, we delete the repo if it exists so we get a fresh clone 
         if (repoAlreadyInIndexingState && existsSync(repoPath) && !isReadOnly) {
-            this.logger.info(`Deleting repo directory ${repoPath} during sync because it was already in the indexing state`);
+            logger.info(`Deleting repo directory ${repoPath} during sync because it was already in the indexing state`);
             await promises.rm(repoPath, { recursive: true, force: true });
         }
 
         if (existsSync(repoPath) && !isReadOnly) {
-            this.logger.info(`Fetching ${repo.displayName}...`);
+            logger.info(`Fetching ${repo.displayName}...`);
 
             const { durationMs } = await measure(() => fetchRepository(repoPath, ({ method, stage, progress }) => {
-                this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
+                logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
             }));
             const fetchDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
-            this.logger.info(`Fetched ${repo.displayName} in ${fetchDuration_s}s`);
+            logger.info(`Fetched ${repo.displayName} in ${fetchDuration_s}s`);
 
         } else if (!isReadOnly) {
-            this.logger.info(`Cloning ${repo.displayName}...`);
+            logger.info(`Cloning ${repo.displayName}...`);
 
             const auth = await this.getCloneCredentialsForRepo(repo, this.db);
             const cloneUrl = new URL(repo.cloneUrl);
@@ -263,12 +268,12 @@ export class RepoManager implements IRepoManager {
             }
 
             const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, ({ method, stage, progress }) => {
-                this.logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
+                logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
             }));
             const cloneDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
-            this.logger.info(`Cloned ${repo.displayName} in ${cloneDuration_s}s`);
+            logger.info(`Cloned ${repo.displayName} in ${cloneDuration_s}s`);
         }
 
         // Regardless of clone or fetch, always upsert the git config for the repo.
@@ -278,14 +283,14 @@ export class RepoManager implements IRepoManager {
             await upsertGitConfig(repoPath, metadata.gitConfig);
         }
 
-        this.logger.info(`Indexing ${repo.displayName}...`);
+        logger.info(`Indexing ${repo.displayName}...`);
         const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, this.ctx));
         const indexDuration_s = durationMs / 1000;
-        this.logger.info(`Indexed ${repo.displayName} in ${indexDuration_s}s`);
+        logger.info(`Indexed ${repo.displayName} in ${indexDuration_s}s`);
     }
 
     private async runIndexJob(job: Job<RepoIndexingPayload>) {
-        this.logger.info(`Running index job (id: ${job.id}) for repo ${job.data.repo.displayName}`);
+        logger.info(`Running index job (id: ${job.id}) for repo ${job.data.repo.displayName}`);
         const repo = job.data.repo as RepoWithConnections;
 
         // We have to use the existing repo object to get the repoIndexingStatus because the repo object
@@ -296,7 +301,7 @@ export class RepoManager implements IRepoManager {
             },
         });
         if (!existingRepo) {
-            this.logger.error(`Repo ${repo.id} not found`);
+            logger.error(`Repo ${repo.id} not found`);
             const e = new Error(`Repo ${repo.id} not found`);
             Sentry.captureException(e);
             throw e;
@@ -328,19 +333,19 @@ export class RepoManager implements IRepoManager {
                 attempts++;
                 this.promClient.repoIndexingReattemptsTotal.inc();
                 if (attempts === maxAttempts) {
-                    this.logger.error(`Failed to sync repository ${repo.name} (id: ${repo.id}) after ${maxAttempts} attempts. Error: ${error}`);
+                    logger.error(`Failed to sync repository ${repo.name} (id: ${repo.id}) after ${maxAttempts} attempts. Error: ${error}`);
                     throw error;
                 }
 
-                const sleepDuration = 5000 * Math.pow(2, attempts - 1);
-                this.logger.error(`Failed to sync repository ${repo.name} (id: ${repo.id}), attempt ${attempts}/${maxAttempts}. Sleeping for ${sleepDuration / 1000}s... Error: ${error}`);
+                const sleepDuration = (env.REPO_SYNC_RETRY_BASE_SLEEP_SECONDS * 1000) * Math.pow(2, attempts - 1);
+                logger.error(`Failed to sync repository ${repo.name} (id: ${repo.id}), attempt ${attempts}/${maxAttempts}. Sleeping for ${sleepDuration / 1000}s... Error: ${error}`);
                 await new Promise(resolve => setTimeout(resolve, sleepDuration));
             }
         }
     }
 
     private async onIndexJobCompleted(job: Job<RepoIndexingPayload>) {
-        this.logger.info(`Repo index job for repo ${job.data.repo.displayName} (id: ${job.data.repo.id}, jobId: ${job.id}) completed`);
+        logger.info(`Repo index job for repo ${job.data.repo.displayName} (id: ${job.data.repo.id}, jobId: ${job.id}) completed`);
         this.promClient.activeRepoIndexingJobs.dec();
         this.promClient.repoIndexingSuccessTotal.inc();
 
@@ -356,7 +361,7 @@ export class RepoManager implements IRepoManager {
     }
 
     private async onIndexJobFailed(job: Job<RepoIndexingPayload> | undefined, err: unknown) {
-        this.logger.info(`Repo index job for repo ${job?.data.repo.displayName} (id: ${job?.data.repo.id}, jobId: ${job?.id}) failed with error: ${err}`);
+        logger.info(`Repo index job for repo ${job?.data.repo.displayName} (id: ${job?.data.repo.id}, jobId: ${job?.id}) failed with error: ${err}`);
         Sentry.captureException(err, {
             tags: {
                 repoId: job?.data.repo.id,
@@ -394,9 +399,13 @@ export class RepoManager implements IRepoManager {
             await this.gcQueue.addBulk(repos.map(repo => ({
                 name: 'repoGarbageCollectionJob',
                 data: { repo },
+                opts: {
+                    removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                    removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+                }
             })));
 
-            this.logger.info(`Added ${repos.length} jobs to gcQueue`);
+            logger.info(`Added ${repos.length} jobs to gcQueue`);
         });
     }
 
@@ -425,7 +434,7 @@ export class RepoManager implements IRepoManager {
             },
         });
         if (reposWithNoConnections.length > 0) {
-            this.logger.info(`Garbage collecting ${reposWithNoConnections.length} repos with no connections: ${reposWithNoConnections.map(repo => repo.id).join(', ')}`);
+            logger.info(`Garbage collecting ${reposWithNoConnections.length} repos with no connections: ${reposWithNoConnections.map(repo => repo.id).join(', ')}`);
         }
 
         ////////////////////////////////////
@@ -448,7 +457,7 @@ export class RepoManager implements IRepoManager {
         });
 
         if (inactiveOrgRepos.length > 0) {
-            this.logger.info(`Garbage collecting ${inactiveOrgRepos.length} inactive org repos: ${inactiveOrgRepos.map(repo => repo.id).join(', ')}`);
+            logger.info(`Garbage collecting ${inactiveOrgRepos.length} inactive org repos: ${inactiveOrgRepos.map(repo => repo.id).join(', ')}`);
         }
 
         const reposToDelete = [...reposWithNoConnections, ...inactiveOrgRepos];
@@ -458,7 +467,7 @@ export class RepoManager implements IRepoManager {
     }
 
     private async runGarbageCollectionJob(job: Job<RepoGarbageCollectionPayload>) {
-        this.logger.info(`Running garbage collection job (id: ${job.id}) for repo ${job.data.repo.displayName} (id: ${job.data.repo.id})`);
+        logger.info(`Running garbage collection job (id: ${job.id}) for repo ${job.data.repo.displayName} (id: ${job.data.repo.id})`);
         this.promClient.activeRepoGarbageCollectionJobs.inc();
 
         const repo = job.data.repo as Repo;
@@ -474,7 +483,7 @@ export class RepoManager implements IRepoManager {
         // delete cloned repo
         const { path: repoPath, isReadOnly } = getRepoPath(repo, this.ctx);
         if (existsSync(repoPath) && !isReadOnly) {
-            this.logger.info(`Deleting repo directory ${repoPath}`);
+            logger.info(`Deleting repo directory ${repoPath}`);
             await promises.rm(repoPath, { recursive: true, force: true });
         }
 
@@ -483,13 +492,13 @@ export class RepoManager implements IRepoManager {
         const files = readdirSync(this.ctx.indexPath).filter(file => file.startsWith(shardPrefix));
         for (const file of files) {
             const filePath = `${this.ctx.indexPath}/${file}`;
-            this.logger.info(`Deleting shard file ${filePath}`);
+            logger.info(`Deleting shard file ${filePath}`);
             await promises.rm(filePath, { force: true });
         }
     }
 
     private async onGarbageCollectionJobCompleted(job: Job<RepoGarbageCollectionPayload>) {
-        this.logger.info(`Garbage collection job ${job.id} completed`);
+        logger.info(`Garbage collection job ${job.id} completed`);
         this.promClient.activeRepoGarbageCollectionJobs.dec();
         this.promClient.repoGarbageCollectionSuccessTotal.inc();
 
@@ -501,7 +510,7 @@ export class RepoManager implements IRepoManager {
     }
 
     private async onGarbageCollectionJobFailed(job: Job<RepoGarbageCollectionPayload> | undefined, err: unknown) {
-        this.logger.info(`Garbage collection job failed (id: ${job?.id ?? 'unknown'}) with error: ${err}`);
+        logger.info(`Garbage collection job failed (id: ${job?.id ?? 'unknown'}) with error: ${err}`);
         Sentry.captureException(err, {
             tags: {
                 repoId: job?.data.repo.id,
@@ -525,6 +534,61 @@ export class RepoManager implements IRepoManager {
         }
     }
 
+    ///////////////////////////
+    // Repo index validation
+    ///////////////////////////
+
+    public async validateIndexedReposHaveShards() {
+        logger.info('Validating indexed repos have shards...');
+        
+        const indexedRepos = await this.db.repo.findMany({
+            where: {
+                repoIndexingStatus: RepoIndexingStatus.INDEXED
+            }
+        });
+        logger.info(`Found ${indexedRepos.length} repos in the DB marked as INDEXED`);
+
+        if (indexedRepos.length === 0) {
+            return;
+        }
+
+        const reposToReindex: number[] = [];
+
+        for (const repo of indexedRepos) {
+            const shardPrefix = getShardPrefix(repo.orgId, repo.id);
+            
+            // TODO: this doesn't take into account if a repo has multiple shards and only some of them are missing. To support that, this logic
+            // would need to know how many total shards are expected for this repo
+            let hasShards = false;
+            try {
+                const files = readdirSync(this.ctx.indexPath);
+                hasShards = files.some(file => file.startsWith(shardPrefix));
+            } catch (error) {
+                logger.error(`Failed to read index directory ${this.ctx.indexPath}: ${error}`);
+                continue;
+            }
+
+            if (!hasShards) {
+                logger.info(`Repo ${repo.displayName} (id: ${repo.id}) is marked as INDEXED but has no shards on disk. Marking for reindexing.`);
+                reposToReindex.push(repo.id);
+            }
+        }
+
+        if (reposToReindex.length > 0) {
+            await this.db.repo.updateMany({
+                where: {
+                    id: { in: reposToReindex }
+                },
+                data: {
+                    repoIndexingStatus: RepoIndexingStatus.NEW
+                }
+            });
+            logger.info(`Marked ${reposToReindex.length} repos for reindexing due to missing shards`);
+        }
+
+        logger.info('Done validating indexed repos have shards');
+    }
+
     private async fetchAndScheduleRepoTimeouts() {
         const repos = await this.db.repo.findMany({
             where: {
@@ -536,7 +600,7 @@ export class RepoManager implements IRepoManager {
         });
 
         if (repos.length > 0) {
-            this.logger.info(`Scheduling ${repos.length} repo timeouts`);
+            logger.info(`Scheduling ${repos.length} repo timeouts`);
             await this.scheduleRepoTimeoutsBulk(repos);
         }
     }

@@ -3,35 +3,79 @@ title: Overview
 sidebarTitle: Overview
 ---
 
-To connect your code to Sourcebot you create **connections**. A **connection** is a configuration object that describes how Sourcebot should fetch information from a supported code host.
+import SupportedPlatforms from '/snippets/platform-support.mdx'
+import ConfigSchema from '/snippets/schemas/v3/index.schema.mdx'
 
-There are two ways to define connections:
+A **connection** represents Sourcebot's link to a code host platform (GitHub, GitLab, etc). Connections are defined within the [config file](/docs/configuration/config-file) you provide Sourcebot.
 
-<AccordionGroup>
-    <Accordion title="Declarative configuration file">
-        This is only supported when self-hosting, and is the default mechanism to define connections. Connections are defined in a [JSON file](/self-hosting/more/declarative-config)
-        and the path to the file is provided through the `CONFIG_PATH` environment variable
-    </Accordion>
-    <Accordion title="UI connection management">
-        This is the only way to define connections when using Sourcebot Cloud, and can be configured when self-hosting by enabling [authentication](/self-hosting/more/authentications).
+Each connection defines how Sourcebot should authenticate and interact with a particular host, and which repositories to sync and index from that host. Connections are uniquely identified by their name.
 
-        In this method, connections are defined and managed within the webapp:
+```json wrap icon="code" Example config with two connections
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "connections": {
+        // 1. A connection to GitHub.com
+        "github-connection": {
+            "type": "github",
+            "repos": [
+                "sourcebot-dev/sourcebot"
+            ],
+            "token": {
+                "env": "GITHUB_TOKEN"
+            }
+        },
+        // 2. A self-hosted GitLab instance
+        "gitlab-connection": {
+            "type": "gitlab",
+            "url": "https://gitlab.example.com",
+            "groups": [
+                "my-group",
+                "my-other-group/sub-group"
+            ],
+            "token": {
+                "env": "GITLAB_TOKEN"
+            }
+        }
+    }
+}
+```
 
-        ![Connections page](/images/connection_page.png)
-    </Accordion>
-</AccordionGroup>
+Configuration files must conform to the [JSON schema](#schema-reference).
 
-### Supported code hosts
+## Connection Syncing
 
-<CardGroup cols={2}>
-    <Card horizontal title="GitHub" icon="github" href="/docs/connections/github" />
-    <Card horizontal title="GitLab" icon="gitlab" href="/docs/connections/gitlab" />
-    <Card horizontal title="Bitbucket Cloud" icon="bitbucket" href="/docs/connections/bitbucket-cloud" />
-    <Card horizontal title="Bitbucket Data Center" icon="bitbucket" href="/docs/connections/bitbucket-data-center" />
-    <Card horizontal title="Gitea" href="/docs/connections/gitea" />
-    <Card horizontal title="Gerrit" href="/docs/connections/gerrit" />
-    <Card horizontal title="Other Git hosts" icon="git-alt" href="/docs/connections/generic-git-host" />
-    <Card horizontal title="Local Git repos" icon="folder" href="/docs/connections/local-repos" />
-</CardGroup>
+When a connection is first discovered, or the `resyncConnectionIntervalMs` [setting](/docs/configuration/config-file#settings) has exceeded, the connection will be synced. This consists of:
+1. Fetching the latest changes from `HEAD` (and any [additional branches](/docs/features/search/multi-branch-indexing)) from the code host.
+2. Re-indexing the repository.
+
+This is processed in a [job queue](/docs/overview#architecture), and is parallelized across multiple worker processes. Jobs will take longer to complete the first time a repository is synced, or when a diff is large.
+
+On the home page, you can view the sync status of ongoing jobs:
+
+<video
+    autoPlay
+    muted
+    loop
+    playsInline
+    className="w-full aspect-video"
+    src="https://framerusercontent.com/assets/7YyxK8ctPEy9Rf68X2kIdMI.mp4"
+></video>
+
+## Platform Connection Guides
+
+To learn more about how to create a connection for a specific code host, check out the guides below.
+
+<SupportedPlatforms />
 
 <Note>Missing your code host? [Submit a feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas).</Note>
+
+
+## Schema reference
+---
+
+<Accordion title="Reference">
+[schemas/v3/index.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/index.json)
+
+<ConfigSchema />
+
+</Accordion>

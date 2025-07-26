@@ -1,7 +1,6 @@
 'use client';
 
 import {
-    ResizableHandle,
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
@@ -15,7 +14,6 @@ import { InfoCircledIcon, SymbolIcon } from "@radix-ui/react-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ImperativePanelHandle } from "react-resizable-panels";
 import { search } from "../../api/(client)/client";
 import { TopBar } from "../components/topBar";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
@@ -24,8 +22,18 @@ import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
+import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
+import { useFilteredMatches } from "./components/filterPanel/useFilterMatches";
+import { Button } from "@/components/ui/button";
+import { ImperativePanelHandle } from "react-resizable-panels";
+import { FilterIcon } from "lucide-react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useLocalStorage } from "@uidotdev/usehooks";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { SearchBar } from "../components/searchBar";
 
-const DEFAULT_MATCH_COUNT = 10000;
+const DEFAULT_MAX_MATCH_COUNT = 10000;
 
 export default function SearchPage() {
     // We need a suspense boundary here since we are accessing query params
@@ -41,18 +49,20 @@ export default function SearchPage() {
 const SearchPageInternal = () => {
     const router = useRouter();
     const searchQuery = useNonEmptyQueryParam(SearchQueryParams.query) ?? "";
-    const _matches = parseInt(useNonEmptyQueryParam(SearchQueryParams.matches) ?? `${DEFAULT_MATCH_COUNT}`);
-    const matches = isNaN(_matches) ? DEFAULT_MATCH_COUNT : _matches;
     const { setSearchHistory } = useSearchHistory();
     const captureEvent = useCaptureEvent();
     const domain = useDomain();
     const { toast } = useToast();
 
+    // Encodes the number of matches to return in the search response.
+    const _maxMatchCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.matches) ?? `${DEFAULT_MAX_MATCH_COUNT}`);
+    const maxMatchCount = isNaN(_maxMatchCount) ? DEFAULT_MAX_MATCH_COUNT : _maxMatchCount;
+
     const { data: searchResponse, isLoading: isSearchLoading, error } = useQuery({
-        queryKey: ["search", searchQuery, matches],
+        queryKey: ["search", searchQuery, maxMatchCount],
         queryFn: () => measure(() => unwrapServiceError(search({
             query: searchQuery,
-            matches,
+            matches: maxMatchCount,
             contextLines: 3,
             whole: false,
         }, domain)), "client.search"),
@@ -63,6 +73,7 @@ const SearchPageInternal = () => {
         enabled: searchQuery.length > 0,
         refetchOnWindowFocus: false,
         retry: false,
+        staleTime: Infinity,
     });
 
     useEffect(() => {
@@ -122,7 +133,7 @@ const SearchPageInternal = () => {
         });
     }, [captureEvent, searchQuery, searchResponse]);
 
-    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled, repositoryInfo } = useMemo(() => {
+    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled, repositoryInfo, matchCount } = useMemo(() => {
         if (!searchResponse) {
             return {
                 fileMatches: [],
@@ -130,6 +141,7 @@ const SearchPageInternal = () => {
                 totalMatchCount: 0,
                 isBranchFilteringEnabled: false,
                 repositoryInfo: {},
+                matchCount: 0,
             };
         }
 
@@ -142,43 +154,34 @@ const SearchPageInternal = () => {
                 acc[repo.id] = repo;
                 return acc;
             }, {} as Record<number, RepositoryInfo>),
+            matchCount: searchResponse.stats.matchCount,
         }
     }, [searchResponse]);
 
     const isMoreResultsButtonVisible = useMemo(() => {
-        return totalMatchCount > matches;
-    }, [totalMatchCount, matches]);
-
-    const numMatches = useMemo(() => {
-        // Accumualtes the number of matches across all files
-        return fileMatches.reduce(
-            (acc, file) =>
-                acc + file.chunks.reduce(
-                    (acc, chunk) => acc + chunk.matchRanges.length,
-                    0,
-                ),
-            0,
-        );
-    }, [fileMatches]);
+        return totalMatchCount > maxMatchCount;
+    }, [totalMatchCount, maxMatchCount]);
 
     const onLoadMoreResults = useCallback(() => {
         const url = createPathWithQueryParams(`/${domain}/search`,
             [SearchQueryParams.query, searchQuery],
-            [SearchQueryParams.matches, `${matches * 2}`],
+            [SearchQueryParams.matches, `${maxMatchCount * 2}`],
         )
         router.push(url);
-    }, [matches, router, searchQuery, domain]);
+    }, [maxMatchCount, router, searchQuery, domain]);
 
     return (
         <div className="flex flex-col h-screen overflow-clip">
             {/* TopBar */}
-            <div className="sticky top-0 left-0 right-0 z-10">
-                <TopBar
-                    defaultSearchQuery={searchQuery}
-                    domain={domain}
+            <TopBar
+                domain={domain}
+            >
+                <SearchBar
+                    size="sm"
+                    defaultQuery={searchQuery}
+                    className="w-full"
                 />
-                <Separator />
-            </div>
+            </TopBar>
 
             {(isSearchLoading) ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
@@ -193,7 +196,7 @@ const SearchPageInternal = () => {
                     isBranchFilteringEnabled={isBranchFilteringEnabled}
                     repoInfo={repositoryInfo}
                     searchDurationMs={searchDurationMs}
-                    numMatches={numMatches}
+                    numMatches={matchCount}
                 />
             )}
         </div>
@@ -219,22 +222,24 @@ const PanelGroup = ({
     searchDurationMs,
     numMatches,
 }: PanelGroupProps) => {
+    const [previewedFile, setPreviewedFile] = useState<SearchResultFile | undefined>(undefined);
+    const filteredFileMatches = useFilteredMatches(fileMatches);
+    const filterPanelRef = useRef<ImperativePanelHandle>(null);
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
-    const [selectedFile, setSelectedFile] = useState<SearchResultFile | undefined>(undefined);
-    const [filteredFileMatches, setFilteredFileMatches] = useState<SearchResultFile[]>(fileMatches);
 
-    const codePreviewPanelRef = useRef<ImperativePanelHandle>(null);
-    useEffect(() => {
-        if (selectedFile) {
-            codePreviewPanelRef.current?.expand();
+    const [isFilterPanelCollapsed, setIsFilterPanelCollapsed] = useLocalStorage('isFilterPanelCollapsed', false);
+
+    useHotkeys("mod+b", () => {
+        if (isFilterPanelCollapsed) {
+            filterPanelRef.current?.expand();
         } else {
-            codePreviewPanelRef.current?.collapse();
+            filterPanelRef.current?.collapse();
         }
-    }, [selectedFile]);
-
-    const onFilterChanged = useCallback((matches: SearchResultFile[]) => {
-        setFilteredFileMatches(matches);
-    }, []);
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Toggle filter panel",
+    });
 
     return (
         <ResizablePanelGroup
@@ -243,22 +248,47 @@ const PanelGroup = ({
         >
             {/* ~~ Filter panel ~~ */}
             <ResizablePanel
+                ref={filterPanelRef}
                 minSize={20}
                 maxSize={30}
-                defaultSize={20}
+                defaultSize={isFilterPanelCollapsed ? 0 : 20}
                 collapsible={true}
                 id={'filter-panel'}
                 order={1}
+                onCollapse={() => setIsFilterPanelCollapsed(true)}
+                onExpand={() => setIsFilterPanelCollapsed(false)}
             >
                 <FilterPanel
                     matches={fileMatches}
-                    onFilterChanged={onFilterChanged}
                     repoInfo={repoInfo}
                 />
             </ResizablePanel>
-            <ResizableHandle
-                className="w-[1px] bg-accent transition-colors delay-50 data-[resize-handle-state=drag]:bg-accent-foreground data-[resize-handle-state=hover]:bg-accent-foreground"
-            />
+            {isFilterPanelCollapsed && (
+                <div className="flex flex-col items-center h-full p-2">
+                    <Tooltip
+                        delayDuration={100}
+                    >
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                    filterPanelRef.current?.expand();
+                                }}
+                            >
+                                <FilterIcon className="w-4 h-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="flex flex-row items-center gap-2">
+                            <KeyboardShortcutHint shortcut="⌘ B" />
+                            <Separator orientation="vertical" className="h-4" />
+                            <span>Open filter panel</span>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
+            )}
+            <AnimatedResizableHandle />
 
             {/* ~~ Search results ~~ */}
             <ResizablePanel
@@ -287,11 +317,9 @@ const PanelGroup = ({
                 {filteredFileMatches.length > 0 ? (
                     <SearchResultsPanel
                         fileMatches={filteredFileMatches}
-                        onOpenFileMatch={(fileMatch) => {
-                            setSelectedFile(fileMatch);
-                        }}
-                        onMatchIndexChanged={(matchIndex) => {
-                            setSelectedMatchIndex(matchIndex);
+                        onOpenFilePreview={(fileMatch, matchIndex) => {
+                            setSelectedMatchIndex(matchIndex ?? 0);
+                            setPreviewedFile(fileMatch);
                         }}
                         isLoadMoreButtonVisible={!!isMoreResultsButtonVisible}
                         onLoadMoreButtonClicked={onLoadMoreResults}
@@ -304,25 +332,27 @@ const PanelGroup = ({
                     </div>
                 )}
             </ResizablePanel>
-            <ResizableHandle
-                className="mt-7 w-[1px] bg-accent transition-colors delay-50 data-[resize-handle-state=drag]:bg-accent-foreground data-[resize-handle-state=hover]:bg-accent-foreground"
-            />
 
-            {/* ~~ Code preview ~~ */}
-            <ResizablePanel
-                ref={codePreviewPanelRef}
-                minSize={10}
-                collapsible={true}
-                id={'code-preview-panel'}
-                order={3}
-            >
-                <CodePreviewPanel
-                    fileMatch={selectedFile}
-                    onClose={() => setSelectedFile(undefined)}
-                    selectedMatchIndex={selectedMatchIndex}
-                    onSelectedMatchIndexChange={setSelectedMatchIndex}
-                />
-            </ResizablePanel>
+            {previewedFile && (
+                <>
+                    <AnimatedResizableHandle />
+                    {/* ~~ Code preview ~~ */}
+                    <ResizablePanel
+                        minSize={10}
+                        collapsible={true}
+                        id={'code-preview-panel'}
+                        order={3}
+                        onCollapse={() => setPreviewedFile(undefined)}
+                    >
+                        <CodePreviewPanel
+                            previewedFile={previewedFile}
+                            onClose={() => setPreviewedFile(undefined)}
+                            selectedMatchIndex={selectedMatchIndex}
+                            onSelectedMatchIndexChange={setSelectedMatchIndex}
+                        />
+                    </ResizablePanel>
+                </>
+            )}
         </ResizablePanelGroup>
     )
 }

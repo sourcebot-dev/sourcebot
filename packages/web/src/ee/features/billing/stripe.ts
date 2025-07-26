@@ -1,7 +1,7 @@
 import 'server-only';
 import { env } from '@/env.mjs'
 import Stripe from "stripe";
-import { hasEntitlement } from '@/features/entitlements/server';
+import { hasEntitlement } from '@sourcebot/shared';
 
 export const IS_BILLING_ENABLED = hasEntitlement('billing') && env.STRIPE_SECRET_KEY !== undefined;
 

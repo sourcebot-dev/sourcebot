@@ -1,5 +1,8 @@
 import * as Sentry from "@sentry/node";
 import { env } from "./env.js";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('instrument');
 
 if (!!env.NEXT_PUBLIC_SENTRY_BACKEND_DSN && !!env.NEXT_PUBLIC_SENTRY_ENVIRONMENT) {
     Sentry.init({
@@ -8,5 +11,5 @@ if (!!env.NEXT_PUBLIC_SENTRY_BACKEND_DSN && !!env.NEXT_PUBLIC_SENTRY_ENVIRONMENT
         environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
     });
 } else {
-    console.debug("Sentry was not initialized");
+    logger.debug("Sentry was not initialized");
 }

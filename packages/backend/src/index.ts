@@ -8,31 +8,35 @@ import { AppContext } from "./types.js";
 import { main } from "./main.js"
 import { PrismaClient } from "@sourcebot/db";
 import { env } from "./env.js";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('backend-entrypoint');
+
 
 // Register handler for normal exit
 process.on('exit', (code) => {
-    console.log(`Process is exiting with code: ${code}`);
+    logger.info(`Process is exiting with code: ${code}`);
 });
 
 // Register handlers for abnormal terminations
 process.on('SIGINT', () => {
-    console.log('Process interrupted (SIGINT)');
-    process.exit(130);
+    logger.info('Process interrupted (SIGINT)');
+    process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('Process terminated (SIGTERM)');
-    process.exit(143);
+    logger.info('Process terminated (SIGTERM)');
+    process.exit(0);
 });
 
 // Register handlers for uncaught exceptions and unhandled rejections
 process.on('uncaughtException', (err) => {
-    console.log(`Uncaught exception: ${err.message}`);
+    logger.error(`Uncaught exception: ${err.message}`);
     process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.log(`Unhandled rejection at: ${promise}, reason: ${reason}`);
+    logger.error(`Unhandled rejection at: ${promise}, reason: ${reason}`);
     process.exit(1);
 });
 
@@ -60,12 +64,13 @@ main(prisma, context)
         await prisma.$disconnect();
     })
     .catch(async (e) => {
-        console.error(e);
+        logger.error(e);
         Sentry.captureException(e);
 
         await prisma.$disconnect();
         process.exit(1);
     })
     .finally(() => {
-        console.log("Shutting down...");
+        logger.info("Shutting down...");
     });
+

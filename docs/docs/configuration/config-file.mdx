@@ -1,0 +1,49 @@
+---
+title: Config File
+sidebarTitle: Config file
+---
+
+When self-hosting Sourcebot, you **must** provide it a config file. This is done by defining a config file in a volume that's mounted to Sourcebot, and providing the path to this
+file in the `CONFIG_PATH` environment variable. For example:
+
+```bash icon="terminal" Passing in a CONFIG_PATH to Sourcebot
+docker run \
+    -v $(pwd)/config.json:/data/config.json \
+    -e CONFIG_PATH=/data/config.json \
+    ... \ # other options
+    ghcr.io/sourcebot-dev/sourcebot:latest
+```
+
+The config file tells Sourcebot which repos to index, what language models to use, and various other settings as defined in the [schema](#config-file-schema).
+
+# Config File Schema
+
+The config file you provide Sourcebot must follow the [schema](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/index.json). This schema consists of the following properties:
+
+- [Connections](/docs/connections/overview) (`connections`): Defines a set of connections that tell Sourcebot which repos to index and from where
+- [Language Models](/docs/configuration/language-model-providers) (`models`): Defines a set of language model providers for use with [Ask Sourcebot](/docs/features/ask)
+- [Settings](#settings) (`settings`): Additional settings to tweak your Sourcebot deployment
+- [Search Contexts](/docs/features/search/search-contexts) (`contexts`): Groupings of repos that you can search against
+
+# Config File Syncing
+
+Sourcebot syncs the config file on startup, and automatically whenever a change is detected.
+
+# Settings
+
+The following are settings that can be provided in your config file to modify Sourcebot's behavior
+
+| Setting                                   | Type    | Default    | Minimum | Description / Notes                                                                    |
+|-------------------------------------------|---------|------------|---------|----------------------------------------------------------------------------------------|
+| `maxFileSize`                             | number  | 2 MB       | 1       | Maximum size (bytes) of a file to index. Files exceeding this are skipped.             |
+| `maxTrigramCount`                         | number  | 20 000     | 1       | Maximum trigrams per document. Larger files are skipped.                               |
+| `reindexIntervalMs`                       | number  | 1 hour     | 1       | Interval at which all repositories are re‑indexed.                                     |
+| `resyncConnectionIntervalMs`              | number  | 24 hours   | 1       | Interval for checking connections that need re‑syncing.                                |
+| `resyncConnectionPollingIntervalMs`       | number  | 1 second   | 1       | DB polling rate for connections that need re‑syncing.                                  |
+| `reindexRepoPollingIntervalMs`            | number  | 1 second   | 1       | DB polling rate for repos that should be re‑indexed.                                   |
+| `maxConnectionSyncJobConcurrency`         | number  | 8          | 1       | Concurrent connection‑sync jobs.                                                       |
+| `maxRepoIndexingJobConcurrency`           | number  | 8          | 1       | Concurrent repo‑indexing jobs.                                                         |
+| `maxRepoGarbageCollectionJobConcurrency`  | number  | 8          | 1       | Concurrent repo‑garbage‑collection jobs.                                               |
+| `repoGarbageCollectionGracePeriodMs`      | number  | 10 seconds | 1       | Grace period to avoid deleting shards while loading.                                   |
+| `repoIndexTimeoutMs`                      | number  | 2 hours    | 1       | Timeout for a single repo‑indexing run.                                                |
+| `enablePublicAccess` **(deprecated)**     | boolean | false      | —       | Use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.                  |

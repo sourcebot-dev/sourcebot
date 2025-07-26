@@ -2,13 +2,14 @@ import { Connection, ConnectionSyncStatus, PrismaClient, Prisma } from "@sourceb
 import { Job, Queue, Worker } from 'bullmq';
 import { Settings } from "./types.js";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
-import { createLogger } from "./logger.js";
+import { createLogger } from "@sourcebot/logger";
 import { Redis } from 'ioredis';
 import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig, compileBitbucketConfig, compileGenericGitHostConfig } from "./repoCompileUtils.js";
 import { BackendError, BackendException } from "@sourcebot/error";
 import { captureEvent } from "./posthog.js";
 import { env } from "./env.js";
 import * as Sentry from "@sentry/node";
+import { loadConfig, syncSearchContexts } from "@sourcebot/shared";
 
 interface IConnectionManager {
     scheduleConnectionSync: (connection: Connection) => Promise<void>;
@@ -32,7 +33,7 @@ type JobResult = {
 export class ConnectionManager implements IConnectionManager {
     private worker: Worker;
     private queue: Queue<JobPayload>;
-    private logger = createLogger('ConnectionManager');
+    private logger = createLogger('connection-manager');
 
     constructor(
         private db: PrismaClient,
@@ -64,6 +65,9 @@ export class ConnectionManager implements IConnectionManager {
                 connectionName: connection.name,
                 orgId: connection.orgId,
                 config: connectionConfig,
+            }, {
+                removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                removeOnFail: env.REDIS_REMOVE_ON_FAIL,
             });
             this.logger.info(`Added job to queue for connection ${connection.name} (id: ${connection.id})`);
         }).catch((err: unknown) => {
@@ -261,7 +265,7 @@ export class ConnectionManager implements IConnectionManager {
 
     private async onSyncJobCompleted(job: Job<JobPayload>, result: JobResult) {
         this.logger.info(`Connection sync job for connection ${job.data.connectionName} (id: ${job.data.connectionId}, jobId: ${job.id}) completed`);
-        const { connectionId } = job.data;
+        const { connectionId, orgId } = job.data;
 
         let syncStatusMetadata: Record<string, unknown> = (await this.db.connection.findUnique({
             where: { id: connectionId },
@@ -286,7 +290,25 @@ export class ConnectionManager implements IConnectionManager {
                         notFound.repos.length > 0 ? ConnectionSyncStatus.SYNCED_WITH_WARNINGS : ConnectionSyncStatus.SYNCED,
                 syncedAt: new Date()
             }
-        })
+        });
+
+        // After a connection has synced, we need to re-sync the org's search contexts as
+        // there may be new repos that match the search context's include/exclude patterns.
+        if (env.CONFIG_PATH) {
+            try {
+                const config = await loadConfig(env.CONFIG_PATH);
+
+                await syncSearchContexts({
+                    db: this.db,
+                    orgId,
+                    contexts: config.contexts,
+                });
+            } catch (err) {
+                this.logger.error(`Failed to sync search contexts for connection ${connectionId}: ${err}`);
+                Sentry.captureException(err);
+            }
+        }
+
 
         captureEvent('backend_connection_sync_job_completed', {
             connectionId: connectionId,

@@ -2,19 +2,225 @@
 title: "Overview"
 ---
 
-Sourcebot is an **[open-source](https://github.com/sourcebot-dev/sourcebot) code search tool** that is purpose built to search multi-million line codebases in seconds. It integrates with [GitHub](/docs/connections/github), [GitLab](/docs/connections/gitlab), and [other platforms](/docs/connections).
+[Sourcebot](https://github.com/sourcebot-dev/sourcebot) is a self-hosted tool that helps you understand your codebase. 
 
-## Getting Started
+- [Code search](/docs/features/search/overview): Search and navigate across all your repos and branches, no matter where they’re hosted
+- [Ask Sourcebot](/docs/features/ask): Ask questions about your codebase and have Sourcebot provide detailed answers grounded with inline citations
 
-There are two ways to get started using Sourcebot:
-
-<CardGroup cols={2}>
-  <Card horizontal title="Self-Host" icon="server" href="/self-hosting/overview">
-    Deploy Sourcebot on your own infrastructure.
-  </Card>
-  <Card horizontal title="Sourcebot Cloud" icon="cloud" href="/docs/getting-started">
-    Use Sourcebot on our managed infrastructure.
-  </Card>
+<CardGroup>
+<Card title="Deployment guide" icon="server" href="/docs/deployment-guide" horizontal="true">
+  Learn how to self-host Sourcebot in a few simple steps.
+</Card>
+<Card title="Public demo" icon="globe" href="https://demo.sourcebot.dev/" horizontal="true">
+  Check out Sourcebot's features on our public demo instance.
+</Card>
 </CardGroup>
 
-We also have a [public demo](https://demo.sourcebot.dev) if you'd like to try Sourcebot out before registering.
+<AccordionGroup>
+  <Accordion title="Why Sourcebot?">
+    - **Full-featured search:** Fast indexed-based search with regex support, filters, branch search, boolean logic, and more.
+    - **Self-hosted:** Deploy it in minutes using our official [docker container](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot). All of your data stays on your machine.
+    - **Modern design:** Light/Dark mode, vim keybindings, keyboard shortcuts, syntax highlighting, etc.
+    - **Scalable:** Scales to millions of lines of code.
+    - **Open-source:** Core features are MIT licensed.
+  </Accordion>
+</AccordionGroup>
+
+## Features
+---
+
+<Info>
+  Find an overview of all Sourcebot features below. For details, see the individual documentation pages.
+</Info>
+
+### Ask Sourcebot
+
+[Ask Sourcebot](/docs/features/ask) gives you the ability to ask complex questions about your codebase, and have Sourcebot provide detailed answers with inline citations.
+
+<Accordion title="Key benefits">
+- **Bring your own model:** [Configure](/docs/configuration/language-model-providers) to any language model you'd like
+- **Inline citations:** Every answer Sourcebot provides is grounded with inline citations directly into your codebase
+- **Mutli-repo:** Ask questions about any repository you have indexed on Sourcebot
+</Accordion>
+
+<video
+  autoPlay
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video"
+  src="/images/ask_sourcebot_low_res.mp4"
+></video>
+
+### Code Search
+
+Search across all your repos/branches across any code host platform. Blazingly fast, and supports regular expressions, repo/language search filters, boolean logic, and more.
+
+<Accordion title="Key benefits">
+- **Regex support:** Use regular expressions to find code with precision.
+- **Query language:** Scope searches to specific files, repos, languages, symbol definitions and more using a rich [query language](/docs/features/search/syntax-reference).
+- **Branch search:** Specify a list of branches to search across ([docs](/docs/features/search/multi-branch-indexing)).
+- **Fast & scalable:** Sourcebot uses [trigram indexing](https://en.wikipedia.org/wiki/Trigram_search), allowing it to scale to massive codebases.
+- **Syntax highlighting:** Syntax highlighting support for over [100+ languages](https://github.com/sourcebot-dev/sourcebot/blob/57724689303f351c279d37f45b6406f1d5d5d5ab/packages/web/src/lib/codemirrorLanguage.ts#L125).
+- **Multi-repository:** Search across all of your repositories in a single search.
+- **Search suggestions:** Get search suggestions as you craft your query.
+- **Filter panel:** Filter results by repository or by language.
+</Accordion>
+
+<video
+  autoPlay
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video"
+  src="https://framerusercontent.com/assets/cEqHNSLiMbNeG3bk5xheQWXmKqc.mp4"
+></video>
+
+### Code Navigation
+
+[Code navigation](/docs/features/code-navigation) helps you jump between symbol definitions and references quickly when browsing source code in Sourcebot.
+
+<Accordion title="Key benefits">
+- **Hover popover:** Hovering over a symbol reveals the symbol's definition signature in a inline preview.
+- **Go to definition:** Navigate to a symbol's definition(s).
+- **Find references:** Get all references to a symbol.
+- **Cross-repository:** Sourcebot can resolve references and definitions across repositories.
+</Accordion>
+
+<video
+  autoPlay
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video"
+  src="https://framerusercontent.com/assets/B9ZxrlsUeO9NJyzkKyvVV2KSU4.mp4"
+></video>
+
+
+### Cross code-host support
+
+Connect your code from multiple code-host platforms and search across all of them from a single interface.
+
+<Accordion title="Key benefits">
+- **Auto re-syncing:** Sourcebot will periodically sync with code hosts to pull the latest changes.
+- **Flexible configuration:** Sourcebot uses an expressive [JSON schema](/docs/connections/overview) config format to specify exactly what repositories to index (and what not to index).
+- **Parallel indexing:** Repositories are indexed in parallel.
+</Accordion>
+
+<Columns cols={4}>
+  <Tooltip tip="GitHub.com | Enterprise Server | Enterprise Cloud">
+    <Card title="GitHub" img="/images/github.png" href="/docs/connections/github" />
+  </Tooltip>
+  <Tooltip tip="GitLab.com | Self Managed (CE & EE) | Dedicated">
+    <Card title="GitLab" img="/images/gitlab.png" href="/docs/connections/gitlab" />
+  </Tooltip>
+  <Tooltip tip="Bitbucket cloud | Bitbucket Data Center">
+    <Card title="BitBucket" img="/images/bitbucket.png" href="/docs/connections/bitbucket-cloud" />
+  </Tooltip>
+  <Tooltip tip="Gitea.com | Gitea Self-hosted">
+    <Card title="Gitea" img="/images/gitea.png" href="/docs/connections/gitea" />
+  </Tooltip>
+  <Card title="Gerrit" img="/images/gerrit.png" href="/docs/connections/gerrit" />
+  <Card title="Other Git Hosts" img="/images/git.png" href="/docs/connections/generic-git-host" />
+  <Card title="Local Git Repos" img="/images/local.png" href="/docs/connections/local-repos" />
+</Columns>
+
+
+### Authentication
+
+Sourcebot comes with built-in support for authentication via [email/password](/docs/configuration/auth/overview#email-%2F-password), [email codes](/docs/configuration/auth/overview#email-codes), and various [SSO providers](/docs/configuration/auth/overview#enterprise-authentication-providers).
+
+<Accordion title="Key benefits">
+- **Configurable auth providers:** Configure the auth providers that are available to your team.
+- **SSO:** Support for various SSO providers.
+- **_(coming soon)_ RBAC:** Role-based access control for managing user permissions.
+- **_(coming soon)_ Code host permission syncing:** Sync permissions from GitHub, Gitlab, etc. to Sourcebot.
+- **_(coming soon)_ Audit logs:** Audit logs for all actions performed on Sourcebot, such as user login, search, etc.
+</Accordion>
+
+<video
+  autoPlay
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video"
+  src="https://framerusercontent.com/assets/t9Ci6NVULrcAG7u8hcBnR0Fnc.mp4"
+></video>
+
+### Self-hosted
+
+Sourcebot is designed to be easily self-hosted, allowing you to deploy it onto your own infrastructure, keeping your code private and secure.
+
+<Accordion title="Key benefits">
+- **Easy deployment:** Sourcebot is shipped as a [single docker container](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot) that can be deployed to a k8s cluster, a VM, or any other platform that supports docker.
+- **Secure:** Your code **never** leaves your infrastructure.
+- **No-vendor lock-in:** Avoid dependency on a third-party SaaS provider; you can modify, extend, or migrate your deployment as needed.
+</Accordion>
+
+## Get started
+---
+
+<CardGroup cols={2}>
+    <Card horizontal title="Deployment guide ->" href="/docs/deployment-guide" />
+    <Card horizontal title="Connecting your code ->" href="/docs/connections/overview" />
+    <Card horizontal title="Search syntax reference ->" href="/docs/features/search/syntax-reference" />
+    <Card horizontal title="Code navigation overview ->" href="/docs/features/code-navigation" />
+</CardGroup>
+
+## Architecture
+---
+
+Sourcebot is shipped as a single docker container that runs a collection of services using [supervisord](https://supervisord.org/):
+
+![architecture diagram](/images/architecture_diagram.png)
+
+{/*TODO: outline the different services, how Sourcebot communicates with code hosts, and the different*/}
+
+Sourcebot consists of the following components:
+- **Web Server** : main Next.js web application serving the Sourcebot UI.
+- **Backend Worker** : Node.js process that incrementally syncs with code hosts (e.g., GitHub, GitLab etc.) and asynchronously indexes configured repositories.
+- **Zoekt** : the [open-source](https://github.com/sourcegraph/zoekt), trigram indexing code search engine that powers Sourcebot under the hood.
+- **Postgres** : transactional database for storing business-logic data.
+- **Redis Job Queue** : fast in-memory store. Used with [BullMQ](https://docs.bullmq.io/) for queuing asynchronous work.
+- **`.sourcebot/` cache** : file-system cache where persistent data is written.
+
+You can use managed Redis / Postgres services that run outside of the Sourcebot container by providing the `REDIS_URL` and `DATABASE_URL` environment variables, respectively. See the [environment variables](/docs/configuration/environment-variables) doc for more configuration options.
+
+## Scalability
+---
+
+One of our design philosophies for Sourcebot is to keep our infrastructure [radically simple](https://www.radicalsimpli.city/) while balancing scalability concerns. Depending on the number of repositories you have indexed and the instance you are running Sourcebot on, you may experience slow search times or other performance degradations. Our recommendation is to vertically scale your instance by increasing the number of CPU cores and memory.
+
+Sourcebot does not support horizontal scaling at this time, but it is on our roadmap. If this is something your team would be interested in, please contact us at [team@sourcebot.dev](mailto:team@sourcebot.dev).
+
+## License key
+---
+
+Sourcebot's core features are available under an [MIT license](https://github.com/sourcebot-dev/sourcebot/blob/HEAD/LICENSE) without any limits. Some [additional features](/docs/license-key#feature-availability) such as SSO and code navigation require a [license key](/docs/license-key).
+
+<CardGroup cols={2}>
+    <Card title="Pricing page" href="https://www.sourcebot.dev/pricing" />
+    <Card title="Request trial key" href="https://www.sourcebot.dev/contact" />
+</CardGroup>
+
+## Telemetry
+---
+
+By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We don't collect or transmit <a href="https://demo.sourcebot.dev/~/search?query=captureEvent%5C(%20repo%3Asourcebot">any information related to your codebase</a>. In addition, all events are [sanitized](https://github.com/sourcebot-dev/sourcebot/blob/HEAD/packages/web/src/app/posthogProvider.tsx) to ensure that no sensitive details (ex. ip address, query info) leave your machine. 
+
+The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made.
+
+If you'd like to disable all telemetry, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `true`:
+
+```bash
+docker run \
+  -e SOURCEBOT_TELEMETRY_DISABLED=true \
+  /* additional args */ \
+  ghcr.io/sourcebot-dev/sourcebot:latest
+```
+
+If you disabled telemetry correctly, you'll see the following log when starting Sourcebot:
+
+```sh
+Disabling telemetry since SOURCEBOT_TELEMETRY_DISABLED was set.
+```

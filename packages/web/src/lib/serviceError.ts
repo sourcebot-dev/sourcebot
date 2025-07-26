@@ -88,11 +88,27 @@ export const notAuthenticated = (): ServiceError => {
     }
 }
 
-export const notFound = (): ServiceError => {
+export const notFound = (message?: string): ServiceError => {
     return {
         statusCode: StatusCodes.NOT_FOUND,
         errorCode: ErrorCode.NOT_FOUND,
-        message: "Not found",
+        message: message ?? "Not found",
+    }
+}
+
+export const userNotFound = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.NOT_FOUND,
+        errorCode: ErrorCode.USER_NOT_FOUND,
+        message: "User not found",
+    }
+}
+
+export const orgNotFound = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.NOT_FOUND,
+        errorCode: ErrorCode.ORG_NOT_FOUND,
+        message: "Organization not found",
     }
 }
 
@@ -125,5 +141,13 @@ export const stripeClientNotInitialized = (): ServiceError => {
         statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
         errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
         message: "Stripe client is not initialized.",
+    }
+}
+
+export const chatIsReadonly = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.FORBIDDEN,
+        errorCode: ErrorCode.CHAT_IS_READONLY,
+        message: "This chat is read-only and cannot be modified.",
     }
 }

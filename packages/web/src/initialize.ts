@@ -1,27 +1,18 @@
 import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus } from '@sourcebot/db';
 import { env } from './env.mjs';
 import { prisma } from "@/prisma";
-import { SINGLE_TENANT_USER_ID, SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_NAME, SINGLE_TENANT_USER_EMAIL } from './lib/constants';
-import { readFile } from 'fs/promises';
+import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SINGLE_TENANT_ORG_NAME } from './lib/constants';
 import { watch } from 'fs';
-import stripJsonComments from 'strip-json-comments';
-import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
-import { indexSchema } from '@sourcebot/schemas/v3/index.schema';
-import Ajv from 'ajv';
-import { syncSearchContexts } from '@/ee/features/searchContexts/syncSearchContexts';
+import { hasEntitlement, loadConfig, isRemotePath, syncSearchContexts } from '@sourcebot/shared';
+import { isServiceError, getOrgMetadata } from './lib/utils';
+import { ServiceErrorException } from './lib/serviceError';
+import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
+import { createLogger } from "@sourcebot/logger";
+import { createGuestUser } from '@/lib/authUtils';
+import { getOrgFromDomain } from './data/org';
 
-const ajv = new Ajv({
-    validateFormats: false,
-});
-
-if (env.SOURCEBOT_AUTH_ENABLED === 'false' && env.SOURCEBOT_TENANCY_MODE === 'multi') {
-    throw new Error('SOURCEBOT_AUTH_ENABLED must be true when SOURCEBOT_TENANCY_MODE is multi');
-}
-
-const isRemotePath = (path: string) => {
-    return path.startsWith('https://') || path.startsWith('http://');
-}
+const logger = createLogger('web-initialize');
 
 const syncConnections = async (connections?: { [key: string]: ConnectionConfig }) => {
     if (connections) {
@@ -72,7 +63,7 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
                 }
             });
 
-            console.log(`Upserted connection with name '${key}'. Connection ID: ${connectionDb.id}`);
+            logger.info(`Upserted connection with name '${key}'. Connection ID: ${connectionDb.id}`);
 
             // Re-try any repos that failed to index.
             const failedRepos = currentConnection?.repos.filter(repo => repo.repo.repoIndexingStatus === RepoIndexingStatus.FAILED).map(repo => repo.repo.id) ?? [];
@@ -103,7 +94,7 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
     });
 
     for (const connection of deletedConnections) {
-        console.log(`Deleting connection with name '${connection.name}'. Connection ID: ${connection.id}`);
+        logger.info(`Deleting connection with name '${connection.name}'. Connection ID: ${connection.id}`);
         await prisma.connection.delete({
             where: {
                 id: connection.id,
@@ -113,100 +104,151 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
 }
 
 const syncDeclarativeConfig = async (configPath: string) => {
-    const configContent = await (async () => {
-        if (isRemotePath(configPath)) {
-            const response = await fetch(configPath);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch config file ${configPath}: ${response.statusText}`);
-            }
-            return response.text();
-        } else {
-            return readFile(configPath, {
-                encoding: 'utf-8',
-            });
-        }
-    })();
+    const config = await loadConfig(configPath);
 
-    const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfig;
-    const isValidConfig = ajv.validate(indexSchema, config);
-    if (!isValidConfig) {
-        throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
+    const forceEnableAnonymousAccess = config.settings?.enablePublicAccess ?? env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true';
+    if (forceEnableAnonymousAccess) {
+        const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+        if (!hasAnonymousAccessEntitlement) {
+            logger.warn(`FORCE_ENABLE_ANONYMOUS_ACCESS env var is set to true but anonymous access entitlement is not available. Setting will be ignored.`);
+        } else {
+            const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+            if (org) {
+                const currentMetadata = getOrgMetadata(org);
+                const mergedMetadata = {
+                    ...(currentMetadata ?? {}),
+                    anonymousAccessEnabled: true,
+                };
+                
+                await prisma.org.update({
+                    where: { id: org.id },
+                    data: { 
+                        metadata: mergedMetadata,
+                    },
+                });
+                logger.info(`Anonymous access enabled via FORCE_ENABLE_ANONYMOUS_ACCESS environment variable`);
+            }
+        }
     }
 
     await syncConnections(config.connections);
-    await syncSearchContexts(config.contexts);
+    await syncSearchContexts({
+        contexts: config.contexts,
+        orgId: SINGLE_TENANT_ORG_ID,
+        db: prisma,
+    });
+}
+
+const pruneOldGuestUser = async () => {
+    // The old guest user doesn't have the GUEST role
+    const guestUser = await prisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                orgId: SINGLE_TENANT_ORG_ID,
+                userId: SOURCEBOT_GUEST_USER_ID,
+            },
+            role: {
+                not: OrgRole.GUEST,
+            }
+        },
+    });
+
+    if (guestUser) {
+        await prisma.user.delete({
+            where: {
+                id: guestUser.userId,
+            },
+        });
+
+        logger.info(`Deleted old guest user ${guestUser.userId}`);
+    }
 }
 
 const initSingleTenancy = async () => {
-    await prisma.org.upsert({
-        where: {
-            id: SINGLE_TENANT_ORG_ID,
-        },
-        update: {},
-        create: {
-            name: SINGLE_TENANT_ORG_NAME,
-            domain: SINGLE_TENANT_ORG_DOMAIN,
-            id: SINGLE_TENANT_ORG_ID,
-            isOnboarded: env.SOURCEBOT_AUTH_ENABLED === 'false',
-        }
-    });
-
-    if (env.SOURCEBOT_AUTH_ENABLED === 'false') {
-        // Default user for single tenancy unauthed access
-        await prisma.user.upsert({
-            where: {
-                id: SINGLE_TENANT_USER_ID,
-            },
-            update: {},
-            create: {
-                id: SINGLE_TENANT_USER_ID,
-                email: SINGLE_TENANT_USER_EMAIL,
-            },
-        });
-
-        await prisma.org.update({
+    // Back fill the inviteId if the org has already been created to prevent needing to wipe the db
+    await prisma.$transaction(async (tx) => {
+        const org = await tx.org.findUnique({
             where: {
                 id: SINGLE_TENANT_ORG_ID,
             },
-            data: {
-                members: {
-                    upsert: {
-                        where: {
-                            orgId_userId: {
-                                orgId: SINGLE_TENANT_ORG_ID,
-                                userId: SINGLE_TENANT_USER_ID,
-                            }
-                        },
-                        update: {},
-                        create: {
-                            role: OrgRole.MEMBER,
-                            user: {
-                                connect: { id: SINGLE_TENANT_USER_ID }
-                            }
-                        }
-                    }
-                }
-            }
         });
+
+        if (!org) {
+            await tx.org.create({
+                data: {
+                    id: SINGLE_TENANT_ORG_ID,
+                    name: SINGLE_TENANT_ORG_NAME,
+                    domain: SINGLE_TENANT_ORG_DOMAIN,
+                    inviteLinkId: crypto.randomUUID(),
+                }
+            });
+        } else if (!org.inviteLinkId) {
+            await tx.org.update({
+                where: {
+                    id: SINGLE_TENANT_ORG_ID,
+                },
+                data: {
+                    inviteLinkId: crypto.randomUUID(),
+                }
+            });
+        }
+    });
+
+    // This is needed because v4 introduces the GUEST org role as well as making authentication required. 
+    // To keep things simple, we'll just delete the old guest user if it exists in the DB
+    await pruneOldGuestUser();
+
+    const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+    if (hasAnonymousAccessEntitlement) {
+        const res = await createGuestUser(SINGLE_TENANT_ORG_DOMAIN);
+        if (isServiceError(res)) {
+            throw new ServiceErrorException(res);
+        }
+    } else {
+        // If anonymous access entitlement is not enabled, set the flag to false in the org on init
+        const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+        if (org) {
+            const currentMetadata = getOrgMetadata(org);
+            const mergedMetadata = {
+                ...(currentMetadata ?? {}),
+                anonymousAccessEnabled: false,
+            };
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { metadata: mergedMetadata },
+            });
+        }
     }
 
     // Load any connections defined declaratively in the config file.
     const configPath = env.CONFIG_PATH;
     if (configPath) {
         await syncDeclarativeConfig(configPath);
-
+        
         // watch for changes assuming it is a local file
         if (!isRemotePath(configPath)) {
             watch(configPath, () => {
-                console.log(`Config file ${configPath} changed. Re-syncing...`);
+                logger.info(`Config file ${configPath} changed. Re-syncing...`);
                 syncDeclarativeConfig(configPath);
             });
         }
     }
 }
 
+const initMultiTenancy = async () => {
+    const hasMultiTenancyEntitlement = hasEntitlement("multi-tenancy");
+    if (!hasMultiTenancyEntitlement) {
+        logger.error(`SOURCEBOT_TENANCY_MODE is set to ${env.SOURCEBOT_TENANCY_MODE} but your license doesn't have multi-tenancy entitlement. Please contact ${SOURCEBOT_SUPPORT_EMAIL} to request a license upgrade.`);
+        process.exit(1);
+    }
+}
+
 (async () => {
     if (env.SOURCEBOT_TENANCY_MODE === 'single') {
         await initSingleTenancy();
+    } else if (env.SOURCEBOT_TENANCY_MODE === 'multi') {
+        await initMultiTenancy();
+    } else {
+        throw new Error(`Invalid SOURCEBOT_TENANCY_MODE: ${env.SOURCEBOT_TENANCY_MODE}`);
     }
 })();

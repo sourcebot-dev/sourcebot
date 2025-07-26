@@ -11,9 +11,16 @@ import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "@/lib/co
 import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
-import { env } from "@/env.mjs";
 import { notFound, redirect } from "next/navigation";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
+import { PendingApprovalCard } from "./components/pendingApproval";
+import { SubmitJoinRequest } from "./components/submitJoinRequest";
+import { hasEntitlement } from "@sourcebot/shared";
+import { env } from "@/env.mjs";
+import { GcpIapAuth } from "./components/gcpIapAuth";
+import { getAnonymousAccessStatus, getMemberApprovalRequired } from "@/actions";
+import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
+import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -30,27 +37,65 @@ export default async function Layout({
         return notFound();
     }
 
-    if (env.SOURCEBOT_AUTH_ENABLED === 'true') {
-        const session = await auth();
-        if (!session) {
-            redirect('/login');
-        }
-
+    const session = await auth();
+    const anonymousAccessEnabled = hasEntitlement("anonymous-access") && await getAnonymousAccessStatus(domain);
+    
+    // If the user is authenticated, we must check if they're a member of the org
+    if (session) {
         const membership = await prisma.userToOrg.findUnique({
             where: {
                 orgId_userId: {
                     orgId: org.id,
                     userId: session.user.id
                 }
+            },
+            include: {
+                user: true
             }
         });
-
+        
+        // There's two reasons why a user might not be a member of an org:
+        // 1. The org doesn't require member approval, but the org was at max capacity when the user registered. In this case, we show them
+        // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
+        // 2. The org requires member approval, and they haven't been approved yet. In this case, we allow them to submit a request to join the org.
         if (!membership) {
-            return notFound();
+            const memberApprovalRequired = await getMemberApprovalRequired(domain);
+            if (!memberApprovalRequired) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6">
+                        <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
+                        <JoinOrganizationCard />
+                    </div>
+                )
+            } else {
+                const hasPendingApproval = await prisma.accountRequest.findFirst({
+                    where: {
+                        orgId: org.id,
+                        requestedById: session.user.id
+                    }
+                });
+                
+                if (hasPendingApproval) {
+                    return <PendingApprovalCard />
+                } else {
+                    return <SubmitJoinRequest domain={domain} />
+                }
+            }
+        }
+    } else {
+        // If the user isn't authenticated and anonymous access isn't enabled, we need to redirect them to the login page.
+        if (!anonymousAccessEnabled) {
+            const ssoEntitlement = await hasEntitlement("sso");
+            if (ssoEntitlement && env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
+                return <GcpIapAuth callbackUrl={`/${domain}`} />;
+            } else {
+                redirect('/login');
+            }
         }
     }
 
-    if (!org.isOnboarded) {
+    // If the org is not onboarded, and GCP IAP is not enabled, show the onboarding page
+    if (!org.isOnboarded && !(env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE)) {
         return (
             <OnboardGuard>
                 {children}

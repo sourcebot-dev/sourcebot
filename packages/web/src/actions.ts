@@ -2,37 +2,50 @@
 
 import { env } from "@/env.mjs";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notAuthenticated, notFound, secretAlreadyExists, ServiceError, unexpectedError } from "@/lib/serviceError";
+import { notAuthenticated, notFound, orgNotFound, secretAlreadyExists, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
 import { CodeHostType, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
-import { decrypt, encrypt } from "@sourcebot/crypto";
-import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
+import { decrypt, encrypt, generateApiKey, hashSecret, getTokenFromConfig } from "@sourcebot/crypto";
+import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus, Org, ApiKey } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
+import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
+import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
+import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import Ajv from "ajv";
 import { StatusCodes } from "http-status-codes";
-import { Session } from "next-auth";
 import { cookies, headers } from "next/headers";
 import { createTransport } from "nodemailer";
 import { auth } from "./auth";
 import { getConnection } from "./data/connection";
 import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
-import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_USER_EMAIL, SINGLE_TENANT_USER_ID } from "./lib/constants";
+import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SEARCH_MODE_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
-import { TenancyMode } from "./lib/types";
-import { decrementOrgSeatCount, getSubscriptionForOrg, incrementOrgSeatCount } from "./ee/features/billing/serverUtils";
+import { TenancyMode, ApiKeyPayload } from "./lib/types";
+import { decrementOrgSeatCount, getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
 import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
 import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
+import { getPlan, hasEntitlement } from "@sourcebot/shared";
+import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
+import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
+import { createLogger } from "@sourcebot/logger";
+import { getAuditService } from "@/ee/features/audit/factory";
+import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
+import { getOrgMetadata } from "@/lib/utils";
+import { getOrgFromDomain } from "./data/org";
 
 const ajv = new Ajv({
     validateFormats: false,
 });
+
+const logger = createLogger('web-actions');
+const auditService = getAuditService();
 
 /**
  * "Service Error Wrapper".
@@ -45,38 +58,71 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
         return await fn();
     } catch (e) {
         Sentry.captureException(e);
-        console.error(e);
+        logger.error(e);
+
+        if (e instanceof Error) {
+            return unexpectedError(e.message);
+        }
+
         return unexpectedError(`An unexpected error occurred. Please try again later.`);
     }
 }
 
-export const withAuth = async <T>(fn: (session: Session) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false) => {
+export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | undefined) => Promise<T>, allowAnonymousAccess: boolean = false, apiKey: ApiKeyPayload | undefined = undefined) => {
     const session = await auth();
-    if (!session) {
-        if (
-            env.SOURCEBOT_TENANCY_MODE === 'single' &&
-            env.SOURCEBOT_AUTH_ENABLED === 'false' &&
-            allowSingleTenantUnauthedAccess === true
-        ) {
-            // To allow for unauthed acccess in single-tenant mode, we can
-            // create a fake session with the default user. This user has membership
-            // in the default org.
-            // @see: initialize.ts
-            return fn({
-                user: {
-                    id: SINGLE_TENANT_USER_ID,
-                    email: SINGLE_TENANT_USER_EMAIL,
-                },
-                expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
-            });
-        }
 
+    if (!session) {
+        // First we check if public access is enabled and supported. If not, then we check if an api key was provided. If not,
+        // then this is an invalid unauthed request and we return a 401.
+        const anonymousAccessEnabled = await getAnonymousAccessStatus(SINGLE_TENANT_ORG_DOMAIN);
+        if (apiKey) {
+            const apiKeyOrError = await verifyApiKey(apiKey);
+            if (isServiceError(apiKeyOrError)) {
+                logger.error(`Invalid API key: ${JSON.stringify(apiKey)}. Error: ${JSON.stringify(apiKeyOrError)}`);
+                return notAuthenticated();
+            }
+
+            const user = await prisma.user.findUnique({
+                where: {
+                    id: apiKeyOrError.apiKey.createdById,
+                },
+            });
+
+            if (!user) {
+                logger.error(`No user found for API key: ${apiKey}`);
+                return notAuthenticated();
+            }
+
+            await prisma.apiKey.update({
+                where: {
+                    hash: apiKeyOrError.apiKey.hash,
+                },
+                data: {
+                    lastUsedAt: new Date(),
+                },
+            });
+
+            return fn(user.id, apiKeyOrError.apiKey.hash);
+        } else if (
+            allowAnonymousAccess &&
+            !isServiceError(anonymousAccessEnabled) &&
+            anonymousAccessEnabled
+        ) {
+            if (!hasEntitlement("anonymous-access")) {
+                const plan = getPlan();
+                logger.error(`Anonymous access isn't supported in your current plan: ${plan}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+                return notAuthenticated();
+            }
+
+            // To support anonymous access a guest user is created in initialize.ts, which we return here
+            return fn(SOURCEBOT_GUEST_USER_ID, undefined);
+        }
         return notAuthenticated();
     }
-    return fn(session);
+    return fn(session.user.id, undefined);
 }
 
-export const withOrgMembership = async <T>(session: Session, domain: string, fn: (params: { orgId: number, userRole: OrgRole }) => Promise<T>, minRequiredRole: OrgRole = OrgRole.MEMBER) => {
+export const withOrgMembership = async <T>(userId: string, domain: string, fn: (params: { userRole: OrgRole, org: Org }) => Promise<T>, minRequiredRole: OrgRole = OrgRole.MEMBER) => {
     const org = await prisma.org.findUnique({
         where: {
             domain,
@@ -84,33 +130,35 @@ export const withOrgMembership = async <T>(session: Session, domain: string, fn:
     });
 
     if (!org) {
-        return notFound();
+        return notFound("Organization not found");
     }
 
     const membership = await prisma.userToOrg.findUnique({
         where: {
             orgId_userId: {
-                userId: session.user.id,
+                userId,
                 orgId: org.id,
             }
         },
     });
 
     if (!membership) {
-        return notFound();
+        return notFound("User not a member of this organization");
     }
 
-    const getAuthorizationPrecendence = (role: OrgRole): number => {
+    const getAuthorizationPrecedence = (role: OrgRole): number => {
         switch (role) {
-            case OrgRole.MEMBER:
+            case OrgRole.GUEST:
                 return 0;
-            case OrgRole.OWNER:
+            case OrgRole.MEMBER:
                 return 1;
+            case OrgRole.OWNER:
+                return 2;
         }
     }
 
 
-    if (getAuthorizationPrecendence(membership.role) < getAuthorizationPrecendence(minRequiredRole)) {
+    if (getAuthorizationPrecedence(membership.role) < getAuthorizationPrecedence(minRequiredRole)) {
         return {
             statusCode: StatusCodes.FORBIDDEN,
             errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
@@ -119,7 +167,7 @@ export const withOrgMembership = async <T>(session: Session, domain: string, fn:
     }
 
     return fn({
-        orgId: org.id,
+        org: org,
         userRole: membership.role,
     });
 }
@@ -139,7 +187,7 @@ export const withTenancyModeEnforcement = async<T>(mode: TenancyMode, fn: () => 
 
 export const createOrg = (name: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
     withTenancyModeEnforcement('multi', () =>
-        withAuth(async (session) => {
+        withAuth(async (userId) => {
             const org = await prisma.org.create({
                 data: {
                     name,
@@ -149,7 +197,7 @@ export const createOrg = (name: string, domain: string): Promise<{ id: number } 
                             role: "OWNER",
                             user: {
                                 connect: {
-                                    id: session.user.id,
+                                    id: userId,
                                 }
                             }
                         }
@@ -163,8 +211,8 @@ export const createOrg = (name: string, domain: string): Promise<{ id: number } 
         })));
 
 export const updateOrgName = async (name: string, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const { success } = orgNameSchema.safeParse(name);
             if (!success) {
                 return {
@@ -175,7 +223,7 @@ export const updateOrgName = async (name: string, domain: string) => sew(() =>
             }
 
             await prisma.org.update({
-                where: { id: orgId },
+                where: { id: org.id },
                 data: { name },
             });
 
@@ -187,8 +235,8 @@ export const updateOrgName = async (name: string, domain: string) => sew(() =>
 
 export const updateOrgDomain = async (newDomain: string, existingDomain: string) => sew(() =>
     withTenancyModeEnforcement('multi', () =>
-        withAuth((session) =>
-            withOrgMembership(session, existingDomain, async ({ orgId }) => {
+        withAuth((userId) =>
+            withOrgMembership(userId, existingDomain, async ({ org }) => {
                 const { success } = await orgDomainSchema.safeParseAsync(newDomain);
                 if (!success) {
                     return {
@@ -199,7 +247,7 @@ export const updateOrgDomain = async (newDomain: string, existingDomain: string)
                 }
 
                 await prisma.org.update({
-                    where: { id: orgId },
+                    where: { id: org.id },
                     data: { domain: newDomain },
                 });
 
@@ -210,20 +258,12 @@ export const updateOrgDomain = async (newDomain: string, existingDomain: string)
         )));
 
 export const completeOnboarding = async (domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const org = await prisma.org.findUnique({
-                where: { id: orgId },
-            });
-
-            if (!org) {
-                return notFound();
-            }
-
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             // If billing is not enabled, we can just mark the org as onboarded.
             if (!IS_BILLING_ENABLED) {
                 await prisma.org.update({
-                    where: { id: orgId },
+                    where: { id: org.id },
                     data: {
                         isOnboarded: true,
                     }
@@ -231,13 +271,13 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
 
                 // Else, validate that the org has an active subscription.
             } else {
-                const subscriptionOrError = await getSubscriptionForOrg(orgId, prisma);
+                const subscriptionOrError = await getSubscriptionForOrg(org.id, prisma);
                 if (isServiceError(subscriptionOrError)) {
                     return subscriptionOrError;
                 }
 
                 await prisma.org.update({
-                    where: { id: orgId },
+                    where: { id: org.id },
                     data: {
                         isOnboarded: true,
                         stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
@@ -253,11 +293,11 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
     ));
 
 export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const secrets = await prisma.secret.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                 },
                 select: {
                     key: true,
@@ -272,13 +312,13 @@ export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: stri
         })));
 
 export const createSecret = async (key: string, value: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const encrypted = encrypt(value);
             const existingSecret = await prisma.secret.findUnique({
                 where: {
                     orgId_key: {
-                        orgId,
+                        orgId: org.id,
                         key,
                     }
                 }
@@ -290,13 +330,13 @@ export const createSecret = async (key: string, value: string, domain: string): 
 
             await prisma.secret.create({
                 data: {
-                    orgId,
+                    orgId: org.id,
                     key,
                     encryptedValue: encrypted.encryptedData,
                     iv: encrypted.iv,
                 }
             });
-            
+
 
             return {
                 success: true,
@@ -304,12 +344,12 @@ export const createSecret = async (key: string, value: string, domain: string): 
         })));
 
 export const checkIfSecretExists = async (key: string, domain: string): Promise<boolean | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const secret = await prisma.secret.findUnique({
                 where: {
                     orgId_key: {
-                        orgId,
+                        orgId: org.id,
                         key,
                     }
                 }
@@ -319,12 +359,12 @@ export const checkIfSecretExists = async (key: string, domain: string): Promise<
         })));
 
 export const deleteSecret = async (key: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             await prisma.secret.delete({
                 where: {
                     orgId_key: {
-                        orgId,
+                        orgId: org.id,
                         key,
                     }
                 }
@@ -335,13 +375,208 @@ export const deleteSecret = async (key: string, domain: string): Promise<{ succe
             }
         })));
 
+export const verifyApiKey = async (apiKeyPayload: ApiKeyPayload): Promise<{ apiKey: ApiKey } | ServiceError> => sew(async () => {
+    const parts = apiKeyPayload.apiKey.split("-");
+    if (parts.length !== 2 || parts[0] !== "sourcebot") {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_API_KEY,
+            message: "Invalid API key",
+        } satisfies ServiceError;
+    }
+
+    const hash = hashSecret(parts[1])
+    const apiKey = await prisma.apiKey.findUnique({
+        where: {
+            hash,
+        },
+    });
+
+    if (!apiKey) {
+        return {
+            statusCode: StatusCodes.UNAUTHORIZED,
+            errorCode: ErrorCode.INVALID_API_KEY,
+            message: "Invalid API key",
+        } satisfies ServiceError;
+    }
+
+    const apiKeyTargetOrg = await prisma.org.findUnique({
+        where: {
+            domain: apiKeyPayload.domain,
+        },
+    });
+
+    if (!apiKeyTargetOrg) {
+        return {
+            statusCode: StatusCodes.UNAUTHORIZED,
+            errorCode: ErrorCode.INVALID_API_KEY,
+            message: `Invalid API key payload. Provided domain ${apiKeyPayload.domain} does not exist.`,
+        } satisfies ServiceError;
+    }
+
+    if (apiKey.orgId !== apiKeyTargetOrg.id) {
+        return {
+            statusCode: StatusCodes.UNAUTHORIZED,
+            errorCode: ErrorCode.INVALID_API_KEY,
+            message: `Invalid API key payload. Provided domain ${apiKeyPayload.domain} does not match the API key's org.`,
+        } satisfies ServiceError;
+    }
+
+    return {
+        apiKey,
+    }
+});
+
+
+export const createApiKey = async (name: string, domain: string): Promise<{ key: string } | ServiceError> => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const existingApiKey = await prisma.apiKey.findFirst({
+                where: {
+                    createdById: userId,
+                    name,
+                },
+            });
+
+            if (existingApiKey) {
+                await auditService.createAudit({
+                    action: "api_key.creation_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: `API key ${name} already exists`,
+                        api_key: name
+                    }
+                });
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.API_KEY_ALREADY_EXISTS,
+                    message: `API key ${name} already exists`,
+                } satisfies ServiceError;
+            }
+
+            const { key, hash } = generateApiKey();
+            const apiKey = await prisma.apiKey.create({
+                data: {
+                    name,
+                    hash,
+                    orgId: org.id,
+                    createdById: userId,
+                }
+            });
+
+            await auditService.createAudit({
+                action: "api_key.created",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: apiKey.hash,
+                    type: "api_key"
+                },
+                orgId: org.id
+            });
+
+            return {
+                key,
+            }
+        })));
+
+export const deleteApiKey = async (name: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const apiKey = await prisma.apiKey.findFirst({
+                where: {
+                    name,
+                    createdById: userId,
+                },
+            });
+
+            if (!apiKey) {
+                await auditService.createAudit({
+                    action: "api_key.deletion_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: domain,
+                        type: "org"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: `API key ${name} not found for user ${userId}`,
+                        api_key: name
+                    }
+                });
+                return {
+                    statusCode: StatusCodes.NOT_FOUND,
+                    errorCode: ErrorCode.API_KEY_NOT_FOUND,
+                    message: `API key ${name} not found for user ${userId}`,
+                } satisfies ServiceError;
+            }
+
+            await prisma.apiKey.delete({
+                where: {
+                    hash: apiKey.hash,
+                },
+            });
+
+            await auditService.createAudit({
+                action: "api_key.deleted",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: apiKey.hash,
+                    type: "api_key"
+                },
+                orgId: org.id,
+                metadata: {
+                    api_key: name
+                }
+            });
+
+            return {
+                success: true,
+            }
+        })));
+
+export const getUserApiKeys = async (domain: string): Promise<{ name: string; createdAt: Date; lastUsedAt: Date | null }[] | ServiceError> => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const apiKeys = await prisma.apiKey.findMany({
+                where: {
+                    orgId: org.id,
+                    createdById: userId,
+                },
+                orderBy: {
+                    createdAt: 'desc',
+                }
+            });
+
+            return apiKeys.map((apiKey) => ({
+                name: apiKey.name,
+                createdAt: apiKey.createdAt,
+                lastUsedAt: apiKey.lastUsedAt,
+            }));
+        })));
 
 export const getConnections = async (domain: string, filter: { status?: ConnectionSyncStatus[] } = {}) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const connections = await prisma.connection.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                     ...(filter.status ? {
                         syncStatus: { in: filter.status }
                     } : {}),
@@ -369,15 +604,16 @@ export const getConnections = async (domain: string, filter: { status?: Connecti
                     repoIndexingStatus: repo.repoIndexingStatus,
                 })),
             }));
-        }), /* allowSingleTenantUnauthedAccess = */ true));
+        })
+    ));
 
 export const getConnectionInfo = async (connectionId: number, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const connection = await prisma.connection.findUnique({
                 where: {
                     id: connectionId,
-                    orgId,
+                    orgId: org.id,
                 },
                 include: {
                     repos: true,
@@ -401,11 +637,11 @@ export const getConnectionInfo = async (connectionId: number, domain: string) =>
         })));
 
 export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const repos = await prisma.repo.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                     ...(filter.status ? {
                         repoIndexingStatus: { in: filter.status }
                     } : {}),
@@ -441,12 +677,12 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,
             }));
-        }
-        ), /* allowSingleTenantUnauthedAccess = */ true));
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
+    ));
 
 export const getRepoInfoByName = async (repoName: string, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             // @note: repo names are represented by their remote url
             // on the code host. E.g.,:
             // - github.com/sourcebot-dev/sourcebot
@@ -479,13 +715,13 @@ export const getRepoInfoByName = async (repoName: string, domain: string) => sew
             // In this scenario, both repos will be named "github.com/sourcebot-dev/sourcebot".
             // We will leave this as an edge case for now since it's unlikely to happen in practice.
             //
-            // @v4-todo: we could add a unique contraint on repo name + orgId to help de-duplicate
+            // @v4-todo: we could add a unique constraint on repo name + orgId to help de-duplicate
             // these cases.
             // @see: repoCompileUtils.ts
             const repo = await prisma.repo.findFirst({
                 where: {
                     name: repoName,
-                    orgId,
+                    orgId: org.id,
                 },
             });
 
@@ -503,11 +739,20 @@ export const getRepoInfoByName = async (repoName: string, domain: string) => sew
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,
             }
-        }), /* allowSingleTenantUnauthedAccess = */ true));
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
+    ));
 
 export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            if (env.CONFIG_PATH !== undefined) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.CONNECTION_CONFIG_PATH_SET,
+                    message: "A configuration file has been provided. New connections cannot be added through the web interface.",
+                } satisfies ServiceError;
+            }
+
             const parsedConfig = parseConnectionConfig(connectionConfig);
             if (isServiceError(parsedConfig)) {
                 return parsedConfig;
@@ -516,7 +761,7 @@ export const createConnection = async (name: string, type: CodeHostType, connect
             const existingConnectionWithName = await prisma.connection.findUnique({
                 where: {
                     name_orgId: {
-                        orgId,
+                        orgId: org.id,
                         name,
                     }
                 }
@@ -532,7 +777,7 @@ export const createConnection = async (name: string, type: CodeHostType, connect
 
             const connection = await prisma.connection.create({
                 data: {
-                    orgId,
+                    orgId: org.id,
                     name,
                     config: parsedConfig as unknown as Prisma.InputJsonValue,
                     connectionType: type,
@@ -546,9 +791,9 @@ export const createConnection = async (name: string, type: CodeHostType, connect
     ));
 
 export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const connection = await getConnection(connectionId, org.id);
             if (!connection) {
                 return notFound();
             }
@@ -556,7 +801,7 @@ export const updateConnectionDisplayName = async (connectionId: number, name: st
             const existingConnectionWithName = await prisma.connection.findUnique({
                 where: {
                     name_orgId: {
-                        orgId,
+                        orgId: org.id,
                         name,
                     }
                 }
@@ -573,7 +818,7 @@ export const updateConnectionDisplayName = async (connectionId: number, name: st
             await prisma.connection.update({
                 where: {
                     id: connectionId,
-                    orgId,
+                    orgId: org.id,
                 },
                 data: {
                     name,
@@ -587,9 +832,9 @@ export const updateConnectionDisplayName = async (connectionId: number, name: st
     ));
 
 export const updateConnectionConfigAndScheduleSync = async (connectionId: number, config: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const connection = await getConnection(connectionId, org.id);
             if (!connection) {
                 return notFound();
             }
@@ -612,7 +857,7 @@ export const updateConnectionConfigAndScheduleSync = async (connectionId: number
             await prisma.connection.update({
                 where: {
                     id: connectionId,
-                    orgId,
+                    orgId: org.id,
                 },
                 data: {
                     config: parsedConfig as unknown as Prisma.InputJsonValue,
@@ -627,10 +872,10 @@ export const updateConnectionConfigAndScheduleSync = async (connectionId: number
     ));
 
 export const flagConnectionForSync = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
-            if (!connection || connection.orgId !== orgId) {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const connection = await getConnection(connectionId, org.id);
+            if (!connection || connection.orgId !== org.id) {
                 return notFound();
             }
 
@@ -650,12 +895,12 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
     ));
 
 export const flagReposForIndex = async (repoIds: number[], domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             await prisma.repo.updateMany({
                 where: {
                     id: { in: repoIds },
-                    orgId,
+                    orgId: org.id,
                 },
                 data: {
                     repoIndexingStatus: RepoIndexingStatus.NEW,
@@ -669,9 +914,9 @@ export const flagReposForIndex = async (repoIds: number[], domain: string) => se
     ));
 
 export const deleteConnection = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const connection = await getConnection(connectionId, orgId);
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const connection = await getConnection(connectionId, org.id);
             if (!connection) {
                 return notFound();
             }
@@ -679,7 +924,7 @@ export const deleteConnection = async (connectionId: number, domain: string): Pr
             await prisma.connection.delete({
                 where: {
                     id: connectionId,
-                    orgId,
+                    orgId: org.id,
                 }
             });
 
@@ -690,26 +935,75 @@ export const deleteConnection = async (connectionId: number, domain: string): Pr
     ));
 
 export const getCurrentUserRole = async (domain: string): Promise<OrgRole | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ userRole }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ userRole }) => {
             return userRole;
-        })
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
 export const createInvites = async (emails: string[], domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const failAuditCallback = async (error: string) => {
+                await auditService.createAudit({
+                    action: "user.invite_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: error,
+                        emails: emails.join(", ")
+                    }
+                });
+            }
+            const user = await getMe();
+            if (isServiceError(user)) {
+                throw new ServiceErrorException(user);
+            }
+
+            const hasAvailability = await orgHasAvailability(domain);
+            if (!hasAvailability) {
+                await auditService.createAudit({
+                    action: "user.invite_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: "Organization has reached maximum number of seats",
+                        emails: emails.join(", ")
+                    }
+                });
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
+                    message: "The organization has reached the maximum number of seats. Unable to create a new invite",
+                } satisfies ServiceError;
+            }
+
             // Check for existing invites
             const existingInvites = await prisma.invite.findMany({
                 where: {
                     recipientEmail: {
                         in: emails
                     },
-                    orgId,
+                    orgId: org.id,
                 }
             });
 
             if (existingInvites.length > 0) {
+                await failAuditCallback("A pending invite already exists for one or more of the provided emails");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_INVITE,
@@ -725,11 +1019,12 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                             in: emails,
                         }
                     },
-                    orgId,
+                    orgId: org.id,
                 },
             });
 
             if (existingMembers.length > 0) {
+                await failAuditCallback("One or more of the provided emails are already members of this org");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_INVITE,
@@ -740,8 +1035,8 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
             await prisma.invite.createMany({
                 data: emails.map((email) => ({
                     recipientEmail: email,
-                    hostUserId: session.user.id,
-                    orgId,
+                    hostUserId: userId,
+                    orgId: org.id,
                 })),
                 skipDuplicates: true,
             });
@@ -754,7 +1049,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                         where: {
                             recipientEmail_orgId: {
                                 recipientEmail: email,
-                                orgId,
+                                orgId: org.id,
                             },
                         },
                         include: {
@@ -774,11 +1069,10 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                     const inviteLink = `${origin}/redeem?invite_id=${invite.id}`;
                     const transport = createTransport(env.SMTP_CONNECTION_URL);
                     const html = await render(InviteUserEmail({
-                        baseUrl: origin,
                         host: {
-                            name: session.user.name ?? undefined,
-                            email: session.user.email!,
-                            avatarUrl: session.user.image ?? undefined,
+                            name: user.name ?? undefined,
+                            email: user.email!,
+                            avatarUrl: user.image ?? undefined,
                         },
                         recipient: {
                             name: recipient?.name ?? undefined,
@@ -798,11 +1092,28 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
 
                     const failed = result.rejected.concat(result.pending).filter(Boolean);
                     if (failed.length > 0) {
-                        console.error(`Failed to send invite email to ${email}: ${failed}`);
+                        logger.error(`Failed to send invite email to ${email}: ${failed}`);
                     }
                 }));
+            } else {
+                logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping invite email to ${emails.join(", ")}`);
             }
 
+            await auditService.createAudit({
+                action: "user.invites_created",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: org.id.toString(),
+                    type: "org"
+                },
+                orgId: org.id,
+                metadata: {
+                    emails: emails.join(", ")
+                }
+            });
             return {
                 success: true,
             }
@@ -810,12 +1121,12 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
     ));
 
 export const cancelInvite = async (inviteId: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const invite = await prisma.invite.findUnique({
                 where: {
                     id: inviteId,
-                    orgId,
+                    orgId: org.id,
                 },
             });
 
@@ -835,11 +1146,18 @@ export const cancelInvite = async (inviteId: string, domain: string): Promise<{ 
         }, /* minRequiredRole = */ OrgRole.OWNER)
     ));
 
+export const getOrgInviteId = async (domain: string) => sew(() =>
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            return org.inviteLinkId;
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    ));
+
 export const getMe = async () => sew(() =>
-    withAuth(async (session) => {
+    withAuth(async (userId) => {
         const user = await prisma.user.findUnique({
             where: {
-                id: session.user.id,
+                id: userId,
             },
             include: {
                 orgs: {
@@ -858,6 +1176,7 @@ export const getMe = async () => sew(() =>
             id: user.id,
             email: user.email,
             name: user.name,
+            image: user.image,
             memberships: user.orgs.map((org) => ({
                 id: org.orgId,
                 role: org.role,
@@ -869,6 +1188,11 @@ export const getMe = async () => sew(() =>
 
 export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async () => {
+        const user = await getMe();
+        if (isServiceError(user)) {
+            return user;
+        }
+
         const invite = await prisma.invite.findUnique({
             where: {
                 id: inviteId,
@@ -882,42 +1206,59 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
             return notFound();
         }
 
-        const user = await getMe();
-        if (isServiceError(user)) {
-            return user;
+        const failAuditCallback = async (error: string) => {
+            await auditService.createAudit({
+                action: "user.invite_accept_failed",
+                actor: {
+                    id: user.id,
+                    type: "user"
+                },
+                target: {
+                    id: inviteId,
+                    type: "invite"
+                },
+                orgId: invite.org.id,
+                metadata: {
+                    message: error
+                }
+            });
+        }
+
+
+        const hasAvailability = await orgHasAvailability(invite.org.domain);
+        if (!hasAvailability) {
+            await failAuditCallback("Organization is at max capacity");
+            return {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
+                message: "Organization is at max capacity",
+            } satisfies ServiceError;
         }
 
         // Check if the user is the recipient of the invite
         if (user.email !== invite.recipientEmail) {
+            await failAuditCallback("User is not the recipient of the invite");
             return notFound();
         }
 
-        const res = await prisma.$transaction(async (tx) => {
-            await tx.userToOrg.create({
-                data: {
-                    userId: user.id,
-                    orgId: invite.orgId,
-                    role: "MEMBER",
-                }
-            });
+        const addUserToOrgRes = await addUserToOrganization(user.id, invite.orgId);
+        if (isServiceError(addUserToOrgRes)) {
+            await failAuditCallback(addUserToOrgRes.message);
+            return addUserToOrgRes;
+        }
 
-            await tx.invite.delete({
-                where: {
-                    id: invite.id,
-                }
-            });
-
-            if (IS_BILLING_ENABLED) {
-                const result = await incrementOrgSeatCount(invite.orgId, tx);
-                if (isServiceError(result)) {
-                    throw result;
-                }
+        await auditService.createAudit({
+            action: "user.invite_accepted",
+            actor: {
+                id: user.id,
+                type: "user"
+            },
+            orgId: invite.org.id,
+            target: {
+                id: inviteId,
+                type: "invite"
             }
         });
-
-        if (isServiceError(res)) {
-            return res;
-        }
 
         return {
             success: true,
@@ -967,11 +1308,29 @@ export const getInviteInfo = async (inviteId: string) => sew(() =>
     }));
 
 export const transferOwnership = async (newOwnerId: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
-            const currentUserId = session.user.id;
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const currentUserId = userId;
 
+            const failAuditCallback = async (error: string) => {
+                await auditService.createAudit({
+                    action: "org.ownership_transfer_failed",
+                    actor: {
+                        id: currentUserId,
+                        type: "user"
+                    },
+                    target: {
+                        id: org.id.toString(),
+                        type: "org"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: error
+                    }
+                })
+            }
             if (newOwnerId === currentUserId) {
+                await failAuditCallback("User is already the owner of this org");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
@@ -983,12 +1342,13 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
                 where: {
                     orgId_userId: {
                         userId: newOwnerId,
-                        orgId,
+                        orgId: org.id,
                     },
                 },
             });
 
             if (!newOwner) {
+                await failAuditCallback("The user you're trying to make the owner doesn't exist");
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
@@ -1001,7 +1361,7 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
                     where: {
                         orgId_userId: {
                             userId: newOwnerId,
-                            orgId,
+                            orgId: org.id,
                         },
                     },
                     data: {
@@ -1012,7 +1372,7 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
                     where: {
                         orgId_userId: {
                             userId: currentUserId,
-                            orgId,
+                            orgId: org.id,
                         },
                     },
                     data: {
@@ -1020,6 +1380,22 @@ export const transferOwnership = async (newOwnerId: string, domain: string): Pro
                     }
                 })
             ]);
+
+            await auditService.createAudit({
+                action: "org.ownership_transferred",
+                actor: {
+                    id: currentUserId,
+                    type: "user"
+                },
+                target: {
+                    id: org.id.toString(),
+                    type: "org"
+                },
+                orgId: org.id,
+                metadata: {
+                    message: `Ownership transferred from ${currentUserId} to ${newOwnerId}`
+                }
+            });
 
             return {
                 success: true,
@@ -1039,12 +1415,12 @@ export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | 
     }));
 
 export const removeMemberFromOrg = async (memberId: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const targetMember = await prisma.userToOrg.findUnique({
                 where: {
                     orgId_userId: {
-                        orgId,
+                        orgId: org.id,
                         userId: memberId,
                     }
                 }
@@ -1054,28 +1430,18 @@ export const removeMemberFromOrg = async (memberId: string, domain: string): Pro
                 return notFound();
             }
 
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
-
-            if (!org) {
-                return notFound();
-            }
-
             await prisma.$transaction(async (tx) => {
                 await tx.userToOrg.delete({
                     where: {
                         orgId_userId: {
-                            orgId,
+                            orgId: org.id,
                             userId: memberId,
                         }
                     }
                 });
 
                 if (IS_BILLING_ENABLED) {
-                    const result = await decrementOrgSeatCount(orgId, tx);
+                    const result = await decrementOrgSeatCount(org.id, tx);
                     if (isServiceError(result)) {
                         throw result;
                     }
@@ -1089,8 +1455,8 @@ export const removeMemberFromOrg = async (memberId: string, domain: string): Pro
     ));
 
 export const leaveOrg = async (domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId, userRole }) => {
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org, userRole }) => {
             if (userRole === OrgRole.OWNER) {
                 return {
                     statusCode: StatusCodes.FORBIDDEN,
@@ -1099,28 +1465,18 @@ export const leaveOrg = async (domain: string): Promise<{ success: boolean } | S
                 } satisfies ServiceError;
             }
 
-            const org = await prisma.org.findUnique({
-                where: {
-                    id: orgId,
-                },
-            });
-
-            if (!org) {
-                return notFound();
-            }
-
             await prisma.$transaction(async (tx) => {
                 await tx.userToOrg.delete({
                     where: {
                         orgId_userId: {
-                            orgId,
-                            userId: session.user.id,
+                            orgId: org.id,
+                            userId: userId,
                         }
                     }
                 });
 
                 if (IS_BILLING_ENABLED) {
-                    const result = await decrementOrgSeatCount(orgId, tx);
+                    const result = await decrementOrgSeatCount(org.id, tx);
                     if (isServiceError(result)) {
                         throw result;
                     }
@@ -1133,14 +1489,15 @@ export const leaveOrg = async (domain: string): Promise<{ success: boolean } | S
         })
     ));
 
+
 export const getOrgMembership = async (domain: string) => sew(() =>
-    withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const membership = await prisma.userToOrg.findUnique({
                 where: {
                     orgId_userId: {
-                        orgId,
-                        userId: session.user.id,
+                        orgId: org.id,
+                        userId: userId,
                     }
                 }
             });
@@ -1154,11 +1511,14 @@ export const getOrgMembership = async (domain: string) => sew(() =>
     ));
 
 export const getOrgMembers = async (domain: string) => sew(() =>
-    withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const members = await prisma.userToOrg.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
+                    role: {
+                        not: OrgRole.GUEST,
+                    }
                 },
                 include: {
                     user: true,
@@ -1177,11 +1537,11 @@ export const getOrgMembers = async (domain: string) => sew(() =>
     ));
 
 export const getOrgInvites = async (domain: string) => sew(() =>
-    withAuth(async (session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const invites = await prisma.invite.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                 },
             });
 
@@ -1193,17 +1553,314 @@ export const getOrgInvites = async (domain: string) => sew(() =>
         })
     ));
 
+export const getOrgAccountRequests = async (domain: string) => sew(() =>
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const requests = await prisma.accountRequest.findMany({
+                where: {
+                    orgId: org.id,
+                },
+                include: {
+                    requestedBy: true,
+                },
+            });
+
+            return requests.map((request) => ({
+                id: request.id,
+                email: request.requestedBy.email!,
+                createdAt: request.createdAt,
+                name: request.requestedBy.name ?? undefined,
+            }));
+        })
+    ));
+
+export const createAccountRequest = async (userId: string, domain: string) => sew(async () => {
+    const user = await prisma.user.findUnique({
+        where: {
+            id: userId,
+        },
+    });
+
+    if (!user) {
+        return notFound("User not found");
+    }
+
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (!org) {
+        return notFound("Organization not found");
+    }
+
+    const existingRequest = await prisma.accountRequest.findUnique({
+        where: {
+            requestedById_orgId: {
+                requestedById: userId,
+                orgId: org.id,
+            },
+        },
+    });
+
+    if (existingRequest) {
+        logger.warn(`User ${userId} already has an account request for org ${org.id}. Skipping account request creation.`);
+        return {
+            success: true,
+            existingRequest: true,
+        }
+    }
+
+    if (!existingRequest) {
+        await prisma.accountRequest.create({
+            data: {
+                requestedById: userId,
+                orgId: org.id,
+            },
+        });
+
+        if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+            // TODO: This is needed because we can't fetch the origin from the request headers when this is called
+            // on user creation (the header isn't set when next-auth calls onCreateUser for some reason)
+            const deploymentUrl = env.AUTH_URL;
+
+            const owner = await prisma.user.findFirst({
+                where: {
+                    orgs: {
+                        some: {
+                            orgId: org.id,
+                            role: "OWNER",
+                        },
+                    },
+                },
+            });
+
+            if (!owner) {
+                logger.error(`Failed to find owner for org ${org.id} when drafting email for account request from ${userId}`);
+            } else {
+                const html = await render(JoinRequestSubmittedEmail({
+                    baseUrl: deploymentUrl,
+                    requestor: {
+                        name: user.name ?? undefined,
+                        email: user.email!,
+                        avatarUrl: user.image ?? undefined,
+                    },
+                    orgName: org.name,
+                    orgDomain: org.domain,
+                    orgImageUrl: org.imageUrl ?? undefined,
+                }));
+
+                const transport = createTransport(env.SMTP_CONNECTION_URL);
+                const result = await transport.sendMail({
+                    to: owner.email!,
+                    from: env.EMAIL_FROM_ADDRESS,
+                    subject: `New account request for ${org.name} on Sourcebot`,
+                    html,
+                    text: `New account request for ${org.name} on Sourcebot by ${user.name ?? user.email}`,
+                });
+
+                const failed = result.rejected.concat(result.pending).filter(Boolean);
+                if (failed.length > 0) {
+                    logger.error(`Failed to send account request email to ${owner.email}: ${failed}`);
+                }
+            }
+        } else {
+            logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping account request email to owner`);
+        }
+    }
+
+    return {
+        success: true,
+        existingRequest: false,
+    }
+});
+
+export const getMemberApprovalRequired = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (!org) {
+        return orgNotFound();
+    }
+
+    return org.memberApprovalRequired;
+});
+
+export const setMemberApprovalRequired = async (domain: string, required: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { memberApprovalRequired: required },
+            });
+
+            return {
+                success: true,
+            };
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    )
+);
+
+export const getInviteLinkEnabled = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
+    const org = await prisma.org.findUnique({
+        where: {
+            domain,
+        },
+    });
+
+    if (!org) {
+        return orgNotFound();
+    }
+
+    return org.inviteLinkEnabled;
+});
+
+export const setInviteLinkEnabled = async (domain: string, enabled: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { inviteLinkEnabled: enabled },
+            });
+
+            return {
+                success: true,
+            };
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    )
+);
+
+export const approveAccountRequest = async (requestId: string, domain: string) => sew(async () =>
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const failAuditCallback = async (error: string) => {
+                await auditService.createAudit({
+                    action: "user.join_request_approve_failed",
+                    actor: {
+                        id: userId,
+                        type: "user"
+                    },
+                    target: {
+                        id: requestId,
+                        type: "account_join_request"
+                    },
+                    orgId: org.id,
+                    metadata: {
+                        message: error,
+                    }
+                });
+            }
+
+            const request = await prisma.accountRequest.findUnique({
+                where: {
+                    id: requestId,
+                },
+                include: {
+                    requestedBy: true,
+                },
+            });
+
+            if (!request || request.orgId !== org.id) {
+                await failAuditCallback("Request not found");
+                return notFound();
+            }
+
+            const addUserToOrgRes = await addUserToOrganization(request.requestedById, org.id);
+            if (isServiceError(addUserToOrgRes)) {
+                await failAuditCallback(addUserToOrgRes.message);
+                return addUserToOrgRes;
+            }
+
+            // Send approval email to the user
+            if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+                const origin = (await headers()).get('origin')!;
+
+                const html = await render(JoinRequestApprovedEmail({
+                    baseUrl: origin,
+                    user: {
+                        name: request.requestedBy.name ?? undefined,
+                        email: request.requestedBy.email!,
+                        avatarUrl: request.requestedBy.image ?? undefined,
+                    },
+                    orgName: org.name,
+                    orgDomain: org.domain
+                }));
+
+                const transport = createTransport(env.SMTP_CONNECTION_URL);
+                const result = await transport.sendMail({
+                    to: request.requestedBy.email!,
+                    from: env.EMAIL_FROM_ADDRESS,
+                    subject: `Your request to join ${org.name} has been approved`,
+                    html,
+                    text: `Your request to join ${org.name} on Sourcebot has been approved. You can now access the organization at ${origin}/${org.domain}`,
+                });
+
+                const failed = result.rejected.concat(result.pending).filter(Boolean);
+                if (failed.length > 0) {
+                    logger.error(`Failed to send approval email to ${request.requestedBy.email}: ${failed}`);
+                }
+            } else {
+                logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping approval email to ${request.requestedBy.email}`);
+            }
+
+            await auditService.createAudit({
+                action: "user.join_request_approved",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                orgId: org.id,
+                target: {
+                    id: requestId,
+                    type: "account_join_request"
+                }
+            });
+            return {
+                success: true,
+            }
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    ));
+
+export const rejectAccountRequest = async (requestId: string, domain: string) => sew(() =>
+    withAuth(async (userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            const request = await prisma.accountRequest.findUnique({
+                where: {
+                    id: requestId,
+                },
+            });
+
+            if (!request || request.orgId !== org.id) {
+                return notFound();
+            }
+
+            await prisma.accountRequest.delete({
+                where: {
+                    id: requestId,
+                },
+            });
+
+            return {
+                success: true,
+            }
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    ));
+
 export const dismissMobileUnsupportedSplashScreen = async () => sew(async () => {
     await cookies().set(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, 'true');
     return true;
 });
 
 export const getSearchContexts = async (domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ orgId }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const searchContexts = await prisma.searchContext.findMany({
                 where: {
-                    orgId,
+                    orgId: org.id,
                 },
             });
 
@@ -1211,9 +1868,147 @@ export const getSearchContexts = async (domain: string) => sew(() =>
                 name: context.name,
                 description: context.description ?? undefined,
             }));
-        }
-    ), /* allowSingleTenantUnauthedAccess = */ true));
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
+    ));
 
+export const getRepoImage = async (repoId: number, domain: string): Promise<ArrayBuffer | ServiceError> => sew(async () => {
+    return await withAuth(async (userId) => {
+        return await withOrgMembership(userId, domain, async ({ org }) => {
+            const repo = await prisma.repo.findUnique({
+                where: {
+                    id: repoId,
+                    orgId: org.id,
+                },
+                include: {
+                    connections: {
+                        include: {
+                            connection: true,
+                        }
+                    }
+                }
+            });
+
+            if (!repo || !repo.imageUrl) {
+                return notFound();
+            }
+
+            const authHeaders: Record<string, string> = {};
+            for (const { connection } of repo.connections) {
+                try {
+                    if (connection.connectionType === 'github') {
+                        const config = connection.config as unknown as GithubConnectionConfig;
+                        if (config.token) {
+                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                            authHeaders['Authorization'] = `token ${token}`;
+                            break;
+                        }
+                    } else if (connection.connectionType === 'gitlab') {
+                        const config = connection.config as unknown as GitlabConnectionConfig;
+                        if (config.token) {
+                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                            authHeaders['PRIVATE-TOKEN'] = token;
+                            break;
+                        }
+                    } else if (connection.connectionType === 'gitea') {
+                        const config = connection.config as unknown as GiteaConnectionConfig;
+                        if (config.token) {
+                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                            authHeaders['Authorization'] = `token ${token}`;
+                            break;
+                        }
+                    }
+                } catch (error) {
+                    logger.warn(`Failed to get token for connection ${connection.id}:`, error);
+                }
+            }
+
+            try {
+                const response = await fetch(repo.imageUrl, {
+                    headers: authHeaders,
+                });
+
+                if (!response.ok) {
+                    logger.warn(`Failed to fetch image from ${repo.imageUrl}: ${response.status}`);
+                    return notFound();
+                }
+
+                const imageBuffer = await response.arrayBuffer();
+                return imageBuffer;
+            } catch (error) {
+                logger.error(`Error proxying image for repo ${repoId}:`, error);
+                return notFound();
+            }
+        }, /* minRequiredRole = */ OrgRole.GUEST);
+    }, /* allowAnonymousAccess = */ true);
+});
+
+export const getAnonymousAccessStatus = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        return {
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "Organization not found",
+        } satisfies ServiceError;
+    }
+
+    // If no metadata is set we don't try to parse it since it'll result in a parse error
+    if (org.metadata === null) {
+        return false;
+    }
+
+    const orgMetadata = getOrgMetadata(org);
+    if (!orgMetadata) {
+        return {
+            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+            errorCode: ErrorCode.INVALID_ORG_METADATA,
+            message: "Invalid organization metadata",
+        } satisfies ServiceError;
+    }
+
+    return !!orgMetadata.anonymousAccessEnabled;
+});
+
+export const setAnonymousAccessStatus = async (domain: string, enabled: boolean): Promise<ServiceError | boolean> => sew(async () => {
+    return await withAuth(async (userId) => {
+        return await withOrgMembership(userId, domain, async ({ org }) => {
+            const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+            if (!hasAnonymousAccessEntitlement) {
+                const plan = getPlan();
+                console.error(`Anonymous access isn't supported in your current plan: ${plan}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+                return {
+                    statusCode: StatusCodes.FORBIDDEN,
+                    errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+                    message: "Anonymous access is not supported in your current plan",
+                } satisfies ServiceError;
+            }
+
+            const currentMetadata = getOrgMetadata(org);
+            const mergedMetadata = {
+                ...(currentMetadata ?? {}),
+                anonymousAccessEnabled: enabled,
+            };
+
+            await prisma.org.update({
+                where: {
+                    id: org.id,
+                },
+                data: {
+                    metadata: mergedMetadata,
+                },
+            });
+
+            return true;
+        }, /* minRequiredRole = */ OrgRole.OWNER);
+    });
+});
+
+export async function setSearchModeCookie(searchMode: "precise" | "agentic") {
+    const cookieStore = await cookies();
+    cookieStore.set(SEARCH_MODE_COOKIE_NAME, searchMode, {
+        httpOnly: false, // Allow client-side access
+    });
+}
 
 ////// Helpers ///////
 
@@ -1275,7 +2070,7 @@ const parseConnectionConfig = (config: string) => {
     const { numRepos, hasToken } = (() => {
         switch (connectionType) {
             case "gitea":
-            case "github": 
+            case "github":
             case "bitbucket": {
                 return {
                     numRepos: parsedConfig.repos?.length,

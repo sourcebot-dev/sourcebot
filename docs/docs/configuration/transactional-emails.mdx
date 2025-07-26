@@ -1,0 +1,15 @@
+---
+title: Transactional Email
+sidebarTitle: Transactional email
+---
+
+To enable transactional emails in your deployment, set the following environment variables. We recommend using [Resend](https://resend.com/), but you can use any provider. Setting this enables you to:
+
+- Send emails when new members are invited
+- Send emails when organization join requests are created/accepted
+- Log into the Sourcebot deployment using [email codes](/docs/configuration/auth/overview#email-codes)
+
+| Variable | Description |
+| :------- | :---------- |
+| `SMTP_CONNECTION_URL` | SMTP server connection (`smtp://[user[:password]@]host[:port]`)|
+| `EMAIL_FROM_ADDRESS` | The sender's email address |

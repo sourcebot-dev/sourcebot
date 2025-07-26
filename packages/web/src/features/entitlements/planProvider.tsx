@@ -1,19 +1,19 @@
 'use client';
 
 import { createContext } from "react";
-import { Plan } from "./constants";
+import { Entitlement } from "@sourcebot/shared";
 
-export const PlanContext = createContext<Plan>('oss');
+export const PlanContext = createContext<{ entitlements: Entitlement[] }>({ entitlements: [] });
 
 interface PlanProviderProps {
     children: React.ReactNode;
-    plan: Plan;
+    entitlements: Entitlement[];
 }
 
-export const PlanProvider = ({ children, plan }: PlanProviderProps) => {
+export const PlanProvider = ({ children, entitlements }: PlanProviderProps) => {
     return (
         <PlanContext.Provider
-            value={plan}
+            value={{ entitlements }}
         >
             {children}
         </PlanContext.Provider>

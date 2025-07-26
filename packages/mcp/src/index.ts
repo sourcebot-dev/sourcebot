@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { listRepos, search, getFileSource } from './client.js';
 import { env, numberSchema } from './env.js';
 import { TextContent } from './types.js';
-import { base64Decode, isServiceError } from './utils.js';
+import { isServiceError } from './utils.js';
 
 // Create MCP server
 const server = new McpServer({
@@ -21,6 +21,7 @@ server.tool(
     "search_code",
     `Fetches code that matches the provided regex pattern in \`query\`. This is NOT a semantic search.
     Results are returned as an array of matching files, with the file's URL, repository, and language.
+    If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.
     If the \`includeCodeSnippets\` property is true, code snippets containing the matches will be included in the response. Only set this to true if the request requires code snippets (e.g., show me examples where library X is used).
     When referencing a file in your response, **ALWAYS** include the file's external URL as a link. This makes it easier for the user to view the file, even if they don't have it locally checked out.
     **ONLY USE** the \`filterByRepoIds\` property if the request requires searching a specific repo(s). Otherwise, leave it empty.`,
@@ -74,7 +75,7 @@ server.tool(
             query += ` case:no`;
         }
 
-        console.error(`Executing search request: ${query}`);
+        console.debug(`Executing search request: ${query}`);
 
         const response = await search({
             query,
@@ -113,8 +114,7 @@ server.tool(
 
             if (includeCodeSnippets) {
                 const snippets = file.chunks.map(chunk => {
-                    const content = base64Decode(chunk.content);
-                    return `\`\`\`\n${content}\n\`\`\``
+                    return `\`\`\`\n${chunk.content}\n\`\`\``
                 }).join('\n');
                 text += `\n\n${snippets}`;
             }
@@ -151,7 +151,7 @@ server.tool(
 
 server.tool(
     "list_repos",
-    "Lists all repositories in the organization.",
+    "Lists all repositories in the organization. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.",
     async () => {
         const response = await listRepos();
         if (isServiceError(response)) {
@@ -178,7 +178,7 @@ server.tool(
 
 server.tool(
     "get_file_source",
-    "Fetches the source code for a given file.",
+    "Fetches the source code for a given file. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.",
     {
         fileName: z.string().describe("The file to fetch the source code for."),
         repoId: z.string().describe("The repository to fetch the source code for. This is the Sourcebot compatible repository ID."),
@@ -200,7 +200,7 @@ server.tool(
 
         const content: TextContent[] = [{
             type: "text",
-            text: `file: ${fileName}\nrepository: ${repoId}\nlanguage: ${response.language}\nsource:\n${base64Decode(response.source)}`,
+            text: `file: ${fileName}\nrepository: ${repoId}\nlanguage: ${response.language}\nsource:\n${response.source}`,
         }]
 
         return {
@@ -214,7 +214,7 @@ server.tool(
 const runServer = async () => {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error('Sourcebot MCP server ready');
+    console.info('Sourcebot MCP server ready');
 }
 
 runServer().catch((error) => {

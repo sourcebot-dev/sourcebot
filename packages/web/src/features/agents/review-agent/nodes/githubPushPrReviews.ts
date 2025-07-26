@@ -1,8 +1,11 @@
 import { Octokit } from "octokit";
 import { sourcebot_pr_payload, sourcebot_file_diff_review } from "@/features/agents/review-agent/types";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('github-push-pr-reviews');
 
 export const githubPushPrReviews = async (octokit: Octokit, pr_payload: sourcebot_pr_payload, file_diff_reviews: sourcebot_file_diff_review[]) => {
-    console.log("Executing github_push_pr_reviews");
+    logger.info("Executing github_push_pr_reviews");
 
     try {
         for (const file_diff_review of file_diff_reviews) {
@@ -25,13 +28,13 @@ export const githubPushPrReviews = async (octokit: Octokit, pr_payload: sourcebo
                             }),
                     });
                 } catch (error) {
-                    console.error(`Error pushing pr reviews for ${file_diff_review.filename}: ${error}`);
+                    logger.error(`Error pushing pr reviews for ${file_diff_review.filename}: ${error}`);
                 }
             }
         }
     } catch (error) {
-        console.error(`Error pushing pr reviews: ${error}`);
+        logger.error(`Error pushing pr reviews: ${error}`);
     }
 
-    console.log("Completed github_push_pr_reviews");
+    logger.info("Completed github_push_pr_reviews");
 }

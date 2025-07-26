@@ -2,22 +2,25 @@ import { sourcebot_pr_payload, sourcebot_file_diff, sourcebot_diff } from "@/fea
 import parse from "parse-diff";
 import { Octokit } from "octokit";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('github-pr-parser');
 
 export const githubPrParser = async (octokit: Octokit, pullRequest: GitHubPullRequest): Promise<sourcebot_pr_payload> => {
-    console.log("Executing github_pr_parser");
+    logger.debug("Executing github_pr_parser");
 
     let parsedDiff: parse.File[] = [];  
     try {
         const diff = await octokit.request(pullRequest.diff_url);
         parsedDiff = parse(diff.data);
     } catch (error) {
-        console.error("Error fetching diff: ", error);
+        logger.error("Error fetching diff: ", error);
         throw error;
     }
 
     const sourcebotFileDiffs: (sourcebot_file_diff | null)[] = parsedDiff.map((file) => {
         if (!file.from || !file.to) {
-            console.log(`Skipping file due to missing from (${file.from}) or to (${file.to})`)
+            logger.debug(`Skipping file due to missing from (${file.from}) or to (${file.to})`)
             return null;
         }
 
@@ -50,7 +53,7 @@ export const githubPrParser = async (octokit: Octokit, pullRequest: GitHubPullRe
     });
     const filteredSourcebotFileDiffs: sourcebot_file_diff[] = sourcebotFileDiffs.filter((file) => file !== null) as sourcebot_file_diff[];
 
-    console.log("Completed github_pr_parser");
+    logger.debug("Completed github_pr_parser");
     return {
         title: pullRequest.title,
         description: pullRequest.body ?? "",

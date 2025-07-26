@@ -10,7 +10,7 @@ yarn:
 zoekt:
 	mkdir -p bin
 	go build -C vendor/zoekt -o $(PWD)/bin ./cmd/...
-	export PATH=$(PWD)/bin:$(PATH)
+	export PATH="$(PWD)/bin:$(PATH)"
 	export CTAGS_COMMANDS=ctags
 
 clean:
@@ -34,6 +34,8 @@ clean:
 		packages/error/dist \
 		packages/mcp/node_modules \
 		packages/mcp/dist \
+		packages/shared/node_modules \
+		packages/shared/dist \
 		.sourcebot
 
 soft-reset:

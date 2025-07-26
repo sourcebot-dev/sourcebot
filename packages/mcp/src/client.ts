@@ -4,12 +4,13 @@ import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, Search
 import { isServiceError } from './utils.js';
 
 export const search = async (request: SearchRequest): Promise<SearchResponse | ServiceError> => {
-    console.error(`Executing search request: ${JSON.stringify(request, null, 2)}`);
+    console.debug(`Executing search request: ${JSON.stringify(request, null, 2)}`);
     const result = await fetch(`${env.SOURCEBOT_HOST}/api/search`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Org-Domain': '~'
+            'X-Org-Domain': '~',
+            ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
         body: JSON.stringify(request)
     }).then(response => response.json());
@@ -26,7 +27,8 @@ export const listRepos = async (): Promise<ListRepositoriesResponse | ServiceErr
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'X-Org-Domain': '~'
+            'X-Org-Domain': '~',
+            ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
     }).then(response => response.json());
 
@@ -42,7 +44,8 @@ export const getFileSource = async (request: FileSourceRequest): Promise<FileSou
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Org-Domain': '~'
+            'X-Org-Domain': '~',
+            ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
         body: JSON.stringify(request)
     }).then(response => response.json());

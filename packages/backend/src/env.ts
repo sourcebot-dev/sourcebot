@@ -22,7 +22,6 @@ dotenv.config({
 export const env = createEnv({
     server: {
         SOURCEBOT_ENCRYPTION_KEY: z.string(),
-        SOURCEBOT_LOG_LEVEL: z.enum(["info", "debug", "warn", "error"]).default("info"),
         SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default("false"),
         SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
         NEXT_PUBLIC_SOURCEBOT_VERSION: z.string().default("unknown"),
@@ -36,6 +35,8 @@ export const env = createEnv({
         FALLBACK_GITEA_CLOUD_TOKEN: z.string().optional(),
 
         REDIS_URL: z.string().url().default("redis://localhost:6379"),
+        REDIS_REMOVE_ON_COMPLETE: numberSchema.default(0),
+        REDIS_REMOVE_ON_FAIL: numberSchema.default(100),
 
         NEXT_PUBLIC_SENTRY_BACKEND_DSN: z.string().optional(),
         NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().optional(),
@@ -47,6 +48,9 @@ export const env = createEnv({
         CONFIG_PATH: z.string().optional(),
 
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
+        REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
+
+        GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS: numberSchema.default(60 * 10),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

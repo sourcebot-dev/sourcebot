@@ -6,10 +6,40 @@ import giteaLogo from "@/public/gitea.svg";
 import gerritLogo from "@/public/gerrit.svg";
 import bitbucketLogo from "@/public/bitbucket.svg";
 import gitLogo from "@/public/git.svg";
+import googleLogo from "@/public/google.svg";
+import oktaLogo from "@/public/okta.svg";
+import keycloakLogo from "@/public/keycloak.svg";
+import microsoftLogo from "@/public/microsoft_entra.svg";
 import { ServiceError } from "./serviceError";
+import { StatusCodes } from "http-status-codes";
+import { ErrorCode } from "./errorCodes";
+import { NextRequest } from "next/server";
+import { Org } from "@sourcebot/db";
+import { OrgMetadata, orgMetadataSchema } from "@/types";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
+}
+
+/**
+ * Gets the base URL from Next.js headers
+ * @param headersList The headers from Next.js headers() function
+ * @returns The base URL (e.g., "https://example.com")
+ */
+export const getBaseUrl = (headersList: Headers): string => {
+    const host = headersList.get('host') || 'localhost:3000';
+    const protocol = headersList.get('x-forwarded-proto') || 'http';
+    return `${protocol}://${host}`;
+}
+
+/**
+ * Creates an invite link URL from the base URL and invite ID
+ * @param baseUrl The base URL of the application
+ * @param inviteLinkId The invite link ID
+ * @returns The complete invite link URL or null if no inviteLinkId
+ */
+export const createInviteLink = (baseUrl: string, inviteLinkId?: string | null): string | null => {
+    return inviteLinkId ? `${baseUrl}/invite?id=${inviteLinkId}` : null;
 }
 
 /**
@@ -40,6 +70,105 @@ export type CodeHostType =
     "bitbucket-cloud" |
     "bitbucket-server" |
     "generic-git-host";
+
+export type AuthProviderType = 
+    "github" |
+    "gitlab" |
+    "google" |
+    "okta" |
+    "keycloak" |
+    "microsoft-entra-id" |
+    "credentials" |
+    "nodemailer";
+
+type AuthProviderInfo = {
+    id: string;
+    name: string;
+    displayName: string;
+    icon: { src: string; className?: string } | null;
+}
+
+export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
+    switch (providerId) {
+        case "github":
+            return {
+                id: "github",
+                name: "GitHub",
+                displayName: "GitHub",
+                icon: {
+                    src: githubLogo,
+                    className: "dark:invert",
+                },
+            };
+        case "gitlab":
+            return {
+                id: "gitlab", 
+                name: "GitLab",
+                displayName: "GitLab",
+                icon: {
+                    src: gitlabLogo,
+                },
+            };
+        case "google":
+            return {
+                id: "google",
+                name: "Google", 
+                displayName: "Google",
+                icon: {
+                    src: googleLogo,
+                },
+            };
+        case "okta":
+            return {
+                id: "okta",
+                name: "Okta",
+                displayName: "Okta", 
+                icon: {
+                    src: oktaLogo,
+                    className: "dark:invert",
+                },
+            };
+        case "keycloak":
+            return {
+                id: "keycloak",
+                name: "Keycloak",
+                displayName: "Keycloak",
+                icon: {
+                    src: keycloakLogo,
+                },
+            };
+        case "microsoft-entra-id":
+            return {
+                id: "microsoft-entra-id",
+                name: "Microsoft Entra ID",
+                displayName: "Microsoft Entra ID",
+               icon: {
+                    src: microsoftLogo,
+                },
+            };
+        case "credentials":
+            return {
+                id: "credentials",
+                name: "Credentials",
+                displayName: "Email & Password",
+                icon: null, // No icon needed for credentials
+            };
+        case "nodemailer":
+            return {
+                id: "nodemailer",
+                name: "Email",
+                displayName: "Email Code",
+                icon: null, // No icon needed for email
+            };
+        default:
+            return {
+                id: providerId,
+                name: providerId,
+                displayName: providerId.charAt(0).toUpperCase() + providerId.slice(1),
+                icon: null,
+            };
+    }
+};
 
 type CodeHostInfo = {
     type: CodeHostType;
@@ -131,7 +260,7 @@ export const getCodeHostInfoForRepo = (repo: {
             return {
                 type: "generic-git-host",
                 displayName: displayName ?? name,
-                codeHostName: "Generic Git Host",
+                codeHostName: "Git Host",
                 repoLink: webUrl,
                 icon: src,
                 iconClassName: className,
@@ -140,7 +269,7 @@ export const getCodeHostInfoForRepo = (repo: {
     }
 }
 
-export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, className?: string } | null => {
+export const getCodeHostIcon = (codeHostType: string): { src: string, className?: string } | null => {
     switch (codeHostType) {
         case "github":
             return {
@@ -195,12 +324,6 @@ export const isServiceError = (data: unknown): data is ServiceError => {
         'message' in data;
 }
 
-// From https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
-export const base64Decode = (base64: string): string => {
-    const binString = atob(base64);
-    return Buffer.from(Uint8Array.from(binString, (m) => m.codePointAt(0)!).buffer).toString();
-}
-
 // @see: https://stackoverflow.com/a/65959350/23221295
 export const isDefined = <T>(arg: T | null | undefined): arg is T extends null | undefined ? never : T => {
     return arg !== null && arg !== undefined;
@@ -235,7 +358,7 @@ export const getDisplayTime = (date: Date) => {
     }
 }
 
-export const measureSync = <T>(cb: () => T, measureName: string) => {
+export const measureSync = <T>(cb: () => T, measureName: string, outputLog: boolean = true) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;
 
@@ -245,7 +368,9 @@ export const measureSync = <T>(cb: () => T, measureName: string) => {
 
     const measure = performance.measure(measureName, startMark, endMark);
     const durationMs = measure.duration;
-    console.debug(`[${measureName}] took ${durationMs}ms`);
+    if (outputLog) {
+        console.debug(`[${measureName}] took ${durationMs}ms`);
+    }
 
     return {
         data,
@@ -253,7 +378,7 @@ export const measureSync = <T>(cb: () => T, measureName: string) => {
     }
 }
 
-export const measure = async <T>(cb: () => Promise<T>, measureName: string) => {
+export const measure = async <T>(cb: () => Promise<T>, measureName: string, outputLog: boolean = true) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;
 
@@ -263,7 +388,9 @@ export const measure = async <T>(cb: () => Promise<T>, measureName: string) => {
 
     const measure = performance.measure(measureName, startMark, endMark);
     const durationMs = measure.duration;
-    console.debug(`[${measureName}] took ${durationMs}ms`);
+    if (outputLog) {
+        console.debug(`[${measureName}] took ${durationMs}ms`);
+    }
 
     return {
         data,
@@ -287,3 +414,50 @@ export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>):
 
     return data;
 }
+
+export const requiredQueryParamGuard = (request: NextRequest, param: string): ServiceError | string => {
+    const value = request.nextUrl.searchParams.get(param);
+    if (!value) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.MISSING_REQUIRED_QUERY_PARAMETER,
+            message: `Missing required query param: ${param}`,
+        };
+    }
+    return value;
+}
+
+export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, domain: string): string | undefined => {
+    if (!imageUrl) return undefined;
+    
+    try {
+        const url = new URL(imageUrl);
+        
+        // List of known public instances that don't require authentication
+        const publicHostnames = [
+            'github.com',
+            'avatars.githubusercontent.com',
+            'gitea.com',
+            'bitbucket.org',
+        ];
+        
+        const isPublicInstance = publicHostnames.includes(url.hostname);
+        
+        if (isPublicInstance) {
+            return imageUrl;
+        } else {
+            // Use the proxied route for self-hosted instances
+            return `/api/${domain}/repos/${repoId}/image`;
+        }
+    } catch {
+        // If URL parsing fails, use the original URL
+        return imageUrl;
+    }
+};
+
+export const getOrgMetadata = (org: Org): OrgMetadata | null => {
+    const currentMetadata = orgMetadataSchema.safeParse(org.metadata);
+    return currentMetadata.success ? currentMetadata.data : null;
+}
+
+export const IS_MAC = typeof navigator !== 'undefined' && /Mac OS X/.test(navigator.userAgent);

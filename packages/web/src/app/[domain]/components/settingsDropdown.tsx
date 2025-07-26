@@ -3,6 +3,7 @@
 import {
     CodeIcon,
     Laptop,
+    LogIn,
     LogOut,
     Moon,
     Settings,
@@ -37,17 +38,15 @@ import { useDomain } from "@/hooks/useDomain";
 
 interface SettingsDropdownProps {
     menuButtonClassName?: string;
-    displaySettingsOption: boolean;
 }
 
 export const SettingsDropdown = ({
     menuButtonClassName,
-    displaySettingsOption,
 }: SettingsDropdownProps) => {
 
     const { theme: _theme, setTheme } = useTheme();
     const [keymapType, setKeymapType] = useKeymapType();
-    const { data: session, update } = useSession();
+    const { data: session } = useSession();
     const domain = useDomain();
 
     const theme = useMemo(() => {
@@ -68,24 +67,17 @@ export const SettingsDropdown = ({
     }, [theme]);
 
     return (
-        // Was hitting a bug with invite code login where the first time the user signs in, the settingsDropdown doesn't have a valid session. To fix this
-        // we can simply update the session everytime the settingsDropdown is opened. This isn't a super frequent operation and updating the session is low cost,
-        // so this is a simple solution to the problem.
-        <DropdownMenu onOpenChange={(isOpen) => {
-            if (isOpen) {
-                update();
-            }
-        }}>
+        <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className={cn(menuButtonClassName)}>
                     <Settings className="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-64">
-                {session?.user && (
+                {session?.user ? (
                     <DropdownMenuGroup>
-                        <div className="flex flex-row items-center gap-1 p-2">
-                            <Avatar>
+                        <div className="flex flex-row items-start gap-3 p-2">
+                            <Avatar className="flex-shrink-0">
                                 <AvatarImage
                                     src={session.user.image ?? ""}
                                 />
@@ -93,7 +85,7 @@ export const SettingsDropdown = ({
                                     {session.user.name && session.user.name.length > 0 ? session.user.name[0] : 'U'}
                                 </AvatarFallback>
                             </Avatar>
-                            <p className="text-sm font-medium text-ellipsis">{session.user.email ?? "User"}</p>
+                            <p className="text-sm font-medium break-all flex-1 leading-relaxed">{session.user.email ?? "User"}</p>
                         </div>
                         <DropdownMenuItem
                             onClick={() => {
@@ -107,9 +99,18 @@ export const SettingsDropdown = ({
                             <LogOut className="mr-2 h-4 w-4" />
                             <span>Log out</span>
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
                     </DropdownMenuGroup>
+                ) : (
+                    <DropdownMenuItem
+                        onClick={() => {
+                            window.location.href = "/login";
+                        }}
+                    >
+                        <LogIn className="mr-2 h-4 w-4" />
+                        <span>Sign in</span>
+                    </DropdownMenuItem>
                 )}
+                <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                     <DropdownMenuSub>
                         <DropdownMenuSubTrigger>
@@ -150,7 +151,7 @@ export const SettingsDropdown = ({
                             </DropdownMenuSubContent>
                         </DropdownMenuPortal>
                     </DropdownMenuSub>
-                    {displaySettingsOption && (
+                    {session?.user && (
                         <DropdownMenuItem asChild>
                             <a href={`/${domain}/settings`}>
                                 <Settings className="h-4 w-4 mr-2" />

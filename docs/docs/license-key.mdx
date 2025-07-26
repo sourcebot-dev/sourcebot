@@ -1,0 +1,45 @@
+---
+title: License key
+sidebarTitle: License key
+---
+
+<Note>
+If you'd like a trial license, [reach out](https://www.sourcebot.dev/contact) and we'll send one over within 24 hours
+</Note>
+
+All core Sourcebot features are available in Sourcebot OSS (MIT Licensed) without any limits. Some additional features require a license key. See the [pricing page](https://www.sourcebot.dev/pricing) for more details.
+
+
+## Activating a license key
+---
+
+After purchasing a license key, you can activate it by setting the `SOURCEBOT_EE_LICENSE_KEY` environment variable.
+
+```bash
+docker run \
+    -e SOURCEBOT_EE_LICENSE_KEY=<your-license-key> \
+    /* additional args */ \
+    ghcr.io/sourcebot-dev/sourcebot:latest
+```
+
+## Feature availability
+---
+
+| Feature | OSS | Licensed |
+|:---------|:-----|:----------|
+| [Search](/docs/features/search/syntax-reference) | ✅ | ✅ |
+| [Full code host support](/docs/connections/overview) | ✅ | ✅ |
+| [MCP Server](/docs/features/mcp-server) | ✅ | ✅ | 
+| [Agents](/docs/features/agents/overview) | ✅ | ✅ |
+| [Login with credentials](/docs/configuration/auth/overview) | ✅ | ✅ |
+| [Login with email codes](/docs/configuration/auth/overview) | ✅ | ✅ |
+| [Login with SSO](/docs/configuration/auth/overview#enterprise-authentication-providers) | 🛑 | ✅ |
+| [Code navigation](/docs/features/code-navigation) | 🛑 | ✅ |
+| [Search contexts](/docs/features/search/search-contexts) | 🛑 | ✅ |
+| [Audit logs](/docs/configuration/audit-logs) | 🛑 | ✅ |
+| [Analytics](/docs/features/analytics) | 🛑 | ✅ |
+
+
+## Questions?
+
+If you have any questions regarding licensing, please [contact us](https://www.sourcebot.dev/contact).

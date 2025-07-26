@@ -10,11 +10,11 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import clsx from "clsx";
 import Link from "next/link";
 import { useCallback, useRef } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useSyntaxGuide } from "./syntaxGuideProvider";
+import { CodeSnippet } from "@/app/components/codeSnippet";
 
 const LINGUIST_LINK = "https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml";
 const CTAGS_LINK = "https://ctags.io/";
@@ -66,7 +66,7 @@ export const SyntaxReferenceGuide = () => {
                 <DialogHeader>
                     <DialogTitle>Syntax Reference Guide</DialogTitle>
                     <DialogDescription className="text-sm text-foreground">
-                        Queries consist of space-seperated regular expressions. Wrapping expressions in <Code>{`""`}</Code> combines them. By default, a file must have at least one match for each expression to be included.
+                        Queries consist of space-seperated regular expressions. Wrapping expressions in <CodeSnippet>{`""`}</CodeSnippet> combines them. By default, a file must have at least one match for each expression to be included.
                     </DialogDescription>
                 </DialogHeader>
                 <Table>
@@ -78,23 +78,23 @@ export const SyntaxReferenceGuide = () => {
                     </TableHeader>
                     <TableBody>
                         <TableRow>
-                            <TableCell className="py-2"><Code>foo</Code></TableCell>
-                            <TableCell className="py-2">Match files with regex <Code>/foo/</Code></TableCell>
+                            <TableCell className="py-2"><CodeSnippet>foo</CodeSnippet></TableCell>
+                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo/</CodeSnippet></TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className="py-2"><Code>foo bar</Code></TableCell>
-                            <TableCell className="py-2">Match files with regex <Code>/foo/</Code> <b>and</b> <Code>/bar/</Code></TableCell>
+                            <TableCell className="py-2"><CodeSnippet>foo bar</CodeSnippet></TableCell>
+                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo/</CodeSnippet> <b>and</b> <CodeSnippet>/bar/</CodeSnippet></TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className="py-2"><Code>{`"foo bar"`}</Code></TableCell>
-                            <TableCell className="py-2">Match files with regex <Code>/foo bar/</Code></TableCell>
+                            <TableCell className="py-2"><CodeSnippet>{`"foo bar"`}</CodeSnippet></TableCell>
+                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo bar/</CodeSnippet></TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
 
                 <Separator className="my-2"/>
                 <p className="text-sm">
-                    {`Multiple expressions can be or'd together with `}<Code>or</Code>, negated with <Code>-</Code>, or grouped with <Code>()</Code>.
+                    {`Multiple expressions can be or'd together with `}<CodeSnippet>or</CodeSnippet>, negated with <CodeSnippet>-</CodeSnippet>, or grouped with <CodeSnippet>()</CodeSnippet>.
                 </p>
                 <Table>
                     <TableHeader>
@@ -105,23 +105,23 @@ export const SyntaxReferenceGuide = () => {
                     </TableHeader>
                     <TableBody>
                         <TableRow>
-                            <TableCell className="py-2"><Code>foo <Highlight>or</Highlight> bar</Code></TableCell>
-                            <TableCell className="py-2">Match files with regex <Code>/foo/</Code> <b>or</b> <Code>/bar/</Code></TableCell>
+                            <TableCell className="py-2"><CodeSnippet>foo <Highlight>or</Highlight> bar</CodeSnippet></TableCell>
+                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo/</CodeSnippet> <b>or</b> <CodeSnippet>/bar/</CodeSnippet></TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className="py-2"><Code>foo -bar</Code></TableCell>
-                            <TableCell className="py-2">Match files with regex <Code>/foo/</Code> but <b>not</b> <Code>/bar/</Code></TableCell>
+                            <TableCell className="py-2"><CodeSnippet>foo -bar</CodeSnippet></TableCell>
+                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo/</CodeSnippet> but <b>not</b> <CodeSnippet>/bar/</CodeSnippet></TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className="py-2"><Code>foo (bar <Highlight>or</Highlight> baz)</Code></TableCell>
-                            <TableCell className="py-2">Match files with regex <Code>/foo/</Code> <b>and</b> either <Code>/bar/</Code> <b>or</b> <Code>/baz/</Code></TableCell>
+                            <TableCell className="py-2"><CodeSnippet>foo (bar <Highlight>or</Highlight> baz)</CodeSnippet></TableCell>
+                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo/</CodeSnippet> <b>and</b> either <CodeSnippet>/bar/</CodeSnippet> <b>or</b> <CodeSnippet>/baz/</CodeSnippet></TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
 
                 <Separator className="my-2"/>
                 <p className="text-sm">
-                    Expressions can be prefixed with certain keywords to modify search behavior. Some keywords can be negated using the <Code>-</Code> prefix.
+                    Expressions can be prefixed with certain keywords to modify search behavior. Some keywords can be negated using the <CodeSnippet>-</CodeSnippet> prefix.
                 </p>
 
                 <Table>
@@ -134,87 +134,87 @@ export const SyntaxReferenceGuide = () => {
                     </TableHeader>
                     <TableBody>
                         <TableRow>
-                            <TableCell className="py-2"><Code><Highlight>file:</Highlight></Code></TableCell>
+                            <TableCell className="py-2"><CodeSnippet><Highlight>file:</Highlight></CodeSnippet></TableCell>
                             <TableCell className="py-2">Filter results from filepaths that match the regex. By default all files are searched.</TableCell>
                             <TableCell className="py-2">
                                 <div className="flex flex-col gap-1">
-                                    <Code
+                                    <CodeSnippet
                                         title="Filter results to filepaths that match regex /README/"
                                     >
                                         <Highlight>file:</Highlight>README
-                                    </Code>
-                                    <Code
+                                    </CodeSnippet>
+                                    <CodeSnippet
                                         title="Filter results to filepaths that match regex /my file/"
                                     >
                                         <Highlight>file:</Highlight>{`"my file"`}
-                                    </Code>
-                                    <Code
+                                    </CodeSnippet>
+                                    <CodeSnippet
                                         title="Ignore results from filepaths match regex /test\.ts$/"
                                     >
                                         <Highlight>-file:</Highlight>test\.ts$
-                                    </Code>
+                                    </CodeSnippet>
                                 </div>
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className="py-2"><Code><Highlight>repo:</Highlight></Code></TableCell>
+                            <TableCell className="py-2"><CodeSnippet><Highlight>repo:</Highlight></CodeSnippet></TableCell>
                             <TableCell className="py-2">Filter results from repos that match the regex. By default all repos are searched.</TableCell>
                             <TableCell className="py-2">
                                 <div className="flex flex-col gap-1">
-                                    <Code
+                                    <CodeSnippet
                                         title="Filter results to repos that match regex /linux/"
                                     >
                                         <Highlight>repo:</Highlight>linux
-                                    </Code>
-                                    <Code
+                                    </CodeSnippet>
+                                    <CodeSnippet
                                         title="Ignore results from repos that match regex /^web\/.*/"
                                     >
                                         <Highlight>-repo:</Highlight>^web/.*
-                                    </Code>
+                                    </CodeSnippet>
                                 </div>
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className="py-2"><Code><Highlight>rev:</Highlight></Code></TableCell>
+                            <TableCell className="py-2"><CodeSnippet><Highlight>rev:</Highlight></CodeSnippet></TableCell>
                             <TableCell className="py-2">Filter results from a specific branch or tag. By default <b>only</b> the default branch is searched.</TableCell>
                             <TableCell className="py-2">
                                 <div className="flex flex-col gap-1">
-                                    <Code
+                                    <CodeSnippet
                                         title="Filter results to branches that match regex /beta/"
                                     >
                                         <Highlight>rev:</Highlight>beta
-                                    </Code>
+                                    </CodeSnippet>
                                 </div>
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className="py-2"><Code><Highlight>lang:</Highlight></Code></TableCell>
+                            <TableCell className="py-2"><CodeSnippet><Highlight>lang:</Highlight></CodeSnippet></TableCell>
                             <TableCell className="py-2">Filter results by language (as defined by <Link className="text-blue-500" href={LINGUIST_LINK}>linguist</Link>). By default all languages are searched.</TableCell>
                             <TableCell className="py-2">
                                 <div className="flex flex-col gap-1">
-                                    <Code
+                                    <CodeSnippet
                                         title="Filter results to TypeScript files"
                                     >
                                         <Highlight>lang:</Highlight>TypeScript
-                                    </Code>
-                                    <Code
+                                    </CodeSnippet>
+                                    <CodeSnippet
                                         title="Ignore results from YAML files"
                                     >
                                         <Highlight>-lang:</Highlight>YAML
-                                    </Code>
+                                    </CodeSnippet>
                                 </div>
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className="py-2"><Code><Highlight>sym:</Highlight></Code></TableCell>
+                            <TableCell className="py-2"><CodeSnippet><Highlight>sym:</Highlight></CodeSnippet></TableCell>
                             <TableCell className="py-2">Match symbol definitions created by <Link className="text-blue-500" href={CTAGS_LINK}>universal ctags</Link> at index time.</TableCell>
                             <TableCell className="py-2">
                                 <div className="flex flex-col gap-1">
-                                    <Code
+                                    <CodeSnippet
                                         title="Filter results to symbols that match regex /\bmain\b/"
                                     >
                                         <Highlight>sym:</Highlight>\bmain\b
-                                    </Code>
+                                    </CodeSnippet>
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -222,17 +222,6 @@ export const SyntaxReferenceGuide = () => {
                 </Table>
             </DialogContent>
         </Dialog>
-    )
-}
-
-const Code = ({ children, className, title }: { children: React.ReactNode, className?: string, title?: string }) => {
-    return (
-        <code
-            className={clsx("bg-gray-100 dark:bg-gray-700 w-fit rounded-md font-mono px-2 py-0.5", className)}
-            title={title}
-        >
-            {children}
-        </code>
     )
 }
 

@@ -15,7 +15,7 @@ import { IconType } from "react-icons/lib";
 import { VscFile, VscFilter, VscRepo, VscSymbolMisc } from "react-icons/vsc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { KeyboardShortcutHint } from "../keyboardShortcutHint";
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { useSyntaxGuide } from "@/app/[domain]/components/syntaxGuideProvider";
 import { useRefineModeSuggestions } from "./useRefineModeSuggestions";
 
@@ -438,7 +438,7 @@ export { SearchSuggestionsBox };
 
 export const splitQuery = (query: string, cursorPos: number) => {
     const queryParts = [];
-    const seperator = " ";
+    const separator = " ";
     let cursorIndex = 0;
     let accumulator = "";
     let isInQuoteCapture = false;
@@ -452,7 +452,7 @@ export const splitQuery = (query: string, cursorPos: number) => {
             isInQuoteCapture = !isInQuoteCapture;
         }
 
-        if (!isInQuoteCapture && query[i] === seperator) {
+        if (!isInQuoteCapture && query[i] === separator) {
             queryParts.push(accumulator);
             accumulator = "";
             continue;

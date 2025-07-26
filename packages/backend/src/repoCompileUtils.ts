@@ -9,7 +9,7 @@ import { SchemaRepository as BitbucketCloudRepository } from "@coderabbitai/bitb
 import { Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
-import { createLogger } from './logger.js';
+import { createLogger } from '@sourcebot/logger';
 import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GenericGitHostConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { RepoMetadata } from './types.js';
 import path from 'path';
@@ -20,7 +20,7 @@ import GitUrlParse from 'git-url-parse';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 
-const logger = createLogger('RepoCompileUtils');
+const logger = createLogger('repo-compile-utils');
 
 export const compileGithubConfig = async (
     config: GithubConnectionConfig,
@@ -121,7 +121,10 @@ export const compileGitlabConfig = async (
         const isFork = project.forked_from_project !== undefined;
         const repoDisplayName = project.path_with_namespace;
         const repoName = path.join(repoNameRoot, repoDisplayName);
-
+        // project.avatar_url is not directly accessible with tokens; use the avatar API endpoint if available
+        const avatarUrl = project.avatar_url
+            ? new URL(`/api/v4/projects/${project.id}/avatar`, hostUrl).toString()
+            : null;
         logger.debug(`Found gitlab repo ${repoDisplayName} with webUrl: ${projectUrl}`);
 
         const record: RepoData = {
@@ -132,7 +135,7 @@ export const compileGitlabConfig = async (
             webUrl: projectUrl,
             name: repoName,
             displayName: repoDisplayName,
-            imageUrl: project.avatar_url,
+            imageUrl: avatarUrl,
             isFork: isFork,
             isArchived: !!project.archived,
             org: {
@@ -373,7 +376,7 @@ export const compileBitbucketConfig = async (
             throw new Error(`No links found for ${isServer ? 'server' : 'cloud'} repo ${repoName}`);
         }
 
-        // In server case we get an array of lenth == 1 links in the self field, while in cloud case we get a single
+        // In server case we get an array of length == 1 links in the self field, while in cloud case we get a single
         // link object in the html field
         const link = isServer ? (repoLinks.self as { name: string, href: string }[])?.[0] : repoLinks.html as { href: string };
         if (!link || !link.href) {

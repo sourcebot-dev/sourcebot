@@ -61,6 +61,12 @@
                     "type": "number",
                     "description": "The timeout (in milliseconds) for a repo indexing to timeout. Defaults to 2 hours.",
                     "minimum": 1
+                },
+                "enablePublicAccess": {
+                    "type": "boolean",
+                    "deprecated": true,
+                    "description": "This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.",
+                    "default": false
                 }
             },
             "additionalProperties": false
@@ -78,7 +84,7 @@
         },
         "contexts": {
             "type": "object",
-            "description": "[Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/docs/search/search-contexts",
+            "description": "[Sourcebot EE] Defines a collection of search contexts. This is only available in single-tenancy mode. See: https://docs.sourcebot.dev/docs/features/search/search-contexts",
             "patternProperties": {
                 "^[a-zA-Z0-9_-]+$": {
                     "$ref": "#/definitions/SearchContext"
@@ -95,6 +101,13 @@
                 }
             },
             "additionalProperties": false
+        },
+        "models": {
+            "type": "array",
+            "description": "Defines a collection of language models that are available to Sourcebot.",
+            "items": {
+                "$ref": "./languageModel.json"
+            }
         }
     },
     "additionalProperties": false

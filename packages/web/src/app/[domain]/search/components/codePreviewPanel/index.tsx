@@ -1,74 +1,76 @@
 'use client';
 
-import { fetchFileSource } from "@/app/api/(client)/client";
-import { base64Decode } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { CodePreview, CodePreviewFile } from "./codePreview";
+import { CodePreview } from "./codePreview";
 import { SearchResultFile } from "@/features/search/types";
 import { useDomain } from "@/hooks/useDomain";
 import { SymbolIcon } from "@radix-ui/react-icons";
+import { SetStateAction, Dispatch, useMemo } from "react";
+import { getFileSource } from "@/features/search/fileSourceApi";
+import { unwrapServiceError } from "@/lib/utils";
 
 interface CodePreviewPanelProps {
-    fileMatch?: SearchResultFile;
-    onClose: () => void;
+    previewedFile: SearchResultFile;
     selectedMatchIndex: number;
-    onSelectedMatchIndexChange: (index: number) => void;
+    onClose: () => void;
+    onSelectedMatchIndexChange: Dispatch<SetStateAction<number>>;
 }
 
 export const CodePreviewPanel = ({
-    fileMatch,
-    onClose,
+    previewedFile,
     selectedMatchIndex,
+    onClose,
     onSelectedMatchIndexChange,
 }: CodePreviewPanelProps) => {
     const domain = useDomain();
 
-    const { data: file, isLoading } = useQuery({
-        queryKey: ["source", fileMatch?.fileName, fileMatch?.repository, fileMatch?.branches],
-        queryFn: async (): Promise<CodePreviewFile | undefined> => {
-            if (!fileMatch) {
-                return undefined;
-            }
+    // If there are multiple branches pointing to the same revision of this file, it doesn't
+    // matter which branch we use here, so use the first one.
+    const branch = useMemo(() => {
+        return previewedFile.branches && previewedFile.branches.length > 0 ? previewedFile.branches[0] : undefined;
+    }, [previewedFile]);
 
-            // If there are multiple branches pointing to the same revision of this file, it doesn't
-            // matter which branch we use here, so use the first one.
-            const branch = fileMatch.branches && fileMatch.branches.length > 0 ? fileMatch.branches[0] : undefined;
-
-            return fetchFileSource({
-                fileName: fileMatch.fileName.text,
-                repository: fileMatch.repository,
+    const { data: file, isLoading, isPending, isError } = useQuery({
+        queryKey: ["source", previewedFile, branch, domain],
+        queryFn: () => unwrapServiceError(
+            getFileSource({
+                fileName: previewedFile.fileName.text,
+                repository: previewedFile.repository,
                 branch,
             }, domain)
-                .then(({ source }) => {
-                    const decodedSource = base64Decode(source);
-
-                    return {
-                        content: decodedSource,
-                        filepath: fileMatch.fileName.text,
-                        matches: fileMatch.chunks,
-                        link: fileMatch.webUrl,
-                        language: fileMatch.language,
-                        revision: branch ?? "HEAD",
-                    };
-                });
-        },
-        enabled: fileMatch !== undefined,
+        ),
+        select: (data) => {
+            return {
+                content: data.source,
+                filepath: previewedFile.fileName.text,
+                matches: previewedFile.chunks,
+                link: previewedFile.webUrl,
+                language: previewedFile.language,
+                revision: branch ?? "HEAD",
+            };
+        }
     });
 
-    if (isLoading) {
+    if (isLoading || isPending) {
         return <div className="flex flex-col items-center justify-center h-full">
             <SymbolIcon className="h-6 w-6 animate-spin" />
             <p className="font-semibold text-center">Loading...</p>
         </div>
     }
 
+    if (isError) {
+        return (
+            <p>Failed to load file source</p>
+        )
+    }
+
     return (
         <CodePreview
             file={file}
-            repoName={fileMatch?.repository}
-            onClose={onClose}
+            repoName={previewedFile.repository}
             selectedMatchIndex={selectedMatchIndex}
             onSelectedMatchIndexChange={onSelectedMatchIndexChange}
+            onClose={onClose}
         />
     )
 }

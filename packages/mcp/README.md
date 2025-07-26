@@ -2,7 +2,7 @@
 
 [![Sourcebot](https://img.shields.io/badge/Website-sourcebot.dev-blue)](https://sourcebot.dev)
 [![GitHub](https://img.shields.io/badge/GitHub-sourcebot--dev%2Fsourcebot-green?logo=github)](https://github.com/sourcebot-dev/sourcebot)
-[![Docs](https://img.shields.io/badge/Docs-docs.sourcebot.dev-yellow)](https://docs.sourcebot.dev/docs/more/mcp-server)
+[![Docs](https://img.shields.io/badge/Docs-docs.sourcebot.dev-yellow)](https://docs.sourcebot.dev/docs/features/mcp-server)
 [![npm](https://img.shields.io/npm/v/@sourcebot/mcp)](https://www.npmjs.com/package/@sourcebot/mcp)
 
 The Sourcebot MCP server gives your LLM agents the ability to fetch code context across thousands of repos hosted on [GitHub](https://docs.sourcebot.dev/docs/connections/github), [GitLab](https://docs.sourcebot.dev/docs/connections/gitlab), [BitBucket](https://docs.sourcebot.dev/docs/connections/bitbucket-cloud) and [more](#supported-code-hosts). Ask your LLM a question, and the Sourcebot MCP server will fetch relevant context from its index and inject it into your chat session. Some use cases this unlocks include:
@@ -19,7 +19,7 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
 
 - Building custom LLM horizontal agents like like compliance auditing agents, migration agents, etc.
     - _"Find all instances of hardcoded credentials"_
-    - _"Identify repositories that depend on this depreacted api"_
+    - _"Identify repositories that depend on this deprecated api"_
 
 
 ## Getting Started
@@ -87,20 +87,18 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
 
     [VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers)
 
-    Add the following to your [settings.json](https://code.visualstudio.com/docs/copilot/chat/mcp-servers):
+    Add the following to your [.vscode/mcp.json](https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server-to-your-workspace) file:
 
     ```json
     {
-        "mcp": {
-            "servers": {
-                "sourcebot": {
-                    "type": "stdio",
-                    "command": "npx",
-                    "args": ["-y", "@sourcebot/mcp@latest"],
-                    // Optional - if not specified, https://demo.sourcebot.dev is used
-                    "env": {
-                        "SOURCEBOT_HOST": "http://localhost:3000"
-                    }
+        "servers": {
+            "sourcebot": {
+                "type": "stdio",
+                "command": "npx",
+                "args": ["-y", "@sourcebot/mcp@latest"],
+                // Optional - if not specified, https://demo.sourcebot.dev is used
+                "env": {
+                    "SOURCEBOT_HOST": "http://localhost:3000"
                 }
             }
         }
@@ -159,7 +157,7 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
 
 <br/>
 
-For a more detailed guide, checkout [the docs](https://docs.sourcebot.dev/docs/more/mcp-server).
+For a more detailed guide, checkout [the docs](https://docs.sourcebot.dev/docs/features/mcp-server).
 
 
 ## Available Tools

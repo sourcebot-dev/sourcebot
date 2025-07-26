@@ -2,8 +2,7 @@ import { Logger } from "winston";
 import { AppContext } from "./types.js";
 import path from 'path';
 import { PrismaClient, Repo } from "@sourcebot/db";
-import { decrypt } from "@sourcebot/crypto";
-import { Token } from "@sourcebot/schemas/v3/shared.type";
+import { getTokenFromConfig as getTokenFromConfigBase } from "@sourcebot/crypto";
 import { BackendException, BackendError } from "@sourcebot/error";
 import * as Sentry from "@sentry/node";
 
@@ -21,48 +20,21 @@ export const marshalBool = (value?: boolean) => {
     return !!value ? '1' : '0';
 }
 
-export const isRemotePath = (path: string) => {
-    return path.startsWith('https://') || path.startsWith('http://');
-}
-
-export const getTokenFromConfig = async (token: Token, orgId: number, db: PrismaClient, logger?: Logger) => {
-    if ('secret' in token) {
-        const secretKey = token.secret;
-        const secret = await db.secret.findUnique({
-            where: {
-                orgId_key: {
-                    key: secretKey,
-                    orgId
-                }
-            }
-        });
-
-        if (!secret) {
+export const getTokenFromConfig = async (token: any, orgId: number, db: PrismaClient, logger?: Logger) => {
+    try {
+        return await getTokenFromConfigBase(token, orgId, db);
+    } catch (error: unknown) {
+        if (error instanceof Error) {
             const e = new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
-                message: `Secret with key ${secretKey} not found for org ${orgId}`,
+                message: error.message,
             });
             Sentry.captureException(e);
-            logger?.error(e.metadata.message);
+            logger?.error(error.message);
             throw e;
         }
-
-        const decryptedToken = decrypt(secret.iv, secret.encryptedValue);
-        return decryptedToken;
-    } else {
-        const envToken = process.env[token.env];
-        if (!envToken) {
-            const e = new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
-                message: `Environment variable ${token.env} not found.`,
-            });
-            Sentry.captureException(e);
-            logger?.error(e.metadata.message);
-            throw e;
-        }
-
-        return envToken;
+        throw error;
     }
-}
-
+};
 
 export const resolvePathRelativeToConfig = (localPath: string, configPath: string) => {
     let absolutePath = localPath;
@@ -94,6 +66,8 @@ export const arraysEqualShallow = <T>(a?: readonly T[], b?: readonly T[]) => {
     return true;
 }
 
+// @note: this function is duplicated in `packages/web/src/features/fileTree/actions.ts`.
+// @todo: we should move this to a shared package.
 export const getRepoPath = (repo: Repo, ctx: AppContext): { path: string, isReadOnly: boolean } => {
     // If we are dealing with a local repository, then use that as the path.
     // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.

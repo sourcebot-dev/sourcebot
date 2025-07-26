@@ -1,11 +1,14 @@
 import { sourcebot_diff, sourcebot_context, sourcebot_file_diff_review_schema } from "@/features/agents/review-agent/types";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('generate-diff-review-prompt');
 
 export const generateDiffReviewPrompt = async (diff: sourcebot_diff, context: sourcebot_context[], rules: string[]) => {
-    console.log("Executing generate_diff_review_prompt");
+    logger.debug("Executing generate_diff_review_prompt");
         
     const prompt = `
-    You are an expert software engineer that excells at reviewing code changes. Given the input, additional context, and rules defined below, review the code changes and provide a detailed review. The review you provide
+    You are an expert software engineer that excels at reviewing code changes. Given the input, additional context, and rules defined below, review the code changes and provide a detailed review. The review you provide
     must conform to all of the rules defined below. The output format of your review must conform to the output format defined below.
 
     # Input
@@ -39,6 +42,6 @@ export const generateDiffReviewPrompt = async (diff: sourcebot_diff, context: so
     ${JSON.stringify(zodToJsonSchema(sourcebot_file_diff_review_schema), null, 2)}
     `;
 
-    console.log("Completed generate_diff_review_prompt");
+    logger.debug("Completed generate_diff_review_prompt");
     return prompt;
 }

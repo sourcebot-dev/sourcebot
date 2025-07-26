@@ -7,6 +7,135 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.0] - 2025-07-25
+
+### Added
+- Introducing Ask Sourcebot - ask natural langauge about your codebase. Get back comprehensive Markdown responses with inline citations back to the code. Bring your own LLM api key. [#392](https://github.com/sourcebot-dev/sourcebot/pull/392) 
+
+### Fixed 
+- Fixed onboarding infinite loop when GCP IAP Auth is enabled. [#381](https://github.com/sourcebot-dev/sourcebot/pull/381)
+
+## [4.5.3] - 2025-07-20
+
+### Changed
+- Relicense core to FSL-1.1-ALv2. [#388](https://github.com/sourcebot-dev/sourcebot/pull/388)
+
+### Added
+- Added `GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS` env var to configure the GitLab client's query timeout. [#390](https://github.com/sourcebot-dev/sourcebot/pull/390)
+
+## [4.5.2] - 2025-07-19
+
+### Changed
+- Fixed typos in UI, docs, code [#369](https://github.com/sourcebot-dev/sourcebot/pull/369)
+- Add anonymous access option to core and deprecate the `enablePublicAccess` config setting. [#385](https://github.com/sourcebot-dev/sourcebot/pull/385)
+
+## [4.5.1] - 2025-07-14
+
+### Changed
+- Revamped onboarding experience. [#376](https://github.com/sourcebot-dev/sourcebot/pull/376)
+
+### Fixed
+- Fixed issue with external source code links being broken for paths with spaces. [#364](https://github.com/sourcebot-dev/sourcebot/pull/364)
+- Makes base retry indexing configuration configurable and move from a default of `5s` to `60s`. [#377](https://github.com/sourcebot-dev/sourcebot/pull/377)
+- Fixed issue where files would sometimes never load in the code browser. [#365](https://github.com/sourcebot-dev/sourcebot/pull/365)
+
+## [4.5.0] - 2025-06-21
+
+### Added
+- Added code nav and syntax highlighting for TCL. [#362](https://github.com/sourcebot-dev/sourcebot/pull/362)
+- Added analytics dashboard. [#358](https://github.com/sourcebot-dev/sourcebot/pull/358)
+
+### Fixed
+- Fixed issue where invites appeared to be created successfully, but were not actually being created in the database. [#359](https://github.com/sourcebot-dev/sourcebot/pull/359)
+
+### Changed
+- Audit logging is now enabled by default. [#358](https://github.com/sourcebot-dev/sourcebot/pull/358)
+
+## [4.4.0] - 2025-06-18
+
+### Added
+- Added audit logging. [#355](https://github.com/sourcebot-dev/sourcebot/pull/355)
+<!-- @NOTE: this release includes a API change that affects the MCP package (@sourcebot/mcp). On release, bump the MCP package's version and delete this message. -->
+
+### Fixed
+- Delete account join request when redeeming an invite. [#352](https://github.com/sourcebot-dev/sourcebot/pull/352)
+- Fix issue where a repository would not be included in a search context if the context was created before the repository. [#354](https://github.com/sourcebot-dev/sourcebot/pull/354)
+
+### Changed
+- Changed search api (and all apis that depend on it) to return raw source code instead of base64 encoded string. ([356](https://github.com/sourcebot-dev/sourcebot/pull/356)).
+
+
+## [4.3.0] - 2025-06-11
+
+### Added
+- Changed repository link in search to file tree + move external link to code host logo. [#340](https://github.com/sourcebot-dev/sourcebot/pull/340)
+- Added a basic file search dialog when browsing a repository. [#341](https://github.com/sourcebot-dev/sourcebot/pull/341)
+
+### Fixed
+- Text highlighting clarity. [#342](https://github.com/sourcebot-dev/sourcebot/pull/342)
+- Fixed repo list column header styling. [#344](https://github.com/sourcebot-dev/sourcebot/pull/344)
+- Clean up successful and failed jobs in Redis queues. [#343](https://github.com/sourcebot-dev/sourcebot/pull/343)
+- Fixed issue with files occasionally not loading after moving the cursor rapidly over the file browser. [#346](https://github.com/sourcebot-dev/sourcebot/pull/346)
+
+## [4.2.0] - 2025-06-09
+
+### Added
+- Added seperate page for signup. [#311](https://github.com/sourcebot-dev/sourcebot/pull/331)
+- Fix repo images in authed instance case and add manifest json. [#332](https://github.com/sourcebot-dev/sourcebot/pull/332)
+- Added encryption logic for license keys. [#335](https://github.com/sourcebot-dev/sourcebot/pull/335)
+- Added hover tooltip for long repo names in filter panel. [#338](https://github.com/sourcebot-dev/sourcebot/pull/338)
+- Added repo shard validation on startup. [#339](https://github.com/sourcebot-dev/sourcebot/pull/339)
+- Added support for a file explorer when browsing files. [#336](https://github.com/sourcebot-dev/sourcebot/pull/336)
+
+## [4.1.1] - 2025-06-03
+
+### Added
+- Added copy button for filenames. [#328](https://github.com/sourcebot-dev/sourcebot/pull/328)
+- Added development docker compose file. [#328](https://github.com/sourcebot-dev/sourcebot/pull/328)
+- Added keyboard shortcuts for find all refs / go to def. [#329](https://github.com/sourcebot-dev/sourcebot/pull/329)
+- Added GCP IAP JIT provisioning. [#330](https://github.com/sourcebot-dev/sourcebot/pull/330)
+
+### Fixed
+- Fixed issue with the symbol hover popover clipping at the top of the page. [#326](https://github.com/sourcebot-dev/sourcebot/pull/326)
+- Fixed slow rendering issue with large reference/definition lists. [#327](https://github.com/sourcebot-dev/sourcebot/pull/327)
+
+## [4.1.0] - 2025-06-02
+
+### Added
+- Added structured logging support. [#323](https://github.com/sourcebot-dev/sourcebot/pull/323)
+
+### Fixed
+- Fixed issue where new oauth providers weren't being display in the login page. [commit](https://github.com/sourcebot-dev/sourcebot/commit/a2e06266dbe5e5ad4c2c3f730c73d64edecedcf7)
+- Fixed client side "mark decorations may not be empty" error when viewing certain files. [#325](https://github.com/sourcebot-dev/sourcebot/pull/325)
+- Fixed issue where the symbol hover popover would not appear for large source files. [#325](https://github.com/sourcebot-dev/sourcebot/pull/325)
+
+
+## [4.0.1] - 2025-05-28
+
+### Fixed
+- Fixed issue with how entitlements are resolved for cloud. [#319](https://github.com/sourcebot-dev/sourcebot/pull/319)
+
+## [4.0.0] - 2025-05-28
+
+Sourcebot V4 introduces authentication, performance improvements and code navigation. Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v3-to-v4-guide) for information on upgrading your instance to v4.
+
+### Changed
+- [**Breaking Change**] Authentication is now required by default. Notes:
+  - When setting up your instance, email / password login will be the default authentication provider.
+  - The first user that logs into the instance is given the `owner` role. ([docs](https://docs.sourcebot.dev/docs/configuration/auth/roles-and-permissions)).
+  - Subsequent users can request to join the instance. The `owner` can approve / deny requests to join the instance via `Settings` > `Members` > `Pending Requests`.
+  - If a user is approved to join the instance, they are given the `member` role.
+  - Additional login providers, including email links and SSO, can be configured with additional environment variables. ([docs](https://docs.sourcebot.dev/docs/configuration/auth/overview)).
+- Clicking on a search result now takes you to the `/browse` view. Files can still be previewed by clicking the "Preview" button or holding `Cmd` / `Ctrl` when clicking on a search result. [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
+
+### Added
+- [Sourcebot EE] Added search-based code navigation, allowing you to jump between symbol definition and references when viewing source files. [Read the documentation](https://docs.sourcebot.dev/docs/features/code-navigation). [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
+- Added collapsible filter panel. [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
+- Added Sourcebot API key management for external clients. [#311](https://github.com/sourcebot-dev/sourcebot/pull/311)
+
+### Fixed
+- Improved scroll performance for large numbers of search results. [#315](https://github.com/sourcebot-dev/sourcebot/pull/315)
+
 ## [3.2.1] - 2025-05-15
 
 ### Added
@@ -15,7 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.2.0] - 2025-05-12
 
 ### Added
-- Added AI code review agent [#298](https://github.com/sourcebot-dev/sourcebot/pull/298). Checkout the [docs](https://docs.sourcebot.dev/docs/agents/review-agent) for more information.
+- Added AI code review agent [#298](https://github.com/sourcebot-dev/sourcebot/pull/298). Checkout the [docs](https://docs.sourcebot.dev/docs/features/agents/review-agent) for more information.
 
 ### Fixed
 - Fixed issue with repos appearing in the carousel when they fail indexing for the first time. [#305](https://github.com/sourcebot-dev/sourcebot/pull/305)
@@ -84,20 +213,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.0.0] - 2025-04-01
 
-Sourcebot v3 is here and brings a number of structural changes to the tool's foundation, including a SQL database, parallelized indexing, authentication support, multitenancy, and more. Checkout the [migration guide](https://docs.sourcebot.dev/self-hosting/upgrade/v2-to-v3-guide) for information on upgrading your instance to v3.
+Sourcebot v3 is here and brings a number of structural changes to the tool's foundation, including a SQL database, parallelized indexing, authentication support, multitenancy, and more. Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v2-to-v3-guide) for information on upgrading your instance to v3.
 
 ### Changed
-- [**Breaking Change**] Changed the config schema such that connection objects are specified in the `connection` map, instead of the `repos` array. [See migration guide](https://docs.sourcebot.dev/self-hosting/upgrade/v2-to-v3-guide).
+- [**Breaking Change**] Changed the config schema such that connection objects are specified in the `connection` map, instead of the `repos` array. [See migration guide](https://docs.sourcebot.dev/docs/upgrade/v2-to-v3-guide).
 - Updated the tool's color-palette in dark mode.
 
 ### Added
-- Added parallelized repo indexing and connection syncing via Redis & BullMQ. See the [architecture overview](https://docs.sourcebot.dev/self-hosting/overview#architecture).
+- Added parallelized repo indexing and connection syncing via Redis & BullMQ. See the [architecture overview](https://docs.sourcebot.dev/docs/overview#architecture).
 - Added repo indexing progress indicators in the navbar.
-- Added authentication support via OAuth or email/password. For instructions on enabling, see [this doc](https://docs.sourcebot.dev/self-hosting/more/authentication).
-- Added the following UI for managing your deployment when **[auth is enabled](https://docs.sourcebot.dev/self-hosting/more/authentication)**:
+- Added authentication support via OAuth or email/password. For instructions on enabling, see [this doc](https://docs.sourcebot.dev/docs/configuration/auth/overview).
+- Added the following UI for managing your deployment when **[auth is enabled](https://docs.sourcebot.dev/docs/configuration/auth/overview)**:
   - connection management: create and manage your JSON configs via a integrated web-editor.
   - secrets: import personal access tokens (PAT) into Sourcebot (AES-256 encrypted). Reference secrets in your connection config by name.
-  - team & invite management: invite users to your instance to give them access. Configure team [roles & permissions](https://docs.sourcebot.dev/docs/more/roles-and-permissions).
+  - team & invite management: invite users to your instance to give them access. Configure team [roles & permissions](https://docs.sourcebot.dev/docs/configuration/auth/roles-and-permissions).
 - Added multi-tenancy support. See [this doc](https://docs.sourcebot.dev/self-hosting/more/tenancy).
 
 ### Removed
@@ -129,7 +258,7 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 
 ### Added
 
-- Added `maxTrigramCount` to the config to control the maximum allowable of trigrams per document. 
+- Added `maxTrigramCount` to the config to control the maximum allowable of trigrams per document.
 
 ### Fixed
 
@@ -187,7 +316,7 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 - Added config option `settings.maxFileSize` to control the maximum file size zoekt will index. ([#118](https://github.com/sourcebot-dev/sourcebot/pull/118))
 
 ### Fixed
- 
+
 - Fixed syntax highlighting for zoekt query language. ([#115](https://github.com/sourcebot-dev/sourcebot/pull/115))
 - Fixed issue with Gerrit repo fetching not paginating. ([#114](https://github.com/sourcebot-dev/sourcebot/pull/114))
 - Fixed visual issues with filter panel. ([#105](https://github.com/sourcebot-dev/sourcebot/pull/105))
@@ -239,13 +368,13 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 ### Added
 
 - Added `DOMAIN_SUB_PATH` environment variable to allow overriding the default domain subpath. ([#74](https://github.com/sourcebot-dev/sourcebot/pull/74))
-- Added option `all` to the GitLab index schema, allowing for indexing all projects in a self-hosted GitLab instance. ([#84](https://github.com/sourcebot-dev/sourcebot/pull/84)) 
+- Added option `all` to the GitLab index schema, allowing for indexing all projects in a self-hosted GitLab instance. ([#84](https://github.com/sourcebot-dev/sourcebot/pull/84))
 
 ## [2.4.3] - 2024-11-18
 
 ### Changed
 
-- Bumped NodeJS version to v20. ([#78](https://github.com/sourcebot-dev/sourcebot/pull/78)) 
+- Bumped NodeJS version to v20. ([#78](https://github.com/sourcebot-dev/sourcebot/pull/78))
 
 ## [2.4.2] - 2024-11-14
 

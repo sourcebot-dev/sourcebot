@@ -1,12 +1,14 @@
 ---
 title: Linking code from GitLab
 sidebarTitle: GitLab
+icon: GitLab
 ---
 
 import GitLabSchema from '/snippets/schemas/v3/gitlab.schema.mdx'
 
 Sourcebot can sync code from GitLab.com, Self Managed (CE & EE), and Dedicated.
 
+If you're not familiar with Sourcebot [connections](/docs/connections/overview), please read that overview first.
 
 ## Examples
 
@@ -116,7 +118,7 @@ Next, provide the PAT via the `token` property, either as an environment variabl
 
 <Tabs>
     <Tab title="Environment Variable">
-        <Note>Environment variables are only supported in a [declarative config](/self-hosting/more/declarative-config) and cannot be used in the web UI.</Note>
+        <Note>Environment variables are only supported in a [declarative config](/docs/configuration/declarative-config) and cannot be used in the web UI.</Note>
 
         1. Add the `token` property to your connection config:
         ```json
@@ -141,7 +143,7 @@ Next, provide the PAT via the `token` property, either as an environment variabl
     </Tab>
 
     <Tab title="Secret">
-        <Note>Secrets are only supported when [authentication](/self-hosting/more/authentication) is enabled.</Note>
+        <Note>Secrets are only supported when [authentication](/docs/configuration/auth/overview) is enabled.</Note>
 
         1. Navigate to **Secrets** in settings and create a new secret with your PAT:
 
@@ -173,6 +175,10 @@ To connect to a GitLab host other than `gitlab.com`, provide the `url` property 
     // .. rest of config ..
 }
 ```
+
+## Troubleshooting
+
+- If you're seeing errors like `GitbeakerTimeoutError: Query timeout was reached` when syncing a large number of projects, you can increase the client's timeout by setting the `GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS` environment variable. [#162](https://github.com/sourcebot-dev/sourcebot/issues/162)
 
 ## Schema reference
 

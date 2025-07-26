@@ -1,21 +1,25 @@
 import 'next-auth/jwt';
 import NextAuth, { DefaultSession, User as AuthJsUser } from "next-auth"
-import GitHub from "next-auth/providers/github"
-import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
 import { env } from "@/env.mjs";
-import { OrgRole, User } from '@sourcebot/db';
+import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
 import { verifyCredentialsRequestSchema } from './lib/schemas';
 import { createTransport } from 'nodemailer';
 import { render } from '@react-email/render';
 import MagicLinkEmail from './emails/magicLinkEmail';
-import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 import bcrypt from 'bcryptjs';
+import { getSSOProviders } from '@/ee/features/sso/sso';
+import { hasEntitlement } from '@sourcebot/shared';
+import { onCreateUser } from '@/lib/authUtils';
+import { getAuditService } from '@/ee/features/audit/factory';
+import { SINGLE_TENANT_ORG_ID } from './lib/constants';
+
+const auditService = getAuditService();
 
 export const runtime = 'nodejs';
 
@@ -36,21 +40,11 @@ declare module 'next-auth/jwt' {
 export const getProviders = () => {
     const providers: Provider[] = [];
 
-    if (env.AUTH_GITHUB_CLIENT_ID && env.AUTH_GITHUB_CLIENT_SECRET) {
-        providers.push(GitHub({
-            clientId: env.AUTH_GITHUB_CLIENT_ID,
-            clientSecret: env.AUTH_GITHUB_CLIENT_SECRET,
-        }));
+    if (hasEntitlement("sso")) {
+        providers.push(...getSSOProviders());
     }
 
-    if (env.AUTH_GOOGLE_CLIENT_ID && env.AUTH_GOOGLE_CLIENT_SECRET) {
-        providers.push(Google({
-            clientId: env.AUTH_GOOGLE_CLIENT_ID,
-            clientSecret: env.AUTH_GOOGLE_CLIENT_SECRET,
-        }));
-    }
-
-    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
         providers.push(EmailProvider({
             server: env.SMTP_CONNECTION_URL,
             from: env.EMAIL_FROM_ADDRESS,
@@ -59,10 +53,9 @@ export const getProviders = () => {
                 const token = String(Math.floor(100000 + Math.random() * 900000));
                 return token;
             },
-            sendVerificationRequest: async ({ identifier, provider, token, request }) => {
-                const origin = request.headers.get('origin')!;
+            sendVerificationRequest: async ({ identifier, provider, token }) => {
                 const transport = createTransport(provider.server);
-                const html = await render(MagicLinkEmail({ baseUrl: origin, token: token }));
+                const html = await render(MagicLinkEmail({ token: token }));
                 const result = await transport.sendMail({
                     to: identifier,
                     from: provider.from,
@@ -139,47 +132,6 @@ export const getProviders = () => {
     return providers;
 }
 
-const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
-    // In single-tenant mode w/ auth, we assign the first user to sign
-    // up as the owner of the default org.
-    if (
-        env.SOURCEBOT_TENANCY_MODE === 'single' &&
-        env.SOURCEBOT_AUTH_ENABLED === 'true'
-    ) {
-        await prisma.$transaction(async (tx) => {
-            const defaultOrg = await tx.org.findUnique({
-                where: {
-                    id: SINGLE_TENANT_ORG_ID,
-                },
-                include: {
-                    members: true,
-                }
-            });
-
-            // Only the first user to sign up will be an owner of the default org.
-            if (defaultOrg?.members.length === 0) {
-                await tx.org.update({
-                    where: {
-                        id: SINGLE_TENANT_ORG_ID,
-                    },
-                    data: {
-                        members: {
-                            create: {
-                                role: OrgRole.OWNER,
-                                user: {
-                                    connect: {
-                                        id: user.id,
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        });
-    }
-}
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
     secret: env.AUTH_SECRET,
     adapter: PrismaAdapter(prisma),
@@ -189,6 +141,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     trustHost: true,
     events: {
         createUser: onCreateUser,
+        signIn: async ({ user }) => {
+            if (user.id) {
+                await auditService.createAudit({
+                    action: "user.signed_in",
+                    actor: {
+                        id: user.id,
+                        type: "user"
+                    },
+                    orgId: SINGLE_TENANT_ORG_ID, // TODO(mt)
+                    target: {
+                        id: user.id,
+                        type: "user"
+                    }
+                });
+            }
+        },
+        signOut: async (message) => {
+            const token = message as { token: { userId: string } | null };
+            if (token?.token?.userId) {
+                await auditService.createAudit({
+                    action: "user.signed_out",
+                    actor: {
+                        id: token.token.userId,
+                        type: "user"
+                    },
+                    orgId: SINGLE_TENANT_ORG_ID, // TODO(mt)
+                    target: {
+                        id: token.token.userId,
+                        type: "user"
+                    }
+                });
+            }
+        }
     },
     callbacks: {
         async jwt({ token, user: _user }) {
@@ -205,7 +190,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // to the client.
             session.user = {
                 ...session.user,
-                // Propogate the userId to the session.
+                // Propagate the userId to the session.
                 id: token.userId,
             }
             return session;

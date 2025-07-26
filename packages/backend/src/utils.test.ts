@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
-import { arraysEqualShallow, isRemotePath } from './utils';
+import { arraysEqualShallow } from './utils';
+import { isRemotePath } from '@sourcebot/shared';
 
 test('should return true for identical arrays', () => {
     expect(arraysEqualShallow([1, 2, 3], [1, 2, 3])).toBe(true);

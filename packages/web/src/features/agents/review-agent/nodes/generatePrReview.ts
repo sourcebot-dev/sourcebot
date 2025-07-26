@@ -2,9 +2,12 @@ import { sourcebot_pr_payload, sourcebot_diff_review, sourcebot_file_diff_review
 import { generateDiffReviewPrompt } from "@/features/agents/review-agent/nodes/generateDiffReviewPrompt";
 import { invokeDiffReviewLlm } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
 import { fetchFileContent } from "@/features/agents/review-agent/nodes/fetchFileContent";
+import { createLogger } from "@sourcebot/logger";
+
+const logger = createLogger('generate-pr-review');
 
 export const generatePrReviews = async (reviewAgentLogPath: string | undefined, pr_payload: sourcebot_pr_payload, rules: string[]): Promise<sourcebot_file_diff_review[]> => {
-    console.log("Executing generate_pr_reviews");
+    logger.debug("Executing generate_pr_reviews");
 
     const file_diff_reviews: sourcebot_file_diff_review[] = [];
     for (const file_diff of pr_payload.file_diffs) {
@@ -32,7 +35,7 @@ export const generatePrReviews = async (reviewAgentLogPath: string | undefined, 
                 const diffReview = await invokeDiffReviewLlm(reviewAgentLogPath, prompt);
                 reviews.push(...diffReview.reviews);
             } catch (error) {
-                console.error(`Error generating review for ${file_diff.to}: ${error}`);
+                logger.error(`Error generating review for ${file_diff.to}: ${error}`);
             }
         }
         
@@ -44,6 +47,6 @@ export const generatePrReviews = async (reviewAgentLogPath: string | undefined, 
         }
     }
 
-    console.log("Completed generate_pr_reviews");
+    logger.debug("Completed generate_pr_reviews");
     return file_diff_reviews;
 }

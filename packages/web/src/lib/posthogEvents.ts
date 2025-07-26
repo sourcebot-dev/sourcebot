@@ -216,6 +216,10 @@ export type PosthogEventMap = {
     //////////////////////////////////////////////////////////////////
     wa_login_with_github: {},
     wa_login_with_google: {},
+    wa_login_with_gitlab: {},
+    wa_login_with_okta: {},
+    wa_login_with_keycloak: {},
+    wa_login_with_microsoft_entra_id: {},
     wa_login_with_magic_link: {},
     wa_login_with_credentials: {},
     //////////////////////////////////////////////////////////////////
@@ -250,6 +254,33 @@ export type PosthogEventMap = {
     $pageview: {
         $current_url: string,
     },
+    //////////////////////////////////////////////////////////////////
+    wa_requests_list_approve_request_success: {},
+    wa_requests_list_approve_request_fail: {
+        error: string,
+    },
+    //////////////////////////////////////////////////////////////////
+    wa_requests_list_reject_request_success: {},
+    wa_requests_list_reject_request_fail: {
+        error: string,
+    },
+    //////////////////////////////////////////////////////////////////
+    wa_api_key_created: {},
+    wa_api_key_creation_fail: {},
+    //////////////////////////////////////////////////////////////////
+    wa_goto_definition_pressed: {
+        source: 'chat' | 'browse' | 'preview',
+    },
+    wa_find_references_pressed: {
+        source: 'chat' | 'browse' | 'preview',
+    },
+    //////////////////////////////////////////////////////////////////
+    wa_explore_menu_reference_clicked: {},
+    //////////////////////////////////////////////////////////////////
+    wa_chat_feedback_submitted: {
+        feedback: 'like' | 'dislike',
+        chatId: string,
+        messageId: string,
+    },
 } 
-
 export type PosthogEvent = keyof PosthogEventMap;

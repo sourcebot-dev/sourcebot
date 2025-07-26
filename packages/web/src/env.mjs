@@ -1,5 +1,6 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
+import { SOURCEBOT_CLOUD_ENVIRONMENT } from "@sourcebot/shared/client";
 
 // Booleans are specified as 'true' or 'false' strings.
 const booleanSchema = z.enum(["true", "false"]);
@@ -19,15 +20,43 @@ export const env = createEnv({
         ZOEKT_MAX_WALL_TIME_MS: numberSchema.default(10000),
         
         // Auth
+        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
+        
         AUTH_SECRET: z.string(),
-        AUTH_GITHUB_CLIENT_ID: z.string().optional(),
-        AUTH_GITHUB_CLIENT_SECRET: z.string().optional(),
-        AUTH_GOOGLE_CLIENT_ID: z.string().optional(),
-        AUTH_GOOGLE_CLIENT_SECRET: z.string().optional(),
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
+        AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.default('false'),
+
+        // Enterprise Auth
+        AUTH_EE_GITHUB_CLIENT_ID: z.string().optional(),
+        AUTH_EE_GITHUB_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
+
+        AUTH_EE_GITLAB_CLIENT_ID: z.string().optional(),
+        AUTH_EE_GITLAB_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_GITLAB_BASE_URL: z.string().default("https://gitlab.com"),
+
+        AUTH_EE_GOOGLE_CLIENT_ID: z.string().optional(),
+        AUTH_EE_GOOGLE_CLIENT_SECRET: z.string().optional(),
+
+        AUTH_EE_OKTA_CLIENT_ID: z.string().optional(),
+        AUTH_EE_OKTA_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_OKTA_ISSUER: z.string().optional(),
+
+        AUTH_EE_KEYCLOAK_CLIENT_ID: z.string().optional(),
+        AUTH_EE_KEYCLOAK_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_KEYCLOAK_ISSUER: z.string().optional(),
+
+        AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID: z.string().optional(),
+        AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET: z.string().optional(),
+        AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER: z.string().optional(),
+
+        AUTH_EE_GCP_IAP_ENABLED: booleanSchema.default('false'),
+        AUTH_EE_GCP_IAP_AUDIENCE: z.string().optional(),
 
         DATA_CACHE_DIR: z.string(),
+
+        SOURCEBOT_PUBLIC_KEY_PATH: z.string(),
 
         // Email
         SMTP_CONNECTION_URL: z.string().url().optional(),
@@ -39,6 +68,9 @@ export const env = createEnv({
         STRIPE_WEBHOOK_SECRET: z.string().optional(),
         STRIPE_ENABLE_TEST_CLOCKS: booleanSchema.default('false'),
 
+        LOGTAIL_TOKEN: z.string().optional(),
+        LOGTAIL_HOST: z.string().url().optional(),
+
         // Misc
         CONFIG_MAX_REPOS_NO_TOKEN: numberSchema.default(Number.MAX_SAFE_INTEGER),
         NODE_ENV: z.enum(["development", "test", "production"]),
@@ -46,7 +78,6 @@ export const env = createEnv({
         DATABASE_URL: z.string().url(),
 
         SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
-        SOURCEBOT_AUTH_ENABLED: booleanSchema.default('false'),
         CONFIG_PATH: z.string().optional(),
 
         // Misc UI flags
@@ -54,15 +85,50 @@ export const env = createEnv({
 
         // EE License
         SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),
+        SOURCEBOT_EE_AUDIT_LOGGING_ENABLED: booleanSchema.default('true'),
 
         // GitHub app for review agent
         GITHUB_APP_ID: z.string().optional(),
         GITHUB_APP_WEBHOOK_SECRET: z.string().optional(),
         GITHUB_APP_PRIVATE_KEY_PATH: z.string().optional(),
-        OPENAI_API_KEY: z.string().optional(),
+        REVIEW_AGENT_API_KEY: z.string().optional(),
         REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
         REVIEW_AGENT_AUTO_REVIEW_ENABLED: booleanSchema.default('false'),
         REVIEW_AGENT_REVIEW_COMMAND: z.string().default('review'),
+
+        ANTHROPIC_API_KEY: z.string().optional(),
+        ANTHROPIC_THINKING_BUDGET_TOKENS: numberSchema.default(12000),
+
+        AZURE_API_KEY: z.string().optional(),
+        AZURE_RESOURCE_NAME: z.string().optional(),
+
+        DEEPSEEK_API_KEY: z.string().optional(),
+
+        OPENAI_API_KEY: z.string().optional(),
+
+        OPENROUTER_API_KEY: z.string().optional(),
+
+        XAI_API_KEY: z.string().optional(),
+
+        MISTRAL_API_KEY: z.string().optional(),
+
+        GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
+        GOOGLE_VERTEX_PROJECT: z.string().optional(),
+        GOOGLE_VERTEX_REGION: z.string().default('us-central1'),
+        GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
+        GOOGLE_VERTEX_THINKING_BUDGET_TOKENS: numberSchema.default(-1),
+        GOOGLE_VERTEX_INCLUDE_THOUGHTS: booleanSchema.default('true'),
+
+        AWS_ACCESS_KEY_ID: z.string().optional(),
+        AWS_SECRET_ACCESS_KEY: z.string().optional(),
+        AWS_REGION: z.string().optional(),
+
+        SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.default(0.3),
+        SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(20),
+
+        DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
+
+        LANGFUSE_SECRET_KEY: z.string().optional(),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in
@@ -76,7 +142,10 @@ export const env = createEnv({
         NEXT_PUBLIC_SOURCEBOT_VERSION: z.string().default('unknown'),
         NEXT_PUBLIC_POLLING_INTERVAL_MS: numberSchema.default(5000),
 
-        NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: z.enum(["dev", "demo", "staging", "prod"]).optional(),
+        NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: z.enum(SOURCEBOT_CLOUD_ENVIRONMENT).optional(),
+
+        NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY: z.string().optional(),
+        NEXT_PUBLIC_LANGFUSE_BASE_URL: z.string().optional()
     },
     // For Next.js >= 13.4.4, you only need to destructure client variables:
     experimental__runtimeEnv: {
@@ -84,6 +153,8 @@ export const env = createEnv({
         NEXT_PUBLIC_SOURCEBOT_VERSION: process.env.NEXT_PUBLIC_SOURCEBOT_VERSION,
         NEXT_PUBLIC_POLLING_INTERVAL_MS: process.env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
         NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: process.env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT,
+        NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY: process.env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY,
+        NEXT_PUBLIC_LANGFUSE_BASE_URL: process.env.NEXT_PUBLIC_LANGFUSE_BASE_URL,
     },
     skipValidation: process.env.SKIP_ENV_VALIDATION === "1",
     emptyStringAsUndefined: true,

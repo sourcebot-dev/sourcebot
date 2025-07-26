@@ -1,6 +1,6 @@
 {
     "$schema": "https://mintlify.com/docs.json",
-    "theme": "mint",
+    "theme": "willow",
     "name": "Sourcebot",
     "colors": {
         "primary": "#851EE7",
@@ -15,23 +15,55 @@
         "anchors": [
             {
                 "anchor": "Docs",
-                "icon": "book-open",
+                "icon": "books",
                 "groups": [
                     {
-                        "group": "General",
+                        "group": "Getting Started",
                         "pages": [
                             "docs/overview",
-                            "docs/getting-started",
-                            "docs/getting-started-selfhost"
+                            "docs/deployment-guide"
                         ]
                     },
                     {
-                        "group": "Connecting your code",
+                        "group": "Features",
                         "pages": [
-                            "docs/connections/overview",
                             {
-                                "group": "Supported platforms",
+                                "group": "Code Search",
                                 "pages": [
+                                    "docs/features/search/overview",
+                                    "docs/features/search/syntax-reference",
+                                    "docs/features/search/multi-branch-indexing",
+                                    "docs/features/search/search-contexts"
+                                ]
+                            },
+                            {
+                                "group": "Ask Sourcebot",
+                                "pages": [
+                                    "docs/features/ask/overview",
+                                    "docs/features/ask/add-model-providers"
+                                ]
+                            },
+                            "docs/features/code-navigation",
+                            "docs/features/analytics",
+                            "docs/features/mcp-server",
+                            {
+                                "group": "Agents",
+                                "tag": "experimental",
+                                "pages": [
+                                    "docs/features/agents/overview",
+                                    "docs/features/agents/review-agent"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "group": "Configuration",
+                        "pages": [
+                            "docs/configuration/config-file",
+                            {
+                                "group": "Indexing your code",
+                                "pages": [
+                                    "docs/connections/overview",
                                     "docs/connections/github",
                                     "docs/connections/gitlab",
                                     "docs/connections/bitbucket-cloud",
@@ -42,63 +74,30 @@
                                     "docs/connections/local-repos",
                                     "docs/connections/request-new"
                                 ]
-                            }
-                        ]
-                    },
-                    {
-                        "group": "Search",
-                        "pages": [
-                            "docs/search/syntax-reference",
-                            "docs/search/multi-branch-indexing",
-                            "docs/search/search-contexts"
-                        ]
-                    },
-                    {
-                        "group": "Agents",
-                        "pages": [
-                            "docs/agents/overview",
-                            "docs/agents/review-agent"
-                        ]
-                    },
-                    {
-                        "group": "More",
-                        "pages": [
-                            "docs/more/roles-and-permissions",
-                            "docs/more/mcp-server"
-                        ]
-                    }
-                ]
-            },
-            {
-                "anchor": "Self Hosting",
-                "icon": "server",
-                "groups": [
-                    {
-                        "group": "Getting Started",
-                        "pages": [
-                            "self-hosting/overview",
-                            "self-hosting/configuration",
-                            "self-hosting/license-key"
-                        ]
-                    },
-                    {
-                        "group": "More",
-                        "pages": [
-                            "self-hosting/more/authentication",
-                            "self-hosting/more/tenancy",
-                            "self-hosting/more/transactional-emails",
-                            "self-hosting/more/declarative-config"
-                        ]
-                    },
-                    {
-                        "group": "Security",
-                        "pages": [
+                            },
+                            "docs/configuration/language-model-providers",
+                            {
+                                "group": "Authentication",
+                                "pages": [
+                                    "docs/configuration/auth/overview",
+                                    "docs/configuration/auth/providers",
+                                    "docs/configuration/auth/access-settings",
+                                    "docs/configuration/auth/roles-and-permissions",
+                                    "docs/configuration/auth/faq"
+                                ]
+                            },
+                            "docs/configuration/environment-variables",
+                            "docs/license-key",
+                            "docs/configuration/transactional-emails",
+                            "docs/configuration/structured-logging",
+                            "docs/configuration/audit-logs"
                         ]
                     },
                     {
                         "group": "Upgrade",
                         "pages": [
-                            "self-hosting/upgrade/v2-to-v3-guide"
+                            "docs/upgrade/v3-to-v4-guide",
+                            "docs/upgrade/v2-to-v3-guide"
                         ]
                     }
                 ]
@@ -120,21 +119,18 @@
         "dark": "/logo/dark.png"
     },
     "navbar": {
-        "links": [
-            {
-                "label": "GitHub",
-                "href": "https://github.com/sourcebot-dev/sourcebot"
-            }
-        ],
         "primary": {
             "type": "button",
-            "label": "Sourcebot Cloud",
-            "href": "https://app.sourcebot.dev"
+            "label": "GitHub",
+            "href": "https://github.com/sourcebot-dev/sourcebot"
         }
     },
     "footer": {
         "socials": {
-            "github": "https://github.com/sourcebot-dev/sourcebot"
+            "github": "https://github.com/sourcebot-dev/sourcebot",
+            "twitter": "https://x.com/sourcebot_dev",
+            "discord": "https://discord.gg/Y6b78RqM",
+            "linkedin": "https://www.linkedin.com/company/sourcebot"
         }
     },
     "integrations": {
@@ -144,6 +140,6 @@
     },
     "appearance": {
         "default": "dark",
-        "strict": true
+        "strict": false
     }
 }
