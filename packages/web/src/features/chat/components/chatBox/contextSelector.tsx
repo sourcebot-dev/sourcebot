@@ -242,7 +242,7 @@ export const ContextSelector = React.forwardRef<
                                                         <span className="font-medium">
                                                             {item.name}
                                                         </span>
-                                                        {item.type === 'context' && item.repoCount && (
+                                                        {item.type === 'context' && (
                                                             <Badge 
                                                                 variant="default" 
                                                                 className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground"
