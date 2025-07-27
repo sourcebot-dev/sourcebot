@@ -6,7 +6,7 @@ import { isServiceError } from "@/lib/utils";
 import { getFileSource } from "../search/fileSourceApi";
 import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/actions";
 import { FileSourceResponse } from "../search/types";
-import { addLineNumbers } from "./utils";
+import { addLineNumbers, buildSearchQuery } from "./utils";
 import { toolNames } from "./constants";
 
 // @NOTE: When adding a new tool, follow these steps:
@@ -139,13 +139,43 @@ export const createCodeSearchTool = (selectedRepos: string[]) => tool({
     description: `Fetches code that matches the provided regex pattern in \`query\`. This is NOT a semantic search.
     Results are returned as an array of matching files, with the file's URL, repository, and language.`,
     inputSchema: z.object({
-        query: z.string().describe("The regex pattern to search for in the code"),
+        queryRegexp: z
+            .string()
+            .describe(`The regex pattern to search for in the code.
+
+Queries consist of space-seperated regular expressions. Wrapping expressions in "" combines them. By default, a file must have at least one match for each expression to be included. Examples:
+
+\`foo\` - Match files with regex /foo/
+\`foo bar\` - Match files with regex /foo/ and /bar/
+\`"foo bar"\` - Match files with regex /foo bar/
+\`console\.log\` - Match files with regex /console\.log/
+
+Multiple expressions can be or'd together with or, negated with -, or grouped with (). Examples:
+\`foo or bar\` - Match files with regex /foo/ or /bar/
+\`foo -bar\` - Match files with regex /foo/ but not /bar/
+\`foo (bar or baz)\` - Match files with regex /foo/ and either /bar/ or /baz/
+`),
+        repoNamesFilterRegexp: z
+            .array(z.string())
+            .describe(`Filter results from repos that match the regex. By default all repos are searched.`)
+            .optional(),
+        languageNamesFilter: z
+            .array(z.string())
+            .describe(`Scope the search to the provided languages. The language MUST be formatted as a GitHub linguist language. Examples: Python, JavaScript, TypeScript, Java, C#, C++, PHP, Go, Rust, Ruby, Swift, Kotlin, Shell, C, Dart, HTML, CSS, PowerShell, SQL, R`)
+            .optional(),
+        fileNamesFilterRegexp: z
+            .array(z.string())
+            .describe(`Filter results from filepaths that match the regex. When this option is not specified, all files are searched.`)
+            .optional(),
     }),
-    execute: async ({ query: _query }) => {
-        let query = `${_query}`;
-        if (selectedRepos.length > 0) {
-            query += ` reposet:${selectedRepos.join(',')}`;
-        }
+    execute: async ({ queryRegexp: _query, repoNamesFilterRegexp, languageNamesFilter, fileNamesFilterRegexp }) => {
+        const query = buildSearchQuery({
+            query: _query,
+            repoNamesFilter: selectedRepos,
+            repoNamesFilterRegexp,
+            languageNamesFilter,
+            fileNamesFilterRegexp,
+        });
 
         const response = await search({
             query,

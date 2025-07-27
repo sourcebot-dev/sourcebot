@@ -22,11 +22,11 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
             case 'input-streaming':
                 return 'Searching...';
             case 'input-available':
-                return <span>Searching for <CodeSnippet>{part.input.query}</CodeSnippet></span>;
+                return <span>Searching for <CodeSnippet>{part.input.queryRegexp}</CodeSnippet></span>;
             case 'output-error':
                 return '"Search code" tool call failed';
             case 'output-available':
-                return <span>Searched for <CodeSnippet>{part.input.query}</CodeSnippet></span>;
+                return <span>Searched for <CodeSnippet>{part.input.queryRegexp}</CodeSnippet></span>;
         }
     }, [part]);
 
