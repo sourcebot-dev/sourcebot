@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ChatBox } from "@/features/chat/components/chatBox";
 import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolbar";
@@ -10,40 +9,15 @@ import { resetEditor } from "@/features/chat/utils";
 import { useDomain } from "@/hooks/useDomain";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { getDisplayTime } from "@/lib/utils";
-import { BrainIcon, FileIcon, LucideIcon, SearchIcon } from "lucide-react";
-import Link from "next/link";
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { ReactEditor, useSlate } from "slate-react";
+import { Code, Database, FileIcon, FileText, Gamepad2, Globe, Layers, LucideIcon, Search, SearchIcon, Smartphone, Zap } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
+import { Card } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { useLocalStorage } from "usehooks-ts";
 import { ContextItem } from "@/features/chat/components/chatBox/contextSelector";
-
-// @todo: we should probably rename this to a different type since it sort-of clashes
-// with the Suggestion system we have built into the chat box.
-type SuggestionType = "understand" | "find" | "summarize";
-
-const suggestionTypes: Record<SuggestionType, {
-    icon: LucideIcon;
-    title: string;
-    description: string;
-}> = {
-    understand: {
-        icon: BrainIcon,
-        title: "Understand",
-        description: "Understand the codebase",
-    },
-    find: {
-        icon: SearchIcon,
-        title: "Find",
-        description: "Find the codebase",
-    },
-    summarize: {
-        icon: FileIcon,
-        title: "Summarize",
-        description: "Summarize the codebase",
-    },
-}
-
+import { DemoExamples, DemoSearchExample, DemoSearchContextExample } from "@/types";
 
 const Highlight = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -52,59 +26,6 @@ const Highlight = ({ children }: { children: React.ReactNode }) => {
         </span>
     )
 }
-
-const suggestions: Record<SuggestionType, {
-    queryText: string;
-    queryNode?: ReactNode;
-    openRepoSelector?: boolean;
-}[]> = {
-    understand: [
-        {
-            queryText: "How does authentication work in this codebase?",
-            openRepoSelector: true,
-        },
-        {
-            queryText: "How are API endpoints structured and organized?",
-            openRepoSelector: true,
-        },
-        {
-            queryText: "How does the build and deployment process work?",
-            openRepoSelector: true,
-        },
-        {
-            queryText: "How is error handling implemented across the application?",
-            openRepoSelector: true,
-        },
-    ],
-    find: [
-        {
-            queryText: "Find examples of different logging libraries used throughout the codebase.",
-        },
-        {
-            queryText: "Find examples of potential security vulnerabilities or authentication issues.",
-        },
-        {
-            queryText: "Find examples of API endpoints and route handlers.",
-        }
-    ],
-    summarize: [
-        {
-            queryText: "Summarize the purpose of this file @file:",
-            queryNode: <span>Summarize the purpose of this file <Highlight>@file:</Highlight></span>
-        },
-        {
-            queryText: "Summarize the project structure and architecture.",
-            openRepoSelector: true,
-        },
-        {
-            queryText: "Provide a quick start guide for ramping up on this codebase.",
-            openRepoSelector: true,
-        }
-    ],
-}
-
-const MAX_RECENT_CHAT_HISTORY_COUNT = 10;
-
 
 interface AgenticSearchProps {
     searchModeSelectorProps: SearchModeSelectorProps;
@@ -116,7 +37,97 @@ interface AgenticSearchProps {
         createdAt: Date;
         name: string | null;
     }[];
+    demoExamples: DemoExamples | undefined;
 }
+
+const exampleSearches = [
+    {
+        id: "1",
+        title: "Show me examples of how useMemo is used",
+        description: "Find React performance optimization patterns",
+        icon: <Zap className="h-4 w-4" />,
+        category: "React",
+    },
+    {
+        id: "2",
+        title: "How do I implement authentication?",
+        description: "Explore auth patterns and best practices",
+        icon: <Database className="h-4 w-4" />,
+        category: "Security",
+    },
+    {
+        id: "3",
+        title: "Find API route handlers",
+        description: "Locate and analyze API endpoint implementations",
+        icon: <Globe className="h-4 w-4" />,
+        category: "Backend",
+    },
+    {
+        id: "4",
+        title: "Show me error handling patterns",
+        description: "Discover error boundary and exception handling",
+        icon: <FileText className="h-4 w-4" />,
+        category: "Best Practices",
+    },
+    {
+        id: "5",
+        title: "How are components structured?",
+        description: "Analyze component architecture and patterns",
+        icon: <Layers className="h-4 w-4" />,
+        category: "Architecture",
+    },
+]
+
+const searchContextsExample = [
+    {
+        id: "1",
+        displayName: "Next.js",
+        name: "nextjs",
+        description: "React framework for production",
+        icon: <Code className="h-5 w-5" />,
+        color: "bg-black text-white",
+    },
+    {
+        id: "2",
+        displayName: "React",
+        name: "react",
+        description: "JavaScript library for building UIs",
+        icon: <Code className="h-5 w-5" />,
+        color: "bg-blue-500 text-white",
+    },
+    {
+        id: "3",
+        displayName: "TypeScript",
+        name: "typescript",
+        description: "Typed JavaScript at scale",
+        icon: <FileText className="h-5 w-5" />,
+        color: "bg-blue-600 text-white",
+    },
+    {
+        id: "4",
+        displayName: "Tailwind CSS",
+        name: "tailwindcss",
+        description: "Utility-first CSS framework",
+        icon: <Layers className="h-5 w-5" />,
+        color: "bg-cyan-500 text-white",
+    },
+    {
+        id: "5",
+        displayName: "Godot Engine",
+        name: "godot",
+        description: "Open source game engine",
+        icon: <Gamepad2 className="h-5 w-5" />,
+        color: "bg-blue-400 text-white",
+    },
+    {
+        id: "6",
+        displayName: "React Native",
+        name: "react-native",
+        description: "Build mobile apps with React",
+        icon: <Smartphone className="h-5 w-5" />,
+        color: "bg-purple-500 text-white",
+    },
+]
 
 export const AgenticSearch = ({
     searchModeSelectorProps,
@@ -124,41 +135,23 @@ export const AgenticSearch = ({
     repos,
     searchContexts,
     chatHistory,
+    demoExamples,
 }: AgenticSearchProps) => {
-    const [selectedSuggestionType, _setSelectedSuggestionType] = useState<SuggestionType | undefined>(undefined);
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
-    const dropdownRef = useRef<HTMLDivElement>(null);
-    const editor = useSlate();
     const [selectedItems, setSelectedItems] = useLocalStorage<ContextItem[]>("selectedContextItems", [], { initializeWithValue: false });
-    const domain = useDomain();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
 
-    const setSelectedSuggestionType = useCallback((type: SuggestionType | undefined) => {
-        _setSelectedSuggestionType(type);
-        if (type) {
-            ReactEditor.focus(editor);
-        }
-    }, [editor, _setSelectedSuggestionType]);
+    const handleExampleClick = (example: DemoSearchExample) => {
+        console.log(example);
+    }
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (
-                !dropdownRef.current?.contains(event.target as Node)
-            ) {
-                setSelectedSuggestionType(undefined);
-            }
-        }
-
-        document.addEventListener("mousedown", handleClickOutside)
-        return () => document.removeEventListener("mousedown", handleClickOutside)
-    }, [setSelectedSuggestionType]);
+    const handleContextClick = (context: DemoSearchContextExample) => {
+        console.log(context);
+    }
 
     return (
-        <div className="flex flex-col items-center w-full max-w-[800px]">
-            <div
-                className="mt-4 w-full border rounded-md shadow-sm"
-            >
+        <div className="flex flex-col items-center w-full">
+            <div className="mt-4 w-full border rounded-md shadow-sm max-w-[800px]">
                 <ChatBox
                     onSubmit={(children) => {
                         createNewChatThread(children, selectedItems);
@@ -187,111 +180,93 @@ export const AgenticSearch = ({
                             className="ml-auto"
                         />
                     </div>
-
-                    {selectedSuggestionType && (
-                        <div
-                            ref={dropdownRef}
-                            className="w-full absolute top-10 z-10 drop-shadow-2xl bg-background border rounded-md p-2"
-                        >
-                            <p className="text-muted-foreground text-sm mb-2">
-                                {suggestionTypes[selectedSuggestionType].title}
-                            </p>
-                            {suggestions[selectedSuggestionType].map(({ queryText, queryNode, openRepoSelector }, index) => (
-                                <div
-                                    key={index}
-                                    className="flex flex-row items-center gap-2 cursor-pointer hover:bg-muted rounded-md px-1 py-0.5"
-                                    onClick={() => {
-                                        resetEditor(editor);
-                                        editor.insertText(queryText);
-                                        setSelectedSuggestionType(undefined);
-
-                                        if (openRepoSelector) {
-                                            setIsContextSelectorOpen(true);
-                                        } else {
-                                            ReactEditor.focus(editor);
-                                        }
-                                    }}
-                                >
-                                    <SearchIcon className="w-4 h-4" />
-                                    {queryNode ?? queryText}
-                                </div>
-                            ))}
-                        </div>
-                    )}
                 </div>
             </div>
-            <div className="flex flex-col items-center w-fit gap-6 mt-8 relative">
-                <div className="flex flex-row items-center gap-4">
-                    {Object.entries(suggestionTypes).map(([type, suggestion], index) => (
-                        <ExampleButton
-                            key={index}
-                            Icon={suggestion.icon}
-                            title={suggestion.title}
-                            onClick={() => {
-                                setSelectedSuggestionType(type as SuggestionType);
-                            }}
-                        />
-                    ))}
-                </div>
-            </div>
-            {chatHistory.length > 0 && (
-                <div className="flex flex-col items-center w-[80%]">
-                    <Separator className="my-6" />
-                    <span className="font-semibold mb-2">Recent conversations</span>
-                    <div
-                        className="flex flex-col gap-1 w-full"
-                    >
-                        {chatHistory
-                            .slice(0, MAX_RECENT_CHAT_HISTORY_COUNT)
-                            .map((chat) => (
-                                <Link
-                                    key={chat.id}
-                                    className="flex flex-row items-center justify-between gap-1 w-full rounded-md hover:bg-muted px-2 py-0.5 cursor-pointer group"
-                                    href={`/${domain}/chat/${chat.id}`}
-                                >
-                                    <span className="text-sm text-muted-foreground group-hover:text-foreground">
-                                        {chat.name ?? "Untitled Chat"}
-                                    </span>
-                                    <span className="text-sm text-muted-foreground group-hover:text-foreground">
-                                        {getDisplayTime(chat.createdAt)}
-                                    </span>
-                                </Link>
-                            ))}
+
+            {demoExamples && (
+            <div className="w-full mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8 px-4 max-w-[1200px]">
+                {/* Example Searches Column */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-6">
+                        <Search className="h-5 w-5 text-muted-foreground" />
+                        <h3 className="text-lg font-semibold">Example Searches</h3>
                     </div>
-                    {chatHistory.length > MAX_RECENT_CHAT_HISTORY_COUNT && (
-                        <Link
-                            href={`/${domain}/chat`}
-                            className="text-sm text-link hover:underline mt-6"
-                        >
-                            View all
-                        </Link>
-                    )}
+                    <div className="space-y-3">
+                        {demoExamples.searchExamples.map((example) => (
+                            <Card
+                                key={example.id}
+                                className="cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50 group"
+                                onClick={() => handleExampleClick(example)}
+                            >
+                                <CardContent className="p-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex-shrink-0 p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                                            {example.icon}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-medium text-sm mb-1 group-hover:text-primary transition-colors">
+                                                {example.title}
+                                            </h4>
+                                            <p className="text-xs text-muted-foreground mb-2">{example.description}</p>
+                                            <Badge className="text-xs">
+                                                {example.category}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
                 </div>
+
+                {/* Search Contexts Column */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-6">
+                        <Layers className="h-5 w-5 text-muted-foreground" />
+                        <h3 className="text-lg font-semibold">Search Contexts</h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
+                        {demoExamples.searchContexts?.map((context) => {
+                            const searchContext = searchContexts.find((item) => item.name === context.name);
+                            if (!searchContext) return null;
+                            const isSelected = false; //selectedItems.some((item) => item.id === context.id)
+
+                            const numRepos = searchContext.repoNames.length;
+                            return (
+                                <Card
+                                    key={context.id}
+                                    className={`cursor-pointer transition-all duration-200 hover:shadow-md group ${isSelected ? "border-primary bg-primary/5 shadow-sm" : "hover:border-primary/50"
+                                        }`}
+                                    onClick={() => handleContextClick(context)}
+                                >
+                                    <CardContent className="p-4">
+                                        <div className="flex items-start gap-3">
+                                            <div
+                                                className={`flex-shrink-0 p-2 rounded-lg ${context.color} transition-transform group-hover:scale-105`}
+                                            >
+                                                {context.icon}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4
+                                                    className={`font-medium text-sm mb-1 transition-colors ${isSelected ? "text-primary" : "group-hover:text-primary"
+                                                        }`}
+                                                >
+                                                    {context.displayName}
+                                                </h4>
+                                                <p className="text-xs text-muted-foreground mb-2">{context.description}</p>
+                                                <Badge className="text-xs">
+                                                    {numRepos} repos
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )
+                        })}
+                    </div>
+                </div>
+            </div>
             )}
-        </div>
-    )
-}
-
-
-interface ExampleButtonProps {
-    Icon: LucideIcon;
-    title: string;
-    onClick: () => void;
-}
-
-const ExampleButton = ({
-    Icon,
-    title,
-    onClick,
-}: ExampleButtonProps) => {
-    return (
-        <Button
-            variant="secondary"
-            onClick={onClick}
-            className="h-9"
-        >
-            <Icon className="w-4 h-4" />
-            {title}
-        </Button>
+        </div >
     )
 }

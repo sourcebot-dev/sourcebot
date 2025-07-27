@@ -2,7 +2,7 @@ import { getRepos, getSearchContexts } from "@/actions";
 import { Footer } from "@/app/components/footer";
 import { getOrgFromDomain } from "@/data/org";
 import { getConfiguredLanguageModelsInfo, getUserChatHistory } from "@/features/chat/actions";
-import { isServiceError } from "@/lib/utils";
+import { isServiceError, loadDemoExamples } from "@/lib/utils";
 import { Homepage } from "./components/homepage";
 import { NavigationMenu } from "./components/navigationMenu";
 import { PageNotFound } from "./components/pageNotFound";
@@ -11,6 +11,7 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { auth } from "@/auth";
 import { cookies } from "next/headers";
 import { SEARCH_MODE_COOKIE_NAME } from "@/lib/constants";
+import { env } from "@/env.mjs";
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -48,6 +49,8 @@ export default async function Home({ params: { domain } }: { params: { domain: s
         searchModeCookie?.value === "precise"
     ) ? searchModeCookie.value : models.length > 0 ? "agentic" : "precise";
 
+    const demoExamples = undefined; //await loadDemoExamples(env.SOURCEBOT_DEMO_EXAMPLES_PATH);
+
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
             <NavigationMenu
@@ -61,6 +64,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                 languageModels={models}
                 chatHistory={chatHistory}
                 initialSearchMode={initialSearchMode}
+                demoExamples={demoExamples}
             />
             <Footer />
         </div>
