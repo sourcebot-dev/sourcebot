@@ -5,11 +5,8 @@ import { ChatBox } from "@/features/chat/components/chatBox";
 import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolbar";
 import { LanguageModelInfo } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
-import { resetEditor } from "@/features/chat/utils";
-import { useDomain } from "@/hooks/useDomain";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
-import { getDisplayTime } from "@/lib/utils";
-import { Code, Database, FileIcon, FileText, Gamepad2, Globe, Layers, LucideIcon, Search, SearchIcon, Smartphone, Zap } from "lucide-react";
+import { Layers, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
@@ -18,14 +15,6 @@ import { CardContent } from "@/components/ui/card";
 import { useLocalStorage } from "usehooks-ts";
 import { ContextItem } from "@/features/chat/components/chatBox/contextSelector";
 import { DemoExamples, DemoSearchExample, DemoSearchContextExample } from "@/types";
-
-const Highlight = ({ children }: { children: React.ReactNode }) => {
-    return (
-        <span className="text-highlight">
-            {children}
-        </span>
-    )
-}
 
 interface AgenticSearchProps {
     searchModeSelectorProps: SearchModeSelectorProps;
@@ -40,101 +29,11 @@ interface AgenticSearchProps {
     demoExamples: DemoExamples | undefined;
 }
 
-const exampleSearches = [
-    {
-        id: "1",
-        title: "Show me examples of how useMemo is used",
-        description: "Find React performance optimization patterns",
-        icon: <Zap className="h-4 w-4" />,
-        category: "React",
-    },
-    {
-        id: "2",
-        title: "How do I implement authentication?",
-        description: "Explore auth patterns and best practices",
-        icon: <Database className="h-4 w-4" />,
-        category: "Security",
-    },
-    {
-        id: "3",
-        title: "Find API route handlers",
-        description: "Locate and analyze API endpoint implementations",
-        icon: <Globe className="h-4 w-4" />,
-        category: "Backend",
-    },
-    {
-        id: "4",
-        title: "Show me error handling patterns",
-        description: "Discover error boundary and exception handling",
-        icon: <FileText className="h-4 w-4" />,
-        category: "Best Practices",
-    },
-    {
-        id: "5",
-        title: "How are components structured?",
-        description: "Analyze component architecture and patterns",
-        icon: <Layers className="h-4 w-4" />,
-        category: "Architecture",
-    },
-]
-
-const searchContextsExample = [
-    {
-        id: "1",
-        displayName: "Next.js",
-        name: "nextjs",
-        description: "React framework for production",
-        icon: <Code className="h-5 w-5" />,
-        color: "bg-black text-white",
-    },
-    {
-        id: "2",
-        displayName: "React",
-        name: "react",
-        description: "JavaScript library for building UIs",
-        icon: <Code className="h-5 w-5" />,
-        color: "bg-blue-500 text-white",
-    },
-    {
-        id: "3",
-        displayName: "TypeScript",
-        name: "typescript",
-        description: "Typed JavaScript at scale",
-        icon: <FileText className="h-5 w-5" />,
-        color: "bg-blue-600 text-white",
-    },
-    {
-        id: "4",
-        displayName: "Tailwind CSS",
-        name: "tailwindcss",
-        description: "Utility-first CSS framework",
-        icon: <Layers className="h-5 w-5" />,
-        color: "bg-cyan-500 text-white",
-    },
-    {
-        id: "5",
-        displayName: "Godot Engine",
-        name: "godot",
-        description: "Open source game engine",
-        icon: <Gamepad2 className="h-5 w-5" />,
-        color: "bg-blue-400 text-white",
-    },
-    {
-        id: "6",
-        displayName: "React Native",
-        name: "react-native",
-        description: "Build mobile apps with React",
-        icon: <Smartphone className="h-5 w-5" />,
-        color: "bg-purple-500 text-white",
-    },
-]
-
 export const AgenticSearch = ({
     searchModeSelectorProps,
     languageModels,
     repos,
     searchContexts,
-    chatHistory,
     demoExamples,
 }: AgenticSearchProps) => {
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
@@ -226,7 +125,7 @@ export const AgenticSearch = ({
                         <h3 className="text-lg font-semibold">Search Contexts</h3>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
-                        {demoExamples.searchContexts?.map((context) => {
+                        {demoExamples.searchContextExamples.map((context) => {
                             const searchContext = searchContexts.find((item) => item.name === context.name);
                             if (!searchContext) return null;
                             const isSelected = false; //selectedItems.some((item) => item.id === context.id)

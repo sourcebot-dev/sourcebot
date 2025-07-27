@@ -23,7 +23,7 @@ export const demoSearchContextExampleSchema = z.object({
 
 export const demoExamplesSchema = z.object({
     searchExamples: demoSearchExampleSchema.array(),
-    searchContexts: demoSearchContextExampleSchema.array(),
+    searchContextExamples: demoSearchContextExampleSchema.array(),
 })
 
 export type OrgMetadata = z.infer<typeof orgMetadataSchema>;

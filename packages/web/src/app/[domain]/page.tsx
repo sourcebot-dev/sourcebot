@@ -2,7 +2,7 @@ import { getRepos, getSearchContexts } from "@/actions";
 import { Footer } from "@/app/components/footer";
 import { getOrgFromDomain } from "@/data/org";
 import { getConfiguredLanguageModelsInfo, getUserChatHistory } from "@/features/chat/actions";
-import { isServiceError, loadDemoExamples } from "@/lib/utils";
+import { isServiceError } from "@/lib/utils";
 import { Homepage } from "./components/homepage";
 import { NavigationMenu } from "./components/navigationMenu";
 import { PageNotFound } from "./components/pageNotFound";
@@ -12,6 +12,8 @@ import { auth } from "@/auth";
 import { cookies } from "next/headers";
 import { SEARCH_MODE_COOKIE_NAME } from "@/lib/constants";
 import { env } from "@/env.mjs";
+import { loadJsonFile } from "@sourcebot/shared";
+import { DemoExamples, demoExamplesSchema } from "@/types";
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -49,7 +51,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
         searchModeCookie?.value === "precise"
     ) ? searchModeCookie.value : models.length > 0 ? "agentic" : "precise";
 
-    const demoExamples = undefined; //await loadDemoExamples(env.SOURCEBOT_DEMO_EXAMPLES_PATH);
+    const demoExamples = env.SOURCEBOT_DEMO_EXAMPLES_PATH ? await loadJsonFile<DemoExamples>(env.SOURCEBOT_DEMO_EXAMPLES_PATH, demoExamplesSchema) : undefined;
 
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
