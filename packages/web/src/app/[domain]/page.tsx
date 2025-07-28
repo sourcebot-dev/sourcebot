@@ -11,6 +11,9 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { auth } from "@/auth";
 import { cookies } from "next/headers";
 import { SEARCH_MODE_COOKIE_NAME } from "@/lib/constants";
+import { env } from "@/env.mjs";
+import { loadJsonFile } from "@sourcebot/shared";
+import { DemoExamples, demoExamplesSchema } from "@/types";
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -48,6 +51,15 @@ export default async function Home({ params: { domain } }: { params: { domain: s
         searchModeCookie?.value === "precise"
     ) ? searchModeCookie.value : models.length > 0 ? "agentic" : "precise";
 
+    const demoExamples = env.SOURCEBOT_DEMO_EXAMPLES_PATH ? await (async () => {
+        try {
+            return await loadJsonFile<DemoExamples>(env.SOURCEBOT_DEMO_EXAMPLES_PATH!, demoExamplesSchema);
+        } catch (error) {
+            console.error('Failed to load demo examples:', error);
+            return undefined;
+        }
+    })() : undefined;
+
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
             <NavigationMenu
@@ -61,6 +73,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                 languageModels={models}
                 chatHistory={chatHistory}
                 initialSearchMode={initialSearchMode}
+                demoExamples={demoExamples}
             />
             <Footer />
         </div>

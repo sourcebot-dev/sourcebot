@@ -10,6 +10,7 @@ import { SearchMode } from "./toolbar";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { setSearchModeCookie } from "@/actions";
 import { useCallback, useState } from "react";
+import { DemoExamples } from "@/types";
 
 interface HomepageProps {
     initialRepos: RepositoryQuery[];
@@ -21,6 +22,7 @@ interface HomepageProps {
         name: string | null;
     }[];
     initialSearchMode: SearchMode;
+    demoExamples: DemoExamples | undefined;
 }
 
 
@@ -30,6 +32,7 @@ export const Homepage = ({
     languageModels,
     chatHistory,
     initialSearchMode,
+    demoExamples,
 }: HomepageProps) => {
     const [searchMode, setSearchMode] = useState<SearchMode>(initialSearchMode);
     const isAgenticSearchEnabled = languageModels.length > 0;
@@ -86,6 +89,7 @@ export const Homepage = ({
                         repos={initialRepos}
                         searchContexts={searchContexts}
                         chatHistory={chatHistory}
+                        demoExamples={demoExamples}
                     />
                 </CustomSlateEditor>
             )}

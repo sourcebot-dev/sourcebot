@@ -194,7 +194,7 @@ export const ContextSelector = React.forwardRef<
                 >
                     <Command>
                         <CommandInput
-                            placeholder="Search contexts and repos..."
+                            placeholder="Search contexts..."
                             onKeyDown={handleInputKeyDown}
                         />
                         <CommandList ref={scrollContainerRef}>

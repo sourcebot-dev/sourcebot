@@ -129,6 +129,8 @@ export const env = createEnv({
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
 
         LANGFUSE_SECRET_KEY: z.string().optional(),
+
+        SOURCEBOT_DEMO_EXAMPLES_PATH: z.string().optional(),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in
