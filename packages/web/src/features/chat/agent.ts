@@ -90,7 +90,12 @@ export const createAgentStream = async ({
         onStepFinish: ({ toolResults }) => {
             // This takes care of extracting any sources that the LLM has seen as part of
             // the tool calls it made.
-            toolResults.forEach(({ output, toolName }) => {
+            toolResults.forEach(({ toolName, output, dynamic }) => {
+                // we don't care about dynamic tool results here.
+                if (dynamic) {
+                    return;
+                }
+
                 if (isServiceError(output)) {
                     // is there something we want to do here?
                     return;
