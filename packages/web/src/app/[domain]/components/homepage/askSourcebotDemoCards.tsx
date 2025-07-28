@@ -101,7 +101,7 @@ export const AskSourcebotDemoCards = ({
     }
 
     return (
-        <div className="w-full mt-8 space-y-12 px-4 max-w-[1200px]">
+        <div className="w-full mt-8 space-y-12 px-4 max-w-[1000px]">
             {/* Search Context Row */}
             <div className="space-y-4">
                 <div className="text-center mb-8">

@@ -162,7 +162,7 @@ export const ChatBox = ({
         if (isSubmitDisabled) {
             if (isSubmitDisabledReason === "no-repos-selected") {
                 toast({
-                    description: "⚠️ One or more repositories or search contexts must be selected.",
+                    description: "⚠️ You must select at least one search context",
                     variant: "destructive",
                 });
                 onContextSelectorOpenChanged(true);
@@ -339,7 +339,7 @@ export const ChatBox = ({
                                 <TooltipContent>
                                     <div className="flex flex-row items-center">
                                         <TriangleAlertIcon className="h-4 w-4 text-warning mr-1" />
-                                        <span className="text-destructive">One or more repositories or search contexts must be selected.</span>
+                                        <span className="text-destructive">You must select at least one search context</span>
                                     </div>
                                 </TooltipContent>
                             )}
