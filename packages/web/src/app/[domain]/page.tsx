@@ -51,7 +51,14 @@ export default async function Home({ params: { domain } }: { params: { domain: s
         searchModeCookie?.value === "precise"
     ) ? searchModeCookie.value : models.length > 0 ? "agentic" : "precise";
 
-    const demoExamples = env.SOURCEBOT_DEMO_EXAMPLES_PATH ? await loadJsonFile<DemoExamples>(env.SOURCEBOT_DEMO_EXAMPLES_PATH, demoExamplesSchema) : undefined;
+    const demoExamples = env.SOURCEBOT_DEMO_EXAMPLES_PATH ? await (async () => {
+        try {
+            return await loadJsonFile<DemoExamples>(env.SOURCEBOT_DEMO_EXAMPLES_PATH!, demoExamplesSchema);
+        } catch (error) {
+            console.error('Failed to load demo examples:', error);
+            return undefined;
+        }
+    })() : undefined;
 
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">

@@ -116,7 +116,7 @@ export const AskSourcebotDemoCards = ({
                         const context = demoExamples.searchContexts.find((context) => context.id === contextExample.searchContext)
                         if (!context) {
                             console.error(`Search context ${contextExample.searchContext} not found on handleContextClick`);
-                            return;
+                            return null;
                         }
 
                         const isSelected = selectedItems.some(
