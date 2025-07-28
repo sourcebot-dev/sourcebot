@@ -1,32 +1,25 @@
 'use client';
 
+import { useState } from "react";
 import Image from "next/image";
-import { Search, LibraryBigIcon, Code, Layers } from "lucide-react";
+import { Search, LibraryBigIcon, Code, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
-import { ContextItem, RepoContextItem, SearchContextItem } from "@/features/chat/components/chatBox/contextSelector";
-import { DemoExamples, DemoSearchExample, DemoSearchContextExample, DemoSearchContext } from "@/types";
+import { DemoExamples, DemoSearchExample, DemoSearchContext } from "@/types";
 import { cn, getCodeHostIcon } from "@/lib/utils";
-import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { SearchScopeInfoCard } from "@/components/searchScopeInfoCard";
 
 interface AskSourcebotDemoCardsProps {
     demoExamples: DemoExamples;
-    selectedItems: ContextItem[];
-    setSelectedItems: (items: ContextItem[]) => void;
-    searchContexts: SearchContextQuery[];
-    repos: RepositoryQuery[];
 }
 
 export const AskSourcebotDemoCards = ({
     demoExamples,
-    selectedItems,
-    setSelectedItems,
-    searchContexts,
-    repos,
 }: AskSourcebotDemoCardsProps) => {
     const captureEvent = useCaptureEvent();
+    const [selectedFilterContext, setSelectedFilterContext] = useState<number | null>(null);
 
     const handleExampleClick = (example: DemoSearchExample) => {
         captureEvent('wa_demo_search_example_card_pressed', {
@@ -39,87 +32,37 @@ export const AskSourcebotDemoCards = ({
         }
     }
 
-    const getContextIcon = (context: DemoSearchContext, size: number = 20) => {
+    const getContextIcon = (context: DemoSearchContext, size: number = 20, isSelected: boolean = false) => {
         const sizeClass = size === 12 ? "h-3 w-3" : "h-5 w-5";
+        const colorClass = isSelected ? "text-primary-foreground" : "text-muted-foreground";
 
         if (context.type === "set") {
-            return <LibraryBigIcon className={cn(sizeClass, "text-muted-foreground")} />;
+            return <LibraryBigIcon className={cn(sizeClass, colorClass)} />;
         }
 
         if (context.codeHostType) {
             const codeHostIcon = getCodeHostIcon(context.codeHostType);
             if (codeHostIcon) {
+                // When selected, icons need to match the inverted badge colors
+                // In light mode selected: light icon on dark bg (invert)
+                // In dark mode selected: dark icon on light bg (no invert, override dark:invert)
+                const selectedIconClass = isSelected
+                    ? "invert dark:invert-0"
+                    : codeHostIcon.className;
+
                 return (
                     <Image
                         src={codeHostIcon.src}
                         alt={`${context.codeHostType} icon`}
                         width={size}
                         height={size}
-                        className={cn(sizeClass, codeHostIcon.className)}
+                        className={cn(sizeClass, selectedIconClass)}
                     />
                 );
             }
         }
 
-        return <Code className={cn(sizeClass, "text-muted-foreground")} />;
-    }
-
-    const handleContextClick = (demoSearchContexts: DemoSearchContext[], contextExample: DemoSearchContextExample) => {
-        const context = demoSearchContexts.find((context) => context.id === contextExample.searchContext)
-        if (!context) {
-            console.error(`Search context ${contextExample.searchContext} not found on handleContextClick`);
-            return;
-        }
-
-        captureEvent('wa_demo_search_context_card_pressed', {
-            contextType: context.type,
-            contextName: context.value,
-            contextDisplayName: context.displayName,
-        });
-
-        const isDemoMode = process.env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo";
-        const isSelected = selectedItems.some((item) => item.value === context.value);
-        if (isSelected) {
-            setSelectedItems(selectedItems.filter((item) => item.value !== context.value));
-            return;
-        }
-
-        const getNewSelectedItem = (): ContextItem | null => {
-            if (context.type === "set") {
-                const searchContext = searchContexts.find((item) => item.name === context.value);
-                if (!searchContext) {
-                    console.error(`Search context ${context.value} not found on handleContextClick`);
-                    return null;
-                }
-
-                return {
-                    type: 'context',
-                    value: context.value,
-                    name: context.displayName,
-                    repoCount: searchContext.repoNames.length
-                } as SearchContextItem;
-            } else {
-                const repo = repos.find((repo) => repo.repoName === context.value);
-                if (!repo) {
-                    console.error(`Repo ${context.value} not found on handleContextClick`);
-                    return null;
-                }
-
-                return {
-                    type: 'repo',
-                    value: context.value,
-                    name: context.displayName,
-                    codeHostType: repo.codeHostType
-                } as RepoContextItem;
-            }
-        }
-
-        const newSelectedItem = getNewSelectedItem();
-        if (newSelectedItem) {
-            setSelectedItems(isDemoMode ? [newSelectedItem] : [...selectedItems, newSelectedItem]);
-        } else {
-            console.error(`No new selected item found on handleContextClick`);
-        }
+        return <Code className={cn(sizeClass, colorClass)} />;
     }
 
     return (
@@ -139,110 +82,91 @@ export const AskSourcebotDemoCards = ({
                 </p>
             )}
 
-            <div className="w-full mt-8 space-y-12 px-4 max-w-[1000px]">
-                {/* Search Context Row */}
-                <div className="space-y-4">
-                    <div className="text-center mb-8">
-                        <div className="flex items-center justify-center gap-2 mb-2">
-                            <Layers className="h-5 w-5 text-muted-foreground" />
-                            <h3 className="text-lg font-semibold">Search Contexts</h3>
-                        </div>
-                        <p className="text-sm text-muted-foreground">Select the context you want to ask questions about</p>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-3">
-                        {demoExamples.searchContextExamples.map((contextExample) => {
-                            const context = demoExamples.searchContexts.find((context) => context.id === contextExample.searchContext)
-                            if (!context) {
-                                console.error(`Search context ${contextExample.searchContext} not found on handleContextClick`);
-                                return null;
-                            }
-
-                            const isSelected = selectedItems.some(
-                                (selected) => (selected.type === 'context' && selected.value === context.value) ||
-                                    (selected.type === 'repo' && selected.value === context.value)
-                            );
-
-                            const searchContext = searchContexts.find((item) => item.name === context.value);
-                            const numRepos = searchContext ? searchContext.repoNames.length : undefined;
-                            return (
-                                <Card
-                                    key={context.value}
-                                    className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 group w-full max-w-[280px] ${isSelected ? "border-primary bg-primary/5 shadow-sm" : "hover:border-primary/50"
-                                        }`}
-                                    onClick={() => handleContextClick(demoExamples.searchContexts, contextExample)}
-                                >
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start gap-3">
-                                            <div
-                                                className={`flex-shrink-0 p-2 rounded-lg transition-transform group-hover:scale-105`}
-                                            >
-                                                {getContextIcon(context)}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <h4
-                                                        className={`font-medium text-sm transition-colors ${isSelected ? "text-primary" : "group-hover:text-primary"
-                                                            }`}
-                                                    >
-                                                        {context.displayName}
-                                                    </h4>
-                                                    {numRepos && (
-                                                        <Badge className="text-[10px] px-1.5 py-0.5 h-4">
-                                                            {numRepos} repos
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                <p className="text-xs text-muted-foreground">{contextExample.description}</p>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )
-                        })}
-                    </div>
-                </div>
-
+            <div className="w-full mt-16 space-y-12 px-4 max-w-[1000px]">
                 {/* Example Searches Row */}
                 <div className="space-y-4">
-                    <div className="text-center mb-8">
-                        <div className="flex items-center justify-center gap-2 mb-2">
-                            <Search className="h-5 w-5 text-muted-foreground" />
-                            <h3 className="text-lg font-semibold">Community Ask Results</h3>
+                    <div className="text-center mb-6">
+                        <div className="flex items-center justify-center gap-3 mb-4">
+                            <Search className="h-7 w-7 text-muted-foreground" />
+                            <h3 className="text-2xl font-bold">Community Ask Results</h3>
                         </div>
-                        <p className="text-sm text-muted-foreground">Check out these featured ask results from the community</p>
                     </div>
+
+                    {/* Search Context Filter */}
+                    <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+                        <div className="flex items-center gap-2 mr-2">
+                            <div className="relative group">
+                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
+                                    <SearchScopeInfoCard />
+                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-border"></div>
+                                </div>
+                            </div>
+                            <span className="text-sm font-medium text-muted-foreground">Search Context:</span>
+                        </div>
+                        <Badge
+                            variant={selectedFilterContext === null ? "default" : "secondary"}
+                            className={`cursor-pointer transition-all duration-200 hover:shadow-sm ${selectedFilterContext === null ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80"
+                                }`}
+                            onClick={() => {
+                                setSelectedFilterContext(null);
+                            }}
+                        >
+                            All
+                        </Badge>
+                        {demoExamples.searchContexts.map((context) => (
+                            <Badge
+                                key={context.id}
+                                variant={selectedFilterContext === context.id ? "default" : "secondary"}
+                                className={`cursor-pointer transition-all duration-200 hover:shadow-sm flex items-center gap-1 ${selectedFilterContext === context.id ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80"
+                                    }`}
+                                onClick={() => {
+                                    setSelectedFilterContext(context.id);
+                                }}
+                            >
+                                {getContextIcon(context, 12, selectedFilterContext === context.id)}
+                                {context.displayName}
+                            </Badge>
+                        ))}
+                    </div>
+
                     <div className="flex flex-wrap justify-center gap-3">
-                        {demoExamples.searchExamples.map((example) => {
-                            const searchContexts = demoExamples.searchContexts.filter((context) => example.searchContext.includes(context.id))
-                            return (
-                                <Card
-                                    key={example.url}
-                                    className="cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 hover:border-primary/50 group w-full max-w-[350px]"
-                                    onClick={() => handleExampleClick(example)}
-                                >
-                                    <CardContent className="p-4">
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                {searchContexts.map((context) => (
-                                                    <Badge key={context.value} variant="secondary" className="text-[10px] px-1.5 py-0.5 h-4 flex items-center gap-1">
-                                                        {getContextIcon(context, 12)}
-                                                        {context.displayName}
-                                                    </Badge>
-                                                ))}
+                        {demoExamples.searchExamples
+                            .filter((example) => {
+                                if (selectedFilterContext === null) return true;
+                                return example.searchContext.includes(selectedFilterContext);
+                            })
+                            .map((example) => {
+                                const searchContexts = demoExamples.searchContexts.filter((context) => example.searchContext.includes(context.id))
+                                return (
+                                    <Card
+                                        key={example.url}
+                                        className="cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 hover:border-primary/50 group w-full max-w-[350px]"
+                                        onClick={() => handleExampleClick(example)}
+                                    >
+                                        <CardContent className="p-4">
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    {searchContexts.map((context) => (
+                                                        <Badge key={context.value} variant="secondary" className="text-[10px] px-1.5 py-0.5 h-4 flex items-center gap-1">
+                                                            {getContextIcon(context, 12)}
+                                                            {context.displayName}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <h4 className="font-semibold text-sm group-hover:text-primary transition-colors line-clamp-2">
+                                                        {example.title}
+                                                    </h4>
+                                                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                                                        {example.description}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <h4 className="font-semibold text-sm group-hover:text-primary transition-colors line-clamp-2">
-                                                    {example.title}
-                                                </h4>
-                                                <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-                                                    {example.description}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )
-                        })}
+                                        </CardContent>
+                                    </Card>
+                                )
+                            })}
                     </div>
                 </div>
             </div>

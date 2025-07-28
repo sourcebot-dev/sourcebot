@@ -13,6 +13,7 @@ import { ReactEditor, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { LanguageModelSelector } from "./languageModelSelector";
 import { ContextSelector, type ContextItem } from "./contextSelector";
+import { SearchScopeInfoCard } from "@/components/searchScopeInfoCard";
 
 export interface ChatBoxToolbarProps {
     languageModels: LanguageModelInfo[];
@@ -88,8 +89,8 @@ export const ChatBoxToolbar = ({
                         onOpenChanged={onContextSelectorOpenChanged}
                     />
                 </TooltipTrigger>
-                <TooltipContent side="bottom">
-                    <span>Search contexts and repositories to scope conversation to.</span>
+                <TooltipContent side="bottom" className="p-0 border-0 bg-transparent shadow-none">
+                    <SearchScopeInfoCard />
                 </TooltipContent>
             </Tooltip>
             {languageModels.length > 0 && (
