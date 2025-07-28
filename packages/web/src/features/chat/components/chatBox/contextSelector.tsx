@@ -96,12 +96,23 @@ export const ContextSelector = React.forwardRef<
             const isSelected = selectedItems.some(
                 (selected) => selected.type === item.type && selected.value === item.value
             );
-            
-            const newSelectedItems = isSelected
-                ? selectedItems.filter(
+
+            const isDemoMode = process.env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo";
+
+            let newSelectedItems: ContextItem[];
+            if (isSelected) {
+                newSelectedItems = selectedItems.filter(
                     (selected) => !(selected.type === item.type && selected.value === item.value)
-                  )
-                : [...selectedItems, item];
+                );
+            } else {
+                // Limit selected context to 1 in demo mode
+                if (isDemoMode) {
+                    newSelectedItems = [item];
+                } else {
+                    newSelectedItems = [...selectedItems, item];
+                }
+            }
+
             onSelectedItemsChange(newSelectedItems);
         };
 
@@ -120,14 +131,14 @@ export const ContextSelector = React.forwardRef<
                 name: context.name,
                 repoCount: context.repoNames.length
             }));
-            
+
             const repoItems: ContextItem[] = repos.map(repo => ({
                 type: 'repo' as const,
                 value: repo.repoName,
                 name: repo.repoDisplayName || repo.repoName.split('/').pop() || repo.repoName,
                 codeHostType: repo.codeHostType,
             }));
-            
+
             return [...contextItems, ...repoItems];
         }, [repos, searchContexts]);
 
@@ -225,8 +236,8 @@ export const ContextSelector = React.forwardRef<
                                                     (() => {
                                                         const codeHostIcon = item.codeHostType ? getCodeHostIcon(item.codeHostType) : null;
                                                         return codeHostIcon ? (
-                                                            <Image 
-                                                                src={codeHostIcon.src} 
+                                                            <Image
+                                                                src={codeHostIcon.src}
                                                                 alt={`${item.codeHostType} icon`}
                                                                 width={16}
                                                                 height={16}
@@ -243,8 +254,8 @@ export const ContextSelector = React.forwardRef<
                                                             {item.name}
                                                         </span>
                                                         {item.type === 'context' && (
-                                                            <Badge 
-                                                                variant="default" 
+                                                            <Badge
+                                                                variant="default"
                                                                 className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground"
                                                             >
                                                                 {item.repoCount} repo{item.repoCount === 1 ? '' : 's'}
