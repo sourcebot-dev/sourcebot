@@ -12,6 +12,7 @@ import {
     SBChatMessage,
     SBChatMessagePart,
     SBChatMessageToolTypes,
+    SearchScope,
     Source,
 } from "./types"
 
@@ -172,7 +173,7 @@ export const addLineNumbers = (source: string, lineOffset = 1) => {
     return source.split('\n').map((line, index) => `${index + lineOffset}:${line}`).join('\n');
 }
 
-export const createUIMessage = (text: string, mentions: MentionData[], selectedRepos: string[], selectedReposets: string[]): CreateUIMessage<SBChatMessage> => {
+export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[]): CreateUIMessage<SBChatMessage> => {
     // Converts applicable mentions into sources.
     const sources: Source[] = mentions
         .map((mention) => {
@@ -205,8 +206,7 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedR
             })) as UIMessagePart<{ source: Source }, SBChatMessageToolTypes>[],
         ],
         metadata: {
-            selectedRepos,
-            selectedReposets,
+            selectedSearchScopes,
         },
     }
 }

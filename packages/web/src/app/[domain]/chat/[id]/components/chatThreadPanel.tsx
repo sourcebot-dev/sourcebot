@@ -2,13 +2,12 @@
 
 import { ResizablePanel } from '@/components/ui/resizable';
 import { ChatThread } from '@/features/chat/components/chatThread';
-import { LanguageModelInfo, SBChatMessage, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
+import { LanguageModelInfo, SBChatMessage, SearchScope, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
 import { CreateUIMessage } from 'ai';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useChatId } from '../../useChatId';
-import { SearchScopeItem } from '@/features/chat/components/chatBox/searchScopeSelector';
 
 interface ChatThreadPanelProps {
     languageModels: LanguageModelInfo[];
@@ -33,33 +32,12 @@ export const ChatThreadPanel = ({
     const router = useRouter();
     const searchParams = useSearchParams();
     const [inputMessage, setInputMessage] = useState<CreateUIMessage<SBChatMessage> | undefined>(undefined);
-
+    
     // Use the last user's last message to determine what repos and contexts we should select by default.
     const lastUserMessage = messages.findLast((message) => message.role === "user");
-    const defaultSelectedRepos = lastUserMessage?.metadata?.selectedRepos ?? [];
-    const defaultSelectedReposets = lastUserMessage?.metadata?.selectedReposets ?? [];
+    const defaultSelectedSearchScopes = lastUserMessage?.metadata?.selectedSearchScopes ?? [];
+    const [selectedSearchScopes, setSelectedSearchScopes] = useState<SearchScope[]>(defaultSelectedSearchScopes);
     
-    const [selectedItems, setSelectedItems] = useState<SearchScopeItem[]>([
-        ...defaultSelectedRepos.map(repoName => {
-            const repoInfo = repos.find(r => r.repoName === repoName);
-            return {
-                type: 'repo' as const,
-                value: repoName,
-                name: repoInfo?.repoDisplayName || repoName.split('/').pop() || repoName,
-                codeHostType: repoInfo?.codeHostType || ''
-            };
-        }),
-        ...defaultSelectedReposets.map(reposetName => {
-            const reposet = searchContexts.find(c => c.name === reposetName);
-            return {
-                type: 'reposet' as const,
-                value: reposetName,
-                name: reposetName,
-                repoCount: reposet?.repoNames.length || 0
-            };
-        })
-    ]);
-
     useEffect(() => {
         const setChatState = searchParams.get(SET_CHAT_STATE_QUERY_PARAM);
         if (!setChatState) {
@@ -67,28 +45,9 @@ export const ChatThreadPanel = ({
         }
 
         try {
-            const { inputMessage, selectedRepos, selectedReposets } = JSON.parse(setChatState) as SetChatStatePayload;
+            const { inputMessage, selectedSearchScopes } = JSON.parse(setChatState) as SetChatStatePayload;
             setInputMessage(inputMessage);
-            setSelectedItems([
-                ...selectedRepos.map(repoName => {
-                    const repoInfo = repos.find(r => r.repoName === repoName);
-                    return {
-                        type: 'repo' as const,
-                        value: repoName,
-                        name: repoInfo?.repoDisplayName || repoName.split('/').pop() || repoName,
-                        codeHostType: repoInfo?.codeHostType || ''
-                    };
-                }),
-                ...selectedReposets.map(reposetName => {
-                    const reposet = searchContexts.find(c => c.name === reposetName);
-                    return {
-                        type: 'reposet' as const,
-                        value: reposetName,
-                        name: reposetName,  
-                        repoCount: reposet?.repoNames.length || 0
-                    };
-                })
-            ]);
+            setSelectedSearchScopes(selectedSearchScopes);
         } catch {
             console.error('Invalid message in URL');
         }
@@ -97,7 +56,7 @@ export const ChatThreadPanel = ({
         const newSearchParams = new URLSearchParams(searchParams.toString());
         newSearchParams.delete(SET_CHAT_STATE_QUERY_PARAM);
         router.replace(`?${newSearchParams.toString()}`, { scroll: false });
-    }, [searchParams, router, repos, searchContexts]);
+    }, [searchParams, router]);
 
     return (
         <ResizablePanel
@@ -113,8 +72,8 @@ export const ChatThreadPanel = ({
                     languageModels={languageModels}
                     repos={repos}
                     searchContexts={searchContexts}
-                    selectedItems={selectedItems}
-                    onSelectedItemsChange={setSelectedItems}
+                    selectedSearchScopes={selectedSearchScopes}
+                    onSelectedSearchScopesChange={setSelectedSearchScopes}
                     isChatReadonly={isChatReadonly}
                 />
             </div>

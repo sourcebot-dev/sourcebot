@@ -2,7 +2,7 @@ import { sew, withAuth, withOrgMembership } from "@/actions";
 import { env } from "@/env.mjs";
 import { _getConfiguredLanguageModelsFull, updateChatMessages, updateChatName } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
-import { additionalChatRequestParamsSchema, SBChatMessage } from "@/features/chat/types";
+import { additionalChatRequestParamsSchema, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
@@ -64,12 +64,11 @@ export async function POST(req: Request) {
         return serviceErrorResponse(schemaValidationError(parsed.error));
     }
 
-    const { messages, id, selectedRepos, selectedReposets, languageModelId } = parsed.data;
+    const { messages, id, selectedSearchScopes, languageModelId } = parsed.data;
     const response = await chatHandler({
         messages,
         id,
-        selectedRepos,
-        selectedReposets,
+        selectedSearchScopes,
         languageModelId,
     }, domain);
 
@@ -93,12 +92,11 @@ const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMe
 interface ChatHandlerProps {
     messages: SBChatMessage[];
     id: string;
-    selectedRepos: string[];
-    selectedReposets?: string[];
+    selectedSearchScopes: SearchScope[];
     languageModelId: string;
 }
 
-const chatHandler = ({ messages, id, selectedRepos, selectedReposets, languageModelId }: ChatHandlerProps, domain: string) => sew(async () =>
+const chatHandler = ({ messages, id, selectedSearchScopes, languageModelId }: ChatHandlerProps, domain: string) => sew(async () =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const chat = await prisma.chat.findUnique({
@@ -188,26 +186,30 @@ const chatHandler = ({ messages, id, selectedRepos, selectedReposets, languageMo
 
                     const startTime = new Date();
 
-                    // Expand search contexts to repos
-                    let expandedRepos = [...selectedRepos];
-                    if (selectedReposets && selectedReposets.length > 0) {
-                        const searchReposets = await prisma.searchContext.findMany({
-                            where: {
-                                orgId: org.id,
-                                name: { in: selectedReposets }
-                            },
-                            include: {
-                                repos: true
+                    const expandedReposArrays = await Promise.all(selectedSearchScopes.map(async (scope) => {
+                        if (scope.type === 'repo') {
+                            return [scope.value];
+                        }
+
+                        if (scope.type === 'reposet') {
+                            const reposet = await prisma.searchContext.findFirst({
+                                where: {
+                                    orgId: org.id,
+                                    name: scope.value
+                                },
+                                include: {
+                                    repos: true
+                                }
+                            });
+
+                            if (reposet) {
+                                return reposet.repos.map(repo => repo.name);
                             }
-                        });
+                        }
                         
-                        const reposetRepos = searchReposets.flatMap(reposet => 
-                            reposet.repos.map(repo => repo.name)
-                        );
-                        
-                        // Combine and deduplicate repos
-                        expandedRepos = Array.from(new Set([...selectedRepos, ...reposetRepos]));
-                    }
+                        return [];
+                    }));
+                    const expandedRepos = expandedReposArrays.flat();
 
                     const researchStream = await createAgentStream({
                         model,
@@ -215,7 +217,7 @@ const chatHandler = ({ messages, id, selectedRepos, selectedReposets, languageMo
                         headers,
                         inputMessages: messageHistory,
                         inputSources: sources,
-                        selectedRepos: expandedRepos,
+                        searchScopeRepoNames: expandedRepos,
                         onWriteSource: (source) => {
                             writer.write({
                                 type: 'data-source',
@@ -241,6 +243,7 @@ const chatHandler = ({ messages, id, selectedRepos, selectedReposets, languageMo
                             totalOutputTokens: totalUsage.outputTokens,
                             totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
                             modelName: languageModelConfig.displayName ?? languageModelConfig.model,
+                            selectedSearchScopes,
                             traceId,
                         }
                     })

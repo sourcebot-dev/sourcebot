@@ -3,7 +3,7 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
+import { CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { cn, IS_MAC } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
@@ -18,7 +18,6 @@ import { Suggestion } from "./types";
 import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { useSuggestionsData } from "./useSuggestionsData";
 import { useToast } from "@/components/hooks/use-toast";
-import { SearchScopeItem } from "./searchScopeSelector";
 import { SearchContextQuery } from "@/lib/types";
 
 interface ChatBoxProps {
@@ -29,7 +28,7 @@ interface ChatBoxProps {
     isRedirecting?: boolean;
     isGenerating?: boolean;
     languageModels: LanguageModelInfo[];
-    selectedItems: SearchScopeItem[];
+    selectedSearchScopes: SearchScope[];
     searchContexts: SearchContextQuery[];
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
@@ -42,7 +41,7 @@ export const ChatBox = ({
     isRedirecting,
     isGenerating,
     languageModels,
-    selectedItems,
+    selectedSearchScopes,
     searchContexts,
     onContextSelectorOpenChanged,
 }: ChatBoxProps) => {
@@ -53,7 +52,7 @@ export const ChatBox = ({
     const { suggestions, isLoading } = useSuggestionsData({
         suggestionMode,
         suggestionQuery,
-        selectedRepos: selectedItems.map((item) => {
+        selectedRepos: selectedSearchScopes.map((item) => {
             if (item.type === 'repo') {
                 return [item.value];
             }
@@ -130,7 +129,7 @@ export const ChatBox = ({
             }
         }
 
-        if (selectedItems.length === 0) {
+        if (selectedSearchScopes.length === 0) {
             return {
                 isSubmitDisabled: true,
                 isSubmitDisabledReason: "no-repos-selected",
@@ -154,7 +153,7 @@ export const ChatBox = ({
         editor.children,
         isRedirecting,
         isGenerating,
-        selectedItems.length,
+        selectedSearchScopes.length,
         selectedLanguageModel,
     ])
 

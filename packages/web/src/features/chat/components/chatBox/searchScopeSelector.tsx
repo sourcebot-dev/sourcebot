@@ -4,13 +4,10 @@ import * as React from "react";
 import {
     CheckIcon,
     ChevronDown,
-    FolderIcon,
     ScanSearchIcon,
-    LibraryBigIcon,
 } from "lucide-react";
-import Image from "next/image";
 
-import { cn, getCodeHostIcon } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,28 +25,14 @@ import {
     CommandList,
     CommandSeparator,
 } from "@/components/ui/command";
-
-export type RepoSearchScopeItem = {
-    type: 'repo';
-    value: string;
-    name: string;
-    codeHostType: string;
-}
-
-export type RepoSetSearchScopeItem = {
-    type: 'reposet';
-    value: string;
-    name: string;
-    repoCount: number;
-}
-
-export type SearchScopeItem = RepoSearchScopeItem | RepoSetSearchScopeItem;
+import { RepoSetSearchScope, RepoSearchScope, SearchScope } from "../../types";
+import { SearchScopeIcon } from "../searchScopeIcon";
 
 interface SearchScopeSelectorProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
-    selectedItems: SearchScopeItem[];
-    onSelectedItemsChange: (items: SearchScopeItem[]) => void;
+    selectedSearchScopes: SearchScope[];
+    onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     className?: string;
     isOpen: boolean;
     onOpenChanged: (isOpen: boolean) => void;
@@ -63,9 +46,9 @@ export const SearchScopeSelector = React.forwardRef<
         {
             repos,
             searchContexts,
-            onSelectedItemsChange,
             className,
-            selectedItems,
+            selectedSearchScopes,
+            onSelectedSearchScopesChange,
             isOpen,
             onOpenChanged,
             ...props
@@ -81,43 +64,33 @@ export const SearchScopeSelector = React.forwardRef<
             if (event.key === "Enter") {
                 onOpenChanged(true);
             } else if (event.key === "Backspace" && !event.currentTarget.value) {
-                const newSelectedItems = [...selectedItems];
+                const newSelectedItems = [...selectedSearchScopes];
                 newSelectedItems.pop();
-                onSelectedItemsChange(newSelectedItems);
+                onSelectedSearchScopesChange(newSelectedItems);
             }
         };
 
-        const toggleItem = (item: SearchScopeItem) => {
+        const toggleItem = (item: SearchScope) => {
             // Store current scroll position before state update
             if (scrollContainerRef.current) {
                 scrollPosition.current = scrollContainerRef.current.scrollTop;
             }
 
-            const isSelected = selectedItems.some(
+            const isSelected = selectedSearchScopes.some(
                 (selected) => selected.type === item.type && selected.value === item.value
             );
 
-            const isDemoMode = process.env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo";
-
-            let newSelectedItems: SearchScopeItem[];
-            if (isSelected) {
-                newSelectedItems = selectedItems.filter(
+            const newSelectedItems = isSelected ?
+                selectedSearchScopes.filter(
                     (selected) => !(selected.type === item.type && selected.value === item.value)
-                );
-            } else {
-                // Limit selected search scope to 1 in demo mode
-                if (isDemoMode) {
-                    newSelectedItems = [item];
-                } else {
-                    newSelectedItems = [...selectedItems, item];
-                }
-            }
+                ) :
+                [...selectedSearchScopes, item];
 
-            onSelectedItemsChange(newSelectedItems);
+            onSelectedSearchScopesChange(newSelectedItems);
         };
 
         const handleClear = () => {
-            onSelectedItemsChange([]);
+            onSelectedSearchScopesChange([]);
         };
 
         const handleTogglePopover = () => {
@@ -125,14 +98,14 @@ export const SearchScopeSelector = React.forwardRef<
         };
 
         const allSearchScopeItems = React.useMemo(() => {
-            const repoSetSearchScopeItems: RepoSetSearchScopeItem[] = searchContexts.map(context => ({
+            const repoSetSearchScopeItems: RepoSetSearchScope[] = searchContexts.map(context => ({
                 type: 'reposet' as const,
                 value: context.name,
                 name: context.name,
                 repoCount: context.repoNames.length
             }));
 
-            const repoSearchScopeItems: RepoSearchScopeItem[] = repos.map(repo => ({
+            const repoSearchScopeItems: RepoSearchScope[] = repos.map(repo => ({
                 type: 'repo' as const,
                 value: repo.repoName,
                 name: repo.repoDisplayName || repo.repoName.split('/').pop() || repo.repoName,
@@ -146,7 +119,7 @@ export const SearchScopeSelector = React.forwardRef<
             return allSearchScopeItems
                 .map((item) => ({
                     item,
-                    isSelected: selectedItems.some(
+                    isSelected: selectedSearchScopes.some(
                         (selected) => selected.type === item.type && selected.value === item.value
                     )
                 }))
@@ -159,7 +132,7 @@ export const SearchScopeSelector = React.forwardRef<
                     if (a.item.type === 'repo' && b.item.type === 'reposet') return 1;
                     return 0;
                 })
-        }, [allSearchScopeItems, selectedItems]);
+        }, [allSearchScopeItems, selectedSearchScopes]);
 
         // Restore scroll position after re-render
         React.useEffect(() => {
@@ -189,9 +162,9 @@ export const SearchScopeSelector = React.forwardRef<
                                 className={cn("text-sm text-muted-foreground mx-1 font-medium")}
                             >
                                 {
-                                    selectedItems.length === 0 ? `Search scopes` :
-                                        selectedItems.length === 1 ? selectedItems[0].name :
-                                            `${selectedItems.length} selected`
+                                    selectedSearchScopes.length === 0 ? `Search scopes` :
+                                        selectedSearchScopes.length === 1 ? selectedSearchScopes[0].name :
+                                            `${selectedSearchScopes.length} selected`
                                 }
                             </span>
                             <ChevronDown className="h-4 cursor-pointer text-muted-foreground ml-2" />
@@ -229,25 +202,7 @@ export const SearchScopeSelector = React.forwardRef<
                                                 <CheckIcon className="h-4 w-4" />
                                             </div>
                                             <div className="flex items-center gap-2 flex-1">
-                                                {item.type === 'reposet' ? (
-                                                    <LibraryBigIcon className="h-4 w-4 text-muted-foreground" />
-                                                ) : (
-                                                    // Render code host icon for repos
-                                                    (() => {
-                                                        const codeHostIcon = item.codeHostType ? getCodeHostIcon(item.codeHostType) : null;
-                                                        return codeHostIcon ? (
-                                                            <Image
-                                                                src={codeHostIcon.src}
-                                                                alt={`${item.codeHostType} icon`}
-                                                                width={16}
-                                                                height={16}
-                                                                className={cn("h-4 w-4", codeHostIcon.className)}
-                                                            />
-                                                        ) : (
-                                                            <FolderIcon className="h-4 w-4 text-muted-foreground" />
-                                                        );
-                                                    })()
-                                                )}
+                                                <SearchScopeIcon searchScope={item} />
                                                 <div className="flex flex-col flex-1">
                                                     <div className="flex items-center gap-2">
                                                         <span className="font-medium">
@@ -269,7 +224,7 @@ export const SearchScopeSelector = React.forwardRef<
                                 })}
                             </CommandGroup>
                         </CommandList>
-                        {selectedItems.length > 0 && (
+                        {selectedSearchScopes.length > 0 && (
                             <>
                                 <CommandSeparator />
                                 <CommandItem

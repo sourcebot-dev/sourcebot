@@ -16,7 +16,7 @@ interface AgentOptions {
     model: LanguageModel;
     providerOptions?: ProviderOptions;
     headers?: Record<string, string>;
-    selectedRepos: string[];
+    searchScopeRepoNames: string[];
     inputMessages: ModelMessage[];
     inputSources: Source[];
     onWriteSource: (source: Source) => void;
@@ -35,12 +35,12 @@ export const createAgentStream = async ({
     headers,
     inputMessages,
     inputSources,
-    selectedRepos,
+    searchScopeRepoNames,
     onWriteSource,
     traceId,
 }: AgentOptions) => {
     const baseSystemPrompt = createBaseSystemPrompt({
-        selectedRepos,
+        searchScopeRepoNames,
     });
 
     const stream = streamText({
@@ -50,7 +50,7 @@ export const createAgentStream = async ({
         system: baseSystemPrompt,
         messages: inputMessages,
         tools: {
-            [toolNames.searchCode]: createCodeSearchTool(selectedRepos),
+            [toolNames.searchCode]: createCodeSearchTool(searchScopeRepoNames),
             [toolNames.readFiles]: readFilesTool,
             [toolNames.findSymbolReferences]: findSymbolReferencesTool,
             [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
@@ -150,11 +150,11 @@ export const createAgentStream = async ({
 }
 
 interface BaseSystemPromptOptions {
-    selectedRepos: string[];
+    searchScopeRepoNames: string[];
 }
 
 export const createBaseSystemPrompt = ({
-    selectedRepos,
+    searchScopeRepoNames,
 }: BaseSystemPromptOptions) => {
     return `
 You are a powerful agentic AI code assistant built into Sourcebot, the world's best code-intelligence platform. Your job is to help developers understand and navigate their large codebases.
@@ -176,7 +176,7 @@ Your workflow has two distinct phases:
 
 <available_repositories>
 The user has selected the following repositories for analysis:
-${selectedRepos.map(repo => `- ${repo}`).join('\n')}
+${searchScopeRepoNames.map(repo => `- ${repo}`).join('\n')}
 </available_repositories>
 
 <research_phase_instructions>

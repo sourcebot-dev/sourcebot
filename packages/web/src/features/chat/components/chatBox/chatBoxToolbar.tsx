@@ -3,14 +3,14 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { LanguageModelInfo } from "@/features/chat/types";
+import { LanguageModelInfo, SearchScope } from "@/features/chat/types";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { AtSignIcon } from "lucide-react";
 import { useCallback } from "react";
 import { ReactEditor, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { LanguageModelSelector } from "./languageModelSelector";
-import { SearchScopeSelector, type SearchScopeItem } from "./searchScopeSelector";
+import { SearchScopeSelector } from "./searchScopeSelector";
 import { SearchScopeInfoCard } from "@/components/searchScopeInfoCard";
 import { AtMentionInfoCard } from "@/components/atMentionInfoCard";
 
@@ -18,8 +18,8 @@ export interface ChatBoxToolbarProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
-    selectedItems: SearchScopeItem[];
-    onSelectedItemsChange: (items: SearchScopeItem[]) => void;
+    selectedSearchScopes: SearchScope[];
+    onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     isContextSelectorOpen: boolean;
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
@@ -28,8 +28,8 @@ export const ChatBoxToolbar = ({
     languageModels,
     repos,
     searchContexts,
-    selectedItems,
-    onSelectedItemsChange,
+    selectedSearchScopes,
+    onSelectedSearchScopesChange,
     isContextSelectorOpen,
     onContextSelectorOpenChanged,
 }: ChatBoxToolbarProps) => {
@@ -68,8 +68,8 @@ export const ChatBoxToolbar = ({
                         className="bg-inherit w-fit h-6 min-h-6"
                         repos={repos}
                         searchContexts={searchContexts}
-                        selectedItems={selectedItems}
-                        onSelectedItemsChange={onSelectedItemsChange}
+                        selectedSearchScopes={selectedSearchScopes}
+                        onSelectedSearchScopesChange={onSelectedSearchScopesChange}
                         isOpen={isContextSelectorOpen}
                         onOpenChanged={onContextSelectorOpenChanged}
                     />
