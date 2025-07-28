@@ -8,7 +8,7 @@ import { CreateUIMessage } from 'ai';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useChatId } from '../../useChatId';
-import { ContextItem } from '@/features/chat/components/chatBox/contextSelector';
+import { SearchScopeItem } from '@/features/chat/components/chatBox/searchScopeSelector';
 
 interface ChatThreadPanelProps {
     languageModels: LanguageModelInfo[];
@@ -37,9 +37,9 @@ export const ChatThreadPanel = ({
     // Use the last user's last message to determine what repos and contexts we should select by default.
     const lastUserMessage = messages.findLast((message) => message.role === "user");
     const defaultSelectedRepos = lastUserMessage?.metadata?.selectedRepos ?? [];
-    const defaultSelectedContexts = lastUserMessage?.metadata?.selectedContexts ?? [];
+    const defaultSelectedReposets = lastUserMessage?.metadata?.selectedReposets ?? [];
     
-    const [selectedItems, setSelectedItems] = useState<ContextItem[]>([
+    const [selectedItems, setSelectedItems] = useState<SearchScopeItem[]>([
         ...defaultSelectedRepos.map(repoName => {
             const repoInfo = repos.find(r => r.repoName === repoName);
             return {
@@ -49,13 +49,13 @@ export const ChatThreadPanel = ({
                 codeHostType: repoInfo?.codeHostType || ''
             };
         }),
-        ...defaultSelectedContexts.map(contextName => {
-            const context = searchContexts.find(c => c.name === contextName);
+        ...defaultSelectedReposets.map(reposetName => {
+            const reposet = searchContexts.find(c => c.name === reposetName);
             return {
-                type: 'context' as const,
-                value: contextName,
-                name: contextName,
-                repoCount: context?.repoNames.length || 0
+                type: 'reposet' as const,
+                value: reposetName,
+                name: reposetName,
+                repoCount: reposet?.repoNames.length || 0
             };
         })
     ]);
@@ -67,7 +67,7 @@ export const ChatThreadPanel = ({
         }
 
         try {
-            const { inputMessage, selectedRepos, selectedContexts } = JSON.parse(setChatState) as SetChatStatePayload;
+            const { inputMessage, selectedRepos, selectedReposets } = JSON.parse(setChatState) as SetChatStatePayload;
             setInputMessage(inputMessage);
             setSelectedItems([
                 ...selectedRepos.map(repoName => {
@@ -79,13 +79,13 @@ export const ChatThreadPanel = ({
                         codeHostType: repoInfo?.codeHostType || ''
                     };
                 }),
-                ...selectedContexts.map(contextName => {
-                    const context = searchContexts.find(c => c.name === contextName);
+                ...selectedReposets.map(reposetName => {
+                    const reposet = searchContexts.find(c => c.name === reposetName);
                     return {
-                        type: 'context' as const,
-                        value: contextName,
-                        name: contextName,  
-                        repoCount: context?.repoNames.length || 0
+                        type: 'reposet' as const,
+                        value: reposetName,
+                        name: reposetName,  
+                        repoCount: reposet?.repoNames.length || 0
                     };
                 })
             ]);

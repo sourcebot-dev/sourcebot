@@ -9,7 +9,7 @@ import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { useState } from "react";
 import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
 import { useLocalStorage } from "usehooks-ts";
-import { ContextItem } from "@/features/chat/components/chatBox/contextSelector";
+import { SearchScopeItem } from "@/features/chat/components/chatBox/searchScopeSelector";
 import { DemoExamples } from "@/types";
 import { AskSourcebotDemoCards } from "./askSourcebotDemoCards";
 
@@ -34,7 +34,7 @@ export const AgenticSearch = ({
     demoExamples,
 }: AgenticSearchProps) => {
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
-    const [selectedItems, setSelectedItems] = useLocalStorage<ContextItem[]>("selectedContextItems", [], { initializeWithValue: false });
+    const [selectedItems, setSelectedItems] = useLocalStorage<SearchScopeItem[]>("selectedContextItems", [], { initializeWithValue: false });
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
 
     return (
@@ -74,10 +74,6 @@ export const AgenticSearch = ({
             {demoExamples && (
                 <AskSourcebotDemoCards
                     demoExamples={demoExamples}
-                    selectedItems={selectedItems}
-                    setSelectedItems={setSelectedItems}
-                    searchContexts={searchContexts}
-                    repos={repos}
                 />
             )}
         </div >

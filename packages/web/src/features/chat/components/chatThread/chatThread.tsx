@@ -23,7 +23,7 @@ import { ErrorBanner } from './errorBanner';
 import { useRouter } from 'next/navigation';
 import { usePrevious } from '@uidotdev/usehooks';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
-import { ContextItem } from '../chatBox/contextSelector';
+import { SearchScopeItem } from '../chatBox/searchScopeSelector';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -36,8 +36,8 @@ interface ChatThreadProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
-    selectedItems: ContextItem[];
-    onSelectedItemsChange: (items: ContextItem[]) => void;
+    selectedItems: SearchScopeItem[];
+    onSelectedItemsChange: (items: SearchScopeItem[]) => void;
     isChatReadonly: boolean;
 }
 
@@ -62,10 +62,10 @@ export const ChatThread = ({
     const router = useRouter();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
 
-    const { selectedRepos, selectedContexts } = useMemo(() => {
+    const { selectedRepos, selectedReposets } = useMemo(() => {
         const repos = selectedItems.filter(item => item.type === 'repo').map(item => item.value);
-        const contexts = selectedItems.filter(item => item.type === 'context').map(item => item.value);
-        return { selectedRepos: repos, selectedContexts: contexts };
+        const reposets = selectedItems.filter(item => item.type === 'reposet').map(item => item.value);
+        return { selectedRepos: repos, selectedReposets: reposets };
     }, [selectedItems]);
 
     // Initial state is from attachments that exist in in the chat history.
@@ -123,11 +123,11 @@ export const ChatThread = ({
         _sendMessage(message, {
             body: {
                 selectedRepos,
-                selectedContexts,
+                selectedReposets,
                 languageModelId: selectedLanguageModel.model,
             } satisfies AdditionalChatRequestParams,
-        });
-    }, [_sendMessage, selectedLanguageModel, toast, selectedRepos, selectedContexts]);
+        }); 
+    }, [_sendMessage, selectedLanguageModel, toast, selectedRepos, selectedReposets]);
 
 
     const messagePairs = useMessagePairs(messages);
@@ -243,13 +243,13 @@ export const ChatThread = ({
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedRepos, selectedContexts);
+        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedRepos, selectedReposets);
         sendMessage(message);
 
         setIsAutoScrollEnabled(true);
 
         resetEditor(editor);
-    }, [sendMessage, selectedRepos, selectedContexts]);
+    }, [sendMessage, selectedRepos, selectedReposets]);
 
     return (
         <>

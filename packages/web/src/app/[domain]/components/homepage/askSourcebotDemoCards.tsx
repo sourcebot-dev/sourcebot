@@ -6,7 +6,7 @@ import { Search, LibraryBigIcon, Code, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
-import { DemoExamples, DemoSearchExample, DemoSearchContext } from "@/types";
+import { DemoExamples, DemoSearchExample, DemoSearchScope } from "@/types";
 import { cn, getCodeHostIcon } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { SearchScopeInfoCard } from "@/components/searchScopeInfoCard";
@@ -19,7 +19,7 @@ export const AskSourcebotDemoCards = ({
     demoExamples,
 }: AskSourcebotDemoCardsProps) => {
     const captureEvent = useCaptureEvent();
-    const [selectedFilterContext, setSelectedFilterContext] = useState<number | null>(null);
+    const [selectedFilterSearchScope, setSelectedFilterSearchScope] = useState<number | null>(null);
 
     const handleExampleClick = (example: DemoSearchExample) => {
         captureEvent('wa_demo_search_example_card_pressed', {
@@ -32,16 +32,16 @@ export const AskSourcebotDemoCards = ({
         }
     }
 
-    const getContextIcon = (context: DemoSearchContext, size: number = 20, isSelected: boolean = false) => {
+    const getSearchScopeIcon = (searchScope: DemoSearchScope, size: number = 20, isSelected: boolean = false) => {
         const sizeClass = size === 12 ? "h-3 w-3" : "h-5 w-5";
         const colorClass = isSelected ? "text-primary-foreground" : "text-muted-foreground";
 
-        if (context.type === "set") {
+        if (searchScope.type === "reposet") {
             return <LibraryBigIcon className={cn(sizeClass, colorClass)} />;
         }
 
-        if (context.codeHostType) {
-            const codeHostIcon = getCodeHostIcon(context.codeHostType);
+        if (searchScope.codeHostType) {
+            const codeHostIcon = getCodeHostIcon(searchScope.codeHostType);
             if (codeHostIcon) {
                 // When selected, icons need to match the inverted badge colors
                 // In light mode selected: light icon on dark bg (invert)
@@ -53,7 +53,7 @@ export const AskSourcebotDemoCards = ({
                 return (
                     <Image
                         src={codeHostIcon.src}
-                        alt={`${context.codeHostType} icon`}
+                        alt={`${searchScope.codeHostType} icon`}
                         width={size}
                         height={size}
                         className={cn(sizeClass, selectedIconClass)}
@@ -92,7 +92,7 @@ export const AskSourcebotDemoCards = ({
                         </div>
                     </div>
 
-                    {/* Search Context Filter */}
+                    {/* Search Scope Filter */}
                     <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
                         <div className="flex items-center gap-2 mr-2">
                             <div className="relative group">
@@ -102,30 +102,30 @@ export const AskSourcebotDemoCards = ({
                                     <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-border"></div>
                                 </div>
                             </div>
-                            <span className="text-sm font-medium text-muted-foreground">Search Context:</span>
+                            <span className="text-sm font-medium text-muted-foreground">Search Scope:</span>
                         </div>
                         <Badge
-                            variant={selectedFilterContext === null ? "default" : "secondary"}
-                            className={`cursor-pointer transition-all duration-200 hover:shadow-sm ${selectedFilterContext === null ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80"
+                            variant={selectedFilterSearchScope === null ? "default" : "secondary"}
+                            className={`cursor-pointer transition-all duration-200 hover:shadow-sm ${selectedFilterSearchScope === null ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80"
                                 }`}
                             onClick={() => {
-                                setSelectedFilterContext(null);
+                                setSelectedFilterSearchScope(null);
                             }}
                         >
                             All
                         </Badge>
-                        {demoExamples.searchContexts.map((context) => (
+                        {demoExamples.searchScopes.map((searchScope) => (
                             <Badge
-                                key={context.id}
-                                variant={selectedFilterContext === context.id ? "default" : "secondary"}
-                                className={`cursor-pointer transition-all duration-200 hover:shadow-sm flex items-center gap-1 ${selectedFilterContext === context.id ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80"
+                                key={searchScope.id}
+                                variant={selectedFilterSearchScope === searchScope.id ? "default" : "secondary"}
+                                className={`cursor-pointer transition-all duration-200 hover:shadow-sm flex items-center gap-1 ${selectedFilterSearchScope === searchScope.id ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80"
                                     }`}
                                 onClick={() => {
-                                    setSelectedFilterContext(context.id);
+                                    setSelectedFilterSearchScope(searchScope.id);
                                 }}
                             >
-                                {getContextIcon(context, 12, selectedFilterContext === context.id)}
-                                {context.displayName}
+                                {getSearchScopeIcon(searchScope, 12, selectedFilterSearchScope === searchScope.id)}
+                                {searchScope.displayName}
                             </Badge>
                         ))}
                     </div>
@@ -133,11 +133,11 @@ export const AskSourcebotDemoCards = ({
                     <div className="flex flex-wrap justify-center gap-3">
                         {demoExamples.searchExamples
                             .filter((example) => {
-                                if (selectedFilterContext === null) return true;
-                                return example.searchContext.includes(selectedFilterContext);
+                                if (selectedFilterSearchScope === null) return true;
+                                return example.searchScopes.includes(selectedFilterSearchScope);
                             })
                             .map((example) => {
-                                const searchContexts = demoExamples.searchContexts.filter((context) => example.searchContext.includes(context.id))
+                                const searchScopes = demoExamples.searchScopes.filter((searchScope) => example.searchScopes.includes(searchScope.id))
                                 return (
                                     <Card
                                         key={example.url}
@@ -147,10 +147,10 @@ export const AskSourcebotDemoCards = ({
                                         <CardContent className="p-4">
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between">
-                                                    {searchContexts.map((context) => (
-                                                        <Badge key={context.value} variant="secondary" className="text-[10px] px-1.5 py-0.5 h-4 flex items-center gap-1">
-                                                            {getContextIcon(context, 12)}
-                                                            {context.displayName}
+                                                    {searchScopes.map((searchScope) => (
+                                                        <Badge key={searchScope.value} variant="secondary" className="text-[10px] px-1.5 py-0.5 h-4 flex items-center gap-1">
+                                                            {getSearchScopeIcon(searchScope, 12)}
+                                                            {searchScope.displayName}
                                                         </Badge>
                                                     ))}
                                                 </div>

@@ -64,12 +64,12 @@ export async function POST(req: Request) {
         return serviceErrorResponse(schemaValidationError(parsed.error));
     }
 
-    const { messages, id, selectedRepos, selectedContexts, languageModelId } = parsed.data;
+    const { messages, id, selectedRepos, selectedReposets, languageModelId } = parsed.data;
     const response = await chatHandler({
         messages,
         id,
         selectedRepos,
-        selectedContexts,
+        selectedReposets,
         languageModelId,
     }, domain);
 
@@ -94,11 +94,11 @@ interface ChatHandlerProps {
     messages: SBChatMessage[];
     id: string;
     selectedRepos: string[];
-    selectedContexts?: string[];
+    selectedReposets?: string[];
     languageModelId: string;
 }
 
-const chatHandler = ({ messages, id, selectedRepos, selectedContexts, languageModelId }: ChatHandlerProps, domain: string) => sew(async () =>
+const chatHandler = ({ messages, id, selectedRepos, selectedReposets, languageModelId }: ChatHandlerProps, domain: string) => sew(async () =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const chat = await prisma.chat.findUnique({
@@ -190,23 +190,23 @@ const chatHandler = ({ messages, id, selectedRepos, selectedContexts, languageMo
 
                     // Expand search contexts to repos
                     let expandedRepos = [...selectedRepos];
-                    if (selectedContexts && selectedContexts.length > 0) {
-                        const searchContexts = await prisma.searchContext.findMany({
+                    if (selectedReposets && selectedReposets.length > 0) {
+                        const searchReposets = await prisma.searchContext.findMany({
                             where: {
                                 orgId: org.id,
-                                name: { in: selectedContexts }
+                                name: { in: selectedReposets }
                             },
                             include: {
                                 repos: true
                             }
                         });
                         
-                        const contextRepos = searchContexts.flatMap(context => 
-                            context.repos.map(repo => repo.name)
+                        const reposetRepos = searchReposets.flatMap(reposet => 
+                            reposet.repos.map(repo => repo.name)
                         );
                         
                         // Combine and deduplicate repos
-                        expandedRepos = Array.from(new Set([...selectedRepos, ...contextRepos]));
+                        expandedRepos = Array.from(new Set([...selectedRepos, ...reposetRepos]));
                     }
 
                     const researchStream = await createAgentStream({

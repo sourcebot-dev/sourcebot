@@ -10,7 +10,7 @@ import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { useCallback, useState } from "react";
 import { Descendant } from "slate";
 import { useLocalStorage } from "usehooks-ts";
-import { ContextItem } from "@/features/chat/components/chatBox/contextSelector";
+import { SearchScopeItem } from "@/features/chat/components/chatBox/searchScopeSelector";
 
 interface NewChatPanelProps {
     languageModels: LanguageModelInfo[];
@@ -25,7 +25,7 @@ export const NewChatPanel = ({
     searchContexts,
     order,
 }: NewChatPanelProps) => {
-    const [selectedItems, setSelectedItems] = useLocalStorage<ContextItem[]>("selectedContextItems", [], { initializeWithValue: false });
+    const [selectedItems, setSelectedItems] = useLocalStorage<SearchScopeItem[]>("selectedContextItems", [], { initializeWithValue: false });
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
 

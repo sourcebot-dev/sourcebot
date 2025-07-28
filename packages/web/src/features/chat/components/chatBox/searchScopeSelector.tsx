@@ -5,7 +5,7 @@ import {
     CheckIcon,
     ChevronDown,
     FolderIcon,
-    LayersIcon,
+    ScanSearchIcon,
     LibraryBigIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -29,35 +29,35 @@ import {
     CommandSeparator,
 } from "@/components/ui/command";
 
-export type RepoContextItem = {
+export type RepoSearchScopeItem = {
     type: 'repo';
     value: string;
     name: string;
     codeHostType: string;
 }
 
-export type SearchContextItem = {
-    type: 'context';
+export type RepoSetSearchScopeItem = {
+    type: 'reposet';
     value: string;
     name: string;
     repoCount: number;
 }
 
-export type ContextItem = RepoContextItem | SearchContextItem;
+export type SearchScopeItem = RepoSearchScopeItem | RepoSetSearchScopeItem;
 
-interface ContextSelectorProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface SearchScopeSelectorProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
-    selectedItems: ContextItem[];
-    onSelectedItemsChange: (items: ContextItem[]) => void;
+    selectedItems: SearchScopeItem[];
+    onSelectedItemsChange: (items: SearchScopeItem[]) => void;
     className?: string;
     isOpen: boolean;
     onOpenChanged: (isOpen: boolean) => void;
 }
 
-export const ContextSelector = React.forwardRef<
+export const SearchScopeSelector = React.forwardRef<
     HTMLButtonElement,
-    ContextSelectorProps
+    SearchScopeSelectorProps
 >(
     (
         {
@@ -87,7 +87,7 @@ export const ContextSelector = React.forwardRef<
             }
         };
 
-        const toggleItem = (item: ContextItem) => {
+        const toggleItem = (item: SearchScopeItem) => {
             // Store current scroll position before state update
             if (scrollContainerRef.current) {
                 scrollPosition.current = scrollContainerRef.current.scrollTop;
@@ -99,13 +99,13 @@ export const ContextSelector = React.forwardRef<
 
             const isDemoMode = process.env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo";
 
-            let newSelectedItems: ContextItem[];
+            let newSelectedItems: SearchScopeItem[];
             if (isSelected) {
                 newSelectedItems = selectedItems.filter(
                     (selected) => !(selected.type === item.type && selected.value === item.value)
                 );
             } else {
-                // Limit selected context to 1 in demo mode
+                // Limit selected search scope to 1 in demo mode
                 if (isDemoMode) {
                     newSelectedItems = [item];
                 } else {
@@ -124,26 +124,26 @@ export const ContextSelector = React.forwardRef<
             onOpenChanged(!isOpen);
         };
 
-        const allItems = React.useMemo(() => {
-            const contextItems: ContextItem[] = searchContexts.map(context => ({
-                type: 'context' as const,
+        const allSearchScopeItems = React.useMemo(() => {
+            const repoSetSearchScopeItems: RepoSetSearchScopeItem[] = searchContexts.map(context => ({
+                type: 'reposet' as const,
                 value: context.name,
                 name: context.name,
                 repoCount: context.repoNames.length
             }));
 
-            const repoItems: ContextItem[] = repos.map(repo => ({
+            const repoSearchScopeItems: RepoSearchScopeItem[] = repos.map(repo => ({
                 type: 'repo' as const,
                 value: repo.repoName,
                 name: repo.repoDisplayName || repo.repoName.split('/').pop() || repo.repoName,
                 codeHostType: repo.codeHostType,
             }));
 
-            return [...contextItems, ...repoItems];
+            return [...repoSetSearchScopeItems, ...repoSearchScopeItems];
         }, [repos, searchContexts]);
 
-        const sortedItems = React.useMemo(() => {
-            return allItems
+        const sortedSearchScopeItems = React.useMemo(() => {
+            return allSearchScopeItems
                 .map((item) => ({
                     item,
                     isSelected: selectedItems.some(
@@ -154,19 +154,19 @@ export const ContextSelector = React.forwardRef<
                     // Selected items first
                     if (a.isSelected && !b.isSelected) return -1;
                     if (!a.isSelected && b.isSelected) return 1;
-                    // Then contexts before repos
-                    if (a.item.type === 'context' && b.item.type === 'repo') return -1;
-                    if (a.item.type === 'repo' && b.item.type === 'context') return 1;
+                    // Then reposets before repos
+                    if (a.item.type === 'reposet' && b.item.type === 'repo') return -1;
+                    if (a.item.type === 'repo' && b.item.type === 'reposet') return 1;
                     return 0;
                 })
-        }, [allItems, selectedItems]);
+        }, [allSearchScopeItems, selectedItems]);
 
         // Restore scroll position after re-render
         React.useEffect(() => {
             if (scrollContainerRef.current && scrollPosition.current > 0) {
                 scrollContainerRef.current.scrollTop = scrollPosition.current;
             }
-        }, [sortedItems]);
+        }, [sortedSearchScopeItems]);
 
         return (
             <Popover
@@ -184,12 +184,12 @@ export const ContextSelector = React.forwardRef<
                         )}
                     >
                         <div className="flex items-center justify-between w-full mx-auto">
-                            <LayersIcon className="h-4 w-4 text-muted-foreground mr-1" />
+                            <ScanSearchIcon className="h-4 w-4 text-muted-foreground mr-1" />
                             <span
                                 className={cn("text-sm text-muted-foreground mx-1 font-medium")}
                             >
                                 {
-                                    selectedItems.length === 0 ? `Select context` :
+                                    selectedItems.length === 0 ? `Search scopes` :
                                         selectedItems.length === 1 ? selectedItems[0].name :
                                             `${selectedItems.length} selected`
                                 }
@@ -205,13 +205,13 @@ export const ContextSelector = React.forwardRef<
                 >
                     <Command>
                         <CommandInput
-                            placeholder="Search contexts..."
+                            placeholder="Search scopes..."
                             onKeyDown={handleInputKeyDown}
                         />
                         <CommandList ref={scrollContainerRef}>
                             <CommandEmpty>No results found.</CommandEmpty>
                             <CommandGroup>
-                                {sortedItems.map(({ item, isSelected }) => {
+                                {sortedSearchScopeItems.map(({ item, isSelected }) => {
                                     return (
                                         <CommandItem
                                             key={`${item.type}-${item.value}`}
@@ -229,7 +229,7 @@ export const ContextSelector = React.forwardRef<
                                                 <CheckIcon className="h-4 w-4" />
                                             </div>
                                             <div className="flex items-center gap-2 flex-1">
-                                                {item.type === 'context' ? (
+                                                {item.type === 'reposet' ? (
                                                     <LibraryBigIcon className="h-4 w-4 text-muted-foreground" />
                                                 ) : (
                                                     // Render code host icon for repos
@@ -253,7 +253,7 @@ export const ContextSelector = React.forwardRef<
                                                         <span className="font-medium">
                                                             {item.name}
                                                         </span>
-                                                        {item.type === 'context' && (
+                                                        {item.type === 'reposet' && (
                                                             <Badge
                                                                 variant="default"
                                                                 className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground"
@@ -287,4 +287,4 @@ export const ContextSelector = React.forwardRef<
     }
 );
 
-ContextSelector.displayName = "ContextSelector";
+SearchScopeSelector.displayName = "SearchScopeSelector";

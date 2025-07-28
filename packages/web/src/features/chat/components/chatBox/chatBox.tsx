@@ -18,7 +18,7 @@ import { Suggestion } from "./types";
 import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { useSuggestionsData } from "./useSuggestionsData";
 import { useToast } from "@/components/hooks/use-toast";
-import { ContextItem } from "./contextSelector";
+import { SearchScopeItem } from "./searchScopeSelector";
 import { SearchContextQuery } from "@/lib/types";
 
 interface ChatBoxProps {
@@ -29,7 +29,7 @@ interface ChatBoxProps {
     isRedirecting?: boolean;
     isGenerating?: boolean;
     languageModels: LanguageModelInfo[];
-    selectedItems: ContextItem[];
+    selectedItems: SearchScopeItem[];
     searchContexts: SearchContextQuery[];
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
@@ -58,10 +58,10 @@ export const ChatBox = ({
                 return [item.value];
             }
 
-            if (item.type === 'context') {
-                const context = searchContexts.find((context) => context.name === item.value);
-                if (context) {
-                    return context.repoNames;
+            if (item.type === 'reposet') {
+                const reposet = searchContexts.find((reposet) => reposet.name === item.value);
+                if (reposet) {
+                    return reposet.repoNames;
                 }
             }
 
@@ -162,7 +162,7 @@ export const ChatBox = ({
         if (isSubmitDisabled) {
             if (isSubmitDisabledReason === "no-repos-selected") {
                 toast({
-                    description: "⚠️ You must select at least one search context",
+                    description: "⚠️ You must select at least one search scope",
                     variant: "destructive",
                 });
                 onContextSelectorOpenChanged(true);
@@ -284,7 +284,7 @@ export const ChatBox = ({
         >
             <Editable
                 className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                placeholder="Ask questions about the selected search contexts. @mention files to refine your query."
+                placeholder="Ask a question about the selected search scopes. @mention files to refine your query."
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 onKeyDown={onKeyDown}
@@ -339,7 +339,7 @@ export const ChatBox = ({
                                 <TooltipContent>
                                     <div className="flex flex-row items-center">
                                         <TriangleAlertIcon className="h-4 w-4 text-warning mr-1" />
-                                        <span className="text-destructive">You must select at least one search context</span>
+                                        <span className="text-destructive">You must select at least one search scope</span>
                                     </div>
                                 </TooltipContent>
                             )}
