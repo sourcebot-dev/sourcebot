@@ -11,24 +11,38 @@ import { SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { SearchQueryParams } from "@/lib/types";
 import { PlayIcon } from "@radix-ui/react-icons";
-
+import { buildSearchQuery } from "@/features/chat/utils";
 
 export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const domain = useDomain();
 
+    const displayQuery = useMemo(() => {
+        if (part.state !== 'input-available' && part.state !== 'output-available') {
+            return '';
+        }
+
+        const query = buildSearchQuery({
+            query: part.input.queryRegexp,
+            repoNamesFilterRegexp: part.input.repoNamesFilterRegexp,
+            languageNamesFilter: part.input.languageNamesFilter,
+            fileNamesFilterRegexp: part.input.fileNamesFilterRegexp,
+        });
+
+        return query;
+    }, [part]);
+
     const label = useMemo(() => {
         switch (part.state) {
             case 'input-streaming':
                 return 'Searching...';
-            case 'input-available':
-                return <span>Searching for <CodeSnippet>{part.input.queryRegexp}</CodeSnippet></span>;
             case 'output-error':
                 return '"Search code" tool call failed';
+            case 'input-available':
             case 'output-available':
-                return <span>Searched for <CodeSnippet>{part.input.queryRegexp}</CodeSnippet></span>;
+                return <span>Searched for <CodeSnippet>{displayQuery}</CodeSnippet></span>;
         }
-    }, [part]);
+    }, [part, displayQuery]);
 
     return (
         <div className="my-4">

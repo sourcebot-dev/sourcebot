@@ -12,6 +12,8 @@ import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinition
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
 import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
+import { SearchReposToolComponent } from './tools/searchReposToolComponent';
+import { ListAllReposToolComponent } from './tools/listAllReposToolComponent';
 import { SBChatMessageMetadata, SBChatMessagePart } from '../../types';
 import { SearchScopeIcon } from '../searchScopeIcon';
 
@@ -177,6 +179,20 @@ export const DetailsCard = ({
                                             case 'tool-findSymbolReferences':
                                                 return (
                                                     <FindSymbolReferencesToolComponent
+                                                        key={index}
+                                                        part={part}
+                                                    />
+                                                )
+                                            case 'tool-searchRepos':
+                                                return (
+                                                    <SearchReposToolComponent
+                                                        key={index}
+                                                        part={part}
+                                                    />
+                                                )
+                                            case 'tool-listAllRepos':
+                                                return (
+                                                    <ListAllReposToolComponent
                                                         key={index}
                                                         part={part}
                                                     />

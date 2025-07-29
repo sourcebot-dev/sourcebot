@@ -6,7 +6,7 @@ import { ProviderOptions } from "@ai-sdk/provider-utils";
 import { createLogger } from "@sourcebot/logger";
 import { LanguageModel, ModelMessage, StopCondition, streamText } from "ai";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
-import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool } from "./tools";
+import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool, searchReposTool, listAllReposTool } from "./tools";
 import { FileSource, Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
 
@@ -54,6 +54,13 @@ export const createAgentStream = async ({
             [toolNames.readFiles]: readFilesTool,
             [toolNames.findSymbolReferences]: findSymbolReferencesTool,
             [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
+            // We only include these tools when there are no search scopes
+            // because the LLM will need to discover what repositories are
+            // available to it.
+            ...(searchScopeRepoNames.length === 0 ? {
+                [toolNames.searchRepos]: searchReposTool,
+                [toolNames.listAllRepos]: listAllReposTool,
+            } : {}),
         },
         prepareStep: async ({ stepNumber }) => {
             // The first step attaches any mentioned sources to the system prompt.
@@ -185,13 +192,7 @@ ${searchScopeRepoNames.map(repo => `- ${repo}`).join('\n')}
 </available_repositories>
 
 <research_phase_instructions>
-During the research phase, you have these tools available:
-- \`${toolNames.searchCode}\`: Search for code patterns, functions, or text across repositories
-- \`${toolNames.readFiles}\`: Read the contents of specific files
-- \`${toolNames.findSymbolReferences}\`: Find where symbols are referenced
-- \`${toolNames.findSymbolDefinitions}\`: Find where symbols are defined
-
-Use these tools to gather comprehensive context before answering. Always explain why you're using each tool.
+During the research phase, use the tools available to you to gather comprehensive context before answering. Always explain why you're using each tool. Depending on the user's question, you may need to use multiple tools. If the question is vague, ask the user for more information.
 </research_phase_instructions>
 
 ${answerInstructions}
