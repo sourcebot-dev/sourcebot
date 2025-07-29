@@ -1,6 +1,4 @@
-import Image from "next/image";
-import { LibraryBigIcon, Code, ScanSearchIcon } from "lucide-react";
-import { cn, getCodeHostIcon } from "@/lib/utils";
+import { BookMarkedIcon, LibraryBigIcon, ScanSearchIcon } from "lucide-react";
 
 export const SearchScopeInfoCard = () => {
     return (
@@ -10,24 +8,11 @@ export const SearchScopeInfoCard = () => {
                 <h4 className="text-sm font-semibold text-popover-foreground">Search Scope</h4>
             </div>
             <div className="text-sm text-popover-foreground leading-relaxed">
-                When asking Sourcebot a question, you can select one or more scopes to constrain the search.
+                When asking Sourcebot a question, you can select one or more scopes to focus the search.
                 There are two different types of search scopes:
                 <div className="mt-3 space-y-2">
                     <div className="flex items-center gap-2">
-                        {(() => {
-                            const githubIcon = getCodeHostIcon("github");
-                            return githubIcon ? (
-                                <Image
-                                    src={githubIcon.src}
-                                    alt="GitHub icon"
-                                    width={16}
-                                    height={16}
-                                    className={cn("h-4 w-4 flex-shrink-0", githubIcon.className)}
-                                />
-                            ) : (
-                                <Code className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            );
-                        })()}
+                        <BookMarkedIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         <span><strong>Repository</strong>: A single repository, indicated by the code host icon.</span>
                     </div>
                     <div className="flex items-center gap-2">

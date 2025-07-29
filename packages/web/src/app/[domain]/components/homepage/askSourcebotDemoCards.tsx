@@ -9,7 +9,7 @@ import { CardContent } from "@/components/ui/card";
 import { DemoExamples, DemoSearchExample, DemoSearchScope } from "@/types";
 import { cn, getCodeHostIcon } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { SearchScopeInfoCard } from "@/components/searchScopeInfoCard";
+import { SearchScopeInfoCard } from "@/features/chat/components/chatBox/searchScopeInfoCard";
 
 interface AskSourcebotDemoCardsProps {
     demoExamples: DemoExamples;

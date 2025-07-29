@@ -25,7 +25,7 @@ import { auth } from "./auth";
 import { getConnection } from "./data/connection";
 import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
-import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SEARCH_MODE_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
+import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SEARCH_MODE_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { TenancyMode, ApiKeyPayload } from "./lib/types";
 import { decrementOrgSeatCount, getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
@@ -2011,6 +2011,13 @@ export const setAnonymousAccessStatus = async (domain: string, enabled: boolean)
 export async function setSearchModeCookie(searchMode: "precise" | "agentic") {
     const cookieStore = await cookies();
     cookieStore.set(SEARCH_MODE_COOKIE_NAME, searchMode, {
+        httpOnly: false, // Allow client-side access
+    });
+}
+
+export async function setAgenticSearchTutorialDismissedCookie(dismissed: boolean) {
+    const cookieStore = await cookies();
+    cookieStore.set(AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, dismissed ? "true" : "false", {
         httpOnly: false, // Allow client-side access
     });
 }
