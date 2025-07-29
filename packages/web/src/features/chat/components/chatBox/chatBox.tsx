@@ -3,7 +3,7 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
+import { CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { cn, IS_MAC } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
@@ -18,7 +18,6 @@ import { Suggestion } from "./types";
 import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { useSuggestionsData } from "./useSuggestionsData";
 import { useToast } from "@/components/hooks/use-toast";
-import { ContextItem } from "./contextSelector";
 import { SearchContextQuery } from "@/lib/types";
 
 interface ChatBoxProps {
@@ -29,7 +28,7 @@ interface ChatBoxProps {
     isRedirecting?: boolean;
     isGenerating?: boolean;
     languageModels: LanguageModelInfo[];
-    selectedItems: ContextItem[];
+    selectedSearchScopes: SearchScope[];
     searchContexts: SearchContextQuery[];
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
@@ -42,7 +41,7 @@ export const ChatBox = ({
     isRedirecting,
     isGenerating,
     languageModels,
-    selectedItems,
+    selectedSearchScopes,
     searchContexts,
     onContextSelectorOpenChanged,
 }: ChatBoxProps) => {
@@ -53,15 +52,15 @@ export const ChatBox = ({
     const { suggestions, isLoading } = useSuggestionsData({
         suggestionMode,
         suggestionQuery,
-        selectedRepos: selectedItems.map((item) => {
+        selectedRepos: selectedSearchScopes.map((item) => {
             if (item.type === 'repo') {
                 return [item.value];
             }
 
-            if (item.type === 'context') {
-                const context = searchContexts.find((context) => context.name === item.value);
-                if (context) {
-                    return context.repoNames;
+            if (item.type === 'reposet') {
+                const reposet = searchContexts.find((reposet) => reposet.name === item.value);
+                if (reposet) {
+                    return reposet.repoNames;
                 }
             }
 
@@ -130,7 +129,7 @@ export const ChatBox = ({
             }
         }
 
-        if (selectedItems.length === 0) {
+        if (selectedSearchScopes.length === 0) {
             return {
                 isSubmitDisabled: true,
                 isSubmitDisabledReason: "no-repos-selected",
@@ -154,7 +153,7 @@ export const ChatBox = ({
         editor.children,
         isRedirecting,
         isGenerating,
-        selectedItems.length,
+        selectedSearchScopes.length,
         selectedLanguageModel,
     ])
 
@@ -162,7 +161,7 @@ export const ChatBox = ({
         if (isSubmitDisabled) {
             if (isSubmitDisabledReason === "no-repos-selected") {
                 toast({
-                    description: "⚠️ You must select at least one search context",
+                    description: "⚠️ You must select at least one search scope",
                     variant: "destructive",
                 });
                 onContextSelectorOpenChanged(true);
@@ -284,7 +283,7 @@ export const ChatBox = ({
         >
             <Editable
                 className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                placeholder="Ask questions about the selected search contexts. @mention files to refine your query."
+                placeholder="Ask a question about the selected search scopes. @mention files to refine your query."
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 onKeyDown={onKeyDown}
@@ -339,7 +338,7 @@ export const ChatBox = ({
                                 <TooltipContent>
                                     <div className="flex flex-row items-center">
                                         <TriangleAlertIcon className="h-4 w-4 text-warning mr-1" />
-                                        <span className="text-destructive">You must select at least one search context</span>
+                                        <span className="text-destructive">You must select at least one search scope</span>
                                     </div>
                                 </TooltipContent>
                             )}

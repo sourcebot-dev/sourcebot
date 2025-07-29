@@ -5,12 +5,11 @@ import { ChatBox } from "@/features/chat/components/chatBox";
 import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolbar";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
-import { LanguageModelInfo } from "@/features/chat/types";
+import { LanguageModelInfo, SearchScope } from "@/features/chat/types";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { useCallback, useState } from "react";
 import { Descendant } from "slate";
 import { useLocalStorage } from "usehooks-ts";
-import { ContextItem } from "@/features/chat/components/chatBox/contextSelector";
 
 interface NewChatPanelProps {
     languageModels: LanguageModelInfo[];
@@ -25,13 +24,13 @@ export const NewChatPanel = ({
     searchContexts,
     order,
 }: NewChatPanelProps) => {
-    const [selectedItems, setSelectedItems] = useLocalStorage<ContextItem[]>("selectedContextItems", [], { initializeWithValue: false });
+    const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>("selectedSearchScopes", [], { initializeWithValue: false });
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
 
     const onSubmit = useCallback((children: Descendant[]) => {
-        createNewChatThread(children, selectedItems);
-    }, [createNewChatThread, selectedItems]);
+        createNewChatThread(children, selectedSearchScopes);
+    }, [createNewChatThread, selectedSearchScopes]);
 
 
     return (
@@ -50,7 +49,7 @@ export const NewChatPanel = ({
                             preferredSuggestionsBoxPlacement="bottom-start"
                             isRedirecting={isLoading}
                             languageModels={languageModels}
-                            selectedItems={selectedItems}
+                            selectedSearchScopes={selectedSearchScopes}
                             searchContexts={searchContexts}
                             onContextSelectorOpenChanged={setIsContextSelectorOpen}
                         />
@@ -59,8 +58,8 @@ export const NewChatPanel = ({
                                 languageModels={languageModels}
                                 repos={repos}
                                 searchContexts={searchContexts}
-                                selectedItems={selectedItems}
-                                onSelectedItemsChange={setSelectedItems}
+                                selectedSearchScopes={selectedSearchScopes}
+                                onSelectedSearchScopesChange={setSelectedSearchScopes}
                                 isContextSelectorOpen={isContextSelectorOpen}
                                 onContextSelectorOpenChanged={setIsContextSelectorOpen}
                             />

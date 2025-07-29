@@ -3,13 +3,12 @@
 import { Separator } from "@/components/ui/separator";
 import { ChatBox } from "@/features/chat/components/chatBox";
 import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolbar";
-import { LanguageModelInfo } from "@/features/chat/types";
+import { LanguageModelInfo, SearchScope } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { useState } from "react";
 import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
 import { useLocalStorage } from "usehooks-ts";
-import { ContextItem } from "@/features/chat/components/chatBox/contextSelector";
 import { DemoExamples } from "@/types";
 import { AskSourcebotDemoCards } from "./askSourcebotDemoCards";
 
@@ -34,7 +33,7 @@ export const AgenticSearch = ({
     demoExamples,
 }: AgenticSearchProps) => {
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
-    const [selectedItems, setSelectedItems] = useLocalStorage<ContextItem[]>("selectedContextItems", [], { initializeWithValue: false });
+    const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>("selectedSearchScopes", [], { initializeWithValue: false });
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
 
     return (
@@ -42,12 +41,12 @@ export const AgenticSearch = ({
             <div className="mt-4 w-full border rounded-md shadow-sm max-w-[800px]">
                 <ChatBox
                     onSubmit={(children) => {
-                        createNewChatThread(children, selectedItems);
+                        createNewChatThread(children, selectedSearchScopes);
                     }}
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
                     languageModels={languageModels}
-                    selectedItems={selectedItems}
+                    selectedSearchScopes={selectedSearchScopes}
                     searchContexts={searchContexts}
                     onContextSelectorOpenChanged={setIsContextSelectorOpen}
                 />
@@ -58,8 +57,8 @@ export const AgenticSearch = ({
                             languageModels={languageModels}
                             repos={repos}
                             searchContexts={searchContexts}
-                            selectedItems={selectedItems}
-                            onSelectedItemsChange={setSelectedItems}
+                            selectedSearchScopes={selectedSearchScopes}
+                            onSelectedSearchScopesChange={setSelectedSearchScopes}
                             isContextSelectorOpen={isContextSelectorOpen}
                             onContextSelectorOpenChanged={setIsContextSelectorOpen}
                         />
@@ -74,10 +73,6 @@ export const AgenticSearch = ({
             {demoExamples && (
                 <AskSourcebotDemoCards
                     demoExamples={demoExamples}
-                    selectedItems={selectedItems}
-                    setSelectedItems={setSelectedItems}
-                    searchContexts={searchContexts}
-                    repos={repos}
                 />
             )}
         </div >

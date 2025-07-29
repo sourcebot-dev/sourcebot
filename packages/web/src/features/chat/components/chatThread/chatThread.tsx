@@ -5,14 +5,14 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
-import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, Source } from '@/features/chat/types';
+import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
 import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useDomain } from '@/hooks/useDomain';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon } from 'lucide-react';
 import { useNavigationGuard } from 'next-navigation-guard';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
 import { useSelectedLanguageModel } from '../../useSelectedLanguageModel';
@@ -23,7 +23,6 @@ import { ErrorBanner } from './errorBanner';
 import { useRouter } from 'next/navigation';
 import { usePrevious } from '@uidotdev/usehooks';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
-import { ContextItem } from '../chatBox/contextSelector';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -36,8 +35,8 @@ interface ChatThreadProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
-    selectedItems: ContextItem[];
-    onSelectedItemsChange: (items: ContextItem[]) => void;
+    selectedSearchScopes: SearchScope[];
+    onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     isChatReadonly: boolean;
 }
 
@@ -48,8 +47,8 @@ export const ChatThread = ({
     languageModels,
     repos,
     searchContexts,
-    selectedItems,
-    onSelectedItemsChange,
+    selectedSearchScopes,
+    onSelectedSearchScopesChange,
     isChatReadonly,
 }: ChatThreadProps) => {
     const domain = useDomain();
@@ -61,12 +60,6 @@ export const ChatThread = ({
     const { toast } = useToast();
     const router = useRouter();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
-
-    const { selectedRepos, selectedContexts } = useMemo(() => {
-        const repos = selectedItems.filter(item => item.type === 'repo').map(item => item.value);
-        const contexts = selectedItems.filter(item => item.type === 'context').map(item => item.value);
-        return { selectedRepos: repos, selectedContexts: contexts };
-    }, [selectedItems]);
 
     // Initial state is from attachments that exist in in the chat history.
     const [sources, setSources] = useState<Source[]>(
@@ -122,12 +115,11 @@ export const ChatThread = ({
 
         _sendMessage(message, {
             body: {
-                selectedRepos,
-                selectedContexts,
+                selectedSearchScopes,
                 languageModelId: selectedLanguageModel.model,
             } satisfies AdditionalChatRequestParams,
-        });
-    }, [_sendMessage, selectedLanguageModel, toast, selectedRepos, selectedContexts]);
+        }); 
+    }, [_sendMessage, selectedLanguageModel, toast, selectedSearchScopes]);
 
 
     const messagePairs = useMessagePairs(messages);
@@ -243,13 +235,13 @@ export const ChatThread = ({
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedRepos, selectedContexts);
+        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes);
         sendMessage(message);
 
         setIsAutoScrollEnabled(true);
 
         resetEditor(editor);
-    }, [sendMessage, selectedRepos, selectedContexts]);
+    }, [sendMessage, selectedSearchScopes]);
 
     return (
         <>
@@ -327,7 +319,7 @@ export const ChatThread = ({
                             isGenerating={status === "streaming" || status === "submitted"}
                             onStop={stop}
                             languageModels={languageModels}
-                            selectedItems={selectedItems}
+                            selectedSearchScopes={selectedSearchScopes}
                             searchContexts={searchContexts}
                             onContextSelectorOpenChanged={setIsContextSelectorOpen}
                         />
@@ -336,8 +328,8 @@ export const ChatThread = ({
                                 languageModels={languageModels}
                                 repos={repos}
                                 searchContexts={searchContexts}
-                                selectedItems={selectedItems}
-                                onSelectedItemsChange={onSelectedItemsChange}
+                                selectedSearchScopes={selectedSearchScopes}
+                                onSelectedSearchScopesChange={onSelectedSearchScopesChange}
                                 isContextSelectorOpen={isContextSelectorOpen}
                                 onContextSelectorOpenChanged={setIsContextSelectorOpen}
                             />

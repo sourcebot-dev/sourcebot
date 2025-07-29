@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add search context to ask sourcebot context selector. [#397](https://github.com/sourcebot-dev/sourcebot/pull/397)
 - Add ability to include/exclude connection in search context. [#399](https://github.com/sourcebot-dev/sourcebot/pull/399)
+- Search context refactor to search scope and demo card UI changes. [#405](https://github.com/sourcebot-dev/sourcebot/pull/405)
 
 ### Fixed
 - Fixed multiple writes race condition on config file watcher. [#398](https://github.com/sourcebot-dev/sourcebot/pull/398)

@@ -1,25 +1,25 @@
 'use client';
 
-import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { LanguageModelInfo } from "@/features/chat/types";
+import { LanguageModelInfo, SearchScope } from "@/features/chat/types";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { AtSignIcon } from "lucide-react";
 import { useCallback } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 import { ReactEditor, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { LanguageModelSelector } from "./languageModelSelector";
-import { ContextSelector, type ContextItem } from "./contextSelector";
+import { SearchScopeSelector } from "./searchScopeSelector";
+import { SearchScopeInfoCard } from "@/components/searchScopeInfoCard";
+import { AtMentionInfoCard } from "@/components/atMentionInfoCard";
 
 export interface ChatBoxToolbarProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
-    selectedItems: ContextItem[];
-    onSelectedItemsChange: (items: ContextItem[]) => void;
+    selectedSearchScopes: SearchScope[];
+    onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     isContextSelectorOpen: boolean;
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
@@ -28,8 +28,8 @@ export const ChatBoxToolbar = ({
     languageModels,
     repos,
     searchContexts,
-    selectedItems,
-    onSelectedItemsChange,
+    selectedSearchScopes,
+    onSelectedSearchScopesChange,
     isContextSelectorOpen,
     onContextSelectorOpenChanged,
 }: ChatBoxToolbarProps) => {
@@ -39,15 +39,6 @@ export const ChatBoxToolbar = ({
         editor.insertText("@");
         ReactEditor.focus(editor);
     }, [editor]);
-
-    useHotkeys("alt+mod+p", (e) => {
-        e.preventDefault();
-        onAddContext();
-    }, {
-        enableOnFormTags: true,
-        enableOnContentEditable: true,
-        description: "Add context", 
-    });
 
     const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel({
         initialLanguageModel: languageModels.length > 0 ? languageModels[0] : undefined,
@@ -66,30 +57,25 @@ export const ChatBoxToolbar = ({
                         <AtSignIcon className="w-4 h-4" />
                     </Button>
                 </TooltipTrigger>
-                <TooltipContent
-                    side="bottom"
-                    className="flex flex-row items-center gap-2"
-                >
-                    <KeyboardShortcutHint shortcut="⌥ ⌘ P" />
-                    <Separator orientation="vertical" className="h-4" />
-                    <span>Add context</span>
+                <TooltipContent side="bottom" className="p-0 border-0 bg-transparent shadow-none">
+                    <AtMentionInfoCard />
                 </TooltipContent>
             </Tooltip>
             <Separator orientation="vertical" className="h-3 mx-1" />
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <ContextSelector
+                    <SearchScopeSelector
                         className="bg-inherit w-fit h-6 min-h-6"
                         repos={repos}
                         searchContexts={searchContexts}
-                        selectedItems={selectedItems}
-                        onSelectedItemsChange={onSelectedItemsChange}
+                        selectedSearchScopes={selectedSearchScopes}
+                        onSelectedSearchScopesChange={onSelectedSearchScopesChange}
                         isOpen={isContextSelectorOpen}
                         onOpenChanged={onContextSelectorOpenChanged}
                     />
                 </TooltipTrigger>
-                <TooltipContent side="bottom">
-                    <span>Search contexts and repositories to scope conversation to.</span>
+                <TooltipContent side="bottom" className="p-0 border-0 bg-transparent shadow-none">
+                    <SearchScopeInfoCard />
                 </TooltipContent>
             </Tooltip>
             {languageModels.length > 0 && (

@@ -4,14 +4,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { Brain, ChevronDown, ChevronRight, Clock, Cpu, InfoIcon, Loader2, Zap } from 'lucide-react';
+import { Brain, ChevronDown, ChevronRight, Clock, Cpu, InfoIcon, Loader2, ScanSearchIcon, Zap } from 'lucide-react';
 import { MarkdownRenderer } from './markdownRenderer';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
 import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
 import { SBChatMessageMetadata, SBChatMessagePart } from '../../types';
+import { SearchScopeIcon } from '../searchScopeIcon';
 
 
 interface DetailsCardProps {
@@ -61,6 +63,28 @@ export const DetailsCard = ({
                                 {!isStreaming && (
                                     <>
                                         <Separator orientation="vertical" className="h-4" />
+                                        {metadata?.selectedSearchScopes && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex items-center text-xs cursor-help">
+                                                        <ScanSearchIcon className="w-3 h-3 mr-1 flex-shrink-0" />
+                                                        {metadata.selectedSearchScopes.length} search scope{metadata.selectedSearchScopes.length === 1 ? '' : 's'}
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom">
+                                                    <div className="max-w-xs">
+                                                        <div className="space-y-2">
+                                                            {metadata.selectedSearchScopes.map((item) => (
+                                                                <div key={item.value} className="flex items-center gap-2 text-xs">
+                                                                    <SearchScopeIcon searchScope={item} className="h-3 w-3" />
+                                                                    <span>{item.name}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )}
                                         {metadata?.modelName && (
                                             <div className="flex items-center text-xs">
                                                 <Cpu className="w-3 h-3 mr-1 flex-shrink-0" />

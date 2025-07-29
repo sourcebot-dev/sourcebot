@@ -39,6 +39,28 @@ export const referenceSchema = z.discriminatedUnion('type', [
 ]);
 export type Reference = z.infer<typeof referenceSchema>;
 
+export const repoSearchScopeSchema = z.object({
+    type: z.literal('repo'),
+    value: z.string(),
+    name: z.string(),
+    codeHostType: z.string(),
+});
+export type RepoSearchScope = z.infer<typeof repoSearchScopeSchema>;
+
+export const repoSetSearchScopeSchema = z.object({
+    type: z.literal('reposet'),
+    value: z.string(),
+    name: z.string(),
+    repoCount: z.number(),
+});
+export type RepoSetSearchScope = z.infer<typeof repoSetSearchScopeSchema>;
+
+export const searchScopeSchema = z.discriminatedUnion('type', [
+    repoSearchScopeSchema,
+    repoSetSearchScopeSchema,
+]);
+export type SearchScope = z.infer<typeof searchScopeSchema>;
+
 export const sbChatMessageMetadataSchema = z.object({
     modelName: z.string().optional(),
     totalInputTokens: z.number().optional(),
@@ -50,8 +72,7 @@ export const sbChatMessageMetadataSchema = z.object({
         timestamp: z.string(), // ISO date string
         userId: z.string(),
     })).optional(),
-    selectedRepos: z.array(z.string()).optional(),
-    selectedContexts: z.array(z.string()).optional(),
+    selectedSearchScopes: z.array(searchScopeSchema).optional(),
     traceId: z.string().optional(),
 });
 
@@ -139,8 +160,7 @@ export const SET_CHAT_STATE_QUERY_PARAM = 'setChatState';
 
 export type SetChatStatePayload = {
     inputMessage: CreateUIMessage<SBChatMessage>;
-    selectedRepos: string[];
-    selectedContexts: string[];
+    selectedSearchScopes: SearchScope[];
 }
 
 
@@ -157,7 +177,6 @@ export type LanguageModelInfo = {
 // Additional request body data that we send along to the chat API.
 export const additionalChatRequestParamsSchema = z.object({
     languageModelId: z.string(),
-    selectedRepos: z.array(z.string()),
-    selectedContexts: z.array(z.string()),
+    selectedSearchScopes: z.array(searchScopeSchema),
 });
 export type AdditionalChatRequestParams = z.infer<typeof additionalChatRequestParamsSchema>;
