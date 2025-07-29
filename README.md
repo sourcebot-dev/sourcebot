@@ -49,8 +49,19 @@ Try it out in our public demo [here](https://demo.sourcebot.dev)!
 [![Sourcebot Demo](https://github.com/user-attachments/assets/147f53ad-5912-4c76-a5d8-371d480fff24)](https://github.com/user-attachments/assets/286ad97a-a543-4eef-a2f1-4fa31bea1b32)
 
 
-## Features
+# Features
 ![Sourcebot Features](https://github.com/user-attachments/assets/3aed7348-7aeb-4af3-89da-b617c3db2e02)
+
+## Ask Sourcebot
+Ask Sourcebot gives you the ability to ask complex questions about your codebase in natural language.
+It uses Sourcebot’s existing code search and navigation tools to allow reasoning models to search your code, follow code nav references, and provide an answer that’s rich with inline citations and navigable code snippets.
+
+![Ask Sourcebot](https://mintlify.s3.us-west-1.amazonaws.com/sourcebot/images/ask_sourcebot_low_res.mp4)
+
+## Code Search
+Search across all your repos/branches across any code host platform. Blazingly fast, and supports regular expressions, repo/language search filters, boolean logic, and more.
+
+![Code Search](https://framerusercontent.com/assets/cEqHNSLiMbNeG3bk5xheQWXmKqc.mp4)
 
 # Deploy Sourcebot
 
