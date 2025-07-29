@@ -57,12 +57,12 @@ Ask Sourcebot gives you the ability to ask complex questions about your codebase
 
 It uses Sourcebot’s existing code search and navigation tools to allow reasoning models to search your code, follow code nav references, and provide an answer that’s rich with inline citations and navigable code snippets.
 
-https://github.com/user-attachments/assets/78b70d45-6970-42b0-bd95-d57024d40c34
+https://github.com/user-attachments/assets/feb82cde-51fc-42f9-830d-8f149d328a0b
 
 ## Code Search
 Search across all your repos/branches across any code host platform. Blazingly fast, and supports regular expressions, repo/language search filters, boolean logic, and more.
 
-https://github.com/user-attachments/assets/041e4eff-fdc0-4611-94ef-456265fe772e
+https://github.com/user-attachments/assets/022f0bd0-db45-45ba-a31f-7bd43b6e2e25
 
 # Deploy Sourcebot
 
