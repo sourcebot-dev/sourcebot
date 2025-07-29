@@ -23,6 +23,7 @@ interface HomepageProps {
     }[];
     initialSearchMode: SearchMode;
     demoExamples: DemoExamples | undefined;
+    isAgenticSearchTutorialDismissed: boolean;
 }
 
 
@@ -33,6 +34,7 @@ export const Homepage = ({
     chatHistory,
     initialSearchMode,
     demoExamples,
+    isAgenticSearchTutorialDismissed,
 }: HomepageProps) => {
     const [searchMode, setSearchMode] = useState<SearchMode>(initialSearchMode);
     const isAgenticSearchEnabled = languageModels.length > 0;
@@ -90,6 +92,7 @@ export const Homepage = ({
                         searchContexts={searchContexts}
                         chatHistory={chatHistory}
                         demoExamples={demoExamples}
+                        isTutorialDismissed={isAgenticSearchTutorialDismissed}
                     />
                 </CustomSlateEditor>
             )}

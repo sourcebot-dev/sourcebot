@@ -10,7 +10,7 @@ import { UpgradeToast } from "./components/upgradeToast";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { auth } from "@/auth";
 import { cookies } from "next/headers";
-import { SEARCH_MODE_COOKIE_NAME } from "@/lib/constants";
+import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, SEARCH_MODE_COOKIE_NAME } from "@/lib/constants";
 import { env } from "@/env.mjs";
 import { loadJsonFile } from "@sourcebot/shared";
 import { DemoExamples, demoExamplesSchema } from "@/types";
@@ -51,6 +51,8 @@ export default async function Home({ params: { domain } }: { params: { domain: s
         searchModeCookie?.value === "precise"
     ) ? searchModeCookie.value : models.length > 0 ? "agentic" : "precise";
 
+    const isAgenticSearchTutorialDismissed = cookieStore.get(AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME)?.value === "true";
+
     const demoExamples = env.SOURCEBOT_DEMO_EXAMPLES_PATH ? await (async () => {
         try {
             return await loadJsonFile<DemoExamples>(env.SOURCEBOT_DEMO_EXAMPLES_PATH!, demoExamplesSchema);
@@ -74,6 +76,7 @@ export default async function Home({ params: { domain } }: { params: { domain: s
                 chatHistory={chatHistory}
                 initialSearchMode={initialSearchMode}
                 demoExamples={demoExamples}
+                isAgenticSearchTutorialDismissed={isAgenticSearchTutorialDismissed}
             />
             <Footer />
         </div>

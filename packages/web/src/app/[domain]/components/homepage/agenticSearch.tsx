@@ -6,11 +6,13 @@ import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolba
 import { LanguageModelInfo, SearchScope } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
 import { useLocalStorage } from "usehooks-ts";
 import { DemoExamples } from "@/types";
 import { AskSourcebotDemoCards } from "./askSourcebotDemoCards";
+import { AgenticSearchTutorialDialog } from "./agenticSearchTutorialDialog";
+import { setAgenticSearchTutorialDismissedCookie } from "@/actions";
 
 interface AgenticSearchProps {
     searchModeSelectorProps: SearchModeSelectorProps;
@@ -23,6 +25,7 @@ interface AgenticSearchProps {
         name: string | null;
     }[];
     demoExamples: DemoExamples | undefined;
+    isTutorialDismissed: boolean;
 }
 
 export const AgenticSearch = ({
@@ -31,10 +34,17 @@ export const AgenticSearch = ({
     repos,
     searchContexts,
     demoExamples,
+    isTutorialDismissed,
 }: AgenticSearchProps) => {
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>("selectedSearchScopes", [], { initializeWithValue: false });
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
+
+    const [isTutorialOpen, setIsTutorialOpen] = useState(!isTutorialDismissed);
+    const onTutorialDismissed = useCallback(() => {
+        setIsTutorialOpen(false);
+        setAgenticSearchTutorialDismissedCookie(true);
+    }, []);
 
     return (
         <div className="flex flex-col items-center w-full">
@@ -73,6 +83,12 @@ export const AgenticSearch = ({
             {demoExamples && (
                 <AskSourcebotDemoCards
                     demoExamples={demoExamples}
+                />
+            )}
+
+            {isTutorialOpen && (
+                <AgenticSearchTutorialDialog
+                    onClose={onTutorialDismissed}
                 />
             )}
         </div >

@@ -11,8 +11,8 @@ import { ReactEditor, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { LanguageModelSelector } from "./languageModelSelector";
 import { SearchScopeSelector } from "./searchScopeSelector";
-import { SearchScopeInfoCard } from "@/components/searchScopeInfoCard";
-import { AtMentionInfoCard } from "@/components/atMentionInfoCard";
+import { SearchScopeInfoCard } from "@/features/chat/components/chatBox/searchScopeInfoCard";
+import { AtMentionInfoCard } from "@/features/chat/components/chatBox/atMentionInfoCard";
 
 export interface ChatBoxToolbarProps {
     languageModels: LanguageModelInfo[];
