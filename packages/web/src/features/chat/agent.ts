@@ -54,13 +54,8 @@ export const createAgentStream = async ({
             [toolNames.readFiles]: readFilesTool,
             [toolNames.findSymbolReferences]: findSymbolReferencesTool,
             [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
-            // We only include these tools when there are no search scopes
-            // because the LLM will need to discover what repositories are
-            // available to it.
-            ...(searchScopeRepoNames.length === 0 ? {
-                [toolNames.searchRepos]: searchReposTool,
-                [toolNames.listAllRepos]: listAllReposTool,
-            } : {}),
+            [toolNames.searchRepos]: searchReposTool,
+            [toolNames.listAllRepos]: listAllReposTool,
         },
         prepareStep: async ({ stepNumber }) => {
             // The first step attaches any mentioned sources to the system prompt.
