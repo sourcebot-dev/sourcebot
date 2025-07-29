@@ -68,13 +68,14 @@ export function RepositorySnapshot({
     return (
         <div className="flex flex-col items-center gap-3">
             <span className="text-sm">
-                {`Search ${indexedRepos.length} `}
+                {`${indexedRepos.length} `}
                 <Link
                     href={`${domain}/repos`}
                     className="text-link hover:underline"
                 >
                     {indexedRepos.length > 1 ? 'repositories' : 'repository'}
                 </Link>
+                {` indexed`}
             </span>
             <RepositoryCarousel repos={indexedRepos} />
         </div>

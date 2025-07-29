@@ -13,6 +13,7 @@ import { DemoExamples } from "@/types";
 import { AskSourcebotDemoCards } from "./askSourcebotDemoCards";
 import { AgenticSearchTutorialDialog } from "./agenticSearchTutorialDialog";
 import { setAgenticSearchTutorialDismissedCookie } from "@/actions";
+import { RepositorySnapshot } from "./repositorySnapshot";
 
 interface AgenticSearchProps {
     searchModeSelectorProps: SearchModeSelectorProps;
@@ -78,6 +79,16 @@ export const AgenticSearch = ({
                         />
                     </div>
                 </div>
+            </div>
+
+            <div className="mt-8">
+                <RepositorySnapshot
+                    repos={repos}
+                />
+            </div>
+
+            <div className="flex flex-col items-center w-fit gap-6">
+                <Separator className="mt-5 w-[700px]" />
             </div>
 
             {demoExamples && (

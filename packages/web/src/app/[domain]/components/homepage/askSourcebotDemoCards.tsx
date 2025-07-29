@@ -82,7 +82,7 @@ export const AskSourcebotDemoCards = ({
                 </p>
             )}
 
-            <div className="w-full mt-16 space-y-12 px-4 max-w-[1000px]">
+            <div className="w-full mt-8 space-y-12 px-4 max-w-[1200px]">
                 {/* Example Searches Row */}
                 <div className="space-y-4">
                     <div className="text-center mb-6">
