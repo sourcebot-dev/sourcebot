@@ -58,7 +58,6 @@ export const AgenticSearch = ({
                     languageModels={languageModels}
                     selectedSearchScopes={selectedSearchScopes}
                     searchContexts={searchContexts}
-                    onContextSelectorOpenChanged={setIsContextSelectorOpen}
                 />
                 <Separator />
                 <div className="relative">
