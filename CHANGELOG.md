@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Bumped AI SDK and associated packages version. [#404](https://github.com/sourcebot-dev/sourcebot/pull/404)
+- Bumped form-data package version. [#407](https://github.com/sourcebot-dev/sourcebot/pull/407)
 - Bumped next version. [#406](https://github.com/sourcebot-dev/sourcebot/pull/406)
 
 ## [4.6.0] - 2025-07-25
