@@ -66,110 +66,93 @@ export const AskSourcebotDemoCards = ({
     }
 
     return (
-        <>
-            {process.env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo" && (
-                <p className="text-sm text-muted-foreground text-center mt-6">
-                    Interested in using Sourcebot on your code? Check out our{' '}
-                    <a
-                        href="https://docs.sourcebot.dev/docs/overview"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                        onClick={() => captureEvent('wa_demo_docs_link_pressed', {})}
-                    >
-                        docs
-                    </a>
-                </p>
-            )}
-
-            <div className="w-full mt-8 space-y-12 px-4 max-w-[1200px]">
-                {/* Example Searches Row */}
-                <div className="space-y-4">
-                    <div className="text-center mb-6">
-                        <div className="flex items-center justify-center gap-3 mb-4">
-                            <Search className="h-7 w-7 text-muted-foreground" />
-                            <h3 className="text-2xl font-bold">Community Ask Results</h3>
-                        </div>
-                    </div>
-
-                    {/* Search Scope Filter */}
-                    <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-                        <div className="flex items-center gap-2 mr-2">
-                            <div className="relative group">
-                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
-                                    <SearchScopeInfoCard />
-                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-border"></div>
-                                </div>
-                            </div>
-                            <span className="text-sm font-medium text-muted-foreground">Search Scope:</span>
-                        </div>
-                        <Badge
-                            variant={selectedFilterSearchScope === null ? "default" : "secondary"}
-                            className={`cursor-pointer transition-all duration-200 hover:shadow-sm ${selectedFilterSearchScope === null ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80"
-                                }`}
-                            onClick={() => {
-                                setSelectedFilterSearchScope(null);
-                            }}
-                        >
-                            All
-                        </Badge>
-                        {demoExamples.searchScopes.map((searchScope) => (
-                            <Badge
-                                key={searchScope.id}
-                                variant={selectedFilterSearchScope === searchScope.id ? "default" : "secondary"}
-                                className={`cursor-pointer transition-all duration-200 hover:shadow-sm flex items-center gap-1 ${selectedFilterSearchScope === searchScope.id ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80"
-                                    }`}
-                                onClick={() => {
-                                    setSelectedFilterSearchScope(searchScope.id);
-                                }}
-                            >
-                                {getSearchScopeIcon(searchScope, 12, selectedFilterSearchScope === searchScope.id)}
-                                {searchScope.displayName}
-                            </Badge>
-                        ))}
-                    </div>
-
-                    <div className="flex flex-wrap justify-center gap-3">
-                        {demoExamples.searchExamples
-                            .filter((example) => {
-                                if (selectedFilterSearchScope === null) return true;
-                                return example.searchScopes.includes(selectedFilterSearchScope);
-                            })
-                            .map((example) => {
-                                const searchScopes = demoExamples.searchScopes.filter((searchScope) => example.searchScopes.includes(searchScope.id))
-                                return (
-                                    <Card
-                                        key={example.url}
-                                        className="cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 hover:border-primary/50 group w-full max-w-[350px]"
-                                        onClick={() => handleExampleClick(example)}
-                                    >
-                                        <CardContent className="p-4">
-                                            <div className="space-y-3">
-                                                <div className="flex items-center justify-between">
-                                                    {searchScopes.map((searchScope) => (
-                                                        <Badge key={searchScope.value} variant="secondary" className="text-[10px] px-1.5 py-0.5 h-4 flex items-center gap-1">
-                                                            {getSearchScopeIcon(searchScope, 12)}
-                                                            {searchScope.displayName}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <h4 className="font-semibold text-sm group-hover:text-primary transition-colors line-clamp-2">
-                                                        {example.title}
-                                                    </h4>
-                                                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-                                                        {example.description}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )
-                            })}
+        <div className="w-full mt-8 space-y-12 px-4 max-w-[1200px]">
+            {/* Example Searches Row */}
+            <div className="space-y-4">
+                <div className="text-center mb-6">
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                        <Search className="h-7 w-7 text-muted-foreground" />
+                        <h3 className="text-2xl font-bold">Community Ask Results</h3>
                     </div>
                 </div>
+
+                {/* Search Scope Filter */}
+                <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+                    <div className="flex items-center gap-2 mr-2">
+                        <div className="relative group">
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
+                                <SearchScopeInfoCard />
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-border"></div>
+                            </div>
+                        </div>
+                        <span className="text-sm font-medium text-muted-foreground">Search Scope:</span>
+                    </div>
+                    <Badge
+                        variant={selectedFilterSearchScope === null ? "default" : "secondary"}
+                        className={`cursor-pointer transition-all duration-200 hover:shadow-sm ${selectedFilterSearchScope === null ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80"
+                            }`}
+                        onClick={() => {
+                            setSelectedFilterSearchScope(null);
+                        }}
+                    >
+                        All
+                    </Badge>
+                    {demoExamples.searchScopes.map((searchScope) => (
+                        <Badge
+                            key={searchScope.id}
+                            variant={selectedFilterSearchScope === searchScope.id ? "default" : "secondary"}
+                            className={`cursor-pointer transition-all duration-200 hover:shadow-sm flex items-center gap-1 ${selectedFilterSearchScope === searchScope.id ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80"
+                                }`}
+                            onClick={() => {
+                                setSelectedFilterSearchScope(searchScope.id);
+                            }}
+                        >
+                            {getSearchScopeIcon(searchScope, 12, selectedFilterSearchScope === searchScope.id)}
+                            {searchScope.displayName}
+                        </Badge>
+                    ))}
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-3">
+                    {demoExamples.searchExamples
+                        .filter((example) => {
+                            if (selectedFilterSearchScope === null) return true;
+                            return example.searchScopes.includes(selectedFilterSearchScope);
+                        })
+                        .map((example) => {
+                            const searchScopes = demoExamples.searchScopes.filter((searchScope) => example.searchScopes.includes(searchScope.id))
+                            return (
+                                <Card
+                                    key={example.url}
+                                    className="cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 hover:border-primary/50 group w-full max-w-[350px]"
+                                    onClick={() => handleExampleClick(example)}
+                                >
+                                    <CardContent className="p-4">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                {searchScopes.map((searchScope) => (
+                                                    <Badge key={searchScope.value} variant="secondary" className="text-[10px] px-1.5 py-0.5 h-4 flex items-center gap-1">
+                                                        {getSearchScopeIcon(searchScope, 12)}
+                                                        {searchScope.displayName}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                            <div className="space-y-1">
+                                                <h4 className="font-semibold text-sm group-hover:text-primary transition-colors line-clamp-2">
+                                                    {example.title}
+                                                </h4>
+                                                <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                                                    {example.description}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )
+                        })}
+                </div>
             </div>
-        </>
+        </div>
     );
 }; 
