@@ -21,6 +21,7 @@ import { GcpIapAuth } from "./components/gcpIapAuth";
 import { getAnonymousAccessStatus, getMemberApprovalRequired } from "@/actions";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
+import { GitHubStarToast } from "./components/githubStarToast";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -134,6 +135,7 @@ export default async function Layout({
         <SyntaxGuideProvider>
             {children}
             <SyntaxReferenceGuide />
+            <GitHubStarToast />
         </SyntaxGuideProvider>
     )
 }
