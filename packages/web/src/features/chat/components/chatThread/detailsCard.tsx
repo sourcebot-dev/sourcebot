@@ -65,7 +65,7 @@ export const DetailsCard = ({
                                 {!isStreaming && (
                                     <>
                                         <Separator orientation="vertical" className="h-4" />
-                                        {metadata?.selectedSearchScopes && (
+                                        {(metadata?.selectedSearchScopes && metadata.selectedSearchScopes.length > 0) && (
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <div className="flex items-center text-xs cursor-help">
