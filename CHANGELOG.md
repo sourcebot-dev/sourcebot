@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Search context refactor to search scope and demo card UI changes. [#405](https://github.com/sourcebot-dev/sourcebot/pull/405)
 - Add GitHub star toast. [#409](https://github.com/sourcebot-dev/sourcebot/pull/409)
 - Added a onboarding modal when first visiting the homepage when `ask` mode is selected. [#408](https://github.com/sourcebot-dev/sourcebot/pull/408)
+- [ask sb] Added `searchReposTool` and `listAllReposTool`. [#400](https://github.com/sourcebot-dev/sourcebot/pull/400)
 
 ### Fixed
 - Fixed multiple writes race condition on config file watcher. [#398](https://github.com/sourcebot-dev/sourcebot/pull/398)
@@ -21,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped AI SDK and associated packages version. [#404](https://github.com/sourcebot-dev/sourcebot/pull/404)
 - Bumped form-data package version. [#407](https://github.com/sourcebot-dev/sourcebot/pull/407)
 - Bumped next version. [#406](https://github.com/sourcebot-dev/sourcebot/pull/406)
+- [ask sb] Improved search code tool with filter options. [#400](https://github.com/sourcebot-dev/sourcebot/pull/400)
+- [ask sb] Removed search scope constraint. [#400](https://github.com/sourcebot-dev/sourcebot/pull/400)
 
 ## [4.6.0] - 2025-07-25
 

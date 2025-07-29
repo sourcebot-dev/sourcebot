@@ -221,7 +221,7 @@ export const ReferencedSourcesListView = ({
                                     <span className="text-sm font-medium">{fileName}</span>
                                 </div>
                                 <div className="p-4 text-sm text-destructive bg-destructive/10 rounded border">
-                                    Failed to load file: {isServiceError(query.data) ? query.data.message : 'Unknown error'}
+                                    Failed to load file: {isServiceError(query.data) ? query.data.message : query.error?.message ?? 'Unknown error'}
                                 </div>
                             </div>
                         );

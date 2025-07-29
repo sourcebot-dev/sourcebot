@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences } from './utils'
+import { fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences, buildSearchQuery } from './utils'
 import { FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
 import { SBChatMessage, SBChatMessagePart } from './types';
 
@@ -350,4 +350,165 @@ test('repairReferences handles malformed inline code blocks', () => {
     const input = 'See `@file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts`} for details.';
     const expected = 'See @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts} for details.';
     expect(repairReferences(input)).toBe(expected);
+});
+
+test('buildSearchQuery returns base query when no filters provided', () => {
+    const result = buildSearchQuery({
+        query: 'console.log'
+    });
+    
+    expect(result).toBe('console.log');
+});
+
+test('buildSearchQuery adds repoNamesFilter correctly', () => {
+    const result = buildSearchQuery({
+        query: 'function test',
+        repoNamesFilter: ['repo1', 'repo2']
+    });
+    
+    expect(result).toBe('function test reposet:repo1,repo2');
+});
+
+test('buildSearchQuery adds single repoNamesFilter correctly', () => {
+    const result = buildSearchQuery({
+        query: 'function test',
+        repoNamesFilter: ['myrepo']
+    });
+    
+    expect(result).toBe('function test reposet:myrepo');
+});
+
+test('buildSearchQuery ignores empty repoNamesFilter', () => {
+    const result = buildSearchQuery({
+        query: 'function test',
+        repoNamesFilter: []
+    });
+    
+    expect(result).toBe('function test');
+});
+
+test('buildSearchQuery adds languageNamesFilter correctly', () => {
+    const result = buildSearchQuery({
+        query: 'class definition',
+        languageNamesFilter: ['typescript', 'javascript']
+    });
+    
+    expect(result).toBe('class definition ( lang:typescript or lang:javascript )');
+});
+
+test('buildSearchQuery adds single languageNamesFilter correctly', () => {
+    const result = buildSearchQuery({
+        query: 'class definition',
+        languageNamesFilter: ['python']
+    });
+    
+    expect(result).toBe('class definition ( lang:python )');
+});
+
+test('buildSearchQuery ignores empty languageNamesFilter', () => {
+    const result = buildSearchQuery({
+        query: 'class definition',
+        languageNamesFilter: []
+    });
+    
+    expect(result).toBe('class definition');
+});
+
+test('buildSearchQuery adds fileNamesFilterRegexp correctly', () => {
+    const result = buildSearchQuery({
+        query: 'import statement',
+        fileNamesFilterRegexp: ['*.ts', '*.js']
+    });
+    
+    expect(result).toBe('import statement ( file:*.ts or file:*.js )');
+});
+
+test('buildSearchQuery adds single fileNamesFilterRegexp correctly', () => {
+    const result = buildSearchQuery({
+        query: 'import statement',
+        fileNamesFilterRegexp: ['*.tsx']
+    });
+    
+    expect(result).toBe('import statement ( file:*.tsx )');
+});
+
+test('buildSearchQuery ignores empty fileNamesFilterRegexp', () => {
+    const result = buildSearchQuery({
+        query: 'import statement',
+        fileNamesFilterRegexp: []
+    });
+    
+    expect(result).toBe('import statement');
+});
+
+test('buildSearchQuery adds repoNamesFilterRegexp correctly', () => {
+    const result = buildSearchQuery({
+        query: 'bug fix',
+        repoNamesFilterRegexp: ['org/repo1', 'org/repo2']
+    });
+    
+    expect(result).toBe('bug fix ( repo:org/repo1 or repo:org/repo2 )');
+});
+
+test('buildSearchQuery adds single repoNamesFilterRegexp correctly', () => {
+    const result = buildSearchQuery({
+        query: 'bug fix',
+        repoNamesFilterRegexp: ['myorg/myrepo']
+    });
+    
+    expect(result).toBe('bug fix ( repo:myorg/myrepo )');
+});
+
+test('buildSearchQuery ignores empty repoNamesFilterRegexp', () => {
+    const result = buildSearchQuery({
+        query: 'bug fix',
+        repoNamesFilterRegexp: []
+    });
+    
+    expect(result).toBe('bug fix');
+});
+
+test('buildSearchQuery combines multiple filters correctly', () => {
+    const result = buildSearchQuery({
+        query: 'authentication',
+        repoNamesFilter: ['backend', 'frontend'],
+        languageNamesFilter: ['typescript', 'javascript'],
+        fileNamesFilterRegexp: ['*.ts', '*.js'],
+        repoNamesFilterRegexp: ['org/auth-*']
+    });
+    
+    expect(result).toBe(
+        'authentication reposet:backend,frontend ( lang:typescript or lang:javascript ) ( file:*.ts or file:*.js ) ( repo:org/auth-* )'
+    );
+});
+
+test('buildSearchQuery handles mixed empty and non-empty filters', () => {
+    const result = buildSearchQuery({
+        query: 'error handling',
+        repoNamesFilter: [],
+        languageNamesFilter: ['python'],
+        fileNamesFilterRegexp: [],
+        repoNamesFilterRegexp: ['error/*']
+    });
+    
+    expect(result).toBe('error handling ( lang:python ) ( repo:error/* )');
+});
+
+test('buildSearchQuery handles empty base query', () => {
+    const result = buildSearchQuery({
+        query: '',
+        repoNamesFilter: ['repo1'],
+        languageNamesFilter: ['typescript']
+    });
+    
+    expect(result).toBe(' reposet:repo1 ( lang:typescript )');
+});
+
+test('buildSearchQuery handles query with special characters', () => {
+    const result = buildSearchQuery({
+        query: 'console.log("hello world")',
+        repoNamesFilter: ['test-repo']
+    });
+    
+    expect(result).toBe('console.log("hello world") reposet:test-repo');
 });

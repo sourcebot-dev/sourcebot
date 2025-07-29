@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
+import { SearchContextQuery } from "@/lib/types";
 import { cn, IS_MAC } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
-import { ArrowUp, Loader2, StopCircleIcon, TriangleAlertIcon } from "lucide-react";
+import { ArrowUp, Loader2, StopCircleIcon } from "lucide-react";
 import { Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Descendant, insertText } from "slate";
@@ -17,8 +18,6 @@ import { SuggestionBox } from "./suggestionsBox";
 import { Suggestion } from "./types";
 import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { useSuggestionsData } from "./useSuggestionsData";
-import { useToast } from "@/components/hooks/use-toast";
-import { SearchContextQuery } from "@/lib/types";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
@@ -30,7 +29,6 @@ interface ChatBoxProps {
     languageModels: LanguageModelInfo[];
     selectedSearchScopes: SearchScope[];
     searchContexts: SearchContextQuery[];
-    onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
 
 export const ChatBox = ({
@@ -43,7 +41,6 @@ export const ChatBox = ({
     languageModels,
     selectedSearchScopes,
     searchContexts,
-    onContextSelectorOpenChanged,
 }: ChatBoxProps) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
@@ -70,7 +67,6 @@ export const ChatBox = ({
     const { selectedLanguageModel } = useSelectedLanguageModel({
         initialLanguageModel: languageModels.length > 0 ? languageModels[0] : undefined,
     });
-    const { toast } = useToast();
 
     // Reset the index when the suggestion mode changes.
     useEffect(() => {
@@ -101,9 +97,9 @@ export const ChatBox = ({
         return <Leaf {...props} />
     }, []);
 
-    const { isSubmitDisabled, isSubmitDisabledReason } = useMemo((): {
+    const { isSubmitDisabled } = useMemo((): {
         isSubmitDisabled: true,
-        isSubmitDisabledReason: "empty" | "redirecting" | "generating" | "no-repos-selected" | "no-language-model-selected"
+        isSubmitDisabledReason: "empty" | "redirecting" | "generating" | "no-language-model-selected"
     } | {
         isSubmitDisabled: false,
         isSubmitDisabledReason: undefined,
@@ -129,13 +125,6 @@ export const ChatBox = ({
             }
         }
 
-        if (selectedSearchScopes.length === 0) {
-            return {
-                isSubmitDisabled: true,
-                isSubmitDisabledReason: "no-repos-selected",
-            }
-        }
-
         if (selectedLanguageModel === undefined) {
 
             return {
@@ -149,29 +138,11 @@ export const ChatBox = ({
             isSubmitDisabledReason: undefined,
         }
 
-    }, [
-        editor.children,
-        isRedirecting,
-        isGenerating,
-        selectedSearchScopes.length,
-        selectedLanguageModel,
-    ])
+    }, [editor.children, isRedirecting, isGenerating, selectedLanguageModel])
 
     const onSubmit = useCallback(() => {
-        if (isSubmitDisabled) {
-            if (isSubmitDisabledReason === "no-repos-selected") {
-                toast({
-                    description: "⚠️ You must select at least one search scope",
-                    variant: "destructive",
-                });
-                onContextSelectorOpenChanged(true);
-            }
-
-            return;
-        }
-
         _onSubmit(editor.children, editor);
-    }, [_onSubmit, editor, isSubmitDisabled, isSubmitDisabledReason, toast, onContextSelectorOpenChanged]);
+    }, [_onSubmit, editor]);
 
     const onInsertSuggestion = useCallback((suggestion: Suggestion) => {
         switch (suggestion.type) {
@@ -310,39 +281,15 @@ export const ChatBox = ({
                             Stop
                         </Button>
                     ) : (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div
-                                    onClick={() => {
-                                        // @hack: When submission is disabled, we still want to issue
-                                        // a warning to the user as to why the submission is disabled.
-                                        // onSubmit on the Button will not be called because of the
-                                        // disabled prop, hence the call here.
-                                        if (isSubmitDisabled) {
-                                            onSubmit();
-                                        }
-                                    }}
-                                >
-                                    <Button
-                                        variant={isSubmitDisabled ? "outline" : "default"}
-                                        size="sm"
-                                        className="w-6 h-6"
-                                        onClick={onSubmit}
-                                        disabled={isSubmitDisabled}
-                                    >
-                                        <ArrowUp className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </TooltipTrigger>
-                            {(isSubmitDisabled && isSubmitDisabledReason === "no-repos-selected") && (
-                                <TooltipContent>
-                                    <div className="flex flex-row items-center">
-                                        <TriangleAlertIcon className="h-4 w-4 text-warning mr-1" />
-                                        <span className="text-destructive">You must select at least one search scope</span>
-                                    </div>
-                                </TooltipContent>
-                            )}
-                        </Tooltip>
+                            <Button
+                                variant={isSubmitDisabled ? "outline" : "default"}
+                                size="sm"
+                                className="w-6 h-6"
+                                onClick={onSubmit}
+                                disabled={isSubmitDisabled}
+                            >
+                                <ArrowUp className="w-4 h-4" />
+                            </Button>
                     )}
             </div>
             {suggestionMode !== "none" && (
