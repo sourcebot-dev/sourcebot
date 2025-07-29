@@ -57,6 +57,7 @@ export const SearchScopeSelector = React.forwardRef<
     ) => {
         const scrollContainerRef = React.useRef<HTMLDivElement>(null);
         const scrollPosition = React.useRef<number>(0);
+        const [hasSearchInput, setHasSearchInput] = React.useState(false);
 
         const handleInputKeyDown = (
             event: React.KeyboardEvent<HTMLInputElement>
@@ -91,6 +92,10 @@ export const SearchScopeSelector = React.forwardRef<
 
         const handleClear = () => {
             onSelectedSearchScopesChange([]);
+        };
+
+        const handleSelectAll = () => {
+            onSelectedSearchScopesChange(allSearchScopeItems);
         };
 
         const handleTogglePopover = () => {
@@ -180,10 +185,19 @@ export const SearchScopeSelector = React.forwardRef<
                         <CommandInput
                             placeholder="Search scopes..."
                             onKeyDown={handleInputKeyDown}
+                            onValueChange={(value) => setHasSearchInput(!!value)}
                         />
                         <CommandList ref={scrollContainerRef}>
                             <CommandEmpty>No results found.</CommandEmpty>
                             <CommandGroup>
+                                {!hasSearchInput && (
+                                    <div 
+                                        onClick={handleSelectAll}
+                                        className="flex items-center px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                                    >
+                                        <span className="text-xs">Select all</span>
+                                    </div>
+                                )}
                                 {sortedSearchScopeItems.map(({ item, isSelected }) => {
                                     return (
                                         <CommandItem

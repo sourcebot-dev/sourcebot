@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { Brain, ChevronDown, ChevronRight, Clock, Cpu, InfoIcon, Loader2, ScanSearchIcon, Zap } from 'lucide-react';
+import { Brain, ChevronDown, ChevronRight, Clock, Cpu, InfoIcon, Loader2, List, ScanSearchIcon, Zap } from 'lucide-react';
 import { MarkdownRenderer } from './markdownRenderer';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
@@ -89,7 +89,7 @@ export const DetailsCard = ({
                                         )}
                                         {metadata?.modelName && (
                                             <div className="flex items-center text-xs">
-                                                <Cpu className="w-3 h-3 mr-1 flex-shrink-0" />
+                                                <Brain className="w-3 h-3 mr-1 flex-shrink-0" />
                                                 {metadata?.modelName}
                                             </div>
                                         )}
@@ -106,7 +106,7 @@ export const DetailsCard = ({
                                             </div>
                                         )}
                                         <div className="flex items-center text-xs">
-                                            <Brain className="w-3 h-3 mr-1 flex-shrink-0" />
+                                            <List className="w-3 h-3 mr-1 flex-shrink-0" />
                                             {`${thinkingSteps.length} step${thinkingSteps.length === 1 ? '' : 's'}`}
                                         </div>
                                     </>

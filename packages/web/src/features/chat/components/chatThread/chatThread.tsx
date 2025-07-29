@@ -321,6 +321,7 @@ export const ChatThread = ({
                             languageModels={languageModels}
                             selectedSearchScopes={selectedSearchScopes}
                             searchContexts={searchContexts}
+                            onContextSelectorOpenChanged={setIsContextSelectorOpen}
                         />
                         <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                             <ChatBoxToolbar
