@@ -44,7 +44,7 @@ Sourcebot is a self-hosted tool that helps you understand your codebase.
 - **Ask Sourcebot:** Ask questions about your codebase and have Sourcebot provide detailed answers grounded with inline citations.
 - **Code search:** Search and navigate across all your repos and branches, no matter where they’re hosted.
 
-Try it out in our public demo [here](https://demo.sourcebot.dev)!
+Try it out in our [public demo](https://demo.sourcebot.dev)!
 
 [![Sourcebot Demo](https://github.com/user-attachments/assets/147f53ad-5912-4c76-a5d8-371d480fff24)](https://github.com/user-attachments/assets/286ad97a-a543-4eef-a2f1-4fa31bea1b32)
 
@@ -54,14 +54,15 @@ Try it out in our public demo [here](https://demo.sourcebot.dev)!
 
 ## Ask Sourcebot
 Ask Sourcebot gives you the ability to ask complex questions about your codebase in natural language.
+
 It uses Sourcebot’s existing code search and navigation tools to allow reasoning models to search your code, follow code nav references, and provide an answer that’s rich with inline citations and navigable code snippets.
 
-![Ask Sourcebot](https://mintlify.s3.us-west-1.amazonaws.com/sourcebot/images/ask_sourcebot_low_res.mp4)
+![Ask Sourcebot](https://github.com/user-attachments/assets/78b70d45-6970-42b0-bd95-d57024d40c34)
 
 ## Code Search
 Search across all your repos/branches across any code host platform. Blazingly fast, and supports regular expressions, repo/language search filters, boolean logic, and more.
 
-![Code Search](https://framerusercontent.com/assets/cEqHNSLiMbNeG3bk5xheQWXmKqc.mp4)
+![Code Search](https://github.com/user-attachments/assets/041e4eff-fdc0-4611-94ef-456265fe772e)
 
 # Deploy Sourcebot
 
