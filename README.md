@@ -42,14 +42,12 @@
 </p>
 </p>
 
-# About
-
 Sourcebot is a self-hosted tool that helps you understand your codebase. 
 
 - **Ask Sourcebot:** Ask questions about your codebase and have Sourcebot provide detailed answers grounded with inline citations.
 - **Code search:** Search and navigate across all your repos and branches, no matter where they’re hosted.
 
-https://github.com/user-attachments/assets/286ad97a-a543-4eef-a2f1-4fa31bea1b32
+[![Sourcebot Demo](https://github.com/user-attachments/assets/147f53ad-5912-4c76-a5d8-371d480fff24)](https://github.com/user-attachments/assets/286ad97a-a543-4eef-a2f1-4fa31bea1b32)
 
 
 ## Features
