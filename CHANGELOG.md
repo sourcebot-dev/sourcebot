@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add search context to ask sourcebot context selector. [#397](https://github.com/sourcebot-dev/sourcebot/pull/397)
 - Add ability to include/exclude connection in search context. [#399](https://github.com/sourcebot-dev/sourcebot/pull/399)
 - Search context refactor to search scope and demo card UI changes. [#405](https://github.com/sourcebot-dev/sourcebot/pull/405)
+- Add GitHub star toast. [#409](https://github.com/sourcebot-dev/sourcebot/pull/409)
 - Added a onboarding modal when first visiting the homepage when `ask` mode is selected. [#408](https://github.com/sourcebot-dev/sourcebot/pull/408)
 
 ### Fixed
@@ -18,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Bumped AI SDK and associated packages version. [#404](https://github.com/sourcebot-dev/sourcebot/pull/404)
+- Bumped form-data package version. [#407](https://github.com/sourcebot-dev/sourcebot/pull/407)
+- Bumped next version. [#406](https://github.com/sourcebot-dev/sourcebot/pull/406)
 
 ## [4.6.0] - 2025-07-25
 

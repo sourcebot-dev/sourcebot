@@ -293,5 +293,8 @@ export type PosthogEventMap = {
         exampleTitle: string,
         exampleUrl: string,
     },
+    //////////////////////////////////////////////////////////////////
+    wa_github_star_toast_displayed: {},
+    wa_github_star_toast_clicked: {},
 } 
 export type PosthogEvent = keyof PosthogEventMap;
