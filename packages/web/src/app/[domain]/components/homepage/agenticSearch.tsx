@@ -11,6 +11,7 @@ import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
 import { useLocalStorage } from "usehooks-ts";
 import { DemoExamples } from "@/types";
 import { AskSourcebotDemoCards } from "./askSourcebotDemoCards";
+import { AskSourcebotTutorial } from "./askSourcebotTutorial";
 
 interface AgenticSearchProps {
     searchModeSelectorProps: SearchModeSelectorProps;
@@ -35,6 +36,7 @@ export const AgenticSearch = ({
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>("selectedSearchScopes", [], { initializeWithValue: false });
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
+    const [isTutorialOpen, setIsTutorialOpen] = useState(true);
 
     return (
         <div className="flex flex-col items-center w-full">
@@ -75,6 +77,11 @@ export const AgenticSearch = ({
                     demoExamples={demoExamples}
                 />
             )}
+
+            <AskSourcebotTutorial
+                isOpen={isTutorialOpen}
+                onClose={() => setIsTutorialOpen(false)}
+            />
         </div >
     )
 }
