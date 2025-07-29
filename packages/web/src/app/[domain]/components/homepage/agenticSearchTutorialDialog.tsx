@@ -13,6 +13,7 @@ import {
     ArrowLeftRightIcon,
     AtSignIcon,
     BookMarkedIcon,
+    BookTextIcon,
     ChevronLeft,
     ChevronRight,
     CircleCheckIcon,
@@ -173,7 +174,7 @@ const tutorialSteps = [
                             <span><strong>Commits</strong>: Reference specific git commits</span>
                         </div>
                         <div className="flex gap-2">
-                            <BookMarkedIcon className="h-4 w-4 flex-shrink-0 mt-1" />
+                            <BookTextIcon className="h-4 w-4 flex-shrink-0 mt-1" />
                             <span><strong>Docs</strong>: Link to external docs and wikis</span>
                         </div>
                         <div className="flex gap-2">
