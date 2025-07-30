@@ -104,7 +104,8 @@
     --chat-reference-selected-border: hsl(217, 91%, 60%);
     
     --chat-citation: #3b83f640;
-    --chat-citation-hover: hsl(217, 91%, 70%);
+    --chat-citation-hover: hsl(217, 91%, 75%);
+    --chat-citation-selected: hsl(217, 91%, 65%);
     --chat-citation-border: hsl(217, 91%, 60%);
 
     --warning: #ca8a04;
@@ -195,7 +196,8 @@
     --chat-reference-selected-border: hsl(217, 91%, 60%);
     
     --chat-citation: #1e3b8a87;
-    --chat-citation-hover: hsl(217, 91%, 55%);
+    --chat-citation-hover: hsl(217, 91%, 45%);
+    --chat-citation-selected: hsl(217, 80%, 50%);
     --chat-citation-border: hsl(217, 91%, 60%);
 
     --warning: #fde047;
@@ -272,6 +274,13 @@
 /* Separate hover class for inline chat citations */
 .chat-citation--hover {
   background-color: var(--chat-citation-hover) !important;
+}
+
+/* Separate selected class for inline chat citations */
+.chat-citation--selected {
+  background-color: var(--chat-citation-selected) !important;
+  border-color: var(--chat-citation-border) !important;
+  font-weight: 600;
 }
 
 /* Chat citation styling for inline citations in chat responses */

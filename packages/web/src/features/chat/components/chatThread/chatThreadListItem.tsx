@@ -235,12 +235,17 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
         });
 
         referenceElements.forEach(element => {
-            element.classList.add('chat-reference--selected');
+            // Check if it's an inline chat citation or code viewer element
+            const isInlineCitation = element.classList.contains('bg-chat-citation');
+            const selectedClass = isInlineCitation ? 'chat-citation--selected' : 'chat-reference--selected';
+            element.classList.add(selectedClass);
         });
 
         return () => {
             referenceElements.forEach(element => {
+                // Remove both possible selected classes
                 element.classList.remove('chat-reference--selected');
+                element.classList.remove('chat-citation--selected');
             });
         };
     }, [selectedReference]);
