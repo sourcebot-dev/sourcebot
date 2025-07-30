@@ -64,6 +64,16 @@ Search across all your repos/branches across any code host platform. Blazingly f
 
 https://github.com/user-attachments/assets/022f0bd0-db45-45ba-a31f-7bd43b6e2e25
 
+## Code Navigation
+IDE-level code navigation (goto definition and find references) across all your repos.
+
+https://github.com/user-attachments/assets/86c1cd58-c4d1-4481-a2d3-fcbb79d98203
+
+## Built-in File Explorer
+Explore every file across all of your repos. Modern UI with syntax highlighting, file tree, code navigation, etc.
+
+https://github.com/user-attachments/assets/42d5782b-9e8d-4de2-a3b9-6db972901638
+
 # Deploy Sourcebot
 
 Sourcebot can be deployed in seconds using our official docker image. Visit our [docs](https://docs.sourcebot.dev/docs/deployment-guide) for more information.
