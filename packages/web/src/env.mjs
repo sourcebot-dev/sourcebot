@@ -116,6 +116,8 @@ export const env = createEnv({
         GOOGLE_VERTEX_PROJECT: z.string().optional(),
         GOOGLE_VERTEX_REGION: z.string().default('us-central1'),
         GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
+        GOOGLE_VERTEX_THINKING_BUDGET_TOKENS: numberSchema.default(-1),
+        GOOGLE_VERTEX_INCLUDE_THOUGHTS: booleanSchema.default('true'),
 
         AWS_ACCESS_KEY_ID: z.string().optional(),
         AWS_SECRET_ACCESS_KEY: z.string().optional(),
@@ -127,6 +129,8 @@ export const env = createEnv({
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
 
         LANGFUSE_SECRET_KEY: z.string().optional(),
+
+        SOURCEBOT_DEMO_EXAMPLES_PATH: z.string().optional(),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in

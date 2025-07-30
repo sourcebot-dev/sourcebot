@@ -1,3 +1,4 @@
+import { SBChatMessagePart } from "./types";
 
 export const FILE_REFERENCE_PREFIX = '@file:';
 export const FILE_REFERENCE_REGEX = new RegExp(
@@ -13,4 +14,18 @@ export const toolNames = {
     readFiles: 'readFiles',
     findSymbolReferences: 'findSymbolReferences',
     findSymbolDefinitions: 'findSymbolDefinitions',
+    searchRepos: 'searchRepos',
+    listAllRepos: 'listAllRepos',
 } as const;
+
+// These part types are visible in the UI.
+export const uiVisiblePartTypes: SBChatMessagePart['type'][] = [
+    'reasoning',
+    'text',
+    'tool-searchCode',
+    'tool-readFiles',
+    'tool-findSymbolDefinitions',
+    'tool-findSymbolReferences',
+    'tool-searchRepos',
+    'tool-listAllRepos',
+] as const;

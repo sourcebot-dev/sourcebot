@@ -5,6 +5,16 @@
 @import "./codemirror-styles.css";
 
 @layer base {
+  html {
+    overflow-y: scroll;
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  html::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+  }
+  
   :root {
     --background: hsl(0 0% 100%);
     --background-secondary: hsl(0, 0%, 98%);
@@ -90,8 +100,13 @@
 
     --chat-reference: #02255f11;
     --chat-reference-hover: #02225f22;
-    --chat-reference-selected: #3b83f640;
-    --chat-reference-selected-border: #e052b8;
+    --chat-reference-selected: hsl(217, 91%, 78%);
+    --chat-reference-selected-border: hsl(217, 91%, 60%);
+    
+    --chat-citation: #3b83f640;
+    --chat-citation-hover: hsl(217, 91%, 75%);
+    --chat-citation-selected: hsl(217, 91%, 65%);
+    --chat-citation-border: hsl(217, 91%, 60%);
 
     --warning: #ca8a04;
   }
@@ -177,8 +192,13 @@
 
     --chat-reference: #2c313aad;
     --chat-reference-hover: #374151;
-    --chat-reference-selected: #1e3b8a87;
-    --chat-reference-selected-border: #60a5fa;
+    --chat-reference-selected: hsl(217, 40%, 30%);
+    --chat-reference-selected-border: hsl(217, 91%, 60%);
+    
+    --chat-citation: #1e3b8a87;
+    --chat-citation-hover: hsl(217, 91%, 45%);
+    --chat-citation-selected: hsl(217, 80%, 50%);
+    --chat-citation-border: hsl(217, 91%, 60%);
 
     --warning: #fde047;
   }
@@ -249,6 +269,34 @@
 
 .chat-reference--hover {
   background-color: var(--chat-reference-hover) !important;
+}
+
+/* Separate hover class for inline chat citations */
+.chat-citation--hover {
+  background-color: var(--chat-citation-hover) !important;
+}
+
+/* Separate selected class for inline chat citations */
+.chat-citation--selected {
+  background-color: var(--chat-citation-selected) !important;
+  border-color: var(--chat-citation-border) !important;
+  font-weight: 600;
+}
+
+/* Chat citation styling for inline citations in chat responses */
+.bg-chat-citation {
+  background-color: var(--chat-citation);
+  border: 1px solid var(--chat-citation-border);
+  font-weight: 500;
+}
+
+.bg-chat-citation:hover,
+.hover\:bg-chat-citation-hover:hover {
+  background-color: var(--chat-citation-hover);
+}
+
+.bg-chat-citation-hover {
+  background-color: var(--chat-citation-hover);
 }
 
 .cm-editor.cm-focused {

@@ -93,7 +93,7 @@ export const LanguageModelSelector = ({
                         >
                             {selectedModel ? (selectedModel.displayName ?? selectedModel.model) : "Select model"}
                         </span>
-                        <ChevronDown className="h-4 cursor-pointer text-muted-foreground ml-2" />
+                        <ChevronDown className="h-4 cursor-pointer text-muted-foreground" />
                     </div>
                 </Button>
             </PopoverTrigger>

@@ -3,7 +3,7 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
+import { CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { cn, IS_MAC } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
@@ -18,6 +18,7 @@ import { Suggestion } from "./types";
 import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { useSuggestionsData } from "./useSuggestionsData";
 import { useToast } from "@/components/hooks/use-toast";
+import { SearchContextQuery } from "@/lib/types";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
@@ -27,8 +28,9 @@ interface ChatBoxProps {
     isRedirecting?: boolean;
     isGenerating?: boolean;
     languageModels: LanguageModelInfo[];
-    selectedRepos: string[];
-    onRepoSelectorOpenChanged: (isOpen: boolean) => void;
+    selectedSearchScopes: SearchScope[];
+    searchContexts: SearchContextQuery[];
+    onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
 
 export const ChatBox = ({
@@ -39,8 +41,9 @@ export const ChatBox = ({
     isRedirecting,
     isGenerating,
     languageModels,
-    selectedRepos,
-    onRepoSelectorOpenChanged,
+    selectedSearchScopes,
+    searchContexts,
+    onContextSelectorOpenChanged,
 }: ChatBoxProps) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
@@ -49,7 +52,20 @@ export const ChatBox = ({
     const { suggestions, isLoading } = useSuggestionsData({
         suggestionMode,
         suggestionQuery,
-        selectedRepos,
+        selectedRepos: selectedSearchScopes.map((item) => {
+            if (item.type === 'repo') {
+                return [item.value];
+            }
+
+            if (item.type === 'reposet') {
+                const reposet = searchContexts.find((reposet) => reposet.name === item.value);
+                if (reposet) {
+                    return reposet.repoNames;
+                }
+            }
+
+            return [];
+        }).flat(),
     });
     const { selectedLanguageModel } = useSelectedLanguageModel({
         initialLanguageModel: languageModels.length > 0 ? languageModels[0] : undefined,
@@ -113,7 +129,7 @@ export const ChatBox = ({
             }
         }
 
-        if (selectedRepos.length === 0) {
+        if (selectedSearchScopes.length === 0) {
             return {
                 isSubmitDisabled: true,
                 isSubmitDisabledReason: "no-repos-selected",
@@ -137,7 +153,7 @@ export const ChatBox = ({
         editor.children,
         isRedirecting,
         isGenerating,
-        selectedRepos.length,
+        selectedSearchScopes.length,
         selectedLanguageModel,
     ])
 
@@ -145,17 +161,17 @@ export const ChatBox = ({
         if (isSubmitDisabled) {
             if (isSubmitDisabledReason === "no-repos-selected") {
                 toast({
-                    description: "⚠️ One or more repositories must be selected.",
+                    description: "⚠️ You must select at least one search scope",
                     variant: "destructive",
                 });
-                onRepoSelectorOpenChanged(true);
+                onContextSelectorOpenChanged(true);
             }
 
             return;
         }
 
         _onSubmit(editor.children, editor);
-    }, [_onSubmit, editor, isSubmitDisabled, isSubmitDisabledReason, toast, onRepoSelectorOpenChanged]);
+    }, [_onSubmit, editor, isSubmitDisabled, isSubmitDisabledReason, toast, onContextSelectorOpenChanged]);
 
     const onInsertSuggestion = useCallback((suggestion: Suggestion) => {
         switch (suggestion.type) {
@@ -267,7 +283,7 @@ export const ChatBox = ({
         >
             <Editable
                 className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                placeholder="Ask, plan, or search your codebase. @mention files to refine your query."
+                placeholder="Ask a question about your code. @mention files or select search scopes to refine your query."
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 onKeyDown={onKeyDown}
@@ -322,7 +338,7 @@ export const ChatBox = ({
                                 <TooltipContent>
                                     <div className="flex flex-row items-center">
                                         <TriangleAlertIcon className="h-4 w-4 text-warning mr-1" />
-                                        <span className="text-destructive">One or more repositories must be selected.</span>
+                                        <span className="text-destructive">You must select at least one search scope</span>
                                     </div>
                                 </TooltipContent>
                             )}

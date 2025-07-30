@@ -7,8 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.1] - 2025-07-29
+
+### Added
+- Add search context to ask sourcebot context selector. [#397](https://github.com/sourcebot-dev/sourcebot/pull/397)
+- Add ability to include/exclude connection in search context. [#399](https://github.com/sourcebot-dev/sourcebot/pull/399)
+- Search context refactor to search scope and demo card UI changes. [#405](https://github.com/sourcebot-dev/sourcebot/pull/405)
+- Add GitHub star toast. [#409](https://github.com/sourcebot-dev/sourcebot/pull/409)
+- Added a onboarding modal when first visiting the homepage when `ask` mode is selected. [#408](https://github.com/sourcebot-dev/sourcebot/pull/408)
+- [ask sb] Added `searchReposTool` and `listAllReposTool`. [#400](https://github.com/sourcebot-dev/sourcebot/pull/400)
+
+### Fixed
+- Fixed multiple writes race condition on config file watcher. [#398](https://github.com/sourcebot-dev/sourcebot/pull/398)
+
+### Changed
+- Bumped AI SDK and associated packages version. [#404](https://github.com/sourcebot-dev/sourcebot/pull/404)
+- Bumped form-data package version. [#407](https://github.com/sourcebot-dev/sourcebot/pull/407)
+- Bumped next version. [#406](https://github.com/sourcebot-dev/sourcebot/pull/406)
+- [ask sb] Improved search code tool with filter options. [#400](https://github.com/sourcebot-dev/sourcebot/pull/400)
+- [ask sb] Removed search scope constraint. [#400](https://github.com/sourcebot-dev/sourcebot/pull/400)
+- Update README with new features and videos. [#410](https://github.com/sourcebot-dev/sourcebot/pull/410)
+- [ask sb] Add back search scope requirement and other UI changes. [#411](https://github.com/sourcebot-dev/sourcebot/pull/411)
+
+## [4.6.0] - 2025-07-25
+
 ### Added
 - Introducing Ask Sourcebot - ask natural langauge about your codebase. Get back comprehensive Markdown responses with inline citations back to the code. Bring your own LLM api key. [#392](https://github.com/sourcebot-dev/sourcebot/pull/392) 
+
+### Fixed 
+- Fixed onboarding infinite loop when GCP IAP Auth is enabled. [#381](https://github.com/sourcebot-dev/sourcebot/pull/381)
 
 ## [4.5.3] - 2025-07-20
 

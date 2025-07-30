@@ -14,7 +14,7 @@ import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
-import { BetweenHorizontalStart, GitBranchIcon, LockIcon } from "lucide-react";
+import { BetweenHorizontalStart, Brain, GitBranchIcon, LockIcon } from "lucide-react";
 import { hasEntitlement } from "@sourcebot/shared";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
@@ -86,6 +86,13 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             description: "Learn how to index repos across Sourcebot's supported platforms",
             href: "https://docs.sourcebot.dev/docs/connections/overview",
             icon: <GitBranchIcon className="w-4 h-4" />,
+        },
+        {
+            id: "language-models",
+            title: "Language Models",
+            description: "Learn how to configure your language model providers to start using Ask Sourcebot",
+            href: "https://docs.sourcebot.dev/docs/configuration/language-model-providers",
+            icon: <Brain className="w-4 h-4" />,
         },
         {
             id: "authentication-system",

@@ -16,6 +16,7 @@ import {
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { RepositoryQuery } from "@/lib/types";
+import { captureEvent } from "@/hooks/useCaptureEvent";
 
 interface RepositorySnapshotProps {
     repos: RepositoryQuery[];
@@ -68,15 +69,30 @@ export function RepositorySnapshot({
     return (
         <div className="flex flex-col items-center gap-3">
             <span className="text-sm">
-                {`Search ${indexedRepos.length} `}
+                {`${indexedRepos.length} `}
                 <Link
                     href={`${domain}/repos`}
                     className="text-link hover:underline"
                 >
                     {indexedRepos.length > 1 ? 'repositories' : 'repository'}
                 </Link>
+                {` indexed`}
             </span>
             <RepositoryCarousel repos={indexedRepos} />
+            {process.env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo" && (
+                <p className="text-sm text-muted-foreground text-center">
+                    Interested in using Sourcebot on your code? Check out our{' '}
+                    <a
+                        href="https://docs.sourcebot.dev/docs/overview"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                        onClick={() => captureEvent('wa_demo_docs_link_pressed', {})}
+                    >
+                        docs
+                    </a>
+                </p>
+            )}
         </div>
     )
 }

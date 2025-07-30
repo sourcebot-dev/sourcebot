@@ -2,7 +2,7 @@ import { sew, withAuth, withOrgMembership } from "@/actions";
 import { env } from "@/env.mjs";
 import { _getConfiguredLanguageModelsFull, updateChatMessages, updateChatName } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
-import { additionalChatRequestParamsSchema, SBChatMessage } from "@/features/chat/types";
+import { additionalChatRequestParamsSchema, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
@@ -64,11 +64,11 @@ export async function POST(req: Request) {
         return serviceErrorResponse(schemaValidationError(parsed.error));
     }
 
-    const { messages, id, selectedRepos, languageModelId } = parsed.data;
+    const { messages, id, selectedSearchScopes, languageModelId } = parsed.data;
     const response = await chatHandler({
         messages,
         id,
-        selectedRepos,
+        selectedSearchScopes,
         languageModelId,
     }, domain);
 
@@ -92,11 +92,11 @@ const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMe
 interface ChatHandlerProps {
     messages: SBChatMessage[];
     id: string;
-    selectedRepos: string[];
+    selectedSearchScopes: SearchScope[];
     languageModelId: string;
 }
 
-const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandlerProps, domain: string) => sew(async () =>
+const chatHandler = ({ messages, id, selectedSearchScopes, languageModelId }: ChatHandlerProps, domain: string) => sew(async () =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const chat = await prisma.chat.findUnique({
@@ -186,13 +186,38 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
 
                     const startTime = new Date();
 
+                    const expandedReposArrays = await Promise.all(selectedSearchScopes.map(async (scope) => {
+                        if (scope.type === 'repo') {
+                            return [scope.value];
+                        }
+
+                        if (scope.type === 'reposet') {
+                            const reposet = await prisma.searchContext.findFirst({
+                                where: {
+                                    orgId: org.id,
+                                    name: scope.value
+                                },
+                                include: {
+                                    repos: true
+                                }
+                            });
+
+                            if (reposet) {
+                                return reposet.repos.map(repo => repo.name);
+                            }
+                        }
+                        
+                        return [];
+                    }));
+                    const expandedRepos = expandedReposArrays.flat();
+
                     const researchStream = await createAgentStream({
                         model,
                         providerOptions,
                         headers,
                         inputMessages: messageHistory,
                         inputSources: sources,
-                        selectedRepos,
+                        searchScopeRepoNames: expandedRepos,
                         onWriteSource: (source) => {
                             writer.write({
                                 type: 'data-source',
@@ -218,6 +243,7 @@ const chatHandler = ({ messages, id, selectedRepos, languageModelId }: ChatHandl
                             totalOutputTokens: totalUsage.outputTokens,
                             totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
                             modelName: languageModelConfig.displayName ?? languageModelConfig.model,
+                            selectedSearchScopes,
                             traceId,
                         }
                     })
@@ -364,6 +390,14 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
 
             return {
                 model: vertex(modelId),
+                providerOptions: {
+                    google: {
+                        thinkingConfig: {
+                            thinkingBudget: env.GOOGLE_VERTEX_THINKING_BUDGET_TOKENS,
+                            includeThoughts: env.GOOGLE_VERTEX_INCLUDE_THOUGHTS === 'true',
+                        }
+                    }
+                },
             };
         }
         case 'google-vertex-anthropic': {

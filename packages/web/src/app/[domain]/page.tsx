@@ -1,4 +1,4 @@
-import { getRepos } from "@/actions";
+import { getRepos, getSearchContexts } from "@/actions";
 import { Footer } from "@/app/components/footer";
 import { getOrgFromDomain } from "@/data/org";
 import { getConfiguredLanguageModelsInfo, getUserChatHistory } from "@/features/chat/actions";
@@ -10,7 +10,10 @@ import { UpgradeToast } from "./components/upgradeToast";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { auth } from "@/auth";
 import { cookies } from "next/headers";
-import { SEARCH_MODE_COOKIE_NAME } from "@/lib/constants";
+import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, SEARCH_MODE_COOKIE_NAME } from "@/lib/constants";
+import { env } from "@/env.mjs";
+import { loadJsonFile } from "@sourcebot/shared";
+import { DemoExamples, demoExamplesSchema } from "@/types";
 
 export default async function Home({ params: { domain } }: { params: { domain: string } }) {
     const org = await getOrgFromDomain(domain);
@@ -22,10 +25,15 @@ export default async function Home({ params: { domain } }: { params: { domain: s
 
     const models = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos(domain);
+    const searchContexts = await getSearchContexts(domain);
     const chatHistory = session ? await getUserChatHistory(domain) : [];
 
     if (isServiceError(repos)) {
         throw new ServiceErrorException(repos);
+    }
+
+    if (isServiceError(searchContexts)) {
+        throw new ServiceErrorException(searchContexts);
     }
 
     if (isServiceError(chatHistory)) {
@@ -43,6 +51,17 @@ export default async function Home({ params: { domain } }: { params: { domain: s
         searchModeCookie?.value === "precise"
     ) ? searchModeCookie.value : models.length > 0 ? "agentic" : "precise";
 
+    const isAgenticSearchTutorialDismissed = cookieStore.get(AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME)?.value === "true";
+
+    const demoExamples = env.SOURCEBOT_DEMO_EXAMPLES_PATH ? await (async () => {
+        try {
+            return await loadJsonFile<DemoExamples>(env.SOURCEBOT_DEMO_EXAMPLES_PATH!, demoExamplesSchema);
+        } catch (error) {
+            console.error('Failed to load demo examples:', error);
+            return undefined;
+        }
+    })() : undefined;
+
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
             <NavigationMenu
@@ -52,9 +71,12 @@ export default async function Home({ params: { domain } }: { params: { domain: s
 
             <Homepage
                 initialRepos={indexedRepos}
+                searchContexts={searchContexts}
                 languageModels={models}
                 chatHistory={chatHistory}
                 initialSearchMode={initialSearchMode}
+                demoExamples={demoExamples}
+                isAgenticSearchTutorialDismissed={isAgenticSearchTutorialDismissed}
             />
             <Footer />
         </div>

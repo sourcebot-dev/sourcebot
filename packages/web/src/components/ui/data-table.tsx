@@ -80,7 +80,7 @@ export function DataTable<TData, TValue>({
                         variant="default"
                         size="default"
                         onClick={() => {
-                            window.open("https://github.com/sourcebot-dev/sourcebot/edit/main/demo-site-config.json", "_blank");
+                            window.open("https://github.com/sourcebot-dev/sourcebot/discussions/412", "_blank");
                         }}
                     >
                         <PlusIcon className="w-4 h-4" />

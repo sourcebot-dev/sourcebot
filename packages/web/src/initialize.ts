@@ -2,7 +2,7 @@ import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus } from '@sour
 import { env } from './env.mjs';
 import { prisma } from "@/prisma";
 import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SINGLE_TENANT_ORG_NAME } from './lib/constants';
-import { watch } from 'fs';
+import chokidar from 'chokidar';
 import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { hasEntitlement, loadConfig, isRemotePath, syncSearchContexts } from '@sourcebot/shared';
 import { isServiceError, getOrgMetadata } from './lib/utils';
@@ -227,9 +227,22 @@ const initSingleTenancy = async () => {
         
         // watch for changes assuming it is a local file
         if (!isRemotePath(configPath)) {
-            watch(configPath, () => {
+            const watcher = chokidar.watch(configPath, {
+                ignoreInitial: true,           // Don't fire events for existing files
+                awaitWriteFinish: {
+                    stabilityThreshold: 100,   // File size stable for 100ms
+                    pollInterval: 100          // Check every 100ms
+                },
+                atomic: true                   // Handle atomic writes (temp file + rename)
+            });
+            
+            watcher.on('change', async () => {
                 logger.info(`Config file ${configPath} changed. Re-syncing...`);
-                syncDeclarativeConfig(configPath);
+                try {
+                    await syncDeclarativeConfig(configPath);
+                } catch (error) {
+                    logger.error(`Failed to sync config: ${error}`);
+                }
             });
         }
     }

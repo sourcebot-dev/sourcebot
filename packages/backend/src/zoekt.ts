@@ -76,6 +76,18 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
                 reject(error);
                 return;
             }
+            
+            if (stdout) {
+                stdout.split('\n').filter(line => line.trim()).forEach(line => {
+                    logger.info(line);
+                });
+            }
+            if (stderr) {
+                stderr.split('\n').filter(line => line.trim()).forEach(line => {
+                    logger.error(line);
+                });
+            }
+            
             resolve({
                 stdout,
                 stderr

@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { createChat } from "./actions";
 import { isServiceError } from "@/lib/utils";
 import { createPathWithQueryParams } from "@/lib/utils";
-import { SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from "./types";
+import { SearchScope, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from "./types";
 
 export const useCreateNewChatThread = () => {
     const domain = useDomain();
@@ -18,10 +18,11 @@ export const useCreateNewChatThread = () => {
     const { toast } = useToast();
     const router = useRouter();
 
-    const createNewChatThread = useCallback(async (children: Descendant[], selectedRepos: string[]) => {
+    const createNewChatThread = useCallback(async (children: Descendant[], selectedSearchScopes: SearchScope[]) => {
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
-        const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedRepos);
+        
+        const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedSearchScopes);
 
         setIsLoading(true);
         const response = await createChat(domain);
@@ -36,7 +37,7 @@ export const useCreateNewChatThread = () => {
         const url = createPathWithQueryParams(`/${domain}/chat/${response.id}`,
             [SET_CHAT_STATE_QUERY_PARAM, JSON.stringify({
                 inputMessage,
-                selectedRepos,
+                selectedSearchScopes,
             } satisfies SetChatStatePayload)],
         );
 

@@ -119,7 +119,9 @@ export const CodePreview = ({
     }, [onSelectedMatchIndexChange]);
 
     const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
-        captureEvent('wa_preview_panel_goto_definition_pressed', {});
+        captureEvent('wa_goto_definition_pressed', {
+            source: 'preview',
+        });
         createAuditAction({
             action: "user.performed_goto_definition",
             metadata: {
@@ -163,7 +165,9 @@ export const CodePreview = ({
     }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName, domain]);
     
     const onFindReferences = useCallback((symbolName: string) => {
-        captureEvent('wa_preview_panel_find_references_pressed', {});
+        captureEvent('wa_find_references_pressed', {
+            source: 'preview',
+        });
         createAuditAction({
             action: "user.performed_find_references",
             metadata: {

@@ -6,7 +6,7 @@ import { ProviderOptions } from "@ai-sdk/provider-utils";
 import { createLogger } from "@sourcebot/logger";
 import { LanguageModel, ModelMessage, StopCondition, streamText } from "ai";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
-import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool } from "./tools";
+import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool, searchReposTool, listAllReposTool } from "./tools";
 import { FileSource, Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
 
@@ -16,7 +16,7 @@ interface AgentOptions {
     model: LanguageModel;
     providerOptions?: ProviderOptions;
     headers?: Record<string, string>;
-    selectedRepos: string[];
+    searchScopeRepoNames: string[];
     inputMessages: ModelMessage[];
     inputSources: Source[];
     onWriteSource: (source: Source) => void;
@@ -35,12 +35,12 @@ export const createAgentStream = async ({
     headers,
     inputMessages,
     inputSources,
-    selectedRepos,
+    searchScopeRepoNames,
     onWriteSource,
     traceId,
 }: AgentOptions) => {
     const baseSystemPrompt = createBaseSystemPrompt({
-        selectedRepos,
+        searchScopeRepoNames,
     });
 
     const stream = streamText({
@@ -50,10 +50,12 @@ export const createAgentStream = async ({
         system: baseSystemPrompt,
         messages: inputMessages,
         tools: {
-            [toolNames.searchCode]: createCodeSearchTool(selectedRepos),
+            [toolNames.searchCode]: createCodeSearchTool(searchScopeRepoNames),
             [toolNames.readFiles]: readFilesTool,
             [toolNames.findSymbolReferences]: findSymbolReferencesTool,
             [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
+            [toolNames.searchRepos]: searchReposTool,
+            [toolNames.listAllRepos]: listAllReposTool,
         },
         prepareStep: async ({ stepNumber }) => {
             // The first step attaches any mentioned sources to the system prompt.
@@ -90,7 +92,12 @@ export const createAgentStream = async ({
         onStepFinish: ({ toolResults }) => {
             // This takes care of extracting any sources that the LLM has seen as part of
             // the tool calls it made.
-            toolResults.forEach(({ output, toolName }) => {
+            toolResults.forEach(({ toolName, output, dynamic }) => {
+                // we don't care about dynamic tool results here.
+                if (dynamic) {
+                    return;
+                }
+
                 if (isServiceError(output)) {
                     // is there something we want to do here?
                     return;
@@ -150,11 +157,11 @@ export const createAgentStream = async ({
 }
 
 interface BaseSystemPromptOptions {
-    selectedRepos: string[];
+    searchScopeRepoNames: string[];
 }
 
 export const createBaseSystemPrompt = ({
-    selectedRepos,
+    searchScopeRepoNames,
 }: BaseSystemPromptOptions) => {
     return `
 You are a powerful agentic AI code assistant built into Sourcebot, the world's best code-intelligence platform. Your job is to help developers understand and navigate their large codebases.
@@ -176,17 +183,11 @@ Your workflow has two distinct phases:
 
 <available_repositories>
 The user has selected the following repositories for analysis:
-${selectedRepos.map(repo => `- ${repo}`).join('\n')}
+${searchScopeRepoNames.map(repo => `- ${repo}`).join('\n')}
 </available_repositories>
 
 <research_phase_instructions>
-During the research phase, you have these tools available:
-- \`${toolNames.searchCode}\`: Search for code patterns, functions, or text across repositories
-- \`${toolNames.readFiles}\`: Read the contents of specific files
-- \`${toolNames.findSymbolReferences}\`: Find where symbols are referenced
-- \`${toolNames.findSymbolDefinitions}\`: Find where symbols are defined
-
-Use these tools to gather comprehensive context before answering. Always explain why you're using each tool.
+During the research phase, use the tools available to you to gather comprehensive context before answering. Always explain why you're using each tool. Depending on the user's question, you may need to use multiple tools. If the question is vague, ask the user for more information.
 </research_phase_instructions>
 
 ${answerInstructions}

@@ -2,8 +2,8 @@
 
 import { ResizablePanel } from '@/components/ui/resizable';
 import { ChatThread } from '@/features/chat/components/chatThread';
-import { LanguageModelInfo, SBChatMessage, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
-import { RepositoryQuery } from '@/lib/types';
+import { LanguageModelInfo, SBChatMessage, SearchScope, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
+import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
 import { CreateUIMessage } from 'ai';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -12,6 +12,7 @@ import { useChatId } from '../../useChatId';
 interface ChatThreadPanelProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
+    searchContexts: SearchContextQuery[];
     order: number;
     messages: SBChatMessage[];
     isChatReadonly: boolean;
@@ -20,6 +21,7 @@ interface ChatThreadPanelProps {
 export const ChatThreadPanel = ({
     languageModels,
     repos,
+    searchContexts,
     order,
     messages,
     isChatReadonly,
@@ -30,10 +32,12 @@ export const ChatThreadPanel = ({
     const router = useRouter();
     const searchParams = useSearchParams();
     const [inputMessage, setInputMessage] = useState<CreateUIMessage<SBChatMessage> | undefined>(undefined);
-
-    // Use the last user's last message to determine what repos we should select by default.
-    const [selectedRepos, setSelectedRepos] = useState<string[]>(messages.findLast((message) => message.role === "user")?.metadata?.selectedRepos ?? []);
-
+    
+    // Use the last user's last message to determine what repos and contexts we should select by default.
+    const lastUserMessage = messages.findLast((message) => message.role === "user");
+    const defaultSelectedSearchScopes = lastUserMessage?.metadata?.selectedSearchScopes ?? [];
+    const [selectedSearchScopes, setSelectedSearchScopes] = useState<SearchScope[]>(defaultSelectedSearchScopes);
+    
     useEffect(() => {
         const setChatState = searchParams.get(SET_CHAT_STATE_QUERY_PARAM);
         if (!setChatState) {
@@ -41,9 +45,9 @@ export const ChatThreadPanel = ({
         }
 
         try {
-            const { inputMessage, selectedRepos } = JSON.parse(setChatState) as SetChatStatePayload;
+            const { inputMessage, selectedSearchScopes } = JSON.parse(setChatState) as SetChatStatePayload;
             setInputMessage(inputMessage);
-            setSelectedRepos(selectedRepos);
+            setSelectedSearchScopes(selectedSearchScopes);
         } catch {
             console.error('Invalid message in URL');
         }
@@ -67,8 +71,9 @@ export const ChatThreadPanel = ({
                     inputMessage={inputMessage}
                     languageModels={languageModels}
                     repos={repos}
-                    selectedRepos={selectedRepos}
-                    onSelectedReposChange={setSelectedRepos}
+                    searchContexts={searchContexts}
+                    selectedSearchScopes={selectedSearchScopes}
+                    onSelectedSearchScopesChange={setSelectedSearchScopes}
                     isChatReadonly={isChatReadonly}
                 />
             </div>

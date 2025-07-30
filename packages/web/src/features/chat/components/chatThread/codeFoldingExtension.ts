@@ -342,6 +342,9 @@ const createDecorations = (state: EditorState, foldingState: FoldingState): Deco
         decorations.push(decoration.range(from, to));
     });
 
+    // Sort decorations by their 'from' position to ensure proper ordering
+    decorations.sort((a, b) => a.from - b.from);
+
     return Decoration.set(decorations);
 };
 

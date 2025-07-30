@@ -91,6 +91,13 @@ const schema = {
             ]
           ]
         },
+        "includeConnections": {
+          "type": "array",
+          "description": "List of connections to include in the search context.",
+          "items": {
+            "type": "string"
+          }
+        },
         "exclude": {
           "type": "array",
           "description": "List of repositories to exclude from the search context. Expected to be formatted as a URL without any leading http(s):// prefix (e.g., 'github.com/sourcebot-dev/sourcebot'). Glob patterns are supported.",
@@ -104,14 +111,18 @@ const schema = {
             ]
           ]
         },
+        "excludeConnections": {
+          "type": "array",
+          "description": "List of connections to exclude from the search context.",
+          "items": {
+            "type": "string"
+          }
+        },
         "description": {
           "type": "string",
           "description": "Optional description of the search context that surfaces in the UI."
         }
       },
-      "required": [
-        "include"
-      ],
       "additionalProperties": false
     }
   },
@@ -210,6 +221,13 @@ const schema = {
                 ]
               ]
             },
+            "includeConnections": {
+              "type": "array",
+              "description": "List of connections to include in the search context.",
+              "items": {
+                "type": "string"
+              }
+            },
             "exclude": {
               "type": "array",
               "description": "List of repositories to exclude from the search context. Expected to be formatted as a URL without any leading http(s):// prefix (e.g., 'github.com/sourcebot-dev/sourcebot'). Glob patterns are supported.",
@@ -223,14 +241,18 @@ const schema = {
                 ]
               ]
             },
+            "excludeConnections": {
+              "type": "array",
+              "description": "List of connections to exclude from the search context.",
+              "items": {
+                "type": "string"
+              }
+            },
             "description": {
               "type": "string",
               "description": "Optional description of the search context that surfaces in the UI."
             }
           },
-          "required": [
-            "include"
-          ],
           "additionalProperties": false
         }
       },

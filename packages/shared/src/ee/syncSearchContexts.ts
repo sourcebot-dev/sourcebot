@@ -36,15 +36,74 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
                 }
             });
 
-            let newReposInContext = allRepos.filter(repo => {
-                return micromatch.isMatch(repo.name, newContextConfig.include);
-            });
+            let newReposInContext: { id: number, name: string }[] = [];
+            if(newContextConfig.include) {
+                newReposInContext = allRepos.filter(repo => {
+                    return micromatch.isMatch(repo.name, newContextConfig.include!);
+                });
+            }
+
+            if(newContextConfig.includeConnections) {
+                const connections = await db.connection.findMany({
+                    where: {
+                        orgId,
+                        name: {
+                            in: newContextConfig.includeConnections,
+                        }
+                    },
+                    include: {
+                        repos: {
+                            select: {
+                                repo: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                for (const connection of connections) {
+                    newReposInContext = newReposInContext.concat(connection.repos.map(repo => repo.repo));
+                }
+            }
 
             if (newContextConfig.exclude) {
                 const exclude = newContextConfig.exclude;
                 newReposInContext = newReposInContext.filter(repo => {
                     return !micromatch.isMatch(repo.name, exclude);
                 });
+            }
+
+            if (newContextConfig.excludeConnections) {
+                const connections = await db.connection.findMany({
+                    where: {
+                        orgId,
+                        name: {
+                            in: newContextConfig.excludeConnections,
+                        }
+                    },
+                    include: {
+                        repos: {
+                            select: {
+                                repo: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                for (const connection of connections) {
+                    newReposInContext = newReposInContext.filter(repo => {
+                        return !connection.repos.map(r => r.repo.id).includes(repo.id);
+                    });
+                }
             }
 
             const currentReposInContext = (await db.searchContext.findUnique({

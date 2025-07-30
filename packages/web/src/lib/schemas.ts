@@ -28,6 +28,13 @@ export const repositoryQuerySchema = z.object({
     repoIndexingStatus: z.nativeEnum(RepoIndexingStatus),
 });
 
+export const searchContextQuerySchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    description: z.string().optional(),
+    repoNames: z.array(z.string()),
+});
+
 export const verifyCredentialsRequestSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8),

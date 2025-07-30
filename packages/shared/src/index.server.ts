@@ -12,6 +12,7 @@ export type {
 export {
     base64Decode,
     loadConfig,
+    loadJsonFile,
     isRemotePath,
 } from "./utils.js";
 export {

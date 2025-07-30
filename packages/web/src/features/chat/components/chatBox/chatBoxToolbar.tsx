@@ -1,51 +1,44 @@
 'use client';
 
-import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { LanguageModelInfo } from "@/features/chat/types";
-import { RepositoryQuery } from "@/lib/types";
+import { LanguageModelInfo, SearchScope } from "@/features/chat/types";
+import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { AtSignIcon } from "lucide-react";
 import { useCallback } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 import { ReactEditor, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { LanguageModelSelector } from "./languageModelSelector";
-import { RepoSelector } from "./repoSelector";
+import { SearchScopeSelector } from "./searchScopeSelector";
+import { SearchScopeInfoCard } from "@/features/chat/components/chatBox/searchScopeInfoCard";
+import { AtMentionInfoCard } from "@/features/chat/components/chatBox/atMentionInfoCard";
 
 export interface ChatBoxToolbarProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
-    selectedRepos: string[];
-    onSelectedReposChange: (repos: string[]) => void;
-    isRepoSelectorOpen: boolean;
-    onRepoSelectorOpenChanged: (isOpen: boolean) => void;
+    searchContexts: SearchContextQuery[];
+    selectedSearchScopes: SearchScope[];
+    onSelectedSearchScopesChange: (items: SearchScope[]) => void;
+    isContextSelectorOpen: boolean;
+    onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
 
 export const ChatBoxToolbar = ({
     languageModels,
     repos,
-    selectedRepos,
-    onSelectedReposChange,
-    isRepoSelectorOpen,
-    onRepoSelectorOpenChanged,
+    searchContexts,
+    selectedSearchScopes,
+    onSelectedSearchScopesChange,
+    isContextSelectorOpen,
+    onContextSelectorOpenChanged,
 }: ChatBoxToolbarProps) => {
     const editor = useSlate();
-
+    
     const onAddContext = useCallback(() => {
         editor.insertText("@");
         ReactEditor.focus(editor);
     }, [editor]);
-
-    useHotkeys("alt+mod+p", (e) => {
-        e.preventDefault();
-        onAddContext();
-    }, {
-        enableOnFormTags: true,
-        enableOnContentEditable: true,
-        description: "Add context", 
-    });
 
     const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel({
         initialLanguageModel: languageModels.length > 0 ? languageModels[0] : undefined,
@@ -64,29 +57,25 @@ export const ChatBoxToolbar = ({
                         <AtSignIcon className="w-4 h-4" />
                     </Button>
                 </TooltipTrigger>
-                <TooltipContent
-                    side="bottom"
-                    className="flex flex-row items-center gap-2"
-                >
-                    <KeyboardShortcutHint shortcut="⌥ ⌘ P" />
-                    <Separator orientation="vertical" className="h-4" />
-                    <span>Add context</span>
+                <TooltipContent side="bottom" className="p-0 border-0 bg-transparent shadow-none">
+                    <AtMentionInfoCard />
                 </TooltipContent>
             </Tooltip>
             <Separator orientation="vertical" className="h-3 mx-1" />
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <RepoSelector
+                    <SearchScopeSelector
                         className="bg-inherit w-fit h-6 min-h-6"
-                        repos={repos.map((repo) => repo.repoName)}
-                        selectedRepos={selectedRepos}
-                        onSelectedReposChange={onSelectedReposChange}
-                        isOpen={isRepoSelectorOpen}
-                        onOpenChanged={onRepoSelectorOpenChanged}
+                        repos={repos}
+                        searchContexts={searchContexts}
+                        selectedSearchScopes={selectedSearchScopes}
+                        onSelectedSearchScopesChange={onSelectedSearchScopesChange}
+                        isOpen={isContextSelectorOpen}
+                        onOpenChanged={onContextSelectorOpenChanged}
                     />
                 </TooltipTrigger>
-                <TooltipContent side="bottom">
-                    <span>Repositories to scope conversation to.</span>
+                <TooltipContent side="bottom" className="p-0 border-0 bg-transparent shadow-none">
+                    <SearchScopeInfoCard />
                 </TooltipContent>
             </Tooltip>
             {languageModels.length > 0 && (
@@ -102,9 +91,6 @@ export const ChatBoxToolbar = ({
                                 />
                             </div>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            <span>Selected language model</span>
-                        </TooltipContent>
                     </Tooltip>
                 </>
             )}

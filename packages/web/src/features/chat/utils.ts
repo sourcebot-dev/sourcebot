@@ -12,6 +12,7 @@ import {
     SBChatMessage,
     SBChatMessagePart,
     SBChatMessageToolTypes,
+    SearchScope,
     Source,
 } from "./types"
 
@@ -172,7 +173,7 @@ export const addLineNumbers = (source: string, lineOffset = 1) => {
     return source.split('\n').map((line, index) => `${index + lineOffset}:${line}`).join('\n');
 }
 
-export const createUIMessage = (text: string, mentions: MentionData[], selectedRepos: string[]): CreateUIMessage<SBChatMessage> => {
+export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[]): CreateUIMessage<SBChatMessage> => {
     // Converts applicable mentions into sources.
     const sources: Source[] = mentions
         .map((mention) => {
@@ -205,7 +206,7 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedR
             })) as UIMessagePart<{ source: Source }, SBChatMessageToolTypes>[],
         ],
         metadata: {
-            selectedRepos,
+            selectedSearchScopes,
         },
     }
 }
@@ -239,23 +240,26 @@ export const createFileReference = ({ repo, path, startLine, endLine }: { repo: 
 /**
  * Converts LLM text that includes references (e.g., @file:...) into a portable
  * Markdown format. Practically, this means converting references into Markdown
- * links.
+ * links and removing the answer tag.
  */
 export const convertLLMOutputToPortableMarkdown = (text: string): string => {
-    return text.replace(FILE_REFERENCE_REGEX, (_, _repo, fileName, startLine, endLine) => {
-        const displayName = fileName.split('/').pop() || fileName;
+    return text
+        .replace(ANSWER_TAG, '')
+        .replace(FILE_REFERENCE_REGEX, (_, _repo, fileName, startLine, endLine) => {
+            const displayName = fileName.split('/').pop() || fileName;
 
-        let linkText = displayName;
-        if (startLine) {
-            if (endLine && startLine !== endLine) {
-                linkText += `:${startLine}-${endLine}`;
-            } else {
-                linkText += `:${startLine}`;
+            let linkText = displayName;
+            if (startLine) {
+                if (endLine && startLine !== endLine) {
+                    linkText += `:${startLine}-${endLine}`;
+                } else {
+                    linkText += `:${startLine}`;
+                }
             }
-        }
 
-        return `[${linkText}](${fileName})`;
-    });
+            return `[${linkText}](${fileName})`;
+        })
+        .trim();
 }
 
 // Groups message parts into groups based on step-start delimiters.
@@ -288,7 +292,7 @@ export const groupMessageIntoSteps = (parts: SBChatMessagePart[]) => {
 }
 
 // LLMs like to not follow instructions... this takes care of some common mistakes they tend to make.
-export const repairCitations = (text: string): string => {
+export const repairReferences = (text: string): string => {
     return text
         // Fix missing colon: @file{...} -> @file:{...}
         .replace(/@file\{([^}]+)\}/g, '@file:{$1}')
@@ -297,7 +301,15 @@ export const repairCitations = (text: string): string => {
         // Fix multiple ranges: keep only first range
         .replace(/@file:\{(.+?):(\d+-\d+),[\d,-]+\}/g, '@file:{$1:$2}')
         // Fix malformed ranges
-        .replace(/@file:\{(.+?):(\d+)-(\d+)-(\d+)\}/g, '@file:{$1:$2-$3}');
+        .replace(/@file:\{(.+?):(\d+)-(\d+)-(\d+)\}/g, '@file:{$1:$2-$3}')
+        // Fix extra closing parenthesis: @file:{...)} -> @file:{...}
+        .replace(/@file:\{([^}]+)\)\}/g, '@file:{$1}')
+        // Fix extra colon at end: @file:{...range:} -> @file:{...range}
+        .replace(/@file:\{(.+?):(\d+(?:-\d+)?):?\}/g, '@file:{$1:$2}')
+        // Fix inline code blocks around file references: `@file:{...}` -> @file:{...}
+        .replace(/`(@file:\{[^}]+\})`/g, '$1')
+        // Fix malformed inline code blocks: `@file:{...`} -> @file:{...}
+        .replace(/`(@file:\{[^`]+)`\}/g, '$1}');
 };
 
 // Attempts to find the part of the assistant's message
@@ -307,20 +319,50 @@ export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isStre
         .findLast((part) => part.type === 'text')
 
     if (lastTextPart?.text.startsWith(ANSWER_TAG)) {
-        return {
-            ...lastTextPart,
-            text: repairCitations(lastTextPart.text),
-        };
+        return lastTextPart;
     }
 
     // If the agent did not include the answer tag, then fallback to using the last text part.
     // Only do this when we are no longer streaming since the agent may still be thinking.
     if (!isStreaming && lastTextPart) {
-        return {
-            ...lastTextPart,
-            text: repairCitations(lastTextPart.text),
-        };
+        return lastTextPart;
     }
 
     return undefined;
+}
+
+export const buildSearchQuery = (options: {
+    query: string,
+    repoNamesFilter?: string[],
+    repoNamesFilterRegexp?: string[],
+    languageNamesFilter?: string[],
+    fileNamesFilterRegexp?: string[],
+}) => {
+    const {
+        query: _query,
+        repoNamesFilter,
+        repoNamesFilterRegexp,
+        languageNamesFilter,
+        fileNamesFilterRegexp,
+    } = options;
+
+    let query = `${_query}`;
+
+    if (repoNamesFilter && repoNamesFilter.length > 0) {
+        query += ` reposet:${repoNamesFilter.join(',')}`;
+    }
+
+    if (languageNamesFilter && languageNamesFilter.length > 0) {
+        query += ` ( lang:${languageNamesFilter.join(' or lang:')} )`;
+    }
+
+    if (fileNamesFilterRegexp && fileNamesFilterRegexp.length > 0) {
+        query += ` ( file:${fileNamesFilterRegexp.join(' or file:')} )`;
+    }
+
+    if (repoNamesFilterRegexp && repoNamesFilterRegexp.length > 0) {
+        query += ` ( repo:${repoNamesFilterRegexp.join(' or repo:')} )`;
+    }
+
+    return query;
 }
