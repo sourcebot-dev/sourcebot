@@ -114,7 +114,7 @@ export const AskSourcebotDemoCards = ({
                     ))}
                 </div>
 
-                <div className="flex flex-wrap justify-center gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-fr">
                     {demoExamples.searchExamples
                         .filter((example) => {
                             if (selectedFilterSearchScope === null) return true;
@@ -125,11 +125,11 @@ export const AskSourcebotDemoCards = ({
                             return (
                                 <Card
                                     key={example.url}
-                                    className="cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 hover:border-primary/50 group w-full max-w-[350px]"
+                                    className="cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 hover:border-primary/50 group w-full h-full flex flex-col"
                                     onClick={() => handleExampleClick(example)}
                                 >
-                                    <CardContent className="p-4">
-                                        <div className="space-y-3">
+                                    <CardContent className="p-4 flex-1 flex flex-col">
+                                        <div className="space-y-3 flex flex-col h-full">
                                             <div className="flex items-center justify-between">
                                                 {searchScopes.map((searchScope) => (
                                                     <Badge key={searchScope.value} variant="secondary" className="text-[10px] px-1.5 py-0.5 h-4 flex items-center gap-1">
@@ -138,7 +138,7 @@ export const AskSourcebotDemoCards = ({
                                                     </Badge>
                                                 ))}
                                             </div>
-                                            <div className="space-y-1">
+                                            <div className="space-y-1 flex-1">
                                                 <h4 className="font-semibold text-sm group-hover:text-primary transition-colors line-clamp-2">
                                                     {example.title}
                                                 </h4>

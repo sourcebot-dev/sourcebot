@@ -5,6 +5,16 @@
 @import "./codemirror-styles.css";
 
 @layer base {
+  html {
+    overflow-y: scroll;
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  html::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+  }
+  
   :root {
     --background: hsl(0 0% 100%);
     --background-secondary: hsl(0, 0%, 98%);
