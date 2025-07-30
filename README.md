@@ -72,7 +72,13 @@ https://github.com/user-attachments/assets/86c1cd58-c4d1-4481-a2d3-fcbb79d98203
 ## Built-in File Explorer
 Explore every file across all of your repos. Modern UI with syntax highlighting, file tree, code navigation, etc.
 
-https://github.com/user-attachments/assets/42d5782b-9e8d-4de2-a3b9-6db972901638
+<video
+    src="https://github.com/user-attachments/assets/42d5782b-9e8d-4de2-a3b9-6db972901638"
+    controls
+    style="max-width: 100%; height: auto;"
+>
+    Your browser does not support the video tag.
+</video>
 
 # Deploy Sourcebot
 
