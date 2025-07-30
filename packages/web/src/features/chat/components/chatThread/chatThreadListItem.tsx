@@ -259,12 +259,17 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
         }
 
         referenceElements.forEach(element => {
-            element.classList.add('chat-reference--hover');
+            // Check if it's an inline chat citation or code viewer element
+            const isInlineCitation = element.classList.contains('bg-chat-citation');
+            const hoverClass = isInlineCitation ? 'chat-citation--hover' : 'chat-reference--hover';
+            element.classList.add(hoverClass);
         });
 
         return () => {
             referenceElements.forEach(element => {
+                // Remove both possible hover classes
                 element.classList.remove('chat-reference--hover');
+                element.classList.remove('chat-citation--hover');
             });
         };
     }, [hoveredReference]);

@@ -69,7 +69,7 @@ function remarkReferencesPlugin() {
                     value: `<span
                         role="button"
                         class="${fileReference.id}"
-                        className="font-mono cursor-pointer text-xs border px-1 py-[1.5px] rounded-md transition-all duration-150 bg-chat-reference"
+                        className="font-mono cursor-pointer text-xs px-1 py-[1.5px] rounded-md transition-all duration-150 bg-chat-citation"
                         title="Click to navigate to code"
                         ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(fileReference))}"
                     >${displayText}</span>`
