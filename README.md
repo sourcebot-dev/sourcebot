@@ -55,30 +55,24 @@ Try it out in our [public demo](https://demo.sourcebot.dev)!
 ## Ask Sourcebot
 Ask Sourcebot gives you the ability to ask complex questions about your codebase in natural language.
 
-It uses Sourcebot’s existing code search and navigation tools to allow reasoning models to search your code, follow code nav references, and provide an answer that’s rich with inline citations and navigable code snippets.
+It uses Sourcebot's existing code search and navigation tools to allow reasoning models to search your code, follow code nav references, and provide an answer that's rich with inline citations and navigable code snippets.
 
-https://github.com/user-attachments/assets/feb82cde-51fc-42f9-830d-8f149d328a0b
+<video src="https://github.com/user-attachments/assets/feb82cde-51fc-42f9-830d-8f149d328a0b" width="100%" controls></video>
 
 ## Code Search
 Search across all your repos/branches across any code host platform. Blazingly fast, and supports regular expressions, repo/language search filters, boolean logic, and more.
 
-https://github.com/user-attachments/assets/022f0bd0-db45-45ba-a31f-7bd43b6e2e25
+<video src="https://github.com/user-attachments/assets/022f0bd0-db45-45ba-a31f-7bd43b6e2e25" width="100%" controls></video>
 
 ## Code Navigation
 IDE-level code navigation (goto definition and find references) across all your repos.
 
-https://github.com/user-attachments/assets/86c1cd58-c4d1-4481-a2d3-fcbb79d98203
+<video src="https://github.com/user-attachments/assets/86c1cd58-c4d1-4481-a2d3-fcbb79d98203" width="100%" controls></video>
 
 ## Built-in File Explorer
 Explore every file across all of your repos. Modern UI with syntax highlighting, file tree, code navigation, etc.
 
-<video
-    src="https://github.com/user-attachments/assets/42d5782b-9e8d-4de2-a3b9-6db972901638"
-    controls
-    style="max-width: 100%; height: auto;"
->
-    Your browser does not support the video tag.
-</video>
+<video src="https://github.com/user-attachments/assets/42d5782b-9e8d-4de2-a3b9-6db972901638" width="100%" controls></video>
 
 # Deploy Sourcebot
 
