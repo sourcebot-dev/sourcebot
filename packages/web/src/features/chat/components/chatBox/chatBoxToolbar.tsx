@@ -91,9 +91,6 @@ export const ChatBoxToolbar = ({
                                 />
                             </div>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            <span>Selected language model</span>
-                        </TooltipContent>
                     </Tooltip>
                 </>
             )}
