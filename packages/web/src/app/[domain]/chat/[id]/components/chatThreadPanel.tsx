@@ -46,7 +46,7 @@ export const ChatThreadPanel = ({
             setInputMessage(chatState.inputMessage);
             setSelectedSearchScopes(chatState.selectedSearchScopes);
         } catch {
-            console.error('Invalid message in URL');
+            console.error('Invalid chat state in session storage');
         } finally {
             setChatState(null);
         }
