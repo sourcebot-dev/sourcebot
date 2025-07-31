@@ -2,12 +2,12 @@
 
 import { ResizablePanel } from '@/components/ui/resizable';
 import { ChatThread } from '@/features/chat/components/chatThread';
-import { LanguageModelInfo, SBChatMessage, SearchScope, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from '@/features/chat/types';
+import { LanguageModelInfo, SBChatMessage, SearchScope, SET_CHAT_STATE_SESSION_STORAGE_KEY, SetChatStatePayload } from '@/features/chat/types';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
 import { CreateUIMessage } from 'ai';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useChatId } from '../../useChatId';
+import { useSessionStorage } from 'usehooks-ts';
 
 interface ChatThreadPanelProps {
     languageModels: LanguageModelInfo[];
@@ -29,9 +29,8 @@ export const ChatThreadPanel = ({
     // @note: we are guaranteed to have a chatId because this component will only be
     // mounted when on a /chat/[id] route.
     const chatId = useChatId()!;
-    const router = useRouter();
-    const searchParams = useSearchParams();
     const [inputMessage, setInputMessage] = useState<CreateUIMessage<SBChatMessage> | undefined>(undefined);
+    const [chatState, setChatState] = useSessionStorage<SetChatStatePayload | null>(SET_CHAT_STATE_SESSION_STORAGE_KEY, null);
     
     // Use the last user's last message to determine what repos and contexts we should select by default.
     const lastUserMessage = messages.findLast((message) => message.role === "user");
@@ -39,24 +38,20 @@ export const ChatThreadPanel = ({
     const [selectedSearchScopes, setSelectedSearchScopes] = useState<SearchScope[]>(defaultSelectedSearchScopes);
     
     useEffect(() => {
-        const setChatState = searchParams.get(SET_CHAT_STATE_QUERY_PARAM);
-        if (!setChatState) {
+        if (!chatState) {
             return;
         }
 
         try {
-            const { inputMessage, selectedSearchScopes } = JSON.parse(setChatState) as SetChatStatePayload;
-            setInputMessage(inputMessage);
-            setSelectedSearchScopes(selectedSearchScopes);
+            setInputMessage(chatState.inputMessage);
+            setSelectedSearchScopes(chatState.selectedSearchScopes);
         } catch {
-            console.error('Invalid message in URL');
+            console.error('Invalid chat state in session storage');
+        } finally {
+            setChatState(null);
         }
 
-        // Remove the message from the URL
-        const newSearchParams = new URLSearchParams(searchParams.toString());
-        newSearchParams.delete(SET_CHAT_STATE_QUERY_PARAM);
-        router.replace(`?${newSearchParams.toString()}`, { scroll: false });
-    }, [searchParams, router]);
+    }, [chatState, setChatState]);
 
     return (
         <ResizablePanel
