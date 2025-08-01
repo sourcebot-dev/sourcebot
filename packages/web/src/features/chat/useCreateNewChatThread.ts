@@ -10,13 +10,19 @@ import { useRouter } from "next/navigation";
 import { createChat } from "./actions";
 import { isServiceError } from "@/lib/utils";
 import { createPathWithQueryParams } from "@/lib/utils";
-import { SearchScope, SET_CHAT_STATE_QUERY_PARAM, SetChatStatePayload } from "./types";
+import { SearchScope, SET_CHAT_STATE_SESSION_STORAGE_KEY, SetChatStatePayload } from "./types";
+import { useSessionStorage } from "usehooks-ts";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 export const useCreateNewChatThread = () => {
     const domain = useDomain();
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const captureEvent = useCaptureEvent();
+
+    const [, setChatState] = useSessionStorage<SetChatStatePayload | null>(SET_CHAT_STATE_SESSION_STORAGE_KEY, null);
+
 
     const createNewChatThread = useCallback(async (children: Descendant[], selectedSearchScopes: SearchScope[]) => {
         const text = slateContentToString(children);
@@ -34,16 +40,18 @@ export const useCreateNewChatThread = () => {
             return;
         }
 
-        const url = createPathWithQueryParams(`/${domain}/chat/${response.id}`,
-            [SET_CHAT_STATE_QUERY_PARAM, JSON.stringify({
-                inputMessage,
-                selectedSearchScopes,
-            } satisfies SetChatStatePayload)],
-        );
+        captureEvent('wa_chat_thread_created', {});
+
+        setChatState({
+            inputMessage,
+            selectedSearchScopes,
+        });
+
+        const url = createPathWithQueryParams(`/${domain}/chat/${response.id}`);
 
         router.push(url);
         router.refresh();
-    }, [domain, router, toast]);
+    }, [domain, router, toast, setChatState, captureEvent]);
 
     return {
         createNewChatThread,

@@ -328,7 +328,7 @@ export const AgenticSearchTutorialDialog = ({ onClose }: AgenticSearchTutorialDi
                     </div>
 
                     {/* Right Column (Image/Visual Content) */}
-                    <div className="flex-1 flex flex-col justify-between">
+                    <div className="flex-1 flex flex-col justify-between bg-[#020817]">
                         <div className="flex-1 overflow-y-auto">{currentStepData.rightContent}</div>
                     </div>
                 </div>

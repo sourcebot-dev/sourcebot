@@ -46,8 +46,7 @@ Sourcebot is a self-hosted tool that helps you understand your codebase.
 
 Try it out in our [public demo](https://demo.sourcebot.dev)!
 
-[![Sourcebot Demo](https://github.com/user-attachments/assets/147f53ad-5912-4c76-a5d8-371d480fff24)](https://github.com/user-attachments/assets/286ad97a-a543-4eef-a2f1-4fa31bea1b32)
-
+https://github.com/user-attachments/assets/ed66a622-e38f-4947-a531-86df1e1e0218
 
 # Features
 ![Sourcebot Features](https://github.com/user-attachments/assets/3aed7348-7aeb-4af3-89da-b617c3db2e02)
@@ -57,22 +56,22 @@ Ask Sourcebot gives you the ability to ask complex questions about your codebase
 
 It uses Sourcebot's existing code search and navigation tools to allow reasoning models to search your code, follow code nav references, and provide an answer that's rich with inline citations and navigable code snippets.
 
-<video src="https://github.com/user-attachments/assets/feb82cde-51fc-42f9-830d-8f149d328a0b" width="100%" controls autoplay loop muted></video>
+https://github.com/user-attachments/assets/8212cd16-683f-468f-8ea5-67455c0931e2
 
 ## Code Search
 Search across all your repos/branches across any code host platform. Blazingly fast, and supports regular expressions, repo/language search filters, boolean logic, and more.
 
-<video src="https://github.com/user-attachments/assets/022f0bd0-db45-45ba-a31f-7bd43b6e2e25" width="100%" controls autoplay loop muted></video>
+https://github.com/user-attachments/assets/3b381452-d329-4949-b6f2-2fc38952e481
 
 ## Code Navigation
 IDE-level code navigation (goto definition and find references) across all your repos.
 
-<video src="https://github.com/user-attachments/assets/86c1cd58-c4d1-4481-a2d3-fcbb79d98203" width="100%" controls autoplay loop muted></video>
+https://github.com/user-attachments/assets/e2da2829-71cc-40af-98b4-7ba52e945530
 
 ## Built-in File Explorer
 Explore every file across all of your repos. Modern UI with syntax highlighting, file tree, code navigation, etc.
 
-<video src="https://github.com/user-attachments/assets/42d5782b-9e8d-4de2-a3b9-6db972901638" width="100%" controls autoplay loop muted></video>
+https://github.com/user-attachments/assets/31ec0669-707d-4e03-b511-1bc33d44197a
 
 # Deploy Sourcebot
 
