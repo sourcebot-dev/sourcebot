@@ -110,7 +110,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/openai-compatible@npm:1.0.0":
+"@ai-sdk/openai-compatible@npm:1.0.0, @ai-sdk/openai-compatible@npm:^1.0.0":
   version: 1.0.0
   resolution: "@ai-sdk/openai-compatible@npm:1.0.0"
   dependencies:
@@ -6506,6 +6506,7 @@ __metadata:
     "@ai-sdk/google-vertex": "npm:3.0.0"
     "@ai-sdk/mistral": "npm:2.0.0"
     "@ai-sdk/openai": "npm:2.0.0"
+    "@ai-sdk/openai-compatible": "npm:^1.0.0"
     "@ai-sdk/react": "npm:2.0.0"
     "@ai-sdk/xai": "npm:2.0.0"
     "@auth/prisma-adapter": "npm:^2.7.4"

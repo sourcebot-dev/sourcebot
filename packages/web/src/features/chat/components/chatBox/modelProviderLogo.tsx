@@ -13,6 +13,7 @@ import deepseekLogo from "@/public/deepseek.svg";
 import mistralLogo from "@/public/mistral.svg";
 import openrouterLogo from "@/public/openrouter.svg";
 import xaiLogo from "@/public/xai.svg";
+import { Box, LucideIcon } from "lucide-react";
 
 interface ModelProviderLogoProps {
     provider: LanguageModelProvider;
@@ -23,12 +24,12 @@ export const ModelProviderLogo = ({
     provider,
     className,
 }: ModelProviderLogoProps) => {
-    const { src, className: logoClassName } = useMemo(() => {
+    const { src, Icon, className: logoClassName } = useMemo((): { src?: string, Icon?: LucideIcon, className?: string } => {
         switch (provider) {
             case 'amazon-bedrock':
                 return {
                     src: bedrockLogo,
-                    className: 'w-3.5 h-3.5 dark:invert'
+                    className: 'dark:invert'
                 };
             case 'anthropic':
                 return {
@@ -38,23 +39,20 @@ export const ModelProviderLogo = ({
             case 'azure':
                 return {
                     src: azureAiLogo,
-                    className: 'w-3.5 h-3.5'
                 };
             case 'deepseek':
                 return {
                     src: deepseekLogo,
-                    className: 'w-3.5 h-3.5'
                 };
             case 'openai':
                 return {
                     src: openaiLogo,
-                    className: 'dark:invert w-3.5 h-3.5'
+                    className: 'dark:invert'
                 };
             case 'google-generative-ai':
             case 'google-vertex':
                 return {
                     src: geminiLogo,
-                    className: 'w-3.5 h-3.5'
                 };
             case 'google-vertex-anthropic':
                 return {
@@ -64,30 +62,40 @@ export const ModelProviderLogo = ({
             case 'mistral':
                 return {
                     src: mistralLogo,
-                    className: 'w-3.5 h-3.5'
                 };
             case 'openrouter':
                 return {
                     src: openrouterLogo,
-                    className: 'dark:invert w-3.5 h-3.5'
+                    className: 'dark:invert'
                 };
             case 'xai':
                 return {
                     src: xaiLogo,
-                    className: 'dark:invert w-3.5 h-3.5'
+                    className: 'dark:invert'
+                };
+            case 'openai-compatible':
+                return {
+                    Icon: Box,
+                    className: 'text-muted-foreground'
                 };
         }
     }, [provider]);
 
-    return (
+    return src ? (
         <Image
             src={src}
             alt={provider}
             className={cn(
-                'w-4 h-4',
+                'w-3.5 h-3.5',
                 logoClassName,
                 className
             )}
         />
-    )
+    ) : Icon ? (
+        <Icon className={cn(
+            'w-3.5 h-3.5',
+            logoClassName,
+            className
+        )} />
+    ) : null;
 }
