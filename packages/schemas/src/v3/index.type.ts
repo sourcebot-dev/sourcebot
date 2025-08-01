@@ -21,6 +21,7 @@ export type LanguageModel =
   | GoogleVertexLanguageModel
   | MistralLanguageModel
   | OpenAILanguageModel
+  | OpenAICompatibleLanguageModel
   | OpenRouterLanguageModel
   | XaiLanguageModel;
 
@@ -790,6 +791,24 @@ export interface OpenAILanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+}
+export interface OpenAICompatibleLanguageModel {
+  /**
+   * OpenAI Compatible Configuration
+   */
+  provider: "openai-compatible";
+  /**
+   * The name of the language model.
+   */
+  model: string;
+  /**
+   * Optional display name.
+   */
+  displayName?: string;
+  /**
+   * Optional base URL.
+   */
+  baseUrl: string;
 }
 export interface OpenRouterLanguageModel {
   /**

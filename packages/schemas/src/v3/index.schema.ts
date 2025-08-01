@@ -1784,6 +1784,35 @@ const schema = {
             ],
             "additionalProperties": false
           },
+          "OpenAICompatibleLanguageModel": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "const": "openai-compatible",
+                "description": "OpenAI Compatible Configuration"
+              },
+              "model": {
+                "type": "string",
+                "description": "The name of the language model."
+              },
+              "displayName": {
+                "type": "string",
+                "description": "Optional display name."
+              },
+              "baseUrl": {
+                "type": "string",
+                "format": "url",
+                "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+                "description": "Optional base URL."
+              }
+            },
+            "required": [
+              "provider",
+              "model",
+              "baseUrl"
+            ],
+            "additionalProperties": false
+          },
           "OpenRouterLanguageModel": {
             "type": "object",
             "properties": {
@@ -2524,6 +2553,35 @@ const schema = {
             "required": [
               "provider",
               "model"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "const": "openai-compatible",
+                "description": "OpenAI Compatible Configuration"
+              },
+              "model": {
+                "type": "string",
+                "description": "The name of the language model."
+              },
+              "displayName": {
+                "type": "string",
+                "description": "Optional display name."
+              },
+              "baseUrl": {
+                "type": "string",
+                "format": "url",
+                "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+                "description": "Optional base URL."
+              }
+            },
+            "required": [
+              "provider",
+              "model",
+              "baseUrl"
             ],
             "additionalProperties": false
           },

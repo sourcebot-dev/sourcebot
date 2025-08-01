@@ -17,6 +17,7 @@ import { createVertex } from '@ai-sdk/google-vertex';
 import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import { createXai } from '@ai-sdk/xai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
@@ -443,6 +444,16 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
                     } satisfies OpenAIResponsesProviderOptions,
                 },
             };
+        }
+        case 'openai-compatible': {
+            const openai = createOpenAICompatible({
+                baseURL: config.baseUrl,
+                name: config.displayName ?? modelId,
+            });
+
+            return {
+                model: openai.chatModel(modelId),
+            }
         }
         case 'openrouter': {
             const openrouter = createOpenRouter({

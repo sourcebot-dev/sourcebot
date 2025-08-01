@@ -20,6 +20,7 @@
     "@ai-sdk/google-vertex": "3.0.0",
     "@ai-sdk/mistral": "2.0.0",
     "@ai-sdk/openai": "2.0.0",
+    "@ai-sdk/openai-compatible": "^1.0.0",
     "@ai-sdk/react": "2.0.0",
     "@ai-sdk/xai": "2.0.0",
     "@auth/prisma-adapter": "^2.7.4",
