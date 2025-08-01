@@ -40,6 +40,11 @@ export const verifyCredentialsRequestSchema = z.object({
     password: z.string().min(8),
 });
 
+export const verifyLdapRequestSchema = z.object({
+    email: z.string().email(),
+    password: z.string(),
+});
+
 export const orgNameSchema = z.string().min(2, { message: "Organization name must be at least 3 characters long." });
 
 export const orgDomainSchema = z.string()

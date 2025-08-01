@@ -12,6 +12,9 @@ import Credentials from "next-auth/providers/credentials";
 import type { User as AuthJsUser } from "next-auth";
 import { onCreateUser } from "@/lib/authUtils";
 import { createLogger } from "@sourcebot/logger";
+import {- HttpsProxyAgent } from "https-proxy-agent";
+import { Client, SearchOptions, ldapsearch } from "ldapjs";
+import { verifyLdapRequestSchema } from "@/lib/schemas";
 
 const logger = createLogger('web-sso');
 
@@ -159,6 +162,117 @@ export const getSSOProviders = (): Provider[] => {
                     }
                 } catch (error) {
                     logger.error("Error verifying IAP token:", error);
+                    return null;
+                }
+            },
+        }));
+    }
+
+    if (env.AUTH_EE_LDAP_URL) {
+        providers.push(Credentials({
+            id: "ldap",
+            name: "LDAP",
+            credentials: {
+                email: {},
+                password: {}
+            },
+            authorize: async (credentials) => {
+                try {
+                    const body = verifyLdapRequestSchema.safeParse(credentials);
+                    if (!body.success) {
+                        return null;
+                    }
+                    const { email, password } = body.data;
+
+                    const client = new Client({
+                        url: env.AUTH_EE_LDAP_URL,
+                        tlsOptions: {
+                            rejectUnauthorized: env.AUTH_EE_LDAP_REJECT_UNAUTHORIZED === 'true'
+                        },
+                        ...((env.AUTH_EE_LDAP_PROXY) && { agent: new HttpsProxyAgent(env.AUTH_EE_LDAP_PROXY) })
+                    });
+
+                    const bindDN = env.AUTH_EE_LDAP_BIND_DN;
+                    const bindPassword = env.AUTH_EE_LDAP_BIND_PASSWORD;
+                    if (bindDN && bindPassword) {
+                        await new Promise<void>((resolve, reject) => {
+                            client.bind(bindDN, bindPassword, (err) => {
+                                if (err) {
+                                    logger.error("LDAP bind error:", err);
+                                    return reject(err);
+                                }
+                                resolve();
+                            });
+                        });
+                    }
+
+                    const searchBase = env.AUTH_EE_LDAP_BASE_DN;
+                    const opts: SearchOptions = {
+                        filter: `(${env.AUTH_EE_LDAP_USER_EMAIL_ATTRIBUTE ?? 'mail'}=${email})`,
+                        scope: 'sub',
+                        attributes: ['dn']
+                    };
+
+                    const userDN = await new Promise<string>((resolve, reject) => {
+                        client.search(searchBase, opts, (err, res) => {
+                            if (err) {
+                                return reject(err);
+                            }
+                            res.on('searchEntry', (entry) => {
+                                resolve(entry.objectName);
+                            });
+                            res.on('error', (err) => {
+                                reject(err);
+                            });
+                            res.on('end', (result) => {
+                                if (result?.status !== 0) {
+                                    reject(new Error(`LDAP search failed with status ${result?.status}`));
+                                }
+                            });
+                        });
+                    });
+
+                    if (!userDN) {
+                        return null;
+                    }
+
+                    await new Promise<void>((resolve, reject) => {
+                        client.bind(userDN, password, (err) => {
+                            if (err) {
+                                return reject(err);
+                            }
+                            resolve();
+                        });
+                    });
+
+                    const existingUser = await prisma.user.findUnique({
+                        where: { email }
+                    });
+
+                    if (!existingUser) {
+                        const newUser = await prisma.user.create({
+                            data: {
+                                email
+                            }
+                        });
+
+                        const authJsUser: AuthJsUser = {
+                            id: newUser.id,
+                            email: newUser.email
+                        };
+
+                        await onCreateUser({ user: authJsUser });
+                        return authJsUser;
+                    } else {
+                        return {
+                            id: existingUser.id,
+                            email: existingUser.email,
+                            name: existingUser.name,
+                            image: existingUser.image,
+                        };
+                    }
+                } catch (error) {
+                    logger.error("Error authenticating with LDAP:", error);
                     return null;
                 }
             },

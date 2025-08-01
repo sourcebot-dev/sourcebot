@@ -51,6 +51,14 @@ export const env = createEnv({
         AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET: z.string().optional(),
         AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER: z.string().optional(),
 
+        AUTH_EE_LDAP_URL: z.string().optional(),
+        AUTH_EE_LDAP_BIND_DN: z.string().optional(),
+        AUTH_EE_LDAP_BIND_PASSWORD: z.string().optional(),
+        AUTH_EE_LDAP_BASE_DN: z.string().optional(),
+        AUTH_EE_LDAP_REJECT_UNAUTHORIZED: z.string().optional(),
+        AUTH_EE_LDAP_USER_EMAIL_ATTRIBUTE: z.string().optional(),
+        AUTH_EE_LDAP_PROXY: z.string().optional(),
+
         AUTH_EE_GCP_IAP_ENABLED: booleanSchema.default('false'),
         AUTH_EE_GCP_IAP_AUDIENCE: z.string().optional(),
 

@@ -143,6 +143,7 @@
     "input-otp": "^1.4.2",
     "langfuse": "^3.38.4",
     "langfuse-vercel": "^3.38.4",
+    "ldapjs": "^3.0.7",
     "lucide-react": "^0.517.0",
     "micromatch": "^4.0.8",
     "next": "14.2.30",
@@ -188,6 +189,7 @@
   "devDependencies": {
     "@tanstack/eslint-plugin-query": "^5.74.7",
     "@testing-library/react-hooks": "^8.0.1",
+    "@types/ldapjs": "^3.0.4",
     "@types/micromatch": "^4.0.9",
     "@types/node": "^20",
     "@types/nodemailer": "^6.4.17",
