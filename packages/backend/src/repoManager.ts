@@ -552,8 +552,8 @@ export class RepoManager implements IRepoManager {
             return;
         }
 
+        const files = readdirSync(this.ctx.indexPath);
         const reposToReindex: number[] = [];
-
         for (const repo of indexedRepos) {
             const shardPrefix = getShardPrefix(repo.orgId, repo.id);
             
@@ -561,7 +561,6 @@ export class RepoManager implements IRepoManager {
             // would need to know how many total shards are expected for this repo
             let hasShards = false;
             try {
-                const files = readdirSync(this.ctx.indexPath);
                 hasShards = files.some(file => file.startsWith(shardPrefix));
             } catch (error) {
                 logger.error(`Failed to read index directory ${this.ctx.indexPath}: ${error}`);
