@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - [ask sb] Fixed "413 content too large" error when starting a new chat with many repos selected. [#416](https://github.com/sourcebot-dev/sourcebot/pull/416)
 
+### Added
+- [ask sb] PostHog telemetry for chat thread creation. [#418](https://github.com/sourcebot-dev/sourcebot/pull/418)
+
 ## [4.6.1] - 2025-07-29
 
 ### Added
