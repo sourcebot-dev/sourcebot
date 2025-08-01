@@ -282,6 +282,7 @@ export type PosthogEventMap = {
         chatId: string,
         messageId: string,
     },
+    wa_chat_thread_created: {},
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
     wa_demo_search_context_card_pressed: {

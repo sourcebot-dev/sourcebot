@@ -12,12 +12,14 @@ import { isServiceError } from "@/lib/utils";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { SearchScope, SET_CHAT_STATE_SESSION_STORAGE_KEY, SetChatStatePayload } from "./types";
 import { useSessionStorage } from "usehooks-ts";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 export const useCreateNewChatThread = () => {
     const domain = useDomain();
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const captureEvent = useCaptureEvent();
 
     const [, setChatState] = useSessionStorage<SetChatStatePayload | null>(SET_CHAT_STATE_SESSION_STORAGE_KEY, null);
 
@@ -38,6 +40,8 @@ export const useCreateNewChatThread = () => {
             return;
         }
 
+        captureEvent('wa_chat_thread_created', {});
+
         setChatState({
             inputMessage,
             selectedSearchScopes,
@@ -47,7 +51,7 @@ export const useCreateNewChatThread = () => {
 
         router.push(url);
         router.refresh();
-    }, [domain, router, toast, setChatState]);
+    }, [domain, router, toast, setChatState, captureEvent]);
 
     return {
         createNewChatThread,
