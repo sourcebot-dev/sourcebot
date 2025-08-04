@@ -27,6 +27,19 @@ test('shouldExcludeProject returns true when the project is excluded by exclude.
     })).toBe(true)
 });
 
+test('shouldExcludeProject returns true when the project is excluded by exclude.groups.', () => {
+    const project = {
+        path_with_namespace: 'test/project',
+    } as ProjectSchema;
+
+    expect(shouldExcludeProject({
+        project,
+        exclude: {
+            groups: ['test'],
+        }
+    })).toBe(true)
+});
+
 test('shouldExcludeProject returns true when the project is excluded by exclude.forks.', () => {
     const project = {
         path_with_namespace: 'test/project',

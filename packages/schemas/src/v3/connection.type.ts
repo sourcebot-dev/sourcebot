@@ -158,6 +158,10 @@ export interface GitlabConnectionConfig {
      */
     projects?: string[];
     /**
+     * List of groups to exclude from syncing. Glob patterns are supported.
+     */
+    groups?: string[];
+    /**
      * List of project topics to exclude when syncing. Projects that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.
      */
     topics?: string[];

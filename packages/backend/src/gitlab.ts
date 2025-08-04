@@ -229,6 +229,13 @@ export const shouldExcludeProject = ({
             }
         }
 
+        if (exclude?.groups) {
+            if (micromatch.isMatch(projectName, exclude.groups.map(g => `${g}/**`))) {
+                reason = `\`exclude.groups\` contains ${projectName}`;
+                return true;
+            }
+        }
+
         if (include?.topics) {
             const configTopics = include.topics.map(topic => topic.toLowerCase());
             const projectTopics = project.topics ?? [];

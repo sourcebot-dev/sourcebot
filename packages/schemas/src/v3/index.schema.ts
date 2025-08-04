@@ -618,6 +618,19 @@ const schema = {
                       ],
                       "description": "List of projects to exclude from syncing. Glob patterns are supported. The project's namespace must be specified, see: https://docs.gitlab.com/ee/user/namespace/"
                     },
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "examples": [
+                        [
+                          "my-group"
+                        ]
+                      ],
+                      "description": "List of groups to exclude from syncing. Glob patterns are supported."
+                    },
                     "topics": {
                       "type": "array",
                       "items": {
