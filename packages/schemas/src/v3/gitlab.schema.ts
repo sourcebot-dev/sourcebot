@@ -146,7 +146,8 @@ const schema = {
           "default": [],
           "examples": [
             [
-              "my-group"
+              "my-group",
+              "my-group/**"
             ]
           ],
           "description": "List of groups to exclude from syncing. Glob patterns are supported."
