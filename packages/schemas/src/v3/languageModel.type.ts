@@ -394,7 +394,7 @@ export interface OpenAICompatibleLanguageModel {
         env: string;
       };
   /**
-   * Base URL of the OpenAI-compatible API endpoint.
+   * Base URL of the OpenAI-compatible chat completions API endpoint.
    */
   baseUrl: string;
 }

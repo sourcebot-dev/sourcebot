@@ -672,7 +672,7 @@ const schema = {
           "type": "string",
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
-          "description": "Base URL of the OpenAI-compatible API endpoint.",
+          "description": "Base URL of the OpenAI-compatible chat completions API endpoint.",
           "examples": [
             "http://localhost:8080/v1"
           ]
@@ -1478,7 +1478,7 @@ const schema = {
           "type": "string",
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
-          "description": "Base URL of the OpenAI-compatible API endpoint.",
+          "description": "Base URL of the OpenAI-compatible chat completions API endpoint.",
           "examples": [
             "http://localhost:8080/v1"
           ]
