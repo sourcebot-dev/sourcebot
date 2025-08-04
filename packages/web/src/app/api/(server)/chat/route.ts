@@ -449,6 +449,9 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
             const openai = createOpenAICompatible({
                 baseURL: config.baseUrl,
                 name: config.displayName ?? modelId,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : undefined,
             });
 
             return {

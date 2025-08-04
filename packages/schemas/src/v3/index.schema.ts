@@ -1799,6 +1799,37 @@ const schema = {
                 "type": "string",
                 "description": "Optional display name."
               },
+              "token": {
+                "description": "Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>.",
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "secret": {
+                        "type": "string",
+                        "description": "The name of the secret that contains the token."
+                      }
+                    },
+                    "required": [
+                      "secret"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
@@ -2570,6 +2601,37 @@ const schema = {
               "displayName": {
                 "type": "string",
                 "description": "Optional display name."
+              },
+              "token": {
+                "description": "Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>.",
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "secret": {
+                        "type": "string",
+                        "description": "The name of the secret that contains the token."
+                      }
+                    },
+                    "required": [
+                      "secret"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
               },
               "baseUrl": {
                 "type": "string",

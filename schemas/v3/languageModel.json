@@ -366,6 +366,10 @@
                     "type": "string",
                     "description": "Optional display name."
                 },
+                "token": {
+                    "$ref": "./shared.json#/definitions/Token",
+                    "description": "Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>."
+                },
                 "baseUrl": {
                     "type": "string",
                     "format": "url",

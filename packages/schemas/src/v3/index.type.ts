@@ -806,6 +806,22 @@ export interface OpenAICompatibleLanguageModel {
    */
   displayName?: string;
   /**
+   * Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>.
+   */
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
+  /**
    * Optional base URL.
    */
   baseUrl: string;
