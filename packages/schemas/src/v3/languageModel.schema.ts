@@ -672,7 +672,10 @@ const schema = {
           "type": "string",
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
-          "description": "Optional base URL."
+          "description": "Base URL of the OpenAI-compatible API endpoint.",
+          "examples": [
+            "http://localhost:8080/v1"
+          ]
         }
       },
       "required": [
@@ -1475,7 +1478,10 @@ const schema = {
           "type": "string",
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
-          "description": "Optional base URL."
+          "description": "Base URL of the OpenAI-compatible API endpoint.",
+          "examples": [
+            "http://localhost:8080/v1"
+          ]
         }
       },
       "required": [

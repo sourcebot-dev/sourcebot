@@ -394,7 +394,7 @@ export interface OpenAICompatibleLanguageModel {
         env: string;
       };
   /**
-   * Optional base URL.
+   * Base URL of the OpenAI-compatible API endpoint.
    */
   baseUrl: string;
 }
