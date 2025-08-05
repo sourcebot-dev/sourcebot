@@ -57,6 +57,9 @@
                 }
             },
             "additionalProperties": false
+        },
+        "revisions": {
+            "$ref": "./shared.json#/definitions/GitRevisions"
         }
     },
     "required": [

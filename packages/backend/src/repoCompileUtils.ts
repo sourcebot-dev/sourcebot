@@ -310,6 +310,8 @@ export const compileGerritConfig = async (
                     'zoekt.public': marshalBool(true),
                     'zoekt.display-name': repoDisplayName,
                 },
+                branches: config.revisions?.branches ?? undefined,
+                tags: config.revisions?.tags ?? undefined,
             } satisfies RepoMetadata,
         };
 
