@@ -11,6 +11,10 @@ import Image from "next/image";
 import { FileIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import { RepositoryQuery } from "@/lib/types";
+import Link from "next/link";
+import { getBrowsePath } from "../../browse/hooks/useBrowseNavigation";
+import { useMemo } from "react";
+import { useDomain } from "@/hooks/useDomain";
 
 interface RepositoryCarouselProps {
     repos: RepositoryQuery[];
@@ -56,13 +60,22 @@ interface RepositoryBadgeProps {
 const RepositoryBadge = ({
     repo
 }: RepositoryBadgeProps) => {
-    const { repoIcon, displayName, repoLink } = (() => {
+    const domain = useDomain();
+
+    const { repoIcon, displayName, repoLink } = useMemo(() => {
         const info = getCodeHostInfoForRepo({
             codeHostType: repo.codeHostType,
             name: repo.repoName,
             displayName: repo.repoDisplayName,
             webUrl: repo.webUrl,
         });
+
+        const link = getBrowsePath({
+            repoName: repo.repoName,
+            path: "",
+            pathType: "tree",
+            domain,
+        })
 
         if (info) {
             return {
@@ -72,7 +85,7 @@ const RepositoryBadge = ({
                     className={`w-4 h-4 ${info.iconClassName}`}
                 />,
                 displayName: info.displayName,
-                repoLink: info.repoLink,
+                repoLink: link,
             }
         }
 
@@ -81,15 +94,11 @@ const RepositoryBadge = ({
             displayName: repo.repoName,
             repoLink: undefined,
         }
-    })();
+    }, [repo.codeHostType, repo.repoName, repo.repoDisplayName, repo.webUrl, domain]);
 
     return (
-        <div
-            onClick={() => {
-                if (repoLink !== undefined) {
-                    window.open(repoLink, "_blank");
-                }
-            }}
+        <Link
+            href={repoLink ?? ""}
             className={clsx("flex flex-row items-center gap-2 border rounded-md p-2 text-clip", {
                 "cursor-pointer": repoLink !== undefined,
             })}
@@ -98,6 +107,6 @@ const RepositoryBadge = ({
             <span className="text-sm font-mono">
                 {displayName}
             </span>
-        </div>
+        </Link>
     )
 }
