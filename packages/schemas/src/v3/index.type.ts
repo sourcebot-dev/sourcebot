@@ -21,6 +21,7 @@ export type LanguageModel =
   | GoogleVertexLanguageModel
   | MistralLanguageModel
   | OpenAILanguageModel
+  | OpenAICompatibleLanguageModel
   | OpenRouterLanguageModel
   | XaiLanguageModel;
 
@@ -790,6 +791,40 @@ export interface OpenAILanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+}
+export interface OpenAICompatibleLanguageModel {
+  /**
+   * OpenAI Compatible Configuration
+   */
+  provider: "openai-compatible";
+  /**
+   * The name of the language model.
+   */
+  model: string;
+  /**
+   * Optional display name.
+   */
+  displayName?: string;
+  /**
+   * Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>.
+   */
+  token?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
+  /**
+   * Base URL of the OpenAI-compatible chat completions API endpoint.
+   */
+  baseUrl: string;
 }
 export interface OpenRouterLanguageModel {
   /**

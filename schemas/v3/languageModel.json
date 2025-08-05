@@ -351,6 +351,42 @@
             ],
             "additionalProperties": false
         },
+        "OpenAICompatibleLanguageModel": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "const": "openai-compatible",
+                    "description": "OpenAI Compatible Configuration"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "The name of the language model."
+                },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional display name."
+                },
+                "token": {
+                    "$ref": "./shared.json#/definitions/Token",
+                    "description": "Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>."
+                },
+                "baseUrl": {
+                    "type": "string",
+                    "format": "url",
+                    "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+                    "description": "Base URL of the OpenAI-compatible chat completions API endpoint.",
+                    "examples": [
+                        "http://localhost:8080/v1"
+                    ]
+                }
+            },
+            "required": [
+                "provider",
+                "model",
+                "baseUrl"
+            ],
+            "additionalProperties": false
+        },
         "OpenRouterLanguageModel": {
             "type": "object",
             "properties": {
@@ -447,6 +483,9 @@
         },
         {
             "$ref": "#/definitions/OpenAILanguageModel"
+        },
+        {
+            "$ref": "#/definitions/OpenAICompatibleLanguageModel"
         },
         {
             "$ref": "#/definitions/OpenRouterLanguageModel"
