@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added multi-branch indexing support for Gerrit. [#433](https://github.com/sourcebot-dev/sourcebot/pull/433)
 
+### Fixed
+- Removed prefix from structured log output. [#443](https://github.com/sourcebot-dev/sourcebot/pull/443)
+
 ## [4.6.3] - 2025-08-04
 
 ### Fixed
