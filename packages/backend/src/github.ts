@@ -106,8 +106,7 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
     }
 
     if (config.users) {
-        const isAuthenticated = config.token !== undefined;
-        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
+        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, octokit, signal);
         allRepos = allRepos.concat(validRepos);
         notFound.users = notFoundUsers;
     }
@@ -219,32 +218,27 @@ export const shouldExcludeRepo = ({
     return false;
 }
 
-const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, octokit: Octokit, signal: AbortSignal) => {
+const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: AbortSignal) => {
     const results = await Promise.allSettled(users.map(async (user) => {
         try {
             logger.debug(`Fetching repository info for user ${user}...`);
 
             const { durationMs, data } = await measure(async () => {
                 const fetchFn = async () => {
-                    if (isAuthenticated) {
-                        return octokit.paginate(octokit.repos.listForAuthenticatedUser, {
-                            username: user,
-                            visibility: 'all',
-                            affiliation: 'owner',
-                            per_page: 100,
-                            request: {
-                                signal,
-                            },
-                        });
-                    } else {
-                        return octokit.paginate(octokit.repos.listForUser, {
-                            username: user,
-                            per_page: 100,
-                            request: {
-                                signal,
-                            },
-                        });
-                    }
+                    // @note: We need to use GitHub's search API here since it is the only way
+                    // to get all repositories (private and public) owned by a user that supports
+                    // the username as a parameter.
+                    // @see: https://github.com/orgs/community/discussions/24382#discussioncomment-3243958
+                    // @see: https://api.github.com/search/repositories?q=user:USERNAME
+                    const searchResults = await octokit.paginate(octokit.rest.search.repos, {
+                        q: `user:${user}`,
+                        per_page: 100,
+                        request: {
+                            signal,
+                        },
+                    });
+
+                    return searchResults as OctokitRepository[];
                 };
 
                 return fetchWithRetry(fetchFn, `user ${user}`, logger);

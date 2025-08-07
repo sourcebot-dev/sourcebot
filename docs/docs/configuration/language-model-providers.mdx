@@ -3,6 +3,12 @@ title: Language Model Providers
 sidebarTitle: Language model providers
 ---
 
+import LanguageModelSchema from '/snippets/schemas/v3/languageModel.schema.mdx'
+
+<Note>
+Looking to self-host your own model? Check out the [OpenAI Compatible](#openai-compatible) provider.
+</Note>
+
 To use [Ask Sourcebot](/docs/features/ask) you must define at least one Language Model Provider. These providers are defined within the [config file](/docs/configuration/config-file) you
 provide Sourcebot.
 
@@ -45,7 +51,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 ### Amazon Bedrock
 
-[Vercel AI SDK Amazon Bedrock Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock)
+[Vercel AI SDK Amazon Bedrock Docs](https://ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock)
 
 ```json wrap icon="code" Example config with Amazon Bedrock provider
 {
@@ -70,7 +76,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 ### Anthropic
 
-[Vercel AI SDK Anthropic Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/anthropic)
+[Vercel AI SDK Anthropic Docs](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic)
 
 ```json wrap icon="code" Example config with Anthropic provider
 {
@@ -91,7 +97,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 ### Azure OpenAI
 
-[Vercel AI SDK Azure OpenAI Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/azure)
+[Vercel AI SDK Azure OpenAI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/azure)
 
 ```json wrap icon="code" Example config with Azure AI provider
 {
@@ -114,7 +120,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 ### Deepseek
 
-[Vercel AI SDK Deepseek Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/deepseek)
+[Vercel AI SDK Deepseek Docs](https://ai-sdk.dev/providers/ai-sdk-providers/deepseek)
 
 ```json wrap icon="code" Example config with Deepseek provider
 {
@@ -135,7 +141,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 ### Google Generative AI
 
-[Vercel AI SDK Google Generative AI Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai)
+[Vercel AI SDK Google Generative AI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai)
 
 ```json wrap icon="code" Example config with Google Generative AI provider
 {
@@ -159,7 +165,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 <Note>If you're using an Anthropic model on Google Vertex, you must define a [Google Vertex Anthropic](#google-vertex-anthropic) provider instead</Note>
 <Note>The `credentials` paramater here expects a **path** to a [credentials](https://console.cloud.google.com/apis/credentials) file. This file **must be in a volume mounted by Sourcebot** for it to be readable.</Note>
 
-[Vercel AI SDK Google Vertex AI Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-vertex)
+[Vercel AI SDK Google Vertex AI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex)
 
 ```json wrap icon="code" Example config with Google Vertex provider
 {
@@ -185,7 +191,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 <Note>The `credentials` paramater here expects a **path** to a [credentials](https://console.cloud.google.com/apis/credentials) file. This file **must be in a volume mounted by Sourcebot** for it to be readable.</Note>
 
 
-[Vercel AI SDK Google Vertex Anthropic Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-vertex#google-vertex-anthropic-provider-usage)
+[Vercel AI SDK Google Vertex Anthropic Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex#google-vertex-anthropic-provider-usage)
 
 ```json wrap icon="code" Example config with Google Vertex Anthropic provider
 {
@@ -208,7 +214,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 ### Mistral
 
-[Vercel AI SDK Mistral Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/mistral)
+[Vercel AI SDK Mistral Docs](https://ai-sdk.dev/providers/ai-sdk-providers/mistral)
 
 ```json wrap icon="code" Example config with Mistral provider
 {
@@ -229,7 +235,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 ### OpenAI
 
-[Vercel AI SDK OpenAI Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/openai)
+[Vercel AI SDK OpenAI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/openai)
 
 ```json wrap icon="code" Example config with OpenAI provider
 {
@@ -248,9 +254,36 @@ For a detailed description of all the providers, please refer to the [schema](ht
 }
 ```
 
+### OpenAI Compatible
+
+[Vercel AI SDK OpenAI Compatible Docs](https://ai-sdk.dev/providers/openai-compatible-providers)
+
+The OpenAI compatible provider allows you to use any model that is compatible with the OpenAI [Chat Completions API](https://github.com/ollama/ollama/blob/main/docs/openai.md). This includes self-hosted tools like [Ollama](https://ollama.ai/) and [llama.cpp](https://github.com/ggerganov/llama.cpp).
+
+```json wrap icon="code" Example config with OpenAI Compatible provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "openai-compatible",
+            "baseUrl": "BASE_URL_HERE",
+            "model": "YOUR_MODEL_HERE",
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "token": {
+                "env": "OPTIONAL_API_KEY"
+            }
+        }
+    ]
+}
+```
+
+<Accordion title="Troubleshooting">
+- When using [llama.cpp](https://github.com/ggml-org/llama.cpp), if you hit "Failed after 3 attempts. Last error: tools param requires --jinja flag", add the `--jinja` flag to your `llama-server` command.
+</Accordion>
+
 ### OpenRouter
 
-[Vercel AI SDK OpenRouter Docs](https://v5.ai-sdk.dev/providers/community-providers/openrouter)
+[Vercel AI SDK OpenRouter Docs](https://ai-sdk.dev/providers/community-providers/openrouter)
 
 ```json wrap icon="code" Example config with OpenRouter provider
 {
@@ -271,7 +304,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 ### xAI
 
-[Vercel AI SDK xAI Docs](https://v5.ai-sdk.dev/providers/ai-sdk-providers/xai)
+[Vercel AI SDK xAI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/xai)
 
 ```json wrap icon="code" Example config with xAI provider
 {
@@ -289,3 +322,13 @@ For a detailed description of all the providers, please refer to the [schema](ht
     ] 
 }
 ```
+
+
+## Schema reference
+
+<Accordion title="Reference">
+[schemas/v3/languageModel.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/languageModel.json)
+
+<LanguageModelSchema />
+
+</Accordion>

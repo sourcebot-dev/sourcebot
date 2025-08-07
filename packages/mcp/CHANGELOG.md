@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2025-08-04
+
+### Fixed
+- Fixed issue where console logs were resulting in "unexpected token" errors on the MCP client. [#429](https://github.com/sourcebot-dev/sourcebot/pull/429)
+
 ## [1.0.3] - 2025-06-18
 
 ### Changed

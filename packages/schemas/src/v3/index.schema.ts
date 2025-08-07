@@ -965,6 +965,47 @@ const schema = {
                     }
                   },
                   "additionalProperties": false
+                },
+                "revisions": {
+                  "type": "object",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "properties": {
+                    "branches": {
+                      "type": "array",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "main",
+                          "release/*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    },
+                    "tags": {
+                      "type": "array",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "latest",
+                          "v2.*.*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -1851,6 +1892,69 @@ const schema = {
             ],
             "additionalProperties": false
           },
+          "OpenAICompatibleLanguageModel": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "const": "openai-compatible",
+                "description": "OpenAI Compatible Configuration"
+              },
+              "model": {
+                "type": "string",
+                "description": "The name of the language model."
+              },
+              "displayName": {
+                "type": "string",
+                "description": "Optional display name."
+              },
+              "token": {
+                "description": "Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>.",
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "secret": {
+                        "type": "string",
+                        "description": "The name of the secret that contains the token."
+                      }
+                    },
+                    "required": [
+                      "secret"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "baseUrl": {
+                "type": "string",
+                "format": "url",
+                "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+                "description": "Base URL of the OpenAI-compatible chat completions API endpoint.",
+                "examples": [
+                  "http://localhost:8080/v1"
+                ]
+              }
+            },
+            "required": [
+              "provider",
+              "model",
+              "baseUrl"
+            ],
+            "additionalProperties": false
+          },
           "OpenRouterLanguageModel": {
             "type": "object",
             "properties": {
@@ -2591,6 +2695,69 @@ const schema = {
             "required": [
               "provider",
               "model"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "const": "openai-compatible",
+                "description": "OpenAI Compatible Configuration"
+              },
+              "model": {
+                "type": "string",
+                "description": "The name of the language model."
+              },
+              "displayName": {
+                "type": "string",
+                "description": "Optional display name."
+              },
+              "token": {
+                "description": "Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>.",
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "secret": {
+                        "type": "string",
+                        "description": "The name of the secret that contains the token."
+                      }
+                    },
+                    "required": [
+                      "secret"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "baseUrl": {
+                "type": "string",
+                "format": "url",
+                "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+                "description": "Base URL of the OpenAI-compatible chat completions API endpoint.",
+                "examples": [
+                  "http://localhost:8080/v1"
+                ]
+              }
+            },
+            "required": [
+              "provider",
+              "model",
+              "baseUrl"
             ],
             "additionalProperties": false
           },

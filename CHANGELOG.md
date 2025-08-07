@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added multi-branch indexing support for Gerrit. [#433](https://github.com/sourcebot-dev/sourcebot/pull/433)
+
+## [4.6.3] - 2025-08-04
+
+### Fixed
+- Fixed issue where `users` specified in a GitHub config were not getting picked up when a `token` is also specified. [#428](https://github.com/sourcebot-dev/sourcebot/pull/428)
+
+### Added
+- [ask sb] Added OpenAI Compatible Language Provider. [#424](https://github.com/sourcebot-dev/sourcebot/pull/424)
+
+## [4.6.2] - 2025-07-31
+
+### Changed
+- Bumped AI SDK and associated packages version. [#417](https://github.com/sourcebot-dev/sourcebot/pull/417)
+
+### Fixed
+- [ask sb] Fixed "413 content too large" error when starting a new chat with many repos selected. [#416](https://github.com/sourcebot-dev/sourcebot/pull/416)
+
+### Added
+- [ask sb] PostHog telemetry for chat thread creation. [#418](https://github.com/sourcebot-dev/sourcebot/pull/418)
+
 ## [4.6.1] - 2025-07-29
 
 ### Added

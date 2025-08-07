@@ -269,6 +269,7 @@ export interface GerritConnectionConfig {
      */
     hidden?: boolean;
   };
+  revisions?: GitRevisions;
 }
 export interface BitbucketConnectionConfig {
   /**

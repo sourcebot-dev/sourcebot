@@ -158,7 +158,7 @@ declare module 'slate' {
 /////////////////////////
 
 // Misc //
-export const SET_CHAT_STATE_QUERY_PARAM = 'setChatState';
+export const SET_CHAT_STATE_SESSION_STORAGE_KEY = 'setChatState';
 
 export type SetChatStatePayload = {
     inputMessage: CreateUIMessage<SBChatMessage>;
