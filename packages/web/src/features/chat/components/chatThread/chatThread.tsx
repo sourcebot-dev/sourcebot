@@ -23,6 +23,8 @@ import { ErrorBanner } from './errorBanner';
 import { useRouter } from 'next/navigation';
 import { usePrevious } from '@uidotdev/usehooks';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
+import { generateAndUpdateChatNameFromMessage } from '../../actions';
+import { isServiceError } from '@/lib/utils';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -118,8 +120,38 @@ export const ChatThread = ({
                 selectedSearchScopes,
                 languageModelId: selectedLanguageModel.model,
             } satisfies AdditionalChatRequestParams,
-        }); 
-    }, [_sendMessage, selectedLanguageModel, toast, selectedSearchScopes]);
+        });
+
+        if (
+            messages.length === 0 &&
+            message.parts.length > 0 &&
+            message.parts[0].type === 'text'
+        ) {
+            generateAndUpdateChatNameFromMessage(
+                {
+                    chatId,
+                    languageModelId: selectedLanguageModel.model,
+                    message: message.parts[0].text,
+                },
+                domain
+            ).then((response) => {
+                if (isServiceError(response)) {
+                    toast({
+                        description: `❌ Failed to generate chat name. Reason: ${response.message}`,
+                        variant: "destructive",
+                    });
+                }
+            });
+        }
+    }, [
+        selectedLanguageModel,
+        _sendMessage,
+        selectedSearchScopes,
+        messages.length,
+        toast,
+        chatId,
+        domain,
+    ]);
 
 
     const messagePairs = useMessagePairs(messages);

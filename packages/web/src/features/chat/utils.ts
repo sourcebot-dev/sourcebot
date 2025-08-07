@@ -1,6 +1,6 @@
-import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai"
-import { Descendant, Editor, Point, Range, Transforms } from "slate"
-import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants"
+import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai";
+import { Descendant, Editor, Point, Range, Transforms } from "slate";
+import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
 import {
     CustomEditor,
     CustomText,
@@ -14,7 +14,7 @@ import {
     SBChatMessageToolTypes,
     SearchScope,
     Source,
-} from "./types"
+} from "./types";
 
 export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
     const mention: MentionElement = {
