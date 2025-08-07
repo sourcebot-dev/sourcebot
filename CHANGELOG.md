@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Removed prefix from structured log output. [#443](https://github.com/sourcebot-dev/sourcebot/pull/443)
 
+### Changed
+- Bumped AI SDK and associated packages version. [#444](https://github.com/sourcebot-dev/sourcebot/pull/444)
+
 ## [4.6.3] - 2025-08-04
 
 ### Fixed
