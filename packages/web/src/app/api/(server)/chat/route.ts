@@ -440,7 +440,7 @@ const getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: num
                 model: openai(modelId),
                 providerOptions: {
                     openai: {
-                        reasoningEffort: 'high'
+                        reasoningEffort: config.reasoningEffort ?? 'medium'
                     } satisfies OpenAIResponsesProviderOptions,
                 },
             };

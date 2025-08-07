@@ -363,6 +363,10 @@ export interface OpenAILanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  /**
+   * The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings
+   */
+  reasoningEffort?: string;
 }
 export interface OpenAICompatibleLanguageModel {
   /**
