@@ -141,6 +141,8 @@ export const ChatThread = ({
                         variant: "destructive",
                     });
                 }
+                // Refresh the page to update the chat name.
+                router.refresh();
             });
         }
     }, [
@@ -151,14 +153,25 @@ export const ChatThread = ({
         toast,
         chatId,
         domain,
+        router,
     ]);
 
 
     const messagePairs = useMessagePairs(messages);
 
     useNavigationGuard({
-        enabled: status === "streaming" || status === "submitted",
-        confirm: () => window.confirm("You have unsaved changes that will be lost.")
+        enabled: ({ type }) => {
+            // @note: a "refresh" in this context means we have triggered a client side
+            // refresh via `router.refresh()`, and not the user pressing "CMD+R"
+            // (that would be a "beforeunload" event). We can safely peform refreshes
+            // without loosing any unsaved changes.
+            if (type === "refresh") {
+                return false;
+            }
+
+            return status === "streaming" || status === "submitted";
+        },
+        confirm: () => window.confirm("You have unsaved changes that will be lost."),
     });
 
     // When the chat is finished, refresh the page to update the chat history.
