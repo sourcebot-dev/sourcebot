@@ -1817,6 +1817,16 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "reasoningEffort": {
+                "type": "string",
+                "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
+                "examples": [
+                  "minimal",
+                  "low",
+                  "medium",
+                  "high"
+                ]
               }
             },
             "required": [
@@ -2623,6 +2633,16 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "reasoningEffort": {
+                "type": "string",
+                "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
+                "examples": [
+                  "minimal",
+                  "low",
+                  "medium",
+                  "high"
+                ]
               }
             },
             "required": [
