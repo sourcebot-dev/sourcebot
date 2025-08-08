@@ -74,6 +74,49 @@
         }
       },
       "additionalProperties": false
+    },
+    "LanguageModelHeaders": {
+      "type": "object",
+      "description": "Optional headers to use with the model.",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "secret": {
+                      "type": "string",
+                      "description": "The name of the secret that contains the token."
+                    }
+                  },
+                  "required": [
+                    "secret"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "env": {
+                      "type": "string",
+                      "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                    }
+                  },
+                  "required": [
+                    "env"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          ]
+        }
+      }
     }
   }
 }

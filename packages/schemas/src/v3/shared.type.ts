@@ -37,3 +37,16 @@ export interface GitRevisions {
    */
   tags?: string[];
 }
+/**
+ * Optional headers to use with the model.
+ *
+ * This interface was referenced by `Shared`'s JSON-Schema
+ * via the `definition` "LanguageModelHeaders".
+ */
+export interface LanguageModelHeaders {
+  /**
+   * This interface was referenced by `LanguageModelHeaders`'s JSON-Schema definition
+   * via the `patternProperty` "^[a-zA-Z0-9_-]+$".
+   */
+  [k: string]: string | Token;
+}

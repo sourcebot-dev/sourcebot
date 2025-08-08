@@ -496,6 +496,32 @@ export interface AmazonBedrockLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  headers?: LanguageModelHeaders;
+}
+/**
+ * Optional headers to use with the model.
+ */
+export interface LanguageModelHeaders {
+  /**
+   * This interface was referenced by `LanguageModelHeaders`'s JSON-Schema definition
+   * via the `patternProperty` "^[a-zA-Z0-9_-]+$".
+   */
+  [k: string]:
+    | string
+    | (
+        | {
+            /**
+             * The name of the secret that contains the token.
+             */
+            secret: string;
+          }
+        | {
+            /**
+             * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+             */
+            env: string;
+          }
+      );
 }
 export interface AnthropicLanguageModel {
   /**
@@ -530,6 +556,7 @@ export interface AnthropicLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  headers?: LanguageModelHeaders;
 }
 export interface AzureLanguageModel {
   /**
@@ -572,6 +599,7 @@ export interface AzureLanguageModel {
    * Use a different URL prefix for API calls. Either this or `resourceName` can be used.
    */
   baseUrl?: string;
+  headers?: LanguageModelHeaders;
 }
 export interface DeepSeekLanguageModel {
   /**
@@ -606,6 +634,7 @@ export interface DeepSeekLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  headers?: LanguageModelHeaders;
 }
 export interface GoogleGenerativeAILanguageModel {
   /**
@@ -640,6 +669,7 @@ export interface GoogleGenerativeAILanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  headers?: LanguageModelHeaders;
 }
 export interface GoogleVertexAnthropicLanguageModel {
   /**
@@ -682,6 +712,7 @@ export interface GoogleVertexAnthropicLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  headers?: LanguageModelHeaders;
 }
 export interface GoogleVertexLanguageModel {
   /**
@@ -724,6 +755,7 @@ export interface GoogleVertexLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  headers?: LanguageModelHeaders;
 }
 export interface MistralLanguageModel {
   /**
@@ -758,6 +790,7 @@ export interface MistralLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  headers?: LanguageModelHeaders;
 }
 export interface OpenAILanguageModel {
   /**
@@ -796,6 +829,7 @@ export interface OpenAILanguageModel {
    * The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings
    */
   reasoningEffort?: string;
+  headers?: LanguageModelHeaders;
 }
 export interface OpenAICompatibleLanguageModel {
   /**
@@ -830,6 +864,7 @@ export interface OpenAICompatibleLanguageModel {
    * Base URL of the OpenAI-compatible chat completions API endpoint.
    */
   baseUrl: string;
+  headers?: LanguageModelHeaders;
 }
 export interface OpenRouterLanguageModel {
   /**
@@ -864,6 +899,7 @@ export interface OpenRouterLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  headers?: LanguageModelHeaders;
 }
 export interface XaiLanguageModel {
   /**
@@ -898,4 +934,5 @@ export interface XaiLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  headers?: LanguageModelHeaders;
 }
