@@ -233,7 +233,7 @@ User question: ${message}`;
             return {
                 success: true,
             }
-        })
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
     )
 );
 
