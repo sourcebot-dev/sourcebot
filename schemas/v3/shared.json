@@ -72,6 +72,23 @@
                 }
             },
             "additionalProperties": false
+        },
+        "LanguageModelHeaders": {
+            "type": "object",
+            "description": "Optional headers to use with the model.",
+            "patternProperties": {
+                "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "$ref": "#/definitions/Token"
+                        }
+                    ]
+                }
+            },
+            "additionalProperties": false
         }
     }
 }

@@ -88,7 +88,7 @@ export async function POST(req: Request) {
                     });
                 }
 
-                const { model, providerOptions, headers } = await _getAISDKLanguageModelAndOptions(languageModelConfig, org.id);
+                const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig, org.id);
 
                 return createMessageStreamResponse({
                     messages,
@@ -97,7 +97,6 @@ export async function POST(req: Request) {
                     model,
                     modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                     modelProviderOptions: providerOptions,
-                    modelHeaders: headers,
                     domain,
                     orgId: org.id,
                 });
@@ -129,7 +128,6 @@ interface CreateMessageStreamResponseProps {
     model: AISDKLanguageModelV2;
     modelName: string;
     modelProviderOptions?: Record<string, Record<string, JSONValue>>;
-    modelHeaders?: Record<string, string>;
     domain: string;
     orgId: number;
 }
@@ -141,7 +139,6 @@ const createMessageStreamResponse = async ({
     model,
     modelName,
     modelProviderOptions,
-    modelHeaders,
     domain,
     orgId,
 }: CreateMessageStreamResponseProps) => {
@@ -210,7 +207,6 @@ const createMessageStreamResponse = async ({
             const researchStream = await createAgentStream({
                 model,
                 providerOptions: modelProviderOptions,
-                headers: modelHeaders,
                 inputMessages: messageHistory,
                 inputSources: sources,
                 searchScopeRepoNames: expandedRepos,

@@ -39,6 +39,9 @@
                     "format": "url",
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                     "description": "Optional base URL."
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
@@ -71,6 +74,9 @@
                     "format": "url",
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                     "description": "Optional base URL."
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
@@ -111,6 +117,9 @@
                     "format": "url",
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                     "description": "Use a different URL prefix for API calls. Either this or `resourceName` can be used."
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
@@ -143,6 +152,9 @@
                     "format": "url",
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                     "description": "Optional base URL."
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
@@ -175,6 +187,9 @@
                     "format": "url",
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                     "description": "Optional base URL."
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
@@ -223,6 +238,9 @@
                     "format": "url",
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                     "description": "Optional base URL."
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
@@ -273,6 +291,9 @@
                     "format": "url",
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                     "description": "Optional base URL."
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
@@ -305,6 +326,9 @@
                     "format": "url",
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                     "description": "Optional base URL."
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
@@ -353,6 +377,9 @@
                         "medium",
                         "high"
                     ]
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
@@ -388,6 +415,9 @@
                     "examples": [
                         "http://localhost:8080/v1"
                     ]
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
@@ -421,6 +451,9 @@
                     "format": "url",
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                     "description": "Optional base URL."
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
@@ -457,6 +490,9 @@
                     "format": "url",
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                     "description": "Optional base URL."
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }
             },
             "required": [
