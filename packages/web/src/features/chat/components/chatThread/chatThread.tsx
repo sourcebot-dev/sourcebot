@@ -23,6 +23,8 @@ import { ErrorBanner } from './errorBanner';
 import { useRouter } from 'next/navigation';
 import { usePrevious } from '@uidotdev/usehooks';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
+import { generateAndUpdateChatNameFromMessage } from '../../actions';
+import { isServiceError } from '@/lib/utils';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -118,15 +120,58 @@ export const ChatThread = ({
                 selectedSearchScopes,
                 languageModelId: selectedLanguageModel.model,
             } satisfies AdditionalChatRequestParams,
-        }); 
-    }, [_sendMessage, selectedLanguageModel, toast, selectedSearchScopes]);
+        });
+
+        if (
+            messages.length === 0 &&
+            message.parts.length > 0 &&
+            message.parts[0].type === 'text'
+        ) {
+            generateAndUpdateChatNameFromMessage(
+                {
+                    chatId,
+                    languageModelId: selectedLanguageModel.model,
+                    message: message.parts[0].text,
+                },
+                domain
+            ).then((response) => {
+                if (isServiceError(response)) {
+                    toast({
+                        description: `❌ Failed to generate chat name. Reason: ${response.message}`,
+                        variant: "destructive",
+                    });
+                }
+                // Refresh the page to update the chat name.
+                router.refresh();
+            });
+        }
+    }, [
+        selectedLanguageModel,
+        _sendMessage,
+        selectedSearchScopes,
+        messages.length,
+        toast,
+        chatId,
+        domain,
+        router,
+    ]);
 
 
     const messagePairs = useMessagePairs(messages);
 
     useNavigationGuard({
-        enabled: status === "streaming" || status === "submitted",
-        confirm: () => window.confirm("You have unsaved changes that will be lost.")
+        enabled: ({ type }) => {
+            // @note: a "refresh" in this context means we have triggered a client side
+            // refresh via `router.refresh()`, and not the user pressing "CMD+R"
+            // (that would be a "beforeunload" event). We can safely peform refreshes
+            // without loosing any unsaved changes.
+            if (type === "refresh") {
+                return false;
+            }
+
+            return status === "streaming" || status === "submitted";
+        },
+        confirm: () => window.confirm("You have unsaved changes that will be lost."),
     });
 
     // When the chat is finished, refresh the page to update the chat history.

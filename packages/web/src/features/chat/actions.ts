@@ -2,17 +2,32 @@
 
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { env } from "@/env.mjs";
-import { chatIsReadonly, notFound, ServiceError } from "@/lib/serviceError";
+import { SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
+import { ErrorCode } from "@/lib/errorCodes";
+import { chatIsReadonly, notFound, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
+import { createAzure } from '@ai-sdk/azure';
+import { createDeepSeek } from '@ai-sdk/deepseek';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createVertex } from '@ai-sdk/google-vertex';
+import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { createMistral } from '@ai-sdk/mistral';
+import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
+import { createXai } from '@ai-sdk/xai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { getTokenFromConfig } from "@sourcebot/crypto";
 import { ChatVisibility, OrgRole, Prisma } from "@sourcebot/db";
+import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
+import { loadConfig } from "@sourcebot/shared";
+import { generateText, JSONValue } from "ai";
 import fs from 'fs';
+import { StatusCodes } from "http-status-codes";
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from "./types";
-import { loadConfig } from "@sourcebot/shared";
-import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
-import { SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
-import { StatusCodes } from "http-status-codes";
-import { ErrorCode } from "@/lib/errorCodes";
 
 export const createChat = async (domain: string) => sew(() =>
     withAuth((userId) =>
@@ -170,6 +185,58 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
 );
 
+export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageModelId, message }: { chatId: string, languageModelId: string, message: string }, domain: string) => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            // From the language model ID, attempt to find the
+            // corresponding config in `config.json`.
+            const languageModelConfig =
+                (await _getConfiguredLanguageModelsFull())
+                    .find((model) => model.model === languageModelId);
+
+            if (!languageModelConfig) {
+                return serviceErrorResponse({
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Language model ${languageModelId} is not configured.`,
+                });
+            }
+
+            const { model } = await _getAISDKLanguageModelAndOptions(languageModelConfig, org.id);
+
+            const prompt = `Convert this question into a short topic title (max 50 characters). 
+
+Rules:
+- Do NOT include question words (what, where, how, why, when, which)
+- Do NOT end with a question mark
+- Capitalize the first letter of the title
+- Focus on the subject/topic being discussed
+- Make it sound like a file name or category
+
+Examples:
+"Where is the authentication code?" → "Authentication Code"
+"How to setup the database?" → "Database Setup"
+"What are the API endpoints?" → "API Endpoints"
+
+User question: ${message}`;
+
+            const result = await generateText({
+                model,
+                prompt,
+            });
+
+            await updateChatName({
+                chatId,
+                name: result.text,
+            }, domain);
+
+            return {
+                success: true,
+            }
+        })
+    )
+);
+
 export const deleteChat = async ({ chatId }: { chatId: string }, domain: string) => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
@@ -301,5 +368,195 @@ export const _getConfiguredLanguageModelsFull = async (): Promise<LanguageModel[
     } catch (error) {
         console.error(`Failed to load config file ${env.CONFIG_PATH}: ${error}`);
         return [];
+    }
+}
+
+
+export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, orgId: number): Promise<{
+    model: AISDKLanguageModelV2,
+    providerOptions?: Record<string, Record<string, JSONValue>>,
+    headers?: Record<string, string>,
+}> => {
+    const { provider, model: modelId } = config;
+
+    switch (provider) {
+        case 'amazon-bedrock': {
+            const aws = createAmazonBedrock({
+                baseURL: config.baseUrl,
+                region: config.region ?? env.AWS_REGION,
+                accessKeyId: config.accessKeyId
+                    ? await getTokenFromConfig(config.accessKeyId, orgId, prisma)
+                    : env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: config.accessKeySecret
+                    ? await getTokenFromConfig(config.accessKeySecret, orgId, prisma)
+                    : env.AWS_SECRET_ACCESS_KEY,
+            });
+
+            return {
+                model: aws(modelId),
+            };
+        }
+        case 'anthropic': {
+            const anthropic = createAnthropic({
+                baseURL: config.baseUrl,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.ANTHROPIC_API_KEY,
+            });
+
+            return {
+                model: anthropic(modelId),
+                providerOptions: {
+                    anthropic: {
+                        thinking: {
+                            type: "enabled",
+                            budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
+                        }
+                    } satisfies AnthropicProviderOptions,
+                },
+                headers: {
+                    // @see: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#interleaved-thinking
+                    'anthropic-beta': 'interleaved-thinking-2025-05-14',
+                },
+            };
+        }
+        case 'azure': {
+            const azure = createAzure({
+                baseURL: config.baseUrl,
+                apiKey: config.token ? (await getTokenFromConfig(config.token, orgId, prisma)) : env.AZURE_API_KEY,
+                apiVersion: config.apiVersion,
+                resourceName: config.resourceName ?? env.AZURE_RESOURCE_NAME,
+            });
+
+            return {
+                model: azure(modelId),
+            };
+        }
+        case 'deepseek': {
+            const deepseek = createDeepSeek({
+                baseURL: config.baseUrl,
+                apiKey: config.token ? (await getTokenFromConfig(config.token, orgId, prisma)) : env.DEEPSEEK_API_KEY,
+            });
+
+            return {
+                model: deepseek(modelId),
+            };
+        }
+        case 'google-generative-ai': {
+            const google = createGoogleGenerativeAI({
+                baseURL: config.baseUrl,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.GOOGLE_GENERATIVE_AI_API_KEY,
+            });
+
+            return {
+                model: google(modelId),
+            };
+        }
+        case 'google-vertex': {
+            const vertex = createVertex({
+                project: config.project ?? env.GOOGLE_VERTEX_PROJECT,
+                location: config.region ?? env.GOOGLE_VERTEX_REGION,
+                ...(config.credentials ? {
+                    googleAuthOptions: {
+                        keyFilename: await getTokenFromConfig(config.credentials, orgId, prisma),
+                    }
+                } : {}),
+            });
+
+            return {
+                model: vertex(modelId),
+                providerOptions: {
+                    google: {
+                        thinkingConfig: {
+                            thinkingBudget: env.GOOGLE_VERTEX_THINKING_BUDGET_TOKENS,
+                            includeThoughts: env.GOOGLE_VERTEX_INCLUDE_THOUGHTS === 'true',
+                        }
+                    }
+                },
+            };
+        }
+        case 'google-vertex-anthropic': {
+            const vertexAnthropic = createVertexAnthropic({
+                project: config.project ?? env.GOOGLE_VERTEX_PROJECT,
+                location: config.region ?? env.GOOGLE_VERTEX_REGION,
+                ...(config.credentials ? {
+                    googleAuthOptions: {
+                        keyFilename: await getTokenFromConfig(config.credentials, orgId, prisma),
+                    }
+                } : {}),
+            });
+
+            return {
+                model: vertexAnthropic(modelId),
+            };
+        }
+        case 'mistral': {
+            const mistral = createMistral({
+                baseURL: config.baseUrl,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.MISTRAL_API_KEY,
+            });
+
+            return {
+                model: mistral(modelId),
+            };
+        }
+        case 'openai': {
+            const openai = createOpenAI({
+                baseURL: config.baseUrl,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.OPENAI_API_KEY,
+            });
+
+            return {
+                model: openai(modelId),
+                providerOptions: {
+                    openai: {
+                        reasoningEffort: config.reasoningEffort ?? 'medium',
+                    } satisfies OpenAIResponsesProviderOptions,
+                },
+            };
+        }
+        case 'openai-compatible': {
+            const openai = createOpenAICompatible({
+                baseURL: config.baseUrl,
+                name: config.displayName ?? modelId,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : undefined,
+            });
+
+            return {
+                model: openai.chatModel(modelId),
+            }
+        }
+        case 'openrouter': {
+            const openrouter = createOpenRouter({
+                baseURL: config.baseUrl,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.OPENROUTER_API_KEY,
+            });
+
+            return {
+                model: openrouter(modelId),
+            };
+        }
+        case 'xai': {
+            const xai = createXai({
+                baseURL: config.baseUrl,
+                apiKey: config.token
+                    ? await getTokenFromConfig(config.token, orgId, prisma)
+                    : env.XAI_API_KEY,
+            });
+
+            return {
+                model: xai(modelId),
+            };
+        }
     }
 }
