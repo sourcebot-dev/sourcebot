@@ -78,7 +78,7 @@ const schema = {
       "type": "object",
       "description": "Optional headers to use with the model.",
       "patternProperties": {
-        "^[a-zA-Z0-9_-]+$": {
+        "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
           "anyOf": [
             {
               "type": "string"
@@ -115,7 +115,8 @@ const schema = {
             }
           ]
         }
-      }
+      },
+      "additionalProperties": false
     }
   }
 } as const;

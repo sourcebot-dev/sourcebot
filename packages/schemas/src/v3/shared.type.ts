@@ -46,7 +46,7 @@ export interface GitRevisions {
 export interface LanguageModelHeaders {
   /**
    * This interface was referenced by `LanguageModelHeaders`'s JSON-Schema definition
-   * via the `patternProperty` "^[a-zA-Z0-9_-]+$".
+   * via the `patternProperty` "^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$".
    */
   [k: string]: string | Token;
 }

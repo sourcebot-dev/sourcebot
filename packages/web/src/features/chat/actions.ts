@@ -613,7 +613,5 @@ const extractLanguageModelHeaders = async (
         resolvedHeaders[headerName] = value;
     }
 
-    console.log(resolvedHeaders);
-
     return resolvedHeaders;
 }
