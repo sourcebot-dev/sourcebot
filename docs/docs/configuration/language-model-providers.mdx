@@ -324,8 +324,34 @@ The OpenAI compatible provider allows you to use any model that is compatible wi
 }
 ```
 
+# Custom headers
 
-## Schema reference
+You can pass custom headers to the language model provider by using the `headers` parameter. Header values can either be a string or a environment variable. Headers are supported for all providers.
+
+```json wrap icon="code" Example config with custom headers
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            // ... provider, model, displayName, etc...
+
+            // Key-value pairs of headers
+            "headers": {
+                // Header values can be passed as a environment variable...
+                "my-secret-header": {
+                    "env": "MY_SECRET_HEADER_ENV_VAR"
+                },
+
+                // ... or directly as a string.
+                "my-non-secret-header": "plaintextvalue"
+            }
+        }
+    ]
+}
+```
+
+
+# Schema reference
 
 <Accordion title="Reference">
 [schemas/v3/languageModel.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/languageModel.json)
