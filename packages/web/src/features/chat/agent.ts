@@ -32,7 +32,6 @@ const stepCountIsGTE = (stepCount: number): StopCondition<any> => {
 export const createAgentStream = async ({
     model,
     providerOptions,
-    headers,
     inputMessages,
     inputSources,
     searchScopeRepoNames,
@@ -46,7 +45,6 @@ export const createAgentStream = async ({
     const stream = streamText({
         model,
         providerOptions,
-        headers,
         system: baseSystemPrompt,
         messages: inputMessages,
         tools: {

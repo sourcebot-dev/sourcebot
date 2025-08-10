@@ -1364,6 +1364,50 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -1388,7 +1432,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -1416,13 +1459,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -1451,7 +1539,6 @@ const schema = {
                 "description": "Azure resource name. Defaults to the `AZURE_RESOURCE_NAME` environment variable."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `AZURE_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -1479,7 +1566,8 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `AZURE_API_KEY` environment variable."
               },
               "apiVersion": {
                 "type": "string",
@@ -1490,6 +1578,50 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Use a different URL prefix for API calls. Either this or `resourceName` can be used."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -1514,7 +1646,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `DEEPSEEK_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -1542,13 +1673,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `DEEPSEEK_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -1573,7 +1749,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -1601,13 +1776,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -1648,7 +1868,6 @@ const schema = {
                 ]
               },
               "credentials": {
-                "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -1676,13 +1895,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -1725,7 +1989,6 @@ const schema = {
                 ]
               },
               "credentials": {
-                "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -1753,13 +2016,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -1784,7 +2092,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `MISTRAL_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -1812,13 +2119,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `MISTRAL_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -1849,7 +2201,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `OPENAI_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -1877,13 +2228,68 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `OPENAI_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "reasoningEffort": {
+                "type": "string",
+                "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
+                "examples": [
+                  "minimal",
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -1908,7 +2314,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -1936,7 +2341,8 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>."
               },
               "baseUrl": {
                 "type": "string",
@@ -1946,6 +2352,50 @@ const schema = {
                 "examples": [
                   "http://localhost:8080/v1"
                 ]
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -1971,7 +2421,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `OPENROUTER_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -1999,13 +2448,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `OPENROUTER_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2034,7 +2528,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `XAI_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2062,13 +2555,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `XAI_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2170,6 +2708,50 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2194,7 +2776,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2222,13 +2803,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2257,7 +2883,6 @@ const schema = {
                 "description": "Azure resource name. Defaults to the `AZURE_RESOURCE_NAME` environment variable."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `AZURE_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2285,7 +2910,8 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `AZURE_API_KEY` environment variable."
               },
               "apiVersion": {
                 "type": "string",
@@ -2296,6 +2922,50 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Use a different URL prefix for API calls. Either this or `resourceName` can be used."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2320,7 +2990,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `DEEPSEEK_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2348,13 +3017,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `DEEPSEEK_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2379,7 +3093,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2407,13 +3120,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2454,7 +3212,6 @@ const schema = {
                 ]
               },
               "credentials": {
-                "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2482,13 +3239,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2531,7 +3333,6 @@ const schema = {
                 ]
               },
               "credentials": {
-                "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2559,13 +3360,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2590,7 +3436,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `MISTRAL_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2618,13 +3463,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `MISTRAL_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2655,7 +3545,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `OPENAI_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2683,13 +3572,68 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `OPENAI_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "reasoningEffort": {
+                "type": "string",
+                "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
+                "examples": [
+                  "minimal",
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2714,7 +3658,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2742,7 +3685,8 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>."
               },
               "baseUrl": {
                 "type": "string",
@@ -2752,6 +3696,50 @@ const schema = {
                 "examples": [
                   "http://localhost:8080/v1"
                 ]
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2777,7 +3765,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `OPENROUTER_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2805,13 +3792,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `OPENROUTER_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2840,7 +3872,6 @@ const schema = {
                 "description": "Optional display name."
               },
               "token": {
-                "description": "Optional API key to use with the model. Defaults to the `XAI_API_KEY` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -2868,13 +3899,58 @@ const schema = {
                     ],
                     "additionalProperties": false
                   }
-                ]
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `XAI_API_KEY` environment variable."
               },
               "baseUrl": {
                 "type": "string",
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "secret": {
+                                "type": "string",
+                                "description": "The name of the secret that contains the token."
+                              }
+                            },
+                            "required": [
+                              "secret"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [

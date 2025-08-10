@@ -6,11 +6,7 @@ import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import Link from "next/link";
-import { env } from "@/env.mjs";
 import type { AuthProvider } from "@/lib/authProviders";
-
-const TERMS_OF_SERVICE_URL = "https://sourcebot.dev/terms";
-const PRIVACY_POLICY_URL = "https://sourcebot.dev/privacy";
 
 interface LoginFormProps {
     callbackUrl?: string;
@@ -96,9 +92,6 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
                     }
                 </p>
             </Card>
-            {env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined && (
-                <p className="text-xs text-muted-foreground mt-8">By signing in, you agree to the <Link className="underline" href={TERMS_OF_SERVICE_URL} target="_blank">Terms of Service</Link> and <Link className="underline" href={PRIVACY_POLICY_URL} target="_blank">Privacy Policy</Link>.</p>
-            )}
         </div>
     )
 }
