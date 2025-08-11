@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.4] - 2025-08-11
+
 ### Added
 - Added multi-branch indexing support for Gerrit. [#433](https://github.com/sourcebot-dev/sourcebot/pull/433)
 - [ask sb] Added `reasoningEffort` option to OpenAI provider. [#446](https://github.com/sourcebot-dev/sourcebot/pull/446)
