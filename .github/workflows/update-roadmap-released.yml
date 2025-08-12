@@ -16,7 +16,7 @@ jobs:
     update:
         runs-on: ubuntu-latest
         steps:
-            - name: Update "Released" section with last 10 closed PRs
+          - name: Update "Released" section with last 10 closed PRs
             uses: actions/github-script@v7
             env:
                 ROADMAP_ISSUE_NUMBER: "459"
