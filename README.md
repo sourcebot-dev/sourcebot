@@ -19,14 +19,11 @@
 
    <div>
       <a href="https://docs.sourcebot.dev/"><strong>Docs</strong></a> ·
-      <a href="https://github.com/sourcebot-dev/sourcebot/issues"><strong>Report Bug</strong></a> ·
-      <a href="https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas"><strong>Feature Request</strong></a> ·
-      <a href="https://www.sourcebot.dev/changelog"><strong>Changelog</strong></a> ·
-      <a href="https://www.sourcebot.dev/contact"><strong>Contact</strong></a> ·
+      <a href="https://github.com/sourcebot-dev/sourcebot/issues/459"><strong>Roadmap</strong></a> ·
+      <a href="https://github.com/sourcebot-dev/sourcebot/issues/new?template=bug_report.yml"><strong>Report Bug</strong></a> ·
+      <a href="https://github.com/sourcebot-dev/sourcebot/issues/new?template=feature_request.md"><strong>Feature Request</strong></a> ·
+      <a href="https://www.sourcebot.dev/changelog"><strong>Changelog</strong></a>
    </div>
-   <br/>
-   <span>Sourcebot uses <a href="https://github.com/sourcebot-dev/sourcebot/discussions"><strong>Github Discussions</strong></a>  for Support and Feature Requests.</span>
-   <br/>
    <br/>
    <div>
    </div>

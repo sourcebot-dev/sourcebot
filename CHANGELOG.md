@@ -286,7 +286,7 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 
 ### Removed
 - [**Breaking Change**] Removed `db.json` in favour of a Postgres database for transactional workloads. See the [architecture overview](https://docs.sourcebot.dev/self-hosting/overview#architecture).
-- [**Breaking Change**] Removed local folder & arbitrary .git repo support. If your deployment depended on these features, please [open a discussion](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) and let us know.
+- [**Breaking Change**] Removed local folder & arbitrary .git repo support. If your deployment depended on these features, please [open a issue](https://github.com/sourcebot-dev/sourcebot/issues/new?template=get_help.md) and let us know.
 - [**Breaking Chnage**] Removed ability to specify a `token` as a string literal from the schema.
 - [**Breaking Change**] Removed support for `DOMAIN_SUB_PATH` configuration.
 
