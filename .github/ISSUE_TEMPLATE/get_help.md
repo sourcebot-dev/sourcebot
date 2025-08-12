@@ -1,6 +1,6 @@
 ---
 name: "🛟 Get Help"
-about: If you can't get something to work the way you expect, open a question in our discussion forums.
+about: Something isn't working the way you expect
 title: ""
 labels: help wanted
 assignees: ''
