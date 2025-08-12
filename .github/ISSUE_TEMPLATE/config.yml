@@ -1,7 +1,4 @@
 contact_links:
-  - name: 🛟 Get Help
-    url: https://github.com/sourcebot-dev/sourcebot/discussions/new?category=support
-    about: If you can't get something to work the way you expect, open a question in our discussion forums.
   - name: 👾 Discord
     url: https://discord.gg/f4Cbf3HT
     about: Something else? Join the Discord!
