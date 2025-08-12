@@ -1,0 +1,76 @@
+name: Update Roadmap Released
+
+on:
+    pull_request:
+        types: [closed]
+    workflow_dispatch:
+    schedule:
+        - cron: "0 */6 * * *"
+
+permissions:
+    pull-requests: read
+    contents: read
+    issues: write
+
+jobs:
+    update:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Update "Released" section with last 10 closed PRs
+            uses: actions/github-script@v7
+            env:
+                ROADMAP_ISSUE_NUMBER: "459"
+            with:
+                script: |
+                    const issue_number = parseInt(process.env.ROADMAP_ISSUE_NUMBER, 10);
+                    const {owner, repo} = context.repo;
+
+                    // Fetch more than 10, then sort by closed_at to be precise
+                    const batchSize = 50;
+                    const { data: prBatch } = await github.rest.pulls.list({
+                        owner,
+                        repo,
+                        state: "closed",
+                        per_page: batchSize,
+                        sort: "updated",
+                        direction: "desc"
+                    });
+
+                    const last10 = prBatch
+                        .filter(pr => pr.closed_at) // closed PRs
+                        .sort((a, b) => new Date(b.closed_at) - new Date(a.closed_at))
+                        .slice(0, 10);
+
+                    const list = last10.map(pr => `- #${pr.number}`).join("\n");
+
+                    const start = "<!-- RELEASED:START -->";
+                    const end = "<!-- RELEASED:END -->";
+
+                    const closedUrl = `https://github.com/${owner}/${repo}/pulls?q=is%3Apr+is%3Aclosed`;
+                    const replacementBlock = [
+                        start,
+                        "",
+                        `10 most recent [closed PRs](${closedUrl}):`,
+                        "",
+                        list,
+                        "",
+                        end
+                    ].join("\n");
+
+                    const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number });
+                    let body = issue.body || "";
+
+                    if (body.includes(start) && body.includes(end)) {
+                        const pattern = new RegExp(`${start}[\\s\\S]*?${end}`);
+                        body = body.replace(pattern, replacementBlock);
+                    } else {
+                        core.setFailed('Missing RELEASED markers in roadmap issue body. Please add <!-- RELEASED:START --> and <!-- RELEASED:END --> to the issue.');
+                        return;
+                    }
+
+                    await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number,
+                        body
+                    });
