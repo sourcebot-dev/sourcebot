@@ -16,7 +16,7 @@ jobs:
     update:
         runs-on: ubuntu-latest
         steps:
-          - name: Update "Released" section with last 10 closed PRs
+          - name: Update "Released" section with last 10 merged PRs
             uses: actions/github-script@v7
             env:
                 ROADMAP_ISSUE_NUMBER: "459"
@@ -37,8 +37,8 @@ jobs:
                     });
 
                     const last10 = prBatch
-                        .filter(pr => pr.closed_at) // closed PRs
-                        .sort((a, b) => new Date(b.closed_at) - new Date(a.closed_at))
+                        .filter(pr => pr.merged_at) // only merged PRs
+                        .sort((a, b) => new Date(b.merged_at) - new Date(a.merged_at))
                         .slice(0, 10);
 
                     const list = last10.map(pr => `- #${pr.number}`).join("\n");
@@ -46,11 +46,11 @@ jobs:
                     const start = "<!-- RELEASED:START -->";
                     const end = "<!-- RELEASED:END -->";
 
-                    const closedUrl = `https://github.com/${owner}/${repo}/pulls?q=is%3Apr+is%3Aclosed`;
+                    const mergedUrl = `https://github.com/${owner}/${repo}/pulls?q=is%3Apr+is%3Amerged`;
                     const replacementBlock = [
                         start,
                         "",
-                        `10 most recent [closed PRs](${closedUrl}):`,
+                        `10 most recent [merged PRs](${mergedUrl}):`,
                         "",
                         list,
                         "",
