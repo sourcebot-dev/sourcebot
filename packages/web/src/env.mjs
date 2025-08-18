@@ -131,6 +131,10 @@ export const env = createEnv({
         LANGFUSE_SECRET_KEY: z.string().optional(),
 
         SOURCEBOT_DEMO_EXAMPLES_PATH: z.string().optional(),
+
+        EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED: booleanSchema.default('false'),
+        // @NOTE: Take care to update actions.ts when changing the name of this.
+        EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in

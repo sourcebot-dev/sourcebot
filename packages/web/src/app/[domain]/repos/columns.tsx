@@ -9,7 +9,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn, getRepoImageSrc } from "@/lib/utils"
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { AddRepoButton } from "./addRepoButton"
 
 export type RepositoryColumnInfo = {
     repoId: number
@@ -97,12 +96,7 @@ const StatusIndicator = ({ status }: { status: RepoIndexingStatus }) => {
 export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
     {
         accessorKey: "name",
-        header: () => (
-            <div className="flex items-center w-[400px]">
-                <span>Repository</span>
-                <AddRepoButton />
-            </div>
-        ),
+        header: 'Repository',
         cell: ({ row }) => {
             const repo = row.original
             const url = repo.url

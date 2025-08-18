@@ -461,3 +461,11 @@ export const getOrgMetadata = (org: Org): OrgMetadata | null => {
 }
 
 export const IS_MAC = typeof navigator !== 'undefined' && /Mac OS X/.test(navigator.userAgent);
+
+
+export const isHttpError = (error: unknown, status: number): boolean => {
+    return error !== null 
+        && typeof error === 'object'
+        && 'status' in error 
+        && error.status === status;
+}
