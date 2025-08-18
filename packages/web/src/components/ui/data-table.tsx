@@ -22,14 +22,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import * as React from "react"
-import { PlusIcon } from "lucide-react"
-import { env } from "@/env.mjs"
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
     searchKey: string
-    searchPlaceholder?: string
+    searchPlaceholder?: string,
+    headerActions?: React.ReactNode,
 }
 
 export function DataTable<TData, TValue>({
@@ -37,6 +36,8 @@ export function DataTable<TData, TValue>({
     data,
     searchKey,
     searchPlaceholder,
+    headerActions,
+
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -75,18 +76,7 @@ export function DataTable<TData, TValue>({
                     Show a button on the demo site that allows users to add new repositories
                     by updating the demo-site-config.json file and opening a PR.
                 */}
-                {env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo" && (
-                    <Button
-                        variant="default"
-                        size="default"
-                        onClick={() => {
-                            window.open("https://github.com/sourcebot-dev/sourcebot/discussions/412", "_blank");
-                        }}
-                    >
-                        <PlusIcon className="w-4 h-4" />
-                        Add repository
-                    </Button>
-                )}
+                {headerActions}
             </div>
             <div className="rounded-md border">
                 <Table>

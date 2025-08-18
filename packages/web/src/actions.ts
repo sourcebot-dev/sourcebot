@@ -22,6 +22,7 @@ import { StatusCodes } from "http-status-codes";
 import { cookies, headers } from "next/headers";
 import { createTransport } from "nodemailer";
 import { auth } from "./auth";
+import { Octokit } from "octokit";
 import { getConnection } from "./data/connection";
 import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
@@ -788,6 +789,134 @@ export const createConnection = async (name: string, type: CodeHostType, connect
                 id: connection.id,
             }
         }, OrgRole.OWNER)
+    ));
+
+export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: string, domain: string): Promise<{ connectionId: number } | ServiceError> => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            if (env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED !== 'true') {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "This feature is not enabled.",
+                } satisfies ServiceError;
+            }
+
+            // Parse repository URL to extract owner/repo
+            const repoInfo = (() => {
+                const url = repositoryUrl.trim();
+    
+                // Handle various GitHub URL formats
+                const patterns = [
+                    // https://github.com/owner/repo or https://github.com/owner/repo.git
+                    /^https?:\/\/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/,
+                    // github.com/owner/repo
+                    /^github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/,
+                    // owner/repo
+                    /^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/
+                ];
+                
+                for (const pattern of patterns) {
+                    const match = url.match(pattern);
+                    if (match) {
+                        return {
+                            owner: match[1],
+                            repo: match[2]
+                        };
+                    }
+                }
+                
+                return null;
+            })();
+
+            if (!repoInfo) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "Invalid repository URL format. Please use 'owner/repo' or 'https://github.com/owner/repo' format.",
+                } satisfies ServiceError;
+            }
+
+            const { owner, repo } = repoInfo;
+            
+            // Use GitHub API to fetch repository information and get the external_id
+            const octokit = new Octokit({
+                auth: env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN
+            });
+
+            let githubRepo;
+            try {
+                const response = await octokit.rest.repos.get({
+                    owner,
+                    repo,
+                });
+                githubRepo = response.data;
+            } catch (error: any) {
+                if (error.status === 404) {
+                    return {
+                        statusCode: StatusCodes.NOT_FOUND,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: `Repository '${owner}/${repo}' not found or is private. Only public repositories can be added.`,
+                    } satisfies ServiceError;
+                } else if (error.status === 403) {
+                    return {
+                        statusCode: StatusCodes.FORBIDDEN,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: `Access to repository '${owner}/${repo}' is forbidden. Only public repositories can be added.`,
+                    } satisfies ServiceError;
+                }
+                
+                return {
+                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Failed to fetch repository information: ${error.message || 'Unknown error'}`,
+                } satisfies ServiceError;
+            }
+
+            // Check if this repository is already connected using the external_id
+            const existingRepo = await prisma.repo.findFirst({
+                where: {
+                    orgId: org.id,
+                    external_id: githubRepo.id.toString(),
+                    external_codeHostType: 'github',
+                    external_codeHostUrl: 'https://github.com',
+                }
+            });
+
+            if (existingRepo) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.CONNECTION_ALREADY_EXISTS,
+                    message: "This repository already exists.",
+                } satisfies ServiceError;
+            }
+
+            const connectionName = `${owner}-${repo}-${Date.now()}`;
+
+            // Create GitHub connection config
+            const connectionConfig: GithubConnectionConfig = {
+                type: "github" as const,
+                repos: [`${owner}/${repo}`],
+                ...(env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN ? {
+                    token: {
+                        env: 'EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN'
+                    }
+                } : {})
+            };
+
+            const connection = await prisma.connection.create({
+                data: {
+                    orgId: org.id,
+                    name: connectionName,
+                    config: connectionConfig as unknown as Prisma.InputJsonValue,
+                    connectionType: 'github',
+                }
+            });
+
+            return {
+                connectionId: connection.id,
+            }
+        }, OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
 export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
