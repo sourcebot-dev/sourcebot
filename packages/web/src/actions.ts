@@ -3,7 +3,7 @@
 import { env } from "@/env.mjs";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notAuthenticated, notFound, orgNotFound, secretAlreadyExists, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
-import { CodeHostType, isServiceError } from "@/lib/utils";
+import { CodeHostType, isHttpError, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
@@ -851,14 +851,16 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
                     repo,
                 });
                 githubRepo = response.data;
-            } catch (error: any) {
-                if (error.status === 404) {
+            } catch (error) {
+                if (isHttpError(error, 404)) {
                     return {
                         statusCode: StatusCodes.NOT_FOUND,
                         errorCode: ErrorCode.INVALID_REQUEST_BODY,
                         message: `Repository '${owner}/${repo}' not found or is private. Only public repositories can be added.`,
                     } satisfies ServiceError;
-                } else if (error.status === 403) {
+                }
+
+                if (isHttpError(error, 403)) {
                     return {
                         statusCode: StatusCodes.FORBIDDEN,
                         errorCode: ErrorCode.INVALID_REQUEST_BODY,
@@ -869,7 +871,7 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
                 return {
                     statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: `Failed to fetch repository information: ${error.message || 'Unknown error'}`,
+                    message: `Failed to fetch repository information: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 } satisfies ServiceError;
             }
 
