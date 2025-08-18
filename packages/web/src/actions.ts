@@ -875,6 +875,14 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
                 } satisfies ServiceError;
             }
 
+            if (githubRepo.private) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "Only public repositories can be added.",
+                } satisfies ServiceError;
+            }
+
             // Check if this repository is already connected using the external_id
             const existingRepo = await prisma.repo.findFirst({
                 where: {
