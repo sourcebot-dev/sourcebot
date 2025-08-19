@@ -32,7 +32,7 @@ export const FileListItem = ({
                     pathType: 'blob',
                 })}
             >
-                {path}
+                <span>{path}</span>
             </Link>
         </div>
     )
