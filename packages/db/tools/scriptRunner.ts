@@ -4,6 +4,7 @@ import { migrateDuplicateConnections } from "./scripts/migrate-duplicate-connect
 import { injectAuditData } from "./scripts/inject-audit-data";
 import { confirmAction } from "./utils";
 import { createLogger } from "@sourcebot/logger";
+import { seed } from "./scripts/seed";
 
 export interface Script {
     run: (prisma: PrismaClient) => Promise<void>;
@@ -12,6 +13,7 @@ export interface Script {
 export const scripts: Record<string, Script> = {
     "migrate-duplicate-connections": migrateDuplicateConnections,
     "inject-audit-data": injectAuditData,
+    "seed": seed,
 }
 
 const parser = new ArgumentParser();
