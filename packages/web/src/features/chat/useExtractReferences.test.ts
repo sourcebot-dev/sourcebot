@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { useExtractReferences } from './useExtractReferences';
 import { getFileReferenceId } from './utils';
 import { TextUIPart } from 'ai';

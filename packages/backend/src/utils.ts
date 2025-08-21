@@ -3,6 +3,7 @@ import { AppContext } from "./types.js";
 import path from 'path';
 import { PrismaClient, Repo } from "@sourcebot/db";
 import { getTokenFromConfig as getTokenFromConfigBase } from "@sourcebot/crypto";
+import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { BackendException, BackendError } from "@sourcebot/error";
 import * as Sentry from "@sentry/node";
 
@@ -20,7 +21,8 @@ export const marshalBool = (value?: boolean) => {
     return !!value ? '1' : '0';
 }
 
-export const getTokenFromConfig = async (token: any, orgId: number, db: PrismaClient, logger?: Logger) => {
+
+export const getTokenFromConfig = async (token: Token, orgId: number, db: PrismaClient, logger?: Logger) => {
     try {
         return await getTokenFromConfigBase(token, orgId, db);
     } catch (error: unknown) {

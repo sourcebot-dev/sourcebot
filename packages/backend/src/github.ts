@@ -66,7 +66,7 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
 
             if (isHttpError(error, 401)) {
                 const e = new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN, {
-                    ...(config.token && 'secret' in config.token ? {
+                    ...(config.token && typeof config.token === 'object' && 'secret' in config.token ? {
                         secretKey: config.token.secret,
                     } : {}),
                 });
