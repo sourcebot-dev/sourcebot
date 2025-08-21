@@ -35,6 +35,9 @@ describe('tokenUtils', () => {
             const result = await getTokenFromConfig(config, testOrgId, mockPrisma);
 
             expect(result).toBe('decrypted-secret-value');
+            // Verify we invoked decrypt with the secret's IV and encrypted value
+            const { decrypt } = await import('./index.js');
+            expect(decrypt).toHaveBeenCalledWith('test-iv', 'encrypted-value');
             expect(mockPrisma.secret.findUnique).toHaveBeenCalledWith({
                 where: { 
                     orgId_key: {
@@ -52,6 +55,7 @@ describe('tokenUtils', () => {
             const result = await getTokenFromConfig(config, testOrgId, mockPrisma);
 
             expect(result).toBe('env-token-value');
+            expect(mockPrisma.secret.findUnique).not.toHaveBeenCalled();
         });
 
         test('throws error for string tokens (security)', async () => {
@@ -75,6 +79,8 @@ describe('tokenUtils', () => {
 
             await expect(getTokenFromConfig(config, testOrgId, mockPrisma))
                 .rejects.toThrow('Secret with key non-existent-secret not found for org 1');
+            const { decrypt } = await import('./index.js');
+            expect(decrypt).not.toHaveBeenCalled();
         });
 
         test('throws error for missing environment variable', async () => {

@@ -87,7 +87,7 @@ export const getGerritReposFromConfig = async (
    }
 
    // include repos by glob if specified in config
-   if (config.projects) {
+   if (config.projects?.length) {
       projects = projects.filter((project) => {
          return micromatch.isMatch(project.name, config.projects!);
       });
@@ -155,10 +155,11 @@ const fetchAllProjects = async (url: string, auth?: GerritAuthConfig): Promise<G
             throw err;
          }
 
-         const status = (err as any).code;
-         logger.error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${status}`);
+         const status = (err as any).code ?? 0;
+         const message = (err as Error)?.message ?? String(err);
+         logger.error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${status}: ${message}`);
          throw new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
-            status: status,
+            status,
             url: endpointWithParams,
             authenticated: !!auth
          });
@@ -168,7 +169,7 @@ const fetchAllProjects = async (url: string, auth?: GerritAuthConfig): Promise<G
       // Remove XSSI protection prefix that Gerrit adds to JSON responses
       // The regex /^\)\]\}'\n/ matches the literal string ")]}'" at the start of the response
       // followed by a newline character, which Gerrit adds to prevent JSON hijacking
-      const jsonText = text.startsWith(")]}'") ? text.replace(/^\)\]\}'\n/, '') : text;
+      const jsonText = text.replace(/^\)\]\}'\s*/, '');
       const data: GerritProjects = JSON.parse(jsonText);
 
       // Add fetched projects to allProjects
