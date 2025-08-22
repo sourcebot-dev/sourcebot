@@ -13,13 +13,14 @@ import { ChatSidePanel } from '../components/chatSidePanel';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 
 interface PageProps {
-    params: {
+    params: Promise<{
         domain: string;
         id: string;
-    };
+    }>;
 }
 
-export default async function Page({ params }: PageProps) {
+export default async function Page(props: PageProps) {
+    const params = await props.params;
     const languageModels = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos(params.domain);
     const searchContexts = await getSearchContexts(params.domain);

@@ -9,12 +9,11 @@ import {
     BitbucketCloudConnectionCreationForm,
     BitbucketDataCenterConnectionCreationForm
 } from "@/app/[domain]/components/connectionCreationForms";
-import { useCallback } from "react";
+import { useCallback, use } from "react";
 import { useDomain } from "@/hooks/useDomain";
 
-export default function NewConnectionPage({
-    params
-}: { params: { type: string } }) {
+export default function NewConnectionPage(props: { params: Promise<{ type: string }> }) {
+    const params = use(props.params);
     const { type } = params;
     const router = useRouter();
     const domain = useDomain();
@@ -46,7 +45,7 @@ export default function NewConnectionPage({
     if (type === 'bitbucket-server') {
         return <BitbucketDataCenterConnectionCreationForm onCreated={onCreated} />;
     }
-    
+
 
     router.push(`/${domain}/connections`);
 }

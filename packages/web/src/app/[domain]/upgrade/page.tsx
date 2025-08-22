@@ -12,7 +12,13 @@ import { env } from "@/env.mjs";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 
-export default async function Upgrade({ params: { domain } }: { params: { domain: string } }) {
+export default async function Upgrade(props: { params: Promise<{ domain: string }> }) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
     if (!IS_BILLING_ENABLED) {
         redirect(`/${domain}`);
     }

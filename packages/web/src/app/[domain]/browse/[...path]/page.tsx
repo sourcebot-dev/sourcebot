@@ -5,13 +5,20 @@ import { Loader2 } from "lucide-react";
 import { TreePreviewPanel } from "./components/treePreviewPanel";
 
 interface BrowsePageProps {
-    params: {
+    params: Promise<{
         path: string[];
         domain: string;
-    };
+    }>;
 }
 
-export default async function BrowsePage({ params: { path: _rawPath, domain } }: BrowsePageProps) {
+export default async function BrowsePage(props: BrowsePageProps) {
+    const params = await props.params;
+
+    const {
+        path: _rawPath,
+        domain
+    } = params;
+
     const rawPath = decodeURIComponent(_rawPath.join('/'));
     const { repoName, revisionName, path, pathType } = getBrowseParamsFromPathParam(rawPath);
 

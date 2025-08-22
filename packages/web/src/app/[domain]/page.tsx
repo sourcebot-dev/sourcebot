@@ -15,7 +15,13 @@ import { env } from "@/env.mjs";
 import { loadJsonFile } from "@sourcebot/shared";
 import { DemoExamples, demoExamplesSchema } from "@/types";
 
-export default async function Home({ params: { domain } }: { params: { domain: string } }) {
+export default async function Home(props: { params: Promise<{ domain: string }> }) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
     const org = await getOrgFromDomain(domain);
     if (!org) {
         return <PageNotFound />
