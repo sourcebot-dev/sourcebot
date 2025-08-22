@@ -46,7 +46,18 @@ export default async function Layout(props: LayoutProps) {
     }
 
     const session = await auth();
-    const anonymousAccessEnabled = hasEntitlement("anonymous-access") && (await getAnonymousAccessStatus(domain));
+    const anonymousAccessEnabled = await (async () => {
+        if (!hasEntitlement("anonymous-access")) {
+            return false;
+        }
+
+        const status = await getAnonymousAccessStatus(domain);
+        if (isServiceError(status)) {
+            return false;
+        }
+
+        return status;
+    })();
 
     // If the user is authenticated, we must check if they're a member of the org
     if (session) {
