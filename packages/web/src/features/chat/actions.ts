@@ -389,6 +389,9 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                 secretAccessKey: config.accessKeySecret
                     ? await getTokenFromConfig(config.accessKeySecret, orgId, prisma)
                     : env.AWS_SECRET_ACCESS_KEY,
+                sessionToken: config.sessionToken
+                    ? await getTokenFromConfig(config.sessionToken, orgId, prisma)
+                    : env.AWS_SESSION_TOKEN,
                 headers: config.headers
                     ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
                     : undefined,

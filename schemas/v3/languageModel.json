@@ -25,6 +25,10 @@
                     "$ref": "./shared.json#/definitions/Token",
                     "description": "Optional secret access key to use with the model. Defaults to the `AWS_SECRET_ACCESS_KEY` environment variable."
                 },
+                "sessionToken": {
+                    "$ref": "./shared.json#/definitions/Token",
+                    "description": "Optional session token to use with the model. Defaults to the `AWS_SESSION_TOKEN` environment variable."
+                },
                 "region": {
                     "type": "string",
                     "description": "The AWS region. Defaults to the `AWS_REGION` environment variable.",

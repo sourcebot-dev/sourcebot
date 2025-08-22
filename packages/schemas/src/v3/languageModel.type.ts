@@ -60,6 +60,22 @@ export interface AmazonBedrockLanguageModel {
         env: string;
       };
   /**
+   * Optional session token to use with the model. Defaults to the `AWS_SESSION_TOKEN` environment variable.
+   */
+  sessionToken?:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
+  /**
    * The AWS region. Defaults to the `AWS_REGION` environment variable.
    */
   region?: string;
