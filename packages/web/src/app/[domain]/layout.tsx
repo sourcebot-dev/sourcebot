@@ -25,13 +25,20 @@ import { GitHubStarToast } from "./components/githubStarToast";
 
 interface LayoutProps {
     children: React.ReactNode,
-    params: { domain: string }
+    params: Promise<{ domain: string }>
 }
 
-export default async function Layout({
-    children,
-    params: { domain },
-}: LayoutProps) {
+export default async function Layout(props: LayoutProps) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
+    const {
+        children
+    } = props;
+
     const org = await getOrgFromDomain(domain);
 
     if (!org) {
@@ -39,8 +46,19 @@ export default async function Layout({
     }
 
     const session = await auth();
-    const anonymousAccessEnabled = hasEntitlement("anonymous-access") && await getAnonymousAccessStatus(domain);
-    
+    const anonymousAccessEnabled = await (async () => {
+        if (!hasEntitlement("anonymous-access")) {
+            return false;
+        }
+
+        const status = await getAnonymousAccessStatus(domain);
+        if (isServiceError(status)) {
+            return false;
+        }
+
+        return status;
+    })();
+
     // If the user is authenticated, we must check if they're a member of the org
     if (session) {
         const membership = await prisma.userToOrg.findUnique({

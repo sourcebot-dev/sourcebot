@@ -17,7 +17,7 @@ export async function OrganizationAccessSettings() {
     const metadata = getOrgMetadata(org);
     const anonymousAccessEnabled = metadata?.anonymousAccessEnabled ?? false;
 
-    const headersList = headers();
+    const headersList = await headers();
     const baseUrl = getBaseUrl(headersList);
     const inviteLink = createInviteLink(baseUrl, org.inviteLinkId)
 

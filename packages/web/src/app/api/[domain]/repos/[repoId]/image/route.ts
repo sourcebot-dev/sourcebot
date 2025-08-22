@@ -4,8 +4,9 @@ import { NextRequest } from "next/server";
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { domain: string; repoId: string } }
+    props: { params: Promise<{ domain: string; repoId: string }> }
 ) {
+    const params = await props.params;
     const { domain, repoId } = params;
     const repoIdNum = parseInt(repoId);
 

@@ -245,7 +245,9 @@ export const ReferencedSourcesListView = ({
                             repoWebUrl={fileData.repositoryWebUrl}
                             fileName={fileData.path}
                             references={referencesInFile}
-                            ref={(ref) => setEditorRef(fileId, ref)}
+                            ref={ref => {
+                                setEditorRef(fileId, ref);
+                            }}
                             onSelectedReferenceChanged={onSelectedReferenceChanged}
                             onHoveredReferenceChanged={onHoveredReferenceChanged}
                             selectedReference={selectedReference}
@@ -280,6 +282,5 @@ export const ReferencedSourcesListView = ({
                 })}
             </div>
         </ScrollArea>
-
     );
 }

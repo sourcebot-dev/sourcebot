@@ -186,7 +186,7 @@ export const withTenancyModeEnforcement = async<T>(mode: TenancyMode, fn: () => 
 
 ////// Actions ///////
 
-export const createOrg = (name: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
+export const createOrg = async (name: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
     withTenancyModeEnforcement('multi', () =>
         withAuth(async (userId) => {
             const org = await prisma.org.create({
@@ -293,7 +293,7 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
         })
     ));
 
-export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> => sew(() =>
+export const getSecrets = async (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const secrets = await prisma.secret.findMany({
@@ -1990,7 +1990,7 @@ export const rejectAccountRequest = async (requestId: string, domain: string) =>
     ));
 
 export const dismissMobileUnsupportedSplashScreen = async () => sew(async () => {
-    await cookies().set(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, 'true');
+    await (await cookies()).set(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, 'true');
     return true;
 });
 

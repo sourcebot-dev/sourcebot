@@ -1,4 +1,5 @@
 import type React from "react"
+import Link from "next/link"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,7 +21,7 @@ import { env } from "@/env.mjs";
 import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
 
 interface OnboardingProps {
-    searchParams?: { step?: string };
+    searchParams?: Promise<{ step?: string }>;
 }
 
 interface OnboardingStep {
@@ -38,7 +39,8 @@ interface ResourceCard {
     icon?: React.ReactNode
 }
 
-export default async function Onboarding({ searchParams }: OnboardingProps) {
+export default async function Onboarding(props: OnboardingProps) {
+    const searchParams = await props.searchParams;
     const providers = getAuthProviders();
     const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
     const session = await auth();
@@ -118,7 +120,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             component: (
                 <div className="space-y-6">
                     <Button asChild className="w-full">
-                        <a href="/onboard?step=1">Get Started →</a>
+                        <Link href="/onboard?step=1">Get Started →</Link>
                     </Button>
                 </div>
             ),
@@ -170,7 +172,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                 <div className="space-y-6">
                     <OrganizationAccessSettings />
                     <Button asChild className="w-full">
-                        <a href="/onboard?step=3">Continue →</a>
+                        <Link href="/onboard?step=3">Continue →</Link>
                     </Button>
                 </div>
             ),

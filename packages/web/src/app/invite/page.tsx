@@ -11,12 +11,13 @@ import { getAuthProviders } from "@/lib/authProviders";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 
 interface InvitePageProps {
-    searchParams: {
+    searchParams: Promise<{
         id?: string;
-    };
+    }>;
 }
 
-export default async function InvitePage({ searchParams }: InvitePageProps) {
+export default async function InvitePage(props: InvitePageProps) {
+    const searchParams = await props.searchParams;
     const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
     if (!org || !org.isOnboarded) {
         return redirect("/onboard");

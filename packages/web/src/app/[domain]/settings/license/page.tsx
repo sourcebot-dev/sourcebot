@@ -7,12 +7,18 @@ import { notFound, ServiceErrorException } from "@/lib/serviceError";
 import { env } from "@/env.mjs";
 
 interface LicensePageProps {
-    params: {
+    params: Promise<{
         domain: string;
-    }
+    }>
 }
 
-export default async function LicensePage({ params: { domain } }: LicensePageProps) {
+export default async function LicensePage(props: LicensePageProps) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
     if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined) {
         notFound();
     }

@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { SBChatMessage } from './types';
 import { useMessagePairs } from './useMessagePairs';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 
 test('useMessagePairs pairs user and assistant messages', () => {
     const userMessage: SBChatMessage = {
