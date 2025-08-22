@@ -7,12 +7,18 @@ import { OrgRole } from "@sourcebot/db";
 import { redirect } from "next/navigation";
 
 interface AccessPageProps {
-    params: {
+    params: Promise<{
         domain: string;
-    }
+    }>
 }
 
-export default async function AccessPage({ params: { domain } }: AccessPageProps) {
+export default async function AccessPage(props: AccessPageProps) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
     const org = await getOrgFromDomain(domain);
     if (!org) {
         throw new Error("Organization not found");

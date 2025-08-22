@@ -13,17 +13,28 @@ import { getOrgFromDomain } from "@/data/org";
 import { OrgRole } from "@prisma/client";
 import { env } from "@/env.mjs";
 
+interface LayoutProps {
+    children: React.ReactNode;
+    params: Promise<{ domain: string }>;
+}
+
 export const metadata: Metadata = {
     title: "Settings",
 }
 
-export default async function SettingsLayout({
-    children,
-    params: { domain },
-}: Readonly<{
-    children: React.ReactNode;
-    params: { domain: string };
-}>) {
+export default async function SettingsLayout(
+    props: LayoutProps
+) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
+    const {
+        children
+    } = props;
+
     const session = await auth();
     if (!session) {
         return redirect(`/${domain}`);

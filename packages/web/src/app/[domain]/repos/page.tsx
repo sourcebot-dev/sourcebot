@@ -4,7 +4,13 @@ import { PageNotFound } from "../components/pageNotFound";
 import { Header } from "../components/header";
 import { env } from "@/env.mjs";
 
-export default async function ReposPage({ params: { domain } }: { params: { domain: string } }) {
+export default async function ReposPage(props: { params: Promise<{ domain: string }> }) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
     const org = await getOrgFromDomain(domain);
     if (!org) {
         return <PageNotFound />

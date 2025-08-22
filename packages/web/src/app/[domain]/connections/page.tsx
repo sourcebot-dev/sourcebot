@@ -7,7 +7,13 @@ import { notFound, ServiceErrorException } from "@/lib/serviceError";
 import { OrgRole } from "@sourcebot/db";
 import { env } from "@/env.mjs";
 
-export default async function ConnectionsPage({ params: { domain } }: { params: { domain: string } }) {
+export default async function ConnectionsPage(props: { params: Promise<{ domain: string }> }) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
     const connections = await getConnections(domain);
     if (isServiceError(connections)) {
         throw new ServiceErrorException(connections);
@@ -15,7 +21,7 @@ export default async function ConnectionsPage({ params: { domain } }: { params: 
 
     const membership = await getOrgMembership(domain);
     if (isServiceError(membership)) {
-        return notFound();
+        throw new ServiceErrorException(notFound());
     }
 
     return (

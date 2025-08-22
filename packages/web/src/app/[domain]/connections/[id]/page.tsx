@@ -25,16 +25,18 @@ import { CodeHostType } from "@/lib/utils"
 import { env } from "@/env.mjs"
 
 interface ConnectionManagementPageProps {
-    params: {
+    params: Promise<{
         domain: string
         id: string
-    },
-    searchParams: {
+    }>,
+    searchParams: Promise<{
         tab: string
-    }
+    }>
 }
 
-export default async function ConnectionManagementPage({ params, searchParams }: ConnectionManagementPageProps) {
+export default async function ConnectionManagementPage(props: ConnectionManagementPageProps) {
+    const searchParams = await props.searchParams;
+    const params = await props.params;
     const connection = await getConnectionByDomain(Number(params.id), params.domain);
     if (!connection) {
         return <NotFound className="flex w-full h-full items-center justify-center" message="Connection not found" />

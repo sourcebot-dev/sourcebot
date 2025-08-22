@@ -20,7 +20,7 @@ import { env } from "@/env.mjs";
 import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
 
 interface OnboardingProps {
-    searchParams?: { step?: string };
+    searchParams?: Promise<{ step?: string }>;
 }
 
 interface OnboardingStep {
@@ -38,7 +38,8 @@ interface ResourceCard {
     icon?: React.ReactNode
 }
 
-export default async function Onboarding({ searchParams }: OnboardingProps) {
+export default async function Onboarding(props: OnboardingProps) {
+    const searchParams = await props.searchParams;
     const providers = getAuthProviders();
     const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
     const session = await auth();
