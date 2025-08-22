@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated NextJS to version 15. [#477](https://github.com/sourcebot-dev/sourcebot/pull/477)
+- Add `sessionToken` as optional Bedrock configuration parameter. [#478](https://github.com/sourcebot-dev/sourcebot/pull/478)
 
 ## [4.6.4] - 2025-08-11
 
