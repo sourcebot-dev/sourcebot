@@ -1283,6 +1283,37 @@ const schema = {
                   }
                 ]
               },
+              "sessionToken": {
+                "description": "Optional session token to use with the model. Defaults to the `AWS_SESSION_TOKEN` environment variable.",
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "secret": {
+                        "type": "string",
+                        "description": "The name of the secret that contains the token."
+                      }
+                    },
+                    "required": [
+                      "secret"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
               "region": {
                 "type": "string",
                 "description": "The AWS region. Defaults to the `AWS_REGION` environment variable.",
@@ -2598,6 +2629,37 @@ const schema = {
               },
               "accessKeySecret": {
                 "description": "Optional secret access key to use with the model. Defaults to the `AWS_SECRET_ACCESS_KEY` environment variable.",
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "secret": {
+                        "type": "string",
+                        "description": "The name of the secret that contains the token."
+                      }
+                    },
+                    "required": [
+                      "secret"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "sessionToken": {
+                "description": "Optional session token to use with the model. Defaults to the `AWS_SESSION_TOKEN` environment variable.",
                 "anyOf": [
                   {
                     "type": "object",

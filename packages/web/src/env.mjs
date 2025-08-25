@@ -121,6 +121,7 @@ export const env = createEnv({
 
         AWS_ACCESS_KEY_ID: z.string().optional(),
         AWS_SECRET_ACCESS_KEY: z.string().optional(),
+        AWS_SESSION_TOKEN: z.string().optional(),
         AWS_REGION: z.string().optional(),
 
         SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.default(0.3),
