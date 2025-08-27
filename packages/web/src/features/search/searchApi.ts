@@ -10,7 +10,6 @@ import { StatusCodes } from "http-status-codes";
 import { zoektSearchResponseSchema } from "./zoektSchema";
 import { SearchRequest, SearchResponse, SourceRange } from "./types";
 import { OrgRole, Repo } from "@sourcebot/db";
-import * as Sentry from "@sentry/nextjs";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { base64Decode } from "@sourcebot/shared";
 
@@ -204,6 +203,13 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                             in: Array.from(repoIdentifiers).filter((id) => typeof id === "number"),
                         },
                         orgId: org.id,
+                        ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                            permittedUsers: {
+                                some: {
+                                    userId,
+                                }
+                            }
+                        } : {})
                     }
                 })).forEach(repo => repos.set(repo.id, repo));
 
@@ -213,6 +219,13 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                             in: Array.from(repoIdentifiers).filter((id) => typeof id === "string"),
                         },
                         orgId: org.id,
+                        ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                            permittedUsers: {
+                                some: {
+                                    userId,
+                                }
+                            }
+                        } : {})
                     }
                 })).forEach(repo => repos.set(repo.name, repo));
 
@@ -234,12 +247,8 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                     const identifier = file.RepositoryID ?? file.Repository;
                     const repo = repos.get(identifier);
 
-                    // This should never happen... but if it does, we skip the file.
+                    // This can happen if the user doesn't have access to the repository.
                     if (!repo) {
-                        Sentry.captureMessage(
-                            `Repository not found for identifier: ${identifier}; skipping file "${file.FileName}"`,
-                            'warning'
-                        );
                         return undefined;
                     }
 
@@ -349,4 +358,4 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
 
             return parser.parseAsync(searchBody);
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
-    );
+);
