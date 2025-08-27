@@ -26,13 +26,20 @@ export type FileTreeNode = FileTreeItem & {
  * at a given revision.
  */
 export const getTree = async (params: { repoName: string, revisionName: string }, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const { repoName, revisionName } = params;
             const repo = await prisma.repo.findFirst({
                 where: {
                     name: repoName,
                     orgId: org.id,
+                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                        permittedUsers: {
+                            some: {
+                                userId: userId,
+                            }
+                        }
+                    } : {})
                 },
             });
 
@@ -85,13 +92,20 @@ export const getTree = async (params: { repoName: string, revisionName: string }
  * at a given revision.
  */
 export const getFolderContents = async (params: { repoName: string, revisionName: string, path: string }, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const { repoName, revisionName, path } = params;
             const repo = await prisma.repo.findFirst({
                 where: {
                     name: repoName,
                     orgId: org.id,
+                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                        permittedUsers: {
+                            some: {
+                                userId: userId,
+                            }
+                        }
+                    } : {})
                 },
             });
 
@@ -158,14 +172,21 @@ export const getFolderContents = async (params: { repoName: string, revisionName
 );
 
 export const getFiles = async (params: { repoName: string, revisionName: string }, domain: string) => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async ({ org }) => {
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
             const { repoName, revisionName } = params;
 
             const repo = await prisma.repo.findFirst({
                 where: {
                     name: repoName,
                     orgId: org.id,
+                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                        permittedUsers: {
+                            some: {
+                                userId: userId,
+                            }
+                        }
+                    } : {})
                 },
             });
 

@@ -639,7 +639,7 @@ export const getConnectionInfo = async (connectionId: number, domain: string) =>
         })));
 
 export const getRepos = async (filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) => sew(() =>
-    withOptionalAuthV2(async ({ org }) => {
+    withOptionalAuthV2(async ({ org, user }) => {
         const repos = await prisma.repo.findMany({
             where: {
                 orgId: org.id,
@@ -653,6 +653,13 @@ export const getRepos = async (filter: { status?: RepoIndexingStatus[], connecti
                         }
                     }
                 } : {}),
+                ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                    permittedUsers: {
+                        some: {
+                            userId: user?.id,
+                        }
+                    }
+                } : {})
             },
             include: {
                 connections: {
@@ -722,6 +729,13 @@ export const getRepoInfoByName = async (repoName: string, domain: string) => sew
                 where: {
                     name: repoName,
                     orgId: org.id,
+                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                        permittedUsers: {
+                            some: {
+                                userId: userId,
+                            }
+                        }
+                    } : {})
                 },
             });
 
@@ -804,7 +818,7 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
             // Parse repository URL to extract owner/repo
             const repoInfo = (() => {
                 const url = repositoryUrl.trim();
-    
+
                 // Handle various GitHub URL formats
                 const patterns = [
                     // https://github.com/owner/repo or https://github.com/owner/repo.git
@@ -814,7 +828,7 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
                     // owner/repo
                     /^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/
                 ];
-                
+
                 for (const pattern of patterns) {
                     const match = url.match(pattern);
                     if (match) {
@@ -824,7 +838,7 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
                         };
                     }
                 }
-                
+
                 return null;
             })();
 
@@ -837,7 +851,7 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
             }
 
             const { owner, repo } = repoInfo;
-            
+
             // Use GitHub API to fetch repository information and get the external_id
             const octokit = new Octokit({
                 auth: env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN
@@ -866,7 +880,7 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
                         message: `Access to repository '${owner}/${repo}' is forbidden. Only public repositories can be added.`,
                     } satisfies ServiceError;
                 }
-                
+
                 return {
                     statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
@@ -889,6 +903,13 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
                     external_id: githubRepo.id.toString(),
                     external_codeHostType: 'github',
                     external_codeHostUrl: 'https://github.com',
+                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                        permittedUsers: {
+                            some: {
+                                userId: userId,
+                            }
+                        }
+                    } : {})
                 }
             });
 
@@ -1039,6 +1060,13 @@ export const flagReposForIndex = async (repoIds: number[], domain: string) => se
                 where: {
                     id: { in: repoIds },
                     orgId: org.id,
+                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                        permittedUsers: {
+                            some: {
+                                userId: userId,
+                            }
+                        }
+                    } : {})
                 },
                 data: {
                     repoIndexingStatus: RepoIndexingStatus.NEW,
@@ -2021,6 +2049,13 @@ export const getRepoImage = async (repoId: number, domain: string): Promise<Arra
                 where: {
                     id: repoId,
                     orgId: org.id,
+                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                        permittedUsers: {
+                            some: {
+                                userId: userId,
+                            }
+                        }
+                    } : {})
                 },
                 include: {
                     connections: {
@@ -2028,7 +2063,7 @@ export const getRepoImage = async (repoId: number, domain: string): Promise<Arra
                             connection: true,
                         }
                     }
-                }
+                },
             });
 
             if (!repo || !repo.imageUrl) {
