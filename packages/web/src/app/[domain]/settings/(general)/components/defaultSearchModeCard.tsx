@@ -34,7 +34,19 @@ export const DefaultSearchModeCard = ({ initialDefaultMode, currentUserRole, isA
         setIsUpdating(true);
         try {
             const result = await setDefaultSearchMode(domain as string, defaultSearchMode);
-            if (!result || typeof result !== 'object' || !result.success) {
+            if (!result || typeof result !== 'object') {
+                throw new Error('Unexpected response');
+            }
+            // If this is a ServiceError, surface its message
+            if ('statusCode' in result && 'errorCode' in result && 'message' in result) {
+                toast({
+                    title: "Failed to update",
+                    description: result.message,
+                    variant: "destructive",
+                });
+                return;
+            }
+            if (!result.success) {
                 throw new Error('Failed to update default search mode');
             }
             toast({
@@ -44,11 +56,14 @@ export const DefaultSearchModeCard = ({ initialDefaultMode, currentUserRole, isA
             });
         } catch (error) {
             console.error('Error updating default search mode:', error);
-            toast({
-                title: "Failed to update",
-                description: "An error occurred while updating the default search mode.",
-                variant: "destructive",
-            });
+            // If we already showed a specific error above, do nothing here; otherwise fallback
+            if (!(error instanceof Error && /Unexpected response/.test(error.message))) {
+                toast({
+                    title: "Failed to update",
+                    description: "An error occurred while updating the default search mode.",
+                    variant: "destructive",
+                });
+            }
         } finally {
             setIsUpdating(false);
         }

@@ -52,6 +52,8 @@ export default async function Home(props: { params: Promise<{ domain: string }> 
     const defaultSearchMode = await getDefaultSearchMode(domain);
     // If there was an error or no setting found, default to precise (search)
     const orgDefaultMode = isServiceError(defaultSearchMode) ? "precise" : defaultSearchMode;
+    const effectiveOrgDefaultMode =
+        orgDefaultMode === "agentic" && models.length === 0 ? "precise" : orgDefaultMode;
 
     // Read search mode from cookie, defaulting to the org's default setting if not set
     const cookieStore = await cookies();
@@ -59,7 +61,8 @@ export default async function Home(props: { params: Promise<{ domain: string }> 
     const initialSearchMode = (
         searchModeCookie?.value === "agentic" ||
         searchModeCookie?.value === "precise"
-    ) ? searchModeCookie.value : orgDefaultMode;
+    ) ? ((searchModeCookie.value === "agentic" && models.length === 0) ? "precise" : searchModeCookie.value)
+      : effectiveOrgDefaultMode;
 
     const isAgenticSearchTutorialDismissed = cookieStore.get(AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME)?.value === "true";
 

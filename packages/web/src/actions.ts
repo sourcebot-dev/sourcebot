@@ -40,6 +40,7 @@ import { getAuditService } from "@/ee/features/audit/factory";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { getOrgMetadata } from "@/lib/utils";
 import { getOrgFromDomain } from "./data/org";
+import { searchModeSchema } from "@/types";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -2189,10 +2190,21 @@ export const getDefaultSearchMode = async (domain: string): Promise<"precise" | 
 });
 
 export const setDefaultSearchMode = async (domain: string, mode: "precise" | "agentic"): Promise<{ success: boolean } | ServiceError> => sew(async () => {
+    // Runtime validation to guard server action from invalid input
+    const parsed = searchModeSchema.safeParse(mode);
+    if (!parsed.success) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: "Invalid default search mode",
+        } satisfies ServiceError;
+    }
+    const validatedMode = parsed.data;
+
     return await withAuth(async (userId) => {
         return await withOrgMembership(userId, domain, async ({ org }) => {
             // Validate that agentic mode is not being set when no language models are configured
-            if (mode === "agentic") {
+            if (validatedMode === "agentic") {
                 const { getConfiguredLanguageModelsInfo } = await import("@/features/chat/actions");
                 const languageModels = await getConfiguredLanguageModelsInfo();
                 if (languageModels.length === 0) {
@@ -2205,9 +2217,10 @@ export const setDefaultSearchMode = async (domain: string, mode: "precise" | "ag
             }
 
             const currentMetadata = getOrgMetadata(org);
+            const previousMode = currentMetadata?.defaultSearchMode ?? "precise";
             const mergedMetadata = {
                 ...(currentMetadata ?? {}),
-                defaultSearchMode: mode,
+                defaultSearchMode: validatedMode,
             };
 
             await prisma.org.update({
@@ -2231,7 +2244,8 @@ export const setDefaultSearchMode = async (domain: string, mode: "precise" | "ag
                 },
                 orgId: org.id,
                 metadata: {
-                    defaultSearchMode: mode
+                    previousDefaultSearchMode: previousMode,
+                    newDefaultSearchMode: validatedMode
                 }
             });
 

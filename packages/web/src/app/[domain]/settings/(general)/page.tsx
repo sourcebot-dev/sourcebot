@@ -8,6 +8,7 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { ErrorCode } from "@/lib/errorCodes";
 import { headers } from "next/headers";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
+import { OrgRole } from "@sourcebot/db";
 
 interface GeneralSettingsPageProps {
     params: Promise<{
@@ -63,11 +64,13 @@ export default async function GeneralSettingsPage(props: GeneralSettingsPageProp
                 rootDomain={host}
             />
 
-            <DefaultSearchModeCard
-                initialDefaultMode={initialDefaultMode}
-                currentUserRole={currentUserRole}
-                isAskModeAvailable={isAskModeAvailable}
-            />
+            {currentUserRole === OrgRole.OWNER && (
+                <DefaultSearchModeCard
+                    initialDefaultMode={initialDefaultMode}
+                    currentUserRole={currentUserRole}
+                    isAskModeAvailable={isAskModeAvailable}
+                />
+            )}
         </div>
     )
 }
