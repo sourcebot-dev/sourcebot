@@ -1,11 +1,13 @@
 import { ChangeOrgNameCard } from "./components/changeOrgNameCard";
 import { isServiceError } from "@/lib/utils";
-import { getCurrentUserRole } from "@/actions";
+import { getCurrentUserRole, getDefaultSearchMode } from "@/actions";
 import { getOrgFromDomain } from "@/data/org";
 import { ChangeOrgDomainCard } from "./components/changeOrgDomainCard";
+import { DefaultSearchModeCard } from "./components/defaultSearchModeCard";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { ErrorCode } from "@/lib/errorCodes";
 import { headers } from "next/headers";
+import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
 
 interface GeneralSettingsPageProps {
     params: Promise<{
@@ -36,6 +38,14 @@ export default async function GeneralSettingsPage(props: GeneralSettingsPageProp
 
     const host = (await headers()).get('host') ?? '';
 
+    // Get the default search mode setting
+    const defaultSearchMode = await getDefaultSearchMode(domain);
+    const initialDefaultMode = isServiceError(defaultSearchMode) ? "precise" : defaultSearchMode;
+
+    // Get available language models to determine if "Ask" mode is available
+    const languageModels = await getConfiguredLanguageModelsInfo();
+    const isAskModeAvailable = languageModels.length > 0;
+
     return (
         <div className="flex flex-col gap-6">
             <div>
@@ -51,6 +61,12 @@ export default async function GeneralSettingsPage(props: GeneralSettingsPageProp
                 orgDomain={org.domain}
                 currentUserRole={currentUserRole}
                 rootDomain={host}
+            />
+
+            <DefaultSearchModeCard
+                initialDefaultMode={initialDefaultMode}
+                currentUserRole={currentUserRole}
+                isAskModeAvailable={isAskModeAvailable}
             />
         </div>
     )

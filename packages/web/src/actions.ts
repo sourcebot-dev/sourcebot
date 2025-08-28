@@ -2161,6 +2161,87 @@ export async function setAgenticSearchTutorialDismissedCookie(dismissed: boolean
     });
 }
 
+export const getDefaultSearchMode = async (domain: string): Promise<"precise" | "agentic" | ServiceError> => sew(async () => {
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        return {
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "Organization not found",
+        } satisfies ServiceError;
+    }
+
+    // If no metadata is set, return default (precise)
+    if (org.metadata === null) {
+        return "precise";
+    }
+
+    const orgMetadata = getOrgMetadata(org);
+    if (!orgMetadata) {
+        return {
+            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+            errorCode: ErrorCode.INVALID_ORG_METADATA,
+            message: "Invalid organization metadata",
+        } satisfies ServiceError;
+    }
+
+    return orgMetadata.defaultSearchMode ?? "precise";
+});
+
+export const setDefaultSearchMode = async (domain: string, mode: "precise" | "agentic"): Promise<{ success: boolean } | ServiceError> => sew(async () => {
+    return await withAuth(async (userId) => {
+        return await withOrgMembership(userId, domain, async ({ org }) => {
+            // Validate that agentic mode is not being set when no language models are configured
+            if (mode === "agentic") {
+                const { getConfiguredLanguageModelsInfo } = await import("@/features/chat/actions");
+                const languageModels = await getConfiguredLanguageModelsInfo();
+                if (languageModels.length === 0) {
+                    return {
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: "Cannot set Ask mode as default when no language models are configured",
+                    } satisfies ServiceError;
+                }
+            }
+
+            const currentMetadata = getOrgMetadata(org);
+            const mergedMetadata = {
+                ...(currentMetadata ?? {}),
+                defaultSearchMode: mode,
+            };
+
+            await prisma.org.update({
+                where: {
+                    id: org.id,
+                },
+                data: {
+                    metadata: mergedMetadata,
+                },
+            });
+
+            await auditService.createAudit({
+                action: "org.settings.default_search_mode_updated",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: org.id.toString(),
+                    type: "org"
+                },
+                orgId: org.id,
+                metadata: {
+                    defaultSearchMode: mode
+                }
+            });
+
+            return {
+                success: true,
+            };
+        }, /* minRequiredRole = */ OrgRole.OWNER);
+    });
+});
+
 ////// Helpers ///////
 
 const parseConnectionConfig = (config: string) => {

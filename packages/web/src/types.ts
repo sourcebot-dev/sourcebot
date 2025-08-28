@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const orgMetadataSchema = z.object({
     anonymousAccessEnabled: z.boolean().optional(),
+    defaultSearchMode: z.enum(["precise", "agentic"]).optional(),
 })
 
 export const demoSearchScopeSchema = z.object({
