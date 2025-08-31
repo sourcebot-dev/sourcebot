@@ -40,6 +40,7 @@ export const TreePreviewPanel = async ({ path, repoName, revisionName, domain }:
                     }}
                     pathType="tree"
                     isFileIconVisible={false}
+                    branchDisplayName={revisionName}
                 />
             </div>
             <Separator />

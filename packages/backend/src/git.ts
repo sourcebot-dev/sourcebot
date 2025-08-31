@@ -1,23 +1,32 @@
 import { CheckRepoActions, GitConfigScope, simpleGit, SimpleGitProgressEvent } from 'simple-git';
+import { mkdir } from 'node:fs/promises';
 
 type onProgressFn = (event: SimpleGitProgressEvent) => void;
 
-export const cloneRepository = async (cloneURL: string, path: string, onProgress?: onProgressFn) => {
-    const git = simpleGit({
-        progress: onProgress,
-    });
+export const cloneRepository = async (
+    remoteUrl: URL,
+    path: string,
+    onProgress?: onProgressFn
+) => {
     try {
-        await git.clone(
-            cloneURL,
-            path,
-            [
-                "--bare",
-            ]
-        );
+        const git = simpleGit({
+            progress: onProgress,
+        });
+
+        await mkdir(path, { recursive: true });
 
         await git.cwd({
             path,
-        }).addConfig("remote.origin.fetch", "+refs/heads/*:refs/heads/*");
+        }).init(/*bare = */ true);
+
+        await git.cwd({
+            path
+        }).fetch([
+            remoteUrl.toString(),
+            // See https://git-scm.com/book/en/v2/Git-Internals-The-Refspec
+            "+refs/heads/*:refs/heads/*",
+            "--progress",
+        ]);
     } catch (error: unknown) {
         if (error instanceof Error) {
             throw new Error(`Failed to clone repository: ${error.message}`);
@@ -25,10 +34,13 @@ export const cloneRepository = async (cloneURL: string, path: string, onProgress
             throw new Error(`Failed to clone repository: ${error}`);
         }
     }
-}
+};
 
-
-export const fetchRepository = async (path: string, onProgress?: onProgressFn) => {
+export const fetchRepository = async (
+    remoteUrl: URL,
+    path: string,
+    onProgress?: onProgressFn
+) => {
     const git = simpleGit({
         progress: onProgress,
     });
@@ -36,13 +48,12 @@ export const fetchRepository = async (path: string, onProgress?: onProgressFn) =
     try {
         await git.cwd({
             path: path,
-        }).fetch(
-            "origin",
-            [
-                "--prune",
-                "--progress"
-            ]
-        );
+        }).fetch([
+            remoteUrl.toString(),
+            "+refs/heads/*:refs/heads/*",
+            "--prune",
+            "--progress"
+        ]);
     } catch (error: unknown) {
         if (error instanceof Error) {
             throw new Error(`Failed to fetch repository ${path}: ${error.message}`);
