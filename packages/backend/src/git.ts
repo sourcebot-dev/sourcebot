@@ -1,5 +1,6 @@
 import { CheckRepoActions, GitConfigScope, simpleGit, SimpleGitProgressEvent } from 'simple-git';
 import { mkdir } from 'node:fs/promises';
+import { env } from './env.js';
 
 type onProgressFn = (event: SimpleGitProgressEvent) => void;
 
@@ -26,10 +27,15 @@ export const cloneRepository = async (
             "--progress",
         ]);
     } catch (error: unknown) {
-        if (error instanceof Error) {
-            throw new Error(`Failed to clone repository: ${error.message}`);
+        const baseLog = `Failed to clone repository: ${path}`;
+
+        if (env.SOURCEBOT_LOG_LEVEL !== "debug") {
+            // Avoid printing the remote URL (that may contain credentials) to logs by default.
+            throw new Error(`${baseLog}. Set environment variable SOURCEBOT_LOG_LEVEL=debug to see the full error message.`);
+        } else if (error instanceof Error) {
+            throw new Error(`${baseLog}. Reason: ${error.message}`);
         } else {
-            throw new Error(`Failed to clone repository: ${error}`);
+            throw new Error(`${baseLog}. Error: ${error}`);
         }
     }
 };
@@ -53,10 +59,14 @@ export const fetchRepository = async (
             "--progress"
         ]);
     } catch (error: unknown) {
-        if (error instanceof Error) {
-            throw new Error(`Failed to fetch repository ${path}: ${error.message}`);
+        const baseLog = `Failed to fetch repository: ${path}`;
+        if (env.SOURCEBOT_LOG_LEVEL !== "debug") {
+            // Avoid printing the remote URL (that may contain credentials) to logs by default.
+            throw new Error(`${baseLog}. Set environment variable SOURCEBOT_LOG_LEVEL=debug to see the full error message.`);
+        } else if (error instanceof Error) {
+            throw new Error(`${baseLog}. Reason: ${error.message}`);
         } else {
-            throw new Error(`Failed to fetch repository ${path}: ${error}`);
+            throw new Error(`${baseLog}. Error: ${error}`);
         }
     }
 }
