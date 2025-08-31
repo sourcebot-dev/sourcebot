@@ -5,7 +5,7 @@ import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, S
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings, repoMetadataSchema } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
-import { cloneRepository, fetchRepository, upsertGitConfig } from "./git.js";
+import { cloneRepository, fetchRepository, unsetGitConfig, upsertGitConfig } from "./git.js";
 import { existsSync, readdirSync, promises } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import { PromClient } from './promClient.js';
@@ -254,8 +254,15 @@ export class RepoManager implements IRepoManager {
         }
 
         if (existsSync(repoPath) && !isReadOnly) {
-            logger.info(`Fetching ${repo.displayName}...`);
+            // @NOTE: in #483, we changed the cloning method s.t., we _no longer_
+            // write the clone URL (which could contain a auth token) to the
+            // `remote.origin.url` entry. For the upgrade scenario, we want
+            // to unset this key since it is no longer needed, hence this line.
+            // This will no-op if the key is already unset.
+            // @see: https://github.com/sourcebot-dev/sourcebot/pull/483
+            await unsetGitConfig(repoPath, ["remote.origin.url"]);
 
+            logger.info(`Fetching ${repo.displayName}...`);
             const { durationMs } = await measure(() => fetchRepository(
                 remoteUrl,
                 repoPath,
@@ -271,7 +278,6 @@ export class RepoManager implements IRepoManager {
         } else if (!isReadOnly) {
             logger.info(`Cloning ${repo.displayName}...`);
 
-            // Use the new secure cloning method that doesn't store credentials in .git/config
             const { durationMs } = await measure(() => cloneRepository(
                 remoteUrl,
                 repoPath,

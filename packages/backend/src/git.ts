@@ -9,19 +9,17 @@ export const cloneRepository = async (
     onProgress?: onProgressFn
 ) => {
     try {
-        const git = simpleGit({
-            progress: onProgress,
-        });
-
         await mkdir(path, { recursive: true });
 
-        await git.cwd({
+        const git = simpleGit({
+            progress: onProgress,
+        }).cwd({
             path,
-        }).init(/*bare = */ true);
+        })
 
-        await git.cwd({
-            path
-        }).fetch([
+        await git.init(/*bare = */ true);
+
+        await git.fetch([
             remoteUrl.toString(),
             // See https://git-scm.com/book/en/v2/Git-Internals-The-Refspec
             "+refs/heads/*:refs/heads/*",
@@ -41,14 +39,14 @@ export const fetchRepository = async (
     path: string,
     onProgress?: onProgressFn
 ) => {
-    const git = simpleGit({
-        progress: onProgress,
-    });
-
     try {
-        await git.cwd({
+        const git = simpleGit({
+            progress: onProgress,
+        }).cwd({
             path: path,
-        }).fetch([
+        })
+
+        await git.fetch([
             remoteUrl.toString(),
             "+refs/heads/*:refs/heads/*",
             "--prune",
@@ -83,6 +81,28 @@ export const upsertGitConfig = async (path: string, gitConfig: Record<string, st
             throw new Error(`Failed to set git config ${path}: ${error.message}`);
         } else {
             throw new Error(`Failed to set git config ${path}: ${error}`);
+        }
+    }
+}
+
+/**
+ * Unsets the specified keys in the git config for the repo at the given path.
+ * If a key is not set, this is a no-op.
+ */
+export const unsetGitConfig = async (path: string, keys: string[], onProgress?: onProgressFn) => {
+    const git = simpleGit({
+        progress: onProgress,
+    }).cwd(path);
+
+    try {
+        for (const key of keys) {
+            await git.raw(['config', '--unset', key]);
+        }
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            throw new Error(`Failed to unset git config ${path}: ${error.message}`);
+        } else {
+            throw new Error(`Failed to unset git config ${path}: ${error}`);
         }
     }
 }
