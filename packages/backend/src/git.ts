@@ -105,8 +105,13 @@ export const unsetGitConfig = async (path: string, keys: string[], onProgress?: 
     }).cwd(path);
 
     try {
+        const configList = await git.listConfig();
+        const setKeys = Object.keys(configList.all);
+
         for (const key of keys) {
-            await git.raw(['config', '--unset', key]);
+            if (setKeys.includes(key)) {
+                await git.raw(['config', '--unset', key]);
+            }
         }
     } catch (error: unknown) {
         if (error instanceof Error) {
