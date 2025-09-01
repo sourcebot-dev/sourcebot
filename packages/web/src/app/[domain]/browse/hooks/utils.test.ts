@@ -98,6 +98,26 @@ describe('getBrowseParamsFromPathParam', () => {
                 pathType: 'blob',
             });
         });
+
+        it('should decode paths with percent symbols in path', () => {
+            const result = getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/-/blob/%25hello%25%2Fworld.c');
+            expect(result).toEqual({
+                repoName: 'github.com/sourcebot-dev/zoekt',
+                revisionName: 'HEAD',
+                path: '%hello%/world.c',
+                pathType: 'blob',
+            });
+        });
+
+        it('should decode paths with @ symbol encoded', () => {
+            const result = getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt%40HEAD/-/blob/file.txt');
+            expect(result).toEqual({
+                repoName: 'github.com/sourcebot-dev/zoekt',
+                revisionName: 'HEAD',
+                path: 'file.txt',
+                pathType: 'blob',
+            });
+        })
     });
 
     describe('different revision formats', () => {

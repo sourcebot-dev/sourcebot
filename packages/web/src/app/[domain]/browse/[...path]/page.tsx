@@ -19,7 +19,7 @@ export default async function BrowsePage(props: BrowsePageProps) {
         domain
     } = params;
 
-    const rawPath = decodeURIComponent(_rawPath.join('/'));
+    const rawPath = _rawPath.join('/');
     const { repoName, revisionName, path, pathType } = getBrowseParamsFromPathParam(rawPath);
 
     return (
