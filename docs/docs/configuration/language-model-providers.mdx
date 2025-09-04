@@ -275,6 +275,15 @@ The OpenAI compatible provider allows you to use any model that is compatible wi
             "displayName": "OPTIONAL_DISPLAY_NAME",
             "token": {
                 "env": "OPTIONAL_API_KEY"
+            },
+            // Optional query parameters can be passed in the request url as:
+            "queryParams": {
+                // raw string values
+                "optional-query-param": "foo",
+                // or as environment variables
+                "optional-query-param-secret": {
+                    "env": "MY_SECRET_ENV_VAR"
+                }
             }
         }
     ]

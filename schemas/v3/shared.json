@@ -89,6 +89,23 @@
                 }
             },
             "additionalProperties": false
+        },
+        "LanguageModelQueryParams": {
+            "type": "object",
+            "description": "Optional query parameters to include in the request url.",
+            "patternProperties": {
+                "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "$ref": "#/definitions/Token"
+                        }
+                    ]
+                }
+            },
+            "additionalProperties": false
         }
     }
 }
