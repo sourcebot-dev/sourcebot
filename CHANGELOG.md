@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix issue where zoekt was failing to index repositories due to `HEAD` pointing to a branch that does not exist. [#488](https://github.com/sourcebot-dev/sourcebot/pull/488)
+
 ## [4.6.5] - 2025-09-02
 
 ### Fixed
