@@ -51,7 +51,7 @@ export interface LanguageModelHeaders {
   [k: string]: string | Token;
 }
 /**
- * Optional query parameters to use with the model.
+ * Optional query parameters to include in the request url.
  *
  * This interface was referenced by `Shared`'s JSON-Schema
  * via the `definition` "LanguageModelQueryParams".

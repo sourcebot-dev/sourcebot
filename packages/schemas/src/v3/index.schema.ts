@@ -2363,7 +2363,7 @@ const schema = {
               },
               "queryParams": {
                 "type": "object",
-                "description": "Optional query parameters to use with the model.",
+                "description": "Optional query parameters to include in the request url.",
                 "patternProperties": {
                   "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
                     "anyOf": [
@@ -3782,7 +3782,7 @@ const schema = {
               },
               "queryParams": {
                 "type": "object",
-                "description": "Optional query parameters to use with the model.",
+                "description": "Optional query parameters to include in the request url.",
                 "patternProperties": {
                   "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
                     "anyOf": [

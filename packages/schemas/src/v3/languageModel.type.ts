@@ -455,7 +455,7 @@ export interface OpenAICompatibleLanguageModel {
   queryParams?: LanguageModelQueryParams;
 }
 /**
- * Optional query parameters to use with the model.
+ * Optional query parameters to include in the request url.
  */
 export interface LanguageModelQueryParams {
   /**
