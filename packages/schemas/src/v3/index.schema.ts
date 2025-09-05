@@ -288,6 +288,7 @@ const schema = {
                       "properties": {
                         "secret": {
                           "type": "string",
+                          "minLength": 1,
                           "description": "The name of the secret that contains the token."
                         }
                       },
@@ -301,6 +302,7 @@ const schema = {
                       "properties": {
                         "env": {
                           "type": "string",
+                          "minLength": 1,
                           "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                         }
                       },
@@ -501,6 +503,7 @@ const schema = {
                       "properties": {
                         "secret": {
                           "type": "string",
+                          "minLength": 1,
                           "description": "The name of the secret that contains the token."
                         }
                       },
@@ -514,6 +517,7 @@ const schema = {
                       "properties": {
                         "env": {
                           "type": "string",
+                          "minLength": 1,
                           "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                         }
                       },
@@ -703,6 +707,7 @@ const schema = {
                       "properties": {
                         "secret": {
                           "type": "string",
+                          "minLength": 1,
                           "description": "The name of the secret that contains the token."
                         }
                       },
@@ -716,6 +721,7 @@ const schema = {
                       "properties": {
                         "env": {
                           "type": "string",
+                          "minLength": 1,
                           "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                         }
                       },
@@ -859,6 +865,65 @@ const schema = {
                   ],
                   "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
                 },
+                "auth": {
+                  "type": "object",
+                  "description": "Authentication configuration for Gerrit",
+                  "properties": {
+                    "username": {
+                      "type": "string",
+                      "description": "Gerrit username for authentication",
+                      "examples": [
+                        "john.doe"
+                      ]
+                    },
+                    "password": {
+                      "description": "Gerrit HTTP password (not your account password). Generate this in Gerrit → Settings → HTTP Credentials → Generate Password. Note: HTTP password authentication requires Gerrit's auth.gitBasicAuthPolicy to be set to HTTP or HTTP_LDAP.",
+                      "examples": [
+                        {
+                          "env": "GERRIT_HTTP_PASSWORD"
+                        },
+                        {
+                          "secret": "GERRIT_PASSWORD_SECRET"
+                        }
+                      ],
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "secret": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "The name of the secret that contains the token."
+                            }
+                          },
+                          "required": [
+                            "secret"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "env": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                            }
+                          },
+                          "required": [
+                            "env"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "username",
+                    "password"
+                  ],
+                  "additionalProperties": false
+                },
                 "projects": {
                   "type": "array",
                   "items": {
@@ -975,6 +1040,7 @@ const schema = {
                       "properties": {
                         "secret": {
                           "type": "string",
+                          "minLength": 1,
                           "description": "The name of the secret that contains the token."
                         }
                       },
@@ -988,6 +1054,7 @@ const schema = {
                       "properties": {
                         "env": {
                           "type": "string",
+                          "minLength": 1,
                           "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                         }
                       },
@@ -1229,6 +1296,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -1242,6 +1310,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -1260,6 +1329,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -1273,6 +1343,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -1291,6 +1362,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -1304,6 +1376,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -1345,6 +1418,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -1358,6 +1432,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -1402,6 +1477,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -1415,6 +1491,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -1448,6 +1525,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -1461,6 +1539,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -1509,6 +1588,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -1522,6 +1602,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -1559,6 +1640,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -1572,6 +1654,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -1616,6 +1699,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -1629,6 +1713,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -1662,6 +1747,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -1675,6 +1761,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -1719,6 +1806,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -1732,6 +1820,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -1765,6 +1854,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -1778,6 +1868,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -1838,6 +1929,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -1851,6 +1943,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -1884,6 +1977,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -1897,6 +1991,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -1959,6 +2054,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -1972,6 +2068,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -2005,6 +2102,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -2018,6 +2116,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -2062,6 +2161,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -2075,6 +2175,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -2108,6 +2209,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -2121,6 +2223,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -2171,6 +2274,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -2184,6 +2288,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -2227,6 +2332,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -2240,6 +2346,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -2284,6 +2391,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -2297,6 +2405,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -2333,6 +2442,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -2346,6 +2456,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -2435,6 +2546,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -2448,6 +2560,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -2481,6 +2594,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -2494,6 +2608,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -2542,6 +2657,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -2555,6 +2671,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -2588,6 +2705,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -2601,6 +2719,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -2648,6 +2767,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -2661,6 +2781,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -2679,6 +2800,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -2692,6 +2814,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -2710,6 +2833,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -2723,6 +2847,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -2764,6 +2889,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -2777,6 +2903,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -2821,6 +2948,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -2834,6 +2962,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -2867,6 +2996,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -2880,6 +3010,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -2928,6 +3059,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -2941,6 +3073,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -2978,6 +3111,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -2991,6 +3125,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -3035,6 +3170,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -3048,6 +3184,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -3081,6 +3218,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -3094,6 +3232,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -3138,6 +3277,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -3151,6 +3291,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -3184,6 +3325,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -3197,6 +3339,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -3257,6 +3400,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -3270,6 +3414,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -3303,6 +3448,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -3316,6 +3462,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -3378,6 +3525,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -3391,6 +3539,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -3424,6 +3573,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -3437,6 +3587,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -3481,6 +3632,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -3494,6 +3646,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -3527,6 +3680,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -3540,6 +3694,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -3590,6 +3745,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -3603,6 +3759,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -3646,6 +3803,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -3659,6 +3817,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -3703,6 +3862,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -3716,6 +3876,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -3752,6 +3913,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -3765,6 +3927,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -3854,6 +4017,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -3867,6 +4031,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -3900,6 +4065,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -3913,6 +4079,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
@@ -3961,6 +4128,7 @@ const schema = {
                     "properties": {
                       "secret": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the secret that contains the token."
                       }
                     },
@@ -3974,6 +4142,7 @@ const schema = {
                     "properties": {
                       "env": {
                         "type": "string",
+                        "minLength": 1,
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                       }
                     },
@@ -4007,6 +4176,7 @@ const schema = {
                             "properties": {
                               "secret": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the secret that contains the token."
                               }
                             },
@@ -4020,6 +4190,7 @@ const schema = {
                             "properties": {
                               "env": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
                               }
                             },
