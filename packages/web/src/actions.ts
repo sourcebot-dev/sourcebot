@@ -40,6 +40,7 @@ import { getAuditService } from "@/ee/features/audit/factory";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { getOrgMetadata } from "@/lib/utils";
 import { getOrgFromDomain } from "./data/org";
+import { searchModeSchema } from "@/types";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -2160,6 +2161,100 @@ export async function setAgenticSearchTutorialDismissedCookie(dismissed: boolean
         httpOnly: false, // Allow client-side access
     });
 }
+
+export const getDefaultSearchMode = async (domain: string): Promise<"precise" | "agentic" | ServiceError> => sew(async () => {
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        return {
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "Organization not found",
+        } satisfies ServiceError;
+    }
+
+    // If no metadata is set, return default (precise)
+    if (org.metadata === null) {
+        return "precise";
+    }
+
+    const orgMetadata = getOrgMetadata(org);
+    if (!orgMetadata) {
+        return {
+            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+            errorCode: ErrorCode.INVALID_ORG_METADATA,
+            message: "Invalid organization metadata",
+        } satisfies ServiceError;
+    }
+
+    return orgMetadata.defaultSearchMode ?? "precise";
+});
+
+export const setDefaultSearchMode = async (domain: string, mode: "precise" | "agentic"): Promise<{ success: boolean } | ServiceError> => sew(async () => {
+    // Runtime validation to guard server action from invalid input
+    const parsed = searchModeSchema.safeParse(mode);
+    if (!parsed.success) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: "Invalid default search mode",
+        } satisfies ServiceError;
+    }
+    const validatedMode = parsed.data;
+
+    return await withAuth(async (userId) => {
+        return await withOrgMembership(userId, domain, async ({ org }) => {
+            // Validate that agentic mode is not being set when no language models are configured
+            if (validatedMode === "agentic") {
+                const { getConfiguredLanguageModelsInfo } = await import("@/features/chat/actions");
+                const languageModels = await getConfiguredLanguageModelsInfo();
+                if (languageModels.length === 0) {
+                    return {
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: "Cannot set Ask mode as default when no language models are configured",
+                    } satisfies ServiceError;
+                }
+            }
+
+            const currentMetadata = getOrgMetadata(org);
+            const previousMode = currentMetadata?.defaultSearchMode ?? "precise";
+            const mergedMetadata = {
+                ...(currentMetadata ?? {}),
+                defaultSearchMode: validatedMode,
+            };
+
+            await prisma.org.update({
+                where: {
+                    id: org.id,
+                },
+                data: {
+                    metadata: mergedMetadata,
+                },
+            });
+
+            await auditService.createAudit({
+                action: "org.settings.default_search_mode_updated",
+                actor: {
+                    id: userId,
+                    type: "user"
+                },
+                target: {
+                    id: org.id.toString(),
+                    type: "org"
+                },
+                orgId: org.id,
+                metadata: {
+                    previousDefaultSearchMode: previousMode,
+                    newDefaultSearchMode: validatedMode
+                }
+            });
+
+            return {
+                success: true,
+            };
+        }, /* minRequiredRole = */ OrgRole.OWNER);
+    });
+});
 
 ////// Helpers ///////
 

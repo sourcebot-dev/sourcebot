@@ -1,4 +1,4 @@
-import { getRepos, getSearchContexts } from "@/actions";
+import { getDefaultSearchMode, getRepos, getSearchContexts } from "@/actions";
 import { Footer } from "@/app/components/footer";
 import { getOrgFromDomain } from "@/data/org";
 import { getConfiguredLanguageModelsInfo, getUserChatHistory } from "@/features/chat/actions";
@@ -48,14 +48,21 @@ export default async function Home(props: { params: Promise<{ domain: string }> 
 
     const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
 
-    // Read search mode from cookie, defaulting to agentic if not set
-    // (assuming a language model is configured).
+    // Get org's default search mode
+    const defaultSearchMode = await getDefaultSearchMode(domain);
+    // If there was an error or no setting found, default to precise (search)
+    const orgDefaultMode = isServiceError(defaultSearchMode) ? "precise" : defaultSearchMode;
+    const effectiveOrgDefaultMode =
+        orgDefaultMode === "agentic" && models.length === 0 ? "precise" : orgDefaultMode;
+
+    // Read search mode from cookie, defaulting to the org's default setting if not set
     const cookieStore = await cookies();
     const searchModeCookie = cookieStore.get(SEARCH_MODE_COOKIE_NAME);
     const initialSearchMode = (
         searchModeCookie?.value === "agentic" ||
         searchModeCookie?.value === "precise"
-    ) ? searchModeCookie.value : models.length > 0 ? "agentic" : "precise";
+    ) ? ((searchModeCookie.value === "agentic" && models.length === 0) ? "precise" : searchModeCookie.value)
+      : effectiveOrgDefaultMode;
 
     const isAgenticSearchTutorialDismissed = cookieStore.get(AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME)?.value === "true";
 
