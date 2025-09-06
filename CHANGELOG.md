@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Disable page scroll when using arrow keys on search suggestions box. [#493](https://github.com/sourcebot-dev/sourcebot/pull/493)
+
 ## [4.6.6] - 2025-09-04
 
 ### Added
