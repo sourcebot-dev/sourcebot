@@ -334,6 +334,7 @@ const SearchSuggestionsBox = forwardRef(({
                 }
 
                 if (e.key === 'ArrowUp') {
+                    e.preventDefault();
                     e.stopPropagation();
                     setHighlightedSuggestionIndex((curIndex) => {
                         return curIndex <= 0 ? suggestions.length - 1 : curIndex - 1;
@@ -341,6 +342,7 @@ const SearchSuggestionsBox = forwardRef(({
                 }
 
                 if (e.key === 'ArrowDown') {
+                    e.preventDefault();
                     e.stopPropagation();
                     setHighlightedSuggestionIndex((curIndex) => {
                         return curIndex >= suggestions.length - 1 ? 0 : curIndex + 1;
