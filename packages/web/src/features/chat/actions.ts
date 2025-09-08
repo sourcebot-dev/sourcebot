@@ -21,13 +21,14 @@ import { createXai } from '@ai-sdk/xai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { getTokenFromConfig } from "@sourcebot/crypto";
 import { ChatVisibility, OrgRole, Prisma, PrismaClient } from "@sourcebot/db";
-import { LanguageModel, LanguageModelHeaders } from "@sourcebot/schemas/v3/languageModel.type";
+import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
 import { loadConfig } from "@sourcebot/shared";
 import { generateText, JSONValue } from "ai";
 import fs from 'fs';
 import { StatusCodes } from "http-status-codes";
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from "./types";
+import { Token } from "@sourcebot/schemas/v3/shared.type";
 
 export const createChat = async (domain: string) => sew(() =>
     withAuth((userId) =>
@@ -393,7 +394,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     ? await getTokenFromConfig(config.sessionToken, orgId, prisma)
                     : env.AWS_SESSION_TOKEN,
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
             });
 
@@ -408,7 +409,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     ? await getTokenFromConfig(config.token, orgId, prisma)
                     : env.ANTHROPIC_API_KEY,
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
             });
 
@@ -431,7 +432,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                 apiVersion: config.apiVersion,
                 resourceName: config.resourceName ?? env.AZURE_RESOURCE_NAME,
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
             });
 
@@ -444,7 +445,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                 baseURL: config.baseUrl,
                 apiKey: config.token ? (await getTokenFromConfig(config.token, orgId, prisma)) : env.DEEPSEEK_API_KEY,
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
             });
 
@@ -459,7 +460,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     ? await getTokenFromConfig(config.token, orgId, prisma)
                     : env.GOOGLE_GENERATIVE_AI_API_KEY,
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
             });
 
@@ -477,7 +478,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     }
                 } : {}),
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
             });
 
@@ -503,7 +504,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     }
                 } : {}),
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
             });
 
@@ -518,7 +519,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     ? await getTokenFromConfig(config.token, orgId, prisma)
                     : env.MISTRAL_API_KEY,
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
             });
 
@@ -533,7 +534,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     ? await getTokenFromConfig(config.token, orgId, prisma)
                     : env.OPENAI_API_KEY,
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
             });
 
@@ -554,7 +555,10 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     ? await getTokenFromConfig(config.token, orgId, prisma)
                     : undefined,
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
+                    : undefined,
+                queryParams: config.queryParams
+                    ? await extractLanguageModelKeyValuePairs(config.queryParams, orgId, prisma)
                     : undefined,
             });
 
@@ -569,7 +573,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     ? await getTokenFromConfig(config.token, orgId, prisma)
                     : env.OPENROUTER_API_KEY,
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
             });
 
@@ -584,7 +588,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     ? await getTokenFromConfig(config.token, orgId, prisma)
                     : env.XAI_API_KEY,
                 headers: config.headers
-                    ? await extractLanguageModelHeaders(config.headers, orgId, prisma)
+                    ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
             });
 
@@ -595,26 +599,28 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
     }
 }
 
-const extractLanguageModelHeaders = async (
-    headers: LanguageModelHeaders,
+const extractLanguageModelKeyValuePairs = async (
+    pairs: {
+        [k: string]: string | Token;
+    },
     orgId: number,
     db: PrismaClient,
 ): Promise<Record<string, string>> => {
-    const resolvedHeaders: Record<string, string> = {};
+    const resolvedPairs: Record<string, string> = {};
 
-    if (!headers) {
-        return resolvedHeaders;
+    if (!pairs) {
+        return resolvedPairs;
     }
 
-    for (const [headerName, headerValue] of Object.entries(headers)) {
-        if (typeof headerValue === "string") {
-            resolvedHeaders[headerName] = headerValue;
+    for (const [key, val] of Object.entries(pairs)) {
+        if (typeof val === "string") {
+            resolvedPairs[key] = val;
             continue;
         }
 
-        const value = await getTokenFromConfig(headerValue, orgId, db);
-        resolvedHeaders[headerName] = value;
+        const value = await getTokenFromConfig(val, orgId, db);
+        resolvedPairs[key] = value;
     }
 
-    return resolvedHeaders;
+    return resolvedPairs;
 }

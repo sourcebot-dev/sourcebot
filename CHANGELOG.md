@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added comprehensive Gerrit HTTP authentication support with username/password credentials via secrets and environment variables. [#366](https://github.com/sourcebot-dev/sourcebot/pull/366)
 
+### Changed
+- Disable page scroll when using arrow keys on search suggestions box. [#493](https://github.com/sourcebot-dev/sourcebot/pull/493)
+
+## [4.6.6] - 2025-09-04
+
+### Added
+- Added support for specifying query params for openai compatible language models. [#490](https://github.com/sourcebot-dev/sourcebot/pull/490)
+
+### Fixed
+- Fix issue where zoekt was failing to index repositories due to `HEAD` pointing to a branch that does not exist. [#488](https://github.com/sourcebot-dev/sourcebot/pull/488)
+
 ## [4.6.5] - 2025-09-02
 
 ### Fixed

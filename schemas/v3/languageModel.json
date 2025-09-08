@@ -422,6 +422,9 @@
                 },
                 "headers": {
                     "$ref": "./shared.json#/definitions/LanguageModelHeaders"
+                },
+                "queryParams": {
+                    "$ref": "./shared.json#/definitions/LanguageModelQueryParams"
                 }
             },
             "required": [
