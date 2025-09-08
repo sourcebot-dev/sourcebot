@@ -142,9 +142,7 @@ const fetchAllProjects = async (url: string, auth?: GerritAuthConfig): Promise<G
             const errorText = await response.text().catch(() => 'Unknown error');
             logger.error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${response.status}: ${errorText}`);
             const e = new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
-               status: response.status,
-               url: endpointWithParams,
-               authenticated: !!auth
+               status: response.status
             });
             Sentry.captureException(e);
             throw e;
@@ -159,9 +157,7 @@ const fetchAllProjects = async (url: string, auth?: GerritAuthConfig): Promise<G
          const message = (err as Error)?.message ?? String(err);
          logger.error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${status}: ${message}`);
          throw new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
-            status,
-            url: endpointWithParams,
-            authenticated: !!auth
+            status
          });
       }
 

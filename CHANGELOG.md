@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added comprehensive Gerrit HTTP authentication support with username/password credentials via secrets and environment variables. [#366](https://github.com/sourcebot-dev/sourcebot/pull/366)
+
 ## [4.7.0] - 2025-09-17
 
 ### Added
