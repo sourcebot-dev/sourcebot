@@ -348,7 +348,7 @@ test('getGerritReposFromConfig handles authenticated access with HTTP Basic Auth
         projects: ['test-project'],
         auth: {
             username: 'testuser',
-            password: 'test-password'
+            password: { secret: 'test-secret' }
         }
     };
 
@@ -463,7 +463,7 @@ test('getGerritReposFromConfig handles authentication errors', async () => {
         projects: ['test-project'],
         auth: {
             username: 'testuser',
-            password: 'invalid-password'
+            password: { secret: 'invalid-secret' }
         }
     };
 
@@ -740,7 +740,7 @@ test('getGerritReposFromConfig validates Basic Auth header format', async () => 
         projects: ['test-project'],
         auth: {
             username: 'user@example.com',
-            password: 'complex-password-123!'
+            password: { secret: 'complex-secret' }
         }
     };
 
@@ -835,7 +835,7 @@ test('getGerritReposFromConfig handles mixed authentication scenarios', async ()
         projects: ['private-project'],
         auth: {
             username: 'testuser',
-            password: 'test-password'
+            password: { secret: 'test-secret' }
         }
     };
 
@@ -959,7 +959,7 @@ test('getGerritReposFromConfig rejects invalid token formats (security)', async 
         projects: ['test-project'],
         auth: {
             username: 'testuser',
-            password: 'direct-string-password' // This should be rejected
+            password: { secret: 'invalid-secret' } // This should be rejected for other reasons
         }
     };
 

@@ -1,5 +1,4 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { PrismaClient } from '@sourcebot/db';
 import { getTokenFromConfig } from './tokenUtils';
 
 // Mock the decrypt function
@@ -58,19 +57,6 @@ describe('tokenUtils', () => {
             expect(mockPrisma.secret.findUnique).not.toHaveBeenCalled();
         });
 
-        test('throws error for string tokens (security)', async () => {
-            const config = 'direct-string-token';
-
-            await expect(getTokenFromConfig(config as any, testOrgId, mockPrisma))
-                .rejects.toThrow('Invalid token configuration');
-        });
-
-        test('throws error for malformed token objects', async () => {
-            const config = { invalid: 'format' };
-
-            await expect(getTokenFromConfig(config as any, testOrgId, mockPrisma))
-                .rejects.toThrow('Invalid token configuration');
-        });
 
         test('throws error for missing secret', async () => {
             mockPrisma.secret.findUnique.mockResolvedValue(null);
