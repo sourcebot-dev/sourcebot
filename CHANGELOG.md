@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.7] - 2025-09-08
+
 ### Added
 - Added `exclude.userOwnedProjects` setting to GitLab configs. [#498](https://github.com/sourcebot-dev/sourcebot/pull/498)
 
