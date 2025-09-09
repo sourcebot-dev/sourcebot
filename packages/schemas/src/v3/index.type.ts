@@ -279,6 +279,10 @@ export interface GitlabConnectionConfig {
      */
     archived?: boolean;
     /**
+     * Exclude user-owned projects from syncing.
+     */
+    userOwnedProjects?: boolean;
+    /**
      * List of projects to exclude from syncing. Glob patterns are supported. The project's namespace must be specified, see: https://docs.gitlab.com/ee/user/namespace/
      */
     projects?: string[];

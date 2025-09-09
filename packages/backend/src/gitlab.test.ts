@@ -41,3 +41,30 @@ test('shouldExcludeProject returns true when the project is excluded by exclude.
     })).toBe(true)
 });
 
+test('shouldExcludeProject returns true when the project is excluded by exclude.userOwnedProjects.', () => {
+    const project = {
+        path_with_namespace: 'test/project',
+        namespace: {
+            kind: 'user',
+        }
+    } as unknown as ProjectSchema;
+
+    expect(shouldExcludeProject({
+        project,
+        exclude: {
+            userOwnedProjects: true,
+        }
+    })).toBe(true)
+});
+
+test('shouldExcludeProject returns false when exclude.userOwnedProjects is true but project is group-owned.', () => {
+    const project = {
+        path_with_namespace: 'test/project',
+        namespace: { kind: 'group' },
+    } as unknown as ProjectSchema;
+
+    expect(shouldExcludeProject({
+        project,
+        exclude: { userOwnedProjects: true },
+    })).toBe(false);
+});
