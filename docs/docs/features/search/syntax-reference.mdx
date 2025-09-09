@@ -15,13 +15,15 @@ Queries consist of space-separated regular expressions. Wrapping expressions in 
 | `foo bar` | Match files with regex `/foo/` **and** `/bar/` |
 | `"foo bar"` | Match files with regex `/foo bar/` |
 
-Multiple expressions can be or'd together with `or`, negated with `-`, or grouped with `()`.
+Multiple expressions can be or'd together with `or` (or `OR`), negated with `-`, or grouped with `()`. Both lowercase and uppercase boolean operators are supported.
 
 | Example | Explanation |
 | :--- | :--- |
 | `foo or bar` | Match files with regex `/foo/` **or** `/bar/` |
+| `foo OR bar` | Same as above - uppercase `OR` is also supported |
 | `foo -bar` | Match files with regex `/foo/` but **not** `/bar/` |
 | `foo (bar or baz)` | Match files with regex `/foo/` **and** either `/bar/` **or** `/baz/` |
+| `(file:yarn.lock OR file:package.json)` | Match files named `yarn.lock` **or** `package.json` |
 
 Expressions can be prefixed with certain keywords to modify search behavior. Some keywords can be negated using the `-` prefix.
 

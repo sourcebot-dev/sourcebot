@@ -36,7 +36,19 @@ enum zoektPrefixes {
 }
 
 const transformZoektQuery = async (query: string, orgId: number): Promise<string | ServiceError> => {
-    const prevQueryParts = query.split(" ");
+    // First, normalize boolean operators to lowercase (Zoekt requirement)
+    // Zoekt only recognizes lowercase 'or' and 'and' operators, but users often expect
+    // uppercase OR/AND to work. This transformation allows both cases to work.
+    // Examples:
+    //   - "(file:yarn.lock OR file:package.json)" → "(file:yarn.lock or file:package.json)"
+    //   - "foo AND bar" → "foo and bar" (though AND is implicit in Zoekt)
+    let normalizedQuery = query
+        // Replace standalone uppercase OR with lowercase or
+        .replace(/\bOR\b/g, 'or')
+        // Replace standalone uppercase AND with lowercase and (though AND is implicit in Zoekt)
+        .replace(/\bAND\b/g, 'and');
+
+    const prevQueryParts = normalizedQuery.split(" ");
     const newQueryParts = [];
 
     for (const part of prevQueryParts) {
