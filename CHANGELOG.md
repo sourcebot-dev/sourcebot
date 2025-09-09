@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `exclude.userOwnedProjects` setting to GitLab configs. [#498](https://github.com/sourcebot-dev/sourcebot/pull/498)
+
 ### Fixed
 - Fixed "couldn't find remote ref HEAD" errors when re-indexing certain repositories. [#497](https://github.com/sourcebot-dev/sourcebot/pull/497)
 

@@ -605,6 +605,11 @@ const schema = {
                       "default": false,
                       "description": "Exclude archived projects from syncing."
                     },
+                    "userOwnedProjects": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Exclude user-owned projects from syncing."
+                    },
                     "projects": {
                       "type": "array",
                       "items": {
