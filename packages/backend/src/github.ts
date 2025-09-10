@@ -225,13 +225,17 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
 
             const { durationMs, data } = await measure(async () => {
                 const fetchFn = async () => {
+                    let query = `user:${user}`;
+                    // To include forks in the search results, we will need to add fork:true
+                    // see: https://docs.github.com/en/search-github/searching-on-github/searching-for-repositories
+                    query += ' fork:true';
                     // @note: We need to use GitHub's search API here since it is the only way
                     // to get all repositories (private and public) owned by a user that supports
                     // the username as a parameter.
                     // @see: https://github.com/orgs/community/discussions/24382#discussioncomment-3243958
                     // @see: https://api.github.com/search/repositories?q=user:USERNAME
                     const searchResults = await octokit.paginate(octokit.rest.search.repos, {
-                        q: `user:${user}`,
+                        q: query,
                         per_page: 100,
                         request: {
                             signal,
