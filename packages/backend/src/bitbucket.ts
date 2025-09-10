@@ -170,21 +170,33 @@ const getPaginatedCloud = async <T>(
     }
     return results;
 }
-   
+
+/**
+ * Parse the url into a path and query parameters to be used with the api client (openapi-fetch)
+ */
+function parseUrl(url: string, baseUrl: string): { path: string; query: Record<string, string>; } {
+    const fullUrl = new URL(url);
+    const path = fullUrl.pathname;
+    const query = Object.fromEntries(fullUrl.searchParams);
+    logger.debug(`Parsed url ${url} into path ${path} and query ${JSON.stringify(query)}`);
+    return { path, query };
+}
+
 
 async function cloudGetReposForWorkspace(client: BitbucketClient, workspaces: string[]): Promise<{validRepos: CloudRepository[], notFoundWorkspaces: string[]}> {
     const results = await Promise.allSettled(workspaces.map(async (workspace) => {
         try {
             logger.debug(`Fetching all repos for workspace ${workspace}...`);
 
-            const path = `/repositories/${workspace}` as CloudGetRequestPath;
             const { durationMs, data } = await measure(async () => {
-                const fetchFn = () => getPaginatedCloud<CloudRepository>(path, async (url) => {
-                    const response = await client.apiClient.GET(url, {
+                const fetchFn = () => getPaginatedCloud<CloudRepository>(`/repositories/${workspace}` as CloudGetRequestPath, async (url) => {
+                    const { path, query } = parseUrl(url, client.baseUrl);
+                    const response = await client.apiClient.GET(path, {
                         params: {
                             path: {
                                 workspace,
-                            }
+                            },
+                            query: query,
                         }
                     });
                     const { data, error } = response;
@@ -238,11 +250,15 @@ async function cloudGetReposForProjects(client: BitbucketClient, projects: strin
 
         logger.debug(`Fetching all repos for project ${project} for workspace ${workspace}...`);
         try {
-            const path = `/repositories/${workspace}` as CloudGetRequestPath;
-            const repos = await getPaginatedCloud<CloudRepository>(path, async (url) => {
-                const response = await client.apiClient.GET(url, {
+            const repos = await getPaginatedCloud<CloudRepository>(`/repositories/${workspace}` as CloudGetRequestPath, async (url) => {
+                const { path, query } = parseUrl(url, client.baseUrl);
+                const response = await client.apiClient.GET(path, {
                     params: {
+                        path: {
+                            workspace,
+                        },
                         query: {
+                            ...query,
                             q: `project.key="${project_name}"`
                         }
                     }
