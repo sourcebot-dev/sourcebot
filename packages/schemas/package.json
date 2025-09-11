@@ -6,15 +6,19 @@
         "build": "yarn generate && tsc",
         "generate": "tsx tools/generate.ts",
         "watch": "nodemon --watch ../../schemas -e json -x 'yarn generate'",
-        "postinstall": "yarn build"
+        "postinstall": "yarn build",
+        "test": "cross-env SKIP_ENV_VALIDATION=1 vitest --config ./vitest.config.ts"
     },
     "devDependencies": {
         "@apidevtools/json-schema-ref-parser": "^11.7.3",
+        "ajv": "^8.12.0",
+        "cross-env": "^7.0.3",
         "glob": "^11.0.1",
         "json-schema-to-typescript": "^15.0.4",
         "nodemon": "^3.1.10",
         "tsx": "^4.19.2",
-        "typescript": "^5.7.3"
+        "typescript": "^5.7.3",
+        "vitest": "^2.1.9"
     },
     "exports": {
         "./v2/*": "./dist/v2/*.js",

@@ -2,7 +2,7 @@ import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createLogger } from "@sourcebot/logger";
 import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
-import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, GerritConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings, repoMetadataSchema } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
 import { cloneRepository, fetchRepository, unsetGitConfig, upsertGitConfig } from "./git.js";
@@ -217,6 +217,17 @@ export class RepoManager implements IRepoManager {
                     return {
                         username,
                         password: token,
+                    }
+                }
+            }
+
+            else if (connection.connectionType === 'gerrit') {
+                const config = connection.config as unknown as GerritConnectionConfig;
+                if (config.auth) {
+                    const password = await getTokenFromConfig(config.auth.password, connection.orgId, db, logger);
+                    return {
+                        username: config.auth.username,
+                        password: password,
                     }
                 }
             }
