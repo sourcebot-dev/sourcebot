@@ -78,8 +78,8 @@ const searchBarContainerVariants = cva(
     {
         variants: {
             size: {
-                default: "h-10",
-                sm: "h-8"
+                default: "min-h-10",
+                sm: "min-h-8"
             }
         },
         defaultVariants: {
@@ -168,6 +168,7 @@ export const SearchBar = ({
             keymap.of(searchBarKeymap),
             history(),
             zoekt(),
+            EditorView.lineWrapping,
             EditorView.updateListener.of(update => {
                 if (update.selectionSet) {
                     const selection = update.state.selection.main;
@@ -259,7 +260,7 @@ export const SearchBar = ({
             />
             <CodeMirror
                 ref={editorRef}
-                className="overflow-x-auto w-full"
+                className="w-full"
                 placeholder={isHistorySearchEnabled ? "Filter history..." : "Search (/) through repos..."}
                 value={query}
                 onChange={(value) => {
