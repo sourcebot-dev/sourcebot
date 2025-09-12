@@ -334,6 +334,7 @@ const SearchSuggestionsBox = forwardRef(({
                 }
 
                 if (e.key === 'ArrowUp') {
+                    e.preventDefault();
                     e.stopPropagation();
                     setHighlightedSuggestionIndex((curIndex) => {
                         return curIndex <= 0 ? suggestions.length - 1 : curIndex - 1;
@@ -341,6 +342,7 @@ const SearchSuggestionsBox = forwardRef(({
                 }
 
                 if (e.key === 'ArrowDown') {
+                    e.preventDefault();
                     e.stopPropagation();
                     setHighlightedSuggestionIndex((curIndex) => {
                         return curIndex >= suggestions.length - 1 ? 0 : curIndex + 1;
@@ -438,7 +440,7 @@ export { SearchSuggestionsBox };
 
 export const splitQuery = (query: string, cursorPos: number) => {
     const queryParts = [];
-    const seperator = " ";
+    const separator = " ";
     let cursorIndex = 0;
     let accumulator = "";
     let isInQuoteCapture = false;
@@ -452,7 +454,7 @@ export const splitQuery = (query: string, cursorPos: number) => {
             isInQuoteCapture = !isInQuoteCapture;
         }
 
-        if (!isInQuoteCapture && query[i] === seperator) {
+        if (!isInQuoteCapture && query[i] === separator) {
             queryParts.push(accumulator);
             accumulator = "";
             continue;

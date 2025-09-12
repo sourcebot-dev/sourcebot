@@ -2,14 +2,15 @@ import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus } from '@sour
 import { env } from './env.mjs';
 import { prisma } from "@/prisma";
 import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SINGLE_TENANT_ORG_NAME } from './lib/constants';
-import { watch } from 'fs';
+import chokidar from 'chokidar';
 import { ConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { hasEntitlement, loadConfig, isRemotePath, syncSearchContexts } from '@sourcebot/shared';
-import { createGuestUser, setPublicAccessStatus } from '@/ee/features/publicAccess/publicAccess';
-import { isServiceError } from './lib/utils';
+import { isServiceError, getOrgMetadata } from './lib/utils';
 import { ServiceErrorException } from './lib/serviceError';
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { createLogger } from "@sourcebot/logger";
+import { createGuestUser } from '@/lib/authUtils';
+import { getOrgFromDomain } from './data/org';
 
 const logger = createLogger('web-initialize');
 
@@ -105,23 +106,28 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
 const syncDeclarativeConfig = async (configPath: string) => {
     const config = await loadConfig(configPath);
 
-    const hasPublicAccessEntitlement = hasEntitlement("public-access");
-    const enablePublicAccess = config.settings?.enablePublicAccess;
-    if (enablePublicAccess !== undefined && !hasPublicAccessEntitlement) {
-        logger.error(`Public access flag is set in the config file but your license doesn't have public access entitlement. Please contact ${SOURCEBOT_SUPPORT_EMAIL} to request a license upgrade.`);
-        process.exit(1);
-    }
-
-    if (hasPublicAccessEntitlement) {
-        if (enablePublicAccess && env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === 'true') {
-            logger.error(`Audit logging is not supported when public access is enabled. Please disable audit logging (SOURCEBOT_EE_AUDIT_LOGGING_ENABLED) or disable public access.`);
-            process.exit(1);
-        }
-        
-        logger.info(`Setting public access status to ${!!enablePublicAccess} for org ${SINGLE_TENANT_ORG_DOMAIN}`);
-        const res = await setPublicAccessStatus(SINGLE_TENANT_ORG_DOMAIN, !!enablePublicAccess);
-        if (isServiceError(res)) {
-            throw new ServiceErrorException(res);
+    const forceEnableAnonymousAccess = config.settings?.enablePublicAccess ?? env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true';
+    if (forceEnableAnonymousAccess) {
+        const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+        if (!hasAnonymousAccessEntitlement) {
+            logger.warn(`FORCE_ENABLE_ANONYMOUS_ACCESS env var is set to true but anonymous access entitlement is not available. Setting will be ignored.`);
+        } else {
+            const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+            if (org) {
+                const currentMetadata = getOrgMetadata(org);
+                const mergedMetadata = {
+                    ...(currentMetadata ?? {}),
+                    anonymousAccessEnabled: true,
+                };
+                
+                await prisma.org.update({
+                    where: { id: org.id },
+                    data: { 
+                        metadata: mergedMetadata,
+                    },
+                });
+                logger.info(`Anonymous access enabled via FORCE_ENABLE_ANONYMOUS_ACCESS environment variable`);
+            }
         }
     }
 
@@ -192,11 +198,25 @@ const initSingleTenancy = async () => {
     // To keep things simple, we'll just delete the old guest user if it exists in the DB
     await pruneOldGuestUser();
 
-    const hasPublicAccessEntitlement = hasEntitlement("public-access");
-    if (hasPublicAccessEntitlement) {
+    const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+    if (hasAnonymousAccessEntitlement) {
         const res = await createGuestUser(SINGLE_TENANT_ORG_DOMAIN);
         if (isServiceError(res)) {
             throw new ServiceErrorException(res);
+        }
+    } else {
+        // If anonymous access entitlement is not enabled, set the flag to false in the org on init
+        const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+        if (org) {
+            const currentMetadata = getOrgMetadata(org);
+            const mergedMetadata = {
+                ...(currentMetadata ?? {}),
+                anonymousAccessEnabled: false,
+            };
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { metadata: mergedMetadata },
+            });
         }
     }
 
@@ -207,9 +227,22 @@ const initSingleTenancy = async () => {
         
         // watch for changes assuming it is a local file
         if (!isRemotePath(configPath)) {
-            watch(configPath, () => {
+            const watcher = chokidar.watch(configPath, {
+                ignoreInitial: true,           // Don't fire events for existing files
+                awaitWriteFinish: {
+                    stabilityThreshold: 100,   // File size stable for 100ms
+                    pollInterval: 100          // Check every 100ms
+                },
+                atomic: true                   // Handle atomic writes (temp file + rename)
+            });
+            
+            watcher.on('change', async () => {
                 logger.info(`Config file ${configPath} changed. Re-syncing...`);
-                syncDeclarativeConfig(configPath);
+                try {
+                    await syncDeclarativeConfig(configPath);
+                } catch (error) {
+                    logger.error(`Failed to sync config: ${error}`);
+                }
             });
         }
     }

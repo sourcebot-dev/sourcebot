@@ -5,7 +5,7 @@ import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, S
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings, repoMetadataSchema } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
-import { cloneRepository, fetchRepository, upsertGitConfig } from "./git.js";
+import { cloneRepository, fetchRepository, unsetGitConfig, upsertGitConfig } from "./git.js";
 import { existsSync, readdirSync, promises } from 'fs';
 import { indexGitRepository } from "./zoekt.js";
 import { PromClient } from './promClient.js';
@@ -174,7 +174,7 @@ export class RepoManager implements IRepoManager {
     // We can no longer use repo.cloneUrl directly since it doesn't contain the token for security reasons. As a result, we need to
     // fetch the token here using the connections from the repo. Multiple connections could be referencing this repo, and each
     // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
-    // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referrencing.
+    // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
     private async getCloneCredentialsForRepo(repo: RepoWithConnections, db: PrismaClient): Promise<{ username?: string, password: string } | undefined> {
 
         for (const { connection } of repo.connections) {
@@ -237,12 +237,39 @@ export class RepoManager implements IRepoManager {
             await promises.rm(repoPath, { recursive: true, force: true });
         }
 
-        if (existsSync(repoPath) && !isReadOnly) {
-            logger.info(`Fetching ${repo.displayName}...`);
+        const credentials = await this.getCloneCredentialsForRepo(repo, this.db);
+        const remoteUrl = new URL(repo.cloneUrl);
+        if (credentials) {
+            // @note: URL has a weird behavior where if you set the password but
+            // _not_ the username, the ":" delimiter will still be present in the
+            // URL (e.g., https://:password@example.com). To get around this, if
+            // we only have a password, we set the username to the password.
+            // @see: https://www.typescriptlang.org/play/?#code/MYewdgzgLgBArgJwDYwLwzAUwO4wKoBKAMgBQBEAFlFAA4QBcA9I5gB4CGAtjUpgHShOZADQBKANwAoREj412ECNhAIAJmhhl5i5WrJTQkELz5IQAcxIy+UEAGUoCAJZhLo0UA
+            if (!credentials.username) {
+                remoteUrl.username = credentials.password;
+            } else {
+                remoteUrl.username = credentials.username;
+                remoteUrl.password = credentials.password;
+            }
+        }
 
-            const { durationMs } = await measure(() => fetchRepository(repoPath, ({ method, stage, progress }) => {
-                logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
-            }));
+        if (existsSync(repoPath) && !isReadOnly) {
+            // @NOTE: in #483, we changed the cloning method s.t., we _no longer_
+            // write the clone URL (which could contain a auth token) to the
+            // `remote.origin.url` entry. For the upgrade scenario, we want
+            // to unset this key since it is no longer needed, hence this line.
+            // This will no-op if the key is already unset.
+            // @see: https://github.com/sourcebot-dev/sourcebot/pull/483
+            await unsetGitConfig(repoPath, ["remote.origin.url"]);
+
+            logger.info(`Fetching ${repo.displayName}...`);
+            const { durationMs } = await measure(() => fetchRepository(
+                remoteUrl,
+                repoPath,
+                ({ method, stage, progress }) => {
+                    logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
+                }
+            ));
             const fetchDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
@@ -251,25 +278,13 @@ export class RepoManager implements IRepoManager {
         } else if (!isReadOnly) {
             logger.info(`Cloning ${repo.displayName}...`);
 
-            const auth = await this.getCloneCredentialsForRepo(repo, this.db);
-            const cloneUrl = new URL(repo.cloneUrl);
-            if (auth) {
-                // @note: URL has a weird behavior where if you set the password but
-                // _not_ the username, the ":" delimiter will still be present in the
-                // URL (e.g., https://:password@example.com). To get around this, if
-                // we only have a password, we set the username to the password.
-                // @see: https://www.typescriptlang.org/play/?#code/MYewdgzgLgBArgJwDYwLwzAUwO4wKoBKAMgBQBEAFlFAA4QBcA9I5gB4CGAtjUpgHShOZADQBKANwAoREj412ECNhAIAJmhhl5i5WrJTQkELz5IQAcxIy+UEAGUoCAJZhLo0UA
-                if (!auth.username) {
-                    cloneUrl.username = auth.password;
-                } else {
-                    cloneUrl.username = auth.username;
-                    cloneUrl.password = auth.password;
+            const { durationMs } = await measure(() => cloneRepository(
+                remoteUrl,
+                repoPath,
+                ({ method, stage, progress }) => {
+                    logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
                 }
-            }
-
-            const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, ({ method, stage, progress }) => {
-                logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
-            }));
+            ));
             const cloneDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
@@ -540,7 +555,7 @@ export class RepoManager implements IRepoManager {
 
     public async validateIndexedReposHaveShards() {
         logger.info('Validating indexed repos have shards...');
-        
+
         const indexedRepos = await this.db.repo.findMany({
             where: {
                 repoIndexingStatus: RepoIndexingStatus.INDEXED
@@ -552,16 +567,15 @@ export class RepoManager implements IRepoManager {
             return;
         }
 
+        const files = readdirSync(this.ctx.indexPath);
         const reposToReindex: number[] = [];
-
         for (const repo of indexedRepos) {
             const shardPrefix = getShardPrefix(repo.orgId, repo.id);
-            
+
             // TODO: this doesn't take into account if a repo has multiple shards and only some of them are missing. To support that, this logic
             // would need to know how many total shards are expected for this repo
             let hasShards = false;
             try {
-                const files = readdirSync(this.ctx.indexPath);
                 hasShards = files.some(file => file.startsWith(shardPrefix));
             } catch (error) {
                 logger.error(`Failed to read index directory ${this.ctx.indexPath}: ${error}`);

@@ -3,7 +3,7 @@
 import { env } from "@/env.mjs";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notAuthenticated, notFound, orgNotFound, secretAlreadyExists, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
-import { CodeHostType, isServiceError } from "@/lib/utils";
+import { CodeHostType, isHttpError, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
@@ -22,22 +22,24 @@ import { StatusCodes } from "http-status-codes";
 import { cookies, headers } from "next/headers";
 import { createTransport } from "nodemailer";
 import { auth } from "./auth";
+import { Octokit } from "octokit";
 import { getConnection } from "./data/connection";
 import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
-import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
+import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SEARCH_MODE_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { TenancyMode, ApiKeyPayload } from "./lib/types";
 import { decrementOrgSeatCount, getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
 import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
 import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
 import { getPlan, hasEntitlement } from "@sourcebot/shared";
-import { getPublicAccessStatus } from "./ee/features/publicAccess/publicAccess";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import { createLogger } from "@sourcebot/logger";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
+import { getOrgMetadata } from "@/lib/utils";
+import { getOrgFromDomain } from "./data/org";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -58,17 +60,22 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
     } catch (e) {
         Sentry.captureException(e);
         logger.error(e);
+
+        if (e instanceof Error) {
+            return unexpectedError(e.message);
+        }
+
         return unexpectedError(`An unexpected error occurred. Please try again later.`);
     }
 }
 
-export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | undefined) => Promise<T>, allowSingleTenantUnauthedAccess: boolean = false, apiKey: ApiKeyPayload | undefined = undefined) => {
+export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | undefined) => Promise<T>, allowAnonymousAccess: boolean = false, apiKey: ApiKeyPayload | undefined = undefined) => {
     const session = await auth();
 
     if (!session) {
         // First we check if public access is enabled and supported. If not, then we check if an api key was provided. If not,
         // then this is an invalid unauthed request and we return a 401.
-        const publicAccessEnabled = await getPublicAccessStatus(SINGLE_TENANT_ORG_DOMAIN);
+        const anonymousAccessEnabled = await getAnonymousAccessStatus(SINGLE_TENANT_ORG_DOMAIN);
         if (apiKey) {
             const apiKeyOrError = await verifyApiKey(apiKey);
             if (isServiceError(apiKeyOrError)) {
@@ -98,18 +105,17 @@ export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | unde
 
             return fn(user.id, apiKeyOrError.apiKey.hash);
         } else if (
-            env.SOURCEBOT_TENANCY_MODE === 'single' &&
-            allowSingleTenantUnauthedAccess &&
-            !isServiceError(publicAccessEnabled) &&
-            publicAccessEnabled
+            allowAnonymousAccess &&
+            !isServiceError(anonymousAccessEnabled) &&
+            anonymousAccessEnabled
         ) {
-            if (!hasEntitlement("public-access")) {
+            if (!hasEntitlement("anonymous-access")) {
                 const plan = getPlan();
-                logger.error(`Public access isn't supported in your current plan: ${plan}. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+                logger.error(`Anonymous access isn't supported in your current plan: ${plan}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
                 return notAuthenticated();
             }
 
-            // To support unauthed access a guest user is created in initialize.ts, which we return here
+            // To support anonymous access a guest user is created in initialize.ts, which we return here
             return fn(SOURCEBOT_GUEST_USER_ID, undefined);
         }
         return notAuthenticated();
@@ -141,7 +147,7 @@ export const withOrgMembership = async <T>(userId: string, domain: string, fn: (
         return notFound("User not a member of this organization");
     }
 
-    const getAuthorizationPrecendence = (role: OrgRole): number => {
+    const getAuthorizationPrecedence = (role: OrgRole): number => {
         switch (role) {
             case OrgRole.GUEST:
                 return 0;
@@ -153,7 +159,7 @@ export const withOrgMembership = async <T>(userId: string, domain: string, fn: (
     }
 
 
-    if (getAuthorizationPrecendence(membership.role) < getAuthorizationPrecendence(minRequiredRole)) {
+    if (getAuthorizationPrecedence(membership.role) < getAuthorizationPrecedence(minRequiredRole)) {
         return {
             statusCode: StatusCodes.FORBIDDEN,
             errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
@@ -180,7 +186,7 @@ export const withTenancyModeEnforcement = async<T>(mode: TenancyMode, fn: () => 
 
 ////// Actions ///////
 
-export const createOrg = (name: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
+export const createOrg = async (name: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
     withTenancyModeEnforcement('multi', () =>
         withAuth(async (userId) => {
             const org = await prisma.org.create({
@@ -287,7 +293,7 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
         })
     ));
 
-export const getSecrets = (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> => sew(() =>
+export const getSecrets = async (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
             const secrets = await prisma.secret.findMany({
@@ -672,7 +678,7 @@ export const getRepos = async (domain: string, filter: { status?: RepoIndexingSt
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,
             }));
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
 export const getRepoInfoByName = async (repoName: string, domain: string) => sew(() =>
@@ -710,7 +716,7 @@ export const getRepoInfoByName = async (repoName: string, domain: string) => sew
             // In this scenario, both repos will be named "github.com/sourcebot-dev/sourcebot".
             // We will leave this as an edge case for now since it's unlikely to happen in practice.
             //
-            // @v4-todo: we could add a unique contraint on repo name + orgId to help de-duplicate
+            // @v4-todo: we could add a unique constraint on repo name + orgId to help de-duplicate
             // these cases.
             // @see: repoCompileUtils.ts
             const repo = await prisma.repo.findFirst({
@@ -734,7 +740,7 @@ export const getRepoInfoByName = async (repoName: string, domain: string) => sew
                 indexedAt: repo.indexedAt ?? undefined,
                 repoIndexingStatus: repo.repoIndexingStatus,
             }
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
 export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
@@ -783,6 +789,144 @@ export const createConnection = async (name: string, type: CodeHostType, connect
                 id: connection.id,
             }
         }, OrgRole.OWNER)
+    ));
+
+export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: string, domain: string): Promise<{ connectionId: number } | ServiceError> => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            if (env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED !== 'true') {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "This feature is not enabled.",
+                } satisfies ServiceError;
+            }
+
+            // Parse repository URL to extract owner/repo
+            const repoInfo = (() => {
+                const url = repositoryUrl.trim();
+    
+                // Handle various GitHub URL formats
+                const patterns = [
+                    // https://github.com/owner/repo or https://github.com/owner/repo.git
+                    /^https?:\/\/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/,
+                    // github.com/owner/repo
+                    /^github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/,
+                    // owner/repo
+                    /^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/
+                ];
+                
+                for (const pattern of patterns) {
+                    const match = url.match(pattern);
+                    if (match) {
+                        return {
+                            owner: match[1],
+                            repo: match[2]
+                        };
+                    }
+                }
+                
+                return null;
+            })();
+
+            if (!repoInfo) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "Invalid repository URL format. Please use 'owner/repo' or 'https://github.com/owner/repo' format.",
+                } satisfies ServiceError;
+            }
+
+            const { owner, repo } = repoInfo;
+            
+            // Use GitHub API to fetch repository information and get the external_id
+            const octokit = new Octokit({
+                auth: env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN
+            });
+
+            let githubRepo;
+            try {
+                const response = await octokit.rest.repos.get({
+                    owner,
+                    repo,
+                });
+                githubRepo = response.data;
+            } catch (error) {
+                if (isHttpError(error, 404)) {
+                    return {
+                        statusCode: StatusCodes.NOT_FOUND,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: `Repository '${owner}/${repo}' not found or is private. Only public repositories can be added.`,
+                    } satisfies ServiceError;
+                }
+
+                if (isHttpError(error, 403)) {
+                    return {
+                        statusCode: StatusCodes.FORBIDDEN,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: `Access to repository '${owner}/${repo}' is forbidden. Only public repositories can be added.`,
+                    } satisfies ServiceError;
+                }
+                
+                return {
+                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Failed to fetch repository information: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                } satisfies ServiceError;
+            }
+
+            if (githubRepo.private) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "Only public repositories can be added.",
+                } satisfies ServiceError;
+            }
+
+            // Check if this repository is already connected using the external_id
+            const existingRepo = await prisma.repo.findFirst({
+                where: {
+                    orgId: org.id,
+                    external_id: githubRepo.id.toString(),
+                    external_codeHostType: 'github',
+                    external_codeHostUrl: 'https://github.com',
+                }
+            });
+
+            if (existingRepo) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.CONNECTION_ALREADY_EXISTS,
+                    message: "This repository already exists.",
+                } satisfies ServiceError;
+            }
+
+            const connectionName = `${owner}-${repo}-${Date.now()}`;
+
+            // Create GitHub connection config
+            const connectionConfig: GithubConnectionConfig = {
+                type: "github" as const,
+                repos: [`${owner}/${repo}`],
+                ...(env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN ? {
+                    token: {
+                        env: 'EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN'
+                    }
+                } : {})
+            };
+
+            const connection = await prisma.connection.create({
+                data: {
+                    orgId: org.id,
+                    name: connectionName,
+                    config: connectionConfig as unknown as Prisma.InputJsonValue,
+                    connectionType: 'github',
+                }
+            });
+
+            return {
+                connectionId: connection.id,
+            }
+        }, OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
 export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
@@ -933,7 +1077,7 @@ export const getCurrentUserRole = async (domain: string): Promise<OrgRole | Serv
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ userRole }) => {
             return userRole;
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
 export const createInvites = async (emails: string[], domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
@@ -1846,7 +1990,7 @@ export const rejectAccountRequest = async (requestId: string, domain: string) =>
     ));
 
 export const dismissMobileUnsupportedSplashScreen = async () => sew(async () => {
-    await cookies().set(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, 'true');
+    await (await cookies()).set(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, 'true');
     return true;
 });
 
@@ -1857,13 +2001,18 @@ export const getSearchContexts = async (domain: string) => sew(() =>
                 where: {
                     orgId: org.id,
                 },
+                include: {
+                    repos: true,
+                },
             });
 
             return searchContexts.map((context) => ({
+                id: context.id,
                 name: context.name,
                 description: context.description ?? undefined,
+                repoNames: context.repos.map((repo) => repo.name),
             }));
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
+        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
 export const getRepoImage = async (repoId: number, domain: string): Promise<ArrayBuffer | ServiceError> => sew(async () => {
@@ -1934,8 +2083,83 @@ export const getRepoImage = async (repoId: number, domain: string): Promise<Arra
                 return notFound();
             }
         }, /* minRequiredRole = */ OrgRole.GUEST);
-    }, /* allowSingleTenantUnauthedAccess = */ true);
+    }, /* allowAnonymousAccess = */ true);
 });
+
+export const getAnonymousAccessStatus = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        return {
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "Organization not found",
+        } satisfies ServiceError;
+    }
+
+    // If no metadata is set we don't try to parse it since it'll result in a parse error
+    if (org.metadata === null) {
+        return false;
+    }
+
+    const orgMetadata = getOrgMetadata(org);
+    if (!orgMetadata) {
+        return {
+            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+            errorCode: ErrorCode.INVALID_ORG_METADATA,
+            message: "Invalid organization metadata",
+        } satisfies ServiceError;
+    }
+
+    return !!orgMetadata.anonymousAccessEnabled;
+});
+
+export const setAnonymousAccessStatus = async (domain: string, enabled: boolean): Promise<ServiceError | boolean> => sew(async () => {
+    return await withAuth(async (userId) => {
+        return await withOrgMembership(userId, domain, async ({ org }) => {
+            const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+            if (!hasAnonymousAccessEntitlement) {
+                const plan = getPlan();
+                console.error(`Anonymous access isn't supported in your current plan: ${plan}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+                return {
+                    statusCode: StatusCodes.FORBIDDEN,
+                    errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+                    message: "Anonymous access is not supported in your current plan",
+                } satisfies ServiceError;
+            }
+
+            const currentMetadata = getOrgMetadata(org);
+            const mergedMetadata = {
+                ...(currentMetadata ?? {}),
+                anonymousAccessEnabled: enabled,
+            };
+
+            await prisma.org.update({
+                where: {
+                    id: org.id,
+                },
+                data: {
+                    metadata: mergedMetadata,
+                },
+            });
+
+            return true;
+        }, /* minRequiredRole = */ OrgRole.OWNER);
+    });
+});
+
+export async function setSearchModeCookie(searchMode: "precise" | "agentic") {
+    const cookieStore = await cookies();
+    cookieStore.set(SEARCH_MODE_COOKIE_NAME, searchMode, {
+        httpOnly: false, // Allow client-side access
+    });
+}
+
+export async function setAgenticSearchTutorialDismissedCookie(dismissed: boolean) {
+    const cookieStore = await cookies();
+    cookieStore.set(AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, dismissed ? "true" : "false", {
+        httpOnly: false, // Allow client-side access
+    });
+}
 
 ////// Helpers ///////
 

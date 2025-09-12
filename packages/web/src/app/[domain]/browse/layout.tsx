@@ -6,33 +6,33 @@ import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle
 import { BrowseStateProvider } from "./browseStateProvider";
 import { FileTreePanel } from "@/features/fileTree/components/fileTreePanel";
 import { TopBar } from "@/app/[domain]/components/topBar";
-import { Separator } from '@/components/ui/separator';
 import { useBrowseParams } from "./hooks/useBrowseParams";
 import { FileSearchCommandDialog } from "./components/fileSearchCommandDialog";
+import { useDomain } from "@/hooks/useDomain";
+import { SearchBar } from "../components/searchBar";
 
 interface LayoutProps {
     children: React.ReactNode;
-    params: {
-        domain: string;
-    }
 }
 
 export default function Layout({
-    children: codePreviewPanel,
-    params,
+    children,
 }: LayoutProps) {
     const { repoName, revisionName } = useBrowseParams();
+    const domain = useDomain();
 
     return (
         <BrowseStateProvider>
             <div className="flex flex-col h-screen">
-                <div className='sticky top-0 left-0 right-0 z-10'>
-                    <TopBar
-                        defaultSearchQuery={`repo:${repoName}${revisionName ? ` rev:${revisionName}` : ''} `}
-                        domain={params.domain}
+                <TopBar
+                    domain={domain}
+                >
+                    <SearchBar
+                        size="sm"
+                        defaultQuery={`repo:${repoName}${revisionName ? ` rev:${revisionName}` : ''} `}
+                        className="w-full"
                     />
-                    <Separator />
-                </div>
+                </TopBar>
                 <ResizablePanelGroup
                     direction="horizontal"
                 >
@@ -53,7 +53,7 @@ export default function Layout({
                                 order={1}
                                 id="code-preview-panel"
                             >
-                                {codePreviewPanel}
+                                {children}
                             </ResizablePanel>
                             <AnimatedResizableHandle />
                             <BottomPanel

@@ -16,22 +16,29 @@ import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
 import { hasEntitlement } from "@sourcebot/shared";
-import { getPublicAccessStatus } from "@/ee/features/publicAccess/publicAccess";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "./components/gcpIapAuth";
-import { getMemberApprovalRequired } from "@/actions";
+import { getAnonymousAccessStatus, getMemberApprovalRequired } from "@/actions";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
+import { GitHubStarToast } from "./components/githubStarToast";
 
 interface LayoutProps {
     children: React.ReactNode,
-    params: { domain: string }
+    params: Promise<{ domain: string }>
 }
 
-export default async function Layout({
-    children,
-    params: { domain },
-}: LayoutProps) {
+export default async function Layout(props: LayoutProps) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
+    const {
+        children
+    } = props;
+
     const org = await getOrgFromDomain(domain);
 
     if (!org) {
@@ -39,8 +46,19 @@ export default async function Layout({
     }
 
     const session = await auth();
-    const publicAccessEnabled = hasEntitlement("public-access") && await getPublicAccessStatus(domain);
-    
+    const anonymousAccessEnabled = await (async () => {
+        if (!hasEntitlement("anonymous-access")) {
+            return false;
+        }
+
+        const status = await getAnonymousAccessStatus(domain);
+        if (isServiceError(status)) {
+            return false;
+        }
+
+        return status;
+    })();
+
     // If the user is authenticated, we must check if they're a member of the org
     if (session) {
         const membership = await prisma.userToOrg.findUnique({
@@ -84,8 +102,8 @@ export default async function Layout({
             }
         }
     } else {
-        // If the user isn't authenticated and public access isn't enabled, we need to redirect them to the login page.
-        if (!publicAccessEnabled) {
+        // If the user isn't authenticated and anonymous access isn't enabled, we need to redirect them to the login page.
+        if (!anonymousAccessEnabled) {
             const ssoEntitlement = await hasEntitlement("sso");
             if (ssoEntitlement && env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
                 return <GcpIapAuth callbackUrl={`/${domain}`} />;
@@ -95,7 +113,8 @@ export default async function Layout({
         }
     }
 
-    if (!org.isOnboarded) {
+    // If the org is not onboarded, and GCP IAP is not enabled, show the onboarding page
+    if (!org.isOnboarded && !(env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE)) {
         return (
             <OnboardGuard>
                 {children}
@@ -134,6 +153,7 @@ export default async function Layout({
         <SyntaxGuideProvider>
             {children}
             <SyntaxReferenceGuide />
+            <GitHubStarToast />
         </SyntaxGuideProvider>
     )
 }

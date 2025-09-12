@@ -13,7 +13,13 @@ const agents = [
   },
 ];
 
-export default function AgentsPage({ params: { domain } }: { params: { domain: string } }) {
+export default async function AgentsPage(props: { params: Promise<{ domain: string }> }) {
+  const params = await props.params;
+
+  const {
+    domain
+  } = params;
+
   return (
     <div className="flex flex-col items-center overflow-hidden min-h-screen">
       <NavigationMenu domain={domain} />

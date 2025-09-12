@@ -268,12 +268,34 @@ export type PosthogEventMap = {
     wa_api_key_created: {},
     wa_api_key_creation_fail: {},
     //////////////////////////////////////////////////////////////////
-    wa_preview_panel_find_references_pressed: {},
-    wa_preview_panel_goto_definition_pressed: {},
-    //////////////////////////////////////////////////////////////////
-    wa_browse_find_references_pressed: {},
-    wa_browse_goto_definition_pressed: {},
+    wa_goto_definition_pressed: {
+        source: 'chat' | 'browse' | 'preview',
+    },
+    wa_find_references_pressed: {
+        source: 'chat' | 'browse' | 'preview',
+    },
     //////////////////////////////////////////////////////////////////
     wa_explore_menu_reference_clicked: {},
+    //////////////////////////////////////////////////////////////////
+    wa_chat_feedback_submitted: {
+        feedback: 'like' | 'dislike',
+        chatId: string,
+        messageId: string,
+    },
+    wa_chat_thread_created: {},
+    //////////////////////////////////////////////////////////////////
+    wa_demo_docs_link_pressed: {},
+    wa_demo_search_context_card_pressed: {
+        contextType: string,
+        contextName: string,
+        contextDisplayName: string,
+    },
+    wa_demo_search_example_card_pressed: {
+        exampleTitle: string,
+        exampleUrl: string,
+    },
+    //////////////////////////////////////////////////////////////////
+    wa_github_star_toast_displayed: {},
+    wa_github_star_toast_clicked: {},
 } 
 export type PosthogEvent = keyof PosthogEventMap;

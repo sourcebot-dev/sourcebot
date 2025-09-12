@@ -38,6 +38,8 @@ const nextConfig = {
             },
         ]
     },
+
+    turbopack: {}
 };
 
 export default withSentryConfig(nextConfig, {

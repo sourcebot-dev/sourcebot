@@ -12,20 +12,30 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { RequestsList } from "./components/requestsList";
 import { OrgRole } from "@prisma/client";
-import { MemberApprovalRequiredToggle } from "@/app/onboard/components/memberApprovalRequiredToggle";
-import { headers } from "next/headers";
-import { getBaseUrl, createInviteLink } from "@/lib/utils";
+import { redirect } from "next/navigation";
 
 interface MembersSettingsPageProps {
-    params: {
+    params: Promise<{
         domain: string
-    },
-    searchParams: {
+    }>,
+    searchParams: Promise<{
         tab?: string
-    }
+    }>
 }
 
-export default async function MembersSettingsPage({ params: { domain }, searchParams: { tab } }: MembersSettingsPageProps) {
+export default async function MembersSettingsPage(props: MembersSettingsPageProps) {
+    const searchParams = await props.searchParams;
+
+    const {
+        tab
+    } = searchParams;
+
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
     const org = await getOrgFromDomain(domain);
     if (!org) {
         throw new Error("Organization not found");
@@ -39,6 +49,10 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
     const userRoleInOrg = me.memberships.find((membership) => membership.id === org.id)?.role;
     if (!userRoleInOrg) {
         throw new Error("User role not found");
+    }
+
+    if (userRoleInOrg !== OrgRole.OWNER) {
+        redirect(`/${domain}/settings`);
     }
 
     const members = await getOrgMembers(domain);
@@ -62,11 +76,6 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
     const usedSeats = members.length
     const seatsAvailable = seats === SOURCEBOT_UNLIMITED_SEATS || usedSeats < seats;
 
-    // Get the current URL to construct the full invite link
-    const headersList = headers();
-    const baseUrl = getBaseUrl(headersList);
-    const inviteLink = createInviteLink(baseUrl, org.inviteLinkId);
-
     return (
         <div className="flex flex-col gap-6">
             <div className="flex items-start justify-between">
@@ -85,10 +94,6 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                     </div>
                 )}
             </div>
-
-            {userRoleInOrg === OrgRole.OWNER && (
-                <MemberApprovalRequiredToggle memberApprovalRequired={org.memberApprovalRequired} inviteLinkEnabled={org.inviteLinkEnabled} inviteLink={inviteLink} />
-            )}
 
             <InviteMemberCard
                 currentUserRole={userRoleInOrg}

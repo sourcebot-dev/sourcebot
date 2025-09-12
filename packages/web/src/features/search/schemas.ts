@@ -114,5 +114,11 @@ export const fileSourceRequestSchema = z.object({
 export const fileSourceResponseSchema = z.object({
     source: z.string(),
     language: z.string(),
+    path: z.string(),
+    repository: z.string(),
+    repositoryCodeHostType: z.string(),
+    repositoryDisplayName: z.string().optional(),
+    repositoryWebUrl: z.string().optional(),
+    branch: z.string().optional(),
     webUrl: z.string().optional(),
 });

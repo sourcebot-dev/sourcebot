@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { LucideKeyRound, MoreVertical, Search, LucideTrash } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn, getDisplayTime, isServiceError } from "@/lib/utils";
+import { getDisplayTime, isServiceError } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -12,6 +12,7 @@ import { deleteSecret } from "@/actions";
 import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { CodeSnippet } from "@/app/components/codeSnippet";
 
 interface Secret {
     key: string;
@@ -138,7 +139,7 @@ export const SecretsList = ({ secrets }: SecretsListProps) => {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete Secret</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete the secret <Code>{secretToDelete?.key}</Code>? Any connections that use this secret will <strong>fail to sync.</strong>
+                            Are you sure you want to delete the secret <CodeSnippet>{secretToDelete?.key}</CodeSnippet>? Any connections that use this secret will <strong>fail to sync.</strong>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -153,16 +154,5 @@ export const SecretsList = ({ secrets }: SecretsListProps) => {
                 </AlertDialogContent>
             </AlertDialog>
         </div>
-    )
-}
-
-const Code = ({ children, className, title }: { children: React.ReactNode, className?: string, title?: string }) => {
-    return (
-        <code
-            className={cn("bg-gray-100 dark:bg-gray-700 w-fit rounded-md font-mono px-2 py-0.5", className)}
-            title={title}
-        >
-            {children}
-        </code>
     )
 }

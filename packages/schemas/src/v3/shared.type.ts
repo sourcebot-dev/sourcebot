@@ -37,3 +37,29 @@ export interface GitRevisions {
    */
   tags?: string[];
 }
+/**
+ * Optional headers to use with the model.
+ *
+ * This interface was referenced by `Shared`'s JSON-Schema
+ * via the `definition` "LanguageModelHeaders".
+ */
+export interface LanguageModelHeaders {
+  /**
+   * This interface was referenced by `LanguageModelHeaders`'s JSON-Schema definition
+   * via the `patternProperty` "^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$".
+   */
+  [k: string]: string | Token;
+}
+/**
+ * Optional query parameters to include in the request url.
+ *
+ * This interface was referenced by `Shared`'s JSON-Schema
+ * via the `definition` "LanguageModelQueryParams".
+ */
+export interface LanguageModelQueryParams {
+  /**
+   * This interface was referenced by `LanguageModelQueryParams`'s JSON-Schema definition
+   * via the `patternProperty` "^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$".
+   */
+  [k: string]: string | Token;
+}

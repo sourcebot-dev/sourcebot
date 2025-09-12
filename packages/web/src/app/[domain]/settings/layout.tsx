@@ -13,17 +13,28 @@ import { getOrgFromDomain } from "@/data/org";
 import { OrgRole } from "@prisma/client";
 import { env } from "@/env.mjs";
 
+interface LayoutProps {
+    children: React.ReactNode;
+    params: Promise<{ domain: string }>;
+}
+
 export const metadata: Metadata = {
     title: "Settings",
 }
 
-export default async function SettingsLayout({
-    children,
-    params: { domain },
-}: Readonly<{
-    children: React.ReactNode;
-    params: { domain: string };
-}>) {
+export default async function SettingsLayout(
+    props: LayoutProps
+) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
+    const {
+        children
+    } = props;
+
     const session = await auth();
     if (!session) {
         return redirect(`/${domain}`);
@@ -64,11 +75,17 @@ export default async function SettingsLayout({
                 href: `/${domain}/settings/billing`,
             }
         ] : []),
-        {
+        ...(userRoleInOrg === OrgRole.OWNER ? [
+            {
+                title: "Access",
+                href: `/${domain}/settings/access`,
+            }
+        ] : []),
+        ...(userRoleInOrg === OrgRole.OWNER ? [{
             title: (
                 <div className="flex items-center gap-2">
                     Members
-                    {userRoleInOrg === OrgRole.OWNER && numJoinRequests !== undefined && numJoinRequests > 0 && (
+                    {numJoinRequests !== undefined && numJoinRequests > 0 && (
                         <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
                             {numJoinRequests}
                         </span>
@@ -76,7 +93,7 @@ export default async function SettingsLayout({
                 </div>
             ),
             href: `/${domain}/settings/members`,
-        },
+        }] : []),
         {
             title: "Secrets",
             href: `/${domain}/settings/secrets`,

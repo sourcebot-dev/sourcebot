@@ -10,13 +10,14 @@ import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 const logger = createLogger('login-page');
 
 interface LoginProps {
-    searchParams: {
+    searchParams: Promise<{
         callbackUrl?: string;
         error?: string;
-    }
+    }>
 }
 
-export default async function Login({ searchParams }: LoginProps) {
+export default async function Login(props: LoginProps) {
+    const searchParams = await props.searchParams;
     logger.info("Login page loaded");
     const session = await auth();
     if (session) {

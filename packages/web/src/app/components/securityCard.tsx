@@ -39,7 +39,7 @@ export default function SecurityCard() {
                         <CheckCircle className="h-5 w-5 text-[#9D5CFF] mr-3 mt-0.5 flex-shrink-0" />
                         <div className="text-sm text-foregroundSecondary text-left">
                             <div className="flex items-center">
-                                <span>Sourcebot is open-source and trusted by thousands of developers</span>
+                                <span>Sourcebot is fair-source and trusted by thousands of developers</span>
                                 <Link
                                     href="https://github.com/sourcebot-dev/sourcebot"
                                     target="_blank"

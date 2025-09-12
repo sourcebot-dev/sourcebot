@@ -12,21 +12,18 @@
             <strong>Self Host</strong>
          </a> · 
          <a href="https://demo.sourcebot.dev">
-            <strong>Demo</strong>
+            <strong>Public Demo</strong>
          </a>
       </h3>
    </div>
 
    <div>
       <a href="https://docs.sourcebot.dev/"><strong>Docs</strong></a> ·
-      <a href="https://github.com/sourcebot-dev/sourcebot/issues"><strong>Report Bug</strong></a> ·
-      <a href="https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas"><strong>Feature Request</strong></a> ·
-      <a href="https://www.sourcebot.dev/changelog"><strong>Changelog</strong></a> ·
-      <a href="https://www.sourcebot.dev/contact"><strong>Contact</strong></a> ·
+      <a href="https://github.com/sourcebot-dev/sourcebot/issues/459"><strong>Roadmap</strong></a> ·
+      <a href="https://github.com/sourcebot-dev/sourcebot/issues/new?template=bug_report.yml"><strong>Report Bug</strong></a> ·
+      <a href="https://github.com/sourcebot-dev/sourcebot/issues/new?template=feature_request.md"><strong>Feature Request</strong></a> ·
+      <a href="https://www.sourcebot.dev/changelog"><strong>Changelog</strong></a>
    </div>
-   <br/>
-   <span>Sourcebot uses <a href="https://github.com/sourcebot-dev/sourcebot/discussions"><strong>Github Discussions</strong></a>  for Support and Feature Requests.</span>
-   <br/>
    <br/>
    <div>
    </div>
@@ -37,30 +34,45 @@
   <a href="https://github.com/sourcebot-dev/sourcebot/stargazers"><img src="https://img.shields.io/github/stars/sourcebot-dev/sourcebot" /></a>
 </p>
 <p align="center">
-<p align="center">
-    <a href="https://discord.gg/6Fhp27x7Pb"><img src="https://dcbadge.limes.pink/api/server/https://discord.gg/6Fhp27x7Pb?style=flat"/></a>
-</p>
 </p>
 
-# About
+Sourcebot is a self-hosted tool that helps you understand your codebase. 
 
-Sourcebot is the open source Sourcegraph alternative. Index all your repos and branches across multiple code hosts (GitHub, GitLab, Bitbucket, Gitea, or Gerrit) and search through them using a blazingly fast interface.
+- **Ask Sourcebot:** Ask questions about your codebase and have Sourcebot provide detailed answers grounded with inline citations.
+- **Code search:** Search and navigate across all your repos and branches, no matter where they’re hosted.
 
-https://github.com/user-attachments/assets/ced355f3-967e-4f37-ae6e-74ab8c06b9ec
+Try it out in our [public demo](https://demo.sourcebot.dev)!
 
+https://github.com/user-attachments/assets/ed66a622-e38f-4947-a531-86df1e1e0218
 
-## Features
-- 💻 **One-command deployment**: Get started instantly using Docker on your own machine.
-- 🔍 **Multi-repo search**: Index and search through multiple public and private repositories and branches on GitHub, GitLab, Bitbucket, Gitea, or Gerrit.
-- ⚡**Lightning fast performance**: Built on top of the powerful [Zoekt](https://github.com/sourcegraph/zoekt) search engine.
-- 🎨 **Modern web app**: Enjoy a sleek interface with features like syntax highlighting, light/dark mode, and vim-style navigation 
-- 📂 **Full file visualization**: Instantly view the entire file when selecting any search result.
+# Features
+![Sourcebot Features](https://github.com/user-attachments/assets/3aed7348-7aeb-4af3-89da-b617c3db2e02)
 
-You can try out our public hosted demo [here](https://demo.sourcebot.dev)!
+## Ask Sourcebot
+Ask Sourcebot gives you the ability to ask complex questions about your codebase in natural language.
+
+It uses Sourcebot's existing code search and navigation tools to allow reasoning models to search your code, follow code nav references, and provide an answer that's rich with inline citations and navigable code snippets.
+
+https://github.com/user-attachments/assets/8212cd16-683f-468f-8ea5-67455c0931e2
+
+## Code Search
+Search across all your repos/branches across any code host platform. Blazingly fast, and supports regular expressions, repo/language search filters, boolean logic, and more.
+
+https://github.com/user-attachments/assets/3b381452-d329-4949-b6f2-2fc38952e481
+
+## Code Navigation
+IDE-level code navigation (goto definition and find references) across all your repos.
+
+https://github.com/user-attachments/assets/e2da2829-71cc-40af-98b4-7ba52e945530
+
+## Built-in File Explorer
+Explore every file across all of your repos. Modern UI with syntax highlighting, file tree, code navigation, etc.
+
+https://github.com/user-attachments/assets/31ec0669-707d-4e03-b511-1bc33d44197a
 
 # Deploy Sourcebot
 
-Sourcebot can be deployed in seconds using our official docker image. Visit our [docs](https://docs.sourcebot.dev/self-hosting/overview) for more information.
+Sourcebot can be deployed in seconds using our official docker image. Visit our [docs](https://docs.sourcebot.dev/docs/deployment-guide) for more information.
 
 1. Create a config
 ```sh
@@ -102,10 +114,10 @@ docker run \
 </details>
 </br>
 
-3. Start searching at `http://localhost:3000`
+3. Visit `http://localhost:3000` to start using Sourcebot
 </br>
 
-To learn how to configure Sourcebot to index your own repos, please refer to our [docs](https://docs.sourcebot.dev/self-hosting/overview).
+To configure Sourcebot (index your own repos, connect your LLMs, etc), check out our [docs](https://docs.sourcebot.dev/docs/configuration/config-file).
 
 > [!NOTE]
 > Sourcebot collects <a href="https://demo.sourcebot.dev/~/search?query=captureEvent%5C(%20repo%3Asourcebot">anonymous usage data</a> by default to help us improve the product. No sensitive data is collected, but if you'd like to disable this you can do so by setting the `SOURCEBOT_TELEMETRY_DISABLED` environment

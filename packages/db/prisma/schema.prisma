@@ -35,6 +35,11 @@ enum StripeSubscriptionStatus {
   INACTIVE
 }
 
+enum ChatVisibility {
+  PRIVATE
+  PUBLIC
+}
+
 model Repo {
   id                 Int                @id @default(autoincrement())
   name               String
@@ -183,6 +188,8 @@ model Org {
   accountRequests AccountRequest[]
 
   searchContexts SearchContext[]
+
+  chats Chat[]
 }
 
 enum OrgRole {
@@ -276,6 +283,8 @@ model User {
 
   apiKeys ApiKey[]
 
+  chats Chat[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -310,4 +319,24 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Chat {
+  id String @id @default(cuid())
+
+  name String?
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  visibility ChatVisibility @default(PRIVATE)
+  isReadonly Boolean @default(false)
+
+  messages Json // This is a JSON array of `Message` types from @ai-sdk/ui-utils.
 }

@@ -22,7 +22,7 @@ export const FileTreeItemComponent = ({
     isCollapsed?: boolean,
     isCollapseChevronVisible?: boolean,
     onClick: () => void,
-    parentRef: React.RefObject<HTMLDivElement>,
+    parentRef: React.RefObject<HTMLDivElement | null>,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
 

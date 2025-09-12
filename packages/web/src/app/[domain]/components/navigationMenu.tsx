@@ -57,43 +57,48 @@ export const NavigationMenu = async ({
                     <NavigationMenuBase>
                         <NavigationMenuList>
                             <NavigationMenuItem>
-                                <Link href={`/${domain}`} legacyBehavior passHref>
-                                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                        Search
-                                    </NavigationMenuLink>
-                                </Link>
+                                <NavigationMenuLink
+                                    href={`/${domain}`}
+                                    className={navigationMenuTriggerStyle()}
+                                >
+                                    Search
+                                </NavigationMenuLink>
                             </NavigationMenuItem>
                             <NavigationMenuItem>
-                                <Link href={`/${domain}/repos`} legacyBehavior passHref>
-                                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                        Repositories
-                                    </NavigationMenuLink>
-                                </Link>
+                                <NavigationMenuLink
+                                    href={`/${domain}/repos`}
+                                    className={navigationMenuTriggerStyle()}
+                                >
+                                    Repositories
+                                </NavigationMenuLink>
                             </NavigationMenuItem>
                             {isAuthenticated && (
                                 <>
                                     {env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined && (
                                         <NavigationMenuItem>
-                                            <Link href={`/${domain}/agents`} legacyBehavior passHref>
-                                                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                                    Agents
-                                                </NavigationMenuLink>
-                                            </Link>
+                                            <NavigationMenuLink
+                                                href={`/${domain}/agents`}
+                                                className={navigationMenuTriggerStyle()}
+                                            >
+                                                Agents
+                                            </NavigationMenuLink>
                                         </NavigationMenuItem>
                                     )}
                                     <NavigationMenuItem>
-                                        <Link href={`/${domain}/connections`} legacyBehavior passHref>
-                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                                Connections
-                                            </NavigationMenuLink>
-                                        </Link>
+                                        <NavigationMenuLink
+                                            href={`/${domain}/connections`}
+                                            className={navigationMenuTriggerStyle()}
+                                        >
+                                            Connections
+                                        </NavigationMenuLink>
                                     </NavigationMenuItem>
                                     <NavigationMenuItem>
-                                        <Link href={`/${domain}/settings`} legacyBehavior passHref>
-                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                                Settings
-                                            </NavigationMenuLink>
-                                        </Link>
+                                        <NavigationMenuLink
+                                            href={`/${domain}/settings`}
+                                            className={navigationMenuTriggerStyle()}
+                                        >
+                                            Settings
+                                        </NavigationMenuLink>
                                     </NavigationMenuItem>
                                 </>
                             )}

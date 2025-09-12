@@ -4,18 +4,7 @@ import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type"
 import { QuickAction } from "../components/configEditor";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GerritConnectionConfig } from "@sourcebot/schemas/v3/gerrit.type";
-import { cn } from "@/lib/utils";
-
-const Code = ({ children, className, title }: { children: React.ReactNode, className?: string, title?: string }) => {
-    return (
-        <code
-            className={cn("bg-gray-100 dark:bg-gray-700 w-fit rounded-md font-mono px-2 py-0.5", className)}
-            title={title}
-        >
-            {children}
-        </code>
-    )
-}
+import { CodeSnippet } from "@/app/components/codeSnippet";
 
 export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
     {
@@ -30,7 +19,7 @@ export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
         selectionText: "<owner>/<repo name>",
         description: (
             <div className="flex flex-col">
-                <span>Add a individual repository to sync with. Ensure the repository is visible to the provided <Code>token</Code> (if any).</span>
+                <span>Add a individual repository to sync with. Ensure the repository is visible to the provided <CodeSnippet>token</CodeSnippet> (if any).</span>
                 <span className="text-sm mt-2 mb-1">Examples:</span>
                 <div className="flex flex-col gap-1">
                     {[
@@ -38,7 +27,7 @@ export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
                         "vercel/next.js",
                         "torvalds/linux"
                     ].map((repo) => (
-                        <Code key={repo}>{repo}</Code>
+                        <CodeSnippet key={repo}>{repo}</CodeSnippet>
                     ))}
                 </div>
             </div>
@@ -56,7 +45,7 @@ export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
         selectionText: "<organization name>",
         description: (
             <div className="flex flex-col">
-                <span>Add an organization to sync with. All repositories in the organization visible to the provided <Code>token</Code> (if any) will be synced.</span>
+                <span>Add an organization to sync with. All repositories in the organization visible to the provided <CodeSnippet>token</CodeSnippet> (if any) will be synced.</span>
                 <span className="text-sm mt-2 mb-1">Examples:</span>
                 <div className="flex flex-row gap-1 items-center">
                     {[
@@ -64,7 +53,7 @@ export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
                         "sourcebot",
                         "vercel"
                     ].map((org) => (
-                        <Code key={org}>{org}</Code>
+                        <CodeSnippet key={org}>{org}</CodeSnippet>
                     ))}
                 </div>
             </div>
@@ -82,7 +71,7 @@ export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
         selectionText: "<username>",
         description: (
             <div className="flex flex-col">
-                <span>Add a user to sync with. All repositories that the user owns visible to the provided <Code>token</Code> (if any) will be synced.</span>
+                <span>Add a user to sync with. All repositories that the user owns visible to the provided <CodeSnippet>token</CodeSnippet> (if any) will be synced.</span>
                 <span className="text-sm mt-2 mb-1">Examples:</span>
                 <div className="flex flex-row gap-1 items-center">
                     {[
@@ -90,7 +79,7 @@ export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
                         "torvalds",
                         "octocat"
                     ].map((org) => (
-                        <Code key={org}>{org}</Code>
+                        <CodeSnippet key={org}>{org}</CodeSnippet>
                     ))}
                 </div>
             </div>
@@ -103,7 +92,7 @@ export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
         }),
         name: "Set url to GitHub instance",
         selectionText: "https://github.example.com",
-        description: <span>Set a custom GitHub host. Defaults to <Code>https://github.com</Code>.</span>
+        description: <span>Set a custom GitHub host. Defaults to <CodeSnippet>https://github.com</CodeSnippet>.</span>
     },
     {
         fn: (previous: GithubConnectionConfig) => ({
@@ -127,7 +116,7 @@ export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
                         "my-org/docs*",
                         "my-org/test*"
                     ].map((repo) => (
-                        <Code key={repo}>{repo}</Code>
+                        <CodeSnippet key={repo}>{repo}</CodeSnippet>
                     ))}
                 </div>
             </div>
@@ -155,7 +144,7 @@ export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
                         "docs",
                         "ci"
                     ].map((repo) => (
-                        <Code key={repo}>{repo}</Code>
+                        <CodeSnippet key={repo}>{repo}</CodeSnippet>
                     ))}
                 </div>
             </div>
@@ -180,7 +169,7 @@ export const githubQuickActions: QuickAction<GithubConnectionConfig>[] = [
                         "docs",
                         "ci"
                     ].map((repo) => (
-                        <Code key={repo}>{repo}</Code>
+                        <CodeSnippet key={repo}>{repo}</CodeSnippet>
                     ))}
                 </div>
             </div>
@@ -223,14 +212,14 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
         selectionText: "<project name>",
         description: (
             <div className="flex flex-col">
-                <span>Add a individual project to sync with. Ensure the project is visible to the provided <Code>token</Code> (if any).</span>
+                <span>Add a individual project to sync with. Ensure the project is visible to the provided <CodeSnippet>token</CodeSnippet> (if any).</span>
                 <span className="text-sm mt-2 mb-1">Examples:</span>
                 <div className="flex flex-col gap-1">
                     {[
                         "gitlab-org/gitlab",
                         "corp/team-project",
                     ].map((repo) => (
-                        <Code key={repo}>{repo}</Code>
+                        <CodeSnippet key={repo}>{repo}</CodeSnippet>
                     ))}
                 </div>
             </div>
@@ -248,14 +237,14 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
         selectionText: "<username>",
         description: (
             <div className="flex flex-col">
-                <span>Add a user to sync with. All projects that the user owns visible to the provided <Code>token</Code> (if any) will be synced.</span>
+                <span>Add a user to sync with. All projects that the user owns visible to the provided <CodeSnippet>token</CodeSnippet> (if any) will be synced.</span>
                 <span className="text-sm mt-2 mb-1">Examples:</span>
                 <div className="flex flex-row gap-1 items-center">
                     {[
                         "jane-doe",
                         "torvalds"
                     ].map((org) => (
-                        <Code key={org}>{org}</Code>
+                        <CodeSnippet key={org}>{org}</CodeSnippet>
                     ))}
                 </div>
             </div>
@@ -273,14 +262,14 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
         selectionText: "<group name>",
         description: (
             <div className="flex flex-col">
-                <span>Add a group to sync with. All projects in the group (and recursive subgroups) visible to the provided <Code>token</Code> (if any) will be synced.</span>
+                <span>Add a group to sync with. All projects in the group (and recursive subgroups) visible to the provided <CodeSnippet>token</CodeSnippet> (if any) will be synced.</span>
                 <span className="text-sm mt-2 mb-1">Examples:</span>
                 <div className="flex flex-col gap-1">
                     {[
                         "my-group",
                         "path/to/subgroup"
                     ].map((org) => (
-                        <Code key={org}>{org}</Code>
+                        <CodeSnippet key={org}>{org}</CodeSnippet>
                     ))}
                 </div>
             </div>
@@ -293,7 +282,7 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
         }),
         name: "Set url to GitLab instance",
         selectionText: "https://gitlab.example.com",
-        description: <span>Set a custom GitLab host. Defaults to <Code>https://gitlab.com</Code>.</span>
+        description: <span>Set a custom GitLab host. Defaults to <CodeSnippet>https://gitlab.com</CodeSnippet>.</span>
     },
     {
         fn: (previous: GitlabConnectionConfig) => ({
@@ -301,7 +290,7 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
             all: true,
         }),
         name: "Sync all projects",
-        description: <span>Sync all projects visible to the provided <Code>token</Code> (if any). Only available when using a self-hosted GitLab instance.</span>
+        description: <span>Sync all projects visible to the provided <CodeSnippet>token</CodeSnippet> (if any). Only available when using a self-hosted GitLab instance.</span>
     },
     {
         fn: (previous: GitlabConnectionConfig) => ({
@@ -325,7 +314,7 @@ export const gitlabQuickActions: QuickAction<GitlabConnectionConfig>[] = [
                         "docs/**",    
                         "**/tests/**",
                     ].map((repo) => (
-                        <Code key={repo}>{repo}</Code>
+                        <CodeSnippet key={repo}>{repo}</CodeSnippet>
                     ))}
                 </div>
             </div>
@@ -403,7 +392,7 @@ export const bitbucketCloudQuickActions: QuickAction<BitbucketConnectionConfig>[
         selectionText: "username",
         description: (
             <div className="flex flex-col">
-                <span>Username to use for authentication. This is only required if you&apos;re using an App Password (stored in <Code>token</Code>) for authentication.</span>
+                <span>Username to use for authentication. This is only required if you&apos;re using an App Password (stored in <CodeSnippet>token</CodeSnippet>) for authentication.</span>
             </div>
         )
     },
@@ -419,7 +408,7 @@ export const bitbucketCloudQuickActions: QuickAction<BitbucketConnectionConfig>[
         selectionText: "myWorkspace",
         description: (
             <div className="flex flex-col">
-                <span>Add a workspace to sync with. Ensure the workspace is visible to the provided <Code>token</Code> (if any).</span>
+                <span>Add a workspace to sync with. Ensure the workspace is visible to the provided <CodeSnippet>token</CodeSnippet> (if any).</span>
             </div>
         )
     },
@@ -435,7 +424,7 @@ export const bitbucketCloudQuickActions: QuickAction<BitbucketConnectionConfig>[
         selectionText: "myWorkspace/myRepo",
         description: (
             <div className="flex flex-col">
-                <span>Add an individual repository to sync with. Ensure the repository is visible to the provided <Code>token</Code> (if any).</span>
+                <span>Add an individual repository to sync with. Ensure the repository is visible to the provided <CodeSnippet>token</CodeSnippet> (if any).</span>
             </div>
         )
     },
@@ -451,7 +440,7 @@ export const bitbucketCloudQuickActions: QuickAction<BitbucketConnectionConfig>[
         selectionText: "myProject",
         description: (
             <div className="flex flex-col">
-                <span>Add a project to sync with. Ensure the project is visible to the provided <Code>token</Code> (if any).</span>
+                <span>Add a project to sync with. Ensure the project is visible to the provided <CodeSnippet>token</CodeSnippet> (if any).</span>
             </div>
         )
     },
@@ -506,14 +495,14 @@ export const bitbucketDataCenterQuickActions: QuickAction<BitbucketConnectionCon
         selectionText: "myProject/myRepo",
         description: (
             <div className="flex flex-col">
-                <span>Add a individual repository to sync with. Ensure the repository is visible to the provided <Code>token</Code> (if any).</span>
+                <span>Add a individual repository to sync with. Ensure the repository is visible to the provided <CodeSnippet>token</CodeSnippet> (if any).</span>
                 <span className="text-sm mt-2 mb-1">Examples:</span>
                 <div className="flex flex-col gap-1">
                     {[
                         "PROJ/repo-name",
                         "MYPROJ/api"
                     ].map((repo) => (
-                        <Code key={repo}>{repo}</Code>
+                        <CodeSnippet key={repo}>{repo}</CodeSnippet>
                     ))}
                 </div>
             </div>
@@ -531,7 +520,7 @@ export const bitbucketDataCenterQuickActions: QuickAction<BitbucketConnectionCon
         selectionText: "myProject",
         description: (
             <div className="flex flex-col">
-                <span>Add a project to sync with. Ensure the project is visible to the provided <Code>token</Code> (if any).</span>
+                <span>Add a project to sync with. Ensure the project is visible to the provided <CodeSnippet>token</CodeSnippet> (if any).</span>
             </div>
         )
     },
@@ -554,7 +543,7 @@ export const bitbucketDataCenterQuickActions: QuickAction<BitbucketConnectionCon
                         "myProject/myExcludedRepo",
                         "myProject2/*"
                     ].map((repo) => (
-                        <Code key={repo}>{repo}</Code>
+                        <CodeSnippet key={repo}>{repo}</CodeSnippet>
                     ))}
                 </div>
             </div>

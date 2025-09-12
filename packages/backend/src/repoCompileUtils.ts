@@ -310,6 +310,8 @@ export const compileGerritConfig = async (
                     'zoekt.public': marshalBool(true),
                     'zoekt.display-name': repoDisplayName,
                 },
+                branches: config.revisions?.branches ?? undefined,
+                tags: config.revisions?.tags ?? undefined,
             } satisfies RepoMetadata,
         };
 
@@ -376,7 +378,7 @@ export const compileBitbucketConfig = async (
             throw new Error(`No links found for ${isServer ? 'server' : 'cloud'} repo ${repoName}`);
         }
 
-        // In server case we get an array of lenth == 1 links in the self field, while in cloud case we get a single
+        // In server case we get an array of length == 1 links in the self field, while in cloud case we get a single
         // link object in the html field
         const link = isServer ? (repoLinks.self as { name: string, href: string }[])?.[0] : repoLinks.html as { href: string };
         if (!link || !link.href) {

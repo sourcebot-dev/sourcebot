@@ -8,7 +8,7 @@ export const generateDiffReviewPrompt = async (diff: sourcebot_diff, context: so
     logger.debug("Executing generate_diff_review_prompt");
         
     const prompt = `
-    You are an expert software engineer that excells at reviewing code changes. Given the input, additional context, and rules defined below, review the code changes and provide a detailed review. The review you provide
+    You are an expert software engineer that excels at reviewing code changes. Given the input, additional context, and rules defined below, review the code changes and provide a detailed review. The review you provide
     must conform to all of the rules defined below. The output format of your review must conform to the output format defined below.
 
     # Input

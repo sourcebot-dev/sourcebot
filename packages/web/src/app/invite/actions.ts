@@ -9,7 +9,7 @@ import { prisma } from "@/prisma";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 
-export const joinOrganization = (orgId: number, inviteLinkId?: string) => sew(async () =>
+export const joinOrganization = async (orgId: number, inviteLinkId?: string) => sew(async () =>
     withAuth(async (userId) => {
         const org = await prisma.org.findUnique({
             where: {
