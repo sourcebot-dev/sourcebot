@@ -148,13 +148,14 @@ function cloudClient(user: string | undefined, token: string | undefined): Bitbu
 **/
 const getPaginatedCloud = async <T>(
     path: CloudGetRequestPath,
-    get: (url: CloudGetRequestPath) => Promise<CloudPaginatedResponse<T>>
+    get: (path: CloudGetRequestPath, query?: Record<string, string>) => Promise<CloudPaginatedResponse<T>>
 ): Promise<T[]> => {
     const results: T[] = [];
-    let url = path;
+    let nextPath = path;
+    let nextQuery = undefined;
 
     while (true) {
-        const response = await get(url);
+        const response = await get(nextPath, nextQuery);
 
         if (!response.values || response.values.length === 0) { 
             break;
@@ -166,7 +167,9 @@ const getPaginatedCloud = async <T>(
             break;
         }
 
-        url = response.next as CloudGetRequestPath;
+        const parsedUrl = parseUrl(response.next);
+        nextPath = parsedUrl.path as CloudGetRequestPath;
+        nextQuery = parsedUrl.query;
     }
     return results;
 }
@@ -174,9 +177,9 @@ const getPaginatedCloud = async <T>(
 /**
  * Parse the url into a path and query parameters to be used with the api client (openapi-fetch)
  */
-function parseUrl(url: string, baseUrl: string): { path: string; query: Record<string, string>; } {
+function parseUrl(url: string): { path: string; query: Record<string, string>; } {
     const fullUrl = new URL(url);
-    const path = fullUrl.pathname;
+    const path = fullUrl.pathname.replace(/^\/\d+(\.\d+)*/, ''); // remove version number in the beginning of the path
     const query = Object.fromEntries(fullUrl.searchParams);
     logger.debug(`Parsed url ${url} into path ${path} and query ${JSON.stringify(query)}`);
     return { path, query };
@@ -189,8 +192,7 @@ async function cloudGetReposForWorkspace(client: BitbucketClient, workspaces: st
             logger.debug(`Fetching all repos for workspace ${workspace}...`);
 
             const { durationMs, data } = await measure(async () => {
-                const fetchFn = () => getPaginatedCloud<CloudRepository>(`/repositories/${workspace}` as CloudGetRequestPath, async (url) => {
-                    const { path, query } = parseUrl(url, client.baseUrl);
+                const fetchFn = () => getPaginatedCloud<CloudRepository>(`/repositories/${workspace}` as CloudGetRequestPath, async (path, query) => {
                     const response = await client.apiClient.GET(path, {
                         params: {
                             path: {
@@ -250,8 +252,7 @@ async function cloudGetReposForProjects(client: BitbucketClient, projects: strin
 
         logger.debug(`Fetching all repos for project ${project} for workspace ${workspace}...`);
         try {
-            const repos = await getPaginatedCloud<CloudRepository>(`/repositories/${workspace}` as CloudGetRequestPath, async (url) => {
-                const { path, query } = parseUrl(url, client.baseUrl);
+            const repos = await getPaginatedCloud<CloudRepository>(`/repositories/${workspace}` as CloudGetRequestPath, async (path, query) => {
                 const response = await client.apiClient.GET(path, {
                     params: {
                         path: {
