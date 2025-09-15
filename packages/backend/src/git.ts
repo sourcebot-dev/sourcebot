@@ -27,10 +27,6 @@ export const cloneRepository = async (
         );
 
         await unsetGitConfig(path, ["remote.origin.url"]);
-
-        await git.cwd({
-            path,
-        }).addConfig("remote.origin.fetch", "+refs/heads/*:refs/heads/*");
     } catch (error: unknown) {
         const baseLog = `Failed to clone repository: ${path}`;
 
@@ -59,6 +55,7 @@ export const fetchRepository = async (
 
         await git.fetch([
             remoteUrl.toString(),
+            "+refs/heads/*:refs/heads/*",
             "--prune",
             "--progress"
         ]);

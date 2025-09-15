@@ -84,7 +84,9 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
             }
             if (stderr) {
                 stderr.split('\n').filter(line => line.trim()).forEach(line => {
-                    logger.error(line);
+                    // TODO: logging as regular info here and not error because non error logs are being
+                    // streamed in stderr and incorrectly being logged as errors at a high level
+                    logger.info(line);
                 });
             }
             
