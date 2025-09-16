@@ -5,7 +5,7 @@ import { RepositoryCarousel } from "./repositoryCarousel";
 import { useDomain } from "@/hooks/useDomain";
 import { useQuery } from "@tanstack/react-query";
 import { unwrapServiceError } from "@/lib/utils";
-import { getRepos } from "@/actions";
+import { getRepos } from "@/app/api/(client)/client";
 import { env } from "@/env.mjs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -22,6 +22,8 @@ interface RepositorySnapshotProps {
     repos: RepositoryQuery[];
 }
 
+const MAX_REPOS_TO_DISPLAY_IN_CAROUSEL = 100;
+
 export function RepositorySnapshot({
     repos: initialRepos,
 }: RepositorySnapshotProps) {
@@ -29,7 +31,7 @@ export function RepositorySnapshot({
 
     const { data: repos, isPending, isError } = useQuery({
         queryKey: ['repos', domain],
-        queryFn: () => unwrapServiceError(getRepos(domain)),
+        queryFn: () => unwrapServiceError(getRepos()),
         refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
         placeholderData: initialRepos,
     });
@@ -78,7 +80,9 @@ export function RepositorySnapshot({
                 </Link>
                 {` indexed`}
             </span>
-            <RepositoryCarousel repos={indexedRepos} />
+            <RepositoryCarousel
+                repos={indexedRepos.slice(0, MAX_REPOS_TO_DISPLAY_IN_CAROUSEL)}
+            />
             {process.env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo" && (
                 <p className="text-sm text-muted-foreground text-center">
                     Interested in using Sourcebot on your code? Check out our{' '}
