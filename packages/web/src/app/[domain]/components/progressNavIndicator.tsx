@@ -16,7 +16,7 @@ export const ProgressNavIndicator = () => {
     const captureEvent = useCaptureEvent();
 
     const { data: inProgressRepos, isPending, isError } = useQuery({
-        queryKey: ['repos', domain],
+        queryKey: ['repos'],
         queryFn: () => unwrapServiceError(getRepos()),
         select: (data) => data.filter(repo => repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE || repo.repoIndexingStatus === RepoIndexingStatus.INDEXING),
         refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
