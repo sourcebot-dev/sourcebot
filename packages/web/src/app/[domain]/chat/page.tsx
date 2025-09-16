@@ -18,7 +18,7 @@ interface PageProps {
 export default async function Page(props: PageProps) {
     const params = await props.params;
     const languageModels = await getConfiguredLanguageModelsInfo();
-    const repos = await getRepos(params.domain);
+    const repos = await getRepos();
     const searchContexts = await getSearchContexts(params.domain);
     const session = await auth();
     const chatHistory = session ? await getUserChatHistory(params.domain) : [];

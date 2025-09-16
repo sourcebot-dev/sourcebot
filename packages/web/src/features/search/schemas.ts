@@ -94,17 +94,6 @@ export const searchResponseSchema = z.object({
     isBranchFilteringEnabled: z.boolean(),
 });
 
-export const repositorySchema = z.object({
-    name: z.string(),
-    branches: z.array(z.string()),
-    webUrl: z.string().optional(),
-    rawConfig: z.record(z.string(), z.string()).optional(),
-});
-
-export const listRepositoriesResponseSchema = z.object({
-    repos: z.array(repositorySchema),
-});
-
 export const fileSourceRequestSchema = z.object({
     fileName: z.string(),
     repository: z.string(),
