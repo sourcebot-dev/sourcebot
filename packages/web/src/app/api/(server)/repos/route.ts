@@ -1,14 +1,11 @@
 import { getRepos } from "@/actions";
-import { repositoryQuerySchema } from "@/lib/schemas";
-import { serviceErrorResponse, serviceErrorSchema } from "@/lib/serviceError";
+import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { z } from "zod";
+import { GetReposResponse } from "@/lib/types";
 
-export const responseSchema = z.union([repositoryQuerySchema.array(), serviceErrorSchema]);
-export type ResponseType = z.infer<typeof responseSchema>;
 
 export const GET = async () => {
-    const response: ResponseType = await getRepos();
+    const response: GetReposResponse = await getRepos();
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }

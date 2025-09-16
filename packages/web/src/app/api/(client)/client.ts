@@ -1,8 +1,8 @@
 'use client';
 
-import { getVersionResponseSchema } from "@/lib/schemas";
+import { getVersionResponseSchema, getReposResponseSchema } from "@/lib/schemas";
 import { ServiceError } from "@/lib/serviceError";
-import { GetVersionResponse } from "@/lib/types";
+import { GetVersionResponse, GetReposResponse } from "@/lib/types";
 import { isServiceError } from "@/lib/utils";
 import {
     FileSourceResponse,
@@ -14,10 +14,6 @@ import {
     fileSourceResponseSchema,
     searchResponseSchema,
 } from "@/features/search/schemas";
-import {
-    responseSchema as getReposResponseSchema,
-    ResponseType as GetReposResponseType,
-} from "../(server)/repos/route";
 
 export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -49,7 +45,7 @@ export const fetchFileSource = async (body: FileSourceRequest, domain: string): 
     return fileSourceResponseSchema.parse(result);
 }
 
-export const getRepos = async (): Promise<GetReposResponseType> => {
+export const getRepos = async (): Promise<GetReposResponse> => {
     const result = await fetch("/api/repos", {
         method: "GET",
         headers: {
