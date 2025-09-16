@@ -92,16 +92,34 @@ export const searchResponseSchema = z.object({
     isBranchFilteringEnabled: z.boolean(),
 });
 
-export const repositorySchema = z.object({
-    name: z.string(),
-    branches: z.array(z.string()),
+enum RepoIndexingStatus {
+    NEW = 'NEW',
+    IN_INDEX_QUEUE = 'IN_INDEX_QUEUE',
+    INDEXING = 'INDEXING',
+    INDEXED = 'INDEXED',
+    FAILED = 'FAILED',
+    IN_GC_QUEUE = 'IN_GC_QUEUE',
+    GARBAGE_COLLECTING = 'GARBAGE_COLLECTING',
+    GARBAGE_COLLECTION_FAILED = 'GARBAGE_COLLECTION_FAILED'
+}
+
+export const repositoryQuerySchema = z.object({
+    codeHostType: z.string(),
+    repoId: z.number(),
+    repoName: z.string(),
+    repoDisplayName: z.string().optional(),
+    repoCloneUrl: z.string(),
     webUrl: z.string().optional(),
-    rawConfig: z.record(z.string(), z.string()).optional(),
+    linkedConnections: z.array(z.object({
+        id: z.number(),
+        name: z.string(),
+    })),
+    imageUrl: z.string().optional(),
+    indexedAt: z.coerce.date().optional(),
+    repoIndexingStatus: z.nativeEnum(RepoIndexingStatus),
 });
 
-export const listRepositoriesResponseSchema = z.object({
-    repos: z.array(repositorySchema),
-});
+export const listRepositoriesResponseSchema = repositoryQuerySchema.array();
 
 export const fileSourceRequestSchema = z.object({
     fileName: z.string(),
