@@ -40,6 +40,7 @@ import { getAuditService } from "@/ee/features/audit/factory";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { getOrgMetadata } from "@/lib/utils";
 import { getOrgFromDomain } from "./data/org";
+import { withOptionalAuthV2 } from "./withAuthV2";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -637,49 +638,47 @@ export const getConnectionInfo = async (connectionId: number, domain: string) =>
             }
         })));
 
-export const getRepos = async (domain: string, filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const repos = await prisma.repo.findMany({
-                where: {
-                    orgId: org.id,
-                    ...(filter.status ? {
-                        repoIndexingStatus: { in: filter.status }
-                    } : {}),
-                    ...(filter.connectionId ? {
-                        connections: {
-                            some: {
-                                connectionId: filter.connectionId
-                            }
-                        }
-                    } : {}),
-                },
-                include: {
+export const getRepos = async (filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) => sew(() =>
+    withOptionalAuthV2(async ({ org }) => {
+        const repos = await prisma.repo.findMany({
+            where: {
+                orgId: org.id,
+                ...(filter.status ? {
+                    repoIndexingStatus: { in: filter.status }
+                } : {}),
+                ...(filter.connectionId ? {
                     connections: {
-                        include: {
-                            connection: true,
+                        some: {
+                            connectionId: filter.connectionId
                         }
                     }
+                } : {}),
+            },
+            include: {
+                connections: {
+                    include: {
+                        connection: true,
+                    }
                 }
-            });
+            }
+        });
 
-            return repos.map((repo) => repositoryQuerySchema.parse({
-                codeHostType: repo.external_codeHostType,
-                repoId: repo.id,
-                repoName: repo.name,
-                repoDisplayName: repo.displayName ?? undefined,
-                repoCloneUrl: repo.cloneUrl,
-                webUrl: repo.webUrl ?? undefined,
-                linkedConnections: repo.connections.map(({ connection }) => ({
-                    id: connection.id,
-                    name: connection.name,
-                })),
-                imageUrl: repo.imageUrl ?? undefined,
-                indexedAt: repo.indexedAt ?? undefined,
-                repoIndexingStatus: repo.repoIndexingStatus,
-            }));
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
-    ));
+        return repos.map((repo) => repositoryQuerySchema.parse({
+            codeHostType: repo.external_codeHostType,
+            repoId: repo.id,
+            repoName: repo.name,
+            repoDisplayName: repo.displayName ?? undefined,
+            repoCloneUrl: repo.cloneUrl,
+            webUrl: repo.webUrl ?? undefined,
+            linkedConnections: repo.connections.map(({ connection }) => ({
+                id: connection.id,
+                name: connection.name,
+            })),
+            imageUrl: repo.imageUrl ?? undefined,
+            indexedAt: repo.indexedAt ?? undefined,
+            repoIndexingStatus: repo.repoIndexingStatus,
+        }))
+    }));
 
 export const getRepoInfoByName = async (repoName: string, domain: string) => sew(() =>
     withAuth((userId) =>

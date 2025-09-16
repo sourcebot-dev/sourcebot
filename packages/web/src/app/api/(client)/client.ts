@@ -7,15 +7,17 @@ import { isServiceError } from "@/lib/utils";
 import {
     FileSourceResponse,
     FileSourceRequest,
-    ListRepositoriesResponse,
     SearchRequest,
     SearchResponse,
 } from "@/features/search/types";
 import {
     fileSourceResponseSchema,
-    listRepositoriesResponseSchema,
     searchResponseSchema,
 } from "@/features/search/schemas";
+import {
+    responseSchema as getReposResponseSchema,
+    ResponseType as GetReposResponseType,
+} from "../(server)/repos/route";
 
 export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -47,16 +49,15 @@ export const fetchFileSource = async (body: FileSourceRequest, domain: string): 
     return fileSourceResponseSchema.parse(result);
 }
 
-export const getRepos = async (domain: string): Promise<ListRepositoriesResponse> => {
+export const getRepos = async (): Promise<GetReposResponseType> => {
     const result = await fetch("/api/repos", {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
-            "X-Org-Domain": domain,
         },
     }).then(response => response.json());
 
-    return listRepositoriesResponseSchema.parse(result);
+    return getReposResponseSchema.parse(result);
 }
 
 export const getVersion = async (): Promise<GetVersionResponse> => {

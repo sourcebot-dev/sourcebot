@@ -30,7 +30,7 @@ export default async function Home(props: { params: Promise<{ domain: string }> 
     const session = await auth();
 
     const models = await getConfiguredLanguageModelsInfo();
-    const repos = await getRepos(domain);
+    const repos = await getRepos();
     const searchContexts = await getSearchContexts(domain);
     const chatHistory = session ? await getUserChatHistory(domain) : [];
 

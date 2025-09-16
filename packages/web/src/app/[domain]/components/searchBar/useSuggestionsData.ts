@@ -19,7 +19,7 @@ import {
     VscSymbolVariable
 } from "react-icons/vsc";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
-import { getDisplayTime, isServiceError } from "@/lib/utils";
+import { getDisplayTime, isServiceError, unwrapServiceError } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 
 
@@ -37,12 +37,12 @@ export const useSuggestionsData = ({
 }: Props) => {
     const domain = useDomain();
     const { data: repoSuggestions, isLoading: _isLoadingRepos } = useQuery({
-        queryKey: ["repoSuggestions", domain],
-        queryFn: () => getRepos(domain),
+        queryKey: ["repoSuggestions"],
+        queryFn: () => unwrapServiceError(getRepos()),
         select: (data): Suggestion[] => {
-            return data.repos
+            return data
                 .map(r => ({
-                    value: r.name,
+                    value: r.repoName,
                 }));
         },
         enabled: suggestionMode === "repo",

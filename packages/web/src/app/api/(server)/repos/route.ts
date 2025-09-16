@@ -1,24 +1,14 @@
-'use server';
-
-import { listRepositories } from "@/features/search/listReposApi";
-import { NextRequest } from "next/server";
+import { getRepos } from "@/actions";
+import { repositoryQuerySchema } from "@/lib/schemas";
+import { serviceErrorResponse, serviceErrorSchema } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { serviceErrorResponse } from "@/lib/serviceError";
-import { StatusCodes } from "http-status-codes";
-import { ErrorCode } from "@/lib/errorCodes";
+import { z } from "zod";
 
-export const GET = async (request: NextRequest) => {
-    const domain = request.headers.get("X-Org-Domain");
-    const apiKey = request.headers.get("X-Sourcebot-Api-Key") ?? undefined;
-    if (!domain) {
-        return serviceErrorResponse({
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.MISSING_ORG_DOMAIN_HEADER,
-            message: "Missing X-Org-Domain header",
-        });
-    }
+export const responseSchema = z.union([repositoryQuerySchema.array(), serviceErrorSchema]);
+export type ResponseType = z.infer<typeof responseSchema>;
 
-    const response = await listRepositories(domain, apiKey);
+export const GET = async () => {
+    const response: ResponseType = await getRepos();
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }
