@@ -22,7 +22,7 @@ interface RepositorySnapshotProps {
     repos: RepositoryQuery[];
 }
 
-const MAX_REPOS_TO_DISPLAY_IN_CAROUSEL = 100;
+const MAX_REPOS_TO_DISPLAY_IN_CAROUSEL = 15;
 
 export function RepositorySnapshot({
     repos: initialRepos,
