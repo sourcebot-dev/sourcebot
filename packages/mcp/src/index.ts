@@ -161,10 +161,10 @@ server.tool(
             };
         }
 
-        const content: TextContent[] = response.repos.map(repo => {
+        const content: TextContent[] = response.map(repo => {
             return {
                 type: "text",
-                text: `id: ${repo.name}\nurl: ${repo.webUrl}`,
+                text: `id: ${repo.repoName}\nurl: ${repo.webUrl}`,
             }
         });
 

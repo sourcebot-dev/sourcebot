@@ -10,8 +10,8 @@ import { env } from "@/env.mjs";
 import { useQuery } from "@tanstack/react-query";
 import { ConnectionSyncStatus, RepoIndexingStatus } from "@sourcebot/db";
 import { getConnections } from "@/actions";
-import { getRepos } from "@/actions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getRepos } from "@/app/api/(client)/client";
 
 export const ErrorNavIndicator = () => {
     const domain = useDomain();
@@ -19,7 +19,7 @@ export const ErrorNavIndicator = () => {
 
     const { data: repos, isPending: isPendingRepos, isError: isErrorRepos } = useQuery({
         queryKey: ['repos', domain],
-        queryFn: () => unwrapServiceError(getRepos(domain)),
+        queryFn: () => unwrapServiceError(getRepos()),
         select: (data) => data.filter(repo => repo.repoIndexingStatus === RepoIndexingStatus.FAILED),
         refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });

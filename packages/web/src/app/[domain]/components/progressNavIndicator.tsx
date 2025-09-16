@@ -1,6 +1,5 @@
 "use client";
 
-import { getRepos } from "@/actions";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useDomain } from "@/hooks/useDomain";
@@ -10,14 +9,15 @@ import { RepoIndexingStatus } from "@prisma/client";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2Icon } from "lucide-react";
 import Link from "next/link";
+import { getRepos } from "@/app/api/(client)/client";
 
 export const ProgressNavIndicator = () => {
     const domain = useDomain();
     const captureEvent = useCaptureEvent();
 
     const { data: inProgressRepos, isPending, isError } = useQuery({
-        queryKey: ['repos', domain],
-        queryFn: () => unwrapServiceError(getRepos(domain)),
+        queryKey: ['repos'],
+        queryFn: () => unwrapServiceError(getRepos()),
         select: (data) => data.filter(repo => repo.repoIndexingStatus === RepoIndexingStatus.IN_INDEX_QUEUE || repo.repoIndexingStatus === RepoIndexingStatus.INDEXING),
         refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
     });

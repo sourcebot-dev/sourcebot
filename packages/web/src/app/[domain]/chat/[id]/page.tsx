@@ -22,7 +22,7 @@ interface PageProps {
 export default async function Page(props: PageProps) {
     const params = await props.params;
     const languageModels = await getConfiguredLanguageModelsInfo();
-    const repos = await getRepos(params.domain);
+    const repos = await getRepos();
     const searchContexts = await getSearchContexts(params.domain);
     const chatInfo = await getChatInfo({ chatId: params.id }, params.domain);
     const session = await auth();
