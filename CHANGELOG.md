@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed Bitbucket Cloud pagination not working beyond first page. [#295](https://github.com/sourcebot-dev/sourcebot/issues/295)
 - Fixed search bar line wrapping. [#501](https://github.com/sourcebot-dev/sourcebot/pull/501)
+- Fixed carousel perf issues. [#507](https://github.com/sourcebot-dev/sourcebot/pull/507)
 
 ## [4.6.7] - 2025-09-08
 
