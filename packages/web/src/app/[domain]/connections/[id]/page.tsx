@@ -7,104 +7,61 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { TabSwitcher } from "@/components/ui/tab-switcher"
-import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { ConnectionIcon } from "../components/connectionIcon"
 import { Header } from "../../components/header"
-import { ConfigSetting } from "./components/configSetting"
-import { DeleteConnectionSetting } from "./components/deleteConnectionSetting"
-import { DisplayNameSetting } from "./components/displayNameSetting"
 import { RepoList } from "./components/repoList"
 import { getConnectionByDomain } from "@/data/connection"
 import { Overview } from "./components/overview"
-import { getOrgMembership } from "@/actions"
-import { isServiceError } from "@/lib/utils"
-import { notFound } from "next/navigation"
-import { OrgRole } from "@sourcebot/db"
-import { CodeHostType } from "@/lib/utils"
-import { env } from "@/env.mjs"
 
 interface ConnectionManagementPageProps {
     params: Promise<{
         domain: string
         id: string
     }>,
-    searchParams: Promise<{
-        tab: string
-    }>
 }
 
 export default async function ConnectionManagementPage(props: ConnectionManagementPageProps) {
-    const searchParams = await props.searchParams;
     const params = await props.params;
     const connection = await getConnectionByDomain(Number(params.id), params.domain);
     if (!connection) {
         return <NotFound className="flex w-full h-full items-center justify-center" message="Connection not found" />
     }
 
-    const membership = await getOrgMembership(params.domain);
-    if (isServiceError(membership)) {
-        return notFound();
-    }
-
-    const isOwner = membership.role === OrgRole.OWNER;
-    const isDisabled = !isOwner || env.CONFIG_PATH !== undefined;
-    const currentTab = searchParams.tab || "overview";
-
     return (
-        <Tabs value={currentTab} className="w-full">
-            <Header className="mb-6" withTopMargin={false}>
-                <Breadcrumb>
-                    <BreadcrumbList>
-                        <BreadcrumbItem>
-                            <BreadcrumbLink href={`/${params.domain}/connections`}>Connections</BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem>
-                            <BreadcrumbPage>{connection.name}</BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
-                <div className="mt-6 flex flex-row items-center gap-4 w-full">
-                    <ConnectionIcon type={connection.connectionType} />
-                    <h1 className="text-lg font-semibold">{connection.name}</h1>
+        <div className="min-h-screen bg-background">
+            <div className="max-w-7xl mx-auto px-6 py-8">
+                <div className="mb-8">
+                    <Breadcrumb className="mb-6">
+                        <BreadcrumbList>
+                            <BreadcrumbItem>
+                                <BreadcrumbLink href={`/${params.domain}/connections`}>Connections</BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>
+                                <BreadcrumbPage>{connection.name}</BreadcrumbPage>
+                            </BreadcrumbItem>
+                        </BreadcrumbList>
+                    </Breadcrumb>
+                    <div className="flex items-center gap-3">
+                        <ConnectionIcon type={connection.connectionType} />
+                        <h1 className="text-2xl font-semibold text-foreground">{connection.name}</h1>
+                    </div>
                 </div>
-                <TabSwitcher
-                    className="h-auto p-0 bg-transparent border-b border-border mt-6"
-                    tabs={[
-                        { label: "Overview", value: "overview" },
-                        { label: "Settings", value: "settings" },
-                    ]}
-                    currentTab={currentTab}
-                />
-            </Header>
-            <TabsContent
-                value="overview"
-                className="space-y-8"
-            >
-                <div>
-                    <h1 className="font-semibold text-lg mb-4">Overview</h1>
-                    <Overview connectionId={connection.id} />
-                </div>
+                
+                <div className="border-t border-border/40 pt-8">
+                    <div className="space-y-12">
+                        <div>
+                            <h2 className="text-lg font-medium text-foreground mb-6">Overview</h2>
+                            <Overview connectionId={connection.id} />
+                        </div>
 
-                <div>
-                    <h1 className="font-semibold text-lg mb-4">Linked Repositories</h1>
-                    <RepoList connectionId={connection.id} />
+                        <div>
+                            <h2 className="text-lg font-medium text-foreground mb-6">Linked Repositories</h2>
+                            <RepoList connectionId={connection.id} />
+                        </div>
+                    </div>
                 </div>
-            </TabsContent>
-            <TabsContent
-                value="settings"
-                className="flex flex-col gap-6"
-            >
-                <DisplayNameSetting connectionId={connection.id} name={connection.name} disabled={isDisabled} />
-                <ConfigSetting
-                    connectionId={connection.id}
-                    type={connection.connectionType as CodeHostType}
-                    config={JSON.stringify(connection.config, null, 2)}
-                    disabled={isDisabled}
-                />
-                <DeleteConnectionSetting connectionId={connection.id} disabled={isDisabled} />
-            </TabsContent>
-        </Tabs>
+            </div>
+        </div>
     )
 }
