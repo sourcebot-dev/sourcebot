@@ -63,7 +63,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
         `-index ${ctx.indexPath}`,
         `-max_trigram_count ${settings.maxTrigramCount}`,
         `-file_limit ${settings.maxFileSize}`,
-        `-branches ${revisions.join(',')}`,
+        `-branches "${revisions.join(',')}"`,
         `-tenant_id ${repo.orgId}`,
         `-repo_id ${repo.id}`,
         `-shard_prefix ${shardPrefix}`,

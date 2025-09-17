@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed "At least one project, user, or group must be specified" for GitLab configs with `all` in web configurator. [#512](https://github.com/sourcebot-dev/sourcebot/pull/512)
+- Fixed zoekt indexing failing with pipe in branch/tag names [#506](https://github.com/sourcebot-dev/sourcebot/pull/506)
 
 ## [4.6.8] - 2025-09-15
 
