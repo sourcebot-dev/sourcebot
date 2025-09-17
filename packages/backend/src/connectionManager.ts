@@ -11,12 +11,6 @@ import { env } from "./env.js";
 import * as Sentry from "@sentry/node";
 import { loadConfig, syncSearchContexts } from "@sourcebot/shared";
 
-interface IConnectionManager {
-    scheduleConnectionSync: (connection: Connection) => Promise<void>;
-    registerPollingCallback: () => void;
-    dispose: () => void;
-}
-
 const QUEUE_NAME = 'connectionSyncQueue';
 
 type JobPayload = {
@@ -30,7 +24,7 @@ type JobResult = {
     repoCount: number,
 }
 
-export class ConnectionManager implements IConnectionManager {
+export class ConnectionManager {
     private worker: Worker;
     private queue: Queue<JobPayload>;
     private logger = createLogger('connection-manager');
@@ -75,8 +69,9 @@ export class ConnectionManager implements IConnectionManager {
         });
     }
 
-    public async registerPollingCallback() {
-        setInterval(async () => {
+    public startScheduler() {
+        this.logger.debug('Starting scheduler');
+        return setInterval(async () => {
             const thresholdDate = new Date(Date.now() - this.settings.resyncConnectionIntervalMs);
             const connections = await this.db.connection.findMany({
                 where: {
