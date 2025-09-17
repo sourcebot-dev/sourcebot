@@ -227,7 +227,8 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
 
                         // If there are multiple branches pointing to the same revision of this file, it doesn't
                         // matter which branch we use here, so use the first one.
-                        const branch = file.Branches && file.Branches.length > 0 ? file.Branches[0] : "HEAD";
+                        // @note: bitbucket and ado don't support using HEAD for the branch in links, so we default to main here
+                        const branch = file.Branches && file.Branches.length > 0 ? file.Branches[0] : "main";
                         return getFileWebUrl(template, branch, file.FileName);
                     })();
 
