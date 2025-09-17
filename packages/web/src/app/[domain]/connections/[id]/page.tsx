@@ -28,38 +28,34 @@ export default async function ConnectionManagementPage(props: ConnectionManageme
     }
 
     return (
-        <div className="min-h-screen bg-background">
-            <div className="max-w-7xl mx-auto px-6 py-8">
-                <div className="mb-8">
-                    <Breadcrumb className="mb-6">
-                        <BreadcrumbList>
-                            <BreadcrumbItem>
-                                <BreadcrumbLink href={`/${params.domain}/connections`}>Connections</BreadcrumbLink>
-                            </BreadcrumbItem>
-                            <BreadcrumbSeparator />
-                            <BreadcrumbItem>
-                                <BreadcrumbPage>{connection.name}</BreadcrumbPage>
-                            </BreadcrumbItem>
-                        </BreadcrumbList>
-                    </Breadcrumb>
-                    <div className="flex items-center gap-3">
-                        <ConnectionIcon type={connection.connectionType} />
-                        <h1 className="text-2xl font-semibold text-foreground">{connection.name}</h1>
-                    </div>
+        <div>
+            <Header>
+                <Breadcrumb>
+                    <BreadcrumbList>
+                        <BreadcrumbItem>
+                            <BreadcrumbLink href={`/${params.domain}/connections`}>Connections</BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbPage>{connection.name}</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
+                <div className="mt-6 flex items-center gap-3">
+                    <ConnectionIcon type={connection.connectionType} />
+                    <h1 className="text-3xl font-semibold">{connection.name}</h1>
                 </div>
-                
-                <div className="border-t border-border/40 pt-8">
-                    <div className="space-y-12">
-                        <div>
-                            <h2 className="text-lg font-medium text-foreground mb-6">Overview</h2>
-                            <Overview connectionId={connection.id} />
-                        </div>
+            </Header>
+            
+            <div className="space-y-8">
+                <div>
+                    <h2 className="text-lg font-medium mb-4">Overview</h2>
+                    <Overview connectionId={connection.id} />
+                </div>
 
-                        <div>
-                            <h2 className="text-lg font-medium text-foreground mb-6">Linked Repositories</h2>
-                            <RepoList connectionId={connection.id} />
-                        </div>
-                    </div>
+                <div>
+                    <h2 className="text-lg font-medium mb-4">Linked Repositories</h2>
+                    <RepoList connectionId={connection.id} />
                 </div>
             </div>
         </div>
