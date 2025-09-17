@@ -18,17 +18,18 @@ import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import { createXai } from '@ai-sdk/xai';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { getTokenFromConfig } from "@sourcebot/crypto";
 import { ChatVisibility, OrgRole, Prisma, PrismaClient } from "@sourcebot/db";
 import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
+import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { loadConfig } from "@sourcebot/shared";
 import { generateText, JSONValue } from "ai";
 import fs from 'fs';
 import { StatusCodes } from "http-status-codes";
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from "./types";
-import { Token } from "@sourcebot/schemas/v3/shared.type";
 
 export const createChat = async (domain: string) => sew(() =>
     withAuth((userId) =>
@@ -395,6 +396,9 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     : env.AWS_SESSION_TOKEN,
                 headers: config.headers
                     ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
+                    : undefined,
+                credentialProvider: !config.accessKeyId && !config.accessKeySecret && !config.sessionToken
+                    ? fromNodeProviderChain()
                     : undefined,
             });
 
