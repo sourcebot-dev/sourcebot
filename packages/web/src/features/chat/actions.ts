@@ -397,6 +397,8 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                 headers: config.headers
                     ? await extractLanguageModelKeyValuePairs(config.headers, orgId, prisma)
                     : undefined,
+                // Fallback to the default Node.js credential provider chain if no credentials are provided.
+                // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-credential-providers/#fromnodeproviderchain
                 credentialProvider: !config.accessKeyId && !config.accessKeySecret && !config.sessionToken
                     ? fromNodeProviderChain()
                     : undefined,
