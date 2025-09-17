@@ -52,6 +52,8 @@ export const env = createEnv({
         REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
 
         GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS: numberSchema.default(60 * 10),
+
+        EXPERIMENT_PERMISSION_SYNC_ENABLED: booleanSchema.default("false"),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

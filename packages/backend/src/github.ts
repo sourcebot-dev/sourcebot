@@ -30,35 +30,21 @@ export type OctokitRepository = {
     size?: number,
     owner: {
         avatar_url: string,
+        login: string,
     }
 }
 
 const isHttpError = (error: unknown, status: number): boolean => {
-    return error !== null 
+    return error !== null
         && typeof error === 'object'
-        && 'status' in error 
+        && 'status' in error
         && error.status === status;
 }
 
 export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal) => {
-    const hostname = config.url ?
-        new URL(config.url).hostname :
-        GITHUB_CLOUD_HOSTNAME;
+    const { octokit, isAuthenticated } = await createOctokitFromConfig(config, orgId, db);
 
-    const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db, logger) :
-        hostname === GITHUB_CLOUD_HOSTNAME ?
-        env.FALLBACK_GITHUB_CLOUD_TOKEN :
-        undefined;
-
-    const octokit = new Octokit({
-        auth: token,
-        ...(config.url ? {
-            baseUrl: `${config.url}/api/v3`
-        } : {}),
-    });
-
-    if (token) {
+    if (isAuthenticated) {
         try {
             await octokit.rest.users.getAuthenticated();
         } catch (error) {
@@ -127,8 +113,43 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
     logger.debug(`Found ${repos.length} total repositories.`);
 
     return {
-        validRepos: repos,  
+        validRepos: repos,
         notFound,
+    };
+}
+
+export const getUserIdsWithReadAccessToRepo = async (owner: string, repo: string, octokit: Octokit) => {
+    const fetchFn = () => octokit.paginate(octokit.repos.listCollaborators, {
+        owner,
+        repo,
+        per_page: 100,
+    });
+
+    const collaborators = await fetchWithRetry(fetchFn, `repo ${owner}/${repo}`, logger);
+    return collaborators.map(collaborator => collaborator.id.toString());
+}
+
+export const createOctokitFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient): Promise<{ octokit: Octokit, isAuthenticated: boolean }> => {
+    const hostname = config.url ?
+        new URL(config.url).hostname :
+        GITHUB_CLOUD_HOSTNAME;
+
+    const token = config.token ?
+        await getTokenFromConfig(config.token, orgId, db, logger) :
+        hostname === GITHUB_CLOUD_HOSTNAME ?
+            env.FALLBACK_GITHUB_CLOUD_TOKEN :
+            undefined;
+
+    const octokit = new Octokit({
+        auth: token,
+        ...(config.url ? {
+            baseUrl: `${config.url}/api/v3`
+        } : {}),
+    });
+
+    return {
+        octokit,
+        isAuthenticated: !!token,
     };
 }
 
@@ -136,7 +157,7 @@ export const shouldExcludeRepo = ({
     repo,
     include,
     exclude
-} : {
+}: {
     repo: OctokitRepository,
     include?: {
         topics?: GithubConnectionConfig['topics']
@@ -156,23 +177,23 @@ export const shouldExcludeRepo = ({
             reason = `\`exclude.forks\` is true`;
             return true;
         }
-    
+
         if (!!exclude?.archived && !!repo.archived) {
             reason = `\`exclude.archived\` is true`;
             return true;
         }
-    
+
         if (exclude?.repos) {
             if (micromatch.isMatch(repoName, exclude.repos)) {
                 reason = `\`exclude.repos\` contains ${repoName}`;
                 return true;
             }
         }
-    
+
         if (exclude?.topics) {
             const configTopics = exclude.topics.map(topic => topic.toLowerCase());
             const repoTopics = repo.topics ?? [];
-    
+
             const matchingTopics = repoTopics.filter((topic) => micromatch.isMatch(topic, configTopics));
             if (matchingTopics.length > 0) {
                 reason = `\`exclude.topics\` matches the following topics: ${matchingTopics.join(', ')}`;
@@ -190,17 +211,17 @@ export const shouldExcludeRepo = ({
                 return true;
             }
         }
-    
+
         const repoSizeInBytes = repo.size ? repo.size * 1000 : undefined;
         if (exclude?.size && repoSizeInBytes) {
             const min = exclude.size.min;
             const max = exclude.size.max;
-    
+
             if (min && repoSizeInBytes < min) {
                 reason = `repo is less than \`exclude.size.min\`=${min} bytes.`;
                 return true;
             }
-    
+
             if (max && repoSizeInBytes > max) {
                 reason = `repo is greater than \`exclude.size.max\`=${max} bytes.`;
                 return true;

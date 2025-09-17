@@ -12,12 +12,6 @@ import { PromClient } from './promClient.js';
 import * as Sentry from "@sentry/node";
 import { env } from './env.js';
 
-interface IRepoManager {
-    validateIndexedReposHaveShards: () => Promise<void>;
-    blockingPollLoop: () => void;
-    dispose: () => void;
-}
-
 const REPO_INDEXING_QUEUE = 'repoIndexingQueue';
 const REPO_GC_QUEUE = 'repoGarbageCollectionQueue';
 
@@ -32,7 +26,7 @@ type RepoGarbageCollectionPayload = {
 
 const logger = createLogger('repo-manager');
 
-export class RepoManager implements IRepoManager {
+export class RepoManager {
     private indexWorker: Worker;
     private indexQueue: Queue<RepoIndexingPayload>;
     private gcWorker: Worker;
@@ -68,14 +62,13 @@ export class RepoManager implements IRepoManager {
         this.gcWorker.on('failed', this.onGarbageCollectionJobFailed.bind(this));
     }
 
-    public async blockingPollLoop() {
-        while (true) {
+    public startScheduler() {
+        logger.debug('Starting scheduler');
+        return setInterval(async () => {
             await this.fetchAndScheduleRepoIndexing();
             await this.fetchAndScheduleRepoGarbageCollection();
             await this.fetchAndScheduleRepoTimeouts();
-
-            await new Promise(resolve => setTimeout(resolve, this.settings.reindexRepoPollingIntervalMs));
-        }
+        }, this.settings.reindexRepoPollingIntervalMs);
     }
 
     ///////////////////////////
