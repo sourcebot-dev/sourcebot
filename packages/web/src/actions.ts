@@ -2221,7 +2221,8 @@ const parseConnectionConfig = (config: string) => {
         switch (connectionType) {
             case "gitea":
             case "github":
-            case "bitbucket": {
+            case "bitbucket": 
+            case "azuredevops": {
                 return {
                     numRepos: parsedConfig.repos?.length,
                     hasToken: !!parsedConfig.token,

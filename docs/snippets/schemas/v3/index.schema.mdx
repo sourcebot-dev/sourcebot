@@ -1135,6 +1135,220 @@
             {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "type": "object",
+              "title": "AzureDevOpsConnectionConfig",
+              "properties": {
+                "type": {
+                  "const": "azuredevops",
+                  "description": "Azure DevOps Configuration"
+                },
+                "token": {
+                  "description": "A Personal Access Token (PAT).",
+                  "examples": [
+                    {
+                      "secret": "SECRET_KEY"
+                    }
+                  ],
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "secret": {
+                          "type": "string",
+                          "description": "The name of the secret that contains the token."
+                        }
+                      },
+                      "required": [
+                        "secret"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "env": {
+                          "type": "string",
+                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                        }
+                      },
+                      "required": [
+                        "env"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "url": {
+                  "type": "string",
+                  "format": "url",
+                  "default": "https://dev.azure.com",
+                  "description": "The URL of the Azure DevOps host. For Azure DevOps Cloud, use https://dev.azure.com. For Azure DevOps Server, use your server URL.",
+                  "examples": [
+                    "https://dev.azure.com",
+                    "https://azuredevops.example.com"
+                  ],
+                  "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+                },
+                "deploymentType": {
+                  "type": "string",
+                  "enum": [
+                    "cloud",
+                    "server"
+                  ],
+                  "default": "cloud",
+                  "description": "The type of Azure DevOps deployment"
+                },
+                "apiVersion": {
+                  "type": "string",
+                  "default": "7.1",
+                  "description": "The Azure DevOps API version to use. For Cloud, use 7.1 or later. For Server: 2022 uses 7.1, 2020 uses 6.0, 2019 uses 5.1.",
+                  "examples": [
+                    "7.1",
+                    "7.0",
+                    "6.0",
+                    "5.1"
+                  ]
+                },
+                "useTfsPath": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Use legacy TFS path format (/tfs) in API URLs. Required for older TFS installations (TFS 2018 and earlier). When true, API URLs will include /tfs in the path (e.g., https://server/tfs/collection/_apis/...)."
+                },
+                "organizations": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[\\w.-]+$"
+                  },
+                  "default": [],
+                  "examples": [
+                    [
+                      "my-org"
+                    ]
+                  ],
+                  "description": "List of organizations to sync with. For Cloud, this is the organization name. For Server, this is the collection name. All projects and repositories visible to the provided `token` will be synced, unless explicitly defined in the `exclude` property."
+                },
+                "projects": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+                  },
+                  "default": [],
+                  "examples": [
+                    [
+                      "my-org/my-project",
+                      "my-collection/my-project"
+                    ]
+                  ],
+                  "description": "List of specific projects to sync with. Expected to be formatted as '{orgName}/{projectName}' for Cloud or '{collectionName}/{projectName}' for Server."
+                },
+                "repos": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[\\w.-]+\\/[\\w.-]+\\/[\\w.-]+$"
+                  },
+                  "default": [],
+                  "examples": [
+                    [
+                      "my-org/my-project/my-repo"
+                    ]
+                  ],
+                  "description": "List of individual repositories to sync with. Expected to be formatted as '{orgName}/{projectName}/{repoName}'."
+                },
+                "exclude": {
+                  "type": "object",
+                  "properties": {
+                    "disabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Exclude disabled repositories from syncing."
+                    },
+                    "repos": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "description": "List of individual repositories to exclude from syncing. Glob patterns are supported."
+                    },
+                    "projects": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "description": "List of projects to exclude from syncing. Glob patterns are supported."
+                    },
+                    "size": {
+                      "type": "object",
+                      "description": "Exclude repositories based on their size.",
+                      "properties": {
+                        "min": {
+                          "type": "integer",
+                          "description": "Minimum repository size (in bytes) to sync (inclusive). Repositories less than this size will be excluded from syncing."
+                        },
+                        "max": {
+                          "type": "integer",
+                          "description": "Maximum repository size (in bytes) to sync (inclusive). Repositories greater than this size will be excluded from syncing."
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "revisions": {
+                  "type": "object",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "properties": {
+                    "branches": {
+                      "type": "array",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "main",
+                          "release/*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    },
+                    "tags": {
+                      "type": "array",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "examples": [
+                        [
+                          "latest",
+                          "v2.*.*"
+                        ],
+                        [
+                          "**"
+                        ]
+                      ],
+                      "default": []
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "type",
+                "token"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "type": "object",
               "title": "GenericGitHostConnectionConfig",
               "properties": {
                 "type": {

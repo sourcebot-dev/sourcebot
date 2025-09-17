@@ -42,10 +42,11 @@ enum ChatVisibility {
 
 model Repo {
   id                 Int                @id @default(autoincrement())
-  name               String
-  displayName        String?
+  name               String // Full repo name, including the vcs hostname (ex. github.com/sourcebot-dev/sourcebot)
+  displayName        String? // Display name of the repo for UI (ex. sourcebot-dev/sourcebot)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+
   /// When the repo was last indexed successfully.
   indexedAt          DateTime?
   isFork             Boolean

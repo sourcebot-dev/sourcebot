@@ -6,6 +6,7 @@ export type ConnectionConfig =
   | GiteaConnectionConfig
   | GerritConnectionConfig
   | BitbucketConnectionConfig
+  | AzureDevOpsConnectionConfig
   | GenericGitHostConnectionConfig;
 
 export interface GithubConnectionConfig {
@@ -308,6 +309,84 @@ export interface BitbucketConnectionConfig {
      * List of specific repos to exclude from syncing.
      */
     repos?: string[];
+  };
+  revisions?: GitRevisions;
+}
+export interface AzureDevOpsConnectionConfig {
+  /**
+   * Azure DevOps Configuration
+   */
+  type: "azuredevops";
+  /**
+   * A Personal Access Token (PAT).
+   */
+  token:
+    | {
+        /**
+         * The name of the secret that contains the token.
+         */
+        secret: string;
+      }
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
+  /**
+   * The URL of the Azure DevOps host. For Azure DevOps Cloud, use https://dev.azure.com. For Azure DevOps Server, use your server URL.
+   */
+  url?: string;
+  /**
+   * The type of Azure DevOps deployment
+   */
+  deploymentType?: "cloud" | "server";
+  /**
+   * The Azure DevOps API version to use. For Cloud, use 7.1 or later. For Server: 2022 uses 7.1, 2020 uses 6.0, 2019 uses 5.1.
+   */
+  apiVersion?: string;
+  /**
+   * Use legacy TFS path format (/tfs) in API URLs. Required for older TFS installations (TFS 2018 and earlier). When true, API URLs will include /tfs in the path (e.g., https://server/tfs/collection/_apis/...).
+   */
+  useTfsPath?: boolean;
+  /**
+   * List of organizations to sync with. For Cloud, this is the organization name. For Server, this is the collection name. All projects and repositories visible to the provided `token` will be synced, unless explicitly defined in the `exclude` property.
+   */
+  organizations?: string[];
+  /**
+   * List of specific projects to sync with. Expected to be formatted as '{orgName}/{projectName}' for Cloud or '{collectionName}/{projectName}' for Server.
+   */
+  projects?: string[];
+  /**
+   * List of individual repositories to sync with. Expected to be formatted as '{orgName}/{projectName}/{repoName}'.
+   */
+  repos?: string[];
+  exclude?: {
+    /**
+     * Exclude disabled repositories from syncing.
+     */
+    disabled?: boolean;
+    /**
+     * List of individual repositories to exclude from syncing. Glob patterns are supported.
+     */
+    repos?: string[];
+    /**
+     * List of projects to exclude from syncing. Glob patterns are supported.
+     */
+    projects?: string[];
+    /**
+     * Exclude repositories based on their size.
+     */
+    size?: {
+      /**
+       * Minimum repository size (in bytes) to sync (inclusive). Repositories less than this size will be excluded from syncing.
+       */
+      min?: number;
+      /**
+       * Maximum repository size (in bytes) to sync (inclusive). Repositories greater than this size will be excluded from syncing.
+       */
+      max?: number;
+    };
   };
   revisions?: GitRevisions;
 }

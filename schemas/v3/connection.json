@@ -18,6 +18,9 @@
             "$ref": "./bitbucket.json"
         },
         {
+            "$ref": "./azuredevops.json"
+        },
+        {
             "$ref": "./genericGitHost.json"
         }
     ]

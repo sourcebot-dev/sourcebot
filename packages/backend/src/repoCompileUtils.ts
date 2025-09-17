@@ -4,13 +4,15 @@ import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
 import { getGerritReposFromConfig } from "./gerrit.js";
 import { BitbucketRepository, getBitbucketReposFromConfig } from "./bitbucket.js";
+import { getAzureDevOpsReposFromConfig } from "./azuredevops.js";
 import { SchemaRestRepository as BitbucketServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { SchemaRepository as BitbucketCloudRepository } from "@coderabbitai/bitbucket/cloud/openapi";
 import { Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
 import { createLogger } from '@sourcebot/logger';
-import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GenericGitHostConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GenericGitHostConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { ProjectVisibility } from "azure-devops-node-api/interfaces/CoreInterfaces.js";
 import { RepoMetadata } from './types.js';
 import path from 'path';
 import { glob } from 'glob';
@@ -542,6 +544,87 @@ export const compileGenericGitHostConfig_file = async (
         repoData: repos,
         notFound,
     }
+}
+
+export const compileAzureDevOpsConfig = async (
+    config: AzureDevOpsConnectionConfig,
+    connectionId: number,
+    orgId: number,
+    db: PrismaClient,
+    abortController: AbortController) => {
+
+    const azureDevOpsReposResult = await getAzureDevOpsReposFromConfig(config, orgId, db);
+    const azureDevOpsRepos = azureDevOpsReposResult.validRepos;
+    const notFound = azureDevOpsReposResult.notFound;
+
+    const hostUrl = config.url ?? 'https://dev.azure.com';
+    const repoNameRoot = new URL(hostUrl)
+        .toString()
+        .replace(/^https?:\/\//, '');
+
+    const repos = azureDevOpsRepos.map((repo) => {
+        if (!repo.project) {
+            throw new Error(`No project found for repository ${repo.name}`);
+        }
+        
+        const repoDisplayName = `${repo.project.name}/${repo.name}`;
+        const repoName = path.join(repoNameRoot, repoDisplayName);
+        
+        if (!repo.remoteUrl) {
+            throw new Error(`No remoteUrl found for repository ${repoDisplayName}`);
+        }
+        if (!repo.id) {
+            throw new Error(`No id found for repository ${repoDisplayName}`);
+        }
+        
+        // Construct web URL for the repository
+        const webUrl = repo.webUrl || `${hostUrl}/${repo.project.name}/_git/${repo.name}`;
+
+        logger.debug(`Found Azure DevOps repo ${repoDisplayName} with webUrl: ${webUrl}`);
+
+        const record: RepoData = {
+            external_id: repo.id.toString(),
+            external_codeHostType: 'azuredevops',
+            external_codeHostUrl: hostUrl,
+            cloneUrl: webUrl,
+            webUrl: webUrl,
+            name: repoName,
+            displayName: repoDisplayName,
+            imageUrl: null,
+            isFork: !!repo.isFork,
+            isArchived: false,
+            org: {
+                connect: {
+                    id: orgId,
+                },
+            },
+            connections: {
+                create: {
+                    connectionId: connectionId,
+                }
+            },
+            metadata: {
+                gitConfig: {
+                    'zoekt.web-url-type': 'azuredevops',
+                    'zoekt.web-url': webUrl,
+                    'zoekt.name': repoName,
+                    'zoekt.archived': marshalBool(false),
+                    'zoekt.fork': marshalBool(!!repo.isFork),
+                    'zoekt.public': marshalBool(repo.project.visibility === ProjectVisibility.Public),
+                    'zoekt.display-name': repoDisplayName,
+                },
+                branches: config.revisions?.branches ?? undefined,
+                tags: config.revisions?.tags ?? undefined,
+            } satisfies RepoMetadata,
+        };
+
+        return record;
+    })
+
+    return {
+        repoData: repos,
+        notFound,
+    };
 }
 
 export const compileGenericGitHostConfig_url = async (
