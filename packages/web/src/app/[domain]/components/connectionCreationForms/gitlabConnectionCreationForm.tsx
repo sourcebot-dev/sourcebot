@@ -13,8 +13,9 @@ const additionalConfigValidation = (config: GitlabConnectionConfig): { message: 
     const hasProjects = config.projects && config.projects.length > 0 && config.projects.some(p => p.trim().length > 0);
     const hasUsers = config.users && config.users.length > 0 && config.users.some(u => u.trim().length > 0); 
     const hasGroups = config.groups && config.groups.length > 0 && config.groups.some(g => g.trim().length > 0);
+    const hasAll = config.all;
 
-    if (!hasProjects && !hasUsers && !hasGroups) {
+    if (!hasProjects && !hasUsers && !hasGroups && !hasAll) {
         return {
             message: "At least one project, user, or group must be specified",
             isValid: false,
