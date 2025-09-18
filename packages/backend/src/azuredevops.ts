@@ -57,9 +57,9 @@ export const getAzureDevOpsReposFromConfig = async (
         repos: [],
     };
 
-    if (config.organizations) {
+    if (config.orgs) {
         const { validRepos, notFoundOrgs } = await getReposForOrganizations(
-            config.organizations, 
+            config.orgs, 
             baseUrl,
             token,
             useTfsPath

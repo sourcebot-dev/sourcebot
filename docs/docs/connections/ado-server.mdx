@@ -11,6 +11,19 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
 ## Examples
 
 <AccordionGroup>
+    <Accordion title="Enable TFS path support">
+        This is required if you're using an older version of ADO Server which has `/tfs` in the repo paths.
+        ```json
+        {
+            "type": "azuredevops",
+            "useTfsPath": true
+            "repos": [
+                "organizationName/projectName/repoName",
+                "organizationName/projectName/repoName2
+            ]
+        }   
+        ```
+    </Accordion>
     <Accordion title="Sync individual repos">
         ```json
         {
