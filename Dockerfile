@@ -239,6 +239,17 @@ RUN mkdir -p /run/postgresql && \
     chown -R postgres:postgres /run/postgresql && \
     chmod 775 /run/postgresql
 
+# To run as non-root, the user must be part of postgres, redis and node groups
+RUN addgroup -g 1500 sourcebot && \
+    adduser -D -u 1500 -h /app -S sourcebot && \
+    adduser sourcebot postgres && \
+    adduser sourcebot redis && \
+    adduser sourcebot node && \
+    chown -R sourcebot /data && \
+    chown -R sourcebot /app && \
+    mkdir /var/log/sourcebot && \
+    chown sourcebot /var/log/sourcebot
+
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY prefix-output.sh ./prefix-output.sh
 RUN chmod +x ./prefix-output.sh
@@ -246,6 +257,8 @@ COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 COPY default-config.json .
+
+USER sourcebot
 
 EXPOSE 3000
 ENV PORT=3000
