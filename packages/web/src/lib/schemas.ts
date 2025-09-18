@@ -2,6 +2,7 @@ import { checkIfOrgDomainExists } from "@/actions";
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { z } from "zod";
 import { isServiceError } from "./utils";
+import { serviceErrorSchema } from "./serviceError";
 
 export const secretCreateRequestSchema = z.object({
     key: z.string(),
@@ -24,7 +25,7 @@ export const repositoryQuerySchema = z.object({
         name: z.string(),
     })),
     imageUrl: z.string().optional(),
-    indexedAt: z.date().optional(),
+    indexedAt: z.coerce.date().optional(),
     repoIndexingStatus: z.nativeEnum(RepoIndexingStatus),
 });
 
@@ -74,3 +75,5 @@ export const orgDomainSchema = z.string()
 export const getVersionResponseSchema = z.object({
     version: z.string(),
 });
+
+export const getReposResponseSchema = z.union([repositoryQuerySchema.array(), serviceErrorSchema]);

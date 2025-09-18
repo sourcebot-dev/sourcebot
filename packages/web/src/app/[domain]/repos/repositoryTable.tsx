@@ -3,7 +3,6 @@
 import { DataTable } from "@/components/ui/data-table";
 import { columns, RepositoryColumnInfo } from "./columns";
 import { unwrapServiceError } from "@/lib/utils";
-import { getRepos } from "@/actions";
 import { useQuery } from "@tanstack/react-query";
 import { useDomain } from "@/hooks/useDomain";
 import { RepoIndexingStatus } from "@sourcebot/db";
@@ -14,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { AddRepositoryDialog } from "./components/addRepositoryDialog";
 import { useState } from "react";
+import { getRepos } from "@/app/api/(client)/client";
 
 interface RepositoryTableProps {
     isAddReposButtonVisible: boolean
@@ -26,9 +26,9 @@ export const RepositoryTable = ({
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
     const { data: repos, isLoading: reposLoading, error: reposError } = useQuery({
-        queryKey: ['repos', domain],
+        queryKey: ['repos'],
         queryFn: async () => {
-            return await unwrapServiceError(getRepos(domain));
+            return await unwrapServiceError(getRepos());
         },
         refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
         refetchIntervalInBackground: true,

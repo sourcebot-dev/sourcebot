@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added fallback to default the Node.JS AWS SDK's `fromNodeProviderChain` when no credentials are provided for a bedrock config. [#513](https://github.com/sourcebot-dev/sourcebot/pull/513)
+
+### Fixed
+- Fixed "At least one project, user, or group must be specified" for GitLab configs with `all` in web configurator. [#512](https://github.com/sourcebot-dev/sourcebot/pull/512)
+- Fixed zoekt indexing failing with pipe in branch/tag names [#506](https://github.com/sourcebot-dev/sourcebot/pull/506)
+- Removed deprecated connection creation/edit UI [#515](https://github.com/sourcebot-dev/sourcebot/pull/515)
+
+## [4.6.8] - 2025-09-15
+
+### Fixed
+- Fixed Bitbucket Cloud pagination not working beyond first page. [#295](https://github.com/sourcebot-dev/sourcebot/issues/295)
+- Fixed search bar line wrapping. [#501](https://github.com/sourcebot-dev/sourcebot/pull/501)
+- Fixed carousel perf issues. [#507](https://github.com/sourcebot-dev/sourcebot/pull/507)
+
 ## [4.6.7] - 2025-09-08
 
 ### Added

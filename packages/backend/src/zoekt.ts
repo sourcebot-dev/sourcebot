@@ -63,7 +63,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
         `-index ${ctx.indexPath}`,
         `-max_trigram_count ${settings.maxTrigramCount}`,
         `-file_limit ${settings.maxFileSize}`,
-        `-branches ${revisions.join(',')}`,
+        `-branches "${revisions.join(',')}"`,
         `-tenant_id ${repo.orgId}`,
         `-repo_id ${repo.id}`,
         `-shard_prefix ${shardPrefix}`,
@@ -84,7 +84,9 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
             }
             if (stderr) {
                 stderr.split('\n').filter(line => line.trim()).forEach(line => {
-                    logger.error(line);
+                    // TODO: logging as regular info here and not error because non error logs are being
+                    // streamed in stderr and incorrectly being logged as errors at a high level
+                    logger.info(line);
                 });
             }
             

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getVersionResponseSchema, repositoryQuerySchema, searchContextQuerySchema } from "./schemas";
+import { getReposResponseSchema, getVersionResponseSchema, repositoryQuerySchema, searchContextQuerySchema } from "./schemas";
 import { tenancyModeSchema } from "@/env.mjs";
 
 export type KeymapType = "default" | "vim";
@@ -27,3 +27,4 @@ export type NewsItem = {
 export type TenancyMode = z.infer<typeof tenancyModeSchema>;
 export type RepositoryQuery = z.infer<typeof repositoryQuerySchema>;
 export type SearchContextQuery = z.infer<typeof searchContextQuerySchema>;
+export type GetReposResponse = z.infer<typeof getReposResponseSchema>;
