@@ -467,17 +467,13 @@ export interface AzureDevOpsConnectionConfig {
    */
   deploymentType?: "cloud" | "server";
   /**
-   * The Azure DevOps API version to use. For Cloud, use 7.1 or later. For Server: 2022 uses 7.1, 2020 uses 6.0, 2019 uses 5.1.
-   */
-  apiVersion?: string;
-  /**
    * Use legacy TFS path format (/tfs) in API URLs. Required for older TFS installations (TFS 2018 and earlier). When true, API URLs will include /tfs in the path (e.g., https://server/tfs/collection/_apis/...).
    */
   useTfsPath?: boolean;
   /**
    * List of organizations to sync with. For Cloud, this is the organization name. For Server, this is the collection name. All projects and repositories visible to the provided `token` will be synced, unless explicitly defined in the `exclude` property.
    */
-  organizations?: string[];
+  orgs?: string[];
   /**
    * List of specific projects to sync with. Expected to be formatted as '{orgName}/{projectName}' for Cloud or '{collectionName}/{projectName}' for Server.
    */
@@ -492,7 +488,7 @@ export interface AzureDevOpsConnectionConfig {
      */
     disabled?: boolean;
     /**
-     * List of individual repositories to exclude from syncing. Glob patterns are supported.
+     * List of repositories to exclude from syncing. Glob patterns are supported.
      */
     repos?: string[];
     /**

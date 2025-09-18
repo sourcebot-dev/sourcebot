@@ -1197,23 +1197,12 @@
                   "default": "cloud",
                   "description": "The type of Azure DevOps deployment"
                 },
-                "apiVersion": {
-                  "type": "string",
-                  "default": "7.1",
-                  "description": "The Azure DevOps API version to use. For Cloud, use 7.1 or later. For Server: 2022 uses 7.1, 2020 uses 6.0, 2019 uses 5.1.",
-                  "examples": [
-                    "7.1",
-                    "7.0",
-                    "6.0",
-                    "5.1"
-                  ]
-                },
                 "useTfsPath": {
                   "type": "boolean",
                   "default": false,
                   "description": "Use legacy TFS path format (/tfs) in API URLs. Required for older TFS installations (TFS 2018 and earlier). When true, API URLs will include /tfs in the path (e.g., https://server/tfs/collection/_apis/...)."
                 },
-                "organizations": {
+                "orgs": {
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -1270,7 +1259,7 @@
                         "type": "string"
                       },
                       "default": [],
-                      "description": "List of individual repositories to exclude from syncing. Glob patterns are supported."
+                      "description": "List of repositories to exclude from syncing. Glob patterns are supported."
                     },
                     "projects": {
                       "type": "array",
