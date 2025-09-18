@@ -77,19 +77,20 @@ fi
 
 # Check if DATA_CACHE_DIR exists, if not create it
 if [ ! -d "$DATA_CACHE_DIR" ]; then
-    mkdir -p "$DATA_CACHE_DIR"
+    mkdir -m 0750 -p "$DATA_CACHE_DIR"
 fi
 
 # Check if DATABASE_DATA_DIR exists, if not initialize it
 if [ "$DATABASE_EMBEDDED" = "true" ] && [ ! -d "$DATABASE_DATA_DIR" ]; then
-    echo -e "\e[34m[Info] Initializing database at $DATABASE_DATA_DIR...\e[0m"
-    mkdir -p $DATABASE_DATA_DIR && chown -R postgres:postgres "$DATABASE_DATA_DIR"
-    su postgres -c "initdb -D $DATABASE_DATA_DIR"
+    echo -e "\e[34m[Info] Initializing database at $DATABASE_D\ATA_DIR...\e[0m"
+    mkdir -m 0750 -p $DATABASE_DATA_DIR
+
+    initdb -D "$DATABASE_DATA_DIR"
 fi
 
 # Create the redis data directory if it doesn't exist
 if [ "$REDIS_EMBEDDED" = "true" ] && [ ! -d "$REDIS_DATA_DIR" ]; then
-    mkdir -p $REDIS_DATA_DIR
+    mkdir -m 0750 -p $REDIS_DATA_DIR
 fi
 
 if [ -z "$SOURCEBOT_ENCRYPTION_KEY" ]; then
@@ -180,13 +181,25 @@ echo "{\"version\": \"$NEXT_PUBLIC_SOURCEBOT_VERSION\", \"install_id\": \"$SOURC
 
 # Start the database and wait for it to be ready before starting any other service
 if [ "$DATABASE_EMBEDDED" = "true" ]; then
-    su postgres -c "postgres -D $DATABASE_DATA_DIR" &
-    until pg_isready -h localhost -p 5432 -U postgres; do
+    postgres -D "$DATABASE_DATA_DIR" &
+    until pg_isready -h localhost -p 5432 -d sourcebot -U postgres; do
         echo -e "\e[34m[Info] Waiting for the database to be ready...\e[0m"
         sleep 1
+
+        # As postgres runs in the background, we must check if it is still
+        # running, otherwise the "until" loop will be running indefinitely.
+        if ! pgrep -x "postgres" > /dev/null; then
+            echo "postgres failed to run"
+            exit 1
+        break
+    fi
     done
 
-    # Check if the database already exists, and create it if it dne
+    # Running as non-root we need to ensure the postgres account is created.
+    psql -U postgres -tc "SELECT 1 FROM pg_roles WHERE rolname='postgres'" | grep -q 1 \
+        || createuser postgres -s
+
+    # Check if the database already exists, and create it if it doesn't
     EXISTING_DB=$(psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'sourcebot'")
 
     if [ "$EXISTING_DB" = "1" ]; then
