@@ -1,13 +1,13 @@
 'use server';
 
-import { sew, withAuth, withOrgMembership } from '@/actions';
+import { sew } from '@/actions';
 import { env } from '@/env.mjs';
-import { OrgRole, Repo } from '@sourcebot/db';
-import { prisma } from '@/prisma';
 import { notFound, unexpectedError } from '@/lib/serviceError';
-import { simpleGit } from 'simple-git';
-import path from 'path';
+import { withOptionalAuthV2 } from '@/withAuthV2';
+import { Repo } from '@sourcebot/db';
 import { createLogger } from '@sourcebot/logger';
+import path from 'path';
+import { simpleGit } from 'simple-git';
 
 const logger = createLogger('file-tree');
 
@@ -25,209 +25,182 @@ export type FileTreeNode = FileTreeItem & {
  * Returns the tree of files (blobs) and directories (trees) for a given repository,
  * at a given revision.
  */
-export const getTree = async (params: { repoName: string, revisionName: string }, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const { repoName, revisionName } = params;
-            const repo = await prisma.repo.findFirst({
-                where: {
-                    name: repoName,
-                    orgId: org.id,
-                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
-                        permittedUsers: {
-                            some: {
-                                userId: userId,
-                            }
-                        }
-                    } : {})
-                },
-            });
+export const getTree = async (params: { repoName: string, revisionName: string }) => sew(() =>
+    withOptionalAuthV2(async ({ org, prisma }) => {
+        const { repoName, revisionName } = params;
+        const repo = await prisma.repo.findFirst({
+            where: {
+                name: repoName,
+                orgId: org.id,
+            },
+        });
 
-            if (!repo) {
-                return notFound();
-            }
+        if (!repo) {
+            return notFound();
+        }
 
-            const { path: repoPath } = getRepoPath(repo);
+        const { path: repoPath } = getRepoPath(repo);
 
-            const git = simpleGit().cwd(repoPath);
+        const git = simpleGit().cwd(repoPath);
 
-            let result: string;
-            try {
-                result = await git.raw([
-                    'ls-tree',
-                    revisionName,
-                    // recursive
-                    '-r',
-                    // include trees when recursing
-                    '-t',
-                    // format as output as {type},{path}
-                    '--format=%(objecttype),%(path)',
-                ]);
-            } catch (error) {
-                logger.error('git ls-tree failed.', { error });
-                return unexpectedError('git ls-tree command failed.');
-            }
+        let result: string;
+        try {
+            result = await git.raw([
+                'ls-tree',
+                revisionName,
+                // recursive
+                '-r',
+                // include trees when recursing
+                '-t',
+                // format as output as {type},{path}
+                '--format=%(objecttype),%(path)',
+            ]);
+        } catch (error) {
+            logger.error('git ls-tree failed.', { error });
+            return unexpectedError('git ls-tree command failed.');
+        }
 
-            const lines = result.split('\n').filter(line => line.trim());
+        const lines = result.split('\n').filter(line => line.trim());
 
-            const flatList = lines.map(line => {
-                const [type, path] = line.split(',');
-                return {
-                    type,
-                    path,
-                }
-            });
-
-            const tree = buildFileTree(flatList);
-
+        const flatList = lines.map(line => {
+            const [type, path] = line.split(',');
             return {
-                tree,
+                type,
+                path,
             }
+        });
 
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true)
-);
+        const tree = buildFileTree(flatList);
+
+        return {
+            tree,
+        }
+
+    }));
 
 /**
  * Returns the contents of a folder at a given path in a given repository,
  * at a given revision.
  */
-export const getFolderContents = async (params: { repoName: string, revisionName: string, path: string }, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const { repoName, revisionName, path } = params;
-            const repo = await prisma.repo.findFirst({
-                where: {
-                    name: repoName,
-                    orgId: org.id,
-                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
-                        permittedUsers: {
-                            some: {
-                                userId: userId,
-                            }
-                        }
-                    } : {})
-                },
-            });
+export const getFolderContents = async (params: { repoName: string, revisionName: string, path: string }) => sew(() =>
+    withOptionalAuthV2(async ({ org, prisma }) => {
+        const { repoName, revisionName, path } = params;
+        const repo = await prisma.repo.findFirst({
+            where: {
+                name: repoName,
+                orgId: org.id,
+            },
+        });
 
-            if (!repo) {
-                return notFound();
+        if (!repo) {
+            return notFound();
+        }
+
+        const { path: repoPath } = getRepoPath(repo);
+
+        // @note: we don't allow directory traversal
+        // or null bytes in the path.
+        if (path.includes('..') || path.includes('\0')) {
+            return notFound();
+        }
+
+        // Normalize the path by...
+        let normalizedPath = path;
+
+        // ... adding a trailing slash if it doesn't have one.
+        // This is important since ls-tree won't return the contents
+        // of a directory if it doesn't have a trailing slash.
+        if (!normalizedPath.endsWith('/')) {
+            normalizedPath = `${normalizedPath}/`;
+        }
+
+        // ... removing any leading slashes. This is needed since
+        // the path is relative to the repository's root, so we
+        // need a relative path.
+        if (normalizedPath.startsWith('/')) {
+            normalizedPath = normalizedPath.slice(1);
+        }
+
+        const git = simpleGit().cwd(repoPath);
+
+        let result: string;
+        try {
+            result = await git.raw([
+                'ls-tree',
+                revisionName,
+                // format as output as {type},{path}
+                '--format=%(objecttype),%(path)',
+                ...(normalizedPath.length === 0 ? [] : [normalizedPath]),
+            ]);
+        } catch (error) {
+            logger.error('git ls-tree failed.', { error });
+            return unexpectedError('git ls-tree command failed.');
+        }
+
+        const lines = result.split('\n').filter(line => line.trim());
+
+        const contents: FileTreeItem[] = lines.map(line => {
+            const [type, path] = line.split(',');
+            const name = path.split('/').pop() ?? '';
+
+            return {
+                type,
+                path,
+                name,
             }
+        });
 
-            const { path: repoPath } = getRepoPath(repo);
+        return contents;
+    }));
 
-            // @note: we don't allow directory traversal
-            // or null bytes in the path.
-            if (path.includes('..') || path.includes('\0')) {
-                return notFound();
+export const getFiles = async (params: { repoName: string, revisionName: string }) => sew(() =>
+    withOptionalAuthV2(async ({ org, prisma }) => {
+        const { repoName, revisionName } = params;
+
+        const repo = await prisma.repo.findFirst({
+            where: {
+                name: repoName,
+                orgId: org.id,
+            },
+        });
+
+        if (!repo) {
+            return notFound();
+        }
+
+        const { path: repoPath } = getRepoPath(repo);
+
+        const git = simpleGit().cwd(repoPath);
+
+        let result: string;
+        try {
+            result = await git.raw([
+                'ls-tree',
+                revisionName,
+                // recursive
+                '-r',
+                // only return the names of the files
+                '--name-only',
+            ]);
+        } catch (error) {
+            logger.error('git ls-tree failed.', { error });
+            return unexpectedError('git ls-tree command failed.');
+        }
+
+        const paths = result.split('\n').filter(line => line.trim());
+
+        const files: FileTreeItem[] = paths.map(path => {
+            const name = path.split('/').pop() ?? '';
+            return {
+                type: 'blob',
+                path,
+                name,
             }
+        });
 
-            // Normalize the path by...
-            let normalizedPath = path;
+        return files;
 
-            // ... adding a trailing slash if it doesn't have one.
-            // This is important since ls-tree won't return the contents
-            // of a directory if it doesn't have a trailing slash.
-            if (!normalizedPath.endsWith('/')) {
-                normalizedPath = `${normalizedPath}/`;
-            }
-
-            // ... removing any leading slashes. This is needed since
-            // the path is relative to the repository's root, so we
-            // need a relative path.
-            if (normalizedPath.startsWith('/')) {
-                normalizedPath = normalizedPath.slice(1);
-            }
-
-            const git = simpleGit().cwd(repoPath);
-
-            let result: string;
-            try {
-                result = await git.raw([
-                    'ls-tree',
-                    revisionName,
-                    // format as output as {type},{path}
-                    '--format=%(objecttype),%(path)',
-                    ...(normalizedPath.length === 0 ? [] : [normalizedPath]),
-                ]);
-            } catch (error) {
-                logger.error('git ls-tree failed.', { error });
-                return unexpectedError('git ls-tree command failed.');
-            }
-
-            const lines = result.split('\n').filter(line => line.trim());
-
-            const contents: FileTreeItem[] = lines.map(line => {
-                const [type, path] = line.split(',');
-                const name = path.split('/').pop() ?? '';
-
-                return {
-                    type,
-                    path,
-                    name,
-                }
-            });
-
-            return contents;
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true)
-);
-
-export const getFiles = async (params: { repoName: string, revisionName: string }, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const { repoName, revisionName } = params;
-
-            const repo = await prisma.repo.findFirst({
-                where: {
-                    name: repoName,
-                    orgId: org.id,
-                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
-                        permittedUsers: {
-                            some: {
-                                userId: userId,
-                            }
-                        }
-                    } : {})
-                },
-            });
-
-            if (!repo) {
-                return notFound();
-            }
-
-            const { path: repoPath } = getRepoPath(repo);
-
-            const git = simpleGit().cwd(repoPath);
-
-            let result: string;
-            try {
-                result = await git.raw([
-                    'ls-tree',
-                    revisionName,
-                    // recursive
-                    '-r',
-                    // only return the names of the files
-                    '--name-only',
-                ]);
-            } catch (error) {
-                logger.error('git ls-tree failed.', { error });
-                return unexpectedError('git ls-tree command failed.');
-            }
-
-            const paths = result.split('\n').filter(line => line.trim());
-
-            const files: FileTreeItem[] = paths.map(path => {
-                const name = path.split('/').pop() ?? '';
-                return {
-                    type: 'blob',
-                    path,
-                    name,
-                }
-            });
-
-            return files;
-
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true)
-);
+    }));
 
 const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {
     const root: FileTreeNode = {

@@ -59,7 +59,7 @@ export class RepoPermissionSyncer {
             }
 
         // @todo: make this configurable
-        }, 1000 * 5);
+        }, 1000 * 60);
     }
 
     public dispose() {

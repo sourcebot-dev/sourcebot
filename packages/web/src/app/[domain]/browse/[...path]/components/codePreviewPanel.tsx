@@ -20,7 +20,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, domain }:
             repository: repoName,
             branch: revisionName,
         }, domain),
-        getRepoInfoByName(repoName, domain),
+        getRepoInfoByName(repoName),
     ]);
 
     if (isServiceError(fileSourceResponse) || isServiceError(repoInfoResponse)) {

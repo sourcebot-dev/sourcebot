@@ -74,7 +74,7 @@ await repoManager.validateIndexedReposHaveShards();
 
 const connectionManagerInterval = connectionManager.startScheduler();
 const repoManagerInterval = repoManager.startScheduler();
-const permissionSyncerInterval = env.EXPERIMENT_PERMISSION_SYNC_ENABLED ? permissionSyncer.startScheduler() : null;
+const permissionSyncerInterval = env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? permissionSyncer.startScheduler() : null;
 
 
 const cleanup = async (signal: string) => {

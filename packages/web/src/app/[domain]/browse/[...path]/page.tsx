@@ -42,7 +42,6 @@ export default async function BrowsePage(props: BrowsePageProps) {
                         path={path}
                         repoName={repoName}
                         revisionName={revisionName}
-                        domain={domain}
                     />
                 )}
             </Suspense>
