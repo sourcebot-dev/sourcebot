@@ -14,6 +14,7 @@ import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
+import { azuredevopsSchema } from "@sourcebot/schemas/v3/azuredevops.schema";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
@@ -2187,6 +2188,8 @@ const parseConnectionConfig = (config: string) => {
                 return gerritSchema;
             case 'bitbucket':
                 return bitbucketSchema;
+            case 'azuredevops':
+                return azuredevopsSchema;
             case 'git':
                 return genericGitHostSchema;
         }
@@ -2221,7 +2224,8 @@ const parseConnectionConfig = (config: string) => {
         switch (connectionType) {
             case "gitea":
             case "github":
-            case "bitbucket": {
+            case "bitbucket": 
+            case "azuredevops": {
                 return {
                     numRepos: parsedConfig.repos?.length,
                     hasToken: !!parsedConfig.token,

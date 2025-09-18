@@ -34,6 +34,11 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, domain }:
         webUrl: repoInfoResponse.webUrl,
     });
 
+    // @todo: this is a hack to support linking to files for ADO. ADO doesn't support web urls with HEAD so we replace it with main. THis
+    // will break if the default branch is not main.
+    const fileWebUrl = repoInfoResponse.codeHostType === "azuredevops" && fileSourceResponse.webUrl ?
+        fileSourceResponse.webUrl.replace("version=GBHEAD", "version=GBmain") : fileSourceResponse.webUrl;
+
     return (
         <>
             <div className="flex flex-row py-1 px-2 items-center justify-between">
@@ -47,9 +52,11 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, domain }:
                     }}
                     branchDisplayName={revisionName}
                 />
-                {(fileSourceResponse.webUrl && codeHostInfo) && (
+
+                {(fileWebUrl && codeHostInfo) && (
+
                     <a
-                        href={fileSourceResponse.webUrl}
+                        href={fileWebUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex flex-row items-center gap-2 px-2 py-0.5 rounded-md flex-shrink-0"
