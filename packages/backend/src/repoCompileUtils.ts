@@ -248,16 +248,21 @@ export const compileGiteaConfig = async (
 export const compileGerritConfig = async (
     config: GerritConnectionConfig,
     connectionId: number,
-    orgId: number) => {
+    orgId: number,
+    db: PrismaClient) => {
 
-    const gerritRepos = await getGerritReposFromConfig(config);
+    const gerritRepos = await getGerritReposFromConfig(config, orgId, db);
     const hostUrl = config.url;
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');
 
     const repos = gerritRepos.map((project) => {
-        const cloneUrl = new URL(path.join(hostUrl, encodeURIComponent(project.name)));
+        // Use authenticated clone URL (/a/) if auth is configured, otherwise use public URL
+        const cloneUrlPath = config.auth ? 
+            path.join(hostUrl, 'a', encodeURIComponent(project.name)) :
+            path.join(hostUrl, encodeURIComponent(project.name));
+        const cloneUrl = new URL(cloneUrlPath);
         const repoDisplayName = project.name;
         const repoName = path.join(repoNameRoot, repoDisplayName);
 

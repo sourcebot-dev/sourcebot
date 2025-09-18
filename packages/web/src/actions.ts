@@ -2212,7 +2212,7 @@ const parseConnectionConfig = (config: string) => {
         } satisfies ServiceError;
     }
 
-    if ('token' in parsedConfig && parsedConfig.token && 'env' in parsedConfig.token) {
+    if ('token' in parsedConfig && parsedConfig.token && typeof parsedConfig.token === 'object' && 'env' in parsedConfig.token) {
         return {
             statusCode: StatusCodes.BAD_REQUEST,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,

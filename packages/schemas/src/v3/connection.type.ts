@@ -232,6 +232,31 @@ export interface GerritConnectionConfig {
    */
   url: string;
   /**
+   * Authentication configuration for Gerrit
+   */
+  auth?: {
+    /**
+     * Gerrit username for authentication
+     */
+    username: string;
+    /**
+     * Gerrit HTTP password (not your account password). Generate this in Gerrit → Settings → HTTP Credentials → Generate Password. Note: HTTP password authentication requires Gerrit's auth.gitBasicAuthPolicy to be set to HTTP or HTTP_LDAP.
+     */
+    password:
+      | {
+          /**
+           * The name of the secret that contains the token.
+           */
+          secret: string;
+        }
+      | {
+          /**
+           * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+           */
+          env: string;
+        };
+  };
+  /**
    * List of specific projects to sync. If not specified, all projects will be synced. Glob patterns are supported
    */
   projects?: string[];

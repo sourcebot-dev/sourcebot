@@ -164,3 +164,6 @@ dist
 /bin
 /config.json
 .DS_Store
+
+# Claude Code generated files
+CLAUDE.md

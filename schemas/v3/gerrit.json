@@ -16,6 +16,36 @@
             ],
             "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
         },
+        "auth": {
+            "type": "object",
+            "description": "Authentication configuration for Gerrit",
+            "properties": {
+                "username": {
+                    "type": "string",
+                    "description": "Gerrit username for authentication",
+                    "examples": [
+                        "john.doe"
+                    ]
+                },
+                "password": {
+                    "$ref": "./shared.json#/definitions/Token",
+                    "description": "Gerrit HTTP password (not your account password). Generate this in Gerrit → Settings → HTTP Credentials → Generate Password. Note: HTTP password authentication requires Gerrit's auth.gitBasicAuthPolicy to be set to HTTP or HTTP_LDAP.",
+                    "examples": [
+                        {
+                            "env": "GERRIT_HTTP_PASSWORD"
+                        },
+                        {
+                            "secret": "GERRIT_PASSWORD_SECRET"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "username",
+                "password"
+            ],
+            "additionalProperties": false
+        },
         "projects": {
             "type": "array",
             "items": {

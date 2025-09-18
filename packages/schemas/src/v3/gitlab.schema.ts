@@ -21,6 +21,7 @@ const schema = {
           "properties": {
             "secret": {
               "type": "string",
+              "minLength": 1,
               "description": "The name of the secret that contains the token."
             }
           },
@@ -34,6 +35,7 @@ const schema = {
           "properties": {
             "env": {
               "type": "string",
+              "minLength": 1,
               "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
             }
           },
