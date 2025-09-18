@@ -1,4 +1,5 @@
-import { PrismaClient } from "@sourcebot/db";
+import * as Sentry from "@sentry/node";
+import { PrismaClient, Repo, RepoPermissionSyncStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
@@ -6,6 +7,7 @@ import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
+import { env } from "./env.js";
 import { createOctokitFromConfig, getUserIdsWithReadAccessToRepo } from "./github.js";
 import { RepoWithConnections } from "./types.js";
 
@@ -16,6 +18,8 @@ type RepoPermissionSyncJob = {
 const QUEUE_NAME = 'repoPermissionSyncQueue';
 
 const logger = createLogger('permission-syncer');
+
+const SUPPORTED_CODE_HOST_TYPES = ['github'];
 
 export class RepoPermissionSyncer {
     private queue: Queue<RepoPermissionSyncJob>;
@@ -30,36 +34,59 @@ export class RepoPermissionSyncer {
         });
         this.worker = new Worker<RepoPermissionSyncJob>(QUEUE_NAME, this.runJob.bind(this), {
             connection: redis,
+            concurrency: 1,
         });
         this.worker.on('completed', this.onJobCompleted.bind(this));
         this.worker.on('failed', this.onJobFailed.bind(this));
     }
 
-    public async scheduleJob(repoId: number) {
-        await this.queue.add(QUEUE_NAME, {
-            repoId,
-        });
-    }
-
     public startScheduler() {
         logger.debug('Starting scheduler');
 
-        // @todo: we should only sync permissions for a repository if it has been at least ~24 hours since the last sync.
         return setInterval(async () => {
+            // @todo: make this configurable
+            const thresholdDate = new Date(Date.now() - 1000 * 60 * 60 * 24);
             const repos = await this.db.repo.findMany({
+                // Repos need their permissions to be synced against the code host when...
                 where: {
-                    external_codeHostType: {
-                        in: ['github'],
-                    }
+                    // They belong to a code host that supports permissions syncing
+                    AND: [
+                        {
+                            external_codeHostType: {
+                                in: SUPPORTED_CODE_HOST_TYPES,
+                            }
+                        },
+                        // and, they either require a sync (SYNC_NEEDED) or have been in a completed state (SYNCED or FAILED)
+                        // for > some duration (default 24 hours)
+                        {
+                            OR: [
+                                {
+                                    permissionSyncStatus: RepoPermissionSyncStatus.SYNC_NEEDED
+                                },
+                                {
+                                    AND: [
+                                        {
+                                            OR: [
+                                                { permissionSyncStatus: RepoPermissionSyncStatus.SYNCED },
+                                                { permissionSyncStatus: RepoPermissionSyncStatus.FAILED },
+                                            ]
+                                        },
+                                        {
+                                            OR: [
+                                                { permissionSyncJobLastCompletedAt: null },
+                                                { permissionSyncJobLastCompletedAt: { lt: thresholdDate } }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                    ]
                 }
             });
 
-            for (const repo of repos) {
-                await this.scheduleJob(repo.id);
-            }
-
-        // @todo: make this configurable
-        }, 1000 * 60);
+            await this.schedulePermissionSync(repos);
+        }, 1000 * 30);
     }
 
     public dispose() {
@@ -67,11 +94,34 @@ export class RepoPermissionSyncer {
         this.queue.close();
     }
 
+    private async schedulePermissionSync(repos: Repo[]) {
+        await this.db.$transaction(async (tx) => {
+            await tx.repo.updateMany({
+                where: { id: { in: repos.map(repo => repo.id) } },
+                data: { permissionSyncStatus: RepoPermissionSyncStatus.IN_SYNC_QUEUE },
+            });
+
+            await this.queue.addBulk(repos.map(repo => ({
+                name: 'repoPermissionSyncJob',
+                data: {
+                    repoId: repo.id,
+                },
+                opts: {
+                    removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                    removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+                }
+            })))
+        });
+    }
+
     private async runJob(job: Job<RepoPermissionSyncJob>) {
         const id = job.data.repoId;
-        const repo = await this.db.repo.findUnique({
+        const repo = await this.db.repo.update({
             where: {
-                id,
+                id
+            },
+            data: {
+                permissionSyncStatus: RepoPermissionSyncStatus.SYNCING,
             },
             include: {
                 connections: {
@@ -85,6 +135,8 @@ export class RepoPermissionSyncer {
         if (!repo) {
             throw new Error(`Repo ${id} not found`);
         }
+
+        logger.info(`Syncing permissions for repo ${repo.displayName}...`);
 
         const connection = getFirstConnectionWithToken(repo);
         if (!connection) {
@@ -119,8 +171,6 @@ export class RepoPermissionSyncer {
             return [];
         })();
 
-        logger.info(`User IDs with read access to repo ${id}: ${userIds}`);
-
         await this.db.repo.update({
             where: {
                 id: repo.id,
@@ -141,11 +191,43 @@ export class RepoPermissionSyncer {
     }
 
     private async onJobCompleted(job: Job<RepoPermissionSyncJob>) {
-        logger.info(`Repo permission sync job completed for repo ${job.data.repoId}`);
+        const repo = await this.db.repo.update({
+            where: {
+                id: job.data.repoId,
+            },
+            data: {
+                permissionSyncStatus: RepoPermissionSyncStatus.SYNCED,
+                permissionSyncJobLastCompletedAt: new Date(),
+            },
+        });
+
+        logger.info(`Permissions synced for repo ${repo.displayName ?? repo.name}`);
     }
 
     private async onJobFailed(job: Job<RepoPermissionSyncJob> | undefined, err: Error) {
-        logger.error(`Repo permission sync job failed for repo ${job?.data.repoId}: ${err}`);
+        Sentry.captureException(err, {
+            tags: {
+                repoId: job?.data.repoId,
+                queue: QUEUE_NAME,
+            }
+        });
+
+        const errorMessage = (repoName: string) => `Repo permission sync job failed for repo ${repoName}: ${err}`;
+
+        if (job) {
+            const repo = await this.db.repo.update({
+                where: {
+                    id: job?.data.repoId,
+                },
+                data: {
+                    permissionSyncStatus: RepoPermissionSyncStatus.FAILED,
+                    permissionSyncJobLastCompletedAt: new Date(),
+                },
+            });
+            logger.error(errorMessage(repo.displayName ?? repo.name));
+        } else {
+            logger.error(errorMessage('unknown repo (id not found)'));
+        }
     }
 }
 

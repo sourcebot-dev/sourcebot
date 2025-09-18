@@ -30,6 +30,14 @@ enum ConnectionSyncStatus {
   FAILED
 }
 
+enum RepoPermissionSyncStatus {
+  SYNC_NEEDED
+  IN_SYNC_QUEUE
+  SYNCING
+  SYNCED
+  FAILED
+}
+
 enum StripeSubscriptionStatus {
   ACTIVE
   INACTIVE
@@ -58,6 +66,10 @@ model Repo {
   imageUrl           String?
   repoIndexingStatus RepoIndexingStatus     @default(NEW)
   permittedUsers     UserToRepoPermission[]
+
+  permissionSyncStatus RepoPermissionSyncStatus @default(SYNC_NEEDED)
+  /// When the repo permissions were last synced, either successfully or unsuccessfully.
+  permissionSyncJobLastCompletedAt DateTime?
 
   // The id of the repo in the external service
   external_id           String

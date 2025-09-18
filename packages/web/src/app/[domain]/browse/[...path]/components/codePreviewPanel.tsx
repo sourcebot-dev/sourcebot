@@ -10,16 +10,15 @@ interface CodePreviewPanelProps {
     path: string;
     repoName: string;
     revisionName?: string;
-    domain: string;
 }
 
-export const CodePreviewPanel = async ({ path, repoName, revisionName, domain }: CodePreviewPanelProps) => {
+export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePreviewPanelProps) => {
     const [fileSourceResponse, repoInfoResponse] = await Promise.all([
         getFileSource({
             fileName: path,
             repository: repoName,
             branch: revisionName,
-        }, domain),
+        }),
         getRepoInfoByName(repoName),
     ]);
 

@@ -7,7 +7,6 @@ import { TreePreviewPanel } from "./components/treePreviewPanel";
 interface BrowsePageProps {
     params: Promise<{
         path: string[];
-        domain: string;
     }>;
 }
 
@@ -16,7 +15,6 @@ export default async function BrowsePage(props: BrowsePageProps) {
 
     const {
         path: _rawPath,
-        domain
     } = params;
 
     const rawPath = _rawPath.join('/');
@@ -35,7 +33,6 @@ export default async function BrowsePage(props: BrowsePageProps) {
                         path={path}
                         repoName={repoName}
                         revisionName={revisionName}
-                        domain={domain}
                     />
                 ) : (
                     <TreePreviewPanel
