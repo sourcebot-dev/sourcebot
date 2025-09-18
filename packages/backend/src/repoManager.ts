@@ -251,7 +251,7 @@ export class RepoManager implements IRepoManager {
         if (existsSync(repoPath) && !isReadOnly) {
             logger.info(`Fetching ${repo.displayName}...`);
 
-            const { durationMs } = await measure(() => fetchRepository(repoPath, ({ method, stage, progress }) => {
+            const { durationMs } = await measure(() => fetchRepository(new URL(repo.cloneUrl), repoPath, ({ method, stage, progress }) => {
                 logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
             }));
             const fetchDuration_s = durationMs / 1000;
@@ -278,7 +278,7 @@ export class RepoManager implements IRepoManager {
                 }
             }
 
-            const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, ({ method, stage, progress }) => {
+            const { durationMs } = await measure(() => cloneRepository(cloneUrl, repoPath, ({ method, stage, progress }) => {
                 logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
             }));
             const cloneDuration_s = durationMs / 1000;
