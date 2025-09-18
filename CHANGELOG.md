@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.7.0] - 2025-09-17
+
 ### Added
 - Added fallback to default the Node.JS AWS SDK's `fromNodeProviderChain` when no credentials are provided for a bedrock config. [#513](https://github.com/sourcebot-dev/sourcebot/pull/513)
 - Added support for Azure Devops support. [#514](https://github.com/sourcebot-dev/sourcebot/pull/514)
