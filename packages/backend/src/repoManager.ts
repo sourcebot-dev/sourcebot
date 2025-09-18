@@ -2,7 +2,7 @@ import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createLogger } from "@sourcebot/logger";
 import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
-import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { AppContext, Settings, repoMetadataSchema } from "./types.js";
 import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
 import { cloneRepository, fetchRepository, unsetGitConfig, upsertGitConfig } from "./git.js";
@@ -186,9 +186,7 @@ export class RepoManager implements IRepoManager {
                         password: token,
                     }
                 }
-            }
-
-            else if (connection.connectionType === 'gitlab') {
+            } else if (connection.connectionType === 'gitlab') {
                 const config = connection.config as unknown as GitlabConnectionConfig;
                 if (config.token) {
                     const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
@@ -197,9 +195,7 @@ export class RepoManager implements IRepoManager {
                         password: token,
                     }
                 }
-            }
-
-            else if (connection.connectionType === 'gitea') {
+            } else if (connection.connectionType === 'gitea') {
                 const config = connection.config as unknown as GiteaConnectionConfig;
                 if (config.token) {
                     const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
@@ -207,15 +203,21 @@ export class RepoManager implements IRepoManager {
                         password: token,
                     }
                 }
-            }
-
-            else if (connection.connectionType === 'bitbucket') {
+            } else if (connection.connectionType === 'bitbucket') {
                 const config = connection.config as unknown as BitbucketConnectionConfig;
                 if (config.token) {
                     const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
                     const username = config.user ?? 'x-token-auth';
                     return {
                         username,
+                        password: token,
+                    }
+                }
+            } else if (connection.connectionType === 'azuredevops') {
+                const config = connection.config as unknown as AzureDevOpsConnectionConfig;
+                if (config.token) {
+                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+                    return {
                         password: token,
                     }
                 }

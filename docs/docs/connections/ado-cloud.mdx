@@ -1,12 +1,10 @@
 ---
-title: Linking code from Gitea
-sidebarTitle: Gitea
-icon: mug-tea
+title: Linking code from Azure Devops Cloud
+sidebarTitle: Azure Devops Cloud
+icon: https://www.svgrepo.com/show/448307/azure-devops.svg
 ---
 
-import GiteaSchema from '/snippets/schemas/v3/gitea.schema.mdx'
-
-Sourcebot can sync code from Gitea Cloud, and self-hosted.
+import AzureDevopsSchema from '/snippets/schemas/v3/azuredevops.schema.mdx'
 
 If you're not familiar with Sourcebot [connections](/docs/connections/overview), please read that overview first.
 
@@ -16,11 +14,10 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
     <Accordion title="Sync individual repos">
         ```json
         {
-            "type": "gitea",
+            "type": "azuredevops",
             "repos": [
-                "sourcebot-dev/sourcebot",
-                "getsentry/sentry",
-                "torvalds/linux"
+                "organizationName/projectName/repoName",
+                "organizationName/projectName/repoName2
             ]
         }
         ```
@@ -28,22 +25,21 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
     <Accordion title="Sync all repos in a organization">
         ```json
         {
-            "type": "gitea",
+            "type": "azuredevops",
             "orgs": [
-                "sourcebot-dev",
-                "getsentry",
-                "vercel"
+                "organizationName",
+                "organizationName2
             ]
         }
         ```
     </Accordion>
-    <Accordion title="Sync all repos owned by a user">
+    <Accordion title="Sync all repos in a project">
         ```json
         {
-            "type": "gitea",
-            "users": [
-                "torvalds",
-                "ggerganov"
+            "type": "azuredevops",
+            "projects": [
+                "organizationName/projectName",
+                "organizationName/projectName2"
             ]
         }
         ```
@@ -51,35 +47,40 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
     <Accordion title="Exclude repos from syncing">
         ```json
         {
-            "type": "gitea",
+            "type": "azuredevops",
             // Include all repos in my-org...
             "orgs": [
                 "my-org"
             ],
             // ...except:
             "exclude": {
-                // repos that are archived
-                "archived": true,
-                // repos that are forks
-                "forks": true,
+                // repos that are disabled 
+                "disabled": true,
                 // repos that match these glob patterns
                 "repos": [
-                    "my-org/repo1",
-                    "my-org/repo2",
-                    "my-org/sub-org-1/**",
-                    "my-org/sub-org-*/**"
+                    "reposToExclude*"
+                ],
+                // projects that match these glob patterns
+                "projects": [
+                    "projectstoExclude*"
                 ]
+                // repos less than the defined min OR larger than the defined max
+                "size": {
+                    // repos that are less than 1MB (in bytes)...
+                    "min": 1048576,
+                    // or repos greater than 100MB (in bytes)
+                    "max": 104857600 
+                }
             }
         }
         ```
     </Accordion>
 </AccordionGroup>
 
-## Authenticating with Gitea
+## Authenticating with Azure Devops Cloud
 
-In order to index private repositories, you'll need to generate a Gitea access token. Generate a Gitea access token [here](http://gitea.com/user/settings/applications). At minimum, you'll need to select the `read:repository` scope. `read:user` and `read:organization` are required for the `user` and `org` fields of your config file:
-
-![Gitea Access token creation](/images/gitea_pat_creation.png)
+Azure Devops Cloud requires you to provide a PAT in order to index your repositories. To learn how to create PAT, check out the [Azure Devops docs](https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=Windows).
+Sourcebot needs the `Read` access for the `Code` scope in order to find and clone your repos.
 
 Next, provide the access token via the `token` property, either as an environment variable or a secret:
 
@@ -89,11 +90,11 @@ Next, provide the access token via the `token` property, either as an environmen
         1. Add the `token` property to your connection config:
         ```json
         {
-            "type": "gitea",
+            "type": "azuredevops",
             "token": {
                 // note: this env var can be named anything. It
-                // doesn't need to be `GITEA_TOKEN`.
-                "env": "GITEA_TOKEN"
+                // doesn't need to be `ADO_TOKEN`.
+                "env": "ADO_TOKEN"
             }
             // .. rest of config ..
         }
@@ -102,7 +103,7 @@ Next, provide the access token via the `token` property, either as an environmen
         2. Pass this environment variable each time you run Sourcebot:
         ```bash
         docker run \
-            -e GITEA_TOKEN=<PAT> \
+            -e ADO_TOKEN=<PAT> \
             /* additional args */ \
             ghcr.io/sourcebot-dev/sourcebot:latest
         ```
@@ -119,7 +120,7 @@ Next, provide the access token via the `token` property, either as an environmen
 
         ```json
         {
-            "type": "gitea",
+            "type": "azuredevops",
             "token": {
                 "secret": "mysecret"
             }
@@ -130,23 +131,11 @@ Next, provide the access token via the `token` property, either as an environmen
     </Tab>
 </Tabs>
 
-## Connecting to a custom Gitea
-
-To connect to a custom Gitea deployment, provide the `url` property to your config:
-
-```json
-{
-    "type": "gitea",
-    "url": "https://gitea.example.com"
-    // .. rest of config ..
-}
-```
-
 ## Schema reference
 
 <Accordion title="Reference">
-[schemas/v3/gitea.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/gitea.json)
+[schemas/v3/azuredevops.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/azuredevops.json)
 
-<GiteaSchema />
+<AzureDevopsSchema />
 
 </Accordion>

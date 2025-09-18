@@ -68,6 +68,8 @@
                                     "docs/connections/gitlab",
                                     "docs/connections/bitbucket-cloud",
                                     "docs/connections/bitbucket-data-center",
+                                    "docs/connections/ado-cloud",
+                                    "docs/connections/ado-server",
                                     "docs/connections/gitea",
                                     "docs/connections/gerrit",
                                     "docs/connections/generic-git-host",
