@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.7.1] - 2025-09-19
+
 ### Fixed
 - Fixed sourcebot not pulling github forked repos [#499](https://github.com/sourcebot-dev/sourcebot/pull/499)
 - Fixed azure devop cloud pat issue [#524](https://github.com/sourcebot-dev/sourcebot/pull/524)
