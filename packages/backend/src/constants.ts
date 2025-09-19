@@ -17,3 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
     repoIndexTimeoutMs: 1000 * 60 * 60 * 2, // 2 hours
     enablePublicAccess: false // deprected, use FORCE_ENABLE_ANONYMOUS_ACCESS instead
 }
+
+export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES = [
+    'github',
+];

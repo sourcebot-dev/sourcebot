@@ -30,14 +30,6 @@ enum ConnectionSyncStatus {
   FAILED
 }
 
-enum RepoPermissionSyncStatus {
-  SYNC_NEEDED
-  IN_SYNC_QUEUE
-  SYNCING
-  SYNCED
-  FAILED
-}
-
 enum StripeSubscriptionStatus {
   ACTIVE
   INACTIVE
@@ -67,9 +59,9 @@ model Repo {
   repoIndexingStatus RepoIndexingStatus     @default(NEW)
   permittedUsers     UserToRepoPermission[]
 
-  permissionSyncStatus RepoPermissionSyncStatus @default(SYNC_NEEDED)
-  /// When the repo permissions were last synced, either successfully or unsuccessfully.
-  permissionSyncJobLastCompletedAt DateTime?
+  permissionSyncJobs RepoPermissionSyncJob[]
+  /// When the permissions were last synced successfully.
+  permissionSyncedAt DateTime?
 
   // The id of the repo in the external service
   external_id           String
@@ -85,6 +77,26 @@ model Repo {
 
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
+}
+
+enum RepoPermissionSyncJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model RepoPermissionSyncJob {
+  id        String                       @id @default(cuid())
+  status    RepoPermissionSyncJobStatus  @default(PENDING)
+  createdAt DateTime                     @default(now())
+  updatedAt DateTime                     @updatedAt
+  completedAt DateTime?
+
+  errorMessage String?
+
+  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
 }
 
 model SearchContext {
@@ -301,6 +313,29 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  permissionSyncJobs UserPermissionSyncJob[]
+  permissionSyncedAt DateTime?
+}
+
+enum UserPermissionSyncJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model UserPermissionSyncJob {
+  id        String                       @id @default(cuid())
+  status    UserPermissionSyncJobStatus  @default(PENDING)
+  createdAt DateTime                     @default(now())
+  updatedAt DateTime                     @updatedAt
+  completedAt DateTime?
+
+  errorMessage String?
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
 }
 
 model UserToRepoPermission {

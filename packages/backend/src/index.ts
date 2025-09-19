@@ -10,10 +10,11 @@ import path from 'path';
 import { ConnectionManager } from './connectionManager.js';
 import { DEFAULT_SETTINGS } from './constants.js';
 import { env } from "./env.js";
-import { RepoPermissionSyncer } from './permissionSyncer.js';
+import { RepoPermissionSyncer } from './repoPermissionSyncer.js';
 import { PromClient } from './promClient.js';
 import { RepoManager } from './repoManager.js';
 import { AppContext } from "./types.js";
+import { UserPermissionSyncer } from "./userPermissionSyncer.js";
 
 
 const logger = createLogger('backend-entrypoint');
@@ -68,20 +69,25 @@ const settings = await getSettings(env.CONFIG_PATH);
 
 const connectionManager = new ConnectionManager(prisma, settings, redis);
 const repoManager = new RepoManager(prisma, settings, redis, promClient, context);
-const permissionSyncer = new RepoPermissionSyncer(prisma, redis);
+const repoPermissionSyncer = new RepoPermissionSyncer(prisma, redis);
+const userPermissionSyncer = new UserPermissionSyncer(prisma, redis);
 
 await repoManager.validateIndexedReposHaveShards();
 
 const connectionManagerInterval = connectionManager.startScheduler();
 const repoManagerInterval = repoManager.startScheduler();
-const permissionSyncerInterval = env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? permissionSyncer.startScheduler() : null;
+const repoPermissionSyncerInterval = env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? repoPermissionSyncer.startScheduler() : null;
+const userPermissionSyncerInterval = env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? userPermissionSyncer.startScheduler() : null;
 
 
 const cleanup = async (signal: string) => {
     logger.info(`Recieved ${signal}, cleaning up...`);
 
-    if (permissionSyncerInterval) {
-        clearInterval(permissionSyncerInterval);
+    if (userPermissionSyncerInterval) {
+        clearInterval(userPermissionSyncerInterval);
+    }
+    if (repoPermissionSyncerInterval) {
+        clearInterval(repoPermissionSyncerInterval);
     }
 
     clearInterval(connectionManagerInterval);
@@ -89,7 +95,8 @@ const cleanup = async (signal: string) => {
 
     connectionManager.dispose();
     repoManager.dispose();
-    permissionSyncer.dispose();
+    repoPermissionSyncer.dispose();
+    userPermissionSyncer.dispose();
 
     await prisma.$disconnect();
     await redis.quit();

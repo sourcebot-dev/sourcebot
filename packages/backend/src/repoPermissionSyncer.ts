@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/node";
-import { PrismaClient, Repo, RepoPermissionSyncStatus } from "@sourcebot/db";
+import { PrismaClient, Repo, RepoPermissionSyncJobStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
@@ -10,16 +10,16 @@ import { Redis } from 'ioredis';
 import { env } from "./env.js";
 import { createOctokitFromConfig, getUserIdsWithReadAccessToRepo } from "./github.js";
 import { RepoWithConnections } from "./types.js";
+import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "./constants.js";
 
 type RepoPermissionSyncJob = {
-    repoId: number;
+    jobId: string;
 }
 
 const QUEUE_NAME = 'repoPermissionSyncQueue';
 
-const logger = createLogger('permission-syncer');
+const logger = createLogger('repo-permission-syncer');
 
-const SUPPORTED_CODE_HOST_TYPES = ['github'];
 
 export class RepoPermissionSyncer {
     private queue: Queue<RepoPermissionSyncJob>;
@@ -46,6 +46,7 @@ export class RepoPermissionSyncer {
         return setInterval(async () => {
             // @todo: make this configurable
             const thresholdDate = new Date(Date.now() - 1000 * 60 * 60 * 24);
+
             const repos = await this.db.repo.findMany({
                 // Repos need their permissions to be synced against the code host when...
                 where: {
@@ -53,40 +54,47 @@ export class RepoPermissionSyncer {
                     AND: [
                         {
                             external_codeHostType: {
-                                in: SUPPORTED_CODE_HOST_TYPES,
+                                in: PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES,
                             }
                         },
-                        // and, they either require a sync (SYNC_NEEDED) or have been in a completed state (SYNCED or FAILED)
-                        // for > some duration (default 24 hours)
                         {
                             OR: [
-                                {
-                                    permissionSyncStatus: RepoPermissionSyncStatus.SYNC_NEEDED
-                                },
-                                {
-                                    AND: [
-                                        {
-                                            OR: [
-                                                { permissionSyncStatus: RepoPermissionSyncStatus.SYNCED },
-                                                { permissionSyncStatus: RepoPermissionSyncStatus.FAILED },
-                                            ]
-                                        },
-                                        {
-                                            OR: [
-                                                { permissionSyncJobLastCompletedAt: null },
-                                                { permissionSyncJobLastCompletedAt: { lt: thresholdDate } }
-                                            ]
-                                        }
-                                    ]
+                                { permissionSyncedAt: null },
+                                { permissionSyncedAt: { lt: thresholdDate } },
+                            ],
+                        },
+                        {
+                            NOT: {
+                                permissionSyncJobs: {
+                                    some: {
+                                        OR: [
+                                            // Don't schedule if there are active jobs
+                                            {
+                                                status: {
+                                                    in: [
+                                                        RepoPermissionSyncJobStatus.PENDING,
+                                                        RepoPermissionSyncJobStatus.IN_PROGRESS,
+                                                    ],
+                                                }
+                                            },
+                                            // Don't schedule if there are recent failed jobs (within the threshold date). Note `gt` is used here since this is a inverse condition.
+                                            {
+                                                AND: [
+                                                    { status: RepoPermissionSyncJobStatus.FAILED },
+                                                    { completedAt: { gt: thresholdDate } },
+                                                ]
+                                            }
+                                        ]
+                                    }
                                 }
-                            ]
+                            }
                         },
                     ]
                 }
             });
 
             await this.schedulePermissionSync(repos);
-        }, 1000 * 30);
+        }, 1000 * 5);
     }
 
     public dispose() {
@@ -96,15 +104,16 @@ export class RepoPermissionSyncer {
 
     private async schedulePermissionSync(repos: Repo[]) {
         await this.db.$transaction(async (tx) => {
-            await tx.repo.updateMany({
-                where: { id: { in: repos.map(repo => repo.id) } },
-                data: { permissionSyncStatus: RepoPermissionSyncStatus.IN_SYNC_QUEUE },
+            const jobs = await tx.repoPermissionSyncJob.createManyAndReturn({
+                data: repos.map(repo => ({
+                    repoId: repo.id,
+                })),
             });
 
-            await this.queue.addBulk(repos.map(repo => ({
+            await this.queue.addBulk(jobs.map((job) => ({
                 name: 'repoPermissionSyncJob',
                 data: {
-                    repoId: repo.id,
+                    jobId: job.id,
                 },
                 opts: {
                     removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
@@ -115,21 +124,25 @@ export class RepoPermissionSyncer {
     }
 
     private async runJob(job: Job<RepoPermissionSyncJob>) {
-        const id = job.data.repoId;
-        const repo = await this.db.repo.update({
+        const id = job.data.jobId;
+        const { repo } = await this.db.repoPermissionSyncJob.update({
             where: {
-                id
+                id,
             },
             data: {
-                permissionSyncStatus: RepoPermissionSyncStatus.SYNCING,
+                status: RepoPermissionSyncJobStatus.IN_PROGRESS,
             },
-            include: {
-                connections: {
+            select: {
+                repo: {
                     include: {
-                        connection: true,
-                    },
-                },
-            },
+                        connections: {
+                            include: {
+                                connection: true,
+                            }
+                        }
+                    }
+                }
+            }
         });
 
         if (!repo) {
@@ -171,34 +184,43 @@ export class RepoPermissionSyncer {
             return [];
         })();
 
-        await this.db.repo.update({
-            where: {
-                id: repo.id,
-            },
-            data: {
-                permittedUsers: {
-                    deleteMany: {},
+        await this.db.$transaction([
+            this.db.repo.update({
+                where: {
+                    id: repo.id,
+                },
+                data: {
+                    permittedUsers: {
+                        deleteMany: {},
+                    }
                 }
-            }
-        });
-
-        await this.db.userToRepoPermission.createMany({
-            data: userIds.map(userId => ({
-                userId,
-                repoId: repo.id,
-            })),
-        });
+            }),
+            this.db.userToRepoPermission.createMany({
+                data: userIds.map(userId => ({
+                    userId,
+                    repoId: repo.id,
+                })),
+            })
+        ]);
     }
 
     private async onJobCompleted(job: Job<RepoPermissionSyncJob>) {
-        const repo = await this.db.repo.update({
+        const { repo } = await this.db.repoPermissionSyncJob.update({
             where: {
-                id: job.data.repoId,
+                id: job.data.jobId,
             },
             data: {
-                permissionSyncStatus: RepoPermissionSyncStatus.SYNCED,
-                permissionSyncJobLastCompletedAt: new Date(),
+                status: RepoPermissionSyncJobStatus.COMPLETED,
+                repo: {
+                    update: {
+                        permissionSyncedAt: new Date(),
+                    }
+                },
+                completedAt: new Date(),
             },
+            select: {
+                repo: true
+            }
         });
 
         logger.info(`Permissions synced for repo ${repo.displayName ?? repo.name}`);
@@ -207,21 +229,25 @@ export class RepoPermissionSyncer {
     private async onJobFailed(job: Job<RepoPermissionSyncJob> | undefined, err: Error) {
         Sentry.captureException(err, {
             tags: {
-                repoId: job?.data.repoId,
+                jobId: job?.data.jobId,
                 queue: QUEUE_NAME,
             }
         });
 
-        const errorMessage = (repoName: string) => `Repo permission sync job failed for repo ${repoName}: ${err}`;
+        const errorMessage = (repoName: string) => `Repo permission sync job failed for repo ${repoName}: ${err.message}`;
 
         if (job) {
-            const repo = await this.db.repo.update({
+            const { repo } = await this.db.repoPermissionSyncJob.update({
                 where: {
-                    id: job?.data.repoId,
+                    id: job.data.jobId,
                 },
                 data: {
-                    permissionSyncStatus: RepoPermissionSyncStatus.FAILED,
-                    permissionSyncJobLastCompletedAt: new Date(),
+                    status: RepoPermissionSyncJobStatus.FAILED,
+                    completedAt: new Date(),
+                    errorMessage: err.message,
+                },
+                select: {
+                    repo: true
                 },
             });
             logger.error(errorMessage(repo.displayName ?? repo.name));

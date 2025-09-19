@@ -129,6 +129,17 @@ export const getUserIdsWithReadAccessToRepo = async (owner: string, repo: string
     return collaborators.map(collaborator => collaborator.id.toString());
 }
 
+export const getReposThatAuthenticatedUserHasReadAccessTo = async (octokit: Octokit) => {
+    const fetchFn = () => octokit.paginate(octokit.repos.listForAuthenticatedUser, {
+        per_page: 100,
+        // @todo: do we need to set a visibility to private only?
+        // visibility: 'private'
+    });
+
+    const repos = await fetchWithRetry(fetchFn, `authenticated user`, logger);
+    return repos.map(repo => repo.id.toString());
+}
+
 export const createOctokitFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient): Promise<{ octokit: Octokit, isAuthenticated: boolean }> => {
     const hostname = config.url ?
         new URL(config.url).hostname :
