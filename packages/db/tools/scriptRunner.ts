@@ -4,6 +4,8 @@ import { migrateDuplicateConnections } from "./scripts/migrate-duplicate-connect
 import { injectAuditData } from "./scripts/inject-audit-data";
 import { confirmAction } from "./utils";
 import { createLogger } from "@sourcebot/logger";
+import { injectRepoData } from "./scripts/inject-repo-data";
+import { testRepoQueryPerf } from "./scripts/test-repo-query-perf";
 
 export interface Script {
     run: (prisma: PrismaClient) => Promise<void>;
@@ -12,6 +14,8 @@ export interface Script {
 export const scripts: Record<string, Script> = {
     "migrate-duplicate-connections": migrateDuplicateConnections,
     "inject-audit-data": injectAuditData,
+    "inject-repo-data": injectRepoData,
+    "test-repo-query-perf": testRepoQueryPerf,
 }
 
 const parser = new ArgumentParser();
