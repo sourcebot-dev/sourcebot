@@ -30,11 +30,20 @@ export const userScopedPrismaClientExtension = (userId?: string) => {
                                 if ('where' in args) {
                                     args.where = {
                                         ...args.where,
-                                        permittedUsers: {
-                                            some: {
-                                                userId,
+                                        OR: [
+                                            // Only include repos that are permitted to the user,
+                                            {
+                                                permittedUsers: {
+                                                    some: {
+                                                        userId,
+                                                    }
+                                                }
+                                            },
+                                            // or are public.
+                                            {
+                                                isPublic: true,
                                             }
-                                        }
+                                        ]
                                     }
                                 }
 

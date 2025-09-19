@@ -51,6 +51,7 @@ model Repo {
   indexedAt          DateTime?
   isFork             Boolean
   isArchived         Boolean
+  isPublic           Boolean?
   metadata           Json // For schema see repoMetadataSchema in packages/backend/src/types.ts
   cloneUrl           String
   webUrl             String?

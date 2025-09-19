@@ -50,6 +50,7 @@ export const compileGithubConfig = async (
         const repoDisplayName = repo.full_name;
         const repoName = path.join(repoNameRoot, repoDisplayName);
         const cloneUrl = new URL(repo.clone_url!);
+        const isPublic = repo.private === false;
 
         logger.debug(`Found github repo ${repoDisplayName} with webUrl: ${repo.html_url}`);
 
@@ -64,6 +65,7 @@ export const compileGithubConfig = async (
             imageUrl: repo.owner.avatar_url,
             isFork: repo.fork,
             isArchived: !!repo.archived,
+            isPublic: isPublic,
             org: {
                 connect: {
                     id: orgId,
@@ -85,7 +87,7 @@ export const compileGithubConfig = async (
                     'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
                     'zoekt.archived': marshalBool(repo.archived),
                     'zoekt.fork': marshalBool(repo.fork),
-                    'zoekt.public': marshalBool(repo.private === false),
+                    'zoekt.public': marshalBool(isPublic),
                     'zoekt.display-name': repoDisplayName,
                 },
                 branches: config.revisions?.branches ?? undefined,
@@ -121,6 +123,8 @@ export const compileGitlabConfig = async (
         const projectUrl = `${hostUrl}/${project.path_with_namespace}`;
         const cloneUrl = new URL(project.http_url_to_repo);
         const isFork = project.forked_from_project !== undefined;
+        // @todo: we will need to double check whether 'internal' should also be considered public or not.
+        const isPublic = project.visibility === 'public';
         const repoDisplayName = project.path_with_namespace;
         const repoName = path.join(repoNameRoot, repoDisplayName);
         // project.avatar_url is not directly accessible with tokens; use the avatar API endpoint if available
@@ -139,6 +143,7 @@ export const compileGitlabConfig = async (
             displayName: repoDisplayName,
             imageUrl: avatarUrl,
             isFork: isFork,
+            isPublic: isPublic,
             isArchived: !!project.archived,
             org: {
                 connect: {
@@ -159,7 +164,7 @@ export const compileGitlabConfig = async (
                     'zoekt.gitlab-forks': (project.forks_count ?? 0).toString(),
                     'zoekt.archived': marshalBool(project.archived),
                     'zoekt.fork': marshalBool(isFork),
-                    'zoekt.public': marshalBool(project.private === false),
+                    'zoekt.public': marshalBool(isPublic),
                     'zoekt.display-name': repoDisplayName,
                 },
                 branches: config.revisions?.branches ?? undefined,
@@ -197,6 +202,7 @@ export const compileGiteaConfig = async (
         cloneUrl.host = configUrl.host
         const repoDisplayName = repo.full_name!;
         const repoName = path.join(repoNameRoot, repoDisplayName);
+        const isPublic = repo.internal === false && repo.private === false;
 
         logger.debug(`Found gitea repo ${repoDisplayName} with webUrl: ${repo.html_url}`);
 
@@ -210,6 +216,7 @@ export const compileGiteaConfig = async (
             displayName: repoDisplayName,
             imageUrl: repo.owner?.avatar_url,
             isFork: repo.fork!,
+            isPublic: isPublic,
             isArchived: !!repo.archived,
             org: {
                 connect: {
@@ -228,7 +235,7 @@ export const compileGiteaConfig = async (
                     'zoekt.name': repoName,
                     'zoekt.archived': marshalBool(repo.archived),
                     'zoekt.fork': marshalBool(repo.fork!),
-                    'zoekt.public': marshalBool(repo.internal === false && repo.private === false),
+                    'zoekt.public': marshalBool(isPublic),
                     'zoekt.display-name': repoDisplayName,
                 },
                 branches: config.revisions?.branches ?? undefined,
@@ -411,6 +418,7 @@ export const compileBitbucketConfig = async (
             name: repoName,
             displayName: displayName,
             isFork: isFork,
+            isPublic: isPublic,
             isArchived: isArchived,
             org: {
                 connect: {
@@ -546,86 +554,6 @@ export const compileGenericGitHostConfig_file = async (
     }
 }
 
-export const compileAzureDevOpsConfig = async (
-    config: AzureDevOpsConnectionConfig,
-    connectionId: number,
-    orgId: number,
-    db: PrismaClient,
-    abortController: AbortController) => {
-
-    const azureDevOpsReposResult = await getAzureDevOpsReposFromConfig(config, orgId, db);
-    const azureDevOpsRepos = azureDevOpsReposResult.validRepos;
-    const notFound = azureDevOpsReposResult.notFound;
-
-    const hostUrl = config.url ?? 'https://dev.azure.com';
-    const repoNameRoot = new URL(hostUrl)
-        .toString()
-        .replace(/^https?:\/\//, '');
-
-    const repos = azureDevOpsRepos.map((repo) => {
-        if (!repo.project) {
-            throw new Error(`No project found for repository ${repo.name}`);
-        }
-        
-        const repoDisplayName = `${repo.project.name}/${repo.name}`;
-        const repoName = path.join(repoNameRoot, repoDisplayName);
-        
-        if (!repo.remoteUrl) {
-            throw new Error(`No remoteUrl found for repository ${repoDisplayName}`);
-        }
-        if (!repo.id) {
-            throw new Error(`No id found for repository ${repoDisplayName}`);
-        }
-        
-        // Construct web URL for the repository
-        const webUrl = repo.webUrl || `${hostUrl}/${repo.project.name}/_git/${repo.name}`;
-
-        logger.debug(`Found Azure DevOps repo ${repoDisplayName} with webUrl: ${webUrl}`);
-
-        const record: RepoData = {
-            external_id: repo.id.toString(),
-            external_codeHostType: 'azuredevops',
-            external_codeHostUrl: hostUrl,
-            cloneUrl: webUrl,
-            webUrl: webUrl,
-            name: repoName,
-            displayName: repoDisplayName,
-            imageUrl: null,
-            isFork: !!repo.isFork,
-            isArchived: false,
-            org: {
-                connect: {
-                    id: orgId,
-                },
-            },
-            connections: {
-                create: {
-                    connectionId: connectionId,
-                }
-            },
-            metadata: {
-                gitConfig: {
-                    'zoekt.web-url-type': 'azuredevops',
-                    'zoekt.web-url': webUrl,
-                    'zoekt.name': repoName,
-                    'zoekt.archived': marshalBool(false),
-                    'zoekt.fork': marshalBool(!!repo.isFork),
-                    'zoekt.public': marshalBool(repo.project.visibility === ProjectVisibility.Public),
-                    'zoekt.display-name': repoDisplayName,
-                },
-                branches: config.revisions?.branches ?? undefined,
-                tags: config.revisions?.tags ?? undefined,
-            } satisfies RepoMetadata,
-        };
-
-        return record;
-    })
-
-    return {
-        repoData: repos,
-        notFound,
-    };
-}
 
 export const compileGenericGitHostConfig_url = async (
     config: GenericGitHostConnectionConfig,
@@ -688,4 +616,87 @@ export const compileGenericGitHostConfig_url = async (
         repoData: [repo],
         notFound,
     }
+}
+
+export const compileAzureDevOpsConfig = async (
+    config: AzureDevOpsConnectionConfig,
+    connectionId: number,
+    orgId: number,
+    db: PrismaClient,
+    abortController: AbortController) => {
+
+    const azureDevOpsReposResult = await getAzureDevOpsReposFromConfig(config, orgId, db);
+    const azureDevOpsRepos = azureDevOpsReposResult.validRepos;
+    const notFound = azureDevOpsReposResult.notFound;
+
+    const hostUrl = config.url ?? 'https://dev.azure.com';
+    const repoNameRoot = new URL(hostUrl)
+        .toString()
+        .replace(/^https?:\/\//, '');
+
+    const repos = azureDevOpsRepos.map((repo) => {
+        if (!repo.project) {
+            throw new Error(`No project found for repository ${repo.name}`);
+        }
+        
+        const repoDisplayName = `${repo.project.name}/${repo.name}`;
+        const repoName = path.join(repoNameRoot, repoDisplayName);
+        const isPublic = repo.project.visibility === ProjectVisibility.Public;
+        
+        if (!repo.remoteUrl) {
+            throw new Error(`No remoteUrl found for repository ${repoDisplayName}`);
+        }
+        if (!repo.id) {
+            throw new Error(`No id found for repository ${repoDisplayName}`);
+        }
+        
+        // Construct web URL for the repository
+        const webUrl = repo.webUrl || `${hostUrl}/${repo.project.name}/_git/${repo.name}`;
+
+        logger.debug(`Found Azure DevOps repo ${repoDisplayName} with webUrl: ${webUrl}`);
+
+        const record: RepoData = {
+            external_id: repo.id.toString(),
+            external_codeHostType: 'azuredevops',
+            external_codeHostUrl: hostUrl,
+            cloneUrl: webUrl,
+            webUrl: webUrl,
+            name: repoName,
+            displayName: repoDisplayName,
+            imageUrl: null,
+            isFork: !!repo.isFork,
+            isArchived: false,
+            isPublic: isPublic,
+            org: {
+                connect: {
+                    id: orgId,
+                },
+            },
+            connections: {
+                create: {
+                    connectionId: connectionId,
+                }
+            },
+            metadata: {
+                gitConfig: {
+                    'zoekt.web-url-type': 'azuredevops',
+                    'zoekt.web-url': webUrl,
+                    'zoekt.name': repoName,
+                    'zoekt.archived': marshalBool(false),
+                    'zoekt.fork': marshalBool(!!repo.isFork),
+                    'zoekt.public': marshalBool(isPublic),
+                    'zoekt.display-name': repoDisplayName,
+                },
+                branches: config.revisions?.branches ?? undefined,
+                tags: config.revisions?.tags ?? undefined,
+            } satisfies RepoMetadata,
+        };
+
+        return record;
+    })
+
+    return {
+        repoData: repos,
+        notFound,
+    };
 }
