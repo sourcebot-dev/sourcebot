@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Improved repository query performance by adding db indices. [#526](https://github.com/sourcebot-dev/sourcebot/pull/526)
+
 ## [4.7.1] - 2025-09-19
 
 ### Fixed

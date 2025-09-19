@@ -71,6 +71,7 @@ model Repo {
   searchContexts SearchContext[]
 
   @@unique([external_id, external_codeHostUrl, orgId])
+  @@index([orgId])
 }
 
 model SearchContext {
@@ -119,6 +120,7 @@ model RepoToConnection {
   repoId Int
 
   @@id([connectionId, repoId])
+  @@index([repoId, connectionId])
 }
 
 model Invite {
