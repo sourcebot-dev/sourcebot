@@ -26,7 +26,7 @@ export default async function Home(props: { params: Promise<{ domain: string }> 
     return HomePage;
 }
 
-export const HomeInternal = async (props: { params: Promise<{ domain: string }> }) => {
+const HomeInternal = async (props: { params: Promise<{ domain: string }> }) => {
     const params = await props.params;
 
     const {
