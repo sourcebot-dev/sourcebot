@@ -218,6 +218,10 @@ export class RepoManager implements IRepoManager {
                 if (config.token) {
                     const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
                     return {
+                        // @note: If we don't provide a username, the password will be set as the username. This seems to work
+                        // for ADO cloud but not for ADO server. To fix this, we set a placeholder username to ensure the password
+                        // is set correctly
+                        username: 'user',
                         password: token,
                     }
                 }
