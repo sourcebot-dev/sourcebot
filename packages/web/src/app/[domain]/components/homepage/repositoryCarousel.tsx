@@ -11,6 +11,9 @@ import Image from "next/image";
 import { FileIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import { RepositoryQuery } from "@/lib/types";
+import { getBrowsePath } from "../../browse/hooks/useBrowseNavigation";
+import Link from "next/link";
+import { useDomain } from "@/hooks/useDomain";
 
 interface RepositoryCarouselProps {
     repos: RepositoryQuery[];
@@ -56,7 +59,8 @@ interface RepositoryBadgeProps {
 const RepositoryBadge = ({
     repo
 }: RepositoryBadgeProps) => {
-    const { repoIcon, displayName, repoLink } = (() => {
+    const domain = useDomain();
+    const { repoIcon, displayName } = (() => {
         const info = getCodeHostInfoForRepo({
             codeHostType: repo.codeHostType,
             name: repo.repoName,
@@ -72,32 +76,30 @@ const RepositoryBadge = ({
                     className={`w-4 h-4 ${info.iconClassName}`}
                 />,
                 displayName: info.displayName,
-                repoLink: info.repoLink,
             }
         }
 
         return {
             repoIcon: <FileIcon className="w-4 h-4" />,
             displayName: repo.repoName,
-            repoLink: undefined,
         }
     })();
 
     return (
-        <div
-            onClick={() => {
-                if (repoLink !== undefined) {
-                    window.open(repoLink, "_blank");
-                }
-            }}
-            className={clsx("flex flex-row items-center gap-2 border rounded-md p-2 text-clip", {
-                "cursor-pointer": repoLink !== undefined,
+        <Link
+            href={getBrowsePath({
+                repoName: repo.repoName,
+                path: '/',
+                pathType: 'tree',
+                domain
             })}
+           
+            className={clsx("flex flex-row items-center gap-2 border rounded-md p-2 text-clip")}
         >
             {repoIcon}
             <span className="text-sm font-mono">
                 {displayName}
             </span>
-        </div>
+        </Link>
     )
 }
