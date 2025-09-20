@@ -5,7 +5,8 @@ CREATE TYPE "RepoPermissionSyncJobStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'CO
 CREATE TYPE "UserPermissionSyncJobStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED');
 
 -- AlterTable
-ALTER TABLE "Repo" ADD COLUMN     "permissionSyncedAt" TIMESTAMP(3);
+ALTER TABLE "Repo" ADD COLUMN     "isPublic" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "permissionSyncedAt" TIMESTAMP(3);
 
 -- AlterTable
 ALTER TABLE "User" ADD COLUMN     "permissionSyncedAt" TIMESTAMP(3);

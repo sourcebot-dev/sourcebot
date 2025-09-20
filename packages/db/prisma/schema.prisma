@@ -41,35 +41,29 @@ enum ChatVisibility {
 }
 
 model Repo {
-  id                 Int                @id @default(autoincrement())
-  name               String // Full repo name, including the vcs hostname (ex. github.com/sourcebot-dev/sourcebot)
-  displayName        String? // Display name of the repo for UI (ex. sourcebot-dev/sourcebot)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-
-  /// When the repo was last indexed successfully.
-  indexedAt          DateTime?
+  id                 Int                    @id @default(autoincrement())
+  name               String /// Full repo name, including the vcs hostname (ex. github.com/sourcebot-dev/sourcebot)
+  displayName        String? /// Display name of the repo for UI (ex. sourcebot-dev/sourcebot)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  indexedAt          DateTime? /// When the repo was last indexed successfully.
   isFork             Boolean
   isArchived         Boolean
-  isPublic           Boolean?
-  metadata           Json // For schema see repoMetadataSchema in packages/backend/src/types.ts
+  isPublic           Boolean                @default(false)
+  metadata           Json /// For schema see repoMetadataSchema in packages/backend/src/types.ts
   cloneUrl           String
   webUrl             String?
   connections        RepoToConnection[]
   imageUrl           String?
   repoIndexingStatus RepoIndexingStatus     @default(NEW)
+
   permittedUsers     UserToRepoPermission[]
-
   permissionSyncJobs RepoPermissionSyncJob[]
-  /// When the permissions were last synced successfully.
-  permissionSyncedAt DateTime?
+  permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
 
-  // The id of the repo in the external service
-  external_id           String
-  // The type of the external service (e.g., github, gitlab, etc.)
-  external_codeHostType String
-  // The base url of the external service (e.g., https://github.com)
-  external_codeHostUrl  String
+  external_id           String /// The id of the repo in the external service
+  external_codeHostType String /// The type of the external service (e.g., github, gitlab, etc.)
+  external_codeHostUrl  String /// The base url of the external service (e.g., https://github.com)
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
@@ -88,10 +82,10 @@ enum RepoPermissionSyncJobStatus {
 }
 
 model RepoPermissionSyncJob {
-  id        String                       @id @default(cuid())
-  status    RepoPermissionSyncJobStatus  @default(PENDING)
-  createdAt DateTime                     @default(now())
-  updatedAt DateTime                     @updatedAt
+  id          String                      @id @default(cuid())
+  status      RepoPermissionSyncJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
   completedAt DateTime?
 
   errorMessage String?
@@ -327,15 +321,15 @@ enum UserPermissionSyncJobStatus {
 }
 
 model UserPermissionSyncJob {
-  id        String                       @id @default(cuid())
-  status    UserPermissionSyncJobStatus  @default(PENDING)
-  createdAt DateTime                     @default(now())
-  updatedAt DateTime                     @updatedAt
+  id          String                      @id @default(cuid())
+  status      UserPermissionSyncJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
   completedAt DateTime?
 
   errorMessage String?
 
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 }
 
