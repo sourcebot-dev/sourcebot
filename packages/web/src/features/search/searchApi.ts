@@ -4,15 +4,14 @@ import { env } from "@/env.mjs";
 import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
 import { isServiceError } from "../../lib/utils";
 import { zoektFetch } from "./zoektClient";
-import { prisma } from "@/prisma";
 import { ErrorCode } from "../../lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { zoektSearchResponseSchema } from "./zoektSchema";
 import { SearchRequest, SearchResponse, SourceRange } from "./types";
-import { OrgRole, Repo } from "@sourcebot/db";
-import * as Sentry from "@sentry/nextjs";
-import { sew, withAuth, withOrgMembership } from "@/actions";
+import { PrismaClient, Repo } from "@sourcebot/db";
+import { sew } from "@/actions";
 import { base64Decode } from "@sourcebot/shared";
+import { withOptionalAuthV2 } from "@/withAuthV2";
 
 // List of supported query prefixes in zoekt.
 // @see : https://github.com/sourcebot-dev/zoekt/blob/main/query/parse.go#L417
@@ -37,7 +36,7 @@ enum zoektPrefixes {
     reposet = "reposet:",
 }
 
-const transformZoektQuery = async (query: string, orgId: number): Promise<string | ServiceError> => {
+const transformZoektQuery = async (query: string, orgId: number, prisma: PrismaClient): Promise<string | ServiceError> => {
     const prevQueryParts = query.split(" ");
     const newQueryParts = [];
 
@@ -128,225 +127,219 @@ const getFileWebUrl = (template: string, branch: string, fileName: string): stri
     return encodeURI(url + optionalQueryParams);
 }
 
-export const search = async ({ query, matches, contextLines, whole }: SearchRequest, domain: string, apiKey: string | undefined = undefined) => sew(() =>
-    withAuth((userId, _apiKeyHash) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const transformedQuery = await transformZoektQuery(query, org.id);
-            if (isServiceError(transformedQuery)) {
-                return transformedQuery;
+export const search = async ({ query, matches, contextLines, whole }: SearchRequest) => sew(() =>
+    withOptionalAuthV2(async ({ org, prisma }) => {
+        const transformedQuery = await transformZoektQuery(query, org.id, prisma);
+        if (isServiceError(transformedQuery)) {
+            return transformedQuery;
+        }
+        query = transformedQuery;
+
+        const isBranchFilteringEnabled = (
+            query.includes(zoektPrefixes.branch) ||
+            query.includes(zoektPrefixes.branchShort)
+        );
+
+        // We only want to show matches for the default branch when
+        // the user isn't explicitly filtering by branch.
+        if (!isBranchFilteringEnabled) {
+            query = query.concat(` branch:HEAD`);
+        }
+
+        const body = JSON.stringify({
+            q: query,
+            // @see: https://github.com/sourcebot-dev/zoekt/blob/main/api.go#L892
+            opts: {
+                ChunkMatches: true,
+                MaxMatchDisplayCount: matches,
+                NumContextLines: contextLines,
+                Whole: !!whole,
+                TotalMaxMatchCount: env.TOTAL_MAX_MATCH_COUNT,
+                ShardMaxMatchCount: env.SHARD_MAX_MATCH_COUNT,
+                MaxWallTime: env.ZOEKT_MAX_WALL_TIME_MS * 1000 * 1000, // zoekt expects a duration in nanoseconds
             }
-            query = transformedQuery;
+        });
 
-            const isBranchFilteringEnabled = (
-                query.includes(zoektPrefixes.branch) ||
-                query.includes(zoektPrefixes.branchShort)
-            );
+        let header: Record<string, string> = {};
+        header = {
+            "X-Tenant-ID": org.id.toString()
+        };
 
-            // We only want to show matches for the default branch when
-            // the user isn't explicitly filtering by branch.
-            if (!isBranchFilteringEnabled) {
-                query = query.concat(` branch:HEAD`);
-            }
+        const searchResponse = await zoektFetch({
+            path: "/api/search",
+            body,
+            header,
+            method: "POST",
+        });
 
-            const body = JSON.stringify({
-                q: query,
-                // @see: https://github.com/sourcebot-dev/zoekt/blob/main/api.go#L892
-                opts: {
-                    ChunkMatches: true,
-                    MaxMatchDisplayCount: matches,
-                    NumContextLines: contextLines,
-                    Whole: !!whole,
-                    TotalMaxMatchCount: env.TOTAL_MAX_MATCH_COUNT,
-                    ShardMaxMatchCount: env.SHARD_MAX_MATCH_COUNT,
-                    MaxWallTime: env.ZOEKT_MAX_WALL_TIME_MS * 1000 * 1000, // zoekt expects a duration in nanoseconds
+        if (!searchResponse.ok) {
+            return invalidZoektResponse(searchResponse);
+        }
+
+        const searchBody = await searchResponse.json();
+
+        const parser = zoektSearchResponseSchema.transform(async ({ Result }) => {
+            // @note (2025-05-12): in zoekt, repositories are identified by the `RepositoryID` field
+            // which corresponds to the `id` in the Repo table. In order to efficiently fetch repository
+            // metadata when transforming (potentially thousands) of file matches, we aggregate a unique
+            // set of repository ids* and map them to their corresponding Repo record.
+            //
+            // *Q: Why is `RepositoryID` optional? And why are we falling back to `Repository`?
+            //  A: Prior to this change, the repository id was not plumbed into zoekt, so RepositoryID was
+            // always undefined. To make this a non-breaking change, we fallback to using the repository's name
+            // (`Repository`) as the identifier in these cases. This is not guaranteed to be unique, but in
+            // practice it is since the repository name includes the host and path (e.g., 'github.com/org/repo',
+            // 'gitea.com/org/repo', etc.).
+            // 
+            // Note: When a repository is re-indexed (every hour) this ID will be populated.
+            // @see: https://github.com/sourcebot-dev/zoekt/pull/6
+            const repoIdentifiers = new Set(Result.Files?.map((file) => file.RepositoryID ?? file.Repository) ?? []);
+            const repos = new Map<string | number, Repo>();
+
+            (await prisma.repo.findMany({
+                where: {
+                    id: {
+                        in: Array.from(repoIdentifiers).filter((id) => typeof id === "number"),
+                    },
+                    orgId: org.id,
                 }
-            });
+            })).forEach(repo => repos.set(repo.id, repo));
 
-            let header: Record<string, string> = {};
-            header = {
-                "X-Tenant-ID": org.id.toString()
-            };
+            (await prisma.repo.findMany({
+                where: {
+                    name: {
+                        in: Array.from(repoIdentifiers).filter((id) => typeof id === "string"),
+                    },
+                    orgId: org.id,
+                }
+            })).forEach(repo => repos.set(repo.name, repo));
 
-            const searchResponse = await zoektFetch({
-                path: "/api/search",
-                body,
-                header,
-                method: "POST",
-            });
+            const files = Result.Files?.map((file) => {
+                const fileNameChunks = file.ChunkMatches.filter((chunk) => chunk.FileName);
 
-            if (!searchResponse.ok) {
-                return invalidZoektResponse(searchResponse);
-            }
-
-            const searchBody = await searchResponse.json();
-
-            const parser = zoektSearchResponseSchema.transform(async ({ Result }) => {
-                // @note (2025-05-12): in zoekt, repositories are identified by the `RepositoryID` field
-                // which corresponds to the `id` in the Repo table. In order to efficiently fetch repository
-                // metadata when transforming (potentially thousands) of file matches, we aggregate a unique
-                // set of repository ids* and map them to their corresponding Repo record.
-                //
-                // *Q: Why is `RepositoryID` optional? And why are we falling back to `Repository`?
-                //  A: Prior to this change, the repository id was not plumbed into zoekt, so RepositoryID was
-                // always undefined. To make this a non-breaking change, we fallback to using the repository's name
-                // (`Repository`) as the identifier in these cases. This is not guaranteed to be unique, but in
-                // practice it is since the repository name includes the host and path (e.g., 'github.com/org/repo',
-                // 'gitea.com/org/repo', etc.).
-                // 
-                // Note: When a repository is re-indexed (every hour) this ID will be populated.
-                // @see: https://github.com/sourcebot-dev/zoekt/pull/6
-                const repoIdentifiers = new Set(Result.Files?.map((file) => file.RepositoryID ?? file.Repository) ?? []);
-                const repos = new Map<string | number, Repo>();
-
-                (await prisma.repo.findMany({
-                    where: {
-                        id: {
-                            in: Array.from(repoIdentifiers).filter((id) => typeof id === "number"),
-                        },
-                        orgId: org.id,
-                    }
-                })).forEach(repo => repos.set(repo.id, repo));
-
-                (await prisma.repo.findMany({
-                    where: {
-                        name: {
-                            in: Array.from(repoIdentifiers).filter((id) => typeof id === "string"),
-                        },
-                        orgId: org.id,
-                    }
-                })).forEach(repo => repos.set(repo.name, repo));
-
-                const files = Result.Files?.map((file) => {
-                    const fileNameChunks = file.ChunkMatches.filter((chunk) => chunk.FileName);
-
-                    const webUrl = (() => {
-                        const template: string | undefined = Result.RepoURLs[file.Repository];
-                        if (!template) {
-                            return undefined;
-                        }
-
-                        // If there are multiple branches pointing to the same revision of this file, it doesn't
-                        // matter which branch we use here, so use the first one.
-                        const branch = file.Branches && file.Branches.length > 0 ? file.Branches[0] : "HEAD";
-                        return getFileWebUrl(template, branch, file.FileName);
-                    })();
-
-                    const identifier = file.RepositoryID ?? file.Repository;
-                    const repo = repos.get(identifier);
-
-                    // This should never happen... but if it does, we skip the file.
-                    if (!repo) {
-                        Sentry.captureMessage(
-                            `Repository not found for identifier: ${identifier}; skipping file "${file.FileName}"`,
-                            'warning'
-                        );
+                const webUrl = (() => {
+                    const template: string | undefined = Result.RepoURLs[file.Repository];
+                    if (!template) {
                         return undefined;
                     }
 
-                    return {
-                        fileName: {
-                            text: file.FileName,
-                            matchRanges: fileNameChunks.length === 1 ? fileNameChunks[0].Ranges.map((range) => ({
-                                start: {
-                                    byteOffset: range.Start.ByteOffset,
-                                    column: range.Start.Column,
-                                    lineNumber: range.Start.LineNumber,
-                                },
-                                end: {
-                                    byteOffset: range.End.ByteOffset,
-                                    column: range.End.Column,
-                                    lineNumber: range.End.LineNumber,
-                                }
-                            })) : [],
-                        },
-                        repository: repo.name,
-                        repositoryId: repo.id,
-                        webUrl: webUrl,
-                        language: file.Language,
-                        chunks: file.ChunkMatches
-                            .filter((chunk) => !chunk.FileName) // Filter out filename chunks.
-                            .map((chunk) => {
-                                return {
-                                    content: base64Decode(chunk.Content),
-                                    matchRanges: chunk.Ranges.map((range) => ({
-                                        start: {
-                                            byteOffset: range.Start.ByteOffset,
-                                            column: range.Start.Column,
-                                            lineNumber: range.Start.LineNumber,
-                                        },
-                                        end: {
-                                            byteOffset: range.End.ByteOffset,
-                                            column: range.End.Column,
-                                            lineNumber: range.End.LineNumber,
-                                        }
-                                    }) satisfies SourceRange),
-                                    contentStart: {
-                                        byteOffset: chunk.ContentStart.ByteOffset,
-                                        column: chunk.ContentStart.Column,
-                                        lineNumber: chunk.ContentStart.LineNumber,
-                                    },
-                                    symbols: chunk.SymbolInfo?.map((symbol) => {
-                                        return {
-                                            symbol: symbol.Sym,
-                                            kind: symbol.Kind,
-                                            parent: symbol.Parent.length > 0 ? {
-                                                symbol: symbol.Parent,
-                                                kind: symbol.ParentKind,
-                                            } : undefined,
-                                        }
-                                    }) ?? undefined,
-                                }
-                            }),
-                        branches: file.Branches,
-                        content: file.Content ? base64Decode(file.Content) : undefined,
-                    }
-                }).filter((file) => file !== undefined) ?? [];
+                    // If there are multiple branches pointing to the same revision of this file, it doesn't
+                    // matter which branch we use here, so use the first one.
+                    const branch = file.Branches && file.Branches.length > 0 ? file.Branches[0] : "HEAD";
+                    return getFileWebUrl(template, branch, file.FileName);
+                })();
+
+                const identifier = file.RepositoryID ?? file.Repository;
+                const repo = repos.get(identifier);
+
+                // This can happen if the user doesn't have access to the repository.
+                if (!repo) {
+                    return undefined;
+                }
 
                 return {
-                    zoektStats: {
-                        duration: Result.Duration,
-                        fileCount: Result.FileCount,
-                        matchCount: Result.MatchCount,
-                        filesSkipped: Result.FilesSkipped,
-                        contentBytesLoaded: Result.ContentBytesLoaded,
-                        indexBytesLoaded: Result.IndexBytesLoaded,
-                        crashes: Result.Crashes,
-                        shardFilesConsidered: Result.ShardFilesConsidered,
-                        filesConsidered: Result.FilesConsidered,
-                        filesLoaded: Result.FilesLoaded,
-                        shardsScanned: Result.ShardsScanned,
-                        shardsSkipped: Result.ShardsSkipped,
-                        shardsSkippedFilter: Result.ShardsSkippedFilter,
-                        ngramMatches: Result.NgramMatches,
-                        ngramLookups: Result.NgramLookups,
-                        wait: Result.Wait,
-                        matchTreeConstruction: Result.MatchTreeConstruction,
-                        matchTreeSearch: Result.MatchTreeSearch,
-                        regexpsConsidered: Result.RegexpsConsidered,
-                        flushReason: Result.FlushReason,
+                    fileName: {
+                        text: file.FileName,
+                        matchRanges: fileNameChunks.length === 1 ? fileNameChunks[0].Ranges.map((range) => ({
+                            start: {
+                                byteOffset: range.Start.ByteOffset,
+                                column: range.Start.Column,
+                                lineNumber: range.Start.LineNumber,
+                            },
+                            end: {
+                                byteOffset: range.End.ByteOffset,
+                                column: range.End.Column,
+                                lineNumber: range.End.LineNumber,
+                            }
+                        })) : [],
                     },
-                    files,
-                    repositoryInfo: Array.from(repos.values()).map((repo) => ({
-                        id: repo.id,
-                        codeHostType: repo.external_codeHostType,
-                        name: repo.name,
-                        displayName: repo.displayName ?? undefined,
-                        webUrl: repo.webUrl ?? undefined,
-                    })),
-                    isBranchFilteringEnabled: isBranchFilteringEnabled,
-                    stats: {
-                        matchCount: files.reduce(
-                            (acc, file) =>
-                                acc + file.chunks.reduce(
-                                    (acc, chunk) => acc + chunk.matchRanges.length,
-                                    0,
-                                ),
-                            0,
-                        )
-                    }
-                } satisfies SearchResponse;
-            });
+                    repository: repo.name,
+                    repositoryId: repo.id,
+                    webUrl: webUrl,
+                    language: file.Language,
+                    chunks: file.ChunkMatches
+                        .filter((chunk) => !chunk.FileName) // Filter out filename chunks.
+                        .map((chunk) => {
+                            return {
+                                content: base64Decode(chunk.Content),
+                                matchRanges: chunk.Ranges.map((range) => ({
+                                    start: {
+                                        byteOffset: range.Start.ByteOffset,
+                                        column: range.Start.Column,
+                                        lineNumber: range.Start.LineNumber,
+                                    },
+                                    end: {
+                                        byteOffset: range.End.ByteOffset,
+                                        column: range.End.Column,
+                                        lineNumber: range.End.LineNumber,
+                                    }
+                                }) satisfies SourceRange),
+                                contentStart: {
+                                    byteOffset: chunk.ContentStart.ByteOffset,
+                                    column: chunk.ContentStart.Column,
+                                    lineNumber: chunk.ContentStart.LineNumber,
+                                },
+                                symbols: chunk.SymbolInfo?.map((symbol) => {
+                                    return {
+                                        symbol: symbol.Sym,
+                                        kind: symbol.Kind,
+                                        parent: symbol.Parent.length > 0 ? {
+                                            symbol: symbol.Parent,
+                                            kind: symbol.ParentKind,
+                                        } : undefined,
+                                    }
+                                }) ?? undefined,
+                            }
+                        }),
+                    branches: file.Branches,
+                    content: file.Content ? base64Decode(file.Content) : undefined,
+                }
+            }).filter((file) => file !== undefined) ?? [];
 
-            return parser.parseAsync(searchBody);
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
-    );
+            return {
+                zoektStats: {
+                    duration: Result.Duration,
+                    fileCount: Result.FileCount,
+                    matchCount: Result.MatchCount,
+                    filesSkipped: Result.FilesSkipped,
+                    contentBytesLoaded: Result.ContentBytesLoaded,
+                    indexBytesLoaded: Result.IndexBytesLoaded,
+                    crashes: Result.Crashes,
+                    shardFilesConsidered: Result.ShardFilesConsidered,
+                    filesConsidered: Result.FilesConsidered,
+                    filesLoaded: Result.FilesLoaded,
+                    shardsScanned: Result.ShardsScanned,
+                    shardsSkipped: Result.ShardsSkipped,
+                    shardsSkippedFilter: Result.ShardsSkippedFilter,
+                    ngramMatches: Result.NgramMatches,
+                    ngramLookups: Result.NgramLookups,
+                    wait: Result.Wait,
+                    matchTreeConstruction: Result.MatchTreeConstruction,
+                    matchTreeSearch: Result.MatchTreeSearch,
+                    regexpsConsidered: Result.RegexpsConsidered,
+                    flushReason: Result.FlushReason,
+                },
+                files,
+                repositoryInfo: Array.from(repos.values()).map((repo) => ({
+                    id: repo.id,
+                    codeHostType: repo.external_codeHostType,
+                    name: repo.name,
+                    displayName: repo.displayName ?? undefined,
+                    webUrl: repo.webUrl ?? undefined,
+                })),
+                isBranchFilteringEnabled: isBranchFilteringEnabled,
+                stats: {
+                    matchCount: files.reduce(
+                        (acc, file) =>
+                            acc + file.chunks.reduce(
+                                (acc, chunk) => acc + chunk.matchRanges.length,
+                                0,
+                            ),
+                        0,
+                    )
+                }
+            } satisfies SearchResponse;
+        });
+
+        return parser.parseAsync(searchBody);
+    }));

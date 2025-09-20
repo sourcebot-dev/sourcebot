@@ -98,7 +98,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
         }
 
         setIsRetryAllFailedReposLoading(true);
-        flagReposForIndex(failedRepos.map((repo) => repo.repoId), domain)
+        flagReposForIndex(failedRepos.map((repo) => repo.repoId))
             .then((response) => {
                 if (isServiceError(response)) {
                     captureEvent('wa_connection_retry_all_failed_repos_fail', {});
@@ -116,7 +116,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
             .finally(() => {
                 setIsRetryAllFailedReposLoading(false);
             });
-    }, [captureEvent, domain, failedRepos, refetchRepos, toast]);
+    }, [captureEvent, failedRepos, refetchRepos, toast]);
 
     const filteredRepos = useMemo(() => {
         if (isServiceError(unfilteredRepos)) {

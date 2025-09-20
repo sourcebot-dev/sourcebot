@@ -11,12 +11,6 @@ import { env } from "./env.js";
 import * as Sentry from "@sentry/node";
 import { loadConfig, syncSearchContexts } from "@sourcebot/shared";
 
-interface IConnectionManager {
-    scheduleConnectionSync: (connection: Connection) => Promise<void>;
-    registerPollingCallback: () => void;
-    dispose: () => void;
-}
-
 const QUEUE_NAME = 'connectionSyncQueue';
 
 type JobPayload = {
@@ -30,10 +24,11 @@ type JobResult = {
     repoCount: number,
 }
 
-export class ConnectionManager implements IConnectionManager {
+export class ConnectionManager {
     private worker: Worker;
     private queue: Queue<JobPayload>;
     private logger = createLogger('connection-manager');
+    private interval?: NodeJS.Timeout;
 
     constructor(
         private db: PrismaClient,
@@ -75,8 +70,9 @@ export class ConnectionManager implements IConnectionManager {
         });
     }
 
-    public async registerPollingCallback() {
-        setInterval(async () => {
+    public startScheduler() {
+        this.logger.debug('Starting scheduler');
+        this.interval = setInterval(async () => {
             const thresholdDate = new Date(Date.now() - this.settings.resyncConnectionIntervalMs);
             const connections = await this.db.connection.findMany({
                 where: {
@@ -369,6 +365,9 @@ export class ConnectionManager implements IConnectionManager {
     }
 
     public dispose() {
+        if (this.interval) {
+            clearInterval(this.interval);
+        }
         this.worker.close();
         this.queue.close();
     }

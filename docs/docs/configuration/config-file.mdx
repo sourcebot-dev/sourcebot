@@ -33,17 +33,19 @@ Sourcebot syncs the config file on startup, and automatically whenever a change 
 
 The following are settings that can be provided in your config file to modify Sourcebot's behavior
 
-| Setting                                   | Type    | Default    | Minimum | Description / Notes                                                                    |
-|-------------------------------------------|---------|------------|---------|----------------------------------------------------------------------------------------|
-| `maxFileSize`                             | number  | 2 MB       | 1       | Maximum size (bytes) of a file to index. Files exceeding this are skipped.             |
-| `maxTrigramCount`                         | number  | 20 000     | 1       | Maximum trigrams per document. Larger files are skipped.                               |
-| `reindexIntervalMs`                       | number  | 1 hour     | 1       | Interval at which all repositories are re‑indexed.                                     |
-| `resyncConnectionIntervalMs`              | number  | 24 hours   | 1       | Interval for checking connections that need re‑syncing.                                |
-| `resyncConnectionPollingIntervalMs`       | number  | 1 second   | 1       | DB polling rate for connections that need re‑syncing.                                  |
-| `reindexRepoPollingIntervalMs`            | number  | 1 second   | 1       | DB polling rate for repos that should be re‑indexed.                                   |
-| `maxConnectionSyncJobConcurrency`         | number  | 8          | 1       | Concurrent connection‑sync jobs.                                                       |
-| `maxRepoIndexingJobConcurrency`           | number  | 8          | 1       | Concurrent repo‑indexing jobs.                                                         |
-| `maxRepoGarbageCollectionJobConcurrency`  | number  | 8          | 1       | Concurrent repo‑garbage‑collection jobs.                                               |
-| `repoGarbageCollectionGracePeriodMs`      | number  | 10 seconds | 1       | Grace period to avoid deleting shards while loading.                                   |
-| `repoIndexTimeoutMs`                      | number  | 2 hours    | 1       | Timeout for a single repo‑indexing run.                                                |
-| `enablePublicAccess` **(deprecated)**     | boolean | false      | —       | Use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.                  |
+| Setting                                         | Type    | Default    | Minimum | Description / Notes                                                                    |
+|-------------------------------------------------|---------|------------|---------|----------------------------------------------------------------------------------------|
+| `maxFileSize`                                   | number  | 2 MB       | 1       | Maximum size (bytes) of a file to index. Files exceeding this are skipped.             |
+| `maxTrigramCount`                               | number  | 20 000     | 1       | Maximum trigrams per document. Larger files are skipped.                               |
+| `reindexIntervalMs`                             | number  | 1 hour     | 1       | Interval at which all repositories are re‑indexed.                                     |
+| `resyncConnectionIntervalMs`                    | number  | 24 hours   | 1       | Interval for checking connections that need re‑syncing.                                |
+| `resyncConnectionPollingIntervalMs`             | number  | 1 second   | 1       | DB polling rate for connections that need re‑syncing.                                  |
+| `reindexRepoPollingIntervalMs`                  | number  | 1 second   | 1       | DB polling rate for repos that should be re‑indexed.                                   |
+| `maxConnectionSyncJobConcurrency`               | number  | 8          | 1       | Concurrent connection‑sync jobs.                                                       |
+| `maxRepoIndexingJobConcurrency`                 | number  | 8          | 1       | Concurrent repo‑indexing jobs.                                                         |
+| `maxRepoGarbageCollectionJobConcurrency`        | number  | 8          | 1       | Concurrent repo‑garbage‑collection jobs.                                               |
+| `repoGarbageCollectionGracePeriodMs`            | number  | 10 seconds | 1       | Grace period to avoid deleting shards while loading.                                   |
+| `repoIndexTimeoutMs`                            | number  | 2 hours    | 1       | Timeout for a single repo‑indexing run.                                                |
+| `enablePublicAccess` **(deprecated)**           | boolean | false      | —       | Use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.                  |
+| `experiment_repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       | Interval at which the repo permission syncer should run.                               |
+| `experiment_userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       | Interval at which the user permission syncer should run.                               |

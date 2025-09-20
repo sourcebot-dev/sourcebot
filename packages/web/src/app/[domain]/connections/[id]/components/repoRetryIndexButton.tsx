@@ -9,10 +9,9 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface RetryRepoIndexButtonProps {
     repoId: number;
-    domain: string;
 }
 
-export const RetryRepoIndexButton = ({ repoId, domain }: RetryRepoIndexButtonProps) => {
+export const RetryRepoIndexButton = ({ repoId }: RetryRepoIndexButtonProps) => {
     const captureEvent = useCaptureEvent();
 
     return (
@@ -21,7 +20,7 @@ export const RetryRepoIndexButton = ({ repoId, domain }: RetryRepoIndexButtonPro
             size="sm"
             className="ml-2"
             onClick={async () => {
-                const result = await flagReposForIndex([repoId], domain);
+                const result = await flagReposForIndex([repoId]);
                 if (isServiceError(result)) {
                     toast({
                         description: `❌ Failed to flag repository for indexing.`,

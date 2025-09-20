@@ -102,6 +102,14 @@ export interface Settings {
    * This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.
    */
   enablePublicAccess?: boolean;
+  /**
+   * The interval (in milliseconds) at which the repo permission syncer should run. Defaults to 24 hours.
+   */
+  experiment_repoDrivenPermissionSyncIntervalMs?: number;
+  /**
+   * The interval (in milliseconds) at which the user permission syncer should run. Defaults to 24 hours.
+   */
+  experiment_userDrivenPermissionSyncIntervalMs?: number;
 }
 /**
  * Search context
