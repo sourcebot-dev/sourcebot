@@ -106,24 +106,20 @@ export const ErrorNavIndicator = () => {
                                 <TooltipProvider>
                                     {repos
                                         .slice(0, 10)
-                                        .filter(item => item.linkedConnections.length > 0) // edge case: don't show repos that are orphaned and awaiting gc.
                                         .map(repo => (
-                                            // Link to the first connection for the repo
-                                            <Link key={repo.repoId} href={`/${domain}/connections/${repo.linkedConnections[0].id}`} onClick={() => captureEvent('wa_error_nav_job_pressed', {})}>
-                                                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 
-                                                                rounded-md text-sm text-red-700 dark:text-red-300 
-                                                                border border-red-200/50 dark:border-red-800/50
-                                                                hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <span className="text-sm font-medium truncate max-w-[200px]">{repo.repoName}</span>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            {repo.repoName}
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </div>
-                                            </Link>
+                                            <div key={repo.repoId} className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 
+                                                            rounded-md text-sm text-red-700 dark:text-red-300 
+                                                            border border-red-200/50 dark:border-red-800/50
+                                                            hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <span className="text-sm font-medium truncate max-w-[200px]">{repo.repoName}</span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        {repo.repoName}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </div>
                                         ))}
                                 </TooltipProvider>
                                 {repos.length > 10 && (

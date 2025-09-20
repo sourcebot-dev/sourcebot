@@ -653,13 +653,6 @@ export const getRepos = async (filter: { status?: RepoIndexingStatus[], connecti
                         }
                     }
                 } : {}),
-            },
-            include: {
-                connections: {
-                    include: {
-                        connection: true,
-                    }
-                }
             }
         });
 
@@ -670,10 +663,6 @@ export const getRepos = async (filter: { status?: RepoIndexingStatus[], connecti
             repoDisplayName: repo.displayName ?? undefined,
             repoCloneUrl: repo.cloneUrl,
             webUrl: repo.webUrl ?? undefined,
-            linkedConnections: repo.connections.map(({ connection }) => ({
-                id: connection.id,
-                name: connection.name,
-            })),
             imageUrl: repo.imageUrl ?? undefined,
             indexedAt: repo.indexedAt ?? undefined,
             repoIndexingStatus: repo.repoIndexingStatus,

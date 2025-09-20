@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import type { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown, ExternalLink, Clock, Loader2, CheckCircle2, XCircle, Trash2, Check, ListFilter } from "lucide-react"
 import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn, getRepoImageSrc } from "@/lib/utils"
 import { RepoIndexingStatus } from "@sourcebot/db";
@@ -14,10 +13,6 @@ export type RepositoryColumnInfo = {
     repoId: number
     name: string
     imageUrl?: string
-    connections: {
-        id: number
-        name: string
-    }[]
     repoIndexingStatus: RepoIndexingStatus
     lastIndexed: string
     url: string
@@ -132,35 +127,6 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
                         </span>
                         {isRemoteRepo && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />}
                     </div>
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "connections",
-        header: () => <div className="w-[200px]">Connections</div>,
-        cell: ({ row }) => {
-            const connections = row.original.connections
-            
-            if (!connections || connections.length === 0) {
-                return <div className="text-muted-foreground text-sm">—</div>
-            }
-
-            return (
-                <div className="flex flex-wrap gap-1.5">
-                    {connections.map((connection) => (
-                        <Badge
-                            key={connection.id}
-                            variant="outline"
-                            className="text-xs px-2 py-0.5 hover:bg-muted cursor-pointer group flex items-center gap-1"
-                            onClick={() => {
-                                window.location.href = `/${domain}/connections/${connection.id}`
-                            }}
-                        >
-                            {connection.name}
-                            <ExternalLink className="h-3 w-3 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
-                        </Badge>
-                    ))}
                 </div>
             )
         },

@@ -38,7 +38,6 @@ export const RepositoryTable = ({
         if (reposLoading) return Array(4).fill(null).map(() => ({
             repoId: 0,
             name: "",
-            connections: [],
             repoIndexingStatus: RepoIndexingStatus.NEW,
             lastIndexed: "",
             url: "",
@@ -50,7 +49,6 @@ export const RepositoryTable = ({
             repoId: repo.repoId,
             name: repo.repoDisplayName ?? repo.repoName,
             imageUrl: repo.imageUrl,
-            connections: repo.linkedConnections,
             repoIndexingStatus: repo.repoIndexingStatus as RepoIndexingStatus,
             lastIndexed: repo.indexedAt?.toISOString() ?? "",
             url: repo.webUrl ?? repo.repoCloneUrl,
