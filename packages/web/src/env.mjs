@@ -136,6 +136,8 @@ export const env = createEnv({
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED: booleanSchema.default('false'),
         // @NOTE: Take care to update actions.ts when changing the name of this.
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),
+
+        EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
     },
     // @NOTE: Please make sure of the following:
     // - Make sure you destructure all client variables in

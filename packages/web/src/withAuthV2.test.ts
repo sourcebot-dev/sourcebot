@@ -188,6 +188,7 @@ describe('getAuthContext', () => {
             },
             org: MOCK_ORG,
             role: OrgRole.MEMBER,
+            prisma: undefined,
         });
     });
 
@@ -217,6 +218,7 @@ describe('getAuthContext', () => {
             },
             org: MOCK_ORG,
             role: OrgRole.OWNER,
+            prisma: undefined,
         });
     });
 
@@ -241,6 +243,7 @@ describe('getAuthContext', () => {
             },
             org: MOCK_ORG,
             role: OrgRole.GUEST,
+            prisma: undefined,
         });
     });
 
@@ -256,6 +259,7 @@ describe('getAuthContext', () => {
             user: undefined,
             org: MOCK_ORG,
             role: OrgRole.GUEST,
+            prisma: undefined,
         });
     });
 });

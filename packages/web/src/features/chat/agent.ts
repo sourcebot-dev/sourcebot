@@ -1,6 +1,5 @@
 import { env } from "@/env.mjs";
 import { getFileSource } from "@/features/search/fileSourceApi";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { isServiceError } from "@/lib/utils";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
 import { createLogger } from "@sourcebot/logger";
@@ -252,7 +251,7 @@ const resolveFileSource = async ({ path, repo, revision }: FileSource) => {
         repository: repo,
         branch: revision,
         // @todo: handle multi-tenancy.
-    }, SINGLE_TENANT_ORG_DOMAIN);
+    });
 
     if (isServiceError(fileSource)) {
         // @todo: handle this

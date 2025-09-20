@@ -14,6 +14,7 @@
         "watch:mcp": "yarn workspace @sourcebot/mcp build:watch",
         "watch:schemas": "yarn workspace @sourcebot/schemas watch",
         "dev:prisma:migrate:dev": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:dev",
+        "dev:prisma:generate": "yarn with-env yarn workspace @sourcebot/db prisma:generate",
         "dev:prisma:studio": "yarn with-env yarn workspace @sourcebot/db prisma:studio",
         "dev:prisma:migrate:reset": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:reset",
         "dev:prisma:db:push": "yarn with-env yarn workspace @sourcebot/db prisma:db:push",

@@ -3,7 +3,6 @@
 import { getTree } from "../actions";
 import { useQuery } from "@tanstack/react-query";
 import { unwrapServiceError } from "@/lib/utils";
-import { useDomain } from "@/hooks/useDomain";
 import { ResizablePanel } from "@/components/ui/resizable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBrowseState } from "@/app/[domain]/browse/hooks/useBrowseState";
@@ -41,17 +40,16 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
         updateBrowseState,
     } = useBrowseState();
 
-    const domain = useDomain();
     const { repoName, revisionName, path } = useBrowseParams();
 
     const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
     const { data, isPending, isError } = useQuery({
-        queryKey: ['tree', repoName, revisionName, domain],
+        queryKey: ['tree', repoName, revisionName],
         queryFn: () => unwrapServiceError(
             getTree({
                 repoName,
                 revisionName: revisionName ?? 'HEAD',
-            }, domain)
+            })
         ),
     });
     

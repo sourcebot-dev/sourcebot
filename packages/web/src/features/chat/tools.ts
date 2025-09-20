@@ -114,7 +114,7 @@ export const readFilesTool = tool({
                 repository,
                 branch: revision,
                 // @todo(mt): handle multi-tenancy.
-            }, SINGLE_TENANT_ORG_DOMAIN);
+            });
         }));
 
         if (responses.some(isServiceError)) {
@@ -187,7 +187,7 @@ Multiple expressions can be or'd together with or, negated with -, or grouped wi
             contextLines: 3,
             whole: false,
             // @todo(mt): handle multi-tenancy.
-        }, SINGLE_TENANT_ORG_DOMAIN);
+        });
 
         if (isServiceError(response)) {
             return response;

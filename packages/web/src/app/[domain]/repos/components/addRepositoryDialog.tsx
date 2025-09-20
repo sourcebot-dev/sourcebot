@@ -8,7 +8,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { experimental_addGithubRepositoryByUrl } from "@/actions";
-import { useDomain } from "@/hooks/useDomain";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -37,7 +36,6 @@ const formSchema = z.object({
 });
 
 export const AddRepositoryDialog = ({ isOpen, onOpenChange }: AddRepositoryDialogProps) => {
-    const domain = useDomain();
     const { toast } = useToast();
     const router = useRouter();
 
@@ -52,7 +50,7 @@ export const AddRepositoryDialog = ({ isOpen, onOpenChange }: AddRepositoryDialo
 
     const onSubmit = async (data: z.infer<typeof formSchema>) => {
 
-        const result = await experimental_addGithubRepositoryByUrl(data.repositoryUrl.trim(), domain);
+        const result = await experimental_addGithubRepositoryByUrl(data.repositoryUrl.trim());
         if (isServiceError(result)) {
             toast({
                 title: "Error adding repository",

@@ -3,7 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CodePreview } from "./codePreview";
 import { SearchResultFile } from "@/features/search/types";
-import { useDomain } from "@/hooks/useDomain";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { SetStateAction, Dispatch, useMemo } from "react";
 import { getFileSource } from "@/features/search/fileSourceApi";
@@ -22,7 +21,6 @@ export const CodePreviewPanel = ({
     onClose,
     onSelectedMatchIndexChange,
 }: CodePreviewPanelProps) => {
-    const domain = useDomain();
 
     // If there are multiple branches pointing to the same revision of this file, it doesn't
     // matter which branch we use here, so use the first one.
@@ -31,13 +29,13 @@ export const CodePreviewPanel = ({
     }, [previewedFile]);
 
     const { data: file, isLoading, isPending, isError } = useQuery({
-        queryKey: ["source", previewedFile, branch, domain],
+        queryKey: ["source", previewedFile, branch],
         queryFn: () => unwrapServiceError(
             getFileSource({
                 fileName: previewedFile.fileName.text,
                 repository: previewedFile.repository,
                 branch,
-            }, domain)
+            })
         ),
         select: (data) => {
             return {

@@ -6,7 +6,6 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useQuery } from "@tanstack/react-query";
 import { unwrapServiceError } from "@/lib/utils";
 import { FileTreeItem, getFiles } from "@/features/fileTree/actions";
-import { useDomain } from "@/hooks/useDomain";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useBrowseNavigation } from "../hooks/useBrowseNavigation";
 import { useBrowseState } from "../hooks/useBrowseState";
@@ -28,7 +27,6 @@ type SearchResult = {
 
 export const FileSearchCommandDialog = () => {
     const { repoName, revisionName } = useBrowseParams();
-    const domain = useDomain();
     const { state: { isFileSearchOpen }, updateBrowseState } = useBrowseState();
 
     const commandListRef = useRef<HTMLDivElement>(null);
@@ -57,8 +55,8 @@ export const FileSearchCommandDialog = () => {
     }, [isFileSearchOpen]);
 
     const { data: files, isLoading, isError } = useQuery({
-        queryKey: ['files', repoName, revisionName, domain],
-        queryFn: () => unwrapServiceError(getFiles({ repoName, revisionName: revisionName ?? 'HEAD' }, domain)),
+        queryKey: ['files', repoName, revisionName],
+        queryFn: () => unwrapServiceError(getFiles({ repoName, revisionName: revisionName ?? 'HEAD' })),
         enabled: isFileSearchOpen,
     });
 

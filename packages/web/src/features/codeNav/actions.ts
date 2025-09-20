@@ -34,7 +34,7 @@ export const findSearchBasedSymbolReferences = async (
                 query,
                 matches: MAX_REFERENCE_COUNT,
                 contextLines: 0,
-            }, domain);
+            });
 
             if (isServiceError(searchResult)) {
                 return searchResult;
@@ -67,7 +67,7 @@ export const findSearchBasedSymbolDefinitions = async (
                 query,
                 matches: MAX_REFERENCE_COUNT,
                 contextLines: 0,
-            }, domain);
+            });
 
             if (isServiceError(searchResult)) {
                 return searchResult;

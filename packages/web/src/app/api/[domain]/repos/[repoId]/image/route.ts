@@ -3,18 +3,18 @@ import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 
 export async function GET(
-    request: NextRequest,
+    _request: NextRequest,
     props: { params: Promise<{ domain: string; repoId: string }> }
 ) {
     const params = await props.params;
-    const { domain, repoId } = params;
+    const { repoId } = params;
     const repoIdNum = parseInt(repoId);
 
     if (isNaN(repoIdNum)) {
         return new Response("Invalid repo ID", { status: 400 });
     }
 
-    const result = await getRepoImage(repoIdNum, domain);
+    const result = await getRepoImage(repoIdNum);
     if (isServiceError(result)) {
         return new Response(result.message, { status: result.statusCode });
     }
