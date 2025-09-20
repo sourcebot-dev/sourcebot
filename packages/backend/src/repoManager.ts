@@ -1,21 +1,19 @@
-import { Job, Queue, Worker } from 'bullmq';
-import { Redis } from 'ioredis';
-import { createLogger } from "@sourcebot/logger";
-import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
-import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
-import { AppContext, Settings, repoMetadataSchema } from "./types.js";
-import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
-import { cloneRepository, fetchRepository, unsetGitConfig, upsertGitConfig } from "./git.js";
-import { existsSync, readdirSync, promises } from 'fs';
-import { indexGitRepository } from "./zoekt.js";
-import { PromClient } from './promClient.js';
 import * as Sentry from "@sentry/node";
+import { PrismaClient, Repo, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
+import { createLogger } from "@sourcebot/logger";
+import { Job, Queue, Worker } from 'bullmq';
+import { existsSync, promises, readdirSync } from 'fs';
+import { Redis } from 'ioredis';
 import { env } from './env.js';
+import { cloneRepository, fetchRepository, unsetGitConfig, upsertGitConfig } from "./git.js";
+import { PromClient } from './promClient.js';
+import { AppContext, RepoWithConnections, Settings, repoMetadataSchema } from "./types.js";
+import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, measure } from "./utils.js";
+import { indexGitRepository } from "./zoekt.js";
 
 const REPO_INDEXING_QUEUE = 'repoIndexingQueue';
 const REPO_GC_QUEUE = 'repoGarbageCollectionQueue';
 
-type RepoWithConnections = Repo & { connections: (RepoToConnection & { connection: Connection })[] };
 type RepoIndexingPayload = {
     repo: RepoWithConnections,
 }
@@ -31,6 +29,7 @@ export class RepoManager {
     private indexQueue: Queue<RepoIndexingPayload>;
     private gcWorker: Worker;
     private gcQueue: Queue<RepoGarbageCollectionPayload>;
+    private interval?: NodeJS.Timeout;
 
     constructor(
         private db: PrismaClient,
@@ -64,7 +63,7 @@ export class RepoManager {
 
     public startScheduler() {
         logger.debug('Starting scheduler');
-        return setInterval(async () => {
+        this.interval = setInterval(async () => {
             await this.fetchAndScheduleRepoIndexing();
             await this.fetchAndScheduleRepoGarbageCollection();
             await this.fetchAndScheduleRepoTimeouts();
@@ -162,68 +161,6 @@ export class RepoManager {
         }
     }
 
-
-    // TODO: do this better? ex: try using the tokens from all the connections 
-    // We can no longer use repo.cloneUrl directly since it doesn't contain the token for security reasons. As a result, we need to
-    // fetch the token here using the connections from the repo. Multiple connections could be referencing this repo, and each
-    // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
-    // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
-    private async getCloneCredentialsForRepo(repo: RepoWithConnections, db: PrismaClient): Promise<{ username?: string, password: string } | undefined> {
-
-        for (const { connection } of repo.connections) {
-            if (connection.connectionType === 'github') {
-                const config = connection.config as unknown as GithubConnectionConfig;
-                if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
-                    return {
-                        password: token,
-                    }
-                }
-            } else if (connection.connectionType === 'gitlab') {
-                const config = connection.config as unknown as GitlabConnectionConfig;
-                if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
-                    return {
-                        username: 'oauth2',
-                        password: token,
-                    }
-                }
-            } else if (connection.connectionType === 'gitea') {
-                const config = connection.config as unknown as GiteaConnectionConfig;
-                if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
-                    return {
-                        password: token,
-                    }
-                }
-            } else if (connection.connectionType === 'bitbucket') {
-                const config = connection.config as unknown as BitbucketConnectionConfig;
-                if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
-                    const username = config.user ?? 'x-token-auth';
-                    return {
-                        username,
-                        password: token,
-                    }
-                }
-            } else if (connection.connectionType === 'azuredevops') {
-                const config = connection.config as unknown as AzureDevOpsConnectionConfig;
-                if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
-                    return {
-                        // @note: If we don't provide a username, the password will be set as the username. This seems to work
-                        // for ADO cloud but not for ADO server. To fix this, we set a placeholder username to ensure the password
-                        // is set correctly
-                        username: 'user',
-                        password: token,
-                    }
-                }
-            }
-        }
-
-        return undefined;
-    }
-
     private async syncGitRepository(repo: RepoWithConnections, repoAlreadyInIndexingState: boolean) {
         const { path: repoPath, isReadOnly } = getRepoPath(repo, this.ctx);
 
@@ -236,21 +173,8 @@ export class RepoManager {
             await promises.rm(repoPath, { recursive: true, force: true });
         }
 
-        const credentials = await this.getCloneCredentialsForRepo(repo, this.db);
-        const remoteUrl = new URL(repo.cloneUrl);
-        if (credentials) {
-            // @note: URL has a weird behavior where if you set the password but
-            // _not_ the username, the ":" delimiter will still be present in the
-            // URL (e.g., https://:password@example.com). To get around this, if
-            // we only have a password, we set the username to the password.
-            // @see: https://www.typescriptlang.org/play/?#code/MYewdgzgLgBArgJwDYwLwzAUwO4wKoBKAMgBQBEAFlFAA4QBcA9I5gB4CGAtjUpgHShOZADQBKANwAoREj412ECNhAIAJmhhl5i5WrJTQkELz5IQAcxIy+UEAGUoCAJZhLo0UA
-            if (!credentials.username) {
-                remoteUrl.username = credentials.password;
-            } else {
-                remoteUrl.username = credentials.username;
-                remoteUrl.password = credentials.password;
-            }
-        }
+        const credentials = await getAuthCredentialsForRepo(repo, this.db);
+        const cloneUrlMaybeWithToken = credentials?.cloneUrlWithToken ?? repo.cloneUrl;
 
         if (existsSync(repoPath) && !isReadOnly) {
             // @NOTE: in #483, we changed the cloning method s.t., we _no longer_
@@ -262,13 +186,13 @@ export class RepoManager {
             await unsetGitConfig(repoPath, ["remote.origin.url"]);
 
             logger.info(`Fetching ${repo.displayName}...`);
-            const { durationMs } = await measure(() => fetchRepository(
-                remoteUrl,
-                repoPath,
-                ({ method, stage, progress }) => {
+            const { durationMs } = await measure(() => fetchRepository({
+                cloneUrl: cloneUrlMaybeWithToken,
+                path: repoPath,
+                onProgress: ({ method, stage, progress }) => {
                     logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
                 }
-            ));
+            }));
             const fetchDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
@@ -277,13 +201,13 @@ export class RepoManager {
         } else if (!isReadOnly) {
             logger.info(`Cloning ${repo.displayName}...`);
 
-            const { durationMs } = await measure(() => cloneRepository(
-                remoteUrl,
-                repoPath,
-                ({ method, stage, progress }) => {
+            const { durationMs } = await measure(() => cloneRepository({
+                cloneUrl: cloneUrlMaybeWithToken,
+                path: repoPath,
+                onProgress: ({ method, stage, progress }) => {
                     logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
                 }
-            ));
+            }));
             const cloneDuration_s = durationMs / 1000;
 
             process.stdout.write('\n');
@@ -628,6 +552,9 @@ export class RepoManager {
     }
 
     public async dispose() {
+        if (this.interval) {
+            clearInterval(this.interval);
+        }
         this.indexWorker.close();
         this.indexQueue.close();
         this.gcQueue.close();

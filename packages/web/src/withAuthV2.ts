@@ -20,7 +20,7 @@ interface OptionalAuthContext {
 interface RequiredAuthContext {
     user: User;
     org: Org;
-    role: Omit<OrgRole, 'GUEST'>;
+    role: Exclude<OrgRole, 'GUEST'>;
     prisma: PrismaClient;
 }
 

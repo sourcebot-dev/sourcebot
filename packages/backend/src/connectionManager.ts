@@ -28,6 +28,7 @@ export class ConnectionManager {
     private worker: Worker;
     private queue: Queue<JobPayload>;
     private logger = createLogger('connection-manager');
+    private interval?: NodeJS.Timeout;
 
     constructor(
         private db: PrismaClient,
@@ -71,7 +72,7 @@ export class ConnectionManager {
 
     public startScheduler() {
         this.logger.debug('Starting scheduler');
-        return setInterval(async () => {
+        this.interval = setInterval(async () => {
             const thresholdDate = new Date(Date.now() - this.settings.resyncConnectionIntervalMs);
             const connections = await this.db.connection.findMany({
                 where: {
@@ -364,6 +365,9 @@ export class ConnectionManager {
     }
 
     public dispose() {
+        if (this.interval) {
+            clearInterval(this.interval);
+        }
         this.worker.close();
         this.queue.close();
     }

@@ -54,3 +54,10 @@ export type DeepPartial<T> = T extends object ? {
 export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
 export type RepoWithConnections = Repo & { connections: (RepoToConnection & { connection: Connection })[] };
+
+
+export type RepoAuthCredentials = {
+    hostUrl?: string;
+    token: string;
+    cloneUrlWithToken: string;
+}

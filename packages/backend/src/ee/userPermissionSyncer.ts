@@ -1,4 +1,3 @@
-import { Octokit } from "@octokit/rest";
 import * as Sentry from "@sentry/node";
 import { PrismaClient, User, UserPermissionSyncJobStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
@@ -6,7 +5,7 @@ import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { env } from "../env.js";
-import { createOctokitFromOAuthToken, getReposForAuthenticatedUser } from "../github.js";
+import { createOctokitFromToken, getReposForAuthenticatedUser } from "../github.js";
 import { hasEntitlement } from "@sourcebot/shared";
 import { Settings } from "../types.js";
 
@@ -22,6 +21,7 @@ type UserPermissionSyncJob = {
 export class UserPermissionSyncer {
     private queue: Queue<UserPermissionSyncJob>;
     private worker: Worker<UserPermissionSyncJob>;
+    private interval?: NodeJS.Timeout;
 
     constructor(
         private db: PrismaClient,
@@ -46,7 +46,7 @@ export class UserPermissionSyncer {
 
         logger.debug('Starting scheduler');
 
-        return setInterval(async () => {
+        this.interval = setInterval(async () => {
             const thresholdDate = new Date(Date.now() - this.settings.experiment_userDrivenPermissionSyncIntervalMs);
 
             const users = await this.db.user.findMany({
@@ -102,6 +102,9 @@ export class UserPermissionSyncer {
     }
 
     public dispose() {
+        if (this.interval) {
+            clearInterval(this.interval);
+        }
         this.worker.close();
         this.queue.close();
     }
@@ -151,50 +154,61 @@ export class UserPermissionSyncer {
 
         logger.info(`Syncing permissions for user ${user.email}...`);
 
-        for (const account of user.accounts) {
-            const repoIds = await (async () => {
+        // Get a list of all repos that the user has access to from all connected accounts.
+        const repoIds = await (async () => {
+            const aggregatedRepoIds: Set<number> = new Set();
+
+            for (const account of user.accounts) {
                 if (account.provider === 'github') {
-                    const octokit = await createOctokitFromOAuthToken(account.access_token);
+                    if (!account.access_token) {
+                        throw new Error(`User '${user.email}' does not have an GitHub OAuth access token associated with their GitHub account.`);
+                    }
+
+                    const { octokit } = await createOctokitFromToken({
+                        token: account.access_token,
+                        url: env.AUTH_EE_GITHUB_BASE_URL,
+                    });
                     // @note: we only care about the private repos since we don't need to build a mapping
                     // for public repos.
                     // @see: packages/web/src/prisma.ts
-                    const repoIds = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
+                    const githubRepos = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
+                    const gitHubRepoIds = githubRepos.map(repo => repo.id.toString());
 
                     const repos = await this.db.repo.findMany({
                         where: {
                             external_codeHostType: 'github',
                             external_id: {
-                                in: repoIds,
+                                in: gitHubRepoIds,
                             }
                         }
                     });
 
-                    return repos.map(repo => repo.id);
+                    repos.forEach(repo => aggregatedRepoIds.add(repo.id));
                 }
+            }
 
-                return [];
-            })();
+            return Array.from(aggregatedRepoIds);
+        })();
 
-
-            await this.db.$transaction([
-                this.db.user.update({
-                    where: {
-                        id: user.id,
-                    },
-                    data: {
-                        accessibleRepos: {
-                            deleteMany: {},
-                        }
+        await this.db.$transaction([
+            this.db.user.update({
+                where: {
+                    id: user.id,
+                },
+                data: {
+                    accessibleRepos: {
+                        deleteMany: {},
                     }
-                }),
-                this.db.userToRepoPermission.createMany({
-                    data: repoIds.map(repoId => ({
-                        userId: user.id,
-                        repoId,
-                    }))
-                })
-            ]);
-        }
+                }
+            }),
+            this.db.userToRepoPermission.createMany({
+                data: repoIds.map(repoId => ({
+                    userId: user.id,
+                    repoId,
+                })),
+                skipDuplicates: true,
+            })
+        ]);
     }
 
     private async onJobCompleted(job: Job<UserPermissionSyncJob>) {
@@ -226,7 +240,7 @@ export class UserPermissionSyncer {
                 queue: QUEUE_NAME,
             }
         });
-        
+
         const errorMessage = (email: string) => `User permission sync job failed for user ${email}: ${err.message}`;
 
         if (job) {

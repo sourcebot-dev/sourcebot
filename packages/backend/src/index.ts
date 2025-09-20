@@ -74,33 +74,20 @@ const userPermissionSyncer = new UserPermissionSyncer(prisma, settings, redis);
 
 await repoManager.validateIndexedReposHaveShards();
 
-const connectionManagerInterval = connectionManager.startScheduler();
-const repoManagerInterval = repoManager.startScheduler();
-
-let repoPermissionSyncerInterval: NodeJS.Timeout | null = null;
-let userPermissionSyncerInterval: NodeJS.Timeout | null = null;
+connectionManager.startScheduler();
+repoManager.startScheduler();
 
 if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
     logger.error('Permission syncing is not supported in current plan. Please contact support@sourcebot.dev for assistance.');
     process.exit(1);
 }
 else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')) {
-    repoPermissionSyncerInterval = repoPermissionSyncer.startScheduler();
-    userPermissionSyncerInterval = userPermissionSyncer.startScheduler();
+    repoPermissionSyncer.startScheduler();
+    userPermissionSyncer.startScheduler();
 }
 
 const cleanup = async (signal: string) => {
     logger.info(`Recieved ${signal}, cleaning up...`);
-
-    if (userPermissionSyncerInterval) {
-        clearInterval(userPermissionSyncerInterval);
-    }
-    if (repoPermissionSyncerInterval) {
-        clearInterval(repoPermissionSyncerInterval);
-    }
-
-    clearInterval(connectionManagerInterval);
-    clearInterval(repoManagerInterval);
 
     connectionManager.dispose();
     repoManager.dispose();

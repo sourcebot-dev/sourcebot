@@ -1,17 +1,14 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, Repo, RepoPermissionSyncJobStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type";
-import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
-import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
-import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
+import { hasEntitlement } from "@sourcebot/shared";
 import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
-import { env } from "../env.js";
-import { createOctokitFromConfig, getUserIdsWithReadAccessToRepo } from "../github.js";
-import { RepoWithConnections, Settings } from "../types.js";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
-import { hasEntitlement } from "@sourcebot/shared";
+import { env } from "../env.js";
+import { createOctokitFromToken, getRepoCollaborators } from "../github.js";
+import { Settings } from "../types.js";
+import { getAuthCredentialsForRepo } from "../utils.js";
 
 type RepoPermissionSyncJob = {
     jobId: string;
@@ -25,6 +22,7 @@ const logger = createLogger('repo-permission-syncer');
 export class RepoPermissionSyncer {
     private queue: Queue<RepoPermissionSyncJob>;
     private worker: Worker<RepoPermissionSyncJob>;
+    private interval?: NodeJS.Timeout;
 
     constructor(
         private db: PrismaClient,
@@ -49,7 +47,7 @@ export class RepoPermissionSyncer {
 
         logger.debug('Starting scheduler');
 
-        return setInterval(async () => {
+        this.interval = setInterval(async () => {
             // @todo: make this configurable
             const thresholdDate = new Date(Date.now() - this.settings.experiment_repoDrivenPermissionSyncIntervalMs);
 
@@ -104,6 +102,9 @@ export class RepoPermissionSyncer {
     }
 
     public dispose() {
+        if (this.interval) {
+            clearInterval(this.interval);
+        }
         this.worker.close();
         this.queue.close();
     }
@@ -157,15 +158,17 @@ export class RepoPermissionSyncer {
 
         logger.info(`Syncing permissions for repo ${repo.displayName}...`);
 
-        const connection = getFirstConnectionWithToken(repo);
-        if (!connection) {
-            throw new Error(`No connection with token found for repo ${id}`);
+        const credentials = await getAuthCredentialsForRepo(repo, this.db, logger);
+        if (!credentials) {
+            throw new Error(`No credentials found for repo ${id}`);
         }
 
         const userIds = await (async () => {
-            if (connection.connectionType === 'github') {
-                const config = connection.config as unknown as GithubConnectionConfig;
-                const { octokit } = await createOctokitFromConfig(config, repo.orgId, this.db);
+            if (repo.external_codeHostType === 'github') {
+                const { octokit } = await createOctokitFromToken({
+                    token: credentials.token,
+                    url: credentials.hostUrl,
+                });
 
                 // @note: this is a bit of a hack since the displayName _might_ not be set..
                 // however, this property was introduced many versions ago and _should_ be set
@@ -176,7 +179,8 @@ export class RepoPermissionSyncer {
 
                 const [owner, repoName] = repo.displayName.split('/');
 
-                const githubUserIds = await getUserIdsWithReadAccessToRepo(owner, repoName, octokit);
+                const collaborators = await getRepoCollaborators(owner, repoName, octokit);
+                const githubUserIds = collaborators.map(collaborator => collaborator.id.toString());
 
                 const accounts = await this.db.account.findMany({
                     where: {
@@ -267,35 +271,4 @@ export class RepoPermissionSyncer {
             logger.error(errorMessage('unknown repo (id not found)'));
         }
     }
-}
-
-const getFirstConnectionWithToken = (repo: RepoWithConnections) => {
-    for (const { connection } of repo.connections) {
-        if (connection.connectionType === 'github') {
-            const config = connection.config as unknown as GithubConnectionConfig;
-            if (config.token) {
-                return connection;
-            }
-        }
-        if (connection.connectionType === 'gitlab') {
-            const config = connection.config as unknown as GitlabConnectionConfig;
-            if (config.token) {
-                return connection;
-            }
-        }
-        if (connection.connectionType === 'gitea') {
-            const config = connection.config as unknown as GiteaConnectionConfig;
-            if (config.token) {
-                return connection;
-            }
-        }
-        if (connection.connectionType === 'bitbucket') {
-            const config = connection.config as unknown as BitbucketConnectionConfig;
-            if (config.token) {
-                return connection;
-            }
-        }
-    }
-
-    return undefined;
 }

@@ -40,7 +40,7 @@ import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SEARCH_MODE_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { ApiKeyPayload, TenancyMode } from "./lib/types";
-import { withOptionalAuthV2 } from "./withAuthV2";
+import { withAuthV2, withOptionalAuthV2 } from "./withAuthV2";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -1017,31 +1017,22 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
         })
     ));
 
-export const flagReposForIndex = async (repoIds: number[], domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            await prisma.repo.updateMany({
-                where: {
-                    id: { in: repoIds },
-                    orgId: org.id,
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' ? {
-                        permittedUsers: {
-                            some: {
-                                userId: userId,
-                            }
-                        }
-                    } : {})
-                },
-                data: {
-                    repoIndexingStatus: RepoIndexingStatus.NEW,
-                }
-            });
-
-            return {
-                success: true,
+export const flagReposForIndex = async (repoIds: number[]) => sew(() =>
+    withAuthV2(async ({ org, prisma }) => {
+        await prisma.repo.updateMany({
+            where: {
+                id: { in: repoIds },
+                orgId: org.id,
+            },
+            data: {
+                repoIndexingStatus: RepoIndexingStatus.NEW,
             }
-        })
-    ));
+        });
+
+        return {
+            success: true,
+        }
+    }));
 
 export const deleteConnection = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
@@ -2213,7 +2204,7 @@ const parseConnectionConfig = (config: string) => {
         switch (connectionType) {
             case "gitea":
             case "github":
-            case "bitbucket": 
+            case "bitbucket":
             case "azuredevops": {
                 return {
                     numRepos: parsedConfig.repos?.length,

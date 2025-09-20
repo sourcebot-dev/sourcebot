@@ -5,9 +5,15 @@ import { env } from './env.js';
 type onProgressFn = (event: SimpleGitProgressEvent) => void;
 
 export const cloneRepository = async (
-    remoteUrl: URL,
-    path: string,
-    onProgress?: onProgressFn
+    {
+        cloneUrl,
+        path,
+        onProgress,
+    }: {
+        cloneUrl: string,
+        path: string,
+        onProgress?: onProgressFn
+    }
 ) => {
     try {
         await mkdir(path, { recursive: true });
@@ -19,7 +25,7 @@ export const cloneRepository = async (
         })
 
         await git.clone(
-            remoteUrl.toString(),
+            cloneUrl,
             path,
             [
                 "--bare",
@@ -42,9 +48,15 @@ export const cloneRepository = async (
 };
 
 export const fetchRepository = async (
-    remoteUrl: URL,
-    path: string,
-    onProgress?: onProgressFn
+    {
+        cloneUrl,
+        path,
+        onProgress,
+    }: {
+        cloneUrl: string,
+        path: string,
+        onProgress?: onProgressFn
+    }
 ) => {
     try {
         const git = simpleGit({
@@ -54,7 +66,7 @@ export const fetchRepository = async (
         })
 
         await git.fetch([
-            remoteUrl.toString(),
+            cloneUrl,
             "+refs/heads/*:refs/heads/*",
             "--prune",
             "--progress"
