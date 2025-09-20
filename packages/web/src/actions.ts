@@ -1,47 +1,46 @@
 'use server';
 
+import { getAuditService } from "@/ee/features/audit/factory";
 import { env } from "@/env.mjs";
+import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notAuthenticated, notFound, orgNotFound, secretAlreadyExists, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
-import { CodeHostType, isHttpError, isServiceError } from "@/lib/utils";
+import { CodeHostType, getOrgMetadata, isHttpError, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
-import { decrypt, encrypt, generateApiKey, hashSecret, getTokenFromConfig } from "@sourcebot/crypto";
-import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus, Org, ApiKey } from "@sourcebot/db";
+import { decrypt, encrypt, generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/crypto";
+import { ApiKey, ConnectionSyncStatus, Org, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
+import { createLogger } from "@sourcebot/logger";
+import { azuredevopsSchema } from "@sourcebot/schemas/v3/azuredevops.schema";
+import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
+import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
 import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
 import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
-import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
-import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
-import { azuredevopsSchema } from "@sourcebot/schemas/v3/azuredevops.schema";
-import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
-import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
+import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
+import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
+import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
+import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
+import { getPlan, hasEntitlement } from "@sourcebot/shared";
 import Ajv from "ajv";
 import { StatusCodes } from "http-status-codes";
 import { cookies, headers } from "next/headers";
 import { createTransport } from "nodemailer";
-import { auth } from "./auth";
 import { Octokit } from "octokit";
+import { auth } from "./auth";
 import { getConnection } from "./data/connection";
+import { getOrgFromDomain } from "./data/org";
+import { decrementOrgSeatCount, getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
 import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
+import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
+import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SEARCH_MODE_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
-import { TenancyMode, ApiKeyPayload } from "./lib/types";
-import { decrementOrgSeatCount, getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
-import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
-import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
-import { getPlan, hasEntitlement } from "@sourcebot/shared";
-import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
-import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
-import { createLogger } from "@sourcebot/logger";
-import { getAuditService } from "@/ee/features/audit/factory";
-import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
-import { getOrgMetadata } from "@/lib/utils";
-import { getOrgFromDomain } from "./data/org";
-import { withOptionalAuthV2 } from "./withAuthV2";
+import { ApiKeyPayload, TenancyMode } from "./lib/types";
+import { withAuthV2, withOptionalAuthV2 } from "./withAuthV2";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -640,7 +639,7 @@ export const getConnectionInfo = async (connectionId: number, domain: string) =>
         })));
 
 export const getRepos = async (filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) => sew(() =>
-    withOptionalAuthV2(async ({ org }) => {
+    withOptionalAuthV2(async ({ org, prisma }) => {
         const repos = await prisma.repo.findMany({
             where: {
                 orgId: org.id,
@@ -670,67 +669,65 @@ export const getRepos = async (filter: { status?: RepoIndexingStatus[], connecti
         }))
     }));
 
-export const getRepoInfoByName = async (repoName: string, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            // @note: repo names are represented by their remote url
-            // on the code host. E.g.,:
-            // - github.com/sourcebot-dev/sourcebot
-            // - gitlab.com/gitlab-org/gitlab
-            // - gerrit.wikimedia.org/r/mediawiki/extensions/OnionsPorFavor
-            // etc.
-            //
-            // For most purposes, repo names are unique within an org, so using
-            // findFirst is equivalent to findUnique. Duplicates _can_ occur when
-            // a repository is specified by its remote url in a generic `git`
-            // connection. For example:
-            //
-            // ```json
-            // {
-            //     "connections": {
-            //         "connection-1": {
-            //             "type": "github",
-            //             "repos": [
-            //                 "sourcebot-dev/sourcebot"
-            //             ]
-            //         },
-            //         "connection-2": {
-            //             "type": "git",
-            //             "url": "file:///tmp/repos/sourcebot"
-            //         }
-            //     }
-            // }
-            // ```
-            //
-            // In this scenario, both repos will be named "github.com/sourcebot-dev/sourcebot".
-            // We will leave this as an edge case for now since it's unlikely to happen in practice.
-            //
-            // @v4-todo: we could add a unique constraint on repo name + orgId to help de-duplicate
-            // these cases.
-            // @see: repoCompileUtils.ts
-            const repo = await prisma.repo.findFirst({
-                where: {
-                    name: repoName,
-                    orgId: org.id,
-                },
-            });
+export const getRepoInfoByName = async (repoName: string) => sew(() =>
+    withOptionalAuthV2(async ({ org, prisma }) => {
+        // @note: repo names are represented by their remote url
+        // on the code host. E.g.,:
+        // - github.com/sourcebot-dev/sourcebot
+        // - gitlab.com/gitlab-org/gitlab
+        // - gerrit.wikimedia.org/r/mediawiki/extensions/OnionsPorFavor
+        // etc.
+        //
+        // For most purposes, repo names are unique within an org, so using
+        // findFirst is equivalent to findUnique. Duplicates _can_ occur when
+        // a repository is specified by its remote url in a generic `git`
+        // connection. For example:
+        //
+        // ```json
+        // {
+        //     "connections": {
+        //         "connection-1": {
+        //             "type": "github",
+        //             "repos": [
+        //                 "sourcebot-dev/sourcebot"
+        //             ]
+        //         },
+        //         "connection-2": {
+        //             "type": "git",
+        //             "url": "file:///tmp/repos/sourcebot"
+        //         }
+        //     }
+        // }
+        // ```
+        //
+        // In this scenario, both repos will be named "github.com/sourcebot-dev/sourcebot".
+        // We will leave this as an edge case for now since it's unlikely to happen in practice.
+        //
+        // @v4-todo: we could add a unique constraint on repo name + orgId to help de-duplicate
+        // these cases.
+        // @see: repoCompileUtils.ts
+        const repo = await prisma.repo.findFirst({
+            where: {
+                name: repoName,
+                orgId: org.id,
+            },
+        });
 
-            if (!repo) {
-                return notFound();
-            }
+        if (!repo) {
+            return notFound();
+        }
 
-            return {
-                id: repo.id,
-                name: repo.name,
-                displayName: repo.displayName ?? undefined,
-                codeHostType: repo.external_codeHostType,
-                webUrl: repo.webUrl ?? undefined,
-                imageUrl: repo.imageUrl ?? undefined,
-                indexedAt: repo.indexedAt ?? undefined,
-                repoIndexingStatus: repo.repoIndexingStatus,
-            }
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
-    ));
+        return {
+            id: repo.id,
+            name: repo.name,
+            displayName: repo.displayName ?? undefined,
+            codeHostType: repo.external_codeHostType,
+            webUrl: repo.webUrl ?? undefined,
+            imageUrl: repo.imageUrl ?? undefined,
+            indexedAt: repo.indexedAt ?? undefined,
+            repoIndexingStatus: repo.repoIndexingStatus,
+        }
+    }));
 
 export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
     withAuth((userId) =>
@@ -780,143 +777,141 @@ export const createConnection = async (name: string, type: CodeHostType, connect
         }, OrgRole.OWNER)
     ));
 
-export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: string, domain: string): Promise<{ connectionId: number } | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            if (env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED !== 'true') {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "This feature is not enabled.",
-                } satisfies ServiceError;
-            }
+export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: string): Promise<{ connectionId: number } | ServiceError> => sew(() =>
+    withOptionalAuthV2(async ({ org, prisma }) => {
+        if (env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED !== 'true') {
+            return {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: "This feature is not enabled.",
+            } satisfies ServiceError;
+        }
 
-            // Parse repository URL to extract owner/repo
-            const repoInfo = (() => {
-                const url = repositoryUrl.trim();
-    
-                // Handle various GitHub URL formats
-                const patterns = [
-                    // https://github.com/owner/repo or https://github.com/owner/repo.git
-                    /^https?:\/\/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/,
-                    // github.com/owner/repo
-                    /^github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/,
-                    // owner/repo
-                    /^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/
-                ];
-                
-                for (const pattern of patterns) {
-                    const match = url.match(pattern);
-                    if (match) {
-                        return {
-                            owner: match[1],
-                            repo: match[2]
-                        };
-                    }
-                }
-                
-                return null;
-            })();
+        // Parse repository URL to extract owner/repo
+        const repoInfo = (() => {
+            const url = repositoryUrl.trim();
 
-            if (!repoInfo) {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "Invalid repository URL format. Please use 'owner/repo' or 'https://github.com/owner/repo' format.",
-                } satisfies ServiceError;
-            }
+            // Handle various GitHub URL formats
+            const patterns = [
+                // https://github.com/owner/repo or https://github.com/owner/repo.git
+                /^https?:\/\/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/,
+                // github.com/owner/repo
+                /^github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/,
+                // owner/repo
+                /^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/
+            ];
 
-            const { owner, repo } = repoInfo;
-            
-            // Use GitHub API to fetch repository information and get the external_id
-            const octokit = new Octokit({
-                auth: env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN
-            });
-
-            let githubRepo;
-            try {
-                const response = await octokit.rest.repos.get({
-                    owner,
-                    repo,
-                });
-                githubRepo = response.data;
-            } catch (error) {
-                if (isHttpError(error, 404)) {
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) {
                     return {
-                        statusCode: StatusCodes.NOT_FOUND,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: `Repository '${owner}/${repo}' not found or is private. Only public repositories can be added.`,
-                    } satisfies ServiceError;
+                        owner: match[1],
+                        repo: match[2]
+                    };
                 }
-
-                if (isHttpError(error, 403)) {
-                    return {
-                        statusCode: StatusCodes.FORBIDDEN,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: `Access to repository '${owner}/${repo}' is forbidden. Only public repositories can be added.`,
-                    } satisfies ServiceError;
-                }
-                
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: `Failed to fetch repository information: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                } satisfies ServiceError;
             }
 
-            if (githubRepo.private) {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "Only public repositories can be added.",
-                } satisfies ServiceError;
-            }
+            return null;
+        })();
 
-            // Check if this repository is already connected using the external_id
-            const existingRepo = await prisma.repo.findFirst({
-                where: {
-                    orgId: org.id,
-                    external_id: githubRepo.id.toString(),
-                    external_codeHostType: 'github',
-                    external_codeHostUrl: 'https://github.com',
-                }
+        if (!repoInfo) {
+            return {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: "Invalid repository URL format. Please use 'owner/repo' or 'https://github.com/owner/repo' format.",
+            } satisfies ServiceError;
+        }
+
+        const { owner, repo } = repoInfo;
+
+        // Use GitHub API to fetch repository information and get the external_id
+        const octokit = new Octokit({
+            auth: env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN
+        });
+
+        let githubRepo;
+        try {
+            const response = await octokit.rest.repos.get({
+                owner,
+                repo,
             });
-
-            if (existingRepo) {
+            githubRepo = response.data;
+        } catch (error) {
+            if (isHttpError(error, 404)) {
                 return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.CONNECTION_ALREADY_EXISTS,
-                    message: "This repository already exists.",
+                    statusCode: StatusCodes.NOT_FOUND,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Repository '${owner}/${repo}' not found or is private. Only public repositories can be added.`,
                 } satisfies ServiceError;
             }
 
-            const connectionName = `${owner}-${repo}-${Date.now()}`;
-
-            // Create GitHub connection config
-            const connectionConfig: GithubConnectionConfig = {
-                type: "github" as const,
-                repos: [`${owner}/${repo}`],
-                ...(env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN ? {
-                    token: {
-                        env: 'EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN'
-                    }
-                } : {})
-            };
-
-            const connection = await prisma.connection.create({
-                data: {
-                    orgId: org.id,
-                    name: connectionName,
-                    config: connectionConfig as unknown as Prisma.InputJsonValue,
-                    connectionType: 'github',
-                }
-            });
+            if (isHttpError(error, 403)) {
+                return {
+                    statusCode: StatusCodes.FORBIDDEN,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Access to repository '${owner}/${repo}' is forbidden. Only public repositories can be added.`,
+                } satisfies ServiceError;
+            }
 
             return {
-                connectionId: connection.id,
+                statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: `Failed to fetch repository information: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            } satisfies ServiceError;
+        }
+
+        if (githubRepo.private) {
+            return {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: "Only public repositories can be added.",
+            } satisfies ServiceError;
+        }
+
+        // Check if this repository is already connected using the external_id
+        const existingRepo = await prisma.repo.findFirst({
+            where: {
+                orgId: org.id,
+                external_id: githubRepo.id.toString(),
+                external_codeHostType: 'github',
+                external_codeHostUrl: 'https://github.com',
             }
-        }, OrgRole.GUEST), /* allowAnonymousAccess = */ true
-    ));
+        });
+
+        if (existingRepo) {
+            return {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.CONNECTION_ALREADY_EXISTS,
+                message: "This repository already exists.",
+            } satisfies ServiceError;
+        }
+
+        const connectionName = `${owner}-${repo}-${Date.now()}`;
+
+        // Create GitHub connection config
+        const connectionConfig: GithubConnectionConfig = {
+            type: "github" as const,
+            repos: [`${owner}/${repo}`],
+            ...(env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN ? {
+                token: {
+                    env: 'EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN'
+                }
+            } : {})
+        };
+
+        const connection = await prisma.connection.create({
+            data: {
+                orgId: org.id,
+                name: connectionName,
+                config: connectionConfig as unknown as Prisma.InputJsonValue,
+                connectionType: 'github',
+            }
+        });
+
+        return {
+            connectionId: connection.id,
+        }
+    }));
 
 export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
@@ -1022,24 +1017,22 @@ export const flagConnectionForSync = async (connectionId: number, domain: string
         })
     ));
 
-export const flagReposForIndex = async (repoIds: number[], domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            await prisma.repo.updateMany({
-                where: {
-                    id: { in: repoIds },
-                    orgId: org.id,
-                },
-                data: {
-                    repoIndexingStatus: RepoIndexingStatus.NEW,
-                }
-            });
-
-            return {
-                success: true,
+export const flagReposForIndex = async (repoIds: number[]) => sew(() =>
+    withAuthV2(async ({ org, prisma }) => {
+        await prisma.repo.updateMany({
+            where: {
+                id: { in: repoIds },
+                orgId: org.id,
+            },
+            data: {
+                repoIndexingStatus: RepoIndexingStatus.NEW,
             }
-        })
-    ));
+        });
+
+        return {
+            success: true,
+        }
+    }));
 
 export const deleteConnection = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
@@ -2004,75 +1997,73 @@ export const getSearchContexts = async (domain: string) => sew(() =>
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
-export const getRepoImage = async (repoId: number, domain: string): Promise<ArrayBuffer | ServiceError> => sew(async () => {
-    return await withAuth(async (userId) => {
-        return await withOrgMembership(userId, domain, async ({ org }) => {
-            const repo = await prisma.repo.findUnique({
-                where: {
-                    id: repoId,
-                    orgId: org.id,
-                },
-                include: {
-                    connections: {
-                        include: {
-                            connection: true,
-                        }
+export const getRepoImage = async (repoId: number): Promise<ArrayBuffer | ServiceError> => sew(async () => {
+    return await withOptionalAuthV2(async ({ org, prisma }) => {
+        const repo = await prisma.repo.findUnique({
+            where: {
+                id: repoId,
+                orgId: org.id,
+            },
+            include: {
+                connections: {
+                    include: {
+                        connection: true,
                     }
                 }
+            },
+        });
+
+        if (!repo || !repo.imageUrl) {
+            return notFound();
+        }
+
+        const authHeaders: Record<string, string> = {};
+        for (const { connection } of repo.connections) {
+            try {
+                if (connection.connectionType === 'github') {
+                    const config = connection.config as unknown as GithubConnectionConfig;
+                    if (config.token) {
+                        const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                        authHeaders['Authorization'] = `token ${token}`;
+                        break;
+                    }
+                } else if (connection.connectionType === 'gitlab') {
+                    const config = connection.config as unknown as GitlabConnectionConfig;
+                    if (config.token) {
+                        const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                        authHeaders['PRIVATE-TOKEN'] = token;
+                        break;
+                    }
+                } else if (connection.connectionType === 'gitea') {
+                    const config = connection.config as unknown as GiteaConnectionConfig;
+                    if (config.token) {
+                        const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                        authHeaders['Authorization'] = `token ${token}`;
+                        break;
+                    }
+                }
+            } catch (error) {
+                logger.warn(`Failed to get token for connection ${connection.id}:`, error);
+            }
+        }
+
+        try {
+            const response = await fetch(repo.imageUrl, {
+                headers: authHeaders,
             });
 
-            if (!repo || !repo.imageUrl) {
+            if (!response.ok) {
+                logger.warn(`Failed to fetch image from ${repo.imageUrl}: ${response.status}`);
                 return notFound();
             }
 
-            const authHeaders: Record<string, string> = {};
-            for (const { connection } of repo.connections) {
-                try {
-                    if (connection.connectionType === 'github') {
-                        const config = connection.config as unknown as GithubConnectionConfig;
-                        if (config.token) {
-                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
-                            authHeaders['Authorization'] = `token ${token}`;
-                            break;
-                        }
-                    } else if (connection.connectionType === 'gitlab') {
-                        const config = connection.config as unknown as GitlabConnectionConfig;
-                        if (config.token) {
-                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
-                            authHeaders['PRIVATE-TOKEN'] = token;
-                            break;
-                        }
-                    } else if (connection.connectionType === 'gitea') {
-                        const config = connection.config as unknown as GiteaConnectionConfig;
-                        if (config.token) {
-                            const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
-                            authHeaders['Authorization'] = `token ${token}`;
-                            break;
-                        }
-                    }
-                } catch (error) {
-                    logger.warn(`Failed to get token for connection ${connection.id}:`, error);
-                }
-            }
-
-            try {
-                const response = await fetch(repo.imageUrl, {
-                    headers: authHeaders,
-                });
-
-                if (!response.ok) {
-                    logger.warn(`Failed to fetch image from ${repo.imageUrl}: ${response.status}`);
-                    return notFound();
-                }
-
-                const imageBuffer = await response.arrayBuffer();
-                return imageBuffer;
-            } catch (error) {
-                logger.error(`Error proxying image for repo ${repoId}:`, error);
-                return notFound();
-            }
-        }, /* minRequiredRole = */ OrgRole.GUEST);
-    }, /* allowAnonymousAccess = */ true);
+            const imageBuffer = await response.arrayBuffer();
+            return imageBuffer;
+        } catch (error) {
+            logger.error(`Error proxying image for repo ${repoId}:`, error);
+            return notFound();
+        }
+    })
 });
 
 export const getAnonymousAccessStatus = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
@@ -2213,7 +2204,7 @@ const parseConnectionConfig = (config: string) => {
         switch (connectionType) {
             case "gitea":
             case "github":
-            case "bitbucket": 
+            case "bitbucket":
             case "azuredevops": {
                 return {
                     numRepos: parsedConfig.repos?.length,

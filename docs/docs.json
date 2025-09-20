@@ -46,6 +46,7 @@
                             "docs/features/code-navigation",
                             "docs/features/analytics",
                             "docs/features/mcp-server",
+                            "docs/features/permission-syncing",
                             {
                                 "group": "Agents",
                                 "tag": "experimental",

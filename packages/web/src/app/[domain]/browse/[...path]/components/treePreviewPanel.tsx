@@ -10,17 +10,16 @@ interface TreePreviewPanelProps {
     path: string;
     repoName: string;
     revisionName?: string;
-    domain: string;
 }
 
-export const TreePreviewPanel = async ({ path, repoName, revisionName, domain }: TreePreviewPanelProps) => {
+export const TreePreviewPanel = async ({ path, repoName, revisionName }: TreePreviewPanelProps) => {
     const [repoInfoResponse, folderContentsResponse] = await Promise.all([
-        getRepoInfoByName(repoName, domain),
+        getRepoInfoByName(repoName),
         getFolderContents({
             repoName,
             revisionName: revisionName ?? 'HEAD',
             path,
-        }, domain)
+        })
     ]);
 
     if (isServiceError(folderContentsResponse) || isServiceError(repoInfoResponse)) {

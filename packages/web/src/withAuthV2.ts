@@ -1,6 +1,6 @@
-import { prisma } from "@/prisma";
+import { prisma as __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
 import { hashSecret } from "@sourcebot/crypto";
-import { ApiKey, Org, OrgRole, User } from "@sourcebot/db";
+import { ApiKey, Org, OrgRole, PrismaClient, User } from "@sourcebot/db";
 import { headers } from "next/headers";
 import { auth } from "./auth";
 import { notAuthenticated, notFound, ServiceError } from "./lib/serviceError";
@@ -14,12 +14,14 @@ interface OptionalAuthContext {
     user?: User;
     org: Org;
     role: OrgRole;
+    prisma: PrismaClient;
 }
 
 interface RequiredAuthContext {
     user: User;
     org: Org;
-    role: Omit<OrgRole, 'GUEST'>;
+    role: Exclude<OrgRole, 'GUEST'>;
+    prisma: PrismaClient;
 }
 
 export const withAuthV2 = async <T>(fn: (params: RequiredAuthContext) => Promise<T>) => {
@@ -29,13 +31,13 @@ export const withAuthV2 = async <T>(fn: (params: RequiredAuthContext) => Promise
         return authContext;
     }
 
-    const { user, org, role } = authContext;
+    const { user, org, role, prisma } = authContext;
 
     if (!user || role === OrgRole.GUEST) {
         return notAuthenticated();
     }
 
-    return fn({ user, org, role });
+    return fn({ user, org, role, prisma });
 };
 
 export const withOptionalAuthV2 = async <T>(fn: (params: OptionalAuthContext) => Promise<T>) => {
@@ -44,7 +46,7 @@ export const withOptionalAuthV2 = async <T>(fn: (params: OptionalAuthContext) =>
         return authContext;
     }
 
-    const { user, org, role } = authContext;
+    const { user, org, role, prisma } = authContext;
 
     const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
     const orgMetadata = getOrgMetadata(org);
@@ -61,13 +63,13 @@ export const withOptionalAuthV2 = async <T>(fn: (params: OptionalAuthContext) =>
         return notAuthenticated();
     }
 
-    return fn({ user, org, role });
+    return fn({ user, org, role, prisma });
 };
 
 export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceError> => {
     const user = await getAuthenticatedUser();
 
-    const org = await prisma.org.findUnique({
+    const org = await __unsafePrisma.org.findUnique({
         where: {
             id: SINGLE_TENANT_ORG_ID,
         }
@@ -77,7 +79,7 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         return notFound("Organization not found");
     }
 
-    const membership = user ? await prisma.userToOrg.findUnique({
+    const membership = user ? await __unsafePrisma.userToOrg.findUnique({
         where: {
             orgId_userId: {
                 orgId: org.id,
@@ -86,10 +88,13 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         },
     }) : null;
 
+    const prisma = __unsafePrisma.$extends(userScopedPrismaClientExtension(user?.id)) as PrismaClient;
+
     return {
         user: user ?? undefined,
         org,
         role: membership?.role ?? OrgRole.GUEST,
+        prisma,
     };
 };
 
@@ -98,7 +103,7 @@ export const getAuthenticatedUser = async () => {
     const session = await auth();
     if (session) {
         const userId = session.user.id;
-        const user = await prisma.user.findUnique({
+        const user = await __unsafePrisma.user.findUnique({
             where: {
                 id: userId,
             }
@@ -116,7 +121,7 @@ export const getAuthenticatedUser = async () => {
         }
 
         // Attempt to find the user associated with this api key.
-        const user = await prisma.user.findUnique({
+        const user = await __unsafePrisma.user.findUnique({
             where: {
                 id: apiKey.createdById,
             },
@@ -127,7 +132,7 @@ export const getAuthenticatedUser = async () => {
         }
 
         // Update the last used at timestamp for this api key.
-        await prisma.apiKey.update({
+        await __unsafePrisma.apiKey.update({
             where: {
                 hash: apiKey.hash,
             },
@@ -152,7 +157,7 @@ const getVerifiedApiObject = async (apiKeyString: string): Promise<ApiKey | unde
     }
 
     const hash = hashSecret(parts[1]);
-    const apiKey = await prisma.apiKey.findUnique({
+    const apiKey = await __unsafePrisma.apiKey.findUnique({
         where: {
             hash,
         },

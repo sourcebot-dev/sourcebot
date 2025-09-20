@@ -41,29 +41,29 @@ enum ChatVisibility {
 }
 
 model Repo {
-  id                 Int                @id @default(autoincrement())
-  name               String // Full repo name, including the vcs hostname (ex. github.com/sourcebot-dev/sourcebot)
-  displayName        String? // Display name of the repo for UI (ex. sourcebot-dev/sourcebot)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-
-  /// When the repo was last indexed successfully.
-  indexedAt          DateTime?
+  id                 Int                    @id @default(autoincrement())
+  name               String /// Full repo name, including the vcs hostname (ex. github.com/sourcebot-dev/sourcebot)
+  displayName        String? /// Display name of the repo for UI (ex. sourcebot-dev/sourcebot)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  indexedAt          DateTime? /// When the repo was last indexed successfully.
   isFork             Boolean
   isArchived         Boolean
-  metadata           Json // For schema see repoMetadataSchema in packages/backend/src/types.ts
+  isPublic           Boolean                @default(false)
+  metadata           Json /// For schema see repoMetadataSchema in packages/backend/src/types.ts
   cloneUrl           String
   webUrl             String?
   connections        RepoToConnection[]
   imageUrl           String?
-  repoIndexingStatus RepoIndexingStatus @default(NEW)
+  repoIndexingStatus RepoIndexingStatus     @default(NEW)
 
-  // The id of the repo in the external service
-  external_id           String
-  // The type of the external service (e.g., github, gitlab, etc.)
-  external_codeHostType String
-  // The base url of the external service (e.g., https://github.com)
-  external_codeHostUrl  String
+  permittedUsers     UserToRepoPermission[]
+  permissionSyncJobs RepoPermissionSyncJob[]
+  permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
+
+  external_id           String /// The id of the repo in the external service
+  external_codeHostType String /// The type of the external service (e.g., github, gitlab, etc.)
+  external_codeHostUrl  String /// The base url of the external service (e.g., https://github.com)
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
@@ -74,12 +74,32 @@ model Repo {
   @@index([orgId])
 }
 
+enum RepoPermissionSyncJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model RepoPermissionSyncJob {
+  id          String                      @id @default(cuid())
+  status      RepoPermissionSyncJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  completedAt DateTime?
+
+  errorMessage String?
+
+  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
+}
+
 model SearchContext {
   id Int @id @default(autoincrement())
 
-  name  String
+  name        String
   description String?
-  repos Repo[]
+  repos       Repo[]
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
@@ -149,7 +169,7 @@ model AccountRequest {
 
   createdAt DateTime @default(now())
 
-  requestedBy User @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+  requestedBy   User   @relation(fields: [requestedById], references: [id], onDelete: Cascade)
   requestedById String @unique
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -171,7 +191,7 @@ model Org {
   apiKeys     ApiKey[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
-  metadata    Json?       // For schema see orgMetadataSchema in packages/web/src/types.ts
+  metadata    Json? // For schema see orgMetadataSchema in packages/web/src/types.ts
 
   memberApprovalRequired Boolean @default(true)
 
@@ -181,10 +201,10 @@ model Org {
 
   /// List of pending invites to this organization
   invites Invite[]
-  
+
   /// The invite id for this organization
   inviteLinkEnabled Boolean @default(false)
-  inviteLinkId String?
+  inviteLinkId      String?
 
   audits Audit[]
 
@@ -231,55 +251,53 @@ model Secret {
 }
 
 model ApiKey {
-  name            String
-  hash            String @id @unique
+  name String
+  hash String @id @unique
 
-  createdAt DateTime @default(now())
+  createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
-  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdById String
-
 }
 
 model Audit {
-  id String @id @default(cuid())
+  id        String   @id @default(cuid())
   timestamp DateTime @default(now())
-  
-  action String
-  actorId String
-  actorType String
-  targetId String
-  targetType String
+
+  action           String
+  actorId          String
+  actorType        String
+  targetId         String
+  targetType       String
   sourcebotVersion String
-  metadata Json?
+  metadata         Json?
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
   @@index([actorId, actorType, targetId, targetType, orgId])
-
   // Fast path for analytics queries – orgId is first because we assume most deployments are single tenant
   @@index([orgId, timestamp, action, actorId], map: "idx_audit_core_actions_full")
-
   // Fast path for analytics queries for a specific user
   @@index([actorId, timestamp], map: "idx_audit_actor_time_full")
 }
 
 // @see : https://authjs.dev/concepts/database-models#user
 model User {
-  id              String      @id @default(cuid())
+  id              String                 @id @default(cuid())
   name            String?
-  email           String?     @unique
+  email           String?                @unique
   hashedPassword  String?
   emailVerified   DateTime?
   image           String?
   accounts        Account[]
   orgs            UserToOrg[]
   accountRequest  AccountRequest?
+  accessibleRepos UserToRepoPermission[]
 
   /// List of pending invites that the user has created
   invites Invite[]
@@ -290,6 +308,41 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  permissionSyncJobs UserPermissionSyncJob[]
+  permissionSyncedAt DateTime?
+}
+
+enum UserPermissionSyncJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model UserPermissionSyncJob {
+  id          String                      @id @default(cuid())
+  status      UserPermissionSyncJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  completedAt DateTime?
+
+  errorMessage String?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+}
+
+model UserToRepoPermission {
+  createdAt DateTime @default(now())
+
+  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@id([repoId, userId])
 }
 
 // @see : https://authjs.dev/concepts/database-models#account
@@ -329,17 +382,17 @@ model Chat {
 
   name String?
 
-  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdById String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
   visibility ChatVisibility @default(PRIVATE)
-  isReadonly Boolean @default(false)
+  isReadonly Boolean        @default(false)
 
   messages Json // This is a JSON array of `Message` types from @ai-sdk/ui-utils.
 }
