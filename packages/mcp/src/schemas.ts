@@ -110,10 +110,6 @@ export const repositoryQuerySchema = z.object({
     repoDisplayName: z.string().optional(),
     repoCloneUrl: z.string(),
     webUrl: z.string().optional(),
-    linkedConnections: z.array(z.object({
-        id: z.number(),
-        name: z.string(),
-    })),
     imageUrl: z.string().optional(),
     indexedAt: z.coerce.date().optional(),
     repoIndexingStatus: z.nativeEnum(RepoIndexingStatus),

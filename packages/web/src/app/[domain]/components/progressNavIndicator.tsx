@@ -50,17 +50,13 @@ export const ProgressNavIndicator = () => {
                         <div className="flex flex-col gap-2 pl-4">
                             {
                                 inProgressRepos.slice(0, 10)
-                                .filter(item => item.linkedConnections.length > 0) // edge case: don't show repos that are orphaned and awaiting gc.
                                 .map(item => (
-                                    // Link to the first connection for the repo
-                                    <Link key={item.repoId} href={`/${domain}/connections/${item.linkedConnections[0].id}`} onClick={() => captureEvent('wa_progress_nav_job_pressed', {})}>
-                                        <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 
-                                                    rounded-md text-sm text-green-700 dark:text-green-300 
-                                                    border border-green-200/50 dark:border-green-800/50
-                                                    hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
-                                            <span className="font-medium truncate">{item.repoName}</span>
-                                        </div>
-                                    </Link>
+                                    <div key={item.repoId} className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 
+                                                rounded-md text-sm text-green-700 dark:text-green-300 
+                                                border border-green-200/50 dark:border-green-800/50
+                                                hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
+                                        <span className="font-medium truncate">{item.repoName}</span>
+                                    </div>
                                 )
                             )}
                             {inProgressRepos.length > 10 && (
