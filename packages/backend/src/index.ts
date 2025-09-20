@@ -2,7 +2,7 @@ import "./instrument.js";
 
 import { PrismaClient } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { loadConfig } from '@sourcebot/shared';
+import { hasEntitlement, loadConfig } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { Redis } from 'ioredis';
@@ -10,11 +10,11 @@ import path from 'path';
 import { ConnectionManager } from './connectionManager.js';
 import { DEFAULT_SETTINGS } from './constants.js';
 import { env } from "./env.js";
-import { RepoPermissionSyncer } from './repoPermissionSyncer.js';
+import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { PromClient } from './promClient.js';
 import { RepoManager } from './repoManager.js';
 import { AppContext } from "./types.js";
-import { UserPermissionSyncer } from "./userPermissionSyncer.js";
+import { UserPermissionSyncer } from "./ee/userPermissionSyncer.js";
 
 
 const logger = createLogger('backend-entrypoint');
@@ -76,9 +76,18 @@ await repoManager.validateIndexedReposHaveShards();
 
 const connectionManagerInterval = connectionManager.startScheduler();
 const repoManagerInterval = repoManager.startScheduler();
-const repoPermissionSyncerInterval = env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? repoPermissionSyncer.startScheduler() : null;
-const userPermissionSyncerInterval = env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? userPermissionSyncer.startScheduler() : null;
 
+let repoPermissionSyncerInterval: NodeJS.Timeout | null = null;
+let userPermissionSyncerInterval: NodeJS.Timeout | null = null;
+
+if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
+    logger.error('Permission syncing is not supported in current plan. Please contact support@sourcebot.dev for assistance.');
+    process.exit(1);
+}
+else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')) {
+    repoPermissionSyncerInterval = repoPermissionSyncer.startScheduler();
+    userPermissionSyncerInterval = userPermissionSyncer.startScheduler();
+}
 
 const cleanup = async (signal: string) => {
     logger.info(`Recieved ${signal}, cleaning up...`);

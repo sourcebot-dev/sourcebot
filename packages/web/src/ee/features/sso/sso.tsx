@@ -12,6 +12,7 @@ import Credentials from "next-auth/providers/credentials";
 import type { User as AuthJsUser } from "next-auth";
 import { onCreateUser } from "@/lib/authUtils";
 import { createLogger } from "@sourcebot/logger";
+import { hasEntitlement } from "@sourcebot/shared";
 
 const logger = createLogger('web-sso');
 
@@ -30,10 +31,10 @@ export const getSSOProviders = (): Provider[] => {
                     scope: [
                         'read:user',
                         'user:email',
-                        // Permission syncing requires the `repo` in order to fetch repositories
+                        // Permission syncing requires the `repo` scope in order to fetch repositories
                         // for the authenticated user.
                         // @see: https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user
-                        ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ?
+                        ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
                             ['repo'] :
                             []
                         ),

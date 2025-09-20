@@ -7,10 +7,11 @@ import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
-import { env } from "./env.js";
-import { createOctokitFromConfig, getUserIdsWithReadAccessToRepo } from "./github.js";
-import { RepoWithConnections } from "./types.js";
-import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "./constants.js";
+import { env } from "../env.js";
+import { createOctokitFromConfig, getUserIdsWithReadAccessToRepo } from "../github.js";
+import { RepoWithConnections } from "../types.js";
+import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
+import { hasEntitlement } from "@sourcebot/shared";
 
 type RepoPermissionSyncJob = {
     jobId: string;
@@ -41,6 +42,10 @@ export class RepoPermissionSyncer {
     }
 
     public startScheduler() {
+        if (!hasEntitlement('permission-syncing')) {
+            throw new Error('Permission syncing is not supported in current plan.');
+        }
+
         logger.debug('Starting scheduler');
 
         return setInterval(async () => {

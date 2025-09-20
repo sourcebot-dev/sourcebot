@@ -1035,7 +1035,7 @@ export const flagReposForIndex = async (repoIds: number[], domain: string) => se
                 where: {
                     id: { in: repoIds },
                     orgId: org.id,
-                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' ? {
                         permittedUsers: {
                             some: {
                                 userId: userId,

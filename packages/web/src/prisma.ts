@@ -1,6 +1,7 @@
 import 'server-only';
 import { env } from "@/env.mjs";
 import { Prisma, PrismaClient } from "@sourcebot/db";
+import { hasEntitlement } from "@sourcebot/shared";
 
 // @see: https://authjs.dev/getting-started/adapters/prisma
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
@@ -24,7 +25,7 @@ export const userScopedPrismaClientExtension = (userId?: string) => {
         (prisma) => {
             return prisma.$extends({
                 query: {
-                    ...(env.EXPERIMENT_PERMISSION_SYNC_ENABLED === 'true' ? {
+                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ? {
                         repo: {
                             $allOperations({ args, query }) {
                                 if ('where' in args) {

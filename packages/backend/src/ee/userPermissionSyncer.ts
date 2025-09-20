@@ -4,9 +4,10 @@ import { PrismaClient, User, UserPermissionSyncJobStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
-import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "./constants.js";
-import { env } from "./env.js";
-import { getReposThatAuthenticatedUserHasReadAccessTo } from "./github.js";
+import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
+import { env } from "../env.js";
+import { getReposThatAuthenticatedUserHasReadAccessTo } from "../github.js";
+import { hasEntitlement } from "@sourcebot/shared";
 
 const logger = createLogger('user-permission-syncer');
 
@@ -37,6 +38,10 @@ export class UserPermissionSyncer {
     }
 
     public startScheduler() {
+        if (!hasEntitlement('permission-syncing')) {
+            throw new Error('Permission syncing is not supported in current plan.');
+        }
+
         logger.debug('Starting scheduler');
 
         return setInterval(async () => {
