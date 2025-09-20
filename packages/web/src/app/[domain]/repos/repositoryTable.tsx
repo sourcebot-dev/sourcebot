@@ -37,21 +37,21 @@ export const RepositoryTable = ({
     const tableRepos = useMemo(() => {
         if (reposLoading) return Array(4).fill(null).map(() => ({
             repoId: 0,
-            name: "",
+            repoName: "",
+            repoDisplayName: "",
             repoIndexingStatus: RepoIndexingStatus.NEW,
             lastIndexed: "",
-            url: "",
             imageUrl: "",
         }));
 
         if (!repos) return [];
         return repos.map((repo): RepositoryColumnInfo => ({
             repoId: repo.repoId,
-            name: repo.repoDisplayName ?? repo.repoName,
+            repoName: repo.repoName,
+            repoDisplayName: repo.repoDisplayName ?? repo.repoName,
             imageUrl: repo.imageUrl,
             repoIndexingStatus: repo.repoIndexingStatus as RepoIndexingStatus,
             lastIndexed: repo.indexedAt?.toISOString() ?? "",
-            url: repo.webUrl ?? repo.repoCloneUrl,
         })).sort((a, b) => {
             const getPriorityFromStatus = (status: RepoIndexingStatus) => {
                 switch (status) {
@@ -119,7 +119,7 @@ export const RepositoryTable = ({
             <DataTable
                 columns={tableColumns}
                 data={tableRepos}
-                searchKey="name"
+                searchKey="repoDisplayName"
                 searchPlaceholder="Search repositories..."
                 headerActions={isAddReposButtonVisible && (
                     <Button

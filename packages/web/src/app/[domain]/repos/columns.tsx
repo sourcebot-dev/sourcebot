@@ -2,20 +2,22 @@
 
 import { Button } from "@/components/ui/button"
 import type { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, ExternalLink, Clock, Loader2, CheckCircle2, XCircle, Trash2, Check, ListFilter } from "lucide-react"
+import { ArrowUpDown, Clock, Loader2, CheckCircle2, XCircle, Trash2, Check, ListFilter } from "lucide-react"
 import Image from "next/image"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn, getRepoImageSrc } from "@/lib/utils"
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import Link from "next/link"
+import { getBrowsePath } from "../browse/hooks/useBrowseNavigation"
 
 export type RepositoryColumnInfo = {
     repoId: number
-    name: string
+    repoName: string;
+    repoDisplayName: string
     imageUrl?: string
     repoIndexingStatus: RepoIndexingStatus
     lastIndexed: string
-    url: string
 }
 
 const statusLabels = {
@@ -90,42 +92,38 @@ const StatusIndicator = ({ status }: { status: RepoIndexingStatus }) => {
 
 export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
     {
-        accessorKey: "name",
+        accessorKey: "repoDisplayName",
         header: 'Repository',
-        cell: ({ row }) => {
-            const repo = row.original
-            const url = repo.url
-            const isRemoteRepo = url.length > 0
-
+        cell: ({ row: { original: { repoId, repoName, repoDisplayName, imageUrl } } }) => {
             return (
                 <div className="flex flex-row items-center gap-3 py-2">
                     <div className="relative h-8 w-8 overflow-hidden rounded-md border bg-muted">
-                        {repo.imageUrl ? (
+                        {imageUrl ? (
                             <Image
-                                src={getRepoImageSrc(repo.imageUrl, repo.repoId, domain) || "/placeholder.svg"}
-                                alt={`${repo.name} logo`}
+                                src={getRepoImageSrc(imageUrl, repoId, domain) || "/placeholder.svg"}
+                                alt={`${repoDisplayName} logo`}
                                 width={32}
                                 height={32}
                                 className="object-cover"
                             />
                         ) : (
                             <div className="flex h-full w-full items-center justify-center bg-muted text-xs font-medium uppercase text-muted-foreground">
-                                {repo.name.charAt(0)}
+                                {repoDisplayName.charAt(0)}
                             </div>
                         )}
                     </div>
                     <div className="flex items-center gap-2">
-                        <span
-                            className={isRemoteRepo ? "font-medium text-primary hover:underline cursor-pointer" : "font-medium"}
-                            onClick={() => {
-                                if (isRemoteRepo) {
-                                    window.open(url, "_blank")
-                                }
-                            }}
+                        <Link
+                            className={"font-medium text-primary hover:underline cursor-pointer"}
+                            href={getBrowsePath({
+                                repoName: repoName,
+                                path: '/',
+                                pathType: 'tree',
+                                domain
+                            })}
                         >
-                            {repo.name.length > 40 ? `${repo.name.slice(0, 40)}...` : repo.name}
-                        </span>
-                        {isRemoteRepo && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />}
+                            {repoDisplayName.length > 40 ? `${repoDisplayName.slice(0, 40)}...` : repoDisplayName}
+                        </Link>
                     </div>
                 </div>
             )

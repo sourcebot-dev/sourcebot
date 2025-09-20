@@ -11,6 +11,7 @@ import Image from "next/image";
 import { FileIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import { RepositoryQuery } from "@/lib/types";
+import { useBrowseNavigation } from "../../browse/hooks/useBrowseNavigation";
 
 interface RepositoryCarouselProps {
     repos: RepositoryQuery[];
@@ -56,6 +57,8 @@ interface RepositoryBadgeProps {
 const RepositoryBadge = ({
     repo
 }: RepositoryBadgeProps) => {
+    const { navigateToPath } = useBrowseNavigation();
+
     const { repoIcon, displayName, repoLink } = (() => {
         const info = getCodeHostInfoForRepo({
             codeHostType: repo.codeHostType,
@@ -86,9 +89,11 @@ const RepositoryBadge = ({
     return (
         <div
             onClick={() => {
-                if (repoLink !== undefined) {
-                    window.open(repoLink, "_blank");
-                }
+                navigateToPath({
+                    repoName: repo.repoName,
+                    path: '/',
+                    pathType: 'tree',
+                });
             }}
             className={clsx("flex flex-row items-center gap-2 border rounded-md p-2 text-clip", {
                 "cursor-pointer": repoLink !== undefined,
