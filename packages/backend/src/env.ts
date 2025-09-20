@@ -54,6 +54,7 @@ export const env = createEnv({
         GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS: numberSchema.default(60 * 10),
 
         EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
+        AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

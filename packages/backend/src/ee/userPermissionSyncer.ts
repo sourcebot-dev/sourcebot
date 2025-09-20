@@ -6,8 +6,9 @@ import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { env } from "../env.js";
-import { getReposThatAuthenticatedUserHasReadAccessTo } from "../github.js";
+import { createOctokitFromOAuthToken, getReposForAuthenticatedUser } from "../github.js";
 import { hasEntitlement } from "@sourcebot/shared";
+import { Settings } from "../types.js";
 
 const logger = createLogger('user-permission-syncer');
 
@@ -24,6 +25,7 @@ export class UserPermissionSyncer {
 
     constructor(
         private db: PrismaClient,
+        private settings: Settings,
         redis: Redis,
     ) {
         this.queue = new Queue<UserPermissionSyncJob>(QUEUE_NAME, {
@@ -45,7 +47,7 @@ export class UserPermissionSyncer {
         logger.debug('Starting scheduler');
 
         return setInterval(async () => {
-            const thresholdDate = new Date(Date.now() - 1000 * 60 * 60 * 24);
+            const thresholdDate = new Date(Date.now() - this.settings.experiment_userDrivenPermissionSyncIntervalMs);
 
             const users = await this.db.user.findMany({
                 where: {
@@ -152,15 +154,11 @@ export class UserPermissionSyncer {
         for (const account of user.accounts) {
             const repoIds = await (async () => {
                 if (account.provider === 'github') {
-                    // @todo: we will need to provide some mechanism for the user to provide a custom
-                    // URL here. This will correspond to the host URL they are using for their GitHub
-                    // instance.
-                    const octokit = new Octokit({
-                        auth: account.access_token,
-                        // baseUrl: /* todo */
-                    });
-
-                    const repoIds = await getReposThatAuthenticatedUserHasReadAccessTo(octokit);
+                    const octokit = await createOctokitFromOAuthToken(account.access_token);
+                    // @note: we only care about the private repos since we don't need to build a mapping
+                    // for public repos.
+                    // @see: packages/web/src/prisma.ts
+                    const repoIds = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
 
                     const repos = await this.db.repo.findMany({
                         where: {

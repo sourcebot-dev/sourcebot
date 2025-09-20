@@ -69,8 +69,8 @@ const settings = await getSettings(env.CONFIG_PATH);
 
 const connectionManager = new ConnectionManager(prisma, settings, redis);
 const repoManager = new RepoManager(prisma, settings, redis, promClient, context);
-const repoPermissionSyncer = new RepoPermissionSyncer(prisma, redis);
-const userPermissionSyncer = new UserPermissionSyncer(prisma, redis);
+const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
+const userPermissionSyncer = new UserPermissionSyncer(prisma, settings, redis);
 
 await repoManager.validateIndexedReposHaveShards();
 

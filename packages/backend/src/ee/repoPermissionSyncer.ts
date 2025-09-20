@@ -9,7 +9,7 @@ import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { env } from "../env.js";
 import { createOctokitFromConfig, getUserIdsWithReadAccessToRepo } from "../github.js";
-import { RepoWithConnections } from "../types.js";
+import { RepoWithConnections, Settings } from "../types.js";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { hasEntitlement } from "@sourcebot/shared";
 
@@ -28,6 +28,7 @@ export class RepoPermissionSyncer {
 
     constructor(
         private db: PrismaClient,
+        private settings: Settings,
         redis: Redis,
     ) {
         this.queue = new Queue<RepoPermissionSyncJob>(QUEUE_NAME, {
@@ -50,7 +51,7 @@ export class RepoPermissionSyncer {
 
         return setInterval(async () => {
             // @todo: make this configurable
-            const thresholdDate = new Date(Date.now() - 1000 * 60 * 60 * 24);
+            const thresholdDate = new Date(Date.now() - this.settings.experiment_repoDrivenPermissionSyncIntervalMs);
 
             const repos = await this.db.repo.findMany({
                 // Repos need their permissions to be synced against the code host when...
@@ -166,8 +167,14 @@ export class RepoPermissionSyncer {
                 const config = connection.config as unknown as GithubConnectionConfig;
                 const { octokit } = await createOctokitFromConfig(config, repo.orgId, this.db);
 
-                // @nocheckin - need to handle when repo displayName is not set.
-                const [owner, repoName] = repo.displayName!.split('/');
+                // @note: this is a bit of a hack since the displayName _might_ not be set..
+                // however, this property was introduced many versions ago and _should_ be set
+                // on each connection sync. Let's throw an error just in case.
+                if (!repo.displayName) {
+                    throw new Error(`Repo ${id} does not have a displayName`);
+                }
+
+                const [owner, repoName] = repo.displayName.split('/');
 
                 const githubUserIds = await getUserIdsWithReadAccessToRepo(owner, repoName, octokit);
 

@@ -129,11 +129,10 @@ export const getUserIdsWithReadAccessToRepo = async (owner: string, repo: string
     return collaborators.map(collaborator => collaborator.id.toString());
 }
 
-export const getReposThatAuthenticatedUserHasReadAccessTo = async (octokit: Octokit) => {
+export const getReposForAuthenticatedUser = async (visibility: 'all' | 'private' | 'public' = 'all', octokit: Octokit) => {
     const fetchFn = () => octokit.paginate(octokit.repos.listForAuthenticatedUser, {
         per_page: 100,
-        // @todo: do we need to set a visibility to private only?
-        // visibility: 'private'
+        visibility,
     });
 
     const repos = await fetchWithRetry(fetchFn, `authenticated user`, logger);
@@ -162,6 +161,14 @@ export const createOctokitFromConfig = async (config: GithubConnectionConfig, or
         octokit,
         isAuthenticated: !!token,
     };
+}
+
+export const createOctokitFromOAuthToken = async (token: string | null): Promise<Octokit> => {
+    const apiUrl = env.AUTH_EE_GITHUB_BASE_URL ? `${env.AUTH_EE_GITHUB_BASE_URL}/api/v3` : "https://api.github.com";
+    return new Octokit({
+        auth: token,
+        baseUrl: apiUrl,
+    });
 }
 
 export const shouldExcludeRepo = ({

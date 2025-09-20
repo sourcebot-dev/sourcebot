@@ -15,7 +15,9 @@ export const DEFAULT_SETTINGS: Settings = {
     maxRepoGarbageCollectionJobConcurrency: 8,
     repoGarbageCollectionGracePeriodMs: 10 * 1000, // 10 seconds
     repoIndexTimeoutMs: 1000 * 60 * 60 * 2, // 2 hours
-    enablePublicAccess: false // deprected, use FORCE_ENABLE_ANONYMOUS_ACCESS instead
+    enablePublicAccess: false, // deprected, use FORCE_ENABLE_ANONYMOUS_ACCESS instead
+    experiment_repoDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24, // 24 hours
+    experiment_userDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24, // 24 hours
 }
 
 export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES = [
