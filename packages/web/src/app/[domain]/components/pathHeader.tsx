@@ -3,7 +3,7 @@
 import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
-import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation";
+import { getBrowsePath } from "../browse/hooks/useBrowseNavigation";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
 import { useCallback, useState, useMemo, useRef, useEffect } from "react";
 import { useToast } from "@/components/hooks/use-toast";
@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { CopyIconButton } from "./copyIconButton";
+import Link from "next/link";
+import { useDomain } from "@/hooks/useDomain";
 
 interface FileHeaderProps {
     path: string;
@@ -64,11 +66,11 @@ export const PathHeader = ({
         webUrl: repo.webUrl,
     });
 
-    const { navigateToPath } = useBrowseNavigation();
     const { toast } = useToast();
     const containerRef = useRef<HTMLDivElement>(null);
     const breadcrumbsRef = useRef<HTMLDivElement>(null);
     const [visibleSegmentCount, setVisibleSegmentCount] = useState<number | null>(null);
+    const domain = useDomain();
 
     // Create breadcrumb segments from file path
     const breadcrumbSegments = useMemo(() => {
@@ -179,16 +181,6 @@ export const PathHeader = ({
         return true;
     }, [path, toast]);
 
-    const onBreadcrumbClick = useCallback((segment: BreadcrumbSegment) => {
-        navigateToPath({
-            repoName: repo.name,
-            path: segment.fullPath,
-            pathType: segment.isLastSegment ? pathType : 'tree',
-            revisionName: branchDisplayName,
-        });
-    }, [repo.name, branchDisplayName, navigateToPath, pathType]);
-
-
     const renderSegmentWithHighlight = (segment: BreadcrumbSegment) => {
         if (!segment.highlightRange) {
             return segment.name;
@@ -224,17 +216,18 @@ export const PathHeader = ({
                 </>
             )}
 
-            <div
+            <Link
                 className={cn("font-medium cursor-pointer hover:underline", repoNameClassName)}
-                onClick={() => navigateToPath({
+                href={getBrowsePath({
                     repoName: repo.name,
-                    path: '',
+                    path: '/',
                     pathType: 'tree',
                     revisionName: branchDisplayName,
+                    domain,
                 })}
             >
                 {info?.displayName}
-            </div>
+            </Link>
             {branchDisplayName && (
                 <p
                     className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-[3px] flex items-center gap-0.5"
@@ -263,13 +256,21 @@ export const PathHeader = ({
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start" className="min-w-[200px]">
                                     {hiddenSegments.map((segment) => (
-                                        <DropdownMenuItem
+                                        <Link
+                                            href={getBrowsePath({
+                                                repoName: repo.name,
+                                                path: segment.fullPath,
+                                                pathType: segment.isLastSegment ? pathType : 'tree',
+                                                revisionName: branchDisplayName,
+                                                domain,
+                                            })}
+                                            className="font-mono text-sm hover:cursor cursor-pointer"
                                             key={segment.fullPath}
-                                            onClick={() => onBreadcrumbClick(segment)}
-                                            className="font-mono text-sm cursor-pointer"
                                         >
-                                            {renderSegmentWithHighlight(segment)}
-                                        </DropdownMenuItem>
+                                            <DropdownMenuItem className="hover:cursor cursor-pointer">
+                                                {renderSegmentWithHighlight(segment)}
+                                            </DropdownMenuItem>
+                                        </Link>
                                     ))}
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -281,14 +282,20 @@ export const PathHeader = ({
                             {(isFileIconVisible && index === visibleSegments.length - 1) && (
                                 <VscodeFileIcon fileName={segment.name} className="h-4 w-4 mr-1" />
                             )}
-                            <span
+                            <Link
                                 className={cn(
                                     "font-mono text-sm truncate cursor-pointer hover:underline",
                                 )}
-                                onClick={() => onBreadcrumbClick(segment)}
+                                href={getBrowsePath({
+                                    repoName: repo.name,
+                                    path: segment.fullPath,
+                                    pathType: segment.isLastSegment ? pathType : 'tree',
+                                    revisionName: branchDisplayName,
+                                    domain,
+                                })}
                             >
                                 {renderSegmentWithHighlight(segment)}
-                            </span>
+                            </Link>
                             {index < visibleSegments.length - 1 && (
                                 <ChevronRight className="h-3 w-3 mx-0.5 text-muted-foreground flex-shrink-0" />
                             )}
