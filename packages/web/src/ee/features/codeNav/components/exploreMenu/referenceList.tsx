@@ -117,9 +117,9 @@ export const ReferenceList = ({
                                             onClick={() => {
                                                 captureEvent('wa_explore_menu_reference_clicked', {});
                                             }}
+                                            key={index}
                                         >
                                             <ReferenceListItem
-                                                key={index}
                                                 lineContent={match.lineContent}
                                                 range={match.range}
                                                 language={file.language}
