@@ -78,7 +78,7 @@ export default async function LicensePage(props: LicensePageProps) {
                 </div>
 
                 <Button asChild>
-                    <a href={`mailto:support@sourcebot.dev?subject=License Support - ${licenseKey.id}&body=License ID: ${licenseKey.id}`}>
+                    <a href={`mailto:team@sourcebot.dev?subject=License Support - ${licenseKey.id}&body=License ID: ${licenseKey.id}`}>
                         <Mail className="h-4 w-4 mr-2" />
                         Contact Support
                     </a>
