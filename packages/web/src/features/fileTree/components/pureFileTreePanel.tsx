@@ -4,9 +4,9 @@ import { FileTreeNode as RawFileTreeNode } from "../actions";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import React, { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { FileTreeItemComponent } from "./fileTreeItemComponent";
-import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
-
+import { useDomain } from "@/hooks/useDomain";
 
 export type FileTreeNode = Omit<RawFileTreeNode, 'children'> & {
     isCollapsed: boolean;
@@ -41,8 +41,8 @@ interface PureFileTreePanelProps {
 export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps) => {
     const [tree, setTree] = useState<FileTreeNode>(buildCollapsibleTree(_tree));
     const scrollAreaRef = useRef<HTMLDivElement>(null);
-    const { navigateToPath } = useBrowseNavigation();
     const { repoName, revisionName } = useBrowseParams();
+    const domain = useDomain();
 
     // @note: When `_tree` changes, it indicates that a new tree has been loaded.
     // In that case, we need to rebuild the collapsible tree.
@@ -72,21 +72,6 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
         }
     }, [path, setIsCollapsed]);
 
-    const onNodeClicked = useCallback((node: FileTreeNode) => {
-        if (node.type === 'tree') {
-            setIsCollapsed(node.path, !node.isCollapsed);
-        }
-        else if (node.type === 'blob') {
-            navigateToPath({
-                repoName: repoName,
-                revisionName: revisionName,
-                path: node.path,
-                pathType: 'blob',
-            });
-
-        }
-    }, [setIsCollapsed, navigateToPath, repoName, revisionName]);
-
     const renderTree = useCallback((nodes: FileTreeNode, depth = 0): React.ReactNode => {
         return (
             <>
@@ -94,13 +79,35 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
                     return (
                         <React.Fragment key={node.path}>
                             <FileTreeItemComponent
+                                href={getBrowsePath({
+                                    repoName,
+                                    revisionName,
+                                    path: node.path,
+                                    pathType: node.type === 'tree' ? 'tree' : 'blob',
+                                    domain,
+                                })}
                                 key={node.path}
                                 node={node}
                                 isActive={node.path === path}
                                 depth={depth}
                                 isCollapsed={node.isCollapsed}
                                 isCollapseChevronVisible={node.type === 'tree'}
-                                onClick={() => onNodeClicked(node)}
+                                // Only collapse the tree when a regular click happens.
+                                // (i.e., not ctrl/cmd click).
+                                onClick={(e) => {
+                                    const isMetaOrCtrlKey = e.metaKey || e.ctrlKey;
+                                    if (node.type === 'tree' && !isMetaOrCtrlKey) {
+                                        setIsCollapsed(node.path, !node.isCollapsed);
+                                    }
+                                }}
+                                // @note: onNavigate _won't_ be called when the user ctrl/cmd clicks on a tree node.
+                                // So when a regular click happens, we want to prevent the navigation from happening
+                                // and instead collapse the tree.
+                                onNavigate={(e) => {
+                                    if (node.type === 'tree') {
+                                        e.preventDefault();
+                                    }
+                                }}
                                 parentRef={scrollAreaRef}
                             />
                             {node.children.length > 0 && !node.isCollapsed && renderTree(node, depth + 1)}
@@ -109,7 +116,7 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
                 })}
             </>
         );
-    }, [path, onNodeClicked]);
+    }, [path]);
 
     const renderedTree = useMemo(() => renderTree(tree), [tree, renderTree]);
 
