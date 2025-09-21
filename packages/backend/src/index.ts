@@ -78,7 +78,7 @@ connectionManager.startScheduler();
 repoManager.startScheduler();
 
 if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
-    logger.error('Permission syncing is not supported in current plan. Please contact support@sourcebot.dev for assistance.');
+    logger.error('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
     process.exit(1);
 }
 else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')) {
