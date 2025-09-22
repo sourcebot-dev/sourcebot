@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.7.2] - 2025-09-22
+
 ### Fixed
 - Fix support email. [#529](https://github.com/sourcebot-dev/sourcebot/pull/529)
 
