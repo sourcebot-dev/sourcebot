@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { useDomain } from "@/hooks/useDomain";
 import { orgNameSchema } from "@/lib/schemas";
 import { isServiceError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,7 +27,6 @@ interface ChangeOrgNameCardProps {
 }
 
 export function ChangeOrgNameCard({ orgName, currentUserRole }: ChangeOrgNameCardProps) {
-    const domain = useDomain()
     const { toast } = useToast()
     const captureEvent = useCaptureEvent();
     const router = useRouter();
@@ -42,7 +40,7 @@ export function ChangeOrgNameCard({ orgName, currentUserRole }: ChangeOrgNameCar
     const { isSubmitting } = form.formState;
 
     const onSubmit = useCallback(async (data: z.infer<typeof formSchema>) => {
-        const result = await updateOrgName(data.name, domain);
+        const result = await updateOrgName(data.name);
         if (isServiceError(result)) {
             toast({
                 description: `❌ Failed to update organization name. Reason: ${result.message}`,
@@ -57,7 +55,7 @@ export function ChangeOrgNameCard({ orgName, currentUserRole }: ChangeOrgNameCar
             captureEvent('wa_org_name_updated_success', {});
             router.refresh();
         }
-    }, [domain, router, toast, captureEvent]);
+    }, [router, toast, captureEvent]);
 
     return (
         <Card>
