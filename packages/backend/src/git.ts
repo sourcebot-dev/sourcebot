@@ -4,6 +4,38 @@ import { env } from './env.js';
 
 type onProgressFn = (event: SimpleGitProgressEvent) => void;
 
+// Helper function to prepare Azure DevOps authentication
+const prepareAzureDevOpsAuth = (cloneUrl: string) => {
+    // Check if this is an Azure DevOps URL
+    const isAzureDevOps = cloneUrl.includes('dev.azure.com') || cloneUrl.includes('devops');
+    
+    if (!isAzureDevOps) {
+        return { url: cloneUrl, authHeader: null };
+    }
+    
+    let token = '';
+    try {
+        const url = new (globalThis as any).URL(cloneUrl);
+        token = url.password;
+    } catch (e) {
+        return { url: cloneUrl, authHeader: null };
+    }
+    
+    if (!token) {
+        return { url: cloneUrl, authHeader: null };
+    }
+    
+    // For Azure DevOps, we need to remove the token from the URL and pass it as a header
+    const url = new (globalThis as any).URL(cloneUrl);
+    url.password = '';
+    const cleanUrl = url.toString();
+    
+    // Create the authorization header
+    const authHeader = `Authorization: Basic ${(globalThis as any).Buffer.from(`:${token}`).toString('base64')}`;
+    
+    return { url: cleanUrl, authHeader };
+};
+
 export const cloneRepository = async (
     {
         cloneUrl,
@@ -18,20 +50,34 @@ export const cloneRepository = async (
     try {
         await mkdir(path, { recursive: true });
 
+        
         const git = simpleGit({
             progress: onProgress,
         }).cwd({
             path,
         })
 
-        await git.clone(
-            cloneUrl,
-            path,
-            [
-                "--bare",
-            ]
-        );
+        const { url: cleanUrl, authHeader } = prepareAzureDevOpsAuth(cloneUrl);
 
+        if (authHeader) {
+            await git.clone(
+                cleanUrl,
+                path,
+                [
+                    "--bare",
+                    "-c",
+                    `http.extraHeader=${authHeader}`
+                ]
+            );
+        } else {
+            await git.clone(
+                cloneUrl,
+                path,
+                [
+                    "--bare",
+                ]
+            );
+        }
         await unsetGitConfig(path, ["remote.origin.url"]);
     } catch (error: unknown) {
         const baseLog = `Failed to clone repository: ${path}`;
@@ -65,12 +111,26 @@ export const fetchRepository = async (
             path: path,
         })
 
-        await git.fetch([
-            cloneUrl,
-            "+refs/heads/*:refs/heads/*",
-            "--prune",
-            "--progress"
-        ]);
+        const { url: cleanUrl, authHeader } = prepareAzureDevOpsAuth(cloneUrl);
+
+        if (authHeader) {
+            // Temporarily set git configuration
+            await git.addConfig('http.extraHeader', authHeader);
+
+            await git.fetch([
+                cleanUrl,
+                "+refs/heads/*:refs/heads/*",
+                "--prune",
+                "--progress"
+            ]);
+        } else {
+            await git.fetch([
+                cloneUrl,
+                "+refs/heads/*:refs/heads/*",
+                "--prune",
+                "--progress"
+            ]);
+        }
     } catch (error: unknown) {
         const baseLog = `Failed to fetch repository: ${path}`;
         if (env.SOURCEBOT_LOG_LEVEL !== "debug") {
