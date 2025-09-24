@@ -1,9 +1,9 @@
 'use server';
 
-import { getMe, sew, withAuth } from "@/actions";
+import { sew } from "@/sew";
 import { ServiceError, stripeClientNotInitialized, notFound } from "@/lib/serviceError";
-import { withOrgMembership } from "@/actions";
-import { prisma } from "@/prisma";
+import { withAuthV2 } from "@/withAuthV2";
+import { withMinimumOrgRole } from "@/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
 import { stripeClient } from "./stripe";
 import { isServiceError } from "@/lib/utils";
@@ -17,13 +17,8 @@ import { createLogger } from "@sourcebot/logger";
 const logger = createLogger('billing-actions');
 
 export const createOnboardingSubscription = async (domain: string) => sew(() =>
-    withAuth(async (userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const user = await getMe();
-            if (isServiceError(user)) {
-                return user;
-            }
-
+    withAuthV2(async ({ user, org, prisma, role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             if (!stripeClient) {
                 return stripeClientNotInitialized();
             }
@@ -108,68 +103,65 @@ export const createOnboardingSubscription = async (domain: string) => sew(() =>
                     message: "Failed to create subscription",
                 } satisfies ServiceError;
             }
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    ));
+        })));
 
 export const createStripeCheckoutSession = async (domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            if (!org.stripeCustomerId) {
-                return notFound();
-            }
+    withAuthV2(async ({ org, prisma }) => {
+        if (!org.stripeCustomerId) {
+            return notFound();
+        }
 
-            if (!stripeClient) {
-                return stripeClientNotInitialized();
-            }
+        if (!stripeClient) {
+            return stripeClientNotInitialized();
+        }
 
-            const orgMembers = await prisma.userToOrg.findMany({
-                where: {
-                    orgId: org.id,
-                },
-                select: {
-                    userId: true,
+        const orgMembers = await prisma.userToOrg.findMany({
+            where: {
+                orgId: org.id,
+            },
+            select: {
+                userId: true,
+            }
+        });
+        const numOrgMembers = orgMembers.length;
+
+        const origin = (await headers()).get('origin')!;
+        const prices = await stripeClient.prices.list({
+            product: env.STRIPE_PRODUCT_ID,
+            expand: ['data.product'],
+        });
+
+        const stripeSession = await stripeClient.checkout.sessions.create({
+            customer: org.stripeCustomerId as string,
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price: prices.data[0].id,
+                    quantity: numOrgMembers
                 }
-            });
-            const numOrgMembers = orgMembers.length;
+            ],
+            mode: 'subscription',
+            payment_method_collection: 'always',
+            success_url: `${origin}/${domain}/settings/billing`,
+            cancel_url: `${origin}/${domain}`,
+        });
 
-            const origin = (await headers()).get('origin')!;
-            const prices = await stripeClient.prices.list({
-                product: env.STRIPE_PRODUCT_ID,
-                expand: ['data.product'],
-            });
-
-            const stripeSession = await stripeClient.checkout.sessions.create({
-                customer: org.stripeCustomerId as string,
-                payment_method_types: ['card'],
-                line_items: [
-                    {
-                        price: prices.data[0].id,
-                        quantity: numOrgMembers
-                    }
-                ],
-                mode: 'subscription',
-                payment_method_collection: 'always',
-                success_url: `${origin}/${domain}/settings/billing`,
-                cancel_url: `${origin}/${domain}`,
-            });
-
-            if (!stripeSession.url) {
-                return {
-                    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                    errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
-                    message: "Failed to create checkout session",
-                } satisfies ServiceError;
-            }
-
+        if (!stripeSession.url) {
             return {
-                url: stripeSession.url,
-            }
-        })
-    ));
+                statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                errorCode: ErrorCode.STRIPE_CHECKOUT_ERROR,
+                message: "Failed to create checkout session",
+            } satisfies ServiceError;
+        }
+
+        return {
+            url: stripeSession.url,
+        }
+    }));
 
 export const getCustomerPortalSessionLink = async (domain: string): Promise<string | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
+    withAuthV2(async ({ org, role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             if (!org.stripeCustomerId) {
                 return notFound();
             }
@@ -185,31 +177,28 @@ export const getCustomerPortalSessionLink = async (domain: string): Promise<stri
             });
 
             return portalSession.url;
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    ));
+        })));
 
-export const getSubscriptionBillingEmail = async (domain: string): Promise<string | ServiceError> => sew(() =>
-    withAuth(async (userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            if (!org.stripeCustomerId) {
-                return notFound();
-            }
+export const getSubscriptionBillingEmail = async (_domain: string): Promise<string | ServiceError> => sew(() =>
+    withAuthV2(async ({ org }) => {
+        if (!org.stripeCustomerId) {
+            return notFound();
+        }
 
-            if (!stripeClient) {
-                return stripeClientNotInitialized();
-            }
+        if (!stripeClient) {
+            return stripeClientNotInitialized();
+        }
 
-            const customer = await stripeClient.customers.retrieve(org.stripeCustomerId);
-            if (!('email' in customer) || customer.deleted) {
-                return notFound();
-            }
-            return customer.email!;
-        })
-    ));
+        const customer = await stripeClient.customers.retrieve(org.stripeCustomerId);
+        if (!('email' in customer) || customer.deleted) {
+            return notFound();
+        }
+        return customer.email!;
+    }));
 
 export const changeSubscriptionBillingEmail = async (domain: string, newEmail: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
+    withAuthV2(async ({ org, role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             if (!org.stripeCustomerId) {
                 return notFound();
             }
@@ -225,24 +214,21 @@ export const changeSubscriptionBillingEmail = async (domain: string, newEmail: s
             return {
                 success: true,
             }
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    ));
+        })));
 
-export const getSubscriptionInfo = async (domain: string) => sew(() =>
-    withAuth(async (userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const subscription = await getSubscriptionForOrg(org.id, prisma);
+export const getSubscriptionInfo = async (_domain: string) => sew(() =>
+    withAuthV2(async ({ org, prisma }) => {
+        const subscription = await getSubscriptionForOrg(org.id, prisma);
 
-            if (isServiceError(subscription)) {
-                return subscription;
-            }
+        if (isServiceError(subscription)) {
+            return subscription;
+        }
 
-            return {
-                status: subscription.status,
-                plan: "Team",
-                seats: subscription.items.data[0].quantity!,
-                perSeatPrice: subscription.items.data[0].price.unit_amount! / 100,
-                nextBillingDate: subscription.current_period_end!,
-            }
-        })
-    ));
+        return {
+            status: subscription.status,
+            plan: "Team",
+            seats: subscription.items.data[0].quantity!,
+            perSeatPrice: subscription.items.data[0].price.unit_amount! / 100,
+            nextBillingDate: subscription.current_period_end!,
+        }
+    }));

@@ -10,17 +10,16 @@ import { useRouter } from "next/navigation"
 
 interface SubmitButtonProps {
     domain: string
-    userId: string
 }
 
-export function SubmitAccountRequestButton({ domain, userId }: SubmitButtonProps) {
+export function SubmitAccountRequestButton({ domain }: SubmitButtonProps) {
     const { toast } = useToast()
     const router = useRouter()
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const handleSubmit = async () => {
         setIsSubmitting(true)
-        const result = await createAccountRequest(userId, domain)
+        const result = await createAccountRequest();
         if (!isServiceError(result)) {
             if (result.existingRequest) {
                 toast({

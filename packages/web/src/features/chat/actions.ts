@@ -1,6 +1,7 @@
 'use server';
 
-import { sew, withAuth, withOrgMembership } from "@/actions";
+import { sew } from "@/sew";
+import { withAuthV2, withOptionalAuthV2 } from "@/withAuthV2";
 import { env } from "@/env.mjs";
 import { SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -32,181 +33,177 @@ import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from "./types";
 
 export const createChat = async (domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
+    withOptionalAuthV2(async ({ user, org, prisma }) => {
+        const userId = user?.id ?? SOURCEBOT_GUEST_USER_ID;
+        const isGuestUser = userId === SOURCEBOT_GUEST_USER_ID;
 
-            const isGuestUser = userId === SOURCEBOT_GUEST_USER_ID;
+        const chat = await prisma.chat.create({
+            data: {
+                orgId: org.id,
+                messages: [] as unknown as Prisma.InputJsonValue,
+                createdById: userId,
+                visibility: isGuestUser ? ChatVisibility.PUBLIC : ChatVisibility.PRIVATE,
+            },
+        });
 
-            const chat = await prisma.chat.create({
-                data: {
-                    orgId: org.id,
-                    messages: [] as unknown as Prisma.InputJsonValue,
-                    createdById: userId,
-                    visibility: isGuestUser ? ChatVisibility.PUBLIC : ChatVisibility.PRIVATE,
-                },
-            });
-
-            return {
-                id: chat.id,
-            }
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+        return {
+            id: chat.id,
+        }
+    })
 );
 
 export const getChatInfo = async ({ chatId }: { chatId: string }, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const chat = await prisma.chat.findUnique({
-                where: {
-                    id: chatId,
-                    orgId: org.id,
-                },
-            });
+    withOptionalAuthV2(async ({ user, org, prisma }) => {
+        const userId = user?.id ?? SOURCEBOT_GUEST_USER_ID;
+        const chat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
 
-            if (!chat) {
-                return notFound();
-            }
+        if (!chat) {
+            return notFound();
+        }
 
-            if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
-                return notFound();
-            }
+        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
+            return notFound();
+        }
 
-            return {
-                messages: chat.messages as unknown as SBChatMessage[],
-                visibility: chat.visibility,
-                name: chat.name,
-                isReadonly: chat.isReadonly,
-            };
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+        return {
+            messages: chat.messages as unknown as SBChatMessage[],
+            visibility: chat.visibility,
+            name: chat.name,
+            isReadonly: chat.isReadonly,
+        };
+    })
 );
 
 export const updateChatMessages = async ({ chatId, messages }: { chatId: string, messages: SBChatMessage[] }, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const chat = await prisma.chat.findUnique({
-                where: {
-                    id: chatId,
-                    orgId: org.id,
-                },
-            });
+    withOptionalAuthV2(async ({ user, org, prisma }) => {
+        const userId = user?.id ?? SOURCEBOT_GUEST_USER_ID;
+        const chat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
 
-            if (!chat) {
-                return notFound();
+        if (!chat) {
+            return notFound();
+        }
+
+        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
+            return notFound();
+        }
+
+        if (chat.isReadonly) {
+            return chatIsReadonly();
+        }
+
+        await prisma.chat.update({
+            where: {
+                id: chatId,
+            },
+            data: {
+                messages: messages as unknown as Prisma.InputJsonValue,
+            },
+        });
+
+        if (env.DEBUG_WRITE_CHAT_MESSAGES_TO_FILE) {
+            const chatDir = path.join(env.DATA_CACHE_DIR, 'chats');
+            if (!fs.existsSync(chatDir)) {
+                fs.mkdirSync(chatDir, { recursive: true });
             }
 
-            if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
-                return notFound();
-            }
+            const chatFile = path.join(chatDir, `${chatId}.json`);
+            fs.writeFileSync(chatFile, JSON.stringify(messages, null, 2));
+        }
 
-            if (chat.isReadonly) {
-                return chatIsReadonly();
-            }
-
-            await prisma.chat.update({
-                where: {
-                    id: chatId,
-                },
-                data: {
-                    messages: messages as unknown as Prisma.InputJsonValue,
-                },
-            });
-
-            if (env.DEBUG_WRITE_CHAT_MESSAGES_TO_FILE) {
-                const chatDir = path.join(env.DATA_CACHE_DIR, 'chats');
-                if (!fs.existsSync(chatDir)) {
-                    fs.mkdirSync(chatDir, { recursive: true });
-                }
-
-                const chatFile = path.join(chatDir, `${chatId}.json`);
-                fs.writeFileSync(chatFile, JSON.stringify(messages, null, 2));
-            }
-
-            return {
-                success: true,
-            }
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+        return {
+            success: true,
+        }
+    })
 );
 
 export const getUserChatHistory = async (domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const chats = await prisma.chat.findMany({
-                where: {
-                    orgId: org.id,
-                    createdById: userId,
-                },
-                orderBy: {
-                    updatedAt: 'desc',
-                },
-            });
+    withAuthV2(async ({ user, org, prisma }) => {
+        const chats = await prisma.chat.findMany({
+            where: {
+                orgId: org.id,
+                createdById: user.id,
+            },
+            orderBy: {
+                updatedAt: 'desc',
+            },
+        });
 
-            return chats.map((chat) => ({
-                id: chat.id,
-                createdAt: chat.createdAt,
-                name: chat.name,
-                visibility: chat.visibility,
-            }))
-        })
-    )
+        return chats.map((chat) => ({
+            id: chat.id,
+            createdAt: chat.createdAt,
+            name: chat.name,
+            visibility: chat.visibility,
+        }))
+    })
 );
 
 export const updateChatName = async ({ chatId, name }: { chatId: string, name: string }, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const chat = await prisma.chat.findUnique({
-                where: {
-                    id: chatId,
-                    orgId: org.id,
-                },
-            });
+    withOptionalAuthV2(async ({ user, org, prisma }) => {
+        const userId = user?.id ?? SOURCEBOT_GUEST_USER_ID;
+        const chat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
 
-            if (!chat) {
-                return notFound();
-            }
+        if (!chat) {
+            return notFound();
+        }
 
-            if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
-                return notFound();
-            }
+        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
+            return notFound();
+        }
 
-            if (chat.isReadonly) {
-                return chatIsReadonly();
-            }
+        if (chat.isReadonly) {
+            return chatIsReadonly();
+        }
 
-            await prisma.chat.update({
-                where: {
-                    id: chatId,
-                    orgId: org.id,
-                },
-                data: {
-                    name,
-                },
-            });
+        await prisma.chat.update({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+            data: {
+                name,
+            },
+        });
 
-            return {
-                success: true,
-            }
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+        return {
+            success: true,
+        }
+    })
 );
 
 export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageModelId, message }: { chatId: string, languageModelId: string, message: string }, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            // From the language model ID, attempt to find the
-            // corresponding config in `config.json`.
-            const languageModelConfig =
-                (await _getConfiguredLanguageModelsFull())
-                    .find((model) => model.model === languageModelId);
+    withOptionalAuthV2(async ({ org }) => {
+        // From the language model ID, attempt to find the
+        // corresponding config in `config.json`.
+        const languageModelConfig =
+            (await _getConfiguredLanguageModelsFull())
+                .find((model) => model.model === languageModelId);
 
-            if (!languageModelConfig) {
-                return serviceErrorResponse({
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: `Language model ${languageModelId} is not configured.`,
-                });
-            }
+        if (!languageModelConfig) {
+            return serviceErrorResponse({
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: `Language model ${languageModelId} is not configured.`,
+            });
+        }
 
-            const { model } = await _getAISDKLanguageModelAndOptions(languageModelConfig, org.id);
+        const { model } = await _getAISDKLanguageModelAndOptions(languageModelConfig, org.id);
 
-            const prompt = `Convert this question into a short topic title (max 50 characters). 
+        const prompt = `Convert this question into a short topic title (max 50 characters). 
 
 Rules:
 - Do NOT include question words (what, where, how, why, when, which)
@@ -222,63 +219,61 @@ Examples:
 
 User question: ${message}`;
 
-            const result = await generateText({
-                model,
-                prompt,
-            });
+        const result = await generateText({
+            model,
+            prompt,
+        });
 
-            await updateChatName({
-                chatId,
-                name: result.text,
-            }, domain);
+        await updateChatName({
+            chatId,
+            name: result.text,
+        }, domain);
 
-            return {
-                success: true,
-            }
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
-    )
+        return {
+            success: true,
+        }
+    })
 );
 
 export const deleteChat = async ({ chatId }: { chatId: string }, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const chat = await prisma.chat.findUnique({
-                where: {
-                    id: chatId,
-                    orgId: org.id,
-                },
-            });
+    withAuthV2(async ({ user, org, prisma }) => {
+        const userId = user.id;
+        const chat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
 
-            if (!chat) {
-                return notFound();
-            }
+        if (!chat) {
+            return notFound();
+        }
 
-            // Public chats cannot be deleted.
-            if (chat.visibility === ChatVisibility.PUBLIC) {
-                return {
-                    statusCode: StatusCodes.FORBIDDEN,
-                    errorCode: ErrorCode.UNEXPECTED_ERROR,
-                    message: 'You are not allowed to delete this chat.',
-                } satisfies ServiceError;
-            }
-
-            // Only the creator of a chat can delete it.
-            if (chat.createdById !== userId) {
-                return notFound();
-            }
-
-            await prisma.chat.delete({
-                where: {
-                    id: chatId,
-                    orgId: org.id,
-                },
-            });
-
+        // Public chats cannot be deleted.
+        if (chat.visibility === ChatVisibility.PUBLIC) {
             return {
-                success: true,
-            }
-        })
-    )
+                statusCode: StatusCodes.FORBIDDEN,
+                errorCode: ErrorCode.UNEXPECTED_ERROR,
+                message: 'You are not allowed to delete this chat.',
+            } satisfies ServiceError;
+        }
+
+        // Only the creator of a chat can delete it.
+        if (chat.createdById !== userId) {
+            return notFound();
+        }
+
+        await prisma.chat.delete({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
+
+        return {
+            success: true,
+        }
+    })
 );
 
 export const submitFeedback = async ({
@@ -290,54 +285,54 @@ export const submitFeedback = async ({
     messageId: string,
     feedbackType: 'like' | 'dislike'
 }, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const chat = await prisma.chat.findUnique({
-                where: {
-                    id: chatId,
-                    orgId: org.id,
-                },
-            });
+    withOptionalAuthV2(async ({ user, org, prisma }) => {
+        const userId = user?.id ?? SOURCEBOT_GUEST_USER_ID;
+        const chat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
 
-            if (!chat) {
-                return notFound();
+        if (!chat) {
+            return notFound();
+        }
+
+        // When a chat is private, only the creator can submit feedback.
+        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
+            return notFound();
+        }
+
+        const messages = chat.messages as unknown as SBChatMessage[];
+        const updatedMessages = messages.map(message => {
+            if (message.id === messageId && message.role === 'assistant') {
+                return {
+                    ...message,
+                    metadata: {
+                        ...message.metadata,
+                        feedback: [
+                            ...(message.metadata?.feedback ?? []),
+                            {
+                                type: feedbackType,
+                                timestamp: new Date().toISOString(),
+                                userId: userId,
+                            }
+                        ]
+                    }
+                } satisfies SBChatMessage;
             }
+            return message;
+        });
 
-            // When a chat is private, only the creator can submit feedback.
-            if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== userId) {
-                return notFound();
-            }
+        await prisma.chat.update({
+            where: { id: chatId },
+            data: {
+                messages: updatedMessages as unknown as Prisma.InputJsonValue,
+            },
+        });
 
-            const messages = chat.messages as unknown as SBChatMessage[];
-            const updatedMessages = messages.map(message => {
-                if (message.id === messageId && message.role === 'assistant') {
-                    return {
-                        ...message,
-                        metadata: {
-                            ...message.metadata,
-                            feedback: [
-                                ...(message.metadata?.feedback ?? []),
-                                {
-                                    type: feedbackType,
-                                    timestamp: new Date().toISOString(),
-                                    userId: userId,
-                                }
-                            ]
-                        }
-                    } satisfies SBChatMessage;
-                }
-                return message;
-            });
-
-            await prisma.chat.update({
-                where: { id: chatId },
-                data: {
-                    messages: updatedMessages as unknown as Prisma.InputJsonValue,
-                },
-            });
-
-            return { success: true };
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true)
+        return { success: true };
+    })
 );
 
 /**

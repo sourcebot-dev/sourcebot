@@ -1,16 +1,20 @@
 "use server";
 
-import { withAuth } from "@/actions";
 import { isServiceError } from "@/lib/utils";
-import { orgNotFound, ServiceError } from "@/lib/serviceError";
-import { sew } from "@/actions";
+import { notAuthenticated, orgNotFound, ServiceError } from "@/lib/serviceError";
+import { sew } from "@/sew";
 import { addUserToOrganization } from "@/lib/authUtils";
 import { prisma } from "@/prisma";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
+import { withOptionalAuthV2 } from "@/withAuthV2";
 
 export const joinOrganization = async (orgId: number, inviteLinkId?: string) => sew(async () =>
-    withAuth(async (userId) => {
+    withOptionalAuthV2(async ({ user }) => {
+        if (!user) {
+            return notAuthenticated();
+        }
+
         const org = await prisma.org.findUnique({
             where: {
                 id: orgId,
@@ -40,7 +44,7 @@ export const joinOrganization = async (orgId: number, inviteLinkId?: string) => 
             }
         }
 
-        const addUserToOrgRes = await addUserToOrganization(userId, org.id);
+        const addUserToOrgRes = await addUserToOrganization(user.id, org.id);
         if (isServiceError(addUserToOrgRes)) {
             return addUserToOrgRes;
         }

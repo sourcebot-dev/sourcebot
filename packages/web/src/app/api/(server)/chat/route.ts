@@ -1,4 +1,5 @@
-import { sew, withAuth, withOrgMembership } from "@/actions";
+import { sew } from "@/sew";
+import { withOptionalAuthV2 } from "@/withAuthV2";
 import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema, SBChatMessage, SearchScope } from "@/features/chat/types";
@@ -9,7 +10,6 @@ import { isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import * as Sentry from "@sentry/nextjs";
-import { OrgRole } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import {
     createUIMessageStream,
@@ -52,56 +52,54 @@ export async function POST(req: Request) {
     const { messages, id, selectedSearchScopes, languageModelId } = parsed.data;
 
     const response = await sew(() =>
-        withAuth((userId) =>
-            withOrgMembership(userId, domain, async ({ org }) => {
-                // Validate that the chat exists and is not readonly.
-                const chat = await prisma.chat.findUnique({
-                    where: {
-                        orgId: org.id,
-                        id,
-                    },
-                });
-
-                if (!chat) {
-                    return notFound();
-                }
-
-                if (chat.isReadonly) {
-                    return serviceErrorResponse({
-                        statusCode: StatusCodes.BAD_REQUEST,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: "Chat is readonly and cannot be edited.",
-                    });
-                }
-
-                // From the language model ID, attempt to find the
-                // corresponding config in `config.json`.
-                const languageModelConfig =
-                    (await _getConfiguredLanguageModelsFull())
-                        .find((model) => model.model === languageModelId);
-
-                if (!languageModelConfig) {
-                    return serviceErrorResponse({
-                        statusCode: StatusCodes.BAD_REQUEST,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: `Language model ${languageModelId} is not configured.`,
-                    });
-                }
-
-                const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig, org.id);
-
-                return createMessageStreamResponse({
-                    messages,
-                    id,
-                    selectedSearchScopes,
-                    model,
-                    modelName: languageModelConfig.displayName ?? languageModelConfig.model,
-                    modelProviderOptions: providerOptions,
-                    domain,
+        withOptionalAuthV2(async ({ org, prisma }) => {
+            // Validate that the chat exists and is not readonly.
+            const chat = await prisma.chat.findUnique({
+                where: {
                     orgId: org.id,
+                    id,
+                },
+            });
+
+            if (!chat) {
+                return notFound();
+            }
+
+            if (chat.isReadonly) {
+                return serviceErrorResponse({
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "Chat is readonly and cannot be edited.",
                 });
-            }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
-        )
+            }
+
+            // From the language model ID, attempt to find the
+            // corresponding config in `config.json`.
+            const languageModelConfig =
+                (await _getConfiguredLanguageModelsFull())
+                    .find((model) => model.model === languageModelId);
+
+            if (!languageModelConfig) {
+                return serviceErrorResponse({
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Language model ${languageModelId} is not configured.`,
+                });
+            }
+
+            const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig, org.id);
+
+            return createMessageStreamResponse({
+                messages,
+                id,
+                selectedSearchScopes,
+                model,
+                modelName: languageModelConfig.displayName ?? languageModelConfig.model,
+                modelProviderOptions: providerOptions,
+                domain,
+                orgId: org.id,
+            });
+        })
     )
 
     if (isServiceError(response)) {

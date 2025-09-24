@@ -5,7 +5,7 @@ import { fileNotFound, ServiceError, unexpectedError } from "../../lib/serviceEr
 import { FileSourceRequest, FileSourceResponse } from "./types";
 import { isServiceError } from "../../lib/utils";
 import { search } from "./searchApi";
-import { sew } from "@/actions";
+import { sew } from "@/sew";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 // @todo (bkellam) : We should really be using `git show <hash>:<path>` to fetch file contents here.
 // This will allow us to support permalinks to files at a specific revision that may not be indexed

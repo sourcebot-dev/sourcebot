@@ -1,6 +1,5 @@
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
-import { auth } from "@/auth"
 import { SubmitAccountRequestButton } from "./submitAccountRequestButton"
 
 interface SubmitJoinRequestProps {
@@ -8,13 +7,6 @@ interface SubmitJoinRequestProps {
 }
 
 export const SubmitJoinRequest = async ({ domain }: SubmitJoinRequestProps) => {
-    const session = await auth()
-    const userId = session?.user?.id
-
-    if (!userId) {
-        return null
-    }
-
     return (
         <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-6">
             <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
@@ -45,7 +37,7 @@ export const SubmitJoinRequest = async ({ domain }: SubmitJoinRequestProps) => {
 
                     <div className="space-y-4">
                         <div className="flex justify-center">
-                            <SubmitAccountRequestButton domain={domain} userId={userId} />
+                            <SubmitAccountRequestButton domain={domain} />
                         </div>
                     </div>
                 </div>

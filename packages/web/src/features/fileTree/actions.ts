@@ -1,6 +1,6 @@
 'use server';
 
-import { sew } from '@/actions';
+import { sew } from "@/sew";
 import { env } from '@/env.mjs';
 import { notFound, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuthV2 } from '@/withAuthV2';

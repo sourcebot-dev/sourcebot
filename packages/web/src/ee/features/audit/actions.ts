@@ -1,9 +1,10 @@
 "use server";
 
-import { prisma } from "@/prisma";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
-import { sew, withAuth, withOrgMembership } from "@/actions";
+import { sew } from "@/sew";
+import { withAuthV2 } from "@/withAuthV2";
+import { withMinimumOrgRole } from "@/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { ServiceError } from "@/lib/serviceError";
@@ -13,16 +14,15 @@ import { AuditEvent } from "./types";
 const auditService = getAuditService();
 const logger = createLogger('audit-utils');
 
-export const createAuditAction = async (event: Omit<AuditEvent, 'sourcebotVersion' | 'orgId' | 'actor' | 'target'>, domain: string) => sew(async () =>
-  withAuth((userId) =>
-    withOrgMembership(userId, domain, async ({ org }) => {
-      await auditService.createAudit({ ...event, orgId: org.id, actor: { id: userId, type: "user" }, target: { id: org.id.toString(), type: "org" } })
-    }, /* minRequiredRole = */ OrgRole.MEMBER), /* allowAnonymousAccess = */ true)
+export const createAuditAction = async (event: Omit<AuditEvent, 'sourcebotVersion' | 'orgId' | 'actor' | 'target'>, _domain: string) => sew(async () =>
+  withAuthV2(async ({ user, org }) => {
+    await auditService.createAudit({ ...event, orgId: org.id, actor: { id: user.id, type: "user" }, target: { id: org.id.toString(), type: "org" } })
+  })
 );
 
-export const fetchAuditRecords = async (domain: string, apiKey: string | undefined = undefined) => sew(() =>
-  withAuth((userId) =>
-    withOrgMembership(userId, domain, async ({ org }) => {
+export const fetchAuditRecords = async (domain: string, _apiKey: string | undefined = undefined) => sew(() =>
+  withAuthV2(async ({ user, org, prisma, role }) =>
+    withMinimumOrgRole(role, OrgRole.OWNER, async () => {
       try {
         const auditRecords = await prisma.audit.findMany({
           where: {
@@ -36,7 +36,7 @@ export const fetchAuditRecords = async (domain: string, apiKey: string | undefin
         await auditService.createAudit({
           action: "audit.fetch",
           actor: {
-            id: userId,
+            id: user.id,
             type: "user"
           },
           target: {
@@ -55,5 +55,6 @@ export const fetchAuditRecords = async (domain: string, apiKey: string | undefin
             message: "Failed to fetch audit logs",
         } satisfies ServiceError;
       }
-    }, /* minRequiredRole = */ OrgRole.OWNER), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
+    })
+  )
 );

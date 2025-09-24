@@ -5,8 +5,6 @@ import { headers } from "next/headers";
 import { auth } from "./auth";
 import { notAuthenticated, notFound, ServiceError } from "./lib/serviceError";
 import { SINGLE_TENANT_ORG_ID } from "./lib/constants";
-import { StatusCodes } from "http-status-codes";
-import { ErrorCode } from "./lib/errorCodes";
 import { getOrgMetadata, isServiceError } from "./lib/utils";
 import { hasEntitlement } from "@sourcebot/shared";
 

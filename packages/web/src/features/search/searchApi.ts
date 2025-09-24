@@ -9,7 +9,7 @@ import { StatusCodes } from "http-status-codes";
 import { zoektSearchResponseSchema } from "./zoektSchema";
 import { SearchRequest, SearchResponse, SourceRange } from "./types";
 import { PrismaClient, Repo } from "@sourcebot/db";
-import { sew } from "@/actions";
+import { sew } from "@/sew";
 import { base64Decode } from "@sourcebot/shared";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 
