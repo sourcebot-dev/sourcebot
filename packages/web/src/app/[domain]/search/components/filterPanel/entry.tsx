@@ -52,7 +52,7 @@ export const Entry = ({
                 <div className="overflow-hidden flex-1 min-w-0">
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <p className="overflow-hidden text-ellipsis whitespace-nowrap truncate-start">{displayName}</p>
+                            <p className="overflow-hidden text-ellipsis whitespace-nowrap truncate-start"><span>{displayName}</span></p>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="max-w-sm">
                             <p className="font-mono text-sm break-all whitespace-pre-wrap">{displayName}</p>
