@@ -4,14 +4,24 @@ title: "Deployment guide"
 
 import SupportedPlatforms from '/snippets/platform-support.mdx'
 
-The following guide will walk you through the steps to deploy Sourcebot on your own infrastructure. Sourcebot is distributed as a [single docker container](/docs/overview#architecture) that can be deployed to a k8s cluster, a VM, or any platform that supports docker.
+Sourcebot is distributed as a [single docker container](/docs/overview#architecture) that can be deployed to a k8s cluster, a VM, or any platform that supports docker. The following guide will walk you through the steps to deploy Sourcebot locally using [Docker compose](https://docs.docker.com/compose).
 
 
-<Note>Hit an issue? Please let us know on [GitHub](https://github.com/sourcebot-dev/sourcebot/issues/new/choose) or by [emailing us](mailto:team@sourcebot.dev).</Note>
+<Note>Hit an issue? Please let us know on [GitHub](https://github.com/sourcebot-dev/sourcebot/issues/new) or by [emailing us](mailto:team@sourcebot.dev).</Note>
+
+## Walkthrough
+---
 
 <Steps>
     <Step title="Requirements">
-        - Docker -> use [Docker Desktop](https://www.docker.com/products/docker-desktop/) on Mac or Windows.
+        - docker & docker compose -> use [Docker Desktop](https://www.docker.com/products/docker-desktop/) on Mac or Windows.
+    </Step>
+    <Step title="Obtain the Docker Compose file">
+        Download the [docker-compose.yml](https://github.com/sourcebot-dev/sourcebot/blob/main/docker-compose.yml) file from the Sourcebot repository.
+
+        ```bash wrap icon="terminal"
+        curl -o docker-compose.yml https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/docker-compose.yml
+        ```
     </Step>
     <Step title="Create a config.json">
         Create a `config.json` file that tells Sourcebot which repositories to sync and index:
@@ -38,39 +48,23 @@ The following guide will walk you through the steps to deploy Sourcebot on your 
     <Step title="Launch your instance">
         <Warning>If you're deploying Sourcebot behind a domain, you must set the [AUTH_URL](/docs/configuration/environment-variables) environment variable.</Warning>
 
+        Launch your Sourcebot instance:
 
-        In the same directory as `config.json`, run the following command to start your instance:
-
-        ``` bash icon="terminal" Start the Sourcebot container
-        docker run \
-            -p 3000:3000 \
-            --pull=always \
-            --rm \
-            -v $(pwd):/data \
-            -e CONFIG_PATH=/data/config.json \
-            --name sourcebot \
-            ghcr.io/sourcebot-dev/sourcebot:latest
+        ```bash wrap icon="terminal"
+        docker compose up -d
         ```
-
-        <Accordion title="Details">
-            **This command**:
-                - pulls the latest version of the `sourcebot` docker image.
-                - mounts the working directory to `/data` in the container to allow Sourcebot to persist data across restarts, and to access the `config.json`. In your local directory, you should see a `.sourcebot` folder created that contains all persistent data.
-                - runs any pending database migrations.
-                - starts up all services, including the webserver exposed on port 3000.
-                - reads `config.json` and starts syncing.
-        </Accordion>
-
     </Step>
 
     <Step title="Complete onboarding">
-        Navigate to `http://localhost:3000` and complete the onboarding flow.
+        Navigate to [http://localhost:3000](http://localhost:3000) and complete the onboarding flow.
     </Step>
 
     <Step title="Done">
         You're all set! If you'd like to setup [Ask Sourcebot](/docs/features/ask/overview), configure a language model [provider](/docs/configuration/language-model-providers).
     </Step>
 </Steps>
+
+Checkout the [configuration docs](/docs/configuration/environment-variables) to learn more about how to configure your deployment.
 
 ## Next steps
 ---
