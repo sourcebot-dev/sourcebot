@@ -180,6 +180,7 @@ const initSingleTenancy = async () => {
                     name: SINGLE_TENANT_ORG_NAME,
                     domain: SINGLE_TENANT_ORG_DOMAIN,
                     inviteLinkId: crypto.randomUUID(),
+                    memberApprovalRequired: env.MEMBER_APPROVAL_REQUIRED === 'true',
                 }
             });
         } else if (!org.inviteLinkId) {
@@ -218,6 +219,17 @@ const initSingleTenancy = async () => {
                 data: { metadata: mergedMetadata },
             });
         }
+    }
+
+    // Apply MEMBER_APPROVAL_REQUIRED environment variable setting
+    const memberApprovalRequired = env.MEMBER_APPROVAL_REQUIRED === 'true';
+    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+    if (org) {
+        await prisma.org.update({
+            where: { id: org.id },
+            data: { memberApprovalRequired },
+        });
+        logger.info(`Member approval required set to ${memberApprovalRequired} via MEMBER_APPROVAL_REQUIRED environment variable`);
     }
 
     // Load any connections defined declaratively in the config file.
