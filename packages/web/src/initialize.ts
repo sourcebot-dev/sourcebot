@@ -131,6 +131,19 @@ const syncDeclarativeConfig = async (configPath: string) => {
         }
     }
 
+    // Apply FORCE_MEMBER_APPROVAL_REQUIRED environment variable setting
+    if (env.FORCE_MEMBER_APPROVAL_REQUIRED !== undefined) {
+        const forceMemberApprovalRequired = env.FORCE_MEMBER_APPROVAL_REQUIRED === 'true';
+        const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+        if (org) {
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { memberApprovalRequired: forceMemberApprovalRequired },
+            });
+            logger.info(`Member approval required set to ${forceMemberApprovalRequired} via FORCE_MEMBER_APPROVAL_REQUIRED environment variable`);
+        }
+    }
+
     await syncConnections(config.connections);
     await syncSearchContexts({
         contexts: config.contexts,
@@ -180,6 +193,9 @@ const initSingleTenancy = async () => {
                     name: SINGLE_TENANT_ORG_NAME,
                     domain: SINGLE_TENANT_ORG_DOMAIN,
                     inviteLinkId: crypto.randomUUID(),
+                    memberApprovalRequired: env.FORCE_MEMBER_APPROVAL_REQUIRED === 'true' ? true : 
+                                          env.FORCE_MEMBER_APPROVAL_REQUIRED === 'false' ? false : 
+                                          true, // default to true if FORCE_MEMBER_APPROVAL_REQUIRED is not set
                 }
             });
         } else if (!org.inviteLinkId) {
@@ -217,6 +233,19 @@ const initSingleTenancy = async () => {
                 where: { id: org.id },
                 data: { metadata: mergedMetadata },
             });
+        }
+    }
+
+    // Apply FORCE_MEMBER_APPROVAL_REQUIRED environment variable setting
+    if (env.FORCE_MEMBER_APPROVAL_REQUIRED !== undefined) {
+        const forceMemberApprovalRequired = env.FORCE_MEMBER_APPROVAL_REQUIRED === 'true';
+        const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+        if (org) {
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { memberApprovalRequired: forceMemberApprovalRequired },
+            });
+            logger.info(`Member approval required set to ${forceMemberApprovalRequired} via FORCE_MEMBER_APPROVAL_REQUIRED environment variable`);
         }
     }
 

@@ -24,6 +24,7 @@ export async function OrganizationAccessSettings() {
     const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
 
     const forceEnableAnonymousAccess = env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true';
+    const forceMemberApprovalRequired = env.FORCE_MEMBER_APPROVAL_REQUIRED;
 
     return (
         <div className="space-y-6">
@@ -37,6 +38,7 @@ export async function OrganizationAccessSettings() {
                 memberApprovalRequired={org.memberApprovalRequired}
                 inviteLinkEnabled={org.inviteLinkEnabled}
                 inviteLink={inviteLink}
+                forceMemberApprovalRequired={forceMemberApprovalRequired}
             />
         </div>
     )
