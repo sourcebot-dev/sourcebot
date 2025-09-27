@@ -473,7 +473,7 @@ export interface AzureDevOpsConnectionConfig {
   /**
    * The type of Azure DevOps deployment
    */
-  deploymentType?: "cloud" | "server";
+  deploymentType: "cloud" | "server";
   /**
    * Use legacy TFS path format (/tfs) in API URLs. Required for older TFS installations (TFS 2018 and earlier). When true, API URLs will include /tfs in the path (e.g., https://server/tfs/collection/_apis/...).
    */

@@ -1,16 +1,19 @@
 import { CheckRepoActions, GitConfigScope, simpleGit, SimpleGitProgressEvent } from 'simple-git';
 import { mkdir } from 'node:fs/promises';
 import { env } from './env.js';
+import { doesHaveEmbeddedToken } from './utils.js';
 
 type onProgressFn = (event: SimpleGitProgressEvent) => void;
 
 export const cloneRepository = async (
     {
         cloneUrl,
+        authHeader,
         path,
         onProgress,
     }: {
         cloneUrl: string,
+        authHeader?: string,
         path: string,
         onProgress?: onProgressFn
     }
@@ -24,13 +27,29 @@ export const cloneRepository = async (
             path,
         })
 
-        await git.clone(
-            cloneUrl,
-            path,
-            [
-                "--bare",
-            ]
-        );
+        if (authHeader) {
+            if (doesHaveEmbeddedToken(cloneUrl)) {
+                throw new Error("Cannot use auth header when clone URL has embedded token");
+            }
+
+            await git.clone(
+                cloneUrl,
+                path,
+                [
+                    "--bare",
+                    "-c",
+                    `http.extraHeader=${authHeader}`,
+                ]
+            )
+        } else {
+            await git.clone(
+                cloneUrl,
+                path,
+                [
+                    "--bare",
+                ]
+            )
+        }
 
         await unsetGitConfig(path, ["remote.origin.url"]);
     } catch (error: unknown) {
@@ -50,10 +69,12 @@ export const cloneRepository = async (
 export const fetchRepository = async (
     {
         cloneUrl,
+        authHeader,
         path,
         onProgress,
     }: {
         cloneUrl: string,
+        authHeader?: string,
         path: string,
         onProgress?: onProgressFn
     }
@@ -64,6 +85,14 @@ export const fetchRepository = async (
         }).cwd({
             path: path,
         })
+
+        if (authHeader) {
+            if (doesHaveEmbeddedToken(cloneUrl)) {
+                throw new Error("Cannot use auth header when clone URL has embedded token");
+            }
+
+            await git.addConfig("http.extraHeader", authHeader);
+        }
 
         await git.fetch([
             cloneUrl,

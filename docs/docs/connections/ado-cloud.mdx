@@ -15,6 +15,7 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "cloud",
             "repos": [
                 "organizationName/projectName/repoName",
                 "organizationName/projectName/repoName2
@@ -26,6 +27,7 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "cloud",
             "orgs": [
                 "organizationName",
                 "organizationName2
@@ -37,6 +39,7 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "cloud",
             "projects": [
                 "organizationName/projectName",
                 "organizationName/projectName2"
@@ -48,6 +51,7 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "cloud",
             // Include all repos in my-org...
             "orgs": [
                 "my-org"
@@ -91,6 +95,7 @@ Next, provide the access token via the `token` property, either as an environmen
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "cloud",
             "token": {
                 // note: this env var can be named anything. It
                 // doesn't need to be `ADO_TOKEN`.
@@ -121,6 +126,7 @@ Next, provide the access token via the `token` property, either as an environmen
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "cloud",
             "token": {
                 "secret": "mysecret"
             }

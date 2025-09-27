@@ -193,19 +193,31 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
             const config = connection.config as unknown as AzureDevOpsConnectionConfig;
             if (config.token) {
                 const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
-                return {
-                    hostUrl: config.url,
-                    token,
-                    cloneUrlWithToken: createGitCloneUrlWithToken(
-                        repo.cloneUrl,
-                        {
-                            // @note: If we don't provide a username, the password will be set as the username. This seems to work
-                            // for ADO cloud but not for ADO server. To fix this, we set a placeholder username to ensure the password
-                            // is set correctly
-                            username: 'user',
-                            password: token
-                        }
-                    ),
+
+                // For ADO server, multiple auth schemes may be supported. If the ADO deployment supports NTLM, the git clone will default
+                // to this over basic auth. As a result, we cannot embed the token in the clone URL and must force basic auth by passing in the token
+                // appropriately in the header. To do this, we set the authToken field here
+                if (config.deploymentType === 'server') {
+                    return {
+                        hostUrl: config.url,
+                        token,
+                        authToken: "Authorization: Basic " + Buffer.from(`:${token}`).toString('base64')
+                    }
+                } else {
+                    return {
+                        hostUrl: config.url,
+                        token,
+                        cloneUrlWithToken: createGitCloneUrlWithToken(
+                            repo.cloneUrl,
+                            {
+                                // @note: If we don't provide a username, the password will be set as the username. This seems to work
+                                // for ADO cloud but not for ADO server. To fix this, we set a placeholder username to ensure the password
+                                // is set correctly
+                                username: 'user',
+                                password: token
+                            }
+                        ),
+                    }
                 }
             }
         }
@@ -228,4 +240,9 @@ const createGitCloneUrlWithToken = (cloneUrl: string, credentials: { username?: 
         url.password = credentials.password;
     }
     return url.toString();
+}
+
+export const doesHaveEmbeddedToken = (cloneUrl: string) => {
+    const url = new URL(cloneUrl);
+    return url.username || url.password;
 }
