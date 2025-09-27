@@ -26,25 +26,12 @@ export const cloneRepository = async (
             path,
         })
 
-        if (authHeader) {
-            await git.clone(
-                cloneUrl,
-                path,
-                [
-                    "--bare",
-                    "-c",
-                    `http.extraHeader=${authHeader}`,
-                ]
-            )
-        } else {
-            await git.clone(
-                cloneUrl,
-                path,
-                [
-                    "--bare",
-                ]
-            )
-        }
+        const cloneArgs = [
+            "--bare",
+            ...(authHeader ? ["-c", `http.extraHeader=${authHeader}`] : [])
+        ];
+
+        await git.clone(cloneUrl, path, cloneArgs);
 
         await unsetGitConfig(path, ["remote.origin.url"]);
     } catch (error: unknown) {
