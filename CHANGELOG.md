@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Manually pass auth token for ado server deployments. [#543](https://github.com/sourcebot-dev/sourcebot/pull/543)
+
 ## [4.7.2] - 2025-09-22
 
 ### Fixed
