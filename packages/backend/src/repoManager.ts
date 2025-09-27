@@ -175,7 +175,7 @@ export class RepoManager {
 
         const credentials = await getAuthCredentialsForRepo(repo, this.db);
         const cloneUrlMaybeWithToken = credentials?.cloneUrlWithToken ?? repo.cloneUrl;
-        const authHeader = credentials?.authToken ?? undefined;
+        const authHeader = credentials?.authHeader ?? undefined;
 
         if (existsSync(repoPath) && !isReadOnly) {
             // @NOTE: in #483, we changed the cloning method s.t., we _no longer_

@@ -196,12 +196,12 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
 
                 // For ADO server, multiple auth schemes may be supported. If the ADO deployment supports NTLM, the git clone will default
                 // to this over basic auth. As a result, we cannot embed the token in the clone URL and must force basic auth by passing in the token
-                // appropriately in the header. To do this, we set the authToken field here
+                // appropriately in the header. To do this, we set the authHeader field here
                 if (config.deploymentType === 'server') {
                     return {
                         hostUrl: config.url,
                         token,
-                        authToken: "Authorization: Basic " + Buffer.from(`:${token}`).toString('base64')
+                        authHeader: "Authorization: Basic " + Buffer.from(`:${token}`).toString('base64')
                     }
                 } else {
                     return {

@@ -60,5 +60,5 @@ export type RepoAuthCredentials = {
     hostUrl?: string;
     token: string;
     cloneUrlWithToken?: string;
-    authToken?: string;
+    authHeader?: string;
 }
