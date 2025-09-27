@@ -1,7 +1,6 @@
 import { CheckRepoActions, GitConfigScope, simpleGit, SimpleGitProgressEvent } from 'simple-git';
 import { mkdir } from 'node:fs/promises';
 import { env } from './env.js';
-import { doesHaveEmbeddedToken } from './utils.js';
 
 type onProgressFn = (event: SimpleGitProgressEvent) => void;
 
@@ -28,10 +27,6 @@ export const cloneRepository = async (
         })
 
         if (authHeader) {
-            if (doesHaveEmbeddedToken(cloneUrl)) {
-                throw new Error("Cannot use auth header when clone URL has embedded token");
-            }
-
             await git.clone(
                 cloneUrl,
                 path,
@@ -87,10 +82,6 @@ export const fetchRepository = async (
         })
 
         if (authHeader) {
-            if (doesHaveEmbeddedToken(cloneUrl)) {
-                throw new Error("Cannot use auth header when clone URL has embedded token");
-            }
-
             await git.addConfig("http.extraHeader", authHeader);
         }
 

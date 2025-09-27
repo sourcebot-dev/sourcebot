@@ -241,8 +241,3 @@ const createGitCloneUrlWithToken = (cloneUrl: string, credentials: { username?: 
     }
     return url.toString();
 }
-
-export const doesHaveEmbeddedToken = (cloneUrl: string) => {
-    const url = new URL(cloneUrl);
-    return url.username || url.password;
-}
