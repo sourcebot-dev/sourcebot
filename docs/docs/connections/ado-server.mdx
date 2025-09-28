@@ -16,7 +16,8 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
         ```json
         {
             "type": "azuredevops",
-            "useTfsPath": true
+            "deploymentType": "server",
+            "useTfsPath": true,
             "repos": [
                 "organizationName/projectName/repoName",
                 "organizationName/projectName/repoName2
@@ -28,6 +29,7 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "server",
             "repos": [
                 "organizationName/projectName/repoName",
                 "organizationName/projectName/repoName2
@@ -39,6 +41,7 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "server",
             "orgs": [
                 "collectionName",
                 "collectionName2"
@@ -50,6 +53,7 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "server",
             "projects": [
                 "collectionName/projectName",
                 "collectionName/projectName2"
@@ -61,6 +65,7 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "server",
             // Include all repos in my-org...
             "orgs": [
                 "my-org"
@@ -104,6 +109,7 @@ Next, provide the access token via the `token` property, either as an environmen
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "server",
             "token": {
                 // note: this env var can be named anything. It
                 // doesn't need to be `ADO_TOKEN`.
@@ -134,6 +140,7 @@ Next, provide the access token via the `token` property, either as an environmen
         ```json
         {
             "type": "azuredevops",
+            "deploymentType": "server",
             "token": {
                 "secret": "mysecret"
             }

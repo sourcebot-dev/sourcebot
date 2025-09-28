@@ -175,6 +175,7 @@ export class RepoManager {
 
         const credentials = await getAuthCredentialsForRepo(repo, this.db);
         const cloneUrlMaybeWithToken = credentials?.cloneUrlWithToken ?? repo.cloneUrl;
+        const authHeader = credentials?.authHeader ?? undefined;
 
         if (existsSync(repoPath) && !isReadOnly) {
             // @NOTE: in #483, we changed the cloning method s.t., we _no longer_
@@ -188,6 +189,7 @@ export class RepoManager {
             logger.info(`Fetching ${repo.displayName}...`);
             const { durationMs } = await measure(() => fetchRepository({
                 cloneUrl: cloneUrlMaybeWithToken,
+                authHeader,
                 path: repoPath,
                 onProgress: ({ method, stage, progress }) => {
                     logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
@@ -203,6 +205,7 @@ export class RepoManager {
 
             const { durationMs } = await measure(() => cloneRepository({
                 cloneUrl: cloneUrlMaybeWithToken,
+                authHeader,
                 path: repoPath,
                 onProgress: ({ method, stage, progress }) => {
                     logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)

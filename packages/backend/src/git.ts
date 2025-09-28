@@ -7,10 +7,12 @@ type onProgressFn = (event: SimpleGitProgressEvent) => void;
 export const cloneRepository = async (
     {
         cloneUrl,
+        authHeader,
         path,
         onProgress,
     }: {
         cloneUrl: string,
+        authHeader?: string,
         path: string,
         onProgress?: onProgressFn
     }
@@ -24,13 +26,12 @@ export const cloneRepository = async (
             path,
         })
 
-        await git.clone(
-            cloneUrl,
-            path,
-            [
-                "--bare",
-            ]
-        );
+        const cloneArgs = [
+            "--bare",
+            ...(authHeader ? ["-c", `http.extraHeader=${authHeader}`] : [])
+        ];
+
+        await git.clone(cloneUrl, path, cloneArgs);
 
         await unsetGitConfig(path, ["remote.origin.url"]);
     } catch (error: unknown) {
@@ -50,10 +51,12 @@ export const cloneRepository = async (
 export const fetchRepository = async (
     {
         cloneUrl,
+        authHeader,
         path,
         onProgress,
     }: {
         cloneUrl: string,
+        authHeader?: string,
         path: string,
         onProgress?: onProgressFn
     }
@@ -64,6 +67,10 @@ export const fetchRepository = async (
         }).cwd({
             path: path,
         })
+
+        if (authHeader) {
+            await git.addConfig("http.extraHeader", authHeader);
+        }
 
         await git.fetch([
             cloneUrl,
@@ -80,6 +87,16 @@ export const fetchRepository = async (
             throw new Error(`${baseLog}. Reason: ${error.message}`);
         } else {
             throw new Error(`${baseLog}. Error: ${error}`);
+        }
+    } finally {
+        if (authHeader) {
+            const git = simpleGit({
+                progress: onProgress,
+            }).cwd({
+                path: path,
+            })
+
+            await git.raw(["config", "--unset", "http.extraHeader", authHeader]);
         }
     }
 }

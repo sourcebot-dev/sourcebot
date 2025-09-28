@@ -61,7 +61,6 @@ const schema = {
         "cloud",
         "server"
       ],
-      "default": "cloud",
       "description": "The type of Azure DevOps deployment"
     },
     "useTfsPath": {
@@ -198,7 +197,8 @@ const schema = {
   },
   "required": [
     "type",
-    "token"
+    "token",
+    "deploymentType"
   ],
   "additionalProperties": false
 } as const;

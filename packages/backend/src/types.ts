@@ -59,5 +59,6 @@ export type RepoWithConnections = Repo & { connections: (RepoToConnection & { co
 export type RepoAuthCredentials = {
     hostUrl?: string;
     token: string;
-    cloneUrlWithToken: string;
+    cloneUrlWithToken?: string;
+    authHeader?: string;
 }
