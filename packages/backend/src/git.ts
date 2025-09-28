@@ -78,10 +78,6 @@ export const fetchRepository = async (
             "--prune",
             "--progress"
         ]);
-
-        if (authHeader) {
-            await git.raw(["config", "--unset", "http.extraHeader", authHeader]);
-        }
     } catch (error: unknown) {
         const baseLog = `Failed to fetch repository: ${path}`;
         if (env.SOURCEBOT_LOG_LEVEL !== "debug") {
@@ -91,6 +87,16 @@ export const fetchRepository = async (
             throw new Error(`${baseLog}. Reason: ${error.message}`);
         } else {
             throw new Error(`${baseLog}. Error: ${error}`);
+        }
+    } finally {
+        if (authHeader) {
+            const git = simpleGit({
+                progress: onProgress,
+            }).cwd({
+                path: path,
+            })
+
+            await git.raw(["config", "--unset", "http.extraHeader", authHeader]);
         }
     }
 }
