@@ -111,6 +111,11 @@
                 "icon": "list-check"
             },
             {
+                "anchor": "Roadmap",
+                "href": "https://github.com/sourcebot-dev/sourcebot/issues/459",
+                "icon": "map"
+            },
+            {
                 "anchor": "Support",
                 "href": "https://github.com/sourcebot-dev/sourcebot/issues/new?template=get_help.md",
                 "icon": "life-ring"
