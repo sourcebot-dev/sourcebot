@@ -146,7 +146,7 @@ export const createAgentStream = async ({
             },
         },
         onError: (error) => {
-            logger.error(error);
+            logger.error(error.error);
         },
     });
 
