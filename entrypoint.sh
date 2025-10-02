@@ -1,6 +1,24 @@
 #!/bin/sh
 set -e
 
+# Check if DATABASE_URL is not set
+if [ -z "$DATABASE_URL" ]; then
+    # Check if the individual database variables are set and construct the URL
+    if [ -n "$DATABASE_HOST" ] && [ -n "$DATABASE_USERNAME" ] && [ -n "$DATABASE_PASSWORD" ]  && [ -n "$DATABASE_NAME" ]; then
+        DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}/${DATABASE_NAME}"
+
+        if [ -n "$DATABASE_ARGS" ]; then
+            DATABASE_URL="${DATABASE_URL}?$DATABASE_ARGS"
+        fi
+
+        export DATABASE_URL
+    else
+        # Otherwise, fallback to a default value
+        DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
+        export DATABASE_URL
+    fi
+fi
+
 if [ "$DATABASE_URL" = "postgresql://postgres@localhost:5432/sourcebot" ]; then
     DATABASE_EMBEDDED="true"
 fi

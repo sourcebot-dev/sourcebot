@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added support for passing db connection url as seperate `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`, and `DATABASE_ARGS` env vars. [#545](https://github.com/sourcebot-dev/sourcebot/pull/545)
+
 ## [4.7.3] - 2025-09-29
 
 ### Fixed
