@@ -52,8 +52,9 @@ envSecrets: []
 
 # -- Set additional environment variables.
 envs: []
-# - name: FOO
-#   value: bar
+# # Disable sourcebot telemetry.
+# - name: SOURCEBOT_TELEMETRY_DISABLED
+#   value: "1"
 
 # -- Configure Sourcebot-specific application settings.
 config:
