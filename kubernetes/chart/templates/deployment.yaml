@@ -1,21 +1,12 @@
 ---
 apiVersion: apps/v1
-{{- if $.Values.storage }}
-kind: StatefulSet
-{{- else }}
 kind: Deployment
-{{- end }}
 metadata:
   name: {{ include "sourcebot.fullname" $ }}
   labels:
     {{- include "sourcebot.labels" $ | nindent 4 }}
 spec:
-  {{- if $.Values.storage }}
-  serviceName: {{ include "sourcebot.fullname" $ }}
-  {{- end }}
-  {{- if not $.Values.autoscaling.enabled }}
   replicas: {{ $.Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "sourcebot.selectorLabels" $ | nindent 6 }}
@@ -40,6 +31,10 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with $.Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           {{- with $.Values.containerSecurityContext }}
@@ -55,6 +50,10 @@ spec:
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
           env:
+            {{- if and $.Values.ingress.enabled (gt len ($.Values.ingress.hosts) 0) }}
+            - name: AUTH_URL
+              value: {{ (index $.Values.ingress.hosts 0).host | printf "https://%s" }}
+            {{- end }}
             - name: CONFIG_PATH
               value: /etc/sourcebot/config.json
             {{- if $.Values.license }}
@@ -113,10 +112,6 @@ spec:
               mountPath: /etc/sourcebot/config.json
               subPath: config.json
               readOnly: true
-          {{- if $.Values.storage }}
-            - name: sourcebot-data
-              mountPath: /data
-          {{- end }}
           {{- with $.Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -145,15 +140,3 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-  {{- if $.Values.storage }}
-  volumeClaimTemplates:
-    - metadata:
-        name: sourcebot-data
-      spec:
-        accessModes:
-          {{- $.Values.storage.accessModes | toYaml | nindent 10 }}
-        storageClassName: {{ $.Values.storage.className }}
-        resources:
-          requests:
-            storage: {{ $.Values.storage.size }}
-  {{- end }}

@@ -86,11 +86,6 @@ The open source Sourcegraph alternative. Sourcebot gives you a powerful interfac
 | startupProbe.httpGet.path | string | `"/"` | Path to check. |
 | startupProbe.httpGet.port | string | `"http"` | Port to check. |
 | startupProbe.periodSeconds | int | `30` | Initial delay before the first probe. |
-| storage | object | `{"accessModes":["ReadWriteOnce"],"className":"","enabled":true,"size":"10Gi"}` | Configure persistent storage for the application (volume is mounted at /data) to use the internal database. |
-| storage.accessModes | list | `["ReadWriteOnce"]` | Access modes for the persistent volume. |
-| storage.className | string | `""` | Storage class name for the persistent volume. |
-| storage.enabled | bool | `true` | Enable or disable persistent storage. |
-| storage.size | string | `"10Gi"` | Size of the persistent volume. |
 | tolerations | list | `[]` | Set tolerations for pod scheduling. See: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | volumeMounts | list | `[]` | Define volume mounts for the container. See: https://kubernetes.io/docs/concepts/storage/volumes/ |
 | volumes | list | `[]` | Define additional volumes. See: https://kubernetes.io/docs/concepts/storage/volumes/ |
