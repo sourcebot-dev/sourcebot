@@ -75,8 +75,6 @@ server.tool(
             query += ` case:no`;
         }
 
-        console.debug(`Executing search request: ${query}`);
-
         const response = await search({
             query,
             matches: env.DEFAULT_MATCHES,
@@ -163,10 +161,10 @@ server.tool(
             };
         }
 
-        const content: TextContent[] = response.repos.map(repo => {
+        const content: TextContent[] = response.map(repo => {
             return {
                 type: "text",
-                text: `id: ${repo.name}\nurl: ${repo.webUrl}`,
+                text: `id: ${repo.repoName}\nurl: ${repo.webUrl}`,
             }
         });
 
@@ -214,7 +212,6 @@ server.tool(
 const runServer = async () => {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.info('Sourcebot MCP server ready');
 }
 
 runServer().catch((error) => {

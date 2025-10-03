@@ -12,17 +12,30 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { RequestsList } from "./components/requestsList";
 import { OrgRole } from "@prisma/client";
+import { redirect } from "next/navigation";
 
 interface MembersSettingsPageProps {
-    params: {
+    params: Promise<{
         domain: string
-    },
-    searchParams: {
+    }>,
+    searchParams: Promise<{
         tab?: string
-    }
+    }>
 }
 
-export default async function MembersSettingsPage({ params: { domain }, searchParams: { tab } }: MembersSettingsPageProps) {
+export default async function MembersSettingsPage(props: MembersSettingsPageProps) {
+    const searchParams = await props.searchParams;
+
+    const {
+        tab
+    } = searchParams;
+
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
     const org = await getOrgFromDomain(domain);
     if (!org) {
         throw new Error("Organization not found");
@@ -36,6 +49,10 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
     const userRoleInOrg = me.memberships.find((membership) => membership.id === org.id)?.role;
     if (!userRoleInOrg) {
         throw new Error("User role not found");
+    }
+
+    if (userRoleInOrg !== OrgRole.OWNER) {
+        redirect(`/${domain}/settings`);
     }
 
     const members = await getOrgMembers(domain);

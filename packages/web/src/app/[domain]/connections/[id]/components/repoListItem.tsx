@@ -70,7 +70,7 @@ export const RepoListItem = ({
             </div>
             <div className="flex flex-row items-center gap-4">
                 {status === RepoIndexingStatus.FAILED && (
-                    <RetryRepoIndexButton repoId={repoId} domain={domain} />
+                    <RetryRepoIndexButton repoId={repoId} />
                 )}
                 <div className="flex flex-row items-center gap-0">
                     <StatusIcon

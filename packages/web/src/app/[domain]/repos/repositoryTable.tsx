@@ -3,21 +3,32 @@
 import { DataTable } from "@/components/ui/data-table";
 import { columns, RepositoryColumnInfo } from "./columns";
 import { unwrapServiceError } from "@/lib/utils";
-import { getRepos } from "@/actions";
 import { useQuery } from "@tanstack/react-query";
 import { useDomain } from "@/hooks/useDomain";
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { env } from "@/env.mjs";
+import { Button } from "@/components/ui/button";
+import { PlusIcon } from "lucide-react";
+import { AddRepositoryDialog } from "./components/addRepositoryDialog";
+import { useState } from "react";
+import { getRepos } from "@/app/api/(client)/client";
 
-export const RepositoryTable = () => {
+interface RepositoryTableProps {
+    isAddReposButtonVisible: boolean
+}
+
+export const RepositoryTable = ({
+    isAddReposButtonVisible,
+}: RepositoryTableProps) => {
     const domain = useDomain();
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
     const { data: repos, isLoading: reposLoading, error: reposError } = useQuery({
-        queryKey: ['repos', domain],
+        queryKey: ['repos'],
         queryFn: async () => {
-            return await unwrapServiceError(getRepos(domain));
+            return await unwrapServiceError(getRepos());
         },
         refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
         refetchIntervalInBackground: true,
@@ -26,24 +37,45 @@ export const RepositoryTable = () => {
     const tableRepos = useMemo(() => {
         if (reposLoading) return Array(4).fill(null).map(() => ({
             repoId: 0,
-            name: "",
-            connections: [],
+            repoName: "",
+            repoDisplayName: "",
             repoIndexingStatus: RepoIndexingStatus.NEW,
             lastIndexed: "",
-            url: "",
             imageUrl: "",
         }));
 
         if (!repos) return [];
         return repos.map((repo): RepositoryColumnInfo => ({
             repoId: repo.repoId,
-            name: repo.repoDisplayName ?? repo.repoName,
+            repoName: repo.repoName,
+            repoDisplayName: repo.repoDisplayName ?? repo.repoName,
             imageUrl: repo.imageUrl,
-            connections: repo.linkedConnections,
             repoIndexingStatus: repo.repoIndexingStatus as RepoIndexingStatus,
             lastIndexed: repo.indexedAt?.toISOString() ?? "",
-            url: repo.webUrl ?? repo.repoCloneUrl,
         })).sort((a, b) => {
+            const getPriorityFromStatus = (status: RepoIndexingStatus) => {
+                switch (status) {
+                    case RepoIndexingStatus.IN_INDEX_QUEUE:
+                    case RepoIndexingStatus.INDEXING:
+                        return 0  // Highest priority - currently indexing
+                    case RepoIndexingStatus.FAILED:
+                        return 1  // Second priority - failed repos need attention
+                    case RepoIndexingStatus.INDEXED:
+                        return 2  // Third priority - successfully indexed
+                    default:
+                        return 3  // Lowest priority - other statuses (NEW, etc.)
+                }
+            }
+
+            // Sort by priority first
+            const aPriority = getPriorityFromStatus(a.repoIndexingStatus);
+            const bPriority = getPriorityFromStatus(b.repoIndexingStatus);
+            
+            if (aPriority !== bPriority) {
+                return aPriority - bPriority; // Lower priority number = higher precedence
+            }
+            
+            // If same priority, sort by last indexed date (most recent first)
             return new Date(b.lastIndexed).getTime() - new Date(a.lastIndexed).getTime();
         });
     }, [repos, reposLoading]);
@@ -83,11 +115,28 @@ export const RepositoryTable = () => {
     }
 
     return (
-        <DataTable
-            columns={tableColumns}
-            data={tableRepos}
-            searchKey="name"
-            searchPlaceholder="Search repositories..."
-        />
+        <>
+            <DataTable
+                columns={tableColumns}
+                data={tableRepos}
+                searchKey="repoDisplayName"
+                searchPlaceholder="Search repositories..."
+                headerActions={isAddReposButtonVisible && (
+                    <Button
+                        variant="default"
+                        size="default"
+                        onClick={() => setIsAddDialogOpen(true)}
+                    >
+                        <PlusIcon className="w-4 h-4" />
+                        Add repository
+                    </Button>
+                )}
+            />
+            
+            <AddRepositoryDialog
+                isOpen={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+            />
+        </>
     );
 }

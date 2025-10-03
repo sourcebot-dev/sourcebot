@@ -1,27 +1,19 @@
-import { Job, Queue, Worker } from 'bullmq';
-import { Redis } from 'ioredis';
-import { createLogger } from "@sourcebot/logger";
-import { Connection, PrismaClient, Repo, RepoToConnection, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
-import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
-import { AppContext, Settings, repoMetadataSchema } from "./types.js";
-import { getRepoPath, getTokenFromConfig, measure, getShardPrefix } from "./utils.js";
-import { cloneRepository, fetchRepository, upsertGitConfig } from "./git.js";
-import { existsSync, readdirSync, promises } from 'fs';
-import { indexGitRepository } from "./zoekt.js";
-import { PromClient } from './promClient.js';
 import * as Sentry from "@sentry/node";
+import { PrismaClient, Repo, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
+import { createLogger } from "@sourcebot/logger";
+import { Job, Queue, Worker } from 'bullmq';
+import { existsSync, promises, readdirSync } from 'fs';
+import { Redis } from 'ioredis';
 import { env } from './env.js';
-
-interface IRepoManager {
-    validateIndexedReposHaveShards: () => Promise<void>;
-    blockingPollLoop: () => void;
-    dispose: () => void;
-}
+import { cloneRepository, fetchRepository, unsetGitConfig, upsertGitConfig } from "./git.js";
+import { PromClient } from './promClient.js';
+import { AppContext, RepoWithConnections, Settings, repoMetadataSchema } from "./types.js";
+import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, measure } from "./utils.js";
+import { indexGitRepository } from "./zoekt.js";
 
 const REPO_INDEXING_QUEUE = 'repoIndexingQueue';
 const REPO_GC_QUEUE = 'repoGarbageCollectionQueue';
 
-type RepoWithConnections = Repo & { connections: (RepoToConnection & { connection: Connection })[] };
 type RepoIndexingPayload = {
     repo: RepoWithConnections,
 }
@@ -32,11 +24,12 @@ type RepoGarbageCollectionPayload = {
 
 const logger = createLogger('repo-manager');
 
-export class RepoManager implements IRepoManager {
+export class RepoManager {
     private indexWorker: Worker;
     private indexQueue: Queue<RepoIndexingPayload>;
     private gcWorker: Worker;
     private gcQueue: Queue<RepoGarbageCollectionPayload>;
+    private interval?: NodeJS.Timeout;
 
     constructor(
         private db: PrismaClient,
@@ -68,14 +61,13 @@ export class RepoManager implements IRepoManager {
         this.gcWorker.on('failed', this.onGarbageCollectionJobFailed.bind(this));
     }
 
-    public async blockingPollLoop() {
-        while (true) {
+    public startScheduler() {
+        logger.debug('Starting scheduler');
+        this.interval = setInterval(async () => {
             await this.fetchAndScheduleRepoIndexing();
             await this.fetchAndScheduleRepoGarbageCollection();
             await this.fetchAndScheduleRepoTimeouts();
-
-            await new Promise(resolve => setTimeout(resolve, this.settings.reindexRepoPollingIntervalMs));
-        }
+        }, this.settings.reindexRepoPollingIntervalMs);
     }
 
     ///////////////////////////
@@ -169,62 +161,6 @@ export class RepoManager implements IRepoManager {
         }
     }
 
-
-    // TODO: do this better? ex: try using the tokens from all the connections 
-    // We can no longer use repo.cloneUrl directly since it doesn't contain the token for security reasons. As a result, we need to
-    // fetch the token here using the connections from the repo. Multiple connections could be referencing this repo, and each
-    // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
-    // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
-    private async getCloneCredentialsForRepo(repo: RepoWithConnections, db: PrismaClient): Promise<{ username?: string, password: string } | undefined> {
-
-        for (const { connection } of repo.connections) {
-            if (connection.connectionType === 'github') {
-                const config = connection.config as unknown as GithubConnectionConfig;
-                if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
-                    return {
-                        password: token,
-                    }
-                }
-            }
-
-            else if (connection.connectionType === 'gitlab') {
-                const config = connection.config as unknown as GitlabConnectionConfig;
-                if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
-                    return {
-                        username: 'oauth2',
-                        password: token,
-                    }
-                }
-            }
-
-            else if (connection.connectionType === 'gitea') {
-                const config = connection.config as unknown as GiteaConnectionConfig;
-                if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
-                    return {
-                        password: token,
-                    }
-                }
-            }
-
-            else if (connection.connectionType === 'bitbucket') {
-                const config = connection.config as unknown as BitbucketConnectionConfig;
-                if (config.token) {
-                    const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
-                    const username = config.user ?? 'x-token-auth';
-                    return {
-                        username,
-                        password: token,
-                    }
-                }
-            }
-        }
-
-        return undefined;
-    }
-
     private async syncGitRepository(repo: RepoWithConnections, repoAlreadyInIndexingState: boolean) {
         const { path: repoPath, isReadOnly } = getRepoPath(repo, this.ctx);
 
@@ -237,11 +173,27 @@ export class RepoManager implements IRepoManager {
             await promises.rm(repoPath, { recursive: true, force: true });
         }
 
-        if (existsSync(repoPath) && !isReadOnly) {
-            logger.info(`Fetching ${repo.displayName}...`);
+        const credentials = await getAuthCredentialsForRepo(repo, this.db);
+        const cloneUrlMaybeWithToken = credentials?.cloneUrlWithToken ?? repo.cloneUrl;
+        const authHeader = credentials?.authHeader ?? undefined;
 
-            const { durationMs } = await measure(() => fetchRepository(repoPath, ({ method, stage, progress }) => {
-                logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
+        if (existsSync(repoPath) && !isReadOnly) {
+            // @NOTE: in #483, we changed the cloning method s.t., we _no longer_
+            // write the clone URL (which could contain a auth token) to the
+            // `remote.origin.url` entry. For the upgrade scenario, we want
+            // to unset this key since it is no longer needed, hence this line.
+            // This will no-op if the key is already unset.
+            // @see: https://github.com/sourcebot-dev/sourcebot/pull/483
+            await unsetGitConfig(repoPath, ["remote.origin.url"]);
+
+            logger.info(`Fetching ${repo.displayName}...`);
+            const { durationMs } = await measure(() => fetchRepository({
+                cloneUrl: cloneUrlMaybeWithToken,
+                authHeader,
+                path: repoPath,
+                onProgress: ({ method, stage, progress }) => {
+                    logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
+                }
             }));
             const fetchDuration_s = durationMs / 1000;
 
@@ -251,24 +203,13 @@ export class RepoManager implements IRepoManager {
         } else if (!isReadOnly) {
             logger.info(`Cloning ${repo.displayName}...`);
 
-            const auth = await this.getCloneCredentialsForRepo(repo, this.db);
-            const cloneUrl = new URL(repo.cloneUrl);
-            if (auth) {
-                // @note: URL has a weird behavior where if you set the password but
-                // _not_ the username, the ":" delimiter will still be present in the
-                // URL (e.g., https://:password@example.com). To get around this, if
-                // we only have a password, we set the username to the password.
-                // @see: https://www.typescriptlang.org/play/?#code/MYewdgzgLgBArgJwDYwLwzAUwO4wKoBKAMgBQBEAFlFAA4QBcA9I5gB4CGAtjUpgHShOZADQBKANwAoREj412ECNhAIAJmhhl5i5WrJTQkELz5IQAcxIy+UEAGUoCAJZhLo0UA
-                if (!auth.username) {
-                    cloneUrl.username = auth.password;
-                } else {
-                    cloneUrl.username = auth.username;
-                    cloneUrl.password = auth.password;
+            const { durationMs } = await measure(() => cloneRepository({
+                cloneUrl: cloneUrlMaybeWithToken,
+                authHeader,
+                path: repoPath,
+                onProgress: ({ method, stage, progress }) => {
+                    logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
                 }
-            }
-
-            const { durationMs } = await measure(() => cloneRepository(cloneUrl.toString(), repoPath, ({ method, stage, progress }) => {
-                logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.displayName}`)
             }));
             const cloneDuration_s = durationMs / 1000;
 
@@ -540,7 +481,7 @@ export class RepoManager implements IRepoManager {
 
     public async validateIndexedReposHaveShards() {
         logger.info('Validating indexed repos have shards...');
-        
+
         const indexedRepos = await this.db.repo.findMany({
             where: {
                 repoIndexingStatus: RepoIndexingStatus.INDEXED
@@ -552,16 +493,15 @@ export class RepoManager implements IRepoManager {
             return;
         }
 
+        const files = readdirSync(this.ctx.indexPath);
         const reposToReindex: number[] = [];
-
         for (const repo of indexedRepos) {
             const shardPrefix = getShardPrefix(repo.orgId, repo.id);
-            
+
             // TODO: this doesn't take into account if a repo has multiple shards and only some of them are missing. To support that, this logic
             // would need to know how many total shards are expected for this repo
             let hasShards = false;
             try {
-                const files = readdirSync(this.ctx.indexPath);
                 hasShards = files.some(file => file.startsWith(shardPrefix));
             } catch (error) {
                 logger.error(`Failed to read index directory ${this.ctx.indexPath}: ${error}`);
@@ -615,6 +555,9 @@ export class RepoManager implements IRepoManager {
     }
 
     public async dispose() {
+        if (this.interval) {
+            clearInterval(this.interval);
+        }
         this.indexWorker.close();
         this.indexQueue.close();
         this.gcQueue.close();

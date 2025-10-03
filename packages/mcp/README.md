@@ -207,18 +207,10 @@ Sourcebot supports the following code hosts:
 - [Gitea](https://docs.sourcebot.dev/docs/connections/gitea)
 - [Gerrit](https://docs.sourcebot.dev/docs/connections/gerrit)
 
-| Don't see your code host? Open a [GitHub discussion](https://github.com/sourcebot-dev/sourcebot/discussions/categories/ideas).
+| Don't see your code host? Open a [feature request](https://github.com/sourcebot-dev/sourcebot/issues/new?template=feature_request.md).
 
 ## Future Work
 
 ### Semantic Search
 
 Currently, Sourcebot only supports regex-based code search (powered by [zoekt](https://github.com/sourcegraph/zoekt) under the hood). It is great for scenarios when the agent is searching for is something that is super precise and well-represented in the source code (e.g., a specific function name, a error string, etc.). It is not-so-great for _fuzzy_ searches where the objective is to find some loosely defined _category_ or _concept_ in the code (e.g., find code that verifies JWT tokens). The LLM can approximate this by crafting regex searches that attempt to capture a concept (e.g., it might try a query like `"jwt|token|(verify|validate).*(jwt|token)"`), but often yields sub-optimal search results that aren't related. Tools like Cursor solve this with [embedding models](https://docs.cursor.com/context/codebase-indexing) to capture the semantic meaning of code, allowing for LLMs to search using natural language. We would like to extend Sourcebot to support semantic search and expose this capability over MCP as a tool (e.g., `semantic_search_code` tool). [GitHub Discussion](https://github.com/sourcebot-dev/sourcebot/discussions/297)
-
-### Code Navigation
-
-Another idea is to allow LLMs to traverse abstract syntax trees (ASTs) of a codebase to enable reliable code navigation. This could be packaged as tools like `goto_definition`, `find_all_references`, etc., which could be useful for LLMs to get additional code context. [GitHub Discussion](https://github.com/sourcebot-dev/sourcebot/discussions/296)
-
-### Got an idea?
-
-Open up a [GitHub discussion](https://github.com/sourcebot-dev/sourcebot/discussions/categories/feature-requests)!

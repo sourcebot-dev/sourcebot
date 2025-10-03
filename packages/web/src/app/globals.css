@@ -1,8 +1,20 @@
+@import "./codemirror-styles.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  html {
+    overflow-y: scroll;
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  html::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+  }
+  
   :root {
     --background: hsl(0 0% 100%);
     --background-secondary: hsl(0, 0%, 98%);
@@ -17,6 +29,7 @@
     --secondary-foreground: hsl(222.2 47.4% 11.2%);
     --muted: hsl(210 40% 96.1%);
     --muted-foreground: hsl(215.4 16.3% 46.9%);
+    --muted-accent: hsl(210, 12%, 87%);
     --accent: hsl(210 40% 96.1%);
     --accent-foreground: hsl(222.2 47.4% 11.2%);
     --destructive: hsl(0 84.2% 60.2%);
@@ -39,6 +52,7 @@
     --sidebar-accent-foreground: hsl(240 5.9% 10%);
     --sidebar-border: hsl(220 13% 91%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
+    --link: hsl(217, 91%, 60%);
 
     --editor-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     --editor-font-size: 13px;
@@ -83,6 +97,18 @@
     --editor-tag-number: #219;
     --editor-tag-regexp: #e40;
     --editor-tag-variable-local: #30a;
+
+    --chat-reference: #02255f11;
+    --chat-reference-hover: #02225f22;
+    --chat-reference-selected: hsl(217, 91%, 78%);
+    --chat-reference-selected-border: hsl(217, 91%, 60%);
+    
+    --chat-citation: #3b83f640;
+    --chat-citation-hover: hsl(217, 91%, 75%);
+    --chat-citation-selected: hsl(217, 91%, 65%);
+    --chat-citation-border: hsl(217, 91%, 60%);
+
+    --warning: #ca8a04;
   }
 
   .dark {
@@ -99,9 +125,10 @@
     --secondary-foreground: hsl(210 40% 98%);
     --muted: hsl(217.2 32.6% 17.5%);
     --muted-foreground: hsl(215 20.2% 65.1%);
+    --muted-accent: hsl(218, 13%, 29%);
     --accent: hsl(217.2 32.6% 17.5%);
     --accent-foreground: hsl(210 40% 98%);
-    --destructive: hsl(0 62.8% 30.6%);
+    --destructive: hsl(0, 78%, 57%);
     --destructive-foreground: hsl(210 40% 98%);
     --border: hsl(217.2 32.6% 17.5%);
     --input: hsl(217.2 32.6% 17.5%);
@@ -120,6 +147,7 @@
     --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
     --sidebar-border: hsl(240 3.7% 15.9%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
+    --link: hsl(217, 91%, 60%);
 
     --editor-background: var(--background);
     --editor-foreground: #abb2bf;
@@ -161,6 +189,18 @@
     --editor-tag-number: #e5c07b;
     --editor-tag-regexp: #56b6c2;
     --editor-tag-variable-local: #61afef;
+
+    --chat-reference: #2c313aad;
+    --chat-reference-hover: #374151;
+    --chat-reference-selected: hsl(217, 40%, 30%);
+    --chat-reference-selected-border: hsl(217, 91%, 60%);
+    
+    --chat-citation: #1e3b8a87;
+    --chat-citation-hover: hsl(217, 91%, 45%);
+    --chat-citation-selected: hsl(217, 80%, 50%);
+    --chat-citation-border: hsl(217, 91%, 60%);
+
+    --warning: #fde047;
   }
 }
 
@@ -203,6 +243,62 @@
   border-radius: 2px;
 }
 
+/* Chat-specific styling classes */
+.chat-lineHighlight {
+  background: var(--chat-reference);
+  cursor: pointer;
+}
+
+.chat-lineHighlight-hover {
+  background: var(--chat-reference-hover);
+  cursor: pointer;
+}
+
+.chat-lineHighlight-selected {
+  background: var(--chat-reference-selected);
+  cursor: pointer;
+  --cm-range-border-shadow-color: var(--chat-reference-selected-border);
+}
+
+/* Reference states for markdown reference spans */
+.chat-reference--selected {
+  background-color: var(--chat-reference-selected) !important;
+  border-color: var(--chat-reference-selected-border) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chat-reference--hover {
+  background-color: var(--chat-reference-hover) !important;
+}
+
+/* Separate hover class for inline chat citations */
+.chat-citation--hover {
+  background-color: var(--chat-citation-hover) !important;
+}
+
+/* Separate selected class for inline chat citations */
+.chat-citation--selected {
+  background-color: var(--chat-citation-selected) !important;
+  border-color: var(--chat-citation-border) !important;
+  font-weight: 600;
+}
+
+/* Chat citation styling for inline citations in chat responses */
+.bg-chat-citation {
+  background-color: var(--chat-citation);
+  border: 1px solid var(--chat-citation-border);
+  font-weight: 500;
+}
+
+.bg-chat-citation:hover,
+.hover\:bg-chat-citation-hover:hover {
+  background-color: var(--chat-citation-hover);
+}
+
+.bg-chat-citation-hover {
+  background-color: var(--chat-citation-hover);
+}
+
 .cm-editor.cm-focused {
   outline: none !important;
 }
@@ -214,8 +310,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-
 
 @layer base {
   * {
@@ -257,14 +351,14 @@
 .cm-editor .cm-line::selection,
 .cm-editor .cm-selectionLayer .cm-selectionBackground,
 .cm-content ::selection {
-    background: var(--editor-selection-highlight, #ffe066) !important;
-    color: var(--editor-selection-highlight-foreground, #222) !important;
+  background: var(--editor-selection-highlight, #ffe066) !important;
+  color: var(--editor-selection-highlight-foreground, #222) !important;
 }
 
 .dark .cm-editor .cm-selectionBackground,
 .dark .cm-editor .cm-line::selection,
 .dark .cm-editor .cm-selectionLayer .cm-selectionBackground,
 .dark .cm-content ::selection {
-    background: var(--editor-selection-highlight, #2563eb) !important;
-    color: var(--editor-selection-highlight-foreground, #fff) !important;
+  background: var(--editor-selection-highlight, #2563eb) !important;
+  color: var(--editor-selection-highlight-foreground, #fff) !important;
 }

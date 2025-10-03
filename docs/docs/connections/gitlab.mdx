@@ -8,6 +8,7 @@ import GitLabSchema from '/snippets/schemas/v3/gitlab.schema.mdx'
 
 Sourcebot can sync code from GitLab.com, Self Managed (CE & EE), and Dedicated.
 
+If you're not familiar with Sourcebot [connections](/docs/connections/overview), please read that overview first.
 
 ## Examples
 
@@ -89,6 +90,8 @@ Sourcebot can sync code from GitLab.com, Self Managed (CE & EE), and Dedicated.
                 "archived": true,
                 // projects that are forks
                 "forks": true,
+                // projects that are owned by users (not groups)
+                "userOwnedProjects": true,
                 // projects that match these glob patterns
                 "projects": [
                     "my-group/foo/**",
@@ -117,7 +120,6 @@ Next, provide the PAT via the `token` property, either as an environment variabl
 
 <Tabs>
     <Tab title="Environment Variable">
-        <Note>Environment variables are only supported in a [declarative config](/docs/configuration/declarative-config) and cannot be used in the web UI.</Note>
 
         1. Add the `token` property to your connection config:
         ```json

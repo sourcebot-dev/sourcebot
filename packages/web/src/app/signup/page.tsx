@@ -10,13 +10,14 @@ import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 const logger = createLogger('signup-page');
 
 interface LoginProps {
-    searchParams: {
+    searchParams: Promise<{
         callbackUrl?: string;
         error?: string;
-    }
+    }>
 }
 
-export default async function Signup({ searchParams }: LoginProps) {
+export default async function Signup(props: LoginProps) {
+    const searchParams = await props.searchParams;
     const session = await auth();
     if (session) {
         logger.info("Session found in signup page, redirecting to home");

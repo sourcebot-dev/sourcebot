@@ -22,7 +22,6 @@ export type SearchResultChunk = SearchResultFile["chunks"][number];
 export type SearchSymbol = z.infer<typeof symbolSchema>;
 
 export type ListRepositoriesResponse = z.infer<typeof listRepositoriesResponseSchema>;
-export type Repository = ListRepositoriesResponse["repos"][number];
 
 export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;

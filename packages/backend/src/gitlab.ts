@@ -222,6 +222,11 @@ export const shouldExcludeProject = ({
             return true;
         }
 
+        if (exclude?.userOwnedProjects && project.namespace.kind === 'user') {
+            reason = `\`exclude.userOwnedProjects\` is true`;
+            return true;
+        }
+
         if (exclude?.projects) {
             if (micromatch.isMatch(projectName, exclude.projects)) {
                 reason = `\`exclude.projects\` contains ${projectName}`;

@@ -7,6 +7,144 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added support for passing db connection url as seperate `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`, and `DATABASE_ARGS` env vars. [#545](https://github.com/sourcebot-dev/sourcebot/pull/545)
+
+## [4.7.3] - 2025-09-29
+
+### Fixed
+- Manually pass auth token for ado server deployments. [#543](https://github.com/sourcebot-dev/sourcebot/pull/543)
+
+## [4.7.2] - 2025-09-22
+
+### Fixed
+- Fix support email. [#529](https://github.com/sourcebot-dev/sourcebot/pull/529)
+
+### Added
+- [Experimental][Sourcebot EE] Added permission syncing repository Access Control Lists (ACLs) between Sourcebot and GitHub. [#508](https://github.com/sourcebot-dev/sourcebot/pull/508)
+
+### Changed
+- Improved repository query performance by adding db indices. [#526](https://github.com/sourcebot-dev/sourcebot/pull/526)
+- Improved repository query performance by removing JOIN on `Connection` table. [#527](https://github.com/sourcebot-dev/sourcebot/pull/527)
+- Changed repo carousel and repo list links to redirect to the file browser. [#528](https://github.com/sourcebot-dev/sourcebot/pull/528)
+- Changed file headers, files/directories in file tree, and reference list buttons into links. [#532](https://github.com/sourcebot-dev/sourcebot/pull/532)
+
+## [4.7.1] - 2025-09-19
+
+### Fixed
+- Fixed sourcebot not pulling github forked repos [#499](https://github.com/sourcebot-dev/sourcebot/pull/499)
+- Fixed azure devop cloud pat issue [#524](https://github.com/sourcebot-dev/sourcebot/pull/524)
+
+## [4.7.0] - 2025-09-17
+
+### Added
+- Added fallback to default the Node.JS AWS SDK's `fromNodeProviderChain` when no credentials are provided for a bedrock config. [#513](https://github.com/sourcebot-dev/sourcebot/pull/513)
+- Added support for Azure Devops support. [#514](https://github.com/sourcebot-dev/sourcebot/pull/514)
+
+### Fixed
+- Fixed "At least one project, user, or group must be specified" for GitLab configs with `all` in web configurator. [#512](https://github.com/sourcebot-dev/sourcebot/pull/512)
+- Fixed zoekt indexing failing with pipe in branch/tag names [#506](https://github.com/sourcebot-dev/sourcebot/pull/506)
+- Removed deprecated connection creation/edit UI [#515](https://github.com/sourcebot-dev/sourcebot/pull/515)
+
+## [4.6.8] - 2025-09-15
+
+### Fixed
+- Fixed Bitbucket Cloud pagination not working beyond first page. [#295](https://github.com/sourcebot-dev/sourcebot/issues/295)
+- Fixed search bar line wrapping. [#501](https://github.com/sourcebot-dev/sourcebot/pull/501)
+- Fixed carousel perf issues. [#507](https://github.com/sourcebot-dev/sourcebot/pull/507)
+
+## [4.6.7] - 2025-09-08
+
+### Added
+- Added `exclude.userOwnedProjects` setting to GitLab configs. [#498](https://github.com/sourcebot-dev/sourcebot/pull/498)
+
+### Fixed
+- Fixed "couldn't find remote ref HEAD" errors when re-indexing certain repositories. [#497](https://github.com/sourcebot-dev/sourcebot/pull/497)
+
+### Changed
+- Disable page scroll when using arrow keys on search suggestions box. [#493](https://github.com/sourcebot-dev/sourcebot/pull/493)
+
+## [4.6.6] - 2025-09-04
+
+### Added
+- Added support for specifying query params for openai compatible language models. [#490](https://github.com/sourcebot-dev/sourcebot/pull/490)
+
+### Fixed
+- Fix issue where zoekt was failing to index repositories due to `HEAD` pointing to a branch that does not exist. [#488](https://github.com/sourcebot-dev/sourcebot/pull/488)
+
+## [4.6.5] - 2025-09-02
+
+### Fixed
+- Remove setting `remote.origin.url` for remote git repositories. [#483](https://github.com/sourcebot-dev/sourcebot/pull/483)
+- Fix error when navigating to paths with percentage symbols. [#485](https://github.com/sourcebot-dev/sourcebot/pull/485)
+
+### Changed
+- Updated NextJS to version 15. [#477](https://github.com/sourcebot-dev/sourcebot/pull/477)
+- Add `sessionToken` as optional Bedrock configuration parameter. [#478](https://github.com/sourcebot-dev/sourcebot/pull/478)
+
+## [4.6.4] - 2025-08-11
+
+### Added
+- Added multi-branch indexing support for Gerrit. [#433](https://github.com/sourcebot-dev/sourcebot/pull/433)
+- [ask sb] Added `reasoningEffort` option to OpenAI provider. [#446](https://github.com/sourcebot-dev/sourcebot/pull/446)
+- [ask db] Added `headers` option to all providers. [#449](https://github.com/sourcebot-dev/sourcebot/pull/449)
+
+### Fixed
+- Removed prefix from structured log output. [#443](https://github.com/sourcebot-dev/sourcebot/pull/443)
+- [ask sb] Fixed long generation times for first message in a chat thread. [#447](https://github.com/sourcebot-dev/sourcebot/pull/447)
+
+### Changed
+- Bumped AI SDK and associated packages version. [#444](https://github.com/sourcebot-dev/sourcebot/pull/444)
+
+## [4.6.3] - 2025-08-04
+
+### Fixed
+- Fixed issue where `users` specified in a GitHub config were not getting picked up when a `token` is also specified. [#428](https://github.com/sourcebot-dev/sourcebot/pull/428)
+
+### Added
+- [ask sb] Added OpenAI Compatible Language Provider. [#424](https://github.com/sourcebot-dev/sourcebot/pull/424)
+
+## [4.6.2] - 2025-07-31
+
+### Changed
+- Bumped AI SDK and associated packages version. [#417](https://github.com/sourcebot-dev/sourcebot/pull/417)
+
+### Fixed
+- [ask sb] Fixed "413 content too large" error when starting a new chat with many repos selected. [#416](https://github.com/sourcebot-dev/sourcebot/pull/416)
+
+### Added
+- [ask sb] PostHog telemetry for chat thread creation. [#418](https://github.com/sourcebot-dev/sourcebot/pull/418)
+
+## [4.6.1] - 2025-07-29
+
+### Added
+- Add search context to ask sourcebot context selector. [#397](https://github.com/sourcebot-dev/sourcebot/pull/397)
+- Add ability to include/exclude connection in search context. [#399](https://github.com/sourcebot-dev/sourcebot/pull/399)
+- Search context refactor to search scope and demo card UI changes. [#405](https://github.com/sourcebot-dev/sourcebot/pull/405)
+- Add GitHub star toast. [#409](https://github.com/sourcebot-dev/sourcebot/pull/409)
+- Added a onboarding modal when first visiting the homepage when `ask` mode is selected. [#408](https://github.com/sourcebot-dev/sourcebot/pull/408)
+- [ask sb] Added `searchReposTool` and `listAllReposTool`. [#400](https://github.com/sourcebot-dev/sourcebot/pull/400)
+
+### Fixed
+- Fixed multiple writes race condition on config file watcher. [#398](https://github.com/sourcebot-dev/sourcebot/pull/398)
+
+### Changed
+- Bumped AI SDK and associated packages version. [#404](https://github.com/sourcebot-dev/sourcebot/pull/404)
+- Bumped form-data package version. [#407](https://github.com/sourcebot-dev/sourcebot/pull/407)
+- Bumped next version. [#406](https://github.com/sourcebot-dev/sourcebot/pull/406)
+- [ask sb] Improved search code tool with filter options. [#400](https://github.com/sourcebot-dev/sourcebot/pull/400)
+- [ask sb] Removed search scope constraint. [#400](https://github.com/sourcebot-dev/sourcebot/pull/400)
+- Update README with new features and videos. [#410](https://github.com/sourcebot-dev/sourcebot/pull/410)
+- [ask sb] Add back search scope requirement and other UI changes. [#411](https://github.com/sourcebot-dev/sourcebot/pull/411)
+
+## [4.6.0] - 2025-07-25
+
+### Added
+- Introducing Ask Sourcebot - ask natural langauge about your codebase. Get back comprehensive Markdown responses with inline citations back to the code. Bring your own LLM api key. [#392](https://github.com/sourcebot-dev/sourcebot/pull/392) 
+
+### Fixed 
+- Fixed onboarding infinite loop when GCP IAP Auth is enabled. [#381](https://github.com/sourcebot-dev/sourcebot/pull/381)
+
 ## [4.5.3] - 2025-07-20
 
 ### Changed
@@ -223,7 +361,7 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 
 ### Removed
 - [**Breaking Change**] Removed `db.json` in favour of a Postgres database for transactional workloads. See the [architecture overview](https://docs.sourcebot.dev/self-hosting/overview#architecture).
-- [**Breaking Change**] Removed local folder & arbitrary .git repo support. If your deployment depended on these features, please [open a discussion](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) and let us know.
+- [**Breaking Change**] Removed local folder & arbitrary .git repo support. If your deployment depended on these features, please [open a issue](https://github.com/sourcebot-dev/sourcebot/issues/new?template=get_help.md) and let us know.
 - [**Breaking Chnage**] Removed ability to specify a `token` as a string literal from the schema.
 - [**Breaking Change**] Removed support for `DOMAIN_SUB_PATH` configuration.
 

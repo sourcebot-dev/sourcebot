@@ -5,7 +5,7 @@ export const getBrowseParamsFromPathParam = (pathParam: string) => {
         throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain "/-/(tree|blob)/" pattern`);
     }
 
-    const repoAndRevisionPart = pathParam.substring(0, sentinelIndex);
+    const repoAndRevisionPart = decodeURIComponent(pathParam.substring(0, sentinelIndex));
     const lastAtIndex = repoAndRevisionPart.lastIndexOf('@');
     
     const repoName = lastAtIndex === -1 ? repoAndRevisionPart : repoAndRevisionPart.substring(0, lastAtIndex);

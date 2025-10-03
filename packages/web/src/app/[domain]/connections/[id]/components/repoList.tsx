@@ -64,7 +64,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
     const { data: unfilteredRepos, isPending: isReposPending, error: reposError, refetch: refetchRepos } = useQuery({
         queryKey: ['repos', domain, connectionId],
         queryFn: async () => {
-            const repos = await unwrapServiceError(getRepos(domain, { connectionId }));
+            const repos = await unwrapServiceError(getRepos({ connectionId }));
             return repos.sort((a, b) => {
                 const priorityA = getPriority(a.repoIndexingStatus);
                 const priorityB = getPriority(b.repoIndexingStatus);
@@ -98,7 +98,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
         }
 
         setIsRetryAllFailedReposLoading(true);
-        flagReposForIndex(failedRepos.map((repo) => repo.repoId), domain)
+        flagReposForIndex(failedRepos.map((repo) => repo.repoId))
             .then((response) => {
                 if (isServiceError(response)) {
                     captureEvent('wa_connection_retry_all_failed_repos_fail', {});
@@ -116,7 +116,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
             .finally(() => {
                 setIsRetryAllFailedReposLoading(false);
             });
-    }, [captureEvent, domain, failedRepos, refetchRepos, toast]);
+    }, [captureEvent, failedRepos, refetchRepos, toast]);
 
     const filteredRepos = useMemo(() => {
         if (isServiceError(unfilteredRepos)) {

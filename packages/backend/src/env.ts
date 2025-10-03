@@ -43,6 +43,7 @@ export const env = createEnv({
 
         LOGTAIL_TOKEN: z.string().optional(),
         LOGTAIL_HOST: z.string().url().optional(),
+        SOURCEBOT_LOG_LEVEL: z.enum(["info", "debug", "warn", "error"]).default("info"),
 
         DATABASE_URL: z.string().url().default("postgresql://postgres:postgres@localhost:5432/postgres"),
         CONFIG_PATH: z.string().optional(),
@@ -51,6 +52,9 @@ export const env = createEnv({
         REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
 
         GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS: numberSchema.default(60 * 10),
+
+        EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
+        AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

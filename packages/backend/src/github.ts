@@ -30,14 +30,29 @@ export type OctokitRepository = {
     size?: number,
     owner: {
         avatar_url: string,
+        login: string,
     }
 }
 
 const isHttpError = (error: unknown, status: number): boolean => {
-    return error !== null 
+    return error !== null
         && typeof error === 'object'
-        && 'status' in error 
+        && 'status' in error
         && error.status === status;
+}
+
+export const createOctokitFromToken = async ({ token, url }: { token?: string, url?: string }): Promise<{ octokit: Octokit, isAuthenticated: boolean }> => {
+    const octokit = new Octokit({
+        auth: token,
+        ...(url ? {
+            baseUrl: `${url}/api/v3`
+        } : {}),
+    });
+
+    return {
+        octokit,
+        isAuthenticated: !!token,
+    };
 }
 
 export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal) => {
@@ -48,17 +63,15 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
     const token = config.token ?
         await getTokenFromConfig(config.token, orgId, db, logger) :
         hostname === GITHUB_CLOUD_HOSTNAME ?
-        env.FALLBACK_GITHUB_CLOUD_TOKEN :
-        undefined;
+            env.FALLBACK_GITHUB_CLOUD_TOKEN :
+            undefined;
 
-    const octokit = new Octokit({
-        auth: token,
-        ...(config.url ? {
-            baseUrl: `${config.url}/api/v3`
-        } : {}),
+    const { octokit, isAuthenticated } = await createOctokitFromToken({
+        token,
+        url: config.url,
     });
 
-    if (token) {
+    if (isAuthenticated) {
         try {
             await octokit.rest.users.getAuthenticated();
         } catch (error) {
@@ -106,8 +119,7 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
     }
 
     if (config.users) {
-        const isAuthenticated = config.token !== undefined;
-        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, isAuthenticated, octokit, signal);
+        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, octokit, signal);
         allRepos = allRepos.concat(validRepos);
         notFound.users = notFoundUsers;
     }
@@ -128,123 +140,69 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
     logger.debug(`Found ${repos.length} total repositories.`);
 
     return {
-        validRepos: repos,  
+        validRepos: repos,
         notFound,
     };
 }
 
-export const shouldExcludeRepo = ({
-    repo,
-    include,
-    exclude
-} : {
-    repo: OctokitRepository,
-    include?: {
-        topics?: GithubConnectionConfig['topics']
-    },
-    exclude?: GithubConnectionConfig['exclude']
-}) => {
-    let reason = '';
-    const repoName = repo.full_name;
+export const getRepoCollaborators = async (owner: string, repo: string, octokit: Octokit) => {
+    try {
+        const fetchFn = () => octokit.paginate(octokit.repos.listCollaborators, {
+            owner,
+            repo,
+            per_page: 100,
+        });
 
-    const shouldExclude = (() => {
-        if (!repo.clone_url) {
-            reason = 'clone_url is undefined';
-            return true;
-        }
-
-        if (!!exclude?.forks && repo.fork) {
-            reason = `\`exclude.forks\` is true`;
-            return true;
-        }
-    
-        if (!!exclude?.archived && !!repo.archived) {
-            reason = `\`exclude.archived\` is true`;
-            return true;
-        }
-    
-        if (exclude?.repos) {
-            if (micromatch.isMatch(repoName, exclude.repos)) {
-                reason = `\`exclude.repos\` contains ${repoName}`;
-                return true;
-            }
-        }
-    
-        if (exclude?.topics) {
-            const configTopics = exclude.topics.map(topic => topic.toLowerCase());
-            const repoTopics = repo.topics ?? [];
-    
-            const matchingTopics = repoTopics.filter((topic) => micromatch.isMatch(topic, configTopics));
-            if (matchingTopics.length > 0) {
-                reason = `\`exclude.topics\` matches the following topics: ${matchingTopics.join(', ')}`;
-                return true;
-            }
-        }
-
-        if (include?.topics) {
-            const configTopics = include.topics.map(topic => topic.toLowerCase());
-            const repoTopics = repo.topics ?? [];
-
-            const matchingTopics = repoTopics.filter((topic) => micromatch.isMatch(topic, configTopics));
-            if (matchingTopics.length === 0) {
-                reason = `\`include.topics\` does not match any of the following topics: ${configTopics.join(', ')}`;
-                return true;
-            }
-        }
-    
-        const repoSizeInBytes = repo.size ? repo.size * 1000 : undefined;
-        if (exclude?.size && repoSizeInBytes) {
-            const min = exclude.size.min;
-            const max = exclude.size.max;
-    
-            if (min && repoSizeInBytes < min) {
-                reason = `repo is less than \`exclude.size.min\`=${min} bytes.`;
-                return true;
-            }
-    
-            if (max && repoSizeInBytes > max) {
-                reason = `repo is greater than \`exclude.size.max\`=${max} bytes.`;
-                return true;
-            }
-        }
-
-        return false;
-    })();
-
-    if (shouldExclude) {
-        logger.debug(`Excluding repo ${repoName}. Reason: ${reason}`);
-        return true;
+        const collaborators = await fetchWithRetry(fetchFn, `repo ${owner}/${repo}`, logger);
+        return collaborators;
+    } catch (error) {
+        Sentry.captureException(error);
+        logger.error(`Failed to fetch collaborators for repo ${owner}/${repo}.`, error);
+        throw error;
     }
-
-    return false;
 }
 
-const getReposOwnedByUsers = async (users: string[], isAuthenticated: boolean, octokit: Octokit, signal: AbortSignal) => {
+export const getReposForAuthenticatedUser = async (visibility: 'all' | 'private' | 'public' = 'all', octokit: Octokit) => {
+    try {
+        const fetchFn = () => octokit.paginate(octokit.repos.listForAuthenticatedUser, {
+            per_page: 100,
+            visibility,
+        });
+
+        const repos = await fetchWithRetry(fetchFn, `authenticated user`, logger);
+        return repos;
+    } catch (error) {
+        Sentry.captureException(error);
+        logger.error(`Failed to fetch repositories for authenticated user.`, error);
+        throw error;
+    }
+}
+
+const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: AbortSignal) => {
     const results = await Promise.allSettled(users.map(async (user) => {
         try {
             logger.debug(`Fetching repository info for user ${user}...`);
 
             const { durationMs, data } = await measure(async () => {
                 const fetchFn = async () => {
-                    if (isAuthenticated) {
-                        return octokit.paginate(octokit.repos.listForAuthenticatedUser, {
-                            username: user,
-                            visibility: 'all',
-                            affiliation: 'owner',
-                            per_page: 100,
-                            request: {
-                                signal,
-                            },
-                        });
-                    } else {
-                        return octokit.paginate(octokit.repos.listForUser, {
-                            username: user,
-                            per_page: 100,
-                            request: {
-                                signal,
-                            },
-                        });
-                    }
+                    let query = `user:${user}`;
+                    // To include forks in the search results, we will need to add fork:true
+                    // see: https://docs.github.com/en/search-github/searching-on-github/searching-for-repositories
+                    query += ' fork:true';
+                    // @note: We need to use GitHub's search API here since it is the only way
+                    // to get all repositories (private and public) owned by a user that supports
+                    // the username as a parameter.
+                    // @see: https://github.com/orgs/community/discussions/24382#discussioncomment-3243958
+                    // @see: https://api.github.com/search/repositories?q=user:USERNAME
+                    const searchResults = await octokit.paginate(octokit.rest.search.repos, {
+                        q: query,
+                        per_page: 100,
+                        request: {
+                            signal,
+                        },
+                    });
+
+                    return searchResults as OctokitRepository[];
                 };
 
                 return fetchWithRetry(fetchFn, `user ${user}`, logger);
@@ -371,4 +329,90 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
         validRepos,
         notFoundRepos,
     };
+}
+
+export const shouldExcludeRepo = ({
+    repo,
+    include,
+    exclude
+}: {
+    repo: OctokitRepository,
+    include?: {
+        topics?: GithubConnectionConfig['topics']
+    },
+    exclude?: GithubConnectionConfig['exclude']
+}) => {
+    let reason = '';
+    const repoName = repo.full_name;
+
+    const shouldExclude = (() => {
+        if (!repo.clone_url) {
+            reason = 'clone_url is undefined';
+            return true;
+        }
+
+        if (!!exclude?.forks && repo.fork) {
+            reason = `\`exclude.forks\` is true`;
+            return true;
+        }
+
+        if (!!exclude?.archived && !!repo.archived) {
+            reason = `\`exclude.archived\` is true`;
+            return true;
+        }
+
+        if (exclude?.repos) {
+            if (micromatch.isMatch(repoName, exclude.repos)) {
+                reason = `\`exclude.repos\` contains ${repoName}`;
+                return true;
+            }
+        }
+
+        if (exclude?.topics) {
+            const configTopics = exclude.topics.map(topic => topic.toLowerCase());
+            const repoTopics = repo.topics ?? [];
+
+            const matchingTopics = repoTopics.filter((topic) => micromatch.isMatch(topic, configTopics));
+            if (matchingTopics.length > 0) {
+                reason = `\`exclude.topics\` matches the following topics: ${matchingTopics.join(', ')}`;
+                return true;
+            }
+        }
+
+        if (include?.topics) {
+            const configTopics = include.topics.map(topic => topic.toLowerCase());
+            const repoTopics = repo.topics ?? [];
+
+            const matchingTopics = repoTopics.filter((topic) => micromatch.isMatch(topic, configTopics));
+            if (matchingTopics.length === 0) {
+                reason = `\`include.topics\` does not match any of the following topics: ${configTopics.join(', ')}`;
+                return true;
+            }
+        }
+
+        const repoSizeInBytes = repo.size ? repo.size * 1000 : undefined;
+        if (exclude?.size && repoSizeInBytes) {
+            const min = exclude.size.min;
+            const max = exclude.size.max;
+
+            if (min && repoSizeInBytes < min) {
+                reason = `repo is less than \`exclude.size.min\`=${min} bytes.`;
+                return true;
+            }
+
+            if (max && repoSizeInBytes > max) {
+                reason = `repo is greater than \`exclude.size.max\`=${max} bytes.`;
+                return true;
+            }
+        }
+
+        return false;
+    })();
+
+    if (shouldExclude) {
+        logger.debug(`Excluding repo ${repoName}. Reason: ${reason}`);
+        return true;
+    }
+
+    return false;
 }

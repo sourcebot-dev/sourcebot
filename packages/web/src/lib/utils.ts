@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import githubLogo from "@/public/github.svg";
+import azuredevopsLogo from "@/public/azuredevops.svg";
 import gitlabLogo from "@/public/gitlab.svg";
 import giteaLogo from "@/public/gitea.svg";
 import gerritLogo from "@/public/gerrit.svg";
@@ -69,6 +70,7 @@ export type CodeHostType =
     "gerrit" |
     "bitbucket-cloud" |
     "bitbucket-server" |
+    "azuredevops" |
     "generic-git-host";
 
 export type AuthProviderType = 
@@ -210,6 +212,17 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
+        case 'azuredevops': {
+            const { src, className } = getCodeHostIcon('azuredevops')!;
+            return {
+                type: "azuredevops",
+                displayName: displayName ?? name,
+                codeHostName: "Azure DevOps",
+                repoLink: webUrl,
+                icon: src,
+                iconClassName: className,
+            }
+        }
         case 'gitea': {
             const { src, className } = getCodeHostIcon('gitea')!;
             return {
@@ -269,7 +282,7 @@ export const getCodeHostInfoForRepo = (repo: {
     }
 }
 
-export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, className?: string } | null => {
+export const getCodeHostIcon = (codeHostType: string): { src: string, className?: string } | null => {
     switch (codeHostType) {
         case "github":
             return {
@@ -293,6 +306,10 @@ export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, clas
             return {
                 src: bitbucketLogo,
             }
+        case "azuredevops":
+            return {
+                src: azuredevopsLogo,
+            }
         case "generic-git-host":
             return {
                 src: gitLogo,
@@ -309,6 +326,7 @@ export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean 
         case "gitea":
         case "bitbucket-cloud":
         case "bitbucket-server":
+        case "azuredevops":
             return true;
         case "generic-git-host":
         case "gerrit":
@@ -458,4 +476,14 @@ export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, do
 export const getOrgMetadata = (org: Org): OrgMetadata | null => {
     const currentMetadata = orgMetadataSchema.safeParse(org.metadata);
     return currentMetadata.success ? currentMetadata.data : null;
+}
+
+export const IS_MAC = typeof navigator !== 'undefined' && /Mac OS X/.test(navigator.userAgent);
+
+
+export const isHttpError = (error: unknown, status: number): boolean => {
+    return error !== null 
+        && typeof error === 'object'
+        && 'status' in error 
+        && error.status === status;
 }

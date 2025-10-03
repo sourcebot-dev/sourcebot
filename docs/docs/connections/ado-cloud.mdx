@@ -1,0 +1,147 @@
+---
+title: Linking code from Azure Devops Cloud
+sidebarTitle: Azure Devops Cloud
+icon: https://www.svgrepo.com/show/448307/azure-devops.svg
+---
+
+import AzureDevopsSchema from '/snippets/schemas/v3/azuredevops.schema.mdx'
+
+If you're not familiar with Sourcebot [connections](/docs/connections/overview), please read that overview first.
+
+## Examples
+
+<AccordionGroup>
+    <Accordion title="Sync individual repos">
+        ```json
+        {
+            "type": "azuredevops",
+            "deploymentType": "cloud",
+            "repos": [
+                "organizationName/projectName/repoName",
+                "organizationName/projectName/repoName2
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Sync all repos in a organization">
+        ```json
+        {
+            "type": "azuredevops",
+            "deploymentType": "cloud",
+            "orgs": [
+                "organizationName",
+                "organizationName2
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Sync all repos in a project">
+        ```json
+        {
+            "type": "azuredevops",
+            "deploymentType": "cloud",
+            "projects": [
+                "organizationName/projectName",
+                "organizationName/projectName2"
+            ]
+        }
+        ```
+    </Accordion>
+    <Accordion title="Exclude repos from syncing">
+        ```json
+        {
+            "type": "azuredevops",
+            "deploymentType": "cloud",
+            // Include all repos in my-org...
+            "orgs": [
+                "my-org"
+            ],
+            // ...except:
+            "exclude": {
+                // repos that are disabled 
+                "disabled": true,
+                // repos that match these glob patterns
+                "repos": [
+                    "reposToExclude*"
+                ],
+                // projects that match these glob patterns
+                "projects": [
+                    "projectstoExclude*"
+                ]
+                // repos less than the defined min OR larger than the defined max
+                "size": {
+                    // repos that are less than 1MB (in bytes)...
+                    "min": 1048576,
+                    // or repos greater than 100MB (in bytes)
+                    "max": 104857600 
+                }
+            }
+        }
+        ```
+    </Accordion>
+</AccordionGroup>
+
+## Authenticating with Azure Devops Cloud
+
+Azure Devops Cloud requires you to provide a PAT in order to index your repositories. To learn how to create PAT, check out the [Azure Devops docs](https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=Windows).
+Sourcebot needs the `Read` access for the `Code` scope in order to find and clone your repos.
+
+Next, provide the access token via the `token` property, either as an environment variable or a secret:
+
+<Tabs>
+    <Tab title="Environment Variable">
+
+        1. Add the `token` property to your connection config:
+        ```json
+        {
+            "type": "azuredevops",
+            "deploymentType": "cloud",
+            "token": {
+                // note: this env var can be named anything. It
+                // doesn't need to be `ADO_TOKEN`.
+                "env": "ADO_TOKEN"
+            }
+            // .. rest of config ..
+        }
+        ```
+
+        2. Pass this environment variable each time you run Sourcebot:
+        ```bash
+        docker run \
+            -e ADO_TOKEN=<PAT> \
+            /* additional args */ \
+            ghcr.io/sourcebot-dev/sourcebot:latest
+        ```
+    </Tab>
+
+    <Tab title="Secret">
+        <Note>Secrets are only supported when [authentication](/docs/configuration/auth/overview) is enabled.</Note>
+
+        1. Navigate to **Secrets** in settings and create a new secret with your PAT:
+
+        ![](/images/secrets_list.png)
+
+        2. Add the `token` property to your connection config:
+
+        ```json
+        {
+            "type": "azuredevops",
+            "deploymentType": "cloud",
+            "token": {
+                "secret": "mysecret"
+            }
+            // .. rest of config ..
+        }
+        ```
+
+    </Tab>
+</Tabs>
+
+## Schema reference
+
+<Accordion title="Reference">
+[schemas/v3/azuredevops.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/azuredevops.json)
+
+<AzureDevopsSchema />
+
+</Accordion>

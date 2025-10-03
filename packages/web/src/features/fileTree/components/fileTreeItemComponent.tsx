@@ -6,6 +6,7 @@ import clsx from "clsx";
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import { FileTreeItemIcon } from "./fileTreeItemIcon";
+import Link from "next/link";
 
 export const FileTreeItemComponent = ({
     node,
@@ -13,7 +14,9 @@ export const FileTreeItemComponent = ({
     depth,
     isCollapsed = false,
     isCollapseChevronVisible = true,
+    href,
     onClick,
+    onNavigate,
     parentRef,
 }: {
     node: FileTreeItem,
@@ -21,10 +24,12 @@ export const FileTreeItemComponent = ({
     depth: number,
     isCollapsed?: boolean,
     isCollapseChevronVisible?: boolean,
-    onClick: () => void,
-    parentRef: React.RefObject<HTMLDivElement>,
+    href: string,
+    onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void,
+    onNavigate?: (e: { preventDefault: () => void }) => void,
+    parentRef: React.RefObject<HTMLDivElement | null>,
 }) => {
-    const ref = useRef<HTMLDivElement>(null);
+    const ref = useRef<HTMLAnchorElement>(null);
 
     useEffect(() => {
         if (isActive && ref.current) {
@@ -51,20 +56,16 @@ export const FileTreeItemComponent = ({
     }, [isActive, parentRef]);
 
     return (
-        <div
+        <Link
             ref={ref}
+            href={href}
             className={clsx("flex flex-row gap-1 items-center hover:bg-accent hover:text-accent-foreground rounded-sm cursor-pointer p-0.5", {
                 'bg-accent': isActive,
             })}
             style={{ paddingLeft: `${depth * 16}px` }}
             tabIndex={0}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    onClick();
-                }
-            }}
             onClick={onClick}
+            onNavigate={onNavigate}
         >
             <div
                 className="flex flex-row gap-1 cursor-pointer w-4 h-4 flex-shrink-0"
@@ -79,6 +80,6 @@ export const FileTreeItemComponent = ({
             </div>
             <FileTreeItemIcon item={node} />
             <span className="text-sm">{node.name}</span>
-        </div>
+        </Link>
     )
 }

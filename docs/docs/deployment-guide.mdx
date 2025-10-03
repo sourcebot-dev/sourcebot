@@ -7,7 +7,7 @@ import SupportedPlatforms from '/snippets/platform-support.mdx'
 The following guide will walk you through the steps to deploy Sourcebot on your own infrastructure. Sourcebot is distributed as a [single docker container](/docs/overview#architecture) that can be deployed to a k8s cluster, a VM, or any platform that supports docker.
 
 
-<Note>Hit an issue? Please let us know on [GitHub discussions](https://github.com/sourcebot-dev/sourcebot/discussions/categories/support) or by [emailing us](mailto:team@sourcebot.dev).</Note>
+<Note>Hit an issue? Please let us know on [GitHub](https://github.com/sourcebot-dev/sourcebot/issues/new/choose) or by [emailing us](mailto:team@sourcebot.dev).</Note>
 
 <Steps>
     <Step title="Requirements">
@@ -32,7 +32,7 @@ The following guide will walk you through the steps to deploy Sourcebot on your 
         }' > config.json
         ```
 
-        This config creates a single GitHub connection named `starter-connection` that specifies [Sourcebot](https://github.com/sourcebot-dev/sourcebot) as a repo to sync. [Learn more about the config file](/docs/connections/overview).
+        This config creates a single GitHub connection named `starter-connection` that specifies [Sourcebot](https://github.com/sourcebot-dev/sourcebot) as a repo to sync. [Learn more about the config file](/docs/configuration/config-file).
     </Step>
 
     <Step title="Launch your instance">
@@ -65,25 +65,24 @@ The following guide will walk you through the steps to deploy Sourcebot on your 
 
     <Step title="Complete onboarding">
         Navigate to `http://localhost:3000` and complete the onboarding flow.
-
-        <Note>
-            By default, only email / password authentication is enabled. [Learn more about authentication](/docs/configuration/auth/overview).
-        </Note>
     </Step>
 
     <Step title="Done">
-        You're all set! You can now start searching - checkout the [syntax guide](/docs/features/search/syntax-reference) to learn more about how to search.
+        You're all set! If you'd like to setup [Ask Sourcebot](/docs/features/ask/overview), configure a language model [provider](/docs/configuration/language-model-providers).
     </Step>
 </Steps>
 
 ## Next steps
 ---
 
-<CardGroup cols={2}>
-    <Card title="Connecting your code" icon="code" href="/docs/connections/overview">
-        Learn more about how to connect your code to Sourcebot.
+<CardGroup cols={3}>
+    <Card title="Index your code" icon="code" href="/docs/connections/overview">
+        Learn how to index your code using Sourcebot
     </Card>
-    <Card title="Setup other authentication providers" icon="lock" href="/docs/configuration/auth/overview">
+    <Card title="Language models" icon="brain" href="/docs/configuration/language-model-providers">
+        Learn how to configure language model providers to start using [Ask Sourcebot](/docs/features/ask/overview)
+    </Card>
+    <Card title="Authentication" icon="lock" href="/docs/configuration/auth/overview">
         Learn more about how to setup SSO, email codes, and other authentication providers.
     </Card>
 </CardGroup>

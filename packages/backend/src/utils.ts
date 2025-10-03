@@ -1,10 +1,11 @@
 import { Logger } from "winston";
-import { AppContext } from "./types.js";
+import { AppContext, RepoAuthCredentials, RepoWithConnections } from "./types.js";
 import path from 'path';
 import { PrismaClient, Repo } from "@sourcebot/db";
 import { getTokenFromConfig as getTokenFromConfigBase } from "@sourcebot/crypto";
 import { BackendException, BackendError } from "@sourcebot/error";
 import * as Sentry from "@sentry/node";
+import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 
 export const measure = async <T>(cb: () => Promise<T>) => {
     const start = Date.now();
@@ -116,4 +117,127 @@ export const fetchWithRetry = async <T>(
             throw e;
         }
     }
+}
+
+// TODO: do this better? ex: try using the tokens from all the connections 
+// We can no longer use repo.cloneUrl directly since it doesn't contain the token for security reasons. As a result, we need to
+// fetch the token here using the connections from the repo. Multiple connections could be referencing this repo, and each
+// may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
+// may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
+export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: PrismaClient, logger?: Logger): Promise<RepoAuthCredentials | undefined> => {
+    for (const { connection } of repo.connections) {
+        if (connection.connectionType === 'github') {
+            const config = connection.config as unknown as GithubConnectionConfig;
+            if (config.token) {
+                const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+                return {
+                    hostUrl: config.url,
+                    token,
+                    cloneUrlWithToken: createGitCloneUrlWithToken(
+                        repo.cloneUrl,
+                        {
+                            password: token,
+                        }
+                    ),
+                }
+            }
+        } else if (connection.connectionType === 'gitlab') {
+            const config = connection.config as unknown as GitlabConnectionConfig;
+            if (config.token) {
+                const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+                return {
+                    hostUrl: config.url,
+                    token,
+                    cloneUrlWithToken: createGitCloneUrlWithToken(
+                        repo.cloneUrl,
+                        {
+                            username: 'oauth2',
+                            password: token
+                        }
+                    ),
+                }
+            }
+        } else if (connection.connectionType === 'gitea') {
+            const config = connection.config as unknown as GiteaConnectionConfig;
+            if (config.token) {
+                const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+                return {
+                    hostUrl: config.url,
+                    token,
+                    cloneUrlWithToken: createGitCloneUrlWithToken(
+                        repo.cloneUrl,
+                        {
+                            password: token
+                        }
+                    ),
+                }
+            }
+        } else if (connection.connectionType === 'bitbucket') {
+            const config = connection.config as unknown as BitbucketConnectionConfig;
+            if (config.token) {
+                const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+                const username = config.user ?? 'x-token-auth';
+                return {
+                    hostUrl: config.url,
+                    token,
+                    cloneUrlWithToken: createGitCloneUrlWithToken(
+                        repo.cloneUrl,
+                        {
+                            username,
+                            password: token
+                        }
+                    ),
+                }
+            }
+        } else if (connection.connectionType === 'azuredevops') {
+            const config = connection.config as unknown as AzureDevOpsConnectionConfig;
+            if (config.token) {
+                const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+
+                // For ADO server, multiple auth schemes may be supported. If the ADO deployment supports NTLM, the git clone will default
+                // to this over basic auth. As a result, we cannot embed the token in the clone URL and must force basic auth by passing in the token
+                // appropriately in the header. To do this, we set the authHeader field here
+                if (config.deploymentType === 'server') {
+                    return {
+                        hostUrl: config.url,
+                        token,
+                        authHeader: "Authorization: Basic " + Buffer.from(`:${token}`).toString('base64')
+                    }
+                } else {
+                    return {
+                        hostUrl: config.url,
+                        token,
+                        cloneUrlWithToken: createGitCloneUrlWithToken(
+                            repo.cloneUrl,
+                            {
+                                // @note: If we don't provide a username, the password will be set as the username. This seems to work
+                                // for ADO cloud but not for ADO server. To fix this, we set a placeholder username to ensure the password
+                                // is set correctly
+                                username: 'user',
+                                password: token
+                            }
+                        ),
+                    }
+                }
+            }
+        }
+    }
+
+    return undefined;
+}
+
+const createGitCloneUrlWithToken = (cloneUrl: string, credentials: { username?: string, password: string }) => {
+    const url = new URL(cloneUrl);
+    // @note: URL has a weird behavior where if you set the password but
+    // _not_ the username, the ":" delimiter will still be present in the
+    // URL (e.g., https://:password@example.com). To get around this, if
+    // we only have a password, we set the username to the password.
+    // @see: https://www.typescriptlang.org/play/?#code/MYewdgzgLgBArgJwDYwLwzAUwO4wKoBKAMgBQBEAFlFAA4QBcA9I5gB4CGAtjUpgHShOZADQBKANwAoREj412ECNhAIAJmhhl5i5WrJTQkELz5IQAcxIy+UEAGUoCAJZhLo0UA
+    if (!credentials.username) {
+        url.username = credentials.password;
+    } else {
+        url.username = credentials.username;
+        url.password = credentials.password;
+    }
+    return url.toString();
 }

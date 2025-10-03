@@ -1,11 +1,10 @@
 'use client';
 
-import { getCodeHostInfoForRepo } from "@/lib/utils";
+import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
-import clsx from "clsx";
 import Image from "next/image";
-import { useBrowseNavigation } from "../browse/hooks/useBrowseNavigation";
-import { Copy, CheckCircle2, ChevronRight, MoreHorizontal } from "lucide-react";
+import { getBrowsePath } from "../browse/hooks/useBrowseNavigation";
+import { ChevronRight, MoreHorizontal } from "lucide-react";
 import { useCallback, useState, useMemo, useRef, useEffect } from "react";
 import { useToast } from "@/components/hooks/use-toast";
 import {
@@ -14,6 +13,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
+import { CopyIconButton } from "./copyIconButton";
+import Link from "next/link";
+import { useDomain } from "@/hooks/useDomain";
 
 interface FileHeaderProps {
     path: string;
@@ -30,6 +33,9 @@ interface FileHeaderProps {
     },
     branchDisplayName?: string;
     branchDisplayTitle?: string;
+    isCodeHostIconVisible?: boolean;
+    isFileIconVisible?: boolean;
+    repoNameClassName?: string;
 }
 
 interface BreadcrumbSegment {
@@ -49,6 +55,9 @@ export const PathHeader = ({
     branchDisplayName,
     branchDisplayTitle,
     pathType = 'blob',
+    isCodeHostIconVisible = true,
+    isFileIconVisible = true,
+    repoNameClassName,
 }: FileHeaderProps) => {
     const info = getCodeHostInfoForRepo({
         name: repo.name,
@@ -57,30 +66,28 @@ export const PathHeader = ({
         webUrl: repo.webUrl,
     });
 
-    const { navigateToPath } = useBrowseNavigation();
     const { toast } = useToast();
-    const [copied, setCopied] = useState(false);
-    
     const containerRef = useRef<HTMLDivElement>(null);
     const breadcrumbsRef = useRef<HTMLDivElement>(null);
     const [visibleSegmentCount, setVisibleSegmentCount] = useState<number | null>(null);
-    
+    const domain = useDomain();
+
     // Create breadcrumb segments from file path
     const breadcrumbSegments = useMemo(() => {
         const pathParts = path.split('/').filter(Boolean);
         const segments: BreadcrumbSegment[] = [];
-        
+
         let currentPath = '';
         pathParts.forEach((part, index) => {
             currentPath = currentPath ? `${currentPath}/${part}` : part;
             const isLastSegment = index === pathParts.length - 1;
-            
+
             // Calculate highlight range for this segment if it exists
             let segmentHighlight: { from: number; to: number } | undefined;
             if (pathHighlightRange) {
                 const segmentStart = path.indexOf(part, currentPath.length - part.length);
                 const segmentEnd = segmentStart + part.length;
-                
+
                 // Check if highlight overlaps with this segment
                 if (pathHighlightRange.from < segmentEnd && pathHighlightRange.to > segmentStart) {
                     segmentHighlight = {
@@ -89,7 +96,7 @@ export const PathHeader = ({
                     };
                 }
             }
-            
+
             segments.push({
                 name: part,
                 fullPath: currentPath,
@@ -97,7 +104,7 @@ export const PathHeader = ({
                 highlightRange: segmentHighlight
             });
         });
-        
+
         return segments;
     }, [path, pathHighlightRange]);
 
@@ -105,10 +112,10 @@ export const PathHeader = ({
     useEffect(() => {
         const measureSegments = () => {
             if (!containerRef.current || !breadcrumbsRef.current) return;
-            
+
             const containerWidth = containerRef.current.offsetWidth;
             const availableWidth = containerWidth - 175; // Reserve space for copy button and padding
-            
+
             // Create a temporary element to measure segment widths
             const tempElement = document.createElement('div');
             tempElement.style.position = 'absolute';
@@ -116,17 +123,17 @@ export const PathHeader = ({
             tempElement.style.whiteSpace = 'nowrap';
             tempElement.className = 'font-mono text-sm';
             document.body.appendChild(tempElement);
-            
+
             let totalWidth = 0;
             let visibleCount = breadcrumbSegments.length;
-            
+
             // Start from the end (most important segments) and work backwards
             for (let i = breadcrumbSegments.length - 1; i >= 0; i--) {
                 const segment = breadcrumbSegments[i];
                 tempElement.textContent = segment.name;
                 const segmentWidth = tempElement.offsetWidth;
                 const separatorWidth = i < breadcrumbSegments.length - 1 ? 16 : 0; // ChevronRight width
-                
+
                 if (totalWidth + segmentWidth + separatorWidth > availableWidth && i > 0) {
                     // If adding this segment would overflow and it's not the last segment
                     visibleCount = breadcrumbSegments.length - i;
@@ -136,21 +143,21 @@ export const PathHeader = ({
                     }
                     break;
                 }
-                
+
                 totalWidth += segmentWidth + separatorWidth;
             }
-            
+
             document.body.removeChild(tempElement);
             setVisibleSegmentCount(visibleCount);
         };
 
         measureSegments();
-        
+
         const resizeObserver = new ResizeObserver(measureSegments);
         if (containerRef.current) {
             resizeObserver.observe(containerRef.current);
         }
-        
+
         return () => resizeObserver.disconnect();
     }, [breadcrumbSegments]);
 
@@ -170,20 +177,9 @@ export const PathHeader = ({
 
     const onCopyPath = useCallback(() => {
         navigator.clipboard.writeText(path);
-        setCopied(true);
         toast({ description: "✅ Copied to clipboard" });
-        setTimeout(() => setCopied(false), 1500);
+        return true;
     }, [path, toast]);
-
-    const onBreadcrumbClick = useCallback((segment: BreadcrumbSegment) => {
-        navigateToPath({
-            repoName: repo.name,
-            path: segment.fullPath,
-            pathType: segment.isLastSegment ? pathType : 'tree',
-            revisionName: branchDisplayName,
-        });
-    }, [repo.name, branchDisplayName, navigateToPath, pathType]);
-
 
     const renderSegmentWithHighlight = (segment: BreadcrumbSegment) => {
         if (!segment.highlightRange) {
@@ -204,28 +200,34 @@ export const PathHeader = ({
 
     return (
         <div className="flex flex-row gap-2 items-center w-full overflow-hidden">
-            {info?.icon ? (
-                <a href={info.repoLink} target="_blank" rel="noopener noreferrer">
-                    <Image
-                        src={info.icon}
-                        alt={info.codeHostName}
-                        className={`w-4 h-4 ${info.iconClassName}`}
-                    />
-                </a>
-            ) : (
-                <LaptopIcon className="w-4 h-4" />
+            {isCodeHostIconVisible && (
+                <>
+                    {info?.icon ? (
+                        <a href={info.repoLink} target="_blank" rel="noopener noreferrer">
+                            <Image
+                                src={info.icon}
+                                alt={info.codeHostName}
+                                className={`w-4 h-4 ${info.iconClassName}`}
+                            />
+                        </a>
+                    ) : (
+                        <LaptopIcon className="w-4 h-4" />
+                    )}
+                </>
             )}
-            <div
-                className="font-medium cursor-pointer hover:underline"
-                onClick={() => navigateToPath({
+
+            <Link
+                className={cn("font-medium cursor-pointer hover:underline", repoNameClassName)}
+                href={getBrowsePath({
                     repoName: repo.name,
-                    path: '',
+                    path: '/',
                     pathType: 'tree',
                     revisionName: branchDisplayName,
+                    domain,
                 })}
             >
                 {info?.displayName}
-            </div>
+            </Link>
             {branchDisplayName && (
                 <p
                     className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-[3px] flex items-center gap-0.5"
@@ -254,13 +256,21 @@ export const PathHeader = ({
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start" className="min-w-[200px]">
                                     {hiddenSegments.map((segment) => (
-                                        <DropdownMenuItem
+                                        <Link
+                                            href={getBrowsePath({
+                                                repoName: repo.name,
+                                                path: segment.fullPath,
+                                                pathType: segment.isLastSegment ? pathType : 'tree',
+                                                revisionName: branchDisplayName,
+                                                domain,
+                                            })}
+                                            className="font-mono text-sm hover:cursor cursor-pointer"
                                             key={segment.fullPath}
-                                            onClick={() => onBreadcrumbClick(segment)}
-                                            className="font-mono text-sm cursor-pointer"
                                         >
-                                            {renderSegmentWithHighlight(segment)}
-                                        </DropdownMenuItem>
+                                            <DropdownMenuItem className="hover:cursor cursor-pointer">
+                                                {renderSegmentWithHighlight(segment)}
+                                            </DropdownMenuItem>
+                                        </Link>
                                     ))}
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -269,32 +279,33 @@ export const PathHeader = ({
                     )}
                     {visibleSegments.map((segment, index) => (
                         <div key={segment.fullPath} className="flex items-center">
-                            <span
-                                className={clsx(
+                            {(isFileIconVisible && index === visibleSegments.length - 1) && (
+                                <VscodeFileIcon fileName={segment.name} className="h-4 w-4 mr-1" />
+                            )}
+                            <Link
+                                className={cn(
                                     "font-mono text-sm truncate cursor-pointer hover:underline",
                                 )}
-                                onClick={() => onBreadcrumbClick(segment)}
+                                href={getBrowsePath({
+                                    repoName: repo.name,
+                                    path: segment.fullPath,
+                                    pathType: segment.isLastSegment ? pathType : 'tree',
+                                    revisionName: branchDisplayName,
+                                    domain,
+                                })}
                             >
                                 {renderSegmentWithHighlight(segment)}
-                            </span>
+                            </Link>
                             {index < visibleSegments.length - 1 && (
                                 <ChevronRight className="h-3 w-3 mx-0.5 text-muted-foreground flex-shrink-0" />
                             )}
                         </div>
                     ))}
                 </div>
-                <button
-                    className="ml-2 p-1 rounded transition-colors flex-shrink-0"
-                    onClick={onCopyPath}
-                    aria-label="Copy file path"
-                    type="button"
-                >
-                    {copied ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    ) : (
-                        <Copy className="h-4 w-4 text-muted-foreground" />
-                    )}
-                </button>
+                <CopyIconButton
+                    onCopy={onCopyPath}
+                    className="ml-2"
+                />
             </div>
         </div>
     )

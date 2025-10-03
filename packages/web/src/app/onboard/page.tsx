@@ -1,4 +1,5 @@
 import type React from "react"
+import Link from "next/link"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -14,13 +15,13 @@ import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
-import { BetweenHorizontalStart, GitBranchIcon, LockIcon } from "lucide-react";
+import { BetweenHorizontalStart, Brain, GitBranchIcon, LockIcon } from "lucide-react";
 import { hasEntitlement } from "@sourcebot/shared";
 import { env } from "@/env.mjs";
 import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
 
 interface OnboardingProps {
-    searchParams?: { step?: string };
+    searchParams?: Promise<{ step?: string }>;
 }
 
 interface OnboardingStep {
@@ -38,7 +39,8 @@ interface ResourceCard {
     icon?: React.ReactNode
 }
 
-export default async function Onboarding({ searchParams }: OnboardingProps) {
+export default async function Onboarding(props: OnboardingProps) {
+    const searchParams = await props.searchParams;
     const providers = getAuthProviders();
     const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
     const session = await auth();
@@ -88,6 +90,13 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             icon: <GitBranchIcon className="w-4 h-4" />,
         },
         {
+            id: "language-models",
+            title: "Language Models",
+            description: "Learn how to configure your language model providers to start using Ask Sourcebot",
+            href: "https://docs.sourcebot.dev/docs/configuration/language-model-providers",
+            icon: <Brain className="w-4 h-4" />,
+        },
+        {
             id: "authentication-system",
             title: "Authentication System",
             description: "Learn how to setup additional auth providers, invite members, and more",
@@ -111,7 +120,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             component: (
                 <div className="space-y-6">
                     <Button asChild className="w-full">
-                        <a href="/onboard?step=1">Get Started →</a>
+                        <Link href="/onboard?step=1">Get Started →</Link>
                     </Button>
                 </div>
             ),
@@ -163,7 +172,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                 <div className="space-y-6">
                     <OrganizationAccessSettings />
                     <Button asChild className="w-full">
-                        <a href="/onboard?step=3">Continue →</a>
+                        <Link href="/onboard?step=3">Continue →</Link>
                     </Button>
                 </div>
             ),
