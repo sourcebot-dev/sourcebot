@@ -198,19 +198,6 @@ startupProbe:
   # -- Initial delay before the first probe.
   periodSeconds: 30
 
-# -- Configure Horizontal Pod Autoscaler.
-autoscaling:
-  # -- Enable or disable Horizontal Pod Autoscaler.
-  enabled: false
-  # -- Minimum number of replicas.
-  minReplicas: 1
-  # -- Maximum number of replicas.
-  maxReplicas: 3
-  # -- Target CPU utilization percentage for autoscaling.
-  targetCPUUtilizationPercentage: 80
-  # -- Target memory utilization percentage for autoscaling.
-  targetMemoryUtilizationPercentage: 80
-
 # -- Define additional volumes.
 # See: https://kubernetes.io/docs/concepts/storage/volumes/
 volumes: []

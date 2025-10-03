@@ -336,26 +336,6 @@
     "startupProbe": {
       "$ref": "#/definitions/probe"
     },
-    "autoscaling": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
-        "minReplicas": {
-          "type": "integer"
-        },
-        "maxReplicas": {
-          "type": "integer"
-        },
-        "targetCPUUtilizationPercentage": {
-          "type": "integer"
-        },
-        "targetMemoryUtilizationPercentage": {
-          "type": "integer"
-        }
-      }
-    },
     "volumes": {
       "type": "array",
       "items": {

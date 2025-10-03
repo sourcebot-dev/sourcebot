@@ -24,12 +24,6 @@ The open source Sourcegraph alternative. Sourcebot gives you a powerful interfac
 | additionalLabels | object | `{}` | Add extra labels to all resources. |
 | affinity | object | `{}` | Set affinity rules for pod scheduling. Defaults to soft anti-affinity if not set. See: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ |
 | args | list | `[]` | Override the default arguments of the container. |
-| autoscaling | object | `{"enabled":false,"maxReplicas":3,"minReplicas":1,"targetCPUUtilizationPercentage":80,"targetMemoryUtilizationPercentage":80}` | Configure Horizontal Pod Autoscaler. |
-| autoscaling.enabled | bool | `false` | Enable or disable Horizontal Pod Autoscaler. |
-| autoscaling.maxReplicas | int | `3` | Maximum number of replicas. |
-| autoscaling.minReplicas | int | `1` | Minimum number of replicas. |
-| autoscaling.targetCPUUtilizationPercentage | int | `80` | Target CPU utilization percentage for autoscaling. |
-| autoscaling.targetMemoryUtilizationPercentage | int | `80` | Target memory utilization percentage for autoscaling. |
 | command | list | `[]` | Override the default command of the container. |
 | config | object | `{"$schema":"https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json","connections":{},"settings":{}}` | Configure Sourcebot-specific application settings. |
 | containerSecurityContext | object | `{}` | Set the container-level security context. |

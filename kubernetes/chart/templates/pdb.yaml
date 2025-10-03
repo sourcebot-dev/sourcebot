@@ -1,4 +1,4 @@
-{{- if and $.Values.podDisruptionBudget.enabled (gt (int $.Values.replicaCount) 1)  }}
+{{- if and $.Values.podDisruptionBudget.enabled (gt (int $.Values.replicaCount) 1) }}
 apiVersion: {{ include "common.capabilities.policy.apiVersion" . }}
 kind: PodDisruptionBudget
 metadata:
