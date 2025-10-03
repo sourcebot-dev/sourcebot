@@ -125,7 +125,7 @@ ingress:
   # kubernetes.io/ingress.class: nginx
   # kubernetes.io/tls-acme: "true"
 
-  # -- List of hostnames and paths for ingress rules.
+  # -- List of hostnames and paths for ingress rules. The first host will be used as the default host.
   hosts: []
   # - host: chart-example.local
   #  paths:

@@ -39,7 +39,7 @@ The open source Sourcegraph alternative. Sourcebot gives you a powerful interfac
 | ingress.annotations | object | `{}` | Ingress annotations. |
 | ingress.className | string | `""` | Ingress class name. |
 | ingress.enabled | bool | `false` | Enable or disable ingress. |
-| ingress.hosts | list | `[]` | List of hostnames and paths for ingress rules. |
+| ingress.hosts | list | `[]` | List of hostnames and paths for ingress rules. The first host will be used as the default host. |
 | ingress.tls | list | `[]` | TLS settings for ingress. |
 | initContainers | list | `[]` | Configure init containers to run before the main container. |
 | license | object | `{}` | Configure the enterprise license key secret by providing license.secretName and license.secretKey to use a Kubernetes secret. |
