@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../vendor/zoekt"
+		},
+		{
+			"path": "../../sourcebot-helm-chart"
 		}
 	],
 	"settings": {
