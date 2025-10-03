@@ -1,0 +1,142 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sourcebot.fullname" $ }}
+  labels:
+    {{- include "sourcebot.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ $.Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "sourcebot.selectorLabels" $ | nindent 6 }}
+  template:
+    metadata:
+      {{- with $.Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "sourcebot.labels" $ | nindent 8 }}
+        {{- with $.Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "sourcebot.serviceAccountName" $ }}
+      {{- with $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with $.Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: {{ include "sourcebot.image" $ }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          {{- with $.Values.command }}
+          command: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $.Values.args }}
+          args: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            {{- if and $.Values.ingress.enabled (gt len ($.Values.ingress.hosts) 0) }}
+            - name: AUTH_URL
+              value: {{ (index $.Values.ingress.hosts 0).host | printf "https://%s" }}
+            {{- end }}
+            - name: CONFIG_PATH
+              value: /etc/sourcebot/config.json
+            {{- if $.Values.license }}
+            - name: SOURCEBOT_EE_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.license.secretName }}
+                  key: {{ $.Values.license.secretKey }}
+            {{- end }}
+            {{- if $.Values.database }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.database.secretName }}
+                  key: {{ $.Values.database.secretKey }}
+            {{- end }}
+            {{- if $.Values.redis }}
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.redis.secretName }}
+                  key: {{ $.Values.redis.secretKey }}
+            {{- end }}
+            {{- range $.Values.envSecrets }}
+            - name: {{ .envName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secretName }}
+                  key: {{ .secretKey }}
+            {{- end }}
+            {{- with $.Values.envs }}
+            {{- toYaml . | nindent  12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ $.Values.service.containerPort }}
+              protocol: TCP
+          {{- with $.Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $.Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $.Values.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $.Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: sourcebot-config
+              mountPath: /etc/sourcebot/config.json
+              subPath: config.json
+              readOnly: true
+          {{- with $.Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with $.Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      volumes:
+        - name: sourcebot-config
+          configMap:
+            name: {{ include "sourcebot.fullname" $ }}
+            items:
+              - key: config.json
+                path: config.json
+      {{- with $.Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
