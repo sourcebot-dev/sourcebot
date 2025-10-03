@@ -266,14 +266,7 @@ affinity: {}
 # See: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
 priorityClassName: ""
 
-# -- Configure persistent storage for the application (volume is mounted at /data) to use the internal database.
-storage:
-  # -- Enable or disable persistent storage.
-  enabled: true
-  # -- Access modes for the persistent volume.
-  accessModes:
-    - ReadWriteOnce
-  # -- Storage class name for the persistent volume.
-  className: ""
-  # -- Size of the persistent volume.
-  size: "10Gi"
+# -- Configure the Bitnami PostgreSQL sub-chart.
+# See: https://artifacthub.io/packages/helm/bitnami/postgresql
+postgresql:
+  enabled: false

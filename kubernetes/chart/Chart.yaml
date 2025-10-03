@@ -13,3 +13,8 @@ home: https://sourcebot.dev/
 sources:
   - https://github.com/sourcebot-dev/sourcebot
   - https://github.com/sourcebot-dev/sourcebot/kubernetes/chart
+dependencies:
+  - name: postgresql
+    version: 16.7.27
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

@@ -11,6 +11,12 @@ The open source Sourcegraph alternative. Sourcebot gives you a powerful interfac
 * <https://github.com/sourcebot-dev/sourcebot>
 * <https://github.com/sourcebot-dev/sourcebot/kubernetes/chart>
 
+## Requirements
+
+| Repository | Name | Version |
+|------------|------|---------|
+| https://charts.bitnami.com/bitnami | postgresql | 16.7.27 |
+
 ## Values
 
 | Key | Type | Default | Description |
@@ -58,6 +64,7 @@ The open source Sourcegraph alternative. Sourcebot gives you a powerful interfac
 | podDisruptionBudget.maxUnavailable | int | `1` | Maximum number of pods that can be unavailable. |
 | podDisruptionBudget.minAvailable | int | `1` | Minimum number of pods that must be available. |
 | podSecurityContext | object | `{}` | Set the pod-level security context. |
+| postgresql | object | `{"enabled":false}` | Configure the Bitnami PostgreSQL sub-chart. See: https://artifacthub.io/packages/helm/bitnami/postgresql |
 | priorityClassName | string | `""` | Set the priority class name for pods. See: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/ |
 | readinessProbe | object | `{"failureThreshold":5,"httpGet":{"path":"/","port":"http"},"initialDelaySeconds":10,"periodSeconds":10}` | Readiness probe to check if the container is ready to serve traffic. |
 | readinessProbe.failureThreshold | int | `5` | Number of consecutive failures before marking the container as not ready. |
