@@ -4,15 +4,10 @@
         "packages/*"
     ],
     "scripts": {
-        "build": "cross-env SKIP_ENV_VALIDATION=1 yarn workspaces foreach -A run build",
+        "build": "turbo build",
         "test": "yarn workspaces foreach -A run test",
-        "dev": "yarn dev:prisma:migrate:dev && npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web watch:mcp watch:schemas",
-        "with-env": "cross-env PATH=\"$PWD/bin:$PATH\" dotenv -e .env.development -c --",
-        "dev:zoekt": "yarn with-env zoekt-webserver -index .sourcebot/index -rpc",
-        "dev:backend": "yarn with-env yarn workspace @sourcebot/backend dev:watch",
-        "dev:web": "yarn with-env yarn workspace @sourcebot/web dev",
-        "watch:mcp": "yarn workspace @sourcebot/mcp build:watch",
-        "watch:schemas": "yarn workspace @sourcebot/schemas watch",
+        "dev": "yarn with-env turbo dev zoekt:webserver",
+        "with-env": "cross-env PATH=\"$PROJECT_CWD/packages/zoekt/bin:$PATH\" dotenv -e .env.development -c --",
         "dev:prisma:migrate:dev": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:dev",
         "dev:prisma:generate": "yarn with-env yarn workspace @sourcebot/db prisma:generate",
         "dev:prisma:studio": "yarn with-env yarn workspace @sourcebot/db prisma:studio",
@@ -23,7 +18,8 @@
     "devDependencies": {
         "cross-env": "^7.0.3",
         "dotenv-cli": "^8.0.0",
-        "npm-run-all": "^4.1.5"
+        "npm-run-all": "^4.1.5",
+        "turbo": "^2.5.8"
     },
     "packageManager": "yarn@4.7.0",
     "resolutions": {

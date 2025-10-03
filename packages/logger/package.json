@@ -5,7 +5,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "tsc",
+    "build": "cross-env SKIP_ENV_VALIDATION=1 tsc",
+    "dev": "cross-env SKIP_ENV_VALIDATION=1 tsc --watch",
     "postinstall": "yarn build"
   },
   "dependencies": {

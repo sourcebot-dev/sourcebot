@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
+    "dev": "tsc --watch",
     "postinstall": "yarn build"
   },
   "dependencies": {

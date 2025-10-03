@@ -5,6 +5,7 @@
     "private": true,
     "scripts": {
         "build": "yarn prisma:generate && tsc",
+        "dev": "yarn prisma:generate && tsc --watch",
         "postinstall": "yarn build",
         "prisma:generate": "prisma generate",
         "prisma:generate:watch": "prisma generate --watch",

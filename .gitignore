@@ -1,5 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/yarn,node
-# Edit at https://www.toptal.com/developers/gitignore?templates=yarn,node
+# Created by https://www.toptal.com/developers/gitignore/api/node,yarn,turbo
+# Edit at https://www.toptal.com/developers/gitignore?templates=node,yarn,turbo
 
 ### Node ###
 # Logs
@@ -141,6 +141,10 @@ dist
 # SvelteKit build / generate output
 .svelte-kit
 
+### Turbo ###
+# Turborepo task cache
+.turbo
+
 ### yarn ###
 # https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored
 
@@ -158,7 +162,7 @@ dist
 # and uncomment the following lines
 .pnp.*
 
-# End of https://www.toptal.com/developers/gitignore/api/yarn,node
+# End of https://www.toptal.com/developers/gitignore/api/node,yarn,turbo
 
 .sourcebot
 /bin

@@ -1,0 +1,8 @@
+{
+    "private": true,
+    "name": "zoekt",
+    "scripts": {
+        "build": "mkdir -p $PROJECT_CWD/packages/zoekt/bin/ && go build -C $PROJECT_CWD/vendor/zoekt -o $PROJECT_CWD/packages/zoekt/bin/ ./cmd/...",
+        "zoekt:webserver": "yarn build && ./bin/zoekt-webserver -index $PROJECT_CWD/.sourcebot/index -rpc"
+    }
+}

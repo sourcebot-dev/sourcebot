@@ -4,8 +4,9 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "build": "tsc",
+        "build": "cross-env SKIP_ENV_VALIDATION=1 tsc",
         "build:watch": "tsc-watch --preserveWatchOutput",
+        "dev": "tsc-watch --preserveWatchOutput",
         "postinstall": "yarn build"
     },
     "dependencies": {
@@ -22,6 +23,7 @@
     "devDependencies": {
         "@types/micromatch": "^4.0.9",
         "@types/node": "^22.7.5",
+        "cross-env": "^7.0.3",
         "tsc-watch": "6.2.1",
         "typescript": "^5.7.3"
     },
