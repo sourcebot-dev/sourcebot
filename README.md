@@ -128,4 +128,3 @@ To configure Sourcebot (index your own repos, connect your LLMs, etc), check out
 > Building from source is only required if you'd like to contribute. If you'd just like to use Sourcebot, we recommend checking out our self-hosting [docs](https://docs.sourcebot.dev/self-hosting/overview).
 
 If you'd like to build from source, please checkout the `CONTRIBUTING.md` file for more information.
-
