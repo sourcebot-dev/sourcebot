@@ -2,12 +2,9 @@ import { auth } from "@/auth";
 import { LoginForm } from "./components/loginForm";
 import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
-import { createLogger } from "@sourcebot/logger";
 import { getAuthProviders } from "@/lib/authProviders";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
-
-const logger = createLogger('login-page');
 
 interface LoginProps {
     searchParams: Promise<{
@@ -18,10 +15,8 @@ interface LoginProps {
 
 export default async function Login(props: LoginProps) {
     const searchParams = await props.searchParams;
-    logger.info("Login page loaded");
     const session = await auth();
     if (session) {
-        logger.info("Session found in login page, redirecting to home");
         return redirect("/");
     }
 
