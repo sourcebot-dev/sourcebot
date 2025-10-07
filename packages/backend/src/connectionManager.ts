@@ -250,7 +250,7 @@ export class ConnectionManager {
                     create: repo,
                 })
                 const upsertDuration = performance.now() - upsertStart;
-                this.logger.info(`Upserted repo ${repo.displayName} (id: ${repo.external_id}) in ${upsertDuration}ms`);
+                this.logger.debug(`Upserted repo ${repo.displayName} (id: ${repo.external_id}) in ${upsertDuration}ms`);
             }
             const totalUpsertDuration = performance.now() - totalUpsertStart;
             this.logger.info(`Upserted ${repoData.length} repos for connection ${connectionName} (id: ${job.data.connectionId}) in ${totalUpsertDuration}ms`);
