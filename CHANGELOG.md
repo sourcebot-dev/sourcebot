@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed "dubious ownership" errors when cloning / fetching repos. [#553](https://github.com/sourcebot-dev/sourcebot/pull/553)
+
 ### Changed
 - Remove spam "login page loaded" log. [#552](https://github.com/sourcebot-dev/sourcebot/pull/552)
 
