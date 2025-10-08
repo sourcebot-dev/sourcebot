@@ -83,9 +83,6 @@ const SearchPageInternal = () => {
         staleTime: 0,
     });
 
-    console.log(`isSearchPending`, isSearchPending);
-    console.log(`isFetching`, isFetching);
-
     useEffect(() => {
         if (error) {
             toast({
