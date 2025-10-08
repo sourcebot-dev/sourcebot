@@ -26,7 +26,7 @@ import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle
 import { useFilteredMatches } from "./components/filterPanel/useFilterMatches";
 import { Button } from "@/components/ui/button";
 import { ImperativePanelHandle } from "react-resizable-panels";
-import { AlertTriangleIcon, FilterIcon } from "lucide-react";
+import { AlertTriangleIcon, BugIcon, FilterIcon } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -301,13 +301,17 @@ const PanelGroup = ({
                         <TooltipTrigger asChild>
                             <InfoCircledIcon className="w-4 h-4 mr-2" />
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="flex flex-col items-start gap-2">
-                            <div className="flex flex-row justify-between w-full">
+                        <TooltipContent side="right" className="flex flex-col items-start gap-2 p-4">
+                            <div className="flex flex-row items-center w-full">
+                                <BugIcon className="w-4 h-4 mr-1.5" />
                                 <p className="text-md font-medium">Search stats for nerds</p>
-                                <CopyIconButton onCopy={() => {
-                                    navigator.clipboard.writeText(JSON.stringify(searchStats, null, 2));
-                                    return true;
-                                }} />
+                                <CopyIconButton
+                                    onCopy={() => {
+                                        navigator.clipboard.writeText(JSON.stringify(searchStats, null, 2));
+                                        return true;
+                                    }}
+                                    className="ml-auto"
+                                />
                             </div>
                             <CodeSnippet renderNewlines>
                                 {JSON.stringify(searchStats, null, 2)}

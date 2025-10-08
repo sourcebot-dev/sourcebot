@@ -28,7 +28,6 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `REDIS_REMOVE_ON_FAIL` | `100` | <p>Controls how many failed jobs are allowed to remain in Redis queues</p> |
 | `REPO_SYNC_RETRY_BASE_SLEEP_SECONDS` | `60` | <p>The base sleep duration (in seconds) for exponential backoff when retrying repository sync operations that fail</p> |
 | `GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS` | `600` | <p>The timeout duration (in seconds) for GitLab client queries</p> |
-| `SHARD_MAX_MATCH_COUNT` | `10000` | <p>The maximum shard count per query</p> |
 | `SMTP_CONNECTION_URL` | `-` | <p>The url to the SMTP service used for sending transactional emails. See [this doc](/docs/configuration/transactional-emails) for more info.</p> |
 | `SOURCEBOT_ENCRYPTION_KEY` | Automatically generated at startup if no value is provided. Generated using `openssl rand -base64 24` | <p>Used to encrypt connection secrets and generate API keys.</p> |
 | `SOURCEBOT_PUBLIC_KEY_PATH` | `/app/public.pem` | <p>Sourcebot's public key that's used to verify encrypted license key signatures.</p> |
@@ -36,8 +35,6 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `SOURCEBOT_STRUCTURED_LOGGING_ENABLED` | `false` | <p>Enables/disable structured JSON logging. See [this doc](/docs/configuration/structured-logging) for more info.</p> |
 | `SOURCEBOT_STRUCTURED_LOGGING_FILE` | - | <p>Optional file to log to if structured logging is enabled</p> | 
 | `SOURCEBOT_TELEMETRY_DISABLED` | `false` | <p>Enables/disables telemetry collection in Sourcebot. See [this doc](/docs/overview.mdx#telemetry) for more info.</p> |
-| `TOTAL_MAX_MATCH_COUNT` | `100000` | <p>The maximum number of matches per query</p> |
-| `ZOEKT_MAX_WALL_TIME_MS` | `10000` | <p>The maximum real world duration (in milliseconds) per zoekt query</p> | 
 
 ### Enterprise Environment Variables
 | Variable | Default | Description |
