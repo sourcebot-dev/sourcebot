@@ -15,6 +15,7 @@ export type PosthogEventMap = {
         shardsSkipped: number,
         shardsSkippedFilter: number,
         matchCount: number,
+        actualMatchCount: number,
         ngramMatches: number,
         ngramLookups: number,
         wait: number,

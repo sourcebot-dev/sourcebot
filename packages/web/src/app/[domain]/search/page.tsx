@@ -21,19 +21,21 @@ import { FilterPanel } from "./components/filterPanel";
 import { SearchResultsPanel } from "./components/searchResultsPanel";
 import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
-import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
+import { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search/types";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 import { useFilteredMatches } from "./components/filterPanel/useFilterMatches";
 import { Button } from "@/components/ui/button";
 import { ImperativePanelHandle } from "react-resizable-panels";
-import { FilterIcon } from "lucide-react";
+import { AlertTriangleIcon, BugIcon, FilterIcon } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { SearchBar } from "../components/searchBar";
+import { CodeSnippet } from "@/app/components/codeSnippet";
+import { CopyIconButton } from "../components/copyIconButton";
 
-const DEFAULT_MAX_MATCH_COUNT = 10000;
+const DEFAULT_MAX_MATCH_COUNT = 500;
 
 export default function SearchPage() {
     // We need a suspense boundary here since we are accessing query params
@@ -58,7 +60,12 @@ const SearchPageInternal = () => {
     const _maxMatchCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.matches) ?? `${DEFAULT_MAX_MATCH_COUNT}`);
     const maxMatchCount = isNaN(_maxMatchCount) ? DEFAULT_MAX_MATCH_COUNT : _maxMatchCount;
 
-    const { data: searchResponse, isLoading: isSearchLoading, error } = useQuery({
+    const {
+        data: searchResponse,
+        isPending: isSearchPending,
+        isFetching: isFetching,
+        error
+    } = useQuery({
         queryKey: ["search", searchQuery, maxMatchCount],
         queryFn: () => measure(() => unwrapServiceError(search({
             query: searchQuery,
@@ -68,12 +75,12 @@ const SearchPageInternal = () => {
         }, domain)), "client.search"),
         select: ({ data, durationMs }) => ({
             ...data,
-            durationMs,
+            totalClientSearchDurationMs: durationMs,
         }),
         enabled: searchQuery.length > 0,
         refetchOnWindowFocus: false,
         retry: false,
-        staleTime: Infinity,
+        staleTime: 0,
     });
 
     useEffect(() => {
@@ -109,58 +116,31 @@ const SearchPageInternal = () => {
         const fileLanguages = searchResponse.files?.map(file => file.language) || [];
 
         captureEvent("search_finished", {
-            durationMs: searchResponse.durationMs,
-            fileCount: searchResponse.zoektStats.fileCount,
-            matchCount: searchResponse.zoektStats.matchCount,
-            filesSkipped: searchResponse.zoektStats.filesSkipped,
-            contentBytesLoaded: searchResponse.zoektStats.contentBytesLoaded,
-            indexBytesLoaded: searchResponse.zoektStats.indexBytesLoaded,
-            crashes: searchResponse.zoektStats.crashes,
-            shardFilesConsidered: searchResponse.zoektStats.shardFilesConsidered,
-            filesConsidered: searchResponse.zoektStats.filesConsidered,
-            filesLoaded: searchResponse.zoektStats.filesLoaded,
-            shardsScanned: searchResponse.zoektStats.shardsScanned,
-            shardsSkipped: searchResponse.zoektStats.shardsSkipped,
-            shardsSkippedFilter: searchResponse.zoektStats.shardsSkippedFilter,
-            ngramMatches: searchResponse.zoektStats.ngramMatches,
-            ngramLookups: searchResponse.zoektStats.ngramLookups,
-            wait: searchResponse.zoektStats.wait,
-            matchTreeConstruction: searchResponse.zoektStats.matchTreeConstruction,
-            matchTreeSearch: searchResponse.zoektStats.matchTreeSearch,
-            regexpsConsidered: searchResponse.zoektStats.regexpsConsidered,
-            flushReason: searchResponse.zoektStats.flushReason,
+            durationMs: searchResponse.totalClientSearchDurationMs,
+            fileCount: searchResponse.stats.fileCount,
+            matchCount: searchResponse.stats.totalMatchCount,
+            actualMatchCount: searchResponse.stats.actualMatchCount,
+            filesSkipped: searchResponse.stats.filesSkipped,
+            contentBytesLoaded: searchResponse.stats.contentBytesLoaded,
+            indexBytesLoaded: searchResponse.stats.indexBytesLoaded,
+            crashes: searchResponse.stats.crashes,
+            shardFilesConsidered: searchResponse.stats.shardFilesConsidered,
+            filesConsidered: searchResponse.stats.filesConsidered,
+            filesLoaded: searchResponse.stats.filesLoaded,
+            shardsScanned: searchResponse.stats.shardsScanned,
+            shardsSkipped: searchResponse.stats.shardsSkipped,
+            shardsSkippedFilter: searchResponse.stats.shardsSkippedFilter,
+            ngramMatches: searchResponse.stats.ngramMatches,
+            ngramLookups: searchResponse.stats.ngramLookups,
+            wait: searchResponse.stats.wait,
+            matchTreeConstruction: searchResponse.stats.matchTreeConstruction,
+            matchTreeSearch: searchResponse.stats.matchTreeSearch,
+            regexpsConsidered: searchResponse.stats.regexpsConsidered,
+            flushReason: searchResponse.stats.flushReason,
             fileLanguages,
         });
     }, [captureEvent, searchQuery, searchResponse]);
 
-    const { fileMatches, searchDurationMs, totalMatchCount, isBranchFilteringEnabled, repositoryInfo, matchCount } = useMemo(() => {
-        if (!searchResponse) {
-            return {
-                fileMatches: [],
-                searchDurationMs: 0,
-                totalMatchCount: 0,
-                isBranchFilteringEnabled: false,
-                repositoryInfo: {},
-                matchCount: 0,
-            };
-        }
-
-        return {
-            fileMatches: searchResponse.files ?? [],
-            searchDurationMs: Math.round(searchResponse.durationMs),
-            totalMatchCount: searchResponse.zoektStats.matchCount,
-            isBranchFilteringEnabled: searchResponse.isBranchFilteringEnabled,
-            repositoryInfo: searchResponse.repositoryInfo.reduce((acc, repo) => {
-                acc[repo.id] = repo;
-                return acc;
-            }, {} as Record<number, RepositoryInfo>),
-            matchCount: searchResponse.stats.matchCount,
-        }
-    }, [searchResponse]);
-
-    const isMoreResultsButtonVisible = useMemo(() => {
-        return totalMatchCount > maxMatchCount;
-    }, [totalMatchCount, maxMatchCount]);
 
     const onLoadMoreResults = useCallback(() => {
         const url = createPathWithQueryParams(`/${domain}/search`,
@@ -183,20 +163,27 @@ const SearchPageInternal = () => {
                 />
             </TopBar>
 
-            {(isSearchLoading) ? (
+            {(isSearchPending || isFetching) ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                     <SymbolIcon className="h-6 w-6 animate-spin" />
                     <p className="font-semibold text-center">Searching...</p>
                 </div>
+            ) : error ? (
+                <div className="flex flex-col items-center justify-center h-full gap-2">
+                    <AlertTriangleIcon className="h-6 w-6" />
+                    <p className="font-semibold text-center">Failed to search</p>
+                    <p className="text-sm text-center">{error.message}</p>
+                </div>
             ) : (
                 <PanelGroup
-                    fileMatches={fileMatches}
-                    isMoreResultsButtonVisible={isMoreResultsButtonVisible}
+                    fileMatches={searchResponse.files}
+                    isMoreResultsButtonVisible={searchResponse.isSearchExhaustive === false}
                     onLoadMoreResults={onLoadMoreResults}
-                    isBranchFilteringEnabled={isBranchFilteringEnabled}
-                    repoInfo={repositoryInfo}
-                    searchDurationMs={searchDurationMs}
-                    numMatches={matchCount}
+                    isBranchFilteringEnabled={searchResponse.isBranchFilteringEnabled}
+                    repoInfo={searchResponse.repositoryInfo}
+                    searchDurationMs={searchResponse.totalClientSearchDurationMs}
+                    numMatches={searchResponse.stats.actualMatchCount}
+                    searchStats={searchResponse.stats}
                 />
             )}
         </div>
@@ -208,9 +195,10 @@ interface PanelGroupProps {
     isMoreResultsButtonVisible?: boolean;
     onLoadMoreResults: () => void;
     isBranchFilteringEnabled: boolean;
-    repoInfo: Record<number, RepositoryInfo>;
+    repoInfo: RepositoryInfo[];
     searchDurationMs: number;
     numMatches: number;
+    searchStats?: SearchStats;
 }
 
 const PanelGroup = ({
@@ -218,9 +206,10 @@ const PanelGroup = ({
     isMoreResultsButtonVisible,
     onLoadMoreResults,
     isBranchFilteringEnabled,
-    repoInfo,
-    searchDurationMs,
+    repoInfo: _repoInfo,
+    searchDurationMs: _searchDurationMs,
     numMatches,
+    searchStats,
 }: PanelGroupProps) => {
     const [previewedFile, setPreviewedFile] = useState<SearchResultFile | undefined>(undefined);
     const filteredFileMatches = useFilteredMatches(fileMatches);
@@ -240,6 +229,17 @@ const PanelGroup = ({
         enableOnContentEditable: true,
         description: "Toggle filter panel",
     });
+
+    const searchDurationMs = useMemo(() => {
+        return Math.round(_searchDurationMs);
+    }, [_searchDurationMs]);
+
+    const repoInfo = useMemo(() => {
+        return _repoInfo.reduce((acc, repo) => {
+            acc[repo.id] = repo;
+            return acc;
+        }, {} as Record<number, RepositoryInfo>);
+    }, [_repoInfo]);
 
     return (
         <ResizablePanelGroup
@@ -297,7 +297,27 @@ const PanelGroup = ({
                 order={2}
             >
                 <div className="py-1 px-2 flex flex-row items-center">
-                    <InfoCircledIcon className="w-4 h-4 mr-2" />
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <InfoCircledIcon className="w-4 h-4 mr-2" />
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="flex flex-col items-start gap-2 p-4">
+                            <div className="flex flex-row items-center w-full">
+                                <BugIcon className="w-4 h-4 mr-1.5" />
+                                <p className="text-md font-medium">Search stats for nerds</p>
+                                <CopyIconButton
+                                    onCopy={() => {
+                                        navigator.clipboard.writeText(JSON.stringify(searchStats, null, 2));
+                                        return true;
+                                    }}
+                                    className="ml-auto"
+                                />
+                            </div>
+                            <CodeSnippet renderNewlines>
+                                {JSON.stringify(searchStats, null, 2)}
+                            </CodeSnippet>
+                        </TooltipContent>
+                    </Tooltip>
                     {
                         fileMatches.length > 0 ? (
                             <p className="text-sm font-medium">{`[${searchDurationMs} ms] Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>

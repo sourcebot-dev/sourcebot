@@ -151,12 +151,48 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             // @see: https://github.com/sourcebot-dev/zoekt/blob/main/api.go#L892
             opts: {
                 ChunkMatches: true,
+                // @note: Zoekt has several different ways to limit a given search. The two that
+                // we care about are `MaxMatchDisplayCount` and `TotalMaxMatchCount`:
+                // - `MaxMatchDisplayCount` truncates the number of matches AFTER performing
+                //   a search (specifically, after collating and sorting the results). The number of
+                //   results returned by the API will be less than or equal to this value.
+                //
+                // - `TotalMaxMatchCount` truncates the number of matches DURING a search. The results
+                //   returned by the API the API can be less than, equal to, or greater than this value.
+                //   Why greater? Because this value is compared _after_ a given shard has finished
+                //   being processed, the number of matches returned by the last shard may have exceeded
+                //   this value.
+                //
+                // Let's define two variables:
+                // - `actualMatchCount` : The number of matches that are returned by the API. This is
+                //   always less than or equal to `MaxMatchDisplayCount`.
+                // - `totalMatchCount` : The number of matches that zoekt found before it either
+                //   1) found all matches or 2) hit the `TotalMaxMatchCount` limit. This number is
+                //   not bounded and can be less than, equal to, or greater than both `TotalMaxMatchCount`
+                //   and `MaxMatchDisplayCount`.
+                //
+                //
+                // Our challenge is to determine whether or not the search returned all possible matches/
+                // (it was exaustive) or if it was truncated. By setting the `TotalMaxMatchCount` to
+                // `MaxMatchDisplayCount + 1`, we can determine which of these occurred by comparing
+                // `totalMatchCount` to `MaxMatchDisplayCount`.
+                //
+                // if (totalMatchCount ≤ actualMatchCount):
+                //     Search is EXHAUSTIVE (found all possible matches)
+                //     Proof: totalMatchCount ≤ MaxMatchDisplayCount < TotalMaxMatchCount
+                //         Therefore Zoekt stopped naturally, not due to limit
+                //     
+                // if (totalMatchCount > actualMatchCount):
+                //     Search is TRUNCATED (more matches exist)
+                //     Proof: totalMatchCount > MaxMatchDisplayCount + 1 = TotalMaxMatchCount
+                //         Therefore Zoekt hit the limit and stopped searching
+                //
                 MaxMatchDisplayCount: matches,
+                TotalMaxMatchCount: matches + 1,
                 NumContextLines: contextLines,
                 Whole: !!whole,
-                TotalMaxMatchCount: env.TOTAL_MAX_MATCH_COUNT,
-                ShardMaxMatchCount: env.SHARD_MAX_MATCH_COUNT,
-                MaxWallTime: env.ZOEKT_MAX_WALL_TIME_MS * 1000 * 1000, // zoekt expects a duration in nanoseconds
+                ShardMaxMatchCount: -1,
+                MaxWallTime: 0, // zoekt expects a duration in nanoseconds
             }
         });
 
@@ -296,11 +332,35 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                 }
             }).filter((file) => file !== undefined) ?? [];
 
+            const actualMatchCount = files.reduce(
+                (acc, file) =>
+                    // Match count is the sum of the number of chunk matches and file name matches.
+                    acc + file.chunks.reduce(
+                        (acc, chunk) => acc + chunk.matchRanges.length,
+                        0,
+                    ) + file.fileName.matchRanges.length,
+                0,
+            );
+
+            const totalMatchCount = Result.MatchCount;
+            const isSearchExhaustive = totalMatchCount <= actualMatchCount;
+
             return {
-                zoektStats: {
+                files,
+                repositoryInfo: Array.from(repos.values()).map((repo) => ({
+                    id: repo.id,
+                    codeHostType: repo.external_codeHostType,
+                    name: repo.name,
+                    displayName: repo.displayName ?? undefined,
+                    webUrl: repo.webUrl ?? undefined,
+                })),
+                isBranchFilteringEnabled,
+                isSearchExhaustive,
+                stats: {
+                    actualMatchCount,
+                    totalMatchCount,
                     duration: Result.Duration,
                     fileCount: Result.FileCount,
-                    matchCount: Result.MatchCount,
                     filesSkipped: Result.FilesSkipped,
                     contentBytesLoaded: Result.ContentBytesLoaded,
                     indexBytesLoaded: Result.IndexBytesLoaded,
@@ -318,25 +378,6 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                     matchTreeSearch: Result.MatchTreeSearch,
                     regexpsConsidered: Result.RegexpsConsidered,
                     flushReason: Result.FlushReason,
-                },
-                files,
-                repositoryInfo: Array.from(repos.values()).map((repo) => ({
-                    id: repo.id,
-                    codeHostType: repo.external_codeHostType,
-                    name: repo.name,
-                    displayName: repo.displayName ?? undefined,
-                    webUrl: repo.webUrl ?? undefined,
-                })),
-                isBranchFilteringEnabled: isBranchFilteringEnabled,
-                stats: {
-                    matchCount: files.reduce(
-                        (acc, file) =>
-                            acc + file.chunks.reduce(
-                                (acc, chunk) => acc + chunk.matchRanges.length,
-                                0,
-                            ),
-                        0,
-                    )
                 }
             } satisfies SearchResponse;
         });
