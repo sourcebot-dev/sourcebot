@@ -37,35 +37,82 @@ export const repositoryInfoSchema = z.object({
     name: z.string(),
     displayName: z.string().optional(),
     webUrl: z.string().optional(),
-})
+});
+
+// Many of these fields are defined in zoekt/api.go.
+export const searchStatsSchema = z.object({
+    // The actual number of matches returned by the search.
+    // This will always be less than or equal to `totalMatchCount`.
+    actualMatchCount: z.number(),
+
+    // The total number of matches found during the search.
+    totalMatchCount: z.number(),
+
+    // The duration (in nanoseconds) of the search.
+    duration: z.number(),
+
+    // Number of files containing a match.
+    fileCount: z.number(),
+
+    // Candidate files whose contents weren't examined because we
+    // gathered enough matches.
+    filesSkipped: z.number(),
+
+    // Amount of I/O for reading contents.
+    contentBytesLoaded: z.number(),
+
+    // Amount of I/O for reading from index.
+    indexBytesLoaded: z.number(),
+
+    // Number of search shards that had a crash.
+    crashes: z.number(),
+
+    // Number of files in shards that we considered.
+    shardFilesConsidered: z.number(),
+
+    // Files that we evaluated. Equivalent to files for which all
+    // atom matches (including negations) evaluated to true.
+    filesConsidered: z.number(),
+
+    // Files for which we loaded file content to verify substring matches
+    filesLoaded: z.number(),
+
+    // Shards that we scanned to find matches.
+    shardsScanned: z.number(),
+
+    // Shards that we did not process because a query was canceled.
+    shardsSkipped: z.number(),
+
+    // Shards that we did not process because the query was rejected by the
+    // ngram filter indicating it had no matches.
+    shardsSkippedFilter: z.number(),
+
+    // Number of candidate matches as a result of searching ngrams.
+    ngramMatches: z.number(),
+
+    // NgramLookups is the number of times we accessed an ngram in the index.
+    ngramLookups: z.number(),
+
+    // Wall clock time for queued search.
+    wait: z.number(),
+
+    // Aggregate wall clock time spent constructing and pruning the match tree.
+    // This accounts for time such as lookups in the trigram index.
+    matchTreeConstruction: z.number(),
+
+    // Aggregate wall clock time spent searching the match tree. This accounts
+    // for the bulk of search work done looking for matches.
+    matchTreeSearch: z.number(),
+
+    // Number of times regexp was called on files that we evaluated.
+    regexpsConsidered: z.number(),
+
+    // FlushReason explains why results were flushed.
+    flushReason: z.number(),
+});
 
 export const searchResponseSchema = z.object({
-    zoektStats: z.object({
-        // The duration (in nanoseconds) of the search.
-        duration: z.number(),
-        fileCount: z.number(),
-        matchCount: z.number(),
-        filesSkipped: z.number(),
-        contentBytesLoaded: z.number(),
-        indexBytesLoaded: z.number(),
-        crashes: z.number(),
-        shardFilesConsidered: z.number(),
-        filesConsidered: z.number(),
-        filesLoaded: z.number(),
-        shardsScanned: z.number(),
-        shardsSkipped: z.number(),
-        shardsSkippedFilter: z.number(),
-        ngramMatches: z.number(),
-        ngramLookups: z.number(),
-        wait: z.number(),
-        matchTreeConstruction: z.number(),
-        matchTreeSearch: z.number(),
-        regexpsConsidered: z.number(),
-        flushReason: z.number(),
-    }),
-    stats: z.object({
-        matchCount: z.number(),
-    }),
+    stats: searchStatsSchema,
     files: z.array(z.object({
         fileName: z.object({
             // The name of the file
@@ -92,6 +139,7 @@ export const searchResponseSchema = z.object({
     })),
     repositoryInfo: z.array(repositoryInfoSchema),
     isBranchFilteringEnabled: z.boolean(),
+    isSearchExhaustive: z.boolean(),
 });
 
 export const fileSourceRequestSchema = z.object({

@@ -80,7 +80,7 @@ export const findSearchBasedSymbolDefinitions = async (
 const parseRelatedSymbolsSearchResponse = (searchResult: SearchResponse) => {
     const parser = searchResponseSchema.transform(async ({ files }) => ({
         stats: {
-            matchCount: searchResult.stats.matchCount,
+            matchCount: searchResult.stats.actualMatchCount,
         },
         files: files.flatMap((file) => {
             const chunks = file.chunks;
