@@ -39,7 +39,11 @@ const nextConfig = {
         ]
     },
 
-    turbopack: {}
+    turbopack: {},
+    // @see: https://github.com/vercel/next.js/issues/82584
+    experimental: {
+        turbopackScopeHoisting: false
+    }
 };
 
 export default withSentryConfig(nextConfig, {
