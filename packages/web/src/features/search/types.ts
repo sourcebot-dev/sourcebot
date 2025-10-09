@@ -8,6 +8,7 @@ import {
     fileSourceRequestSchema,
     symbolSchema,
     repositoryInfoSchema,
+    searchStatsSchema,
 } from "./schemas";
 import { z } from "zod";
 
@@ -23,3 +24,4 @@ export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
 
 export type RepositoryInfo = z.infer<typeof repositoryInfoSchema>;
 export type SourceRange = z.infer<typeof rangeSchema>;
+export type SearchStats = z.infer<typeof searchStatsSchema>;

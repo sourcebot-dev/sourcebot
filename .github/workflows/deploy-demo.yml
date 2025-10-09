@@ -2,7 +2,7 @@ name: Deploy Demo
 
 on:
   push:
-    branches: ["main"]
+    tags: ["v*.*.*"]
   workflow_dispatch:
 
 jobs:

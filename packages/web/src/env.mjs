@@ -15,9 +15,6 @@ export const env = createEnv({
     server: {
         // Zoekt
         ZOEKT_WEBSERVER_URL: z.string().url().default("http://localhost:6070"),
-        SHARD_MAX_MATCH_COUNT: numberSchema.default(10000),
-        TOTAL_MAX_MATCH_COUNT: numberSchema.default(100000),
-        ZOEKT_MAX_WALL_TIME_MS: numberSchema.default(10000),
         
         // Auth
         FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
