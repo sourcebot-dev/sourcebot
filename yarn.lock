@@ -7684,6 +7684,7 @@ __metadata:
     triple-beam: "npm:^1.4.1"
     typescript: "npm:^5.7.3"
     winston: "npm:^3.15.0"
+    winston-transport: "npm:^4.9.0"
     zod: "npm:^3.24.3"
   languageName: unknown
   linkType: soft

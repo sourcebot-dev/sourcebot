@@ -91,6 +91,7 @@ model RepoIndexingJob {
   completedAt DateTime?
 
   errorMessage String?
+  logs         Json?
 
   repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
   repoId Int

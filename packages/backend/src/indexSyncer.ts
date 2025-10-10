@@ -1,8 +1,8 @@
 import { createBullBoard } from '@bull-board/api';
 import { ExpressAdapter } from '@bull-board/express';
 import * as Sentry from '@sentry/node';
-import { PrismaClient, Repo, RepoIndexingJobStatus } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
+import { Prisma, PrismaClient, Repo, RepoIndexingJobStatus } from "@sourcebot/db";
+import { createLogger, Logger, Transport, TransportStreamOptions } from "@sourcebot/logger";
 import express from 'express';
 import { BullBoardGroupMQAdapter, Job, Queue, ReservedJob, Worker } from "groupmq";
 import { Redis } from 'ioredis';
@@ -12,7 +12,87 @@ import { existsSync } from 'fs';
 import { cloneRepository, fetchRepository, unsetGitConfig, upsertGitConfig } from './git.js';
 import { indexGitRepository } from './zoekt.js';
 
-const logger = createLogger('index-syncer');
+interface LogEntry {
+    message: string;
+}
+
+interface DatabaseTransportOptions extends TransportStreamOptions {
+    writer: (logs: LogEntry[]) => Promise<void>;
+}
+
+export class DatabaseTransport extends Transport {
+    private logs: LogEntry[] = [];
+    private writer: (logs: LogEntry[]) => Promise<void>;
+
+    constructor(opts: DatabaseTransportOptions) {
+        super(opts);
+        this.writer = opts.writer;
+    }
+
+    log(info: any, callback: () => void) {
+        setImmediate(() => {
+            this.emit('logged', info);
+        });
+
+        // Capture structured log data
+        const logEntry: LogEntry = {
+            // timestamp: info.timestamp,
+            // level: info.level,
+            message: info.message,
+            // label: info.label,
+            // stack: info.stack,
+            // metadata: info.metadata || {},
+            // ...info // Include any additional fields
+        };
+
+        this.logs.push(logEntry);
+
+        callback();
+    }
+
+    async flush() {
+        if (this.logs.length > 0) {
+            await this.writer(this.logs);
+            this.logs = [];
+        }
+    }
+}
+
+
+const useScopedLogger = async (jobId: string, db: PrismaClient, cb: (logger: Logger) => Promise<void>) => {
+    const transport = new DatabaseTransport({
+        writer: async (logs) => {
+            try {
+                const existingLogs = await db.repoIndexingJob.findUnique({
+                    where: { id: jobId },
+                    select: { logs: true }
+                });
+
+                await db.repoIndexingJob.update({
+                    where: { id: jobId },
+                    data: {
+                        logs: [
+                            ...(existingLogs?.logs as unknown as LogEntry[] ?? []),
+                            ...logs,
+                        ] as unknown as Prisma.InputJsonValue,
+                    }
+                })
+            } catch (error) {
+                console.error(`Error writing logs for job ${jobId}.`, error);
+            }
+        }
+    });
+
+    const logger = createLogger('index-syncer', [
+        transport,
+    ]);
+
+    try {
+        await cb(logger);
+    } finally {
+        await transport.flush();
+    }
+}
 
 type IndexSyncJob = {
     jobId: string;
@@ -24,6 +104,7 @@ export class IndexSyncer {
     private interval?: NodeJS.Timeout;
     private queue: Queue<IndexSyncJob>;
     private worker: Worker<IndexSyncJob>;
+    private globalLogger: Logger;
 
     constructor(
         private db: PrismaClient,
@@ -31,6 +112,7 @@ export class IndexSyncer {
         redis: Redis,
         private ctx: AppContext,
     ) {
+        this.globalLogger = createLogger('index-syncer');
         this.queue = new Queue<IndexSyncJob>({
             redis,
             namespace: 'index-sync-queue',
@@ -51,7 +133,7 @@ export class IndexSyncer {
         this.worker.on('stalled', this.onJobStalled.bind(this));
         this.worker.on('error', async (error) => {
             Sentry.captureException(error);
-            logger.error(`Index syncer worker error.`, error);
+            this.globalLogger.error(`Index syncer worker error.`, error);
         });
 
         // @nocheckin
@@ -151,32 +233,84 @@ export class IndexSyncer {
         }
     }
 
-    private async runJob(job: ReservedJob<IndexSyncJob>) {
-        const id = job.data.jobId;
-        const { repo } = await this.db.repoIndexingJob.update({
-            where: {
-                id,
-            },
-            data: {
-                status: RepoIndexingJobStatus.IN_PROGRESS,
-            },
-            select: {
-                repo: {
-                    include: {
-                        connections: {
-                            include: {
-                                connection: true,
+    private runJob = async (job: ReservedJob<IndexSyncJob>) =>
+        useScopedLogger(job.data.jobId, this.db, async (logger) => {
+            const id = job.data.jobId;
+
+            const { repo } = await this.db.repoIndexingJob.update({
+                where: {
+                    id,
+                },
+                data: {
+                    status: RepoIndexingJobStatus.IN_PROGRESS,
+                },
+                select: {
+                    repo: {
+                        include: {
+                            connections: {
+                                include: {
+                                    connection: true,
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
 
-        await this.syncGitRepository(repo);
-    }
+            await this._syncGitRepository(repo, logger);
+        })
 
-    private async syncGitRepository(repo: RepoWithConnections) {
+    private onJobCompleted = async (job: Job<IndexSyncJob>) =>
+        useScopedLogger(job.data.jobId, this.db, async (logger) => {
+            const { repo } = await this.db.repoIndexingJob.update({
+                where: { id: job.data.jobId },
+                data: {
+                    status: RepoIndexingJobStatus.COMPLETED,
+                    repo: {
+                        update: {
+                            indexedAt: new Date(),
+                        }
+                    },
+                    completedAt: new Date(),
+                },
+                select: { repo: true }
+            });
+
+            logger.info(`Completed index job ${job.data.jobId} for repo ${repo.name}`);
+        })
+
+    private onJobFailed = (job: Job<IndexSyncJob>) =>
+        useScopedLogger(job.data.jobId, this.db, async (logger) => {
+            const { repo } = await this.db.repoIndexingJob.update({
+                where: { id: job.data.jobId },
+                data: {
+                    status: RepoIndexingJobStatus.FAILED,
+                    completedAt: new Date(),
+                    errorMessage: job.failedReason,
+                },
+                select: { repo: true }
+            });
+
+            logger.error(`Failed index job ${job.data.jobId} for repo ${repo.name}`);
+        })
+
+    private onJobStalled = (jobId: string) =>
+        useScopedLogger(jobId, this.db, async (logger) => {
+            const { repo } = await this.db.repoIndexingJob.update({
+                where: { id: jobId },
+                data: {
+                    status: RepoIndexingJobStatus.FAILED,
+                    completedAt: new Date(),
+                    errorMessage: 'Job stalled',
+                },
+                select: { repo: true }
+            });
+
+            logger.error(`Job ${jobId} stalled for repo ${repo.name}`);
+        })
+
+
+    private _syncGitRepository = async (repo: RepoWithConnections, logger: Logger) => {
         const { path: repoPath, isReadOnly } = getRepoPath(repo, this.ctx);
 
         const metadata = repoMetadataSchema.parse(repo.metadata);
@@ -238,51 +372,6 @@ export class IndexSyncer {
         logger.info(`Indexed ${repo.displayName} in ${indexDuration_s}s`);
     }
 
-    private async onJobCompleted(job: Job<IndexSyncJob>) {
-        const { repo } = await this.db.repoIndexingJob.update({
-            where: { id: job.data.jobId },
-            data: {
-                status: RepoIndexingJobStatus.COMPLETED,
-                repo: {
-                    update: {
-                        indexedAt: new Date(),
-                    }
-                },
-                completedAt: new Date(),
-            },
-            select: { repo: true }
-        });
-
-        logger.info(`Completed index job ${job.data.jobId} for repo ${repo.name}`);
-    }
-
-    private async onJobFailed(job: Job<IndexSyncJob>) {
-        const { repo } = await this.db.repoIndexingJob.update({
-            where: { id: job.data.jobId },
-            data: {
-                status: RepoIndexingJobStatus.FAILED,
-                completedAt: new Date(),
-                errorMessage: job.failedReason,
-            },
-            select: { repo: true}
-        });
-
-        logger.error(`Failed index job ${job.data.jobId} for repo ${repo.name}`);
-    }
-
-    private async onJobStalled(jobId: string) {
-        const { repo } = await this.db.repoIndexingJob.update({
-            where: { id: jobId },
-            data: {
-                status: RepoIndexingJobStatus.FAILED,
-                completedAt: new Date(),
-                errorMessage: 'Job stalled',
-            },
-            select: { repo: true }
-        });
-
-        logger.error(`Job ${jobId} stalled for repo ${repo.name}`);
-    }
 
     public dispose() {
         if (this.interval) {

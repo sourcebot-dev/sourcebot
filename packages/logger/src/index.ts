@@ -1,4 +1,5 @@
-import winston, { format } from 'winston';
+import winston, { format, Logger } from 'winston';
+import Transport, { TransportStreamOptions } from 'winston-transport';
 import { Logtail } from '@logtail/node';
 import { LogtailTransport } from '@logtail/winston';
 import { MESSAGE } from 'triple-beam';
@@ -40,7 +41,7 @@ const humanReadableFormat = printf(({ level, message, timestamp, stack, label: _
     return `${timestamp} ${level}: ${label}${message}`;
 });
 
-const createLogger = (label: string) => {
+const createLogger = (label: string, transports: Transport[] = []) => {
     const isStructuredLoggingEnabled = env.SOURCEBOT_STRUCTURED_LOGGING_ENABLED === 'true';
 
     return winston.createLogger({
@@ -78,10 +79,17 @@ const createLogger = (label: string) => {
                     })
                 )
             ] : []),
+            ...transports,
         ]
     });
 }
 
 export {
-    createLogger
-}; 
+    createLogger,
+    Transport,
+    Logger
+};
+
+export type {
+    TransportStreamOptions,
+}

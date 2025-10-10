@@ -15,6 +15,7 @@
     "dotenv": "^16.4.5",
     "triple-beam": "^1.4.1",
     "winston": "^3.15.0",
+    "winston-transport": "^4.9.0",
     "zod": "^3.24.3"
   },
   "devDependencies": {
