@@ -46,7 +46,6 @@ model Repo {
   displayName        String? /// Display name of the repo for UI (ex. sourcebot-dev/sourcebot)
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
-  indexedAt          DateTime? /// When the repo was last indexed successfully.
   isFork             Boolean
   isArchived         Boolean
   isPublic           Boolean                @default(false)
@@ -61,6 +60,9 @@ model Repo {
   permissionSyncJobs RepoPermissionSyncJob[]
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
 
+  indexingJobs RepoIndexingJob[]
+  indexedAt          DateTime? /// When the repo was last indexed successfully.
+
   external_id           String /// The id of the repo in the external service
   external_codeHostType String /// The type of the external service (e.g., github, gitlab, etc.)
   external_codeHostUrl  String /// The base url of the external service (e.g., https://github.com)
@@ -72,6 +74,26 @@ model Repo {
 
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
+}
+
+enum RepoIndexingJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model RepoIndexingJob {
+  id          String                      @id @default(cuid())
+  status      RepoIndexingJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  completedAt DateTime?
+
+  errorMessage String?
+
+  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
 }
 
 enum RepoPermissionSyncJobStatus {

@@ -15,6 +15,7 @@ import { PromClient } from './promClient.js';
 import { RepoManager } from './repoManager.js';
 import { AppContext } from "./types.js";
 import { UserPermissionSyncer } from "./ee/userPermissionSyncer.js";
+import { IndexSyncer } from "./indexSyncer.js";
 
 
 const logger = createLogger('backend-entrypoint');
@@ -71,11 +72,13 @@ const connectionManager = new ConnectionManager(prisma, settings, redis);
 const repoManager = new RepoManager(prisma, settings, redis, promClient, context);
 const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
 const userPermissionSyncer = new UserPermissionSyncer(prisma, settings, redis);
+const indexSyncer = new IndexSyncer(prisma, settings, redis);
 
 await repoManager.validateIndexedReposHaveShards();
 
 connectionManager.startScheduler();
-repoManager.startScheduler();
+// repoManager.startScheduler();
+indexSyncer.startScheduler();
 
 if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
     logger.error('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
@@ -93,6 +96,7 @@ const cleanup = async (signal: string) => {
     repoManager.dispose();
     repoPermissionSyncer.dispose();
     userPermissionSyncer.dispose();
+    indexSyncer.dispose();
 
     await prisma.$disconnect();
     await redis.quit();
