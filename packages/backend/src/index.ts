@@ -72,9 +72,9 @@ const connectionManager = new ConnectionManager(prisma, settings, redis);
 const repoManager = new RepoManager(prisma, settings, redis, promClient, context);
 const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
 const userPermissionSyncer = new UserPermissionSyncer(prisma, settings, redis);
-const indexSyncer = new IndexSyncer(prisma, settings, redis);
+const indexSyncer = new IndexSyncer(prisma, settings, redis, context);
 
-await repoManager.validateIndexedReposHaveShards();
+// await repoManager.validateIndexedReposHaveShards();
 
 connectionManager.startScheduler();
 // repoManager.startScheduler();
