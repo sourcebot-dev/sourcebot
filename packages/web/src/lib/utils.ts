@@ -17,6 +17,7 @@ import { ErrorCode } from "./errorCodes";
 import { NextRequest } from "next/server";
 import { Org } from "@sourcebot/db";
 import { OrgMetadata, orgMetadataSchema } from "@/types";
+import { getBrowseParamsFromPathParam } from "@/app/[domain]/browse/hooks/utils";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -499,50 +500,31 @@ export const isHttpError = (error: unknown, status: number): boolean => {
  * @returns A formatted title string.
  */
 export const parsePathForTitle = (path: string[]): string => {
-  const delimiterIndex = path.indexOf('-');
-  if (delimiterIndex === -1 || delimiterIndex === 0) {
-    return 'Browse';
-  }
+  const pathParam = path.join('/');
 
-  const repoParts = path.slice(1, delimiterIndex);
-  if (repoParts.length === 0) return 'Browse';
+  const { repoName, revisionName, path: filePath, pathType } = getBrowseParamsFromPathParam(pathParam);
 
-  const lastPart = decodeURIComponent(repoParts.pop()!);
-  const [repoNamePart, revision = ''] = lastPart.split('@');
-  const ownerParts = repoParts;
-  const fullRepoName = [...ownerParts, repoNamePart].join('/');
-  const repoAndRevision = `${fullRepoName}${revision ? ` @ ${revision}` : ''}`;
+  // Build the base repository and revision string.
+  const cleanRepoName = repoName.split('/').slice(1).join('/'); // Remove the version control system prefix
+  const repoAndRevision = `${cleanRepoName}${revisionName ? ` @ ${revisionName}` : ''}`;
 
-  // Check for file (`blob`) or directory (`tree`) view
-  const blobIndex = path.indexOf('blob');
-  const treeIndex = path.indexOf('tree');
-
-  // Case 1: Viewing a file
-  if (blobIndex !== -1 && path.length > blobIndex + 1) {
-    const encodedFilePath = path[blobIndex + 1];
-    const filePath = decodeURIComponent(encodedFilePath);
-
-    const fileName = filePath.split('/').pop() || filePath;
-    
-    // Return a title like: "agents.ts - sourcebot-dev/sourcebot @ HEAD"
-    return `${fileName} - ${repoAndRevision}`;
-  }
-
-  // Case 2: Viewing a directory
-  if (treeIndex !== -1 && path.length > treeIndex + 1) {
-    const encodedDirPath = path[treeIndex + 1];
-    const dirPath = decodeURIComponent(encodedDirPath);
-    
-    // If we're at the root of the tree, just show the repo name
-    if (dirPath === '/' || dirPath === '') {
-      return repoAndRevision;
+  switch (pathType) {
+    case 'blob': {
+      // For blobs, get the filename from the end of the path.
+      const fileName = filePath.split('/').pop() || filePath;
+      return `${fileName} - ${repoAndRevision}`;
     }
-
-    // Otherwise, show the directory path
-    // Return a title like: "client/src/store/ - sourcebot-dev/sourcebot @ HEAD"
-    return `${dirPath.endsWith('/') ? dirPath : dirPath + '/'} - ${repoAndRevision}`;
+    case 'tree': {
+      // If the path is empty, it's the repo root.
+      if (filePath === '' || filePath === '/') {
+        return repoAndRevision;
+      }
+      // Otherwise, show the directory path.
+      const directoryPath = filePath.endsWith('/') ? filePath : `${filePath}/`;
+      return `${directoryPath} - ${repoAndRevision}`;
+    }
+    default:
+      // Fallback to just the repository name.
+      return repoAndRevision;
   }
-
-  // Case 3: Fallback to the repository root
-  return repoAndRevision;
 }
