@@ -487,3 +487,55 @@ export const isHttpError = (error: unknown, status: number): boolean => {
         && 'status' in error 
         && error.status === status;
 }
+
+
+/**
+ * Parses a URL path array to extract the full repository name and revision.
+ * This function assumes a URL structure like:
+ * `.../[hostname]/[owner]/[repo@revision]/-/tree/...`
+ * Or for nested groups (like GitLab):
+ * `.../[hostname]/[group]/[subgroup]/[repo@revision]/-/tree/...`
+ *
+ * @param path The array of path segments from Next.js params.
+ * @returns An object with fullRepoName and revision, or null if parsing fails.
+ */
+export const parseRepoPath = (path: string[]): { fullRepoName: string; revision: string } | null => {
+  if (path.length < 2) {
+    return null; // Not enough path segments to parse.
+  }
+
+  // Find the index of the `-` delimiter which separates the repo info from the file tree info.
+  const delimiterIndex = path.indexOf('-');
+
+  // If no delimiter is found, we can't reliably parse the path.
+  if (delimiterIndex === -1) {
+    return null;
+  }
+
+  // The repository parts are between the hostname (index 0) and the delimiter.
+  // e.g., ["github.com", "sourcebot-dev", "sourcebot"] -> slice will be ["sourcebot-dev", "sourcebot"]
+  const repoParts = path.slice(1, delimiterIndex);
+
+  if (repoParts.length === 0) {
+    return null;
+  }
+
+  // The last part of the repo segment potentially contains the revision.
+  const lastPart = repoParts[repoParts.length - 1];
+
+  // URL segments are encoded. Decode it to handle characters like '@' (%40).
+  const decodedLastPart = decodeURIComponent(lastPart);
+
+  const [repoNamePart, revision = ''] = decodedLastPart.split('@');
+
+  // The preceding parts form the owner/group path.
+  // e.g., ["sourcebot"] or ["my-group", "my-subgroup"]
+  const ownerParts = repoParts.slice(0, repoParts.length - 1);
+
+  // Reconstruct the full repository name.
+  // e.g., "sourcebot-dev" + "/" + "sourcebot"
+  // e.g., "my-group/my-subgroup" + "/" + "my-repo"
+  const fullRepoName = [...ownerParts, repoNamePart].join('/');
+
+  return { fullRepoName, revision };
+}
