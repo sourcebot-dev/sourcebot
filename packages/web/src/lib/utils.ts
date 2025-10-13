@@ -488,54 +488,61 @@ export const isHttpError = (error: unknown, status: number): boolean => {
         && error.status === status;
 }
 
-
 /**
- * Parses a URL path array to extract the full repository name and revision.
- * This function assumes a URL structure like:
- * `.../[hostname]/[owner]/[repo@revision]/-/tree/...`
- * Or for nested groups (like GitLab):
- * `.../[hostname]/[group]/[subgroup]/[repo@revision]/-/tree/...`
+ * Parses the URL path to generate a descriptive title.
+ * It handles three cases:
+ * 1. File view (`blob`): "filename.ts - owner/repo"
+ * 2. Directory view (`tree`): "directory/ - owner/repo"
+ * 3. Repository root: "owner/repo"
  *
  * @param path The array of path segments from Next.js params.
- * @returns An object with fullRepoName and revision, or null if parsing fails.
+ * @returns A formatted title string.
  */
-export const parseRepoPath = (path: string[]): { fullRepoName: string; revision: string } | null => {
-  if (path.length < 2) {
-    return null; // Not enough path segments to parse.
-  }
-
-  // Find the index of the `-` delimiter which separates the repo info from the file tree info.
+export const parsePathForTitle = (path: string[]): string => {
   const delimiterIndex = path.indexOf('-');
-
-  // If no delimiter is found, we can't reliably parse the path.
-  if (delimiterIndex === -1) {
-    return null;
+  if (delimiterIndex === -1 || delimiterIndex === 0) {
+    return 'Browse';
   }
 
-  // The repository parts are between the hostname (index 0) and the delimiter.
-  // e.g., ["github.com", "sourcebot-dev", "sourcebot"] -> slice will be ["sourcebot-dev", "sourcebot"]
   const repoParts = path.slice(1, delimiterIndex);
+  if (repoParts.length === 0) return 'Browse';
 
-  if (repoParts.length === 0) {
-    return null;
+  const lastPart = decodeURIComponent(repoParts.pop()!);
+  const [repoNamePart, revision = ''] = lastPart.split('@');
+  const ownerParts = repoParts;
+  const fullRepoName = [...ownerParts, repoNamePart].join('/');
+  const repoAndRevision = `${fullRepoName}${revision ? ` @ ${revision}` : ''}`;
+
+  // Check for file (`blob`) or directory (`tree`) view
+  const blobIndex = path.indexOf('blob');
+  const treeIndex = path.indexOf('tree');
+
+  // Case 1: Viewing a file
+  if (blobIndex !== -1 && path.length > blobIndex + 1) {
+    const encodedFilePath = path[blobIndex + 1];
+    const filePath = decodeURIComponent(encodedFilePath);
+
+    const fileName = filePath.split('/').pop() || filePath;
+    
+    // Return a title like: "agents.ts - sourcebot-dev/sourcebot @ HEAD"
+    return `${fileName} - ${repoAndRevision}`;
   }
 
-  // The last part of the repo segment potentially contains the revision.
-  const lastPart = repoParts[repoParts.length - 1];
+  // Case 2: Viewing a directory
+  if (treeIndex !== -1 && path.length > treeIndex + 1) {
+    const encodedDirPath = path[treeIndex + 1];
+    const dirPath = decodeURIComponent(encodedDirPath);
+    
+    // If we're at the root of the tree, just show the repo name
+    if (dirPath === '/' || dirPath === '') {
+      return repoAndRevision;
+    }
 
-  // URL segments are encoded. Decode it to handle characters like '@' (%40).
-  const decodedLastPart = decodeURIComponent(lastPart);
+    // Otherwise, show the directory path
+    // Return a title like: "client/src/store/ - sourcebot-dev/sourcebot @ HEAD"
+    return `${dirPath.endsWith('/') ? dirPath : dirPath + '/'} - ${repoAndRevision}`;
+  }
 
-  const [repoNamePart, revision = ''] = decodedLastPart.split('@');
-
-  // The preceding parts form the owner/group path.
-  // e.g., ["sourcebot"] or ["my-group", "my-subgroup"]
-  const ownerParts = repoParts.slice(0, repoParts.length - 1);
-
-  // Reconstruct the full repository name.
-  // e.g., "sourcebot-dev" + "/" + "sourcebot"
-  // e.g., "my-group/my-subgroup" + "/" + "my-repo"
-  const fullRepoName = [...ownerParts, repoNamePart].join('/');
-
-  return { fullRepoName, revision };
+  // Case 3: Fallback to the repository root
+  return repoAndRevision;
 }

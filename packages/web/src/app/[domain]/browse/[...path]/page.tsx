@@ -4,7 +4,7 @@ import { CodePreviewPanel } from "./components/codePreviewPanel";
 import { Loader2 } from "lucide-react";
 import { TreePreviewPanel } from "./components/treePreviewPanel";
 import { Metadata } from "next";
-import { parseRepoPath } from "@/lib/utils";
+import { parsePathForTitle} from "@/lib/utils";
 
 type Props = {
   params: {
@@ -14,25 +14,21 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  let title = 'Browse'; // Current Default
+  let title = 'Browse'; // Default Fallback
 
   try {
-    const parsedInfo = parseRepoPath(params.path);
+    title = parsePathForTitle(params.path);
 
-    if (parsedInfo) {
-      const { fullRepoName, revision } = parsedInfo;
-      title = `${fullRepoName}${revision ? ` @ ${revision}` : ''}`;
-    }
   } catch (error) {
-    // Log the error for debugging, but don't crash the page render.
+    // TODO: Maybe I need to look into a better way of handling this error.
+    // for now, it is just a log, fallback tab title and prevents the app from crashing.
     console.error("Failed to generate metadata title from path:", params.path, error);
   }
 
   return {
-    title, // e.g., "sourcebot-dev/sourcebot @ HEAD"
+    title,
   };
 }
-
 
 interface BrowsePageProps {
     params: Promise<{
@@ -48,6 +44,7 @@ export default async function BrowsePage(props: BrowsePageProps) {
     } = params;
 
     const rawPath = _rawPath.join('/');
+    console.log("rawPath:", rawPath);
     const { repoName, revisionName, path, pathType } = getBrowseParamsFromPathParam(rawPath);
 
     return (
