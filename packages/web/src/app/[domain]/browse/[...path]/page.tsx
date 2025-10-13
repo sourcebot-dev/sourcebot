@@ -7,22 +7,23 @@ import { Metadata } from "next";
 import { parsePathForTitle} from "@/lib/utils";
 
 type Props = {
-  params: {
+  params: Promise<{
     domain: string;
     path: string[];
-  };
+  }>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params: paramsPromise }: Props): Promise<Metadata> {
   let title = 'Browse'; // Default Fallback
 
   try {
+    const params = await paramsPromise;
     title = parsePathForTitle(params.path);
 
   } catch (error) {
     // TODO: Maybe I need to look into a better way of handling this error.
     // for now, it is just a log, fallback tab title and prevents the app from crashing.
-    console.error("Failed to generate metadata title from path:", params.path, error);
+    console.error("Failed to generate metadata title from path:", error);
   }
 
   return {
@@ -44,7 +45,6 @@ export default async function BrowsePage(props: BrowsePageProps) {
     } = params;
 
     const rawPath = _rawPath.join('/');
-    console.log("rawPath:", rawPath);
     const { repoName, revisionName, path, pathType } = getBrowseParamsFromPathParam(rawPath);
 
     return (
