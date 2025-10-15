@@ -5,9 +5,10 @@ import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
 import { Job, Queue, ReservedJob, Worker } from "groupmq";
 import { Redis } from 'ioredis';
+import { INDEX_CACHE_DIR } from './constants.js';
 import { env } from './env.js';
 import { cloneRepository, fetchRepository, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
-import { AppContext, repoMetadataSchema, RepoWithConnections, Settings } from "./types.js";
+import { repoMetadataSchema, RepoWithConnections, Settings } from "./types.js";
 import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, groupmqLifecycleExceptionWrapper, measure } from './utils.js';
 import { indexGitRepository } from './zoekt.js';
 
@@ -33,16 +34,13 @@ export class IndexSyncer {
         private db: PrismaClient,
         private settings: Settings,
         redis: Redis,
-        private ctx: AppContext,
     ) {
         this.queue = new Queue<JobPayload>({
             redis,
             namespace: 'index-sync-queue',
             jobTimeoutMs: JOB_TIMEOUT_MS,
             maxAttempts: 3,
-            ...(env.SOURCEBOT_LOG_LEVEL === 'debug' ? {
-                logger,
-            }: {}),
+            logger: env.DEBUG_ENABLE_GROUPMQ_LOGGING === 'true',
         });
 
         this.worker = new Worker<JobPayload>({
@@ -50,8 +48,8 @@ export class IndexSyncer {
             maxStalledCount: 1,
             handler: this.runJob.bind(this),
             concurrency: this.settings.maxRepoIndexingJobConcurrency,
-            ...(env.SOURCEBOT_LOG_LEVEL === 'debug' ? {
-                logger,
+            ...(env.DEBUG_ENABLE_GROUPMQ_LOGGING === 'true' ? {
+                logger: true,
             }: {}),
         });
 
@@ -62,6 +60,7 @@ export class IndexSyncer {
     }
 
     public async startScheduler() {
+        logger.debug('Starting scheduler');
         this.interval = setInterval(async () => {
             await this.scheduleIndexJobs();
             await this.scheduleCleanupJobs();
@@ -240,7 +239,7 @@ export class IndexSyncer {
     }
 
     private async indexRepository(repo: RepoWithConnections, logger: Logger) {
-        const { path: repoPath, isReadOnly } = getRepoPath(repo, this.ctx);
+        const { path: repoPath, isReadOnly } = getRepoPath(repo);
 
         const metadata = repoMetadataSchema.parse(repo.metadata);
 
@@ -304,22 +303,22 @@ export class IndexSyncer {
         }
 
         logger.info(`Indexing ${repo.name} (id: ${repo.id})...`);
-        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, this.ctx));
+        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings));
         const indexDuration_s = durationMs / 1000;
         logger.info(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
     }
 
     private async cleanupRepository(repo: Repo, logger: Logger) {
-        const { path: repoPath, isReadOnly } = getRepoPath(repo, this.ctx);
+        const { path: repoPath, isReadOnly } = getRepoPath(repo);
         if (existsSync(repoPath) && !isReadOnly) {
             logger.info(`Deleting repo directory ${repoPath}`);
             await rm(repoPath, { recursive: true, force: true });
         }
 
         const shardPrefix = getShardPrefix(repo.orgId, repo.id);
-        const files = (await readdir(this.ctx.indexPath)).filter(file => file.startsWith(shardPrefix));
+        const files = (await readdir(INDEX_CACHE_DIR)).filter(file => file.startsWith(shardPrefix));
         for (const file of files) {
-            const filePath = `${this.ctx.indexPath}/${file}`;
+            const filePath = `${INDEX_CACHE_DIR}/${file}`;
             logger.info(`Deleting shard file ${filePath}`);
             await rm(filePath, { force: true });
         }

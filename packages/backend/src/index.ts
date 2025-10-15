@@ -6,16 +6,14 @@ import { hasEntitlement, loadConfig } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { Redis } from 'ioredis';
-import path from 'path';
 import { ConnectionManager } from './connectionManager.js';
-import { DEFAULT_SETTINGS } from './constants.js';
-import { env } from "./env.js";
+import { DEFAULT_SETTINGS, INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
+import { UserPermissionSyncer } from "./ee/userPermissionSyncer.js";
+import { env } from "./env.js";
+import { IndexSyncer } from "./indexSyncer.js";
 import { PromClient } from './promClient.js';
 import { RepoManager } from './repoManager.js';
-import { AppContext } from "./types.js";
-import { UserPermissionSyncer } from "./ee/userPermissionSyncer.js";
-import { IndexSyncer } from "./indexSyncer.js";
 
 
 const logger = createLogger('backend-entrypoint');
@@ -34,21 +32,14 @@ const getSettings = async (configPath?: string) => {
 }
 
 
-const cacheDir = env.DATA_CACHE_DIR;
-const reposPath = path.join(cacheDir, 'repos');
-const indexPath = path.join(cacheDir, 'index');
+const reposPath = REPOS_CACHE_DIR;
+const indexPath = INDEX_CACHE_DIR;
 
 if (!existsSync(reposPath)) {
     await mkdir(reposPath, { recursive: true });
 }
 if (!existsSync(indexPath)) {
     await mkdir(indexPath, { recursive: true });
-}
-
-const context: AppContext = {
-    indexPath,
-    reposPath,
-    cachePath: cacheDir,
 }
 
 const prisma = new PrismaClient();
@@ -69,10 +60,10 @@ const promClient = new PromClient();
 const settings = await getSettings(env.CONFIG_PATH);
 
 const connectionManager = new ConnectionManager(prisma, settings, redis);
-const repoManager = new RepoManager(prisma, settings, redis, promClient, context);
+const repoManager = new RepoManager(prisma, settings, redis, promClient);
 const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
 const userPermissionSyncer = new UserPermissionSyncer(prisma, settings, redis);
-const indexSyncer = new IndexSyncer(prisma, settings, redis, context);
+const indexSyncer = new IndexSyncer(prisma, settings, redis);
 
 // await repoManager.validateIndexedReposHaveShards();
 

@@ -1,8 +1,46 @@
 import { CheckRepoActions, GitConfigScope, simpleGit, SimpleGitProgressEvent } from 'simple-git';
 import { mkdir } from 'node:fs/promises';
 import { env } from './env.js';
+import { dirname, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 
 type onProgressFn = (event: SimpleGitProgressEvent) => void;
+
+/**
+ * Creates a simple-git client that has it's working directory
+ * set to the given path.
+ */
+const createGitClientForPath = (path: string, onProgress?: onProgressFn) => {
+    if (!existsSync(path)) {
+        throw new Error(`Path ${path} does not exist`);
+    }
+
+    const parentPath = resolve(dirname(path));
+
+    const git = simpleGit({
+        progress: onProgress,
+    })
+        .env({
+            ...process.env,
+            /**
+             * @note on some inside-baseball on why this is necessary: The specific
+             * issue we saw was that a `git clone` would fail without throwing, and
+             * then a subsequent `git config` command would run, but since the clone
+             * failed, it wouldn't be running in a git directory. Git would then walk
+             * up the directory tree until it either found a git directory (in the case
+             * of the development env) or it would hit a GIT_DISCOVERY_ACROSS_FILESYSTEM
+             * error when trying to cross a filesystem boundary (in the prod case).
+             * GIT_CEILING_DIRECTORIES ensures that this walk will be limited to the
+             * parent directory.
+             */
+            GIT_CEILING_DIRECTORIES: parentPath,
+        })
+        .cwd({
+            path,
+        });
+
+    return git;
+}
 
 export const cloneRepository = async (
     {
@@ -20,11 +58,7 @@ export const cloneRepository = async (
     try {
         await mkdir(path, { recursive: true });
 
-        const git = simpleGit({
-            progress: onProgress,
-        }).cwd({
-            path,
-        })
+        const git = createGitClientForPath(path, onProgress);
 
         const cloneArgs = [
             "--bare",
@@ -62,11 +96,7 @@ export const fetchRepository = async (
     }
 ) => {
     try {
-        const git = simpleGit({
-            progress: onProgress,
-        }).cwd({
-            path: path,
-        })
+        const git = createGitClientForPath(path, onProgress);
 
         if (authHeader) {
             await git.addConfig("http.extraHeader", authHeader);
@@ -108,9 +138,7 @@ export const fetchRepository = async (
  * present in gitConfig.
  */
 export const upsertGitConfig = async (path: string, gitConfig: Record<string, string>, onProgress?: onProgressFn) => {
-    const git = simpleGit({
-        progress: onProgress,
-    }).cwd(path);
+    const git = createGitClientForPath(path, onProgress);
 
     try {
         for (const [key, value] of Object.entries(gitConfig)) {
@@ -130,9 +158,7 @@ export const upsertGitConfig = async (path: string, gitConfig: Record<string, st
  * If a key is not set, this is a no-op.
  */
 export const unsetGitConfig = async (path: string, keys: string[], onProgress?: onProgressFn) => {
-    const git = simpleGit({
-        progress: onProgress,
-    }).cwd(path);
+    const git = createGitClientForPath(path, onProgress);
 
     try {
         const configList = await git.listConfig();
@@ -156,9 +182,7 @@ export const unsetGitConfig = async (path: string, keys: string[], onProgress?: 
  * Returns true if `path` is the _root_ of a git repository.
  */
 export const isPathAValidGitRepoRoot = async (path: string, onProgress?: onProgressFn) => {
-    const git = simpleGit({
-        progress: onProgress,
-    }).cwd(path);
+    const git = createGitClientForPath(path, onProgress);
 
     try {
         return git.checkIsRepo(CheckRepoActions.IS_REPO_ROOT);
@@ -184,7 +208,7 @@ export const isUrlAValidGitRepo = async (url: string) => {
 }
 
 export const getOriginUrl = async (path: string) => {
-    const git = simpleGit().cwd(path);
+    const git = createGitClientForPath(path);
 
     try {
         const remotes = await git.getConfig('remote.origin.url', GitConfigScope.local);
@@ -199,18 +223,13 @@ export const getOriginUrl = async (path: string) => {
 }
 
 export const getBranches = async (path: string) => {
-    const git = simpleGit();
-    const branches = await git.cwd({
-        path,
-    }).branch();
-
+    const git = createGitClientForPath(path);
+    const branches = await git.branch();
     return branches.all;
 }
 
 export const getTags = async (path: string) => {
-    const git = simpleGit();
-    const tags = await git.cwd({
-        path,
-    }).tags();
+    const git = createGitClientForPath(path);
+    const tags = await git.tags();
     return tags.all;
 }

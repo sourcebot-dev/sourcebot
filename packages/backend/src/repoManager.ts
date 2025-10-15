@@ -4,10 +4,11 @@ import { createLogger } from "@sourcebot/logger";
 import { Job, Queue, Worker } from 'bullmq';
 import { existsSync, promises, readdirSync } from 'fs';
 import { Redis } from 'ioredis';
+import { INDEX_CACHE_DIR } from "./constants.js";
 import { env } from './env.js';
 import { cloneRepository, fetchRepository, unsetGitConfig, upsertGitConfig } from "./git.js";
 import { PromClient } from './promClient.js';
-import { AppContext, RepoWithConnections, Settings, repoMetadataSchema } from "./types.js";
+import { RepoWithConnections, Settings, repoMetadataSchema } from "./types.js";
 import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, measure } from "./utils.js";
 import { indexGitRepository } from "./zoekt.js";
 
@@ -36,7 +37,6 @@ export class RepoManager {
         private settings: Settings,
         redis: Redis,
         private promClient: PromClient,
-        private ctx: AppContext,
     ) {
         // Repo indexing
         this.indexQueue = new Queue<RepoIndexingPayload>(REPO_INDEXING_QUEUE, {
@@ -162,7 +162,7 @@ export class RepoManager {
     }
 
     private async syncGitRepository(repo: RepoWithConnections, repoAlreadyInIndexingState: boolean) {
-        const { path: repoPath, isReadOnly } = getRepoPath(repo, this.ctx);
+        const { path: repoPath, isReadOnly } = getRepoPath(repo);
 
         const metadata = repoMetadataSchema.parse(repo.metadata);
 
@@ -225,7 +225,7 @@ export class RepoManager {
         }
 
         logger.info(`Indexing ${repo.displayName}...`);
-        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, this.ctx));
+        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings));
         const indexDuration_s = durationMs / 1000;
         logger.info(`Indexed ${repo.displayName} in ${indexDuration_s}s`);
     }
@@ -422,7 +422,7 @@ export class RepoManager {
         });
 
         // delete cloned repo
-        const { path: repoPath, isReadOnly } = getRepoPath(repo, this.ctx);
+        const { path: repoPath, isReadOnly } = getRepoPath(repo);
         if (existsSync(repoPath) && !isReadOnly) {
             logger.info(`Deleting repo directory ${repoPath}`);
             await promises.rm(repoPath, { recursive: true, force: true });
@@ -430,9 +430,9 @@ export class RepoManager {
 
         // delete shards
         const shardPrefix = getShardPrefix(repo.orgId, repo.id);
-        const files = readdirSync(this.ctx.indexPath).filter(file => file.startsWith(shardPrefix));
+        const files = readdirSync(INDEX_CACHE_DIR).filter(file => file.startsWith(shardPrefix));
         for (const file of files) {
-            const filePath = `${this.ctx.indexPath}/${file}`;
+            const filePath = `${INDEX_CACHE_DIR}/${file}`;
             logger.info(`Deleting shard file ${filePath}`);
             await promises.rm(filePath, { force: true });
         }
@@ -493,7 +493,7 @@ export class RepoManager {
             return;
         }
 
-        const files = readdirSync(this.ctx.indexPath);
+        const files = readdirSync(INDEX_CACHE_DIR);
         const reposToReindex: number[] = [];
         for (const repo of indexedRepos) {
             const shardPrefix = getShardPrefix(repo.orgId, repo.id);
@@ -504,7 +504,7 @@ export class RepoManager {
             try {
                 hasShards = files.some(file => file.startsWith(shardPrefix));
             } catch (error) {
-                logger.error(`Failed to read index directory ${this.ctx.indexPath}: ${error}`);
+                logger.error(`Failed to read index directory ${INDEX_CACHE_DIR}: ${error}`);
                 continue;
             }
 
