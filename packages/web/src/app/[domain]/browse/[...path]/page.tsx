@@ -15,7 +15,7 @@ import { Metadata } from "next";
  * @param path The array of path segments from Next.js params.
  * @returns A formatted title string.
  */
-export const parsePathForTitle = (path: string[]): string => {
+const parsePathForTitle = (path: string[]): string => {
   const pathParam = path.join('/');
 
   const { repoName, revisionName, path: filePath, pathType } = getBrowseParamsFromPathParam(pathParam);
