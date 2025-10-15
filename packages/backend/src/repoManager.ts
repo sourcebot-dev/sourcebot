@@ -558,9 +558,9 @@ export class RepoManager {
         if (this.interval) {
             clearInterval(this.interval);
         }
-        this.indexWorker.close();
-        this.indexQueue.close();
-        this.gcQueue.close();
-        this.gcWorker.close();
+        await this.indexWorker.close();
+        await this.indexQueue.close();
+        await this.gcQueue.close();
+        await this.gcWorker.close();
     }
 }

@@ -54,13 +54,15 @@ model Repo {
   webUrl             String?
   connections        RepoToConnection[]
   imageUrl           String?
+
+  /// @deprecated status tracking is now done via the `jobs` table.
   repoIndexingStatus RepoIndexingStatus     @default(NEW)
 
   permittedUsers     UserToRepoPermission[]
   permissionSyncJobs RepoPermissionSyncJob[]
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
 
-  indexingJobs RepoIndexingJob[]
+  jobs RepoJob[]
   indexedAt          DateTime? /// When the repo was last indexed successfully.
 
   external_id           String /// The id of the repo in the external service
@@ -76,16 +78,22 @@ model Repo {
   @@index([orgId])
 }
 
-enum RepoIndexingJobStatus {
+enum RepoJobStatus {
   PENDING
   IN_PROGRESS
   COMPLETED
   FAILED
 }
 
-model RepoIndexingJob {
+enum RepoJobType {
+  INDEX
+  CLEANUP
+}
+
+model RepoJob {
   id          String                      @id @default(cuid())
-  status      RepoIndexingJobStatus @default(PENDING)
+  type        RepoJobType
+  status      RepoJobStatus @default(PENDING)
   createdAt   DateTime                    @default(now())
   updatedAt   DateTime                    @updatedAt
   completedAt DateTime?

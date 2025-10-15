@@ -90,13 +90,28 @@ else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement(
 }
 
 const cleanup = async (signal: string) => {
-    logger.info(`Recieved ${signal}, cleaning up...`);
+    logger.info(`Received ${signal}, cleaning up...`);
 
-    connectionManager.dispose();
-    repoManager.dispose();
-    repoPermissionSyncer.dispose();
-    userPermissionSyncer.dispose();
-    indexSyncer.dispose();
+    const shutdownTimeout = 30000; // 30 seconds
+    
+    try {
+        await Promise.race([
+            Promise.all([
+                indexSyncer.dispose(),
+                repoManager.dispose(),
+                connectionManager.dispose(),
+                repoPermissionSyncer.dispose(),
+                userPermissionSyncer.dispose(),
+                promClient.dispose(),
+            ]),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Shutdown timeout')), shutdownTimeout)
+            )
+        ]);
+        logger.info('All workers shut down gracefully');
+    } catch (error) {
+        logger.warn('Shutdown timeout or error, forcing exit:', error instanceof Error ? error.message : String(error));
+    }
 
     await prisma.$disconnect();
     await redis.quit();

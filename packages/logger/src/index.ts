@@ -1,4 +1,4 @@
-import winston, { format } from 'winston';
+import winston, { format, Logger } from 'winston';
 import { Logtail } from '@logtail/node';
 import { LogtailTransport } from '@logtail/winston';
 import { MESSAGE } from 'triple-beam';
@@ -48,7 +48,7 @@ const createLogger = (label: string) => {
         format: combine(
             errors({ stack: true }),
             timestamp(),
-            labelFn({ label: label })
+            labelFn({ label: label }),
         ),
         transports: [
             new winston.transports.Console({
@@ -84,4 +84,8 @@ const createLogger = (label: string) => {
 
 export {
     createLogger
-}; 
+};
+
+export type {
+    Logger,
+}
