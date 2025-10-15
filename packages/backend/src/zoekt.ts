@@ -10,7 +10,7 @@ import { getRepoPath, getShardPrefix } from "./utils.js";
 
 const logger = createLogger('zoekt');
 
-export const indexGitRepository = async (repo: Repo, settings: Settings) => {
+export const indexGitRepository = async (repo: Repo, settings: Settings, signal?: AbortSignal) => {
     let revisions = [
         'HEAD'
     ];
@@ -71,7 +71,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings) => {
     ].join(' ');
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
-        exec(command, (error, stdout, stderr) => {
+        exec(command, { signal }, (error, stdout, stderr) => {
             if (error) {
                 reject(error);
                 return;

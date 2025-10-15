@@ -10,7 +10,7 @@ type onProgressFn = (event: SimpleGitProgressEvent) => void;
  * Creates a simple-git client that has it's working directory
  * set to the given path.
  */
-const createGitClientForPath = (path: string, onProgress?: onProgressFn) => {
+const createGitClientForPath = (path: string, onProgress?: onProgressFn, signal?: AbortSignal) => {
     if (!existsSync(path)) {
         throw new Error(`Path ${path} does not exist`);
     }
@@ -19,6 +19,7 @@ const createGitClientForPath = (path: string, onProgress?: onProgressFn) => {
 
     const git = simpleGit({
         progress: onProgress,
+        abort: signal,
     })
         .env({
             ...process.env,
@@ -48,17 +49,19 @@ export const cloneRepository = async (
         authHeader,
         path,
         onProgress,
+        signal,
     }: {
         cloneUrl: string,
         authHeader?: string,
         path: string,
         onProgress?: onProgressFn
+        signal?: AbortSignal
     }
 ) => {
     try {
         await mkdir(path, { recursive: true });
 
-        const git = createGitClientForPath(path, onProgress);
+        const git = createGitClientForPath(path, onProgress, signal);
 
         const cloneArgs = [
             "--bare",
@@ -67,7 +70,11 @@ export const cloneRepository = async (
 
         await git.clone(cloneUrl, path, cloneArgs);
 
-        await unsetGitConfig(path, ["remote.origin.url"]);
+        await unsetGitConfig({
+            path,
+            keys: ["remote.origin.url"],
+            signal,
+        });
     } catch (error: unknown) {
         const baseLog = `Failed to clone repository: ${path}`;
 
@@ -88,15 +95,17 @@ export const fetchRepository = async (
         authHeader,
         path,
         onProgress,
+        signal,
     }: {
         cloneUrl: string,
         authHeader?: string,
         path: string,
-        onProgress?: onProgressFn
+        onProgress?: onProgressFn,
+        signal?: AbortSignal
     }
 ) => {
     try {
-        const git = createGitClientForPath(path, onProgress);
+        const git = createGitClientForPath(path, onProgress, signal);
 
         if (authHeader) {
             await git.addConfig("http.extraHeader", authHeader);
@@ -137,8 +146,19 @@ export const fetchRepository = async (
  * that do not exist yet. It will _not_ remove any existing keys that are not
  * present in gitConfig.
  */
-export const upsertGitConfig = async (path: string, gitConfig: Record<string, string>, onProgress?: onProgressFn) => {
-    const git = createGitClientForPath(path, onProgress);
+export const upsertGitConfig = async (
+    {
+        path,
+        gitConfig,
+        onProgress,
+        signal,
+    }: {
+        path: string,
+        gitConfig: Record<string, string>,
+        onProgress?: onProgressFn,
+        signal?: AbortSignal
+    }) => {
+    const git = createGitClientForPath(path, onProgress, signal);
 
     try {
         for (const [key, value] of Object.entries(gitConfig)) {
@@ -157,8 +177,19 @@ export const upsertGitConfig = async (path: string, gitConfig: Record<string, st
  * Unsets the specified keys in the git config for the repo at the given path.
  * If a key is not set, this is a no-op.
  */
-export const unsetGitConfig = async (path: string, keys: string[], onProgress?: onProgressFn) => {
-    const git = createGitClientForPath(path, onProgress);
+export const unsetGitConfig = async (
+    {
+        path,
+        keys,
+        onProgress,
+        signal,
+    }: {
+        path: string,
+        keys: string[],
+        onProgress?: onProgressFn,
+        signal?: AbortSignal
+    }) => {
+    const git = createGitClientForPath(path, onProgress, signal);
 
     try {
         const configList = await git.listConfig();
@@ -181,8 +212,16 @@ export const unsetGitConfig = async (path: string, keys: string[], onProgress?: 
 /**
  * Returns true if `path` is the _root_ of a git repository.
  */
-export const isPathAValidGitRepoRoot = async (path: string, onProgress?: onProgressFn) => {
-    const git = createGitClientForPath(path, onProgress);
+export const isPathAValidGitRepoRoot = async ({
+    path,
+    onProgress,
+    signal,
+}: {
+    path: string,
+    onProgress?: onProgressFn,
+    signal?: AbortSignal
+}) => {
+    const git = createGitClientForPath(path, onProgress, signal);
 
     try {
         return git.checkIsRepo(CheckRepoActions.IS_REPO_ROOT);

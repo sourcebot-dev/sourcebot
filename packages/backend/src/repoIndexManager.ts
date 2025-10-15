@@ -12,7 +12,7 @@ import { repoMetadataSchema, RepoWithConnections, Settings } from "./types.js";
 import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, groupmqLifecycleExceptionWrapper, measure } from './utils.js';
 import { indexGitRepository } from './zoekt.js';
 
-const LOG_TAG = 'index-syncer';
+const LOG_TAG = 'repo-index-manager';
 const logger = createLogger(LOG_TAG);
 const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 
@@ -25,7 +25,18 @@ type JobPayload = {
 
 const JOB_TIMEOUT_MS = 1000 * 60 * 60 * 6; // 6 hour indexing timeout
 
-export class IndexSyncer {
+/**
+ * Manages the lifecycle of repository data on disk, including git working copies
+ * and search index shards. Handles both indexing operations (cloning/fetching repos
+ * and building search indexes) and cleanup operations (removing orphaned repos and
+ * their associated data).
+ * 
+ * Uses a job queue system to process indexing and cleanup tasks asynchronously,
+ * with configurable concurrency limits and retry logic. Automatically schedules
+ * re-indexing of repos based on configured intervals and manages garbage collection
+ * of repos that are no longer connected to any source.
+ */
+export class RepoIndexManager {
     private interval?: NodeJS.Timeout;
     private queue: Queue<JobPayload>;
     private worker: Worker<JobPayload>;
@@ -37,7 +48,7 @@ export class IndexSyncer {
     ) {
         this.queue = new Queue<JobPayload>({
             redis,
-            namespace: 'index-sync-queue',
+            namespace: 'repo-index-queue',
             jobTimeoutMs: JOB_TIMEOUT_MS,
             maxAttempts: 3,
             logger: env.DEBUG_ENABLE_GROUPMQ_LOGGING === 'true',
@@ -210,6 +221,7 @@ export class IndexSyncer {
         const logger = createJobLogger(id);
         logger.info(`Running ${job.data.type} job ${id} for repo ${job.data.repoName} (id: ${job.data.repoId}) (attempt ${job.attempts + 1} / ${job.maxAttempts})`);
 
+
         const { repo, type: jobType } = await this.db.repoJob.update({
             where: {
                 id,
@@ -231,14 +243,28 @@ export class IndexSyncer {
             }
         });
 
-        if (jobType === RepoJobType.INDEX) {
-            await this.indexRepository(repo, logger);
-        } else if (jobType === RepoJobType.CLEANUP) {
-            await this.cleanupRepository(repo, logger);
+        const abortController = new AbortController();
+        const signalHandler = () => {
+            logger.info(`Received shutdown signal, aborting...`);
+            abortController.abort(); // This cancels all operations
+        };
+
+        process.on('SIGTERM', signalHandler);
+        process.on('SIGINT', signalHandler);
+
+        try {
+            if (jobType === RepoJobType.INDEX) {
+                await this.indexRepository(repo, logger, abortController.signal);
+            } else if (jobType === RepoJobType.CLEANUP) {
+                await this.cleanupRepository(repo, logger);
+            }
+        } finally {
+            process.off('SIGTERM', signalHandler);
+            process.off('SIGINT', signalHandler);
         }
     }
 
-    private async indexRepository(repo: RepoWithConnections, logger: Logger) {
+    private async indexRepository(repo: RepoWithConnections, logger: Logger, signal: AbortSignal) {
         const { path: repoPath, isReadOnly } = getRepoPath(repo);
 
         const metadata = repoMetadataSchema.parse(repo.metadata);
@@ -250,9 +276,16 @@ export class IndexSyncer {
         // If the repo path exists but it is not a valid git repository root, this indicates
         // that the repository is in a bad state. To fix, we remove the directory and perform
         // a fresh clone.
-        if (existsSync(repoPath) && !(await isPathAValidGitRepoRoot(repoPath)) && !isReadOnly) {
-            logger.warn(`${repoPath} is not a valid git repository root. Deleting directory and performing fresh clone.`);
-            await rm(repoPath, { recursive: true, force: true });
+        if (existsSync(repoPath) && !(await isPathAValidGitRepoRoot( { path: repoPath } ))) {
+            const isValidGitRepo = await isPathAValidGitRepoRoot({
+                path: repoPath,
+                signal,
+            });
+
+            if (!isValidGitRepo && !isReadOnly) {
+                logger.warn(`${repoPath} is not a valid git repository root. Deleting directory and performing fresh clone.`);
+                await rm(repoPath, { recursive: true, force: true });
+            }
         }
 
         if (existsSync(repoPath) && !isReadOnly) {
@@ -262,7 +295,11 @@ export class IndexSyncer {
             // to unset this key since it is no longer needed, hence this line.
             // This will no-op if the key is already unset.
             // @see: https://github.com/sourcebot-dev/sourcebot/pull/483
-            await unsetGitConfig(repoPath, ["remote.origin.url"]);
+            await unsetGitConfig({
+                path: repoPath,
+                keys: ["remote.origin.url"],
+                signal,
+            });
 
             logger.info(`Fetching ${repo.name} (id: ${repo.id})...`);
             const { durationMs } = await measure(() => fetchRepository({
@@ -271,7 +308,8 @@ export class IndexSyncer {
                 path: repoPath,
                 onProgress: ({ method, stage, progress }) => {
                     logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.name} (id: ${repo.id})`)
-                }
+                },
+                signal,
             }));
             const fetchDuration_s = durationMs / 1000;
 
@@ -287,7 +325,8 @@ export class IndexSyncer {
                 path: repoPath,
                 onProgress: ({ method, stage, progress }) => {
                     logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.name} (id: ${repo.id})`)
-                }
+                },
+                signal
             }));
             const cloneDuration_s = durationMs / 1000;
 
@@ -299,11 +338,15 @@ export class IndexSyncer {
         // This ensures that the git config is always up to date for whatever we
         // have in the DB.
         if (metadata.gitConfig && !isReadOnly) {
-            await upsertGitConfig(repoPath, metadata.gitConfig);
+            await upsertGitConfig({
+                path: repoPath,
+                gitConfig: metadata.gitConfig,
+                signal,
+            });
         }
 
         logger.info(`Indexing ${repo.name} (id: ${repo.id})...`);
-        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings));
+        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, signal));
         const indexDuration_s = durationMs / 1000;
         logger.info(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
     }

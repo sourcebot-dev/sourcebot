@@ -11,9 +11,8 @@ import { DEFAULT_SETTINGS, INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { UserPermissionSyncer } from "./ee/userPermissionSyncer.js";
 import { env } from "./env.js";
-import { IndexSyncer } from "./indexSyncer.js";
+import { RepoIndexManager } from "./repoIndexManager.js";
 import { PromClient } from './promClient.js';
-import { RepoManager } from './repoManager.js';
 
 
 const logger = createLogger('backend-entrypoint');
@@ -60,16 +59,12 @@ const promClient = new PromClient();
 const settings = await getSettings(env.CONFIG_PATH);
 
 const connectionManager = new ConnectionManager(prisma, settings, redis);
-const repoManager = new RepoManager(prisma, settings, redis, promClient);
 const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
 const userPermissionSyncer = new UserPermissionSyncer(prisma, settings, redis);
-const indexSyncer = new IndexSyncer(prisma, settings, redis);
-
-// await repoManager.validateIndexedReposHaveShards();
+const repoIndexManager = new RepoIndexManager(prisma, settings, redis);
 
 connectionManager.startScheduler();
-// repoManager.startScheduler();
-indexSyncer.startScheduler();
+repoIndexManager.startScheduler();
 
 if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
     logger.error('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
@@ -88,8 +83,7 @@ const cleanup = async (signal: string) => {
     try {
         await Promise.race([
             Promise.all([
-                indexSyncer.dispose(),
-                repoManager.dispose(),
+                repoIndexManager.dispose(),
                 connectionManager.dispose(),
                 repoPermissionSyncer.dispose(),
                 userPermissionSyncer.dispose(),

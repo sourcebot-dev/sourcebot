@@ -497,7 +497,9 @@ export const compileGenericGitHostConfig_file = async (
     };
     
     await Promise.all(repoPaths.map(async (repoPath) => {
-        const isGitRepo = await isPathAValidGitRepoRoot(repoPath);
+        const isGitRepo = await isPathAValidGitRepoRoot({
+            path: repoPath,
+        });
         if (!isGitRepo) {
             logger.warn(`Skipping ${repoPath} - not a git repository.`);
             notFound.repos.push(repoPath);
