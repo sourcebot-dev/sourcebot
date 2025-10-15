@@ -17,7 +17,6 @@ import { ErrorCode } from "./errorCodes";
 import { NextRequest } from "next/server";
 import { Org } from "@sourcebot/db";
 import { OrgMetadata, orgMetadataSchema } from "@/types";
-import { getBrowseParamsFromPathParam } from "@/app/[domain]/browse/hooks/utils";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
