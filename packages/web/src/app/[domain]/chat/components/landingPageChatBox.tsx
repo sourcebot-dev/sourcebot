@@ -9,6 +9,7 @@ import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { SearchModeSelector } from "../../components/searchModeSelector";
+import { NotConfiguredErrorBanner } from "@/features/chat/components/notConfiguredErrorBanner";
 
 interface LandingPageChatBox {
     languageModels: LanguageModelInfo[];
@@ -24,9 +25,13 @@ export const LandingPageChatBox = ({
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>("selectedSearchScopes", [], { initializeWithValue: false });
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
+    const isChatBoxDisabled = languageModels.length === 0;
+
     return (
-        <div className="flex flex-col items-center w-full">
-            <div className="mt-4 w-full border rounded-md shadow-sm max-w-[800px]">
+        <div className="w-full max-w-[800px] mt-4">
+           
+
+            <div className="border rounded-md w-full shadow-sm">
                 <ChatBox
                     onSubmit={(children) => {
                         createNewChatThread(children, selectedSearchScopes);
@@ -37,6 +42,7 @@ export const LandingPageChatBox = ({
                     selectedSearchScopes={selectedSearchScopes}
                     searchContexts={searchContexts}
                     onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                    isDisabled={isChatBoxDisabled}
                 />
                 <Separator />
                 <div className="relative">
@@ -57,6 +63,10 @@ export const LandingPageChatBox = ({
                     </div>
                 </div>
             </div>
+
+            {isChatBoxDisabled && (
+                <NotConfiguredErrorBanner className="mt-4" />
+            )}
         </div >
     )
 }

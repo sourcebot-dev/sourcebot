@@ -67,6 +67,7 @@ const config = {
                     ring: 'var(--sidebar-ring)'
                 },
                 warning: 'var(--warning)',
+                error: 'var(--error)',
                 editor: {
                     background: 'var(--editor-background)',
                     foreground: 'var(--editor-foreground)',
