@@ -1,7 +1,8 @@
 "use client"
 
+import { setAgenticSearchTutorialDismissedCookie } from "@/actions"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { ModelProviderLogo } from "@/features/chat/components/chatBox/modelProviderLogo"
 import { cn } from "@/lib/utils"
 import mentionsDemo from "@/public/ask_sb_tutorial_at_mentions.png"
@@ -27,11 +28,9 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
+import { useCallback, useState } from "react"
 
-interface AgenticSearchTutorialDialogProps {
-    onClose: () => void
-}
+
 
 
 // Star button component that fetches GitHub star count
@@ -249,7 +248,17 @@ const tutorialSteps = [
     },
 ]
 
-export const AgenticSearchTutorialDialog = ({ onClose }: AgenticSearchTutorialDialogProps) => {
+interface TutorialDialogProps {
+    isOpen: boolean;
+}
+
+export const TutorialDialog = ({ isOpen: _isOpen }: TutorialDialogProps) => {
+    const [isOpen, setIsOpen] = useState(_isOpen);
+    const onClose = useCallback(() => {
+        setIsOpen(false);
+        setAgenticSearchTutorialDismissedCookie(true);
+    }, []);
+
     const [currentStep, setCurrentStep] = useState(0)
 
     const nextStep = () => {
@@ -269,11 +278,12 @@ export const AgenticSearchTutorialDialog = ({ onClose }: AgenticSearchTutorialDi
     const currentStepData = tutorialSteps[currentStep];
 
     return (
-        <Dialog open={true} onOpenChange={onClose}>
+        <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent
                 className="sm:max-w-[900px] p-0 flex flex-col h-[525px] overflow-hidden rounded-xl border-none bg-transparent"
                 closeButtonClassName="text-white"
             >
+                <DialogTitle className="sr-only">Ask Sourcebot tutorial</DialogTitle>
                 <div className="relative flex h-full">
                     {/* Left Column (Text Content & Navigation) */}
                     <div className="flex-1 flex flex-col justify-between bg-background">

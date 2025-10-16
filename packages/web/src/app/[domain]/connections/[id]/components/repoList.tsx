@@ -64,7 +64,7 @@ export const RepoList = ({ connectionId }: RepoListProps) => {
     const { data: unfilteredRepos, isPending: isReposPending, error: reposError, refetch: refetchRepos } = useQuery({
         queryKey: ['repos', domain, connectionId],
         queryFn: async () => {
-            const repos = await unwrapServiceError(getRepos({ connectionId }));
+            const repos = await unwrapServiceError(getRepos());
             return repos.sort((a, b) => {
                 const priorityA = getPriority(a.repoIndexingStatus);
                 const priorityB = getPriority(b.repoIndexingStatus);

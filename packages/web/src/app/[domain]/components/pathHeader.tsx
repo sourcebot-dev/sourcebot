@@ -3,7 +3,7 @@
 import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
-import { getBrowsePath } from "../browse/hooks/useBrowseNavigation";
+import { getBrowsePath } from "../browse/hooks/utils";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
 import { useCallback, useState, useMemo, useRef, useEffect } from "react";
 import { useToast } from "@/components/hooks/use-toast";

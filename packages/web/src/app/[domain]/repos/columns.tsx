@@ -9,7 +9,7 @@ import { cn, getRepoImageSrc } from "@/lib/utils"
 import { RepoIndexingStatus } from "@sourcebot/db";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
-import { getBrowsePath } from "../browse/hooks/useBrowseNavigation"
+import { getBrowsePath } from "../browse/hooks/utils"
 
 export type RepositoryColumnInfo = {
     repoId: number

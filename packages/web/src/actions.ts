@@ -10,7 +10,7 @@ import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
 import { decrypt, encrypt, generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/crypto";
-import { ApiKey, ConnectionSyncStatus, Org, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
+import { ApiKey, ConnectionSyncStatus, Org, OrgRole, Prisma, RepoIndexingStatus, RepoJobStatus, RepoJobType, StripeSubscriptionStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { azuredevopsSchema } from "@sourcebot/schemas/v3/azuredevops.schema";
 import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
@@ -638,22 +638,20 @@ export const getConnectionInfo = async (connectionId: number, domain: string) =>
             }
         })));
 
-export const getRepos = async (filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) => sew(() =>
+export const getRepos = async ({
+    where,
+    take,
+}: {
+    where?: Prisma.RepoWhereInput,
+    take?: number
+} = {}) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
         const repos = await prisma.repo.findMany({
             where: {
                 orgId: org.id,
-                ...(filter.status ? {
-                    repoIndexingStatus: { in: filter.status }
-                } : {}),
-                ...(filter.connectionId ? {
-                    connections: {
-                        some: {
-                            connectionId: filter.connectionId
-                        }
-                    }
-                } : {}),
-            }
+                ...where,
+            },
+            take,
         });
 
         return repos.map((repo) => repositoryQuerySchema.parse({
@@ -668,6 +666,60 @@ export const getRepos = async (filter: { status?: RepoIndexingStatus[], connecti
             repoIndexingStatus: repo.repoIndexingStatus,
         }))
     }));
+
+/**
+ * Returns a set of aggregated stats about the repos in the org
+ */
+export const getReposStats = async () => sew(() =>
+    withOptionalAuthV2(async ({ org, prisma }) => {
+        const [
+            // Total number of repos.
+            numberOfRepos,
+            // Number of repos with their first time indexing jobs either
+            // pending or in progress.
+            numberOfReposWithFirstTimeIndexingJobsInProgress,
+            // Number of repos that have been indexed at least once.
+            numberOfReposWithIndex,
+        ] = await Promise.all([
+            prisma.repo.count({
+                where: {
+                    orgId: org.id,
+                }
+            }),
+            prisma.repo.count({
+                where: {
+                    orgId: org.id,
+                    jobs: {
+                        some: {
+                            type: RepoJobType.INDEX,
+                            status: {
+                                in: [
+                                    RepoJobStatus.PENDING,
+                                    RepoJobStatus.IN_PROGRESS,
+                                ]
+                            }
+                        },
+                    },
+                    indexedAt: null,
+                }
+            }),
+            prisma.repo.count({
+                where: {
+                    orgId: org.id,
+                    NOT: {
+                        indexedAt: null,
+                    }
+                }
+            })
+        ]);
+
+        return {
+            numberOfRepos,
+            numberOfReposWithFirstTimeIndexingJobsInProgress,
+            numberOfReposWithIndex,
+        };
+    })
+)
 
 export const getRepoInfoByName = async (repoName: string) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {

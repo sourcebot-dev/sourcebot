@@ -1,21 +1,26 @@
+import { getRepos, getReposStats } from "@/actions";
+import { SourcebotLogo } from "@/app/components/sourcebotLogo";
+import { auth } from "@/auth";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NavigationMenu as NavigationMenuBase, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
-import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
-import { SettingsDropdown } from "./settingsDropdown";
-import { GitHubLogoIcon, DiscordLogoIcon } from "@radix-ui/react-icons";
-import { redirect } from "next/navigation";
-import { OrgSelector } from "./orgSelector";
-import { ErrorNavIndicator } from "./errorNavIndicator";
-import { WarningNavIndicator } from "./warningNavIndicator";
-import { ProgressNavIndicator } from "./progressNavIndicator";
-import { SourcebotLogo } from "@/app/components/sourcebotLogo";
-import { TrialNavIndicator } from "./trialNavIndicator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { env } from "@/env.mjs";
-import { getSubscriptionInfo } from "@/ee/features/billing/actions";
-import { auth } from "@/auth";
-import WhatsNewIndicator from "./whatsNewIndicator";
+import { ServiceErrorException } from "@/lib/serviceError";
+import { cn, getShortenedNumberDisplayString, isServiceError } from "@/lib/utils";
+import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
+import { RepoJobStatus, RepoJobType } from "@sourcebot/db";
+import { BookMarkedIcon, CircleIcon, MessageCircleIcon, SearchIcon, SettingsIcon } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { OrgSelector } from "../orgSelector";
+import { SettingsDropdown } from "../settingsDropdown";
+import WhatsNewIndicator from "../whatsNewIndicator";
+import { ProgressIndicator } from "./progressIndicator";
+import { TrialIndicator } from "./trialIndicator";
 
 const SOURCEBOT_DISCORD_URL = "https://discord.gg/6Fhp27x7Pb";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
@@ -30,6 +35,38 @@ export const NavigationMenu = async ({
     const subscription = IS_BILLING_ENABLED ? await getSubscriptionInfo(domain) : null;
     const session = await auth();
     const isAuthenticated = session?.user !== undefined;
+
+    const repoStats = await getReposStats();
+    if (isServiceError(repoStats)) {
+        throw new ServiceErrorException(repoStats);
+    }
+
+    const sampleRepos = await getRepos({
+        where: {
+            jobs: {
+                some: {
+                    type: RepoJobType.INDEX,
+                    status: {
+                        in: [
+                            RepoJobStatus.PENDING,
+                            RepoJobStatus.IN_PROGRESS,
+                        ]
+                    }
+                },
+            },
+            indexedAt: null,
+        },
+        take: 5,
+    });
+
+    if (isServiceError(sampleRepos)) {
+        throw new ServiceErrorException(sampleRepos);
+    }
+
+    const {
+        numberOfRepos,
+        numberOfReposWithFirstTimeIndexingJobsInProgress,
+    } = repoStats;
 
     return (
         <div className="flex flex-col w-full h-fit bg-background">
@@ -55,48 +92,55 @@ export const NavigationMenu = async ({
                     )}
 
                     <NavigationMenuBase>
-                        <NavigationMenuList>
+                        <NavigationMenuList className="gap-2">
                             <NavigationMenuItem>
                                 <NavigationMenuLink
                                     href={`/${domain}`}
-                                    className={navigationMenuTriggerStyle()}
+                                    className={cn(navigationMenuTriggerStyle(), "gap-2")}
                                 >
+                                    <SearchIcon className="w-4 h-4 mr-1" />
                                     Search
                                 </NavigationMenuLink>
                             </NavigationMenuItem>
                             <NavigationMenuItem>
                                 <NavigationMenuLink
-                                    href={`/${domain}/repos`}
+                                    href={`/${domain}/chat`}
                                     className={navigationMenuTriggerStyle()}
                                 >
-                                    Repositories
+                                    <MessageCircleIcon className="w-4 h-4 mr-1" />
+                                    Ask
                                 </NavigationMenuLink>
+                            </NavigationMenuItem>
+                            <NavigationMenuItem className="relative">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <NavigationMenuLink
+                                            href={`/${domain}/repos`}
+                                            className={navigationMenuTriggerStyle()}
+                                        >
+                                            <BookMarkedIcon className="w-4 h-4 mr-1" />
+                                            <span className="mr-2">Repositories</span>
+                                            <Badge variant="secondary" className="px-1.5 relative">
+                                                {getShortenedNumberDisplayString(numberOfRepos)}
+                                                {numberOfReposWithFirstTimeIndexingJobsInProgress > 0 && (
+                                                    <CircleIcon className="absolute -right-0.5 -top-0.5 h-2 w-2 text-green-600" fill="currentColor" />
+                                                )}
+                                            </Badge>
+                                        </NavigationMenuLink>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{numberOfRepos} total {numberOfRepos === 1 ? 'repository' : 'repositories'}</p>
+                                    </TooltipContent>
+                                </Tooltip>
                             </NavigationMenuItem>
                             {isAuthenticated && (
                                 <>
-                                    {env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined && (
-                                        <NavigationMenuItem>
-                                            <NavigationMenuLink
-                                                href={`/${domain}/agents`}
-                                                className={navigationMenuTriggerStyle()}
-                                            >
-                                                Agents
-                                            </NavigationMenuLink>
-                                        </NavigationMenuItem>
-                                    )}
-                                    <NavigationMenuItem>
-                                        <NavigationMenuLink
-                                            href={`/${domain}/connections`}
-                                            className={navigationMenuTriggerStyle()}
-                                        >
-                                            Connections
-                                        </NavigationMenuLink>
-                                    </NavigationMenuItem>
                                     <NavigationMenuItem>
                                         <NavigationMenuLink
                                             href={`/${domain}/settings`}
                                             className={navigationMenuTriggerStyle()}
                                         >
+                                            <SettingsIcon className="w-4 h-4 mr-1" />
                                             Settings
                                         </NavigationMenuLink>
                                     </NavigationMenuItem>
@@ -107,10 +151,11 @@ export const NavigationMenu = async ({
                 </div>
 
                 <div className="flex flex-row items-center gap-2">
-                    <ProgressNavIndicator />
-                    <WarningNavIndicator />
-                    <ErrorNavIndicator />
-                    <TrialNavIndicator subscription={subscription} />
+                    <ProgressIndicator
+                        numberOfReposWithFirstTimeIndexingJobsInProgress={numberOfReposWithFirstTimeIndexingJobsInProgress}
+                        sampleRepos={sampleRepos}
+                    />
+                    <TrialIndicator subscription={subscription} />
                     <WhatsNewIndicator />
                     <form
                         action={async () => {
@@ -145,7 +190,5 @@ export const NavigationMenu = async ({
             </div>
             <Separator />
         </div>
-
-
     )
 }
