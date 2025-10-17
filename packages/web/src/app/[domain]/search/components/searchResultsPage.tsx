@@ -35,7 +35,7 @@ import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel } from "./searchResultsPanel";
 
-const DEFAULT_MAX_MATCH_COUNT = 500;
+const DEFAULT_MAX_MATCH_COUNT = 5000;
 
 interface SearchResultsPageProps {
     searchQuery: string;
