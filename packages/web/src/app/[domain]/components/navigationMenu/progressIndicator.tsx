@@ -1,5 +1,6 @@
 'use client';
 
+import { useToast } from "@/components/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -25,6 +26,7 @@ export const ProgressIndicator = ({
 }: ProgressIndicatorProps) => {
     const domain = useDomain();
     const router = useRouter();
+    const { toast } = useToast();
 
     if (numRepos === 0) {
         return null;
@@ -51,6 +53,9 @@ export const ProgressIndicator = ({
                         className="h-6 w-6 text-muted-foreground"
                         onClick={() => {
                             router.refresh();
+                            toast({
+                                description: "Page refreshed",
+                            });
                         }}
                     >
                         <RefreshCwIcon className="w-3 h-3" />
@@ -105,14 +110,13 @@ const RepoItem = ({ repo }: { repo: RepositoryQuery }) => {
 
 
     return (
-        <Link
-            href={'/'}
+        <div
             className={clsx("flex flex-row items-center gap-2 border rounded-md p-2 text-clip")}
         >
             {repoIcon}
             <span className="text-sm truncate">
                 {displayName}
             </span>
-        </Link>
+        </div>
     )
 }

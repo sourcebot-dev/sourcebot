@@ -94,10 +94,6 @@ export default async function SettingsLayout(
             ),
             href: `/${domain}/settings/members`,
         }] : []),
-        ...(userRoleInOrg === OrgRole.OWNER ? [{
-            title: "Connections",
-            href: `/${domain}/connections`,
-        }] : []),
         {
             title: "Secrets",
             href: `/${domain}/settings/secrets`,

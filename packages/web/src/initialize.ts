@@ -64,21 +64,6 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
             });
 
             logger.info(`Upserted connection with name '${key}'. Connection ID: ${connectionDb.id}`);
-
-            // Re-try any repos that failed to index.
-            const failedRepos = currentConnection?.repos.filter(repo => repo.repo.repoIndexingStatus === RepoIndexingStatus.FAILED).map(repo => repo.repo.id) ?? [];
-            if (failedRepos.length > 0) {
-                await prisma.repo.updateMany({
-                    where: {
-                        id: {
-                            in: failedRepos,
-                        }
-                    },
-                    data: {
-                        repoIndexingStatus: RepoIndexingStatus.NEW,
-                    }
-                })
-            }
         }
     }
 

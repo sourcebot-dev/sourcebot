@@ -2,72 +2,51 @@
 
 import { Button } from "@/components/ui/button"
 import type { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, Clock, Loader2, CheckCircle2, XCircle, Trash2, Check, ListFilter } from "lucide-react"
+import { ArrowUpDown, Clock, Loader2, CheckCircle2, Check, ListFilter } from "lucide-react"
 import Image from "next/image"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn, getRepoImageSrc } from "@/lib/utils"
-import { RepoIndexingStatus } from "@sourcebot/db";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { getBrowsePath } from "../browse/hooks/utils"
+
+export type RepoStatus = 'syncing' | 'indexed' | 'not-indexed';
 
 export type RepositoryColumnInfo = {
     repoId: number
     repoName: string;
     repoDisplayName: string
     imageUrl?: string
-    repoIndexingStatus: RepoIndexingStatus
+    status: RepoStatus
     lastIndexed: string
 }
 
-const statusLabels = {
-    [RepoIndexingStatus.NEW]: "Queued",
-    [RepoIndexingStatus.IN_INDEX_QUEUE]: "Queued",
-    [RepoIndexingStatus.INDEXING]: "Indexing",
-    [RepoIndexingStatus.INDEXED]: "Indexed",
-    [RepoIndexingStatus.FAILED]: "Failed",
-    [RepoIndexingStatus.IN_GC_QUEUE]: "Deleting",
-    [RepoIndexingStatus.GARBAGE_COLLECTING]: "Deleting",
-    [RepoIndexingStatus.GARBAGE_COLLECTION_FAILED]: "Deletion Failed"
+const statusLabels: Record<RepoStatus, string> = {
+    'syncing': "Syncing",
+    'indexed': "Indexed",
+    'not-indexed': "Pending",
 };
 
-const StatusIndicator = ({ status }: { status: RepoIndexingStatus }) => {
+const StatusIndicator = ({ status }: { status: RepoStatus }) => {
     let icon = null
     let description = ""
     let className = ""
 
     switch (status) {
-        case RepoIndexingStatus.NEW:
-        case RepoIndexingStatus.IN_INDEX_QUEUE:
-            icon = <Clock className="h-3.5 w-3.5" />
-            description = "Repository is queued for indexing"
-            className = "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400"
-            break
-        case RepoIndexingStatus.INDEXING:
+        case 'syncing':
             icon = <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            description = "Repository is being indexed"
+            description = "Repository is currently syncing"
             className = "text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400"
             break
-        case RepoIndexingStatus.INDEXED:
+        case 'indexed':
             icon = <CheckCircle2 className="h-3.5 w-3.5" />
-            description = "Repository has been successfully indexed"
+            description = "Repository has been successfully indexed and is up to date"
             className = "text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400"
             break
-        case RepoIndexingStatus.FAILED:
-            icon = <XCircle className="h-3.5 w-3.5" />
-            description = "Repository indexing failed"
-            className = "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
-            break
-        case RepoIndexingStatus.IN_GC_QUEUE:
-        case RepoIndexingStatus.GARBAGE_COLLECTING:
-            icon = <Trash2 className="h-3.5 w-3.5" />
-            description = "Repository is being deleted"
-            className = "text-gray-600 bg-gray-50 dark:bg-gray-900/20 dark:text-gray-400"
-            break
-        case RepoIndexingStatus.GARBAGE_COLLECTION_FAILED:
-            icon = <XCircle className="h-3.5 w-3.5" />
-            description = "Repository deletion failed"
-            className = "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
+        case 'not-indexed':
+            icon = <Clock className="h-3.5 w-3.5" />
+            description = "Repository is pending initial sync"
+            className = "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400"
             break
     }
 
@@ -130,9 +109,9 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
         },
     },
     {
-        accessorKey: "repoIndexingStatus",
+        accessorKey: "status",
         header: ({ column }) => {
-            const uniqueLabels = Array.from(new Set(Object.values(statusLabels)));
+            const uniqueLabels = Object.values(statusLabels);
             const currentFilter = column.getFilterValue() as string | undefined;
 
             return (
@@ -173,12 +152,12 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
             )
         },
         cell: ({ row }) => {
-            return <StatusIndicator status={row.original.repoIndexingStatus} />
+            return <StatusIndicator status={row.original.status} />
         },
         filterFn: (row, id, value) => {
             if (value === undefined) return true;
             
-            const status = row.getValue(id) as RepoIndexingStatus;
+            const status = row.getValue(id) as RepoStatus;
             return statusLabels[status] === value;
         },
     },
@@ -191,14 +170,14 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                     className="px-0 font-medium hover:bg-transparent focus:bg-transparent active:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                 >
-                    Last Indexed
+                    Last Synced
                     <ArrowUpDown className="ml-2 h-3.5 w-3.5" />
                 </Button>
             </div>
         ),
         cell: ({ row }) => {
             if (!row.original.lastIndexed) {
-                return <div>-</div>;
+                return <div className="text-muted-foreground">Never</div>;
             }
             const date = new Date(row.original.lastIndexed)
             return (

@@ -2,7 +2,6 @@
 
 import { NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn, getShortenedNumberDisplayString } from "@/lib/utils";
 import { SearchIcon, MessageCircleIcon, BookMarkedIcon, SettingsIcon, CircleIcon } from "lucide-react";
 import { usePathname } from "next/navigation";

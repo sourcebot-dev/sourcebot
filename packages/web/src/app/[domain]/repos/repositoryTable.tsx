@@ -1,118 +1,81 @@
 "use client";
 
-import { DataTable } from "@/components/ui/data-table";
-import { columns, RepositoryColumnInfo } from "./columns";
-import { unwrapServiceError } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { useDomain } from "@/hooks/useDomain";
-import { RepoIndexingStatus } from "@sourcebot/db";
-import { useMemo } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { env } from "@/env.mjs";
+import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { PlusIcon } from "lucide-react";
+import { DataTable } from "@/components/ui/data-table";
+import { PlusIcon, RefreshCwIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { columns, RepositoryColumnInfo, RepoStatus } from "./columns";
 import { AddRepositoryDialog } from "./components/addRepositoryDialog";
-import { useState } from "react";
-import { getRepos } from "@/app/api/(client)/client";
 
 interface RepositoryTableProps {
-    isAddReposButtonVisible: boolean
+    repos: {
+        repoId: number;
+        repoName: string;
+        repoDisplayName: string;
+        imageUrl?: string;
+        indexedAt?: Date;
+        status: RepoStatus;
+    }[];
+    domain: string;
+    isAddReposButtonVisible: boolean;
 }
 
 export const RepositoryTable = ({
+    repos,
+    domain,
     isAddReposButtonVisible,
 }: RepositoryTableProps) => {
-    const domain = useDomain();
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-
-    const { data: repos, isLoading: reposLoading, error: reposError } = useQuery({
-        queryKey: ['repos'],
-        queryFn: async () => {
-            return await unwrapServiceError(getRepos());
-        },
-        refetchInterval: env.NEXT_PUBLIC_POLLING_INTERVAL_MS,
-        refetchIntervalInBackground: true,
-    });
+    const router = useRouter();
+    const { toast } = useToast();
 
     const tableRepos = useMemo(() => {
-        if (reposLoading) return Array(4).fill(null).map(() => ({
-            repoId: 0,
-            repoName: "",
-            repoDisplayName: "",
-            repoIndexingStatus: RepoIndexingStatus.NEW,
-            lastIndexed: "",
-            imageUrl: "",
-        }));
-
-        if (!repos) return [];
         return repos.map((repo): RepositoryColumnInfo => ({
             repoId: repo.repoId,
             repoName: repo.repoName,
             repoDisplayName: repo.repoDisplayName ?? repo.repoName,
             imageUrl: repo.imageUrl,
-            repoIndexingStatus: repo.repoIndexingStatus as RepoIndexingStatus,
+            status: repo.status,
             lastIndexed: repo.indexedAt?.toISOString() ?? "",
         })).sort((a, b) => {
-            const getPriorityFromStatus = (status: RepoIndexingStatus) => {
+            const getPriorityFromStatus = (status: RepoStatus) => {
                 switch (status) {
-                    case RepoIndexingStatus.IN_INDEX_QUEUE:
-                    case RepoIndexingStatus.INDEXING:
-                        return 0  // Highest priority - currently indexing
-                    case RepoIndexingStatus.FAILED:
-                        return 1  // Second priority - failed repos need attention
-                    case RepoIndexingStatus.INDEXED:
+                    case 'syncing':
+                        return 0  // Highest priority - currently syncing
+                    case 'not-indexed':
+                        return 1  // Second priority - not yet indexed
+                    case 'indexed':
                         return 2  // Third priority - successfully indexed
                     default:
-                        return 3  // Lowest priority - other statuses (NEW, etc.)
+                        return 3
                 }
             }
 
             // Sort by priority first
-            const aPriority = getPriorityFromStatus(a.repoIndexingStatus);
-            const bPriority = getPriorityFromStatus(b.repoIndexingStatus);
-            
+            const aPriority = getPriorityFromStatus(a.status);
+            const bPriority = getPriorityFromStatus(b.status);
+
             if (aPriority !== bPriority) {
-                return aPriority - bPriority; // Lower priority number = higher precedence
+                return aPriority - bPriority;
             }
-            
+
             // If same priority, sort by last indexed date (most recent first)
-            return new Date(b.lastIndexed).getTime() - new Date(a.lastIndexed).getTime();
+            if (a.lastIndexed && b.lastIndexed) {
+                return new Date(b.lastIndexed).getTime() - new Date(a.lastIndexed).getTime();
+            }
+
+            // Put items without dates at the end
+            if (!a.lastIndexed) return 1;
+            if (!b.lastIndexed) return -1;
+            return 0;
         });
-    }, [repos, reposLoading]);
+    }, [repos]);
 
     const tableColumns = useMemo(() => {
-        if (reposLoading) {
-            return columns(domain).map((column) => {
-                if ('accessorKey' in column && column.accessorKey === "name") {
-                    return {
-                        ...column,
-                        cell: () => (
-                            <div className="flex flex-row items-center gap-3 py-2">
-                                <Skeleton className="h-8 w-8 rounded-md" /> {/* Avatar skeleton */}
-                                <Skeleton className="h-4 w-48" /> {/* Repository name skeleton */}
-                            </div>
-                        ),
-                    }
-                }
-
-                return {
-                    ...column,
-                    cell: () => (
-                        <div className="flex flex-wrap gap-1.5">
-                            <Skeleton className="h-5 w-24 rounded-full" />
-                        </div>
-                    ),
-                }
-            })
-        }
-
         return columns(domain);
-    }, [reposLoading, domain]);
-
-
-    if (reposError) {
-        return <div>Error loading repositories</div>;
-    }
+    }, [domain]);
 
     return (
         <>
@@ -121,18 +84,35 @@ export const RepositoryTable = ({
                 data={tableRepos}
                 searchKey="repoDisplayName"
                 searchPlaceholder="Search repositories..."
-                headerActions={isAddReposButtonVisible && (
-                    <Button
-                        variant="default"
-                        size="default"
-                        onClick={() => setIsAddDialogOpen(true)}
-                    >
-                        <PlusIcon className="w-4 h-4" />
-                        Add repository
-                    </Button>
+                headerActions={(
+                    <div className="flex items-center justify-between w-full gap-2">
+                        <Button
+                            variant="outline"
+                            size="default"
+                            className="ml-2"
+                            onClick={() => {
+                                router.refresh();
+                                toast({
+                                    description: "Page refreshed",
+                                });
+                            }}>
+                            <RefreshCwIcon className="w-4 h-4" />
+                            Refresh
+                        </Button>
+                        {isAddReposButtonVisible && (
+                            <Button
+                                variant="default"
+                                size="default"
+                                onClick={() => setIsAddDialogOpen(true)}
+                            >
+                                <PlusIcon className="w-4 h-4" />
+                                Add repository
+                            </Button>
+                        )}
+                    </div>
                 )}
             />
-            
+
             <AddRepositoryDialog
                 isOpen={isAddDialogOpen}
                 onOpenChange={setIsAddDialogOpen}
