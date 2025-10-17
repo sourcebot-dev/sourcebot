@@ -1,10 +1,12 @@
-import { auth } from "@/auth";
 import { env } from "@/env.mjs";
-import { getPrismaClient } from "@/prisma";
 import { RepoJob } from "@sourcebot/db";
 import { Header } from "../components/header";
 import { RepoStatus } from "./columns";
 import { RepositoryTable } from "./repositoryTable";
+import { sew } from "@/actions";
+import { withOptionalAuthV2 } from "@/withAuthV2";
+import { isServiceError } from "@/lib/utils";
+import { ServiceErrorException } from "@/lib/serviceError";
 
 function getRepoStatus(repo: { indexedAt: Date | null, jobs: RepoJob[] }): RepoStatus {
     const latestJob = repo.jobs[0];
@@ -23,14 +25,10 @@ export default async function ReposPage(props: { params: Promise<{ domain: strin
         domain
     } = params;
 
-    const session = await auth();
-    const prisma = getPrismaClient(session?.user?.id);
-
-    const repos = await prisma.repo.findMany({
-        include: {
-            jobs: true,
-        }
-    });
+    const repos = await getReposWithJobs();
+    if (isServiceError(repos)) {
+        throw new ServiceErrorException(repos);
+    }
 
     return (
         <div>
@@ -54,3 +52,14 @@ export default async function ReposPage(props: { params: Promise<{ domain: strin
         </div>
     )
 }
+
+const getReposWithJobs = async () => sew(() =>
+    withOptionalAuthV2(async ({ prisma }) => {
+        const repos = await prisma.repo.findMany({
+            include: {
+                jobs: true,
+            }
+        });
+
+        return repos;
+    }));
