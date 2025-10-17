@@ -1,5 +1,4 @@
 import { checkIfOrgDomainExists } from "@/actions";
-import { RepoIndexingStatus } from "@sourcebot/db";
 import { z } from "zod";
 import { isServiceError } from "./utils";
 import { serviceErrorSchema } from "./serviceError";
@@ -22,7 +21,6 @@ export const repositoryQuerySchema = z.object({
     webUrl: z.string().optional(),
     imageUrl: z.string().optional(),
     indexedAt: z.coerce.date().optional(),
-    repoIndexingStatus: z.nativeEnum(RepoIndexingStatus),
 });
 
 export const searchContextQuerySchema = z.object({

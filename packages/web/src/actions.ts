@@ -559,7 +559,6 @@ export const getRepos = async ({
             webUrl: repo.webUrl ?? undefined,
             imageUrl: repo.imageUrl ?? undefined,
             indexedAt: repo.indexedAt ?? undefined,
-            repoIndexingStatus: repo.repoIndexingStatus,
         }))
     }));
 
@@ -673,7 +672,6 @@ export const getRepoInfoByName = async (repoName: string) => sew(() =>
             webUrl: repo.webUrl ?? undefined,
             imageUrl: repo.imageUrl ?? undefined,
             indexedAt: repo.indexedAt ?? undefined,
-            repoIndexingStatus: repo.repoIndexingStatus,
         }
     }));
 

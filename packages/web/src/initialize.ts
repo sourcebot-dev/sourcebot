@@ -1,4 +1,4 @@
-import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus } from '@sourcebot/db';
+import { ConnectionSyncStatus, OrgRole, Prisma } from '@sourcebot/db';
 import { env } from './env.mjs';
 import { prisma } from "@/prisma";
 import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SINGLE_TENANT_ORG_NAME } from './lib/constants';
