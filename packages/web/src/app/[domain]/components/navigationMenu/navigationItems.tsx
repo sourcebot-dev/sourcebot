@@ -32,13 +32,13 @@ export const NavigationItems = ({
         <NavigationMenuList className="gap-2">
             <NavigationMenuItem className="relative">
                 <NavigationMenuLink
-                    href={`/${domain}`}
+                    href={`/${domain}/search`}
                     className={cn(navigationMenuTriggerStyle(), "gap-2")}
                 >
                     <SearchIcon className="w-4 h-4 mr-1" />
                     Search
                 </NavigationMenuLink>
-                {isActive(`/${domain}`) && <ActiveIndicator />}
+                {((isActive(`/${domain}`) || isActive(`/${domain}/search`)) && <ActiveIndicator />)}
             </NavigationMenuItem>
             <NavigationMenuItem className="relative">
                 <NavigationMenuLink
