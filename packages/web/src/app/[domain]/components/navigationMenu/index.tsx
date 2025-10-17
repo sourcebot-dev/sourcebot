@@ -1,24 +1,22 @@
 import { getRepos, getReposStats } from "@/actions";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { auth } from "@/auth";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { NavigationMenu as NavigationMenuBase, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
+import { NavigationMenu as NavigationMenuBase } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { env } from "@/env.mjs";
 import { ServiceErrorException } from "@/lib/serviceError";
-import { cn, getShortenedNumberDisplayString, isServiceError } from "@/lib/utils";
+import { isServiceError } from "@/lib/utils";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { RepoJobStatus, RepoJobType } from "@sourcebot/db";
-import { BookMarkedIcon, CircleIcon, MessageCircleIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OrgSelector } from "../orgSelector";
 import { SettingsDropdown } from "../settingsDropdown";
 import WhatsNewIndicator from "../whatsNewIndicator";
+import { NavigationItems } from "./navigationItems";
 import { ProgressIndicator } from "./progressIndicator";
 import { TrialIndicator } from "./trialIndicator";
 
@@ -70,7 +68,7 @@ export const NavigationMenu = async ({
 
     return (
         <div className="flex flex-col w-full h-fit bg-background">
-            <div className="flex flex-row justify-between items-center py-1.5 px-3">
+            <div className="flex flex-row justify-between items-center py-0.5 px-3">
                 <div className="flex flex-row items-center">
                     <Link
                         href={`/${domain}`}
@@ -92,61 +90,12 @@ export const NavigationMenu = async ({
                     )}
 
                     <NavigationMenuBase>
-                        <NavigationMenuList className="gap-2">
-                            <NavigationMenuItem>
-                                <NavigationMenuLink
-                                    href={`/${domain}`}
-                                    className={cn(navigationMenuTriggerStyle(), "gap-2")}
-                                >
-                                    <SearchIcon className="w-4 h-4 mr-1" />
-                                    Search
-                                </NavigationMenuLink>
-                            </NavigationMenuItem>
-                            <NavigationMenuItem>
-                                <NavigationMenuLink
-                                    href={`/${domain}/chat`}
-                                    className={navigationMenuTriggerStyle()}
-                                >
-                                    <MessageCircleIcon className="w-4 h-4 mr-1" />
-                                    Ask
-                                </NavigationMenuLink>
-                            </NavigationMenuItem>
-                            <NavigationMenuItem className="relative">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <NavigationMenuLink
-                                            href={`/${domain}/repos`}
-                                            className={navigationMenuTriggerStyle()}
-                                        >
-                                            <BookMarkedIcon className="w-4 h-4 mr-1" />
-                                            <span className="mr-2">Repositories</span>
-                                            <Badge variant="secondary" className="px-1.5 relative">
-                                                {getShortenedNumberDisplayString(numberOfRepos)}
-                                                {numberOfReposWithFirstTimeIndexingJobsInProgress > 0 && (
-                                                    <CircleIcon className="absolute -right-0.5 -top-0.5 h-2 w-2 text-green-600" fill="currentColor" />
-                                                )}
-                                            </Badge>
-                                        </NavigationMenuLink>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{numberOfRepos} total {numberOfRepos === 1 ? 'repository' : 'repositories'}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </NavigationMenuItem>
-                            {isAuthenticated && (
-                                <>
-                                    <NavigationMenuItem>
-                                        <NavigationMenuLink
-                                            href={`/${domain}/settings`}
-                                            className={navigationMenuTriggerStyle()}
-                                        >
-                                            <SettingsIcon className="w-4 h-4 mr-1" />
-                                            Settings
-                                        </NavigationMenuLink>
-                                    </NavigationMenuItem>
-                                </>
-                            )}
-                        </NavigationMenuList>
+                        <NavigationItems
+                            domain={domain}
+                            numberOfRepos={numberOfRepos}
+                            numberOfReposWithFirstTimeIndexingJobsInProgress={numberOfReposWithFirstTimeIndexingJobsInProgress}
+                            isAuthenticated={isAuthenticated}
+                        />
                     </NavigationMenuBase>
                 </div>
 
