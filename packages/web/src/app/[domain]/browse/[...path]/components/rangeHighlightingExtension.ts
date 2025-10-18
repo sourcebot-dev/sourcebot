@@ -2,7 +2,7 @@
 
 import { StateField, Range } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
-import { BrowseHighlightRange } from "../../hooks/useBrowseNavigation";
+import { BrowseHighlightRange } from "../../hooks/utils";
 
 const markDecoration = Decoration.mark({
     class: "searchMatch-selected",
