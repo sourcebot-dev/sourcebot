@@ -45,6 +45,7 @@
         "git-url-parse": "^16.1.0",
         "gitea-js": "^1.22.0",
         "glob": "^11.0.0",
+        "groupmq": "^1.0.0",
         "ioredis": "^5.4.2",
         "lowdb": "^7.0.1",
         "micromatch": "^4.0.8",

@@ -9,14 +9,8 @@ export default async function Layout(
     props: LayoutProps
 ) {
     const params = await props.params;
-
-    const {
-        domain
-    } = params;
-
-    const {
-        children
-    } = props;
+    const { domain } = params;
+    const { children } = props;
 
     return (
         <div className="min-h-screen flex flex-col">

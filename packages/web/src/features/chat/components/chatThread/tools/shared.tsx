@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
-import { getBrowsePath } from '@/app/[domain]/browse/hooks/useBrowseNavigation';
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 
 
 export const FileListItem = ({

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from "react";
-import { getBrowsePath, GetBrowsePathProps } from "./useBrowseNavigation";
+import { getBrowsePath, GetBrowsePathProps } from "./utils";
 import { useDomain } from "@/hooks/useDomain";
 
 export const useBrowsePath = ({

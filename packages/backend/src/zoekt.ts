@@ -1,21 +1,21 @@
-import { exec } from "child_process";
-import { AppContext, repoMetadataSchema, Settings } from "./types.js";
 import { Repo } from "@sourcebot/db";
-import { getRepoPath } from "./utils.js";
-import { getShardPrefix } from "./utils.js";
-import { getBranches, getTags } from "./git.js";
-import micromatch from "micromatch";
 import { createLogger } from "@sourcebot/logger";
+import { exec } from "child_process";
+import micromatch from "micromatch";
+import { INDEX_CACHE_DIR } from "./constants.js";
+import { getBranches, getTags } from "./git.js";
 import { captureEvent } from "./posthog.js";
+import { repoMetadataSchema, Settings } from "./types.js";
+import { getRepoPath, getShardPrefix } from "./utils.js";
 
 const logger = createLogger('zoekt');
 
-export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: AppContext) => {
+export const indexGitRepository = async (repo: Repo, settings: Settings, signal?: AbortSignal) => {
     let revisions = [
         'HEAD'
     ];
 
-    const { path: repoPath } = getRepoPath(repo, ctx);
+    const { path: repoPath } = getRepoPath(repo);
     const shardPrefix = getShardPrefix(repo.orgId, repo.id);
     const metadata = repoMetadataSchema.parse(repo.metadata);
 
@@ -60,7 +60,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
     const command = [
         'zoekt-git-index',
         '-allow_missing_branches',
-        `-index ${ctx.indexPath}`,
+        `-index ${INDEX_CACHE_DIR}`,
         `-max_trigram_count ${settings.maxTrigramCount}`,
         `-file_limit ${settings.maxFileSize}`,
         `-branches "${revisions.join(',')}"`,
@@ -71,7 +71,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, ctx: Ap
     ].join(' ');
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
-        exec(command, (error, stdout, stderr) => {
+        exec(command, { signal }, (error, stdout, stderr) => {
             if (error) {
                 reject(error);
                 return;
