@@ -73,6 +73,7 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
     {
         accessorKey: "repoDisplayName",
         header: 'Repository',
+        size: 500,
         cell: ({ row: { original: { repoId, repoName, repoDisplayName, imageUrl } } }) => {
             return (
                 <div className="flex flex-row items-center gap-3 py-2">
@@ -110,6 +111,7 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
     },
     {
         accessorKey: "status",
+        size: 150,
         header: ({ column }) => {
             const uniqueLabels = Object.values(statusLabels);
             const currentFilter = column.getFilterValue() as string | undefined;
@@ -163,6 +165,7 @@ export const columns = (domain: string): ColumnDef<RepositoryColumnInfo>[] => [
     },
     {
         accessorKey: "lastIndexed",
+        size: 150,
         header: ({ column }) => (
             <div className="w-[150px]">
                 <Button
