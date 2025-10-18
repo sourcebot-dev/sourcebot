@@ -204,7 +204,7 @@ export class RepoIndexManager {
 
         for (const job of jobs) {
             await this.queue.add({
-                groupId: `repo:${job.repoId}_${job.repo.name}`,
+                groupId: `repo:${job.repoId}`,
                 data: {
                     jobId: job.id,
                     type,

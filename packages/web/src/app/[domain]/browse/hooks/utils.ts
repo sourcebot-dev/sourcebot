@@ -1,5 +1,24 @@
-import { SET_BROWSE_STATE_QUERY_PARAM } from "../browseStateProvider";
-import { GetBrowsePathProps, HIGHLIGHT_RANGE_QUERY_PARAM } from "./useBrowseNavigation";
+import { BrowseState, SET_BROWSE_STATE_QUERY_PARAM } from "../browseStateProvider";
+
+export const HIGHLIGHT_RANGE_QUERY_PARAM = 'highlightRange';
+
+export type BrowseHighlightRange = {
+    start: { lineNumber: number; column: number; };
+    end: { lineNumber: number; column: number; };
+} | {
+    start: { lineNumber: number; };
+    end: { lineNumber: number; };
+}
+
+export interface GetBrowsePathProps {
+    repoName: string;
+    revisionName?: string;
+    path: string;
+    pathType: 'blob' | 'tree';
+    highlightRange?: BrowseHighlightRange;
+    setBrowseState?: Partial<BrowseState>;
+    domain: string;
+}
 
 export const getBrowseParamsFromPathParam = (pathParam: string) => {
     const sentinelIndex = pathParam.search(/\/-\/(tree|blob)/);
@@ -67,3 +86,4 @@ export const getBrowsePath = ({
     const browsePath = `/${domain}/browse/${repoName}@${revisionName}/-/${pathType}/${encodedPath}${params.size > 0 ? `?${params.toString()}` : ''}`;
     return browsePath;
 };
+

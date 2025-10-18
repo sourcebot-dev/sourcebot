@@ -104,9 +104,8 @@ export const fetchRepository = async (
         signal?: AbortSignal
     }
 ) => {
+    const git = createGitClientForPath(path, onProgress, signal);
     try {
-        const git = createGitClientForPath(path, onProgress, signal);
-
         if (authHeader) {
             await git.addConfig("http.extraHeader", authHeader);
         }
@@ -129,12 +128,6 @@ export const fetchRepository = async (
         }
     } finally {
         if (authHeader) {
-            const git = simpleGit({
-                progress: onProgress,
-            }).cwd({
-                path: path,
-            })
-
             await git.raw(["config", "--unset", "http.extraHeader", authHeader]);
         }
     }
@@ -221,6 +214,10 @@ export const isPathAValidGitRepoRoot = async ({
     onProgress?: onProgressFn,
     signal?: AbortSignal
 }) => {
+    if (!existsSync(path)) {
+        return false;
+    }
+
     const git = createGitClientForPath(path, onProgress, signal);
 
     try {

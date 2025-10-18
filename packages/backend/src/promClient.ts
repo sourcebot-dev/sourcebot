@@ -9,7 +9,7 @@ export class PromClient {
     private registry: Registry;
     private app: express.Application;
     private server: Server;
-    
+
     public activeRepoIndexingJobs: Gauge<string>;
     public pendingRepoIndexingJobs: Gauge<string>;
     public repoIndexingReattemptsTotal: Counter<string>;
@@ -80,7 +80,7 @@ export class PromClient {
             help: 'The number of repo garbage collection fails',
             labelNames: ['repo'],
         });
-        this.registry.registerMetric(this.repoGarbageCollectionFailTotal);  
+        this.registry.registerMetric(this.repoGarbageCollectionFailTotal);
 
         this.repoGarbageCollectionSuccessTotal = new Counter({
             name: 'repo_garbage_collection_successes',
@@ -106,7 +106,12 @@ export class PromClient {
         });
     }
 
-    dispose() {
-        this.server.close();
+    async dispose() {
+        return new Promise<void>((resolve, reject) => {
+            this.server.close((err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
     }
 }
