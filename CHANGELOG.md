@@ -14,10 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed "dubious ownership" errors when cloning / fetching repos. [#553](https://github.com/sourcebot-dev/sourcebot/pull/553)
+- Fixed issue with Ask Sourcebot tutorial re-appearing after restarting the browser. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
 
 ### Changed
-- Remove spam "login page loaded" log. [#552](https://github.com/sourcebot-dev/sourcebot/pull/552)
 - Improved search performance for unbounded search queries. [#555](https://github.com/sourcebot-dev/sourcebot/pull/555)
+- Improved homepage performance by removing client side polling. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
+- Changed navbar indexing indicator to only report progress for first time indexing jobs. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
+- Improved repo indexing job stability and robustness. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
+
+### Removed
+- Removed spam "login page loaded" log. [#552](https://github.com/sourcebot-dev/sourcebot/pull/552)
+- Removed connections management page. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
 
 ### Added
 - Added support for passing db connection url as seperate `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`, and `DATABASE_ARGS` env vars. [#545](https://github.com/sourcebot-dev/sourcebot/pull/545)
