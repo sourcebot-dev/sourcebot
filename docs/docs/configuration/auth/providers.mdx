@@ -33,6 +33,11 @@ The following authentication providers require an [enterprise license](/docs/lic
 
 [Auth.js GitHub Provider Docs](https://authjs.dev/getting-started/providers/github)
 
+Authentication using both a **GitHub OAuth App** and a **GitHub App** is supported. In both cases, you must provide Sourcebot the `CLIENT_ID` and `SECRET_ID` and configure the 
+callback URL correctly (more info in Auth.js docs). 
+
+When using a **GitHub App**, enable the `“Email addresses” account permissions (read)` permission to allow Sourcebot to read the email of the user from GitHub after they authenticate.
+
 **Required environment variables:**
 - `AUTH_EE_GITHUB_CLIENT_ID`
 - `AUTH_EE_GITHUB_CLIENT_SECRET`

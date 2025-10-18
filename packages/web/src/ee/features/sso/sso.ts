@@ -42,6 +42,7 @@ export const getSSOProviders = (): Provider[] => {
                 },
             },
         }));
+    }
 
     if (env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
         providers.push(Gitlab({
