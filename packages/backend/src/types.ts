@@ -2,20 +2,6 @@ import { Connection, Repo, RepoToConnection } from "@sourcebot/db";
 import { Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
 import { z } from "zod";
 
-export type AppContext = {
-    /**
-     * Path to the repos cache directory.
-     */
-    reposPath: string;
-
-    /**
-     * Path to the index cache directory;
-     */
-    indexPath: string;
-
-    cachePath: string;
-}
-
 export type Settings = Required<SettingsSchema>;
 
 // Structure of the `metadata` field in the `Repo` table.

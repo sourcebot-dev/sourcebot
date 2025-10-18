@@ -1,4 +1,4 @@
-import { ConnectionSyncStatus, OrgRole, Prisma, RepoIndexingStatus } from '@sourcebot/db';
+import { ConnectionSyncStatus, OrgRole, Prisma } from '@sourcebot/db';
 import { env } from './env.mjs';
 import { prisma } from "@/prisma";
 import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SINGLE_TENANT_ORG_NAME } from './lib/constants';
@@ -64,21 +64,6 @@ const syncConnections = async (connections?: { [key: string]: ConnectionConfig }
             });
 
             logger.info(`Upserted connection with name '${key}'. Connection ID: ${connectionDb.id}`);
-
-            // Re-try any repos that failed to index.
-            const failedRepos = currentConnection?.repos.filter(repo => repo.repo.repoIndexingStatus === RepoIndexingStatus.FAILED).map(repo => repo.repo.id) ?? [];
-            if (failedRepos.length > 0) {
-                await prisma.repo.updateMany({
-                    where: {
-                        id: {
-                            in: failedRepos,
-                        }
-                    },
-                    data: {
-                        repoIndexingStatus: RepoIndexingStatus.NEW,
-                    }
-                })
-            }
         }
     }
 

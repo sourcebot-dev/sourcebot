@@ -6,6 +6,7 @@ import {
     CustomText,
     FileReference,
     FileSource,
+    LanguageModelInfo,
     MentionData,
     MentionElement,
     ParagraphElement,
@@ -365,4 +366,11 @@ export const buildSearchQuery = (options: {
     }
 
     return query;
+}
+
+/**
+ * Generates a unique key given a LanguageModelInfo object.
+ */
+export const getLanguageModelKey = (model: LanguageModelInfo) => {
+    return `${model.provider}-${model.model}-${model.displayName}`;
 }

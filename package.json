@@ -6,7 +6,7 @@
     "scripts": {
         "build": "cross-env SKIP_ENV_VALIDATION=1 yarn workspaces foreach -A run build",
         "test": "yarn workspaces foreach -A run test",
-        "dev": "yarn dev:prisma:migrate:dev && npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web watch:mcp watch:schemas",
+        "dev": "concurrently --kill-others --names \"zoekt,worker,web,mcp,schemas\" 'yarn dev:zoekt' 'yarn dev:backend' 'yarn dev:web' 'yarn watch:mcp' 'yarn watch:schemas'",
         "with-env": "cross-env PATH=\"$PWD/bin:$PATH\" dotenv -e .env.development -c --",
         "dev:zoekt": "yarn with-env zoekt-webserver -index .sourcebot/index -rpc",
         "dev:backend": "yarn with-env yarn workspace @sourcebot/backend dev:watch",
@@ -21,9 +21,9 @@
         "build:deps": "yarn workspaces foreach -R --from '{@sourcebot/schemas,@sourcebot/error,@sourcebot/crypto,@sourcebot/db,@sourcebot/shared}' run build"
     },
     "devDependencies": {
+        "concurrently": "^9.2.1",
         "cross-env": "^7.0.3",
-        "dotenv-cli": "^8.0.0",
-        "npm-run-all": "^4.1.5"
+        "dotenv-cli": "^8.0.0"
     },
     "packageManager": "yarn@4.7.0",
     "resolutions": {

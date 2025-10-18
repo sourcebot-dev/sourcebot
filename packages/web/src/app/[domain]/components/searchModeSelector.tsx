@@ -1,13 +1,16 @@
 'use client';
 
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { useDomain } from "@/hooks/useDomain";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { MessageCircleIcon, SearchIcon, TriangleAlert } from "lucide-react";
+import { MessageCircleIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 
 export type SearchMode = "precise" | "agentic";
 
@@ -17,24 +20,47 @@ const AGENTIC_SEARCH_DOCS_URL = "https://docs.sourcebot.dev/docs/features/ask/ov
 
 export interface SearchModeSelectorProps {
     searchMode: SearchMode;
-    isAgenticSearchEnabled: boolean;
-    onSearchModeChange: (searchMode: SearchMode) => void;
     className?: string;
 }
 
 export const SearchModeSelector = ({
     searchMode,
-    isAgenticSearchEnabled,
-    onSearchModeChange,
     className,
 }: SearchModeSelectorProps) => {
+    const domain = useDomain();
     const [focusedSearchMode, setFocusedSearchMode] = useState<SearchMode>(searchMode);
+    const router = useRouter();
+
+    const onSearchModeChanged = useCallback((value: SearchMode) => {
+        router.push(`/${domain}/${value === "precise" ? "search" : "chat"}`);
+    }, [domain, router]);
+
+    useHotkeys("mod+i", (e) => {
+        e.preventDefault();
+        onSearchModeChanged("agentic");
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Switch to agentic search",
+    });
+
+    useHotkeys("mod+p", (e) => {
+        e.preventDefault();
+        onSearchModeChanged("precise");
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Switch to precise search",
+    });
+
 
     return (
         <div className={cn("flex flex-row items-center", className)}>
             <Select
                 value={searchMode}
-                onValueChange={(value) => onSearchModeChange(value as "precise" | "agentic")}
+                onValueChange={(value) => {
+                    onSearchModeChanged(value as SearchMode);
+                }}
             >
                 <SelectTrigger
                     className="flex flex-row items-center h-6 mt-0.5 font-mono font-semibold text-xs p-0 w-fit border-none bg-inherit rounded-md"
@@ -99,16 +125,10 @@ export const SearchModeSelector = ({
                             <div
                                 onMouseEnter={() => setFocusedSearchMode("agentic")}
                                 onFocus={() => setFocusedSearchMode("agentic")}
-                                className={cn({
-                                    "cursor-not-allowed": !isAgenticSearchEnabled,
-                                })}
                             >
                                 <SelectItem
                                     value="agentic"
-                                    disabled={!isAgenticSearchEnabled}
-                                    className={cn({
-                                        "cursor-pointer": isAgenticSearchEnabled,
-                                    })}
+                                    className="cursor-pointer"
                                 >
                                     <div className="flex flex-row items-center justify-between w-full gap-1.5">
                                         <span>Ask</span>
@@ -129,14 +149,8 @@ export const SearchModeSelector = ({
                         >
                             <div className="flex flex-col gap-2">
                                 <div className="flex flex-row items-center gap-2">
-                                    {!isAgenticSearchEnabled && (
-                                        <TriangleAlert className="w-4 h-4 flex-shrink-0 text-warning" />
-                                    )}
                                     <p className="font-semibold">Ask Sourcebot</p>
                                 </div>
-                                {!isAgenticSearchEnabled && (
-                                    <p className="text-destructive">Language model not configured. <Link href={AGENTIC_SEARCH_DOCS_URL} className="text-link hover:underline">See setup instructions.</Link></p>
-                                )}
                                 <Separator orientation="horizontal" className="w-full my-0.5" />
                                 <p>Use natural language to search, summarize and understand your codebase using a reasoning agent.</p>
                                 <Link

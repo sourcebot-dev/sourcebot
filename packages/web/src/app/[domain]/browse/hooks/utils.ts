@@ -1,3 +1,5 @@
+import { SET_BROWSE_STATE_QUERY_PARAM } from "../browseStateProvider";
+import { GetBrowsePathProps, HIGHLIGHT_RANGE_QUERY_PARAM } from "./useBrowseNavigation";
 
 export const getBrowseParamsFromPathParam = (pathParam: string) => {
     const sentinelIndex = pathParam.search(/\/-\/(tree|blob)/);
@@ -7,7 +9,7 @@ export const getBrowseParamsFromPathParam = (pathParam: string) => {
 
     const repoAndRevisionPart = decodeURIComponent(pathParam.substring(0, sentinelIndex));
     const lastAtIndex = repoAndRevisionPart.lastIndexOf('@');
-    
+
     const repoName = lastAtIndex === -1 ? repoAndRevisionPart : repoAndRevisionPart.substring(0, lastAtIndex);
     const revisionName = lastAtIndex === -1 ? undefined : repoAndRevisionPart.substring(lastAtIndex + 1);
 
@@ -40,4 +42,28 @@ export const getBrowseParamsFromPathParam = (pathParam: string) => {
         path,
         pathType,
     }
-}
+};
+
+export const getBrowsePath = ({
+    repoName, revisionName = 'HEAD', path, pathType, highlightRange, setBrowseState, domain,
+}: GetBrowsePathProps) => {
+    const params = new URLSearchParams();
+
+    if (highlightRange) {
+        const { start, end } = highlightRange;
+
+        if ('column' in start && 'column' in end) {
+            params.set(HIGHLIGHT_RANGE_QUERY_PARAM, `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`);
+        } else {
+            params.set(HIGHLIGHT_RANGE_QUERY_PARAM, `${start.lineNumber},${end.lineNumber}`);
+        }
+    }
+
+    if (setBrowseState) {
+        params.set(SET_BROWSE_STATE_QUERY_PARAM, JSON.stringify(setBrowseState));
+    }
+
+    const encodedPath = encodeURIComponent(path);
+    const browsePath = `/${domain}/browse/${repoName}@${revisionName}/-/${pathType}/${encodedPath}${params.size > 0 ? `?${params.toString()}` : ''}`;
+    return browsePath;
+};

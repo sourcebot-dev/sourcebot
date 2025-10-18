@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useDomain } from "@/hooks/useDomain";
 import { useCallback } from "react";
-import { BrowseState, SET_BROWSE_STATE_QUERY_PARAM } from "../browseStateProvider";
+import { BrowseState } from "../browseStateProvider";
+import { getBrowsePath } from "./utils";
 
 export type BrowseHighlightRange = {
     start: { lineNumber: number; column: number; };
@@ -24,37 +25,6 @@ export interface GetBrowsePathProps {
     setBrowseState?: Partial<BrowseState>;
     domain: string;
 }
-
-export const getBrowsePath = ({
-    repoName,
-    revisionName = 'HEAD',
-    path,
-    pathType,
-    highlightRange,
-    setBrowseState,
-    domain,
-}: GetBrowsePathProps) => {
-    const params = new URLSearchParams();
-
-    if (highlightRange) {
-        const { start, end } = highlightRange;
-
-        if ('column' in start && 'column' in end) {
-            params.set(HIGHLIGHT_RANGE_QUERY_PARAM, `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`);
-        } else {
-            params.set(HIGHLIGHT_RANGE_QUERY_PARAM, `${start.lineNumber},${end.lineNumber}`);
-        }
-    }
-
-    if (setBrowseState) {
-        params.set(SET_BROWSE_STATE_QUERY_PARAM, JSON.stringify(setBrowseState));
-    }
-
-    const encodedPath = encodeURIComponent(path);
-    const browsePath = `/${domain}/browse/${repoName}@${revisionName}/-/${pathType}/${encodedPath}${params.size > 0 ? `?${params.toString()}` : ''}`;
-    return browsePath;
-}
-
 
 export const useBrowseNavigation = () => {
     const router = useRouter();

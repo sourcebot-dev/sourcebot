@@ -3,7 +3,7 @@
 import { SearchResultFile, SearchResultChunk } from "@/features/search/types";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import Link from "next/link";
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { useDomain } from "@/hooks/useDomain";
 
 

@@ -376,6 +376,19 @@ export const getDisplayTime = (date: Date) => {
     }
 }
 
+/**
+ * Converts a number to a string
+ */
+export const getShortenedNumberDisplayString = (number: number) => {
+    if (number < 1000) {
+        return number.toString();
+    } else if (number < 1000000) {
+        return `${(number / 1000).toFixed(1)}k`;
+    } else {
+        return `${(number / 1000000).toFixed(1)}m`;
+    }
+}
+
 export const measureSync = <T>(cb: () => T, measureName: string, outputLog: boolean = true) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;

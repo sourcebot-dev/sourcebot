@@ -1,6 +1,6 @@
 'use client';
 
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { FindRelatedSymbolsResponse } from "@/features/codeNav/types";

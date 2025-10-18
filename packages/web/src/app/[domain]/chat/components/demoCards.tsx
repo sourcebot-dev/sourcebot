@@ -11,13 +11,13 @@ import { cn, getCodeHostIcon } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { SearchScopeInfoCard } from "@/features/chat/components/chatBox/searchScopeInfoCard";
 
-interface AskSourcebotDemoCardsProps {
+interface DemoCards {
     demoExamples: DemoExamples;
 }
 
-export const AskSourcebotDemoCards = ({
+export const DemoCards = ({
     demoExamples,
-}: AskSourcebotDemoCardsProps) => {
+}: DemoCards) => {
     const captureEvent = useCaptureEvent();
     const [selectedFilterSearchScope, setSelectedFilterSearchScope] = useState<number | null>(null);
 

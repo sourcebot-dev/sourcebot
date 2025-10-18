@@ -1,4 +1,6 @@
+import { env } from "./env.js";
 import { Settings } from "./types.js";
+import path from "path";
 
 /**
  * Default settings.
@@ -23,3 +25,6 @@ export const DEFAULT_SETTINGS: Settings = {
 export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES = [
     'github',
 ];
+
+export const REPOS_CACHE_DIR = path.join(env.DATA_CACHE_DIR, 'repos');
+export const INDEX_CACHE_DIR = path.join(env.DATA_CACHE_DIR, 'index');

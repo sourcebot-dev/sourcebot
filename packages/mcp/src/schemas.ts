@@ -143,17 +143,6 @@ export const searchResponseSchema = z.object({
     isSearchExhaustive: z.boolean(),
 });
 
-enum RepoIndexingStatus {
-    NEW = 'NEW',
-    IN_INDEX_QUEUE = 'IN_INDEX_QUEUE',
-    INDEXING = 'INDEXING',
-    INDEXED = 'INDEXED',
-    FAILED = 'FAILED',
-    IN_GC_QUEUE = 'IN_GC_QUEUE',
-    GARBAGE_COLLECTING = 'GARBAGE_COLLECTING',
-    GARBAGE_COLLECTION_FAILED = 'GARBAGE_COLLECTION_FAILED'
-}
-
 export const repositoryQuerySchema = z.object({
     codeHostType: z.string(),
     repoId: z.number(),
@@ -163,7 +152,6 @@ export const repositoryQuerySchema = z.object({
     webUrl: z.string().optional(),
     imageUrl: z.string().optional(),
     indexedAt: z.coerce.date().optional(),
-    repoIndexingStatus: z.nativeEnum(RepoIndexingStatus),
 });
 
 export const listRepositoriesResponseSchema = repositoryQuerySchema.array();

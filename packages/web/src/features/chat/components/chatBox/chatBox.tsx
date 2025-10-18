@@ -27,6 +27,7 @@ interface ChatBoxProps {
     className?: string;
     isRedirecting?: boolean;
     isGenerating?: boolean;
+    isDisabled?: boolean;
     languageModels: LanguageModelInfo[];
     selectedSearchScopes: SearchScope[];
     searchContexts: SearchContextQuery[];
@@ -40,6 +41,7 @@ export const ChatBox = ({
     className,
     isRedirecting,
     isGenerating,
+    isDisabled,
     languageModels,
     selectedSearchScopes,
     searchContexts,
@@ -68,7 +70,7 @@ export const ChatBox = ({
         }).flat(),
     });
     const { selectedLanguageModel } = useSelectedLanguageModel({
-        initialLanguageModel: languageModels.length > 0 ? languageModels[0] : undefined,
+        languageModels,
     });
     const { toast } = useToast();
 
@@ -165,6 +167,13 @@ export const ChatBox = ({
                     variant: "destructive",
                 });
                 onContextSelectorOpenChanged(true);
+            }
+
+            if (isSubmitDisabledReason === "no-language-model-selected") {
+                toast({
+                    description: "⚠️ You must select a language model",
+                    variant: "destructive",
+                });
             }
 
             return;
@@ -287,6 +296,7 @@ export const ChatBox = ({
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
                 onKeyDown={onKeyDown}
+                readOnly={isDisabled}
             />
             <div className="ml-auto z-10">
                 {isRedirecting ? (

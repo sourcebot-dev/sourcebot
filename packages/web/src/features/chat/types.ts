@@ -170,6 +170,13 @@ export type LanguageModelProvider = LanguageModel['provider'];
 
 // This is a subset of information about a configured
 // language model that we can safely send to the client.
+// @note: ensure this is in sync with the LanguageModelInfo type.
+export const languageModelInfoSchema = z.object({
+    provider: z.string(),
+    model: z.string(),
+    displayName: z.string().optional(),
+});
+
 export type LanguageModelInfo = {
     provider: LanguageModelProvider,
     model: LanguageModel['model'],
@@ -178,7 +185,7 @@ export type LanguageModelInfo = {
 
 // Additional request body data that we send along to the chat API.
 export const additionalChatRequestParamsSchema = z.object({
-    languageModelId: z.string(),
+    languageModel: languageModelInfoSchema,
     selectedSearchScopes: z.array(searchScopeSchema),
 });
 export type AdditionalChatRequestParams = z.infer<typeof additionalChatRequestParamsSchema>;

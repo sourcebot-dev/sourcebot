@@ -364,12 +364,12 @@ export class ConnectionManager {
         }
     }
 
-    public dispose() {
+    public async dispose() {
         if (this.interval) {
             clearInterval(this.interval);
         }
-        this.worker.close();
-        this.queue.close();
+        await this.worker.close();
+        await this.queue.close();
     }
 }
 

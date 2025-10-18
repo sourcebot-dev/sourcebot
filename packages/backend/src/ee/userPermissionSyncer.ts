@@ -101,12 +101,12 @@ export class UserPermissionSyncer {
         }, 1000 * 5);
     }
 
-    public dispose() {
+    public async dispose() {
         if (this.interval) {
             clearInterval(this.interval);
         }
-        this.worker.close();
-        this.queue.close();
+        await this.worker.close();
+        await this.queue.close();
     }
 
     private async schedulePermissionSync(users: User[]) {

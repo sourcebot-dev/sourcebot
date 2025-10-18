@@ -6,50 +6,32 @@ import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolba
 import { LanguageModelInfo, SearchScope } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
-import { useCallback, useState } from "react";
-import { SearchModeSelector, SearchModeSelectorProps } from "./toolbar";
+import { useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
-import { DemoExamples } from "@/types";
-import { AskSourcebotDemoCards } from "./askSourcebotDemoCards";
-import { AgenticSearchTutorialDialog } from "./agenticSearchTutorialDialog";
-import { setAgenticSearchTutorialDismissedCookie } from "@/actions";
-import { RepositorySnapshot } from "./repositorySnapshot";
+import { SearchModeSelector } from "../../components/searchModeSelector";
+import { NotConfiguredErrorBanner } from "@/features/chat/components/notConfiguredErrorBanner";
 
-interface AgenticSearchProps {
-    searchModeSelectorProps: SearchModeSelectorProps;
+interface LandingPageChatBox {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
-    chatHistory: {
-        id: string;
-        createdAt: Date;
-        name: string | null;
-    }[];
-    demoExamples: DemoExamples | undefined;
-    isTutorialDismissed: boolean;
 }
 
-export const AgenticSearch = ({
-    searchModeSelectorProps,
+export const LandingPageChatBox = ({
     languageModels,
     repos,
     searchContexts,
-    demoExamples,
-    isTutorialDismissed,
-}: AgenticSearchProps) => {
+}: LandingPageChatBox) => {
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>("selectedSearchScopes", [], { initializeWithValue: false });
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
-
-    const [isTutorialOpen, setIsTutorialOpen] = useState(!isTutorialDismissed);
-    const onTutorialDismissed = useCallback(() => {
-        setIsTutorialOpen(false);
-        setAgenticSearchTutorialDismissedCookie(true);
-    }, []);
+    const isChatBoxDisabled = languageModels.length === 0;
 
     return (
-        <div className="flex flex-col items-center w-full">
-            <div className="mt-4 w-full border rounded-md shadow-sm max-w-[800px]">
+        <div className="w-full max-w-[800px] mt-4">
+           
+
+            <div className="border rounded-md w-full shadow-sm">
                 <ChatBox
                     onSubmit={(children) => {
                         createNewChatThread(children, selectedSearchScopes);
@@ -60,6 +42,7 @@ export const AgenticSearch = ({
                     selectedSearchScopes={selectedSearchScopes}
                     searchContexts={searchContexts}
                     onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                    isDisabled={isChatBoxDisabled}
                 />
                 <Separator />
                 <div className="relative">
@@ -74,33 +57,15 @@ export const AgenticSearch = ({
                             onContextSelectorOpenChanged={setIsContextSelectorOpen}
                         />
                         <SearchModeSelector
-                            {...searchModeSelectorProps}
+                            searchMode="agentic"
                             className="ml-auto"
                         />
                     </div>
                 </div>
             </div>
 
-            <div className="mt-8">
-                <RepositorySnapshot
-                    repos={repos}
-                />
-            </div>
-
-            <div className="flex flex-col items-center w-fit gap-6">
-                <Separator className="mt-5 w-[700px]" />
-            </div>
-
-            {demoExamples && (
-                <AskSourcebotDemoCards
-                    demoExamples={demoExamples}
-                />
-            )}
-
-            {isTutorialOpen && (
-                <AgenticSearchTutorialDialog
-                    onClose={onTutorialDismissed}
-                />
+            {isChatBoxDisabled && (
+                <NotConfiguredErrorBanner className="mt-4" />
             )}
         </div >
     )
