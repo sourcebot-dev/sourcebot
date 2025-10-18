@@ -1,4 +1,4 @@
-import { getPrismaClient, prisma as __unsafePrisma } from "@/prisma";
+import { prisma as __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
 import { hashSecret } from "@sourcebot/crypto";
 import { ApiKey, Org, OrgRole, PrismaClient, User } from "@sourcebot/db";
 import { headers } from "next/headers";
@@ -88,7 +88,7 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         },
     }) : null;
 
-    const prisma = getPrismaClient(user?.id);
+    const prisma = __unsafePrisma.$extends(userScopedPrismaClientExtension(user?.id)) as PrismaClient;
 
     return {
         user: user ?? undefined,

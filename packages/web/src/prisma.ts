@@ -58,7 +58,3 @@ export const userScopedPrismaClientExtension = (userId?: string) => {
             })
         })
 }
-
-export const getPrismaClient = (userId?: string) => {
-    return prisma.$extends(userScopedPrismaClientExtension(userId)) as PrismaClient;
-}
