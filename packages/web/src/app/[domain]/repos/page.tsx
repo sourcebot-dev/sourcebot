@@ -1,5 +1,5 @@
 import { env } from "@/env.mjs";
-import { RepoJob } from "@sourcebot/db";
+import { RepoIndexingJob } from "@sourcebot/db";
 import { Header } from "../components/header";
 import { RepoStatus } from "./columns";
 import { RepositoryTable } from "./repositoryTable";
@@ -8,7 +8,7 @@ import { withOptionalAuthV2 } from "@/withAuthV2";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
 
-function getRepoStatus(repo: { indexedAt: Date | null, jobs: RepoJob[] }): RepoStatus {
+function getRepoStatus(repo: { indexedAt: Date | null, jobs: RepoIndexingJob[] }): RepoStatus {
     const latestJob = repo.jobs[0];
     
     if (latestJob?.status === 'PENDING' || latestJob?.status === 'IN_PROGRESS') {

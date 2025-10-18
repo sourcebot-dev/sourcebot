@@ -10,7 +10,7 @@ import { env } from "@/env.mjs";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import { RepoJobStatus, RepoJobType } from "@sourcebot/db";
+import { RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OrgSelector } from "../orgSelector";
@@ -43,11 +43,11 @@ export const NavigationMenu = async ({
         where: {
             jobs: {
                 some: {
-                    type: RepoJobType.INDEX,
+                    type: RepoIndexingJobType.INDEX,
                     status: {
                         in: [
-                            RepoJobStatus.PENDING,
-                            RepoJobStatus.IN_PROGRESS,
+                            RepoIndexingJobStatus.PENDING,
+                            RepoIndexingJobStatus.IN_PROGRESS,
                         ]
                     }
                 },

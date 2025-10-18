@@ -246,7 +246,7 @@ const createGitCloneUrlWithToken = (cloneUrl: string, credentials: { username?: 
 
 /**
  * Wraps groupmq worker lifecycle callbacks with exception handling. This prevents
- * uncaught exceptions (e.g., like a RepoJob not existing in the DB) from crashing
+ * uncaught exceptions (e.g., like a RepoIndexingJob not existing in the DB) from crashing
  * the app. 
  * @see: https://openpanel-dev.github.io/groupmq/api-worker/#events
  */

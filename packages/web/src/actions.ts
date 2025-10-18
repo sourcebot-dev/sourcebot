@@ -10,7 +10,7 @@ import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
 import { encrypt, generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/crypto";
-import { ApiKey, Org, OrgRole, Prisma, RepoJobStatus, RepoJobType, StripeSubscriptionStatus } from "@sourcebot/db";
+import { ApiKey, Org, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType, StripeSubscriptionStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
@@ -586,11 +586,11 @@ export const getReposStats = async () => sew(() =>
                     orgId: org.id,
                     jobs: {
                         some: {
-                            type: RepoJobType.INDEX,
+                            type: RepoIndexingJobType.INDEX,
                             status: {
                                 in: [
-                                    RepoJobStatus.PENDING,
-                                    RepoJobStatus.IN_PROGRESS,
+                                    RepoIndexingJobStatus.PENDING,
+                                    RepoIndexingJobStatus.IN_PROGRESS,
                                 ]
                             }
                         },

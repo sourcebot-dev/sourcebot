@@ -10,17 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum RepoIndexingStatus {
-  NEW
-  IN_INDEX_QUEUE
-  INDEXING
-  INDEXED
-  FAILED
-  IN_GC_QUEUE
-  GARBAGE_COLLECTING
-  GARBAGE_COLLECTION_FAILED
-}
-
 enum ConnectionSyncStatus {
   SYNC_NEEDED
   IN_SYNC_QUEUE
@@ -55,14 +44,11 @@ model Repo {
   connections        RepoToConnection[]
   imageUrl           String?
 
-  /// @deprecated status tracking is now done via the `jobs` table.
-  repoIndexingStatus RepoIndexingStatus     @default(NEW)
-
   permittedUsers     UserToRepoPermission[]
   permissionSyncJobs RepoPermissionSyncJob[]
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
 
-  jobs RepoJob[]
+  jobs RepoIndexingJob[]
   indexedAt          DateTime? /// When the repo was last indexed successfully.
 
   external_id           String /// The id of the repo in the external service
@@ -78,22 +64,22 @@ model Repo {
   @@index([orgId])
 }
 
-enum RepoJobStatus {
+enum RepoIndexingJobStatus {
   PENDING
   IN_PROGRESS
   COMPLETED
   FAILED
 }
 
-enum RepoJobType {
+enum RepoIndexingJobType {
   INDEX
   CLEANUP
 }
 
-model RepoJob {
+model RepoIndexingJob {
   id          String                      @id @default(cuid())
-  type        RepoJobType
-  status      RepoJobStatus @default(PENDING)
+  type        RepoIndexingJobType
+  status      RepoIndexingJobStatus @default(PENDING)
   createdAt   DateTime                    @default(now())
   updatedAt   DateTime                    @updatedAt
   completedAt DateTime?

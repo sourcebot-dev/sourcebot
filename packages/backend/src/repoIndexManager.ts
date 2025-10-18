@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { PrismaClient, Repo, RepoJobStatus, RepoJobType } from "@sourcebot/db";
+import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import { createLogger, Logger } from "@sourcebot/logger";
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
@@ -97,7 +97,7 @@ export class RepoIndexManager {
                                 some: {
                                     AND: [
                                         {
-                                            type: RepoJobType.INDEX,
+                                            type: RepoIndexingJobType.INDEX,
                                         },
                                         {
                                             OR: [
@@ -108,8 +108,8 @@ export class RepoIndexManager {
                                                         {
                                                             status: {
                                                                 in: [
-                                                                    RepoJobStatus.PENDING,
-                                                                    RepoJobStatus.IN_PROGRESS,
+                                                                    RepoIndexingJobStatus.PENDING,
+                                                                    RepoIndexingJobStatus.IN_PROGRESS,
                                                                 ]
                                                             },
                                                         },
@@ -123,7 +123,7 @@ export class RepoIndexManager {
                                                 // Don't schedule if there are recent failed jobs (within the threshold date).
                                                 {
                                                     AND: [
-                                                        { status: RepoJobStatus.FAILED },
+                                                        { status: RepoIndexingJobStatus.FAILED },
                                                         { completedAt: { gt: thresholdDate } },
                                                     ]
                                                 }
@@ -139,7 +139,7 @@ export class RepoIndexManager {
         });
 
         if (reposToIndex.length > 0) {
-            await this.createJobs(reposToIndex, RepoJobType.INDEX);
+            await this.createJobs(reposToIndex, RepoIndexingJobType.INDEX);
         }
     }
 
@@ -161,13 +161,13 @@ export class RepoIndexManager {
                         some: {
                             AND: [
                                 {
-                                    type: RepoJobType.CLEANUP,
+                                    type: RepoIndexingJobType.CLEANUP,
                                 },
                                 {
                                     status: {
                                         in: [
-                                            RepoJobStatus.PENDING,
-                                            RepoJobStatus.IN_PROGRESS,
+                                            RepoIndexingJobStatus.PENDING,
+                                            RepoIndexingJobStatus.IN_PROGRESS,
                                         ]
                                     },
                                 },
@@ -184,15 +184,15 @@ export class RepoIndexManager {
         });
 
         if (reposToCleanup.length > 0) {
-            await this.createJobs(reposToCleanup, RepoJobType.CLEANUP);
+            await this.createJobs(reposToCleanup, RepoIndexingJobType.CLEANUP);
         }
     }
 
-    private async createJobs(repos: Repo[], type: RepoJobType) {
+    private async createJobs(repos: Repo[], type: RepoIndexingJobType) {
         // @note: we don't perform this in a transaction because
         // we want to avoid the situation where a job is created and run
         // prior to the transaction being committed.
-        const jobs = await this.db.repoJob.createManyAndReturn({
+        const jobs = await this.db.repoIndexingJob.createManyAndReturn({
             data: repos.map(repo => ({
                 type,
                 repoId: repo.id,
@@ -222,12 +222,12 @@ export class RepoIndexManager {
         logger.info(`Running ${job.data.type} job ${id} for repo ${job.data.repoName} (id: ${job.data.repoId}) (attempt ${job.attempts + 1} / ${job.maxAttempts})`);
 
 
-        const { repo, type: jobType } = await this.db.repoJob.update({
+        const { repo, type: jobType } = await this.db.repoIndexingJob.update({
             where: {
                 id,
             },
             data: {
-                status: RepoJobStatus.IN_PROGRESS,
+                status: RepoIndexingJobStatus.IN_PROGRESS,
             },
             select: {
                 type: true,
@@ -253,9 +253,9 @@ export class RepoIndexManager {
         process.on('SIGINT', signalHandler);
 
         try {
-            if (jobType === RepoJobType.INDEX) {
+            if (jobType === RepoIndexingJobType.INDEX) {
                 await this.indexRepository(repo, logger, abortController.signal);
-            } else if (jobType === RepoJobType.CLEANUP) {
+            } else if (jobType === RepoIndexingJobType.CLEANUP) {
                 await this.cleanupRepository(repo, logger);
             }
         } finally {
@@ -370,15 +370,15 @@ export class RepoIndexManager {
     private onJobCompleted = async (job: Job<JobPayload>) =>
         groupmqLifecycleExceptionWrapper('onJobCompleted', logger, async () => {
             const logger = createJobLogger(job.data.jobId);
-            const jobData = await this.db.repoJob.update({
+            const jobData = await this.db.repoIndexingJob.update({
                 where: { id: job.data.jobId },
                 data: {
-                    status: RepoJobStatus.COMPLETED,
+                    status: RepoIndexingJobStatus.COMPLETED,
                     completedAt: new Date(),
                 }
             });
 
-            if (jobData.type === RepoJobType.INDEX) {
+            if (jobData.type === RepoIndexingJobType.INDEX) {
                 const repo = await this.db.repo.update({
                     where: { id: jobData.repoId },
                     data: {
@@ -388,7 +388,7 @@ export class RepoIndexManager {
 
                 logger.info(`Completed index job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id})`);
             }
-            else if (jobData.type === RepoJobType.CLEANUP) {
+            else if (jobData.type === RepoIndexingJobType.CLEANUP) {
                 const repo = await this.db.repo.delete({
                     where: { id: jobData.repoId },
                 });
@@ -405,10 +405,10 @@ export class RepoIndexManager {
             const wasLastAttempt = attempt >= job.opts.attempts;
 
             if (wasLastAttempt) {
-                const { repo } = await this.db.repoJob.update({
+                const { repo } = await this.db.repoIndexingJob.update({
                     where: { id: job.data.jobId },
                     data: {
-                        status: RepoJobStatus.FAILED,
+                        status: RepoIndexingJobStatus.FAILED,
                         completedAt: new Date(),
                         errorMessage: job.failedReason,
                     },
@@ -428,10 +428,10 @@ export class RepoIndexManager {
     private onJobStalled = async (jobId: string) =>
         groupmqLifecycleExceptionWrapper('onJobStalled', logger, async () => {
             const logger = createJobLogger(jobId);
-            const { repo } = await this.db.repoJob.update({
+            const { repo } = await this.db.repoIndexingJob.update({
                 where: { id: jobId },
                 data: {
-                    status: RepoJobStatus.FAILED,
+                    status: RepoIndexingJobStatus.FAILED,
                     completedAt: new Date(),
                     errorMessage: 'Job stalled',
                 },
