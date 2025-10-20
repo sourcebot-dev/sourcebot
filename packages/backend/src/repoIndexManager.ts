@@ -23,8 +23,6 @@ type JobPayload = {
     repoName: string;
 };
 
-const JOB_TIMEOUT_MS = 1000 * 60 * 60 * 6; // 6 hour indexing timeout
-
 /**
  * Manages the lifecycle of repository data on disk, including git working copies
  * and search index shards. Handles both indexing operations (cloning/fetching repos
@@ -49,7 +47,7 @@ export class RepoIndexManager {
         this.queue = new Queue<JobPayload>({
             redis,
             namespace: 'repo-index-queue',
-            jobTimeoutMs: JOB_TIMEOUT_MS,
+            jobTimeoutMs: this.settings.repoIndexTimeoutMs,
             maxAttempts: 3,
             logger: env.DEBUG_ENABLE_GROUPMQ_LOGGING === 'true',
         });
@@ -82,6 +80,8 @@ export class RepoIndexManager {
 
     private async scheduleIndexJobs() {
         const thresholdDate = new Date(Date.now() - this.settings.reindexIntervalMs);
+        const timeoutDate = new Date(Date.now() - this.settings.repoIndexTimeoutMs);
+
         const reposToIndex = await this.db.repo.findMany({
             where: {
                 AND: [
@@ -115,7 +115,7 @@ export class RepoIndexManager {
                                                         },
                                                         {
                                                             createdAt: {
-                                                                gt: thresholdDate,
+                                                                gt: timeoutDate,
                                                             }
                                                         }
                                                     ]
@@ -124,7 +124,7 @@ export class RepoIndexManager {
                                                 {
                                                     AND: [
                                                         { status: RepoIndexingJobStatus.FAILED },
-                                                        { completedAt: { gt: thresholdDate } },
+                                                        { completedAt: { gt: timeoutDate } },
                                                     ]
                                                 }
                                             ]
