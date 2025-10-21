@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- @NOTE: On next release, please bump the MCP pacakge as there are breaking changes in this! -->
+> **Note:** On next release, please bump the MCP package as there are breaking changes in this!
 
 ### Added
 - Implement dynamic tab titles for files and folders in browse tab. [#560](https://github.com/sourcebot-dev/sourcebot/pull/560)
@@ -205,7 +205,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added audit logging. [#355](https://github.com/sourcebot-dev/sourcebot/pull/355)
-<!-- @NOTE: this release includes a API change that affects the MCP package (@sourcebot/mcp). On release, bump the MCP package's version and delete this message. -->
 
 ### Fixed
 - Delete account join request when redeeming an invite. [#352](https://github.com/sourcebot-dev/sourcebot/pull/352)
