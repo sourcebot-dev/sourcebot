@@ -85,9 +85,9 @@ export const env = createEnv({
         SOURCEBOT_EE_AUDIT_LOGGING_ENABLED: booleanSchema.default('true'),
 
         // GitHub app for review agent
-        GITHUB_APP_ID: z.string().optional(),
-        GITHUB_APP_WEBHOOK_SECRET: z.string().optional(),
-        GITHUB_APP_PRIVATE_KEY_PATH: z.string().optional(),
+        GITHUB_REVIEW_AGENT_APP_ID: z.string().optional(),
+        GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET: z.string().optional(),
+        GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH: z.string().optional(),
         REVIEW_AGENT_API_KEY: z.string().optional(),
         REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
         REVIEW_AGENT_AUTO_REVIEW_ENABLED: booleanSchema.default('false'),

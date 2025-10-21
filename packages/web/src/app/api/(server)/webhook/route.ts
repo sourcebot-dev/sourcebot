@@ -14,16 +14,16 @@ import { createLogger } from "@sourcebot/logger";
 const logger = createLogger('github-webhook');
 
 let githubApp: App | undefined;
-if (env.GITHUB_APP_ID && env.GITHUB_APP_WEBHOOK_SECRET && env.GITHUB_APP_PRIVATE_KEY_PATH) {
+if (env.GITHUB_REVIEW_AGENT_APP_ID && env.GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET && env.GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH) {
     try {
-        const privateKey = fs.readFileSync(env.GITHUB_APP_PRIVATE_KEY_PATH, "utf8");
+        const privateKey = fs.readFileSync(env.GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH, "utf8");
 
         const throttledOctokit = Octokit.plugin(throttling);
         githubApp = new App({
-            appId: env.GITHUB_APP_ID,
+            appId: env.GITHUB_REVIEW_AGENT_APP_ID,
             privateKey: privateKey,
             webhooks: {
-                secret: env.GITHUB_APP_WEBHOOK_SECRET,
+                secret: env.GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET,
             },
             Octokit: throttledOctokit,
             throttle: {
