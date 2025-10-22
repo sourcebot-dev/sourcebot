@@ -8,6 +8,8 @@ import { BackendException, BackendError } from "@sourcebot/error";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
 import { env } from "./env.js";
+import { GithubAppManager } from "./ee/githubAppManager.js";
+import { hasEntitlement } from "@sourcebot/shared";
 
 const logger = createLogger('github');
 const GITHUB_CLOUD_HOSTNAME = "github.com";
@@ -53,6 +55,40 @@ export const createOctokitFromToken = async ({ token, url }: { token?: string, u
         octokit,
         isAuthenticated: !!token,
     };
+}
+
+/**
+ * Helper function to get an authenticated Octokit instance using GitHub App if available,
+ * otherwise falls back to the provided octokit instance.
+ */
+const getOctokitWithGithubApp = async (
+    octokit: Octokit,
+    owner: string,
+    url: string | undefined,
+    context: string
+): Promise<Octokit> => {
+    if (!hasEntitlement('github-app') || !GithubAppManager.getInstance().appsConfigured()) {
+        return octokit;
+    }
+
+    try {
+        const hostname = url ? new URL(url).hostname : GITHUB_CLOUD_HOSTNAME;
+        const token = await GithubAppManager.getInstance().getInstallationToken(owner, hostname);
+        const { octokit: octokitFromToken, isAuthenticated } = await createOctokitFromToken({
+            token,
+            url,
+        });
+
+        if (isAuthenticated) {
+            return octokitFromToken;
+        } else {
+            logger.error(`Failed to authenticate with GitHub App for ${context}. Falling back to legacy token resolution.`);
+            return octokit;
+        }
+    } catch (error) {
+        logger.error(`Error getting GitHub App token for ${context}. Falling back to legacy token resolution.`, error);
+        return octokit;
+    }
 }
 
 export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal) => {
@@ -107,19 +143,19 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
     };
 
     if (config.orgs) {
-        const { validRepos, notFoundOrgs } = await getReposForOrgs(config.orgs, octokit, signal);
+        const { validRepos, notFoundOrgs } = await getReposForOrgs(config.orgs, octokit, signal, config.url);
         allRepos = allRepos.concat(validRepos);
         notFound.orgs = notFoundOrgs;
     }
 
     if (config.repos) {
-        const { validRepos, notFoundRepos } = await getRepos(config.repos, octokit, signal);
+        const { validRepos, notFoundRepos } = await getRepos(config.repos, octokit, signal, config.url);
         allRepos = allRepos.concat(validRepos);
         notFound.repos = notFoundRepos;
     }
 
     if (config.users) {
-        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, octokit, signal);
+        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, octokit, signal, config.url);
         allRepos = allRepos.concat(validRepos);
         notFound.users = notFoundUsers;
     }
@@ -178,11 +214,12 @@ export const getReposForAuthenticatedUser = async (visibility: 'all' | 'private'
     }
 }
 
-const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: AbortSignal) => {
+const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
     const results = await Promise.allSettled(users.map(async (user) => {
         try {
             logger.debug(`Fetching repository info for user ${user}...`);
 
+            const octokitToUse = await getOctokitWithGithubApp(octokit, user, url, `user ${user}`);
             const { durationMs, data } = await measure(async () => {
                 const fetchFn = async () => {
                     let query = `user:${user}`;
@@ -194,7 +231,7 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
                     // the username as a parameter.
                     // @see: https://github.com/orgs/community/discussions/24382#discussioncomment-3243958
                     // @see: https://api.github.com/search/repositories?q=user:USERNAME
-                    const searchResults = await octokit.paginate(octokit.rest.search.repos, {
+                    const searchResults = await octokitToUse.paginate(octokitToUse.rest.search.repos, {
                         q: query,
                         per_page: 100,
                         request: {
@@ -237,13 +274,14 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
     };
 }
 
-const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal) => {
+const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
     const results = await Promise.allSettled(orgs.map(async (org) => {
         try {
             logger.info(`Fetching repository info for org ${org}...`);
 
+            const octokitToUse = await getOctokitWithGithubApp(octokit, org, url, `org ${org}`);
             const { durationMs, data } = await measure(async () => {
-                const fetchFn = () => octokit.paginate(octokit.repos.listForOrg, {
+                const fetchFn = () => octokitToUse.paginate(octokitToUse.repos.listForOrg, {
                     org: org,
                     per_page: 100,
                     request: {
@@ -283,14 +321,15 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
     };
 }
 
-const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal) => {
+const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
     const results = await Promise.allSettled(repoList.map(async (repo) => {
         try {
             const [owner, repoName] = repo.split('/');
             logger.info(`Fetching repository info for ${repo}...`);
 
+            const octokitToUse = await getOctokitWithGithubApp(octokit, owner, url, `repo ${repo}`);
             const { durationMs, data: result } = await measure(async () => {
-                const fetchFn = () => octokit.repos.get({
+                const fetchFn = () => octokitToUse.repos.get({
                     owner,
                     repo: repoName,
                     request: {

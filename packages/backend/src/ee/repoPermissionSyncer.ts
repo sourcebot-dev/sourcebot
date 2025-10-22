@@ -18,7 +18,6 @@ const QUEUE_NAME = 'repoPermissionSyncQueue';
 
 const logger = createLogger('repo-permission-syncer');
 
-
 export class RepoPermissionSyncer {
     private queue: Queue<RepoPermissionSyncJob>;
     private worker: Worker<RepoPermissionSyncJob>;

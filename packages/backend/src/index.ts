@@ -15,6 +15,7 @@ import { PromClient } from './promClient.js';
 import { RepoManager } from './repoManager.js';
 import { AppContext } from "./types.js";
 import { UserPermissionSyncer } from "./ee/userPermissionSyncer.js";
+import { GithubAppManager } from "./ee/githubAppManager.js";
 
 
 const logger = createLogger('backend-entrypoint');
@@ -66,6 +67,11 @@ redis.ping().then(() => {
 const promClient = new PromClient();
 
 const settings = await getSettings(env.CONFIG_PATH);
+
+
+if (hasEntitlement('github-app')) {
+    await GithubAppManager.getInstance().init(prisma);
+}
 
 const connectionManager = new ConnectionManager(prisma, settings, redis);
 const repoManager = new RepoManager(prisma, settings, redis, promClient, context);
