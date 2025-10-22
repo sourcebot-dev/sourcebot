@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement dynamic tab titles for files and folders in browse tab. [#560](https://github.com/sourcebot-dev/sourcebot/pull/560)
 - Added support for passing db connection url as seperate `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`, and `DATABASE_ARGS` env vars. [#545](https://github.com/sourcebot-dev/sourcebot/pull/545)
 - Added support for GitHub Apps for service auth. [#570](https://github.com/sourcebot-dev/sourcebot/pull/570)
+- Added prometheus metrics for repo index manager. [#571](https://github.com/sourcebot-dev/sourcebot/pull/571)
 
 ### Fixed
 - Fixed "dubious ownership" errors when cloning / fetching repos. [#553](https://github.com/sourcebot-dev/sourcebot/pull/553)

@@ -10,84 +10,51 @@ export class PromClient {
     private app: express.Application;
     private server: Server;
 
-    public activeRepoIndexingJobs: Gauge<string>;
-    public pendingRepoIndexingJobs: Gauge<string>;
-    public repoIndexingReattemptsTotal: Counter<string>;
-    public repoIndexingFailTotal: Counter<string>;
-    public repoIndexingSuccessTotal: Counter<string>;
-
-    public activeRepoGarbageCollectionJobs: Gauge<string>;
-    public repoGarbageCollectionErrorTotal: Counter<string>;
-    public repoGarbageCollectionFailTotal: Counter<string>;
-    public repoGarbageCollectionSuccessTotal: Counter<string>;
+    public activeRepoIndexJobs: Gauge<string>;
+    public pendingRepoIndexJobs: Gauge<string>;
+    public repoIndexJobReattemptsTotal: Counter<string>;
+    public repoIndexJobFailTotal: Counter<string>;
+    public repoIndexJobSuccessTotal: Counter<string>;
 
     public readonly PORT = 3060;
 
     constructor() {
         this.registry = new Registry();
 
-        this.activeRepoIndexingJobs = new Gauge({
-            name: 'active_repo_indexing_jobs',
-            help: 'The number of repo indexing jobs in progress',
-            labelNames: ['repo'],
+        this.activeRepoIndexJobs = new Gauge({
+            name: 'active_repo_index_jobs',
+            help: 'The number of repo jobs in progress',
+            labelNames: ['repo', 'type'],
         });
-        this.registry.registerMetric(this.activeRepoIndexingJobs);
+        this.registry.registerMetric(this.activeRepoIndexJobs);
 
-        this.pendingRepoIndexingJobs = new Gauge({
-            name: 'pending_repo_indexing_jobs',
-            help: 'The number of repo indexing jobs waiting in queue',
-            labelNames: ['repo'],
+        this.pendingRepoIndexJobs = new Gauge({
+            name: 'pending_repo_index_jobs',
+            help: 'The number of repo jobs waiting in queue',
+            labelNames: ['repo', 'type'],
         });
-        this.registry.registerMetric(this.pendingRepoIndexingJobs);
+        this.registry.registerMetric(this.pendingRepoIndexJobs);
 
-        this.repoIndexingReattemptsTotal = new Counter({
-            name: 'repo_indexing_reattempts',
-            help: 'The number of repo indexing reattempts',
-            labelNames: ['repo'],
+        this.repoIndexJobReattemptsTotal = new Counter({
+            name: 'repo_index_job_reattempts',
+            help: 'The number of repo job reattempts',
+            labelNames: ['repo', 'type'],
         });
-        this.registry.registerMetric(this.repoIndexingReattemptsTotal);
+        this.registry.registerMetric(this.repoIndexJobReattemptsTotal);
 
-        this.repoIndexingFailTotal = new Counter({
-            name: 'repo_indexing_fails',
-            help: 'The number of repo indexing fails',
-            labelNames: ['repo'],
+        this.repoIndexJobFailTotal = new Counter({
+            name: 'repo_index_job_fails',
+            help: 'The number of repo job fails',
+            labelNames: ['repo', 'type'],
         });
-        this.registry.registerMetric(this.repoIndexingFailTotal);
+        this.registry.registerMetric(this.repoIndexJobFailTotal);
 
-        this.repoIndexingSuccessTotal = new Counter({
-            name: 'repo_indexing_successes',
-            help: 'The number of repo indexing successes',
-            labelNames: ['repo'],
+        this.repoIndexJobSuccessTotal = new Counter({
+            name: 'repo_index_job_successes',
+            help: 'The number of repo job successes',
+            labelNames: ['repo', 'type'],
         });
-        this.registry.registerMetric(this.repoIndexingSuccessTotal);
-
-        this.activeRepoGarbageCollectionJobs = new Gauge({
-            name: 'active_repo_garbage_collection_jobs',
-            help: 'The number of repo garbage collection jobs in progress',
-            labelNames: ['repo'],
-        });
-        this.registry.registerMetric(this.activeRepoGarbageCollectionJobs);
-
-        this.repoGarbageCollectionErrorTotal = new Counter({
-            name: 'repo_garbage_collection_errors',
-            help: 'The number of repo garbage collection errors',
-            labelNames: ['repo'],
-        });
-        this.registry.registerMetric(this.repoGarbageCollectionErrorTotal);
-
-        this.repoGarbageCollectionFailTotal = new Counter({
-            name: 'repo_garbage_collection_fails',
-            help: 'The number of repo garbage collection fails',
-            labelNames: ['repo'],
-        });
-        this.registry.registerMetric(this.repoGarbageCollectionFailTotal);
-
-        this.repoGarbageCollectionSuccessTotal = new Counter({
-            name: 'repo_garbage_collection_successes',
-            help: 'The number of repo garbage collection successes',
-            labelNames: ['repo'],
-        });
-        this.registry.registerMetric(this.repoGarbageCollectionSuccessTotal);
+        this.registry.registerMetric(this.repoIndexJobSuccessTotal);
 
         client.collectDefaultMetrics({
             register: this.registry,
