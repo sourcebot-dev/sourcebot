@@ -67,7 +67,7 @@ if (hasEntitlement('github-app')) {
 const connectionManager = new ConnectionManager(prisma, settings, redis);
 const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
 const userPermissionSyncer = new UserPermissionSyncer(prisma, settings, redis);
-const repoIndexManager = new RepoIndexManager(prisma, settings, redis);
+const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClient);
 
 connectionManager.startScheduler();
 repoIndexManager.startScheduler();

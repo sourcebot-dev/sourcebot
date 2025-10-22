@@ -8,6 +8,7 @@ import { Redis } from 'ioredis';
 import { INDEX_CACHE_DIR } from './constants.js';
 import { env } from './env.js';
 import { cloneRepository, fetchRepository, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
+import { PromClient } from './promClient.js';
 import { repoMetadataSchema, RepoWithConnections, Settings } from "./types.js";
 import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, groupmqLifecycleExceptionWrapper, measure } from './utils.js';
 import { indexGitRepository } from './zoekt.js';
@@ -43,6 +44,7 @@ export class RepoIndexManager {
         private db: PrismaClient,
         private settings: Settings,
         redis: Redis,
+        private promClient: PromClient,
     ) {
         this.queue = new Queue<JobPayload>({
             redis,
@@ -73,7 +75,7 @@ export class RepoIndexManager {
         this.interval = setInterval(async () => {
             await this.scheduleIndexJobs();
             await this.scheduleCleanupJobs();
-        }, 1000 * 5);
+        }, this.settings.reindexRepoPollingIntervalMs);
 
         this.worker.run();
     }
@@ -135,7 +137,7 @@ export class RepoIndexManager {
                         }
                     }
                 ],
-            }
+            },
         });
 
         if (reposToIndex.length > 0) {
@@ -213,6 +215,9 @@ export class RepoIndexManager {
                 },
                 jobId: job.id,
             });
+
+            const jobTypeLabel = getJobTypePrometheusLabel(type);
+            this.promClient.pendingRepoIndexJobs.inc({ repo: job.repo.name, type: jobTypeLabel });
         }
     }
 
@@ -242,6 +247,10 @@ export class RepoIndexManager {
                 }
             }
         });
+
+        const jobTypeLabel = getJobTypePrometheusLabel(jobType);
+        this.promClient.pendingRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
+        this.promClient.activeRepoIndexJobs.inc({ repo: job.data.repoName, type: jobTypeLabel });
 
         const abortController = new AbortController();
         const signalHandler = () => {
@@ -378,6 +387,8 @@ export class RepoIndexManager {
                 }
             });
 
+            const jobTypeLabel = getJobTypePrometheusLabel(jobData.type);
+
             if (jobData.type === RepoIndexingJobType.INDEX) {
                 const repo = await this.db.repo.update({
                     where: { id: jobData.repoId },
@@ -395,6 +406,10 @@ export class RepoIndexManager {
 
                 logger.info(`Completed cleanup job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id})`);
             }
+
+            // Track metrics for successful job
+            this.promClient.activeRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
+            this.promClient.repoIndexJobSuccessTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
         });
 
     private onJobFailed = async (job: Job<JobPayload>) =>
@@ -403,6 +418,8 @@ export class RepoIndexManager {
 
             const attempt = job.attemptsMade + 1;
             const wasLastAttempt = attempt >= job.opts.attempts;
+
+            const jobTypeLabel = getJobTypePrometheusLabel(job.data.type);
 
             if (wasLastAttempt) {
                 const { repo } = await this.db.repoIndexingJob.update({
@@ -415,11 +432,16 @@ export class RepoIndexManager {
                     select: { repo: true }
                 });
 
+                this.promClient.activeRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
+                this.promClient.repoIndexJobFailTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
+
                 logger.error(`Failed job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id}). Attempt ${attempt} / ${job.opts.attempts}. Failing job.`);
             } else {
                 const repo = await this.db.repo.findUniqueOrThrow({
                     where: { id: job.data.repoId },
                 });
+
+                this.promClient.repoIndexJobReattemptsTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
 
                 logger.warn(`Failed job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id}). Attempt ${attempt} / ${job.opts.attempts}. Retrying.`);
             }
@@ -428,15 +450,19 @@ export class RepoIndexManager {
     private onJobStalled = async (jobId: string) =>
         groupmqLifecycleExceptionWrapper('onJobStalled', logger, async () => {
             const logger = createJobLogger(jobId);
-            const { repo } = await this.db.repoIndexingJob.update({
+            const { repo, type } = await this.db.repoIndexingJob.update({
                 where: { id: jobId },
                 data: {
                     status: RepoIndexingJobStatus.FAILED,
                     completedAt: new Date(),
                     errorMessage: 'Job stalled',
                 },
-                select: { repo: true }
+                select: { repo: true, type: true }
             });
+
+            const jobTypeLabel = getJobTypePrometheusLabel(type);
+            this.promClient.activeRepoIndexJobs.dec({ repo: repo.name, type: jobTypeLabel });
+            this.promClient.repoIndexJobFailTotal.inc({ repo: repo.name, type: jobTypeLabel });
 
             logger.error(`Job ${jobId} stalled for repo ${repo.name} (id: ${repo.id})`);
         });
@@ -454,3 +480,5 @@ export class RepoIndexManager {
         await this.queue.close();
     }
 }
+
+const getJobTypePrometheusLabel = (type: RepoIndexingJobType) => type === RepoIndexingJobType.INDEX ? 'index' : 'cleanup';
