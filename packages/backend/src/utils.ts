@@ -1,5 +1,5 @@
 import { Logger } from "winston";
-import { AppContext, RepoAuthCredentials, RepoWithConnections } from "./types.js";
+import { RepoAuthCredentials, RepoWithConnections } from "./types.js";
 import path from 'path';
 import { PrismaClient, Repo } from "@sourcebot/db";
 import { getTokenFromConfig as getTokenFromConfigBase } from "@sourcebot/crypto";
@@ -8,6 +8,7 @@ import * as Sentry from "@sentry/node";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { hasEntitlement } from "@sourcebot/shared";
+import { REPOS_CACHE_DIR } from "./constants.js";
 
 export const measure = async <T>(cb: () => Promise<T>) => {
     const start = Date.now();
@@ -71,7 +72,7 @@ export const arraysEqualShallow = <T>(a?: readonly T[], b?: readonly T[]) => {
 
 // @note: this function is duplicated in `packages/web/src/features/fileTree/actions.ts`.
 // @todo: we should move this to a shared package.
-export const getRepoPath = (repo: Repo, ctx: AppContext): { path: string, isReadOnly: boolean } => {
+export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } => {
     // If we are dealing with a local repository, then use that as the path.
     // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
     const cloneUrl = new URL(repo.cloneUrl);
@@ -83,7 +84,7 @@ export const getRepoPath = (repo: Repo, ctx: AppContext): { path: string, isRead
     }
 
     return {
-        path: path.join(ctx.reposPath, repo.id.toString()),
+        path: path.join(REPOS_CACHE_DIR, repo.id.toString()),
         isReadOnly: false,
     }
 }
@@ -265,3 +266,20 @@ const createGitCloneUrlWithToken = (cloneUrl: string, credentials: { username?: 
     }
     return url.toString();
 }
+
+
+/**
+ * Wraps groupmq worker lifecycle callbacks with exception handling. This prevents
+ * uncaught exceptions (e.g., like a RepoIndexingJob not existing in the DB) from crashing
+ * the app. 
+ * @see: https://openpanel-dev.github.io/groupmq/api-worker/#events
+ */
+export const groupmqLifecycleExceptionWrapper = async (name: string, logger: Logger, fn: () => Promise<void>) => {
+    try {
+        await fn();
+    } catch (error) {
+        Sentry.captureException(error);
+        logger.error(`Exception thrown while executing lifecycle function \`${name}\`.`, error);
+    }
+}
+

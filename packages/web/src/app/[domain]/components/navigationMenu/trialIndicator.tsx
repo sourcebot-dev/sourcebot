@@ -13,7 +13,7 @@ interface Props {
     } | null | ServiceError;
 }
 
-export const TrialNavIndicator = ({ subscription }: Props) => {
+export const TrialIndicator = ({ subscription }: Props) => {
     const domain = useDomain();
     const captureEvent = useCaptureEvent();
 

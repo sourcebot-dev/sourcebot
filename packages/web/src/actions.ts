@@ -5,46 +5,32 @@ import { env } from "@/env.mjs";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notAuthenticated, notFound, orgNotFound, secretAlreadyExists, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
-import { CodeHostType, getOrgMetadata, isHttpError, isServiceError } from "@/lib/utils";
+import { getOrgMetadata, isHttpError, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
-import { decrypt, encrypt, generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/crypto";
-import { ApiKey, ConnectionSyncStatus, Org, OrgRole, Prisma, RepoIndexingStatus, StripeSubscriptionStatus } from "@sourcebot/db";
+import { encrypt, generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/crypto";
+import { ApiKey, Org, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType, StripeSubscriptionStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { azuredevopsSchema } from "@sourcebot/schemas/v3/azuredevops.schema";
-import { bitbucketSchema } from "@sourcebot/schemas/v3/bitbucket.schema";
-import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
-import { genericGitHostSchema } from "@sourcebot/schemas/v3/genericGitHost.schema";
-import { gerritSchema } from "@sourcebot/schemas/v3/gerrit.schema";
-import { giteaSchema } from "@sourcebot/schemas/v3/gitea.schema";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
-import { githubSchema } from "@sourcebot/schemas/v3/github.schema";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
-import { gitlabSchema } from "@sourcebot/schemas/v3/gitlab.schema";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { getPlan, hasEntitlement } from "@sourcebot/shared";
-import Ajv from "ajv";
 import { StatusCodes } from "http-status-codes";
 import { cookies, headers } from "next/headers";
 import { createTransport } from "nodemailer";
 import { Octokit } from "octokit";
 import { auth } from "./auth";
-import { getConnection } from "./data/connection";
 import { getOrgFromDomain } from "./data/org";
 import { decrementOrgSeatCount, getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
 import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
-import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SEARCH_MODE_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
+import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { ApiKeyPayload, TenancyMode } from "./lib/types";
-import { withAuthV2, withOptionalAuthV2 } from "./withAuthV2";
-
-const ajv = new Ajv({
-    validateFormats: false,
-});
+import { withOptionalAuthV2 } from "./withAuthV2";
 
 const logger = createLogger('web-actions');
 const auditService = getAuditService();
@@ -186,31 +172,6 @@ export const withTenancyModeEnforcement = async<T>(mode: TenancyMode, fn: () => 
 }
 
 ////// Actions ///////
-
-export const createOrg = async (name: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
-    withTenancyModeEnforcement('multi', () =>
-        withAuth(async (userId) => {
-            const org = await prisma.org.create({
-                data: {
-                    name,
-                    domain,
-                    members: {
-                        create: {
-                            role: "OWNER",
-                            user: {
-                                connect: {
-                                    id: userId,
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            return {
-                id: org.id,
-            }
-        })));
 
 export const updateOrgName = async (name: string, domain: string) => sew(() =>
     withAuth((userId) =>
@@ -573,87 +534,20 @@ export const getUserApiKeys = async (domain: string): Promise<{ name: string; cr
             }));
         })));
 
-export const getConnections = async (domain: string, filter: { status?: ConnectionSyncStatus[] } = {}) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const connections = await prisma.connection.findMany({
-                where: {
-                    orgId: org.id,
-                    ...(filter.status ? {
-                        syncStatus: { in: filter.status }
-                    } : {}),
-                },
-                include: {
-                    repos: {
-                        include: {
-                            repo: true,
-                        }
-                    }
-                }
-            });
-
-            return connections.map((connection) => ({
-                id: connection.id,
-                name: connection.name,
-                syncStatus: connection.syncStatus,
-                syncStatusMetadata: connection.syncStatusMetadata,
-                connectionType: connection.connectionType,
-                updatedAt: connection.updatedAt,
-                syncedAt: connection.syncedAt ?? undefined,
-                linkedRepos: connection.repos.map(({ repo }) => ({
-                    id: repo.id,
-                    name: repo.name,
-                    repoIndexingStatus: repo.repoIndexingStatus,
-                })),
-            }));
-        })
-    ));
-
-export const getConnectionInfo = async (connectionId: number, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const connection = await prisma.connection.findUnique({
-                where: {
-                    id: connectionId,
-                    orgId: org.id,
-                },
-                include: {
-                    repos: true,
-                }
-            });
-
-            if (!connection) {
-                return notFound();
-            }
-
-            return {
-                id: connection.id,
-                name: connection.name,
-                syncStatus: connection.syncStatus,
-                syncStatusMetadata: connection.syncStatusMetadata,
-                connectionType: connection.connectionType,
-                updatedAt: connection.updatedAt,
-                syncedAt: connection.syncedAt ?? undefined,
-                numLinkedRepos: connection.repos.length,
-            }
-        })));
-
-export const getRepos = async (filter: { status?: RepoIndexingStatus[], connectionId?: number } = {}) => sew(() =>
+export const getRepos = async ({
+    where,
+    take,
+}: {
+    where?: Prisma.RepoWhereInput,
+    take?: number
+} = {}) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
         const repos = await prisma.repo.findMany({
             where: {
                 orgId: org.id,
-                ...(filter.status ? {
-                    repoIndexingStatus: { in: filter.status }
-                } : {}),
-                ...(filter.connectionId ? {
-                    connections: {
-                        some: {
-                            connectionId: filter.connectionId
-                        }
-                    }
-                } : {}),
-            }
+                ...where,
+            },
+            take,
         });
 
         return repos.map((repo) => repositoryQuerySchema.parse({
@@ -665,9 +559,62 @@ export const getRepos = async (filter: { status?: RepoIndexingStatus[], connecti
             webUrl: repo.webUrl ?? undefined,
             imageUrl: repo.imageUrl ?? undefined,
             indexedAt: repo.indexedAt ?? undefined,
-            repoIndexingStatus: repo.repoIndexingStatus,
         }))
     }));
+
+/**
+ * Returns a set of aggregated stats about the repos in the org
+ */
+export const getReposStats = async () => sew(() =>
+    withOptionalAuthV2(async ({ org, prisma }) => {
+        const [
+            // Total number of repos.
+            numberOfRepos,
+            // Number of repos with their first time indexing jobs either
+            // pending or in progress.
+            numberOfReposWithFirstTimeIndexingJobsInProgress,
+            // Number of repos that have been indexed at least once.
+            numberOfReposWithIndex,
+        ] = await Promise.all([
+            prisma.repo.count({
+                where: {
+                    orgId: org.id,
+                }
+            }),
+            prisma.repo.count({
+                where: {
+                    orgId: org.id,
+                    jobs: {
+                        some: {
+                            type: RepoIndexingJobType.INDEX,
+                            status: {
+                                in: [
+                                    RepoIndexingJobStatus.PENDING,
+                                    RepoIndexingJobStatus.IN_PROGRESS,
+                                ]
+                            }
+                        },
+                    },
+                    indexedAt: null,
+                }
+            }),
+            prisma.repo.count({
+                where: {
+                    orgId: org.id,
+                    NOT: {
+                        indexedAt: null,
+                    }
+                }
+            })
+        ]);
+
+        return {
+            numberOfRepos,
+            numberOfReposWithFirstTimeIndexingJobsInProgress,
+            numberOfReposWithIndex,
+        };
+    })
+)
 
 export const getRepoInfoByName = async (repoName: string) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
@@ -725,57 +672,8 @@ export const getRepoInfoByName = async (repoName: string) => sew(() =>
             webUrl: repo.webUrl ?? undefined,
             imageUrl: repo.imageUrl ?? undefined,
             indexedAt: repo.indexedAt ?? undefined,
-            repoIndexingStatus: repo.repoIndexingStatus,
         }
     }));
-
-export const createConnection = async (name: string, type: CodeHostType, connectionConfig: string, domain: string): Promise<{ id: number } | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            if (env.CONFIG_PATH !== undefined) {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.CONNECTION_CONFIG_PATH_SET,
-                    message: "A configuration file has been provided. New connections cannot be added through the web interface.",
-                } satisfies ServiceError;
-            }
-
-            const parsedConfig = parseConnectionConfig(connectionConfig);
-            if (isServiceError(parsedConfig)) {
-                return parsedConfig;
-            }
-
-            const existingConnectionWithName = await prisma.connection.findUnique({
-                where: {
-                    name_orgId: {
-                        orgId: org.id,
-                        name,
-                    }
-                }
-            });
-
-            if (existingConnectionWithName) {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.CONNECTION_ALREADY_EXISTS,
-                    message: "A connection with this name already exists.",
-                } satisfies ServiceError;
-            }
-
-            const connection = await prisma.connection.create({
-                data: {
-                    orgId: org.id,
-                    name,
-                    config: parsedConfig as unknown as Prisma.InputJsonValue,
-                    connectionType: type,
-                }
-            });
-
-            return {
-                id: connection.id,
-            }
-        }, OrgRole.OWNER)
-    ));
 
 export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: string): Promise<{ connectionId: number } | ServiceError> => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
@@ -912,148 +810,6 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
             connectionId: connection.id,
         }
     }));
-
-export const updateConnectionDisplayName = async (connectionId: number, name: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const connection = await getConnection(connectionId, org.id);
-            if (!connection) {
-                return notFound();
-            }
-
-            const existingConnectionWithName = await prisma.connection.findUnique({
-                where: {
-                    name_orgId: {
-                        orgId: org.id,
-                        name,
-                    }
-                }
-            });
-
-            if (existingConnectionWithName) {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.CONNECTION_ALREADY_EXISTS,
-                    message: "A connection with this name already exists.",
-                } satisfies ServiceError;
-            }
-
-            await prisma.connection.update({
-                where: {
-                    id: connectionId,
-                    orgId: org.id,
-                },
-                data: {
-                    name,
-                }
-            });
-
-            return {
-                success: true,
-            }
-        }, OrgRole.OWNER)
-    ));
-
-export const updateConnectionConfigAndScheduleSync = async (connectionId: number, config: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const connection = await getConnection(connectionId, org.id);
-            if (!connection) {
-                return notFound();
-            }
-
-            const parsedConfig = parseConnectionConfig(config);
-            if (isServiceError(parsedConfig)) {
-                return parsedConfig;
-            }
-
-            if (connection.syncStatus === "SYNC_NEEDED" ||
-                connection.syncStatus === "IN_SYNC_QUEUE" ||
-                connection.syncStatus === "SYNCING") {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.CONNECTION_SYNC_ALREADY_SCHEDULED,
-                    message: "Connection is already syncing. Please wait for the sync to complete before updating the connection.",
-                } satisfies ServiceError;
-            }
-
-            await prisma.connection.update({
-                where: {
-                    id: connectionId,
-                    orgId: org.id,
-                },
-                data: {
-                    config: parsedConfig as unknown as Prisma.InputJsonValue,
-                    syncStatus: "SYNC_NEEDED",
-                }
-            });
-
-            return {
-                success: true,
-            }
-        }, OrgRole.OWNER)
-    ));
-
-export const flagConnectionForSync = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const connection = await getConnection(connectionId, org.id);
-            if (!connection || connection.orgId !== org.id) {
-                return notFound();
-            }
-
-            await prisma.connection.update({
-                where: {
-                    id: connection.id,
-                },
-                data: {
-                    syncStatus: "SYNC_NEEDED",
-                }
-            });
-
-            return {
-                success: true,
-            }
-        })
-    ));
-
-export const flagReposForIndex = async (repoIds: number[]) => sew(() =>
-    withAuthV2(async ({ org, prisma }) => {
-        await prisma.repo.updateMany({
-            where: {
-                id: { in: repoIds },
-                orgId: org.id,
-            },
-            data: {
-                repoIndexingStatus: RepoIndexingStatus.NEW,
-            }
-        });
-
-        return {
-            success: true,
-        }
-    }));
-
-export const deleteConnection = async (connectionId: number, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const connection = await getConnection(connectionId, org.id);
-            if (!connection) {
-                return notFound();
-            }
-
-            await prisma.connection.delete({
-                where: {
-                    id: connectionId,
-                    orgId: org.id,
-                }
-            });
-
-            return {
-                success: true,
-            }
-        }, OrgRole.OWNER)
-    ));
 
 export const getCurrentUserRole = async (domain: string): Promise<OrgRole | ServiceError> => sew(() =>
     withAuth((userId) =>
@@ -1264,13 +1020,6 @@ export const cancelInvite = async (inviteId: string, domain: string): Promise<{ 
             return {
                 success: true,
             }
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    ));
-
-export const getOrgInviteId = async (domain: string) => sew(() =>
-    withAuth(async (userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            return org.inviteLinkId;
         }, /* minRequiredRole = */ OrgRole.OWNER)
     ));
 
@@ -1610,27 +1359,6 @@ export const leaveOrg = async (domain: string): Promise<{ success: boolean } | S
         })
     ));
 
-
-export const getOrgMembership = async (domain: string) => sew(() =>
-    withAuth(async (userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const membership = await prisma.userToOrg.findUnique({
-                where: {
-                    orgId_userId: {
-                        orgId: org.id,
-                        userId: userId,
-                    }
-                }
-            });
-
-            if (!membership) {
-                return notFound();
-            }
-
-            return membership;
-        })
-    ));
-
 export const getOrgMembers = async (domain: string) => sew(() =>
     withAuth(async (userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
@@ -1826,20 +1554,6 @@ export const setMemberApprovalRequired = async (domain: string, required: boolea
     )
 );
 
-export const getInviteLinkEnabled = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
-    const org = await prisma.org.findUnique({
-        where: {
-            domain,
-        },
-    });
-
-    if (!org) {
-        return orgNotFound();
-    }
-
-    return org.inviteLinkEnabled;
-});
-
 export const setInviteLinkEnabled = async (domain: string, enabled: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
     withAuth(async (userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
@@ -1971,10 +1685,6 @@ export const rejectAccountRequest = async (requestId: string, domain: string) =>
         }, /* minRequiredRole = */ OrgRole.OWNER)
     ));
 
-export const dismissMobileUnsupportedSplashScreen = async () => sew(async () => {
-    await (await cookies()).set(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, 'true');
-    return true;
-});
 
 export const getSearchContexts = async (domain: string) => sew(() =>
     withAuth((userId) =>
@@ -2127,126 +1837,17 @@ export const setAnonymousAccessStatus = async (domain: string, enabled: boolean)
     });
 });
 
-export async function setSearchModeCookie(searchMode: "precise" | "agentic") {
-    const cookieStore = await cookies();
-    cookieStore.set(SEARCH_MODE_COOKIE_NAME, searchMode, {
-        httpOnly: false, // Allow client-side access
-    });
-}
-
-export async function setAgenticSearchTutorialDismissedCookie(dismissed: boolean) {
+export const setAgenticSearchTutorialDismissedCookie = async (dismissed: boolean) => sew(async () => {
     const cookieStore = await cookies();
     cookieStore.set(AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, dismissed ? "true" : "false", {
         httpOnly: false, // Allow client-side access
+        maxAge: 365 * 24 * 60 * 60, // 1 year in seconds
     });
-}
+    return true;
+});
 
-////// Helpers ///////
-
-const parseConnectionConfig = (config: string) => {
-    let parsedConfig: ConnectionConfig;
-    try {
-        parsedConfig = JSON.parse(config);
-    } catch (_e) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: "config must be a valid JSON object."
-        } satisfies ServiceError;
-    }
-
-    const connectionType = parsedConfig.type;
-    const schema = (() => {
-        switch (connectionType) {
-            case "github":
-                return githubSchema;
-            case "gitlab":
-                return gitlabSchema;
-            case 'gitea':
-                return giteaSchema;
-            case 'gerrit':
-                return gerritSchema;
-            case 'bitbucket':
-                return bitbucketSchema;
-            case 'azuredevops':
-                return azuredevopsSchema;
-            case 'git':
-                return genericGitHostSchema;
-        }
-    })();
-
-    if (!schema) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: "invalid connection type",
-        } satisfies ServiceError;
-    }
-
-    const isValidConfig = ajv.validate(schema, parsedConfig);
-    if (!isValidConfig) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: `config schema validation failed with errors: ${ajv.errorsText(ajv.errors)}`,
-        } satisfies ServiceError;
-    }
-
-    if ('token' in parsedConfig && parsedConfig.token && 'env' in parsedConfig.token) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: "Environment variables are not supported for connections created in the web UI. Please use a secret instead.",
-        } satisfies ServiceError;
-    }
-
-    const { numRepos, hasToken } = (() => {
-        switch (connectionType) {
-            case "gitea":
-            case "github":
-            case "bitbucket":
-            case "azuredevops": {
-                return {
-                    numRepos: parsedConfig.repos?.length,
-                    hasToken: !!parsedConfig.token,
-                }
-            }
-            case "gitlab": {
-                return {
-                    numRepos: parsedConfig.projects?.length,
-                    hasToken: !!parsedConfig.token,
-                }
-            }
-            case "gerrit": {
-                return {
-                    numRepos: parsedConfig.projects?.length,
-                    hasToken: true, // gerrit doesn't use a token atm
-                }
-            }
-            case "git": {
-                return {
-                    numRepos: 1,
-                    hasToken: false,
-                }
-            }
-        }
-    })();
-
-    if (!hasToken && numRepos && numRepos > env.CONFIG_MAX_REPOS_NO_TOKEN) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: `You must provide a token to sync more than ${env.CONFIG_MAX_REPOS_NO_TOKEN} repositories.`,
-        } satisfies ServiceError;
-    }
-
-    return parsedConfig;
-}
-
-export const encryptValue = async (value: string) => {
-    return encrypt(value);
-}
-
-export const decryptValue = async (iv: string, encryptedValue: string) => {
-    return decrypt(iv, encryptedValue);
-}
+export const dismissMobileUnsupportedSplashScreen = async () => sew(async () => {
+    const cookieStore = await cookies();
+    cookieStore.set(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, 'true');
+    return true;
+});

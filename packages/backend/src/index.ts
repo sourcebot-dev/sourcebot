@@ -6,16 +6,14 @@ import { hasEntitlement, loadConfig } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { Redis } from 'ioredis';
-import path from 'path';
 import { ConnectionManager } from './connectionManager.js';
-import { DEFAULT_SETTINGS } from './constants.js';
-import { env } from "./env.js";
+import { DEFAULT_SETTINGS, INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
-import { PromClient } from './promClient.js';
-import { RepoManager } from './repoManager.js';
-import { AppContext } from "./types.js";
 import { UserPermissionSyncer } from "./ee/userPermissionSyncer.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
+import { env } from "./env.js";
+import { RepoIndexManager } from "./repoIndexManager.js";
+import { PromClient } from './promClient.js';
 
 
 const logger = createLogger('backend-entrypoint');
@@ -34,21 +32,14 @@ const getSettings = async (configPath?: string) => {
 }
 
 
-const cacheDir = env.DATA_CACHE_DIR;
-const reposPath = path.join(cacheDir, 'repos');
-const indexPath = path.join(cacheDir, 'index');
+const reposPath = REPOS_CACHE_DIR;
+const indexPath = INDEX_CACHE_DIR;
 
 if (!existsSync(reposPath)) {
     await mkdir(reposPath, { recursive: true });
 }
 if (!existsSync(indexPath)) {
     await mkdir(indexPath, { recursive: true });
-}
-
-const context: AppContext = {
-    indexPath,
-    reposPath,
-    cachePath: cacheDir,
 }
 
 const prisma = new PrismaClient();
@@ -74,14 +65,12 @@ if (hasEntitlement('github-app')) {
 }
 
 const connectionManager = new ConnectionManager(prisma, settings, redis);
-const repoManager = new RepoManager(prisma, settings, redis, promClient, context);
 const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
 const userPermissionSyncer = new UserPermissionSyncer(prisma, settings, redis);
-
-await repoManager.validateIndexedReposHaveShards();
+const repoIndexManager = new RepoIndexManager(prisma, settings, redis);
 
 connectionManager.startScheduler();
-repoManager.startScheduler();
+repoIndexManager.startScheduler();
 
 if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
     logger.error('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
@@ -93,12 +82,27 @@ else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement(
 }
 
 const cleanup = async (signal: string) => {
-    logger.info(`Recieved ${signal}, cleaning up...`);
+    logger.info(`Received ${signal}, cleaning up...`);
 
-    connectionManager.dispose();
-    repoManager.dispose();
-    repoPermissionSyncer.dispose();
-    userPermissionSyncer.dispose();
+    const shutdownTimeout = 30000; // 30 seconds
+    
+    try {
+        await Promise.race([
+            Promise.all([
+                repoIndexManager.dispose(),
+                connectionManager.dispose(),
+                repoPermissionSyncer.dispose(),
+                userPermissionSyncer.dispose(),
+                promClient.dispose(),
+            ]),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Shutdown timeout')), shutdownTimeout)
+            )
+        ]);
+        logger.info('All workers shut down gracefully');
+    } catch (error) {
+        logger.warn('Shutdown timeout or error, forcing exit:', error instanceof Error ? error.message : String(error));
+    }
 
     await prisma.$disconnect();
     await redis.quit();

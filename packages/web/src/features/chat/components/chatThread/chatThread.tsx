@@ -25,6 +25,7 @@ import { usePrevious } from '@uidotdev/usehooks';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
 import { generateAndUpdateChatNameFromMessage } from '../../actions';
 import { isServiceError } from '@/lib/utils';
+import { NotConfiguredErrorBanner } from '../notConfiguredErrorBanner';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -73,7 +74,7 @@ export const ChatThread = ({
     );
 
     const { selectedLanguageModel } = useSelectedLanguageModel({
-        initialLanguageModel: languageModels.length > 0 ? languageModels[0] : undefined,
+        languageModels,
     });
 
     const {
@@ -118,7 +119,7 @@ export const ChatThread = ({
         _sendMessage(message, {
             body: {
                 selectedSearchScopes,
-                languageModelId: selectedLanguageModel.model,
+                languageModel: selectedLanguageModel,
             } satisfies AdditionalChatRequestParams,
         });
 
@@ -355,31 +356,38 @@ export const ChatThread = ({
                 }
             </ScrollArea>
             {!isChatReadonly && (
-                <div className="border rounded-md w-full max-w-3xl mx-auto mb-8 shadow-sm">
-                    <CustomSlateEditor>
-                        <ChatBox
-                            onSubmit={onSubmit}
-                            className="min-h-[80px]"
-                            preferredSuggestionsBoxPlacement="top-start"
-                            isGenerating={status === "streaming" || status === "submitted"}
-                            onStop={stop}
-                            languageModels={languageModels}
-                            selectedSearchScopes={selectedSearchScopes}
-                            searchContexts={searchContexts}
-                            onContextSelectorOpenChanged={setIsContextSelectorOpen}
-                        />
-                        <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
-                            <ChatBoxToolbar
+                <div className="w-full max-w-3xl mx-auto mb-8">
+                    {languageModels.length === 0 && (
+                        <NotConfiguredErrorBanner className="mb-2" />
+                    )}
+
+                    <div className="border rounded-md w-full shadow-sm">
+                        <CustomSlateEditor>
+                            <ChatBox
+                                onSubmit={onSubmit}
+                                className="min-h-[80px]"
+                                preferredSuggestionsBoxPlacement="top-start"
+                                isGenerating={status === "streaming" || status === "submitted"}
+                                onStop={stop}
                                 languageModels={languageModels}
-                                repos={repos}
-                                searchContexts={searchContexts}
                                 selectedSearchScopes={selectedSearchScopes}
-                                onSelectedSearchScopesChange={onSelectedSearchScopesChange}
-                                isContextSelectorOpen={isContextSelectorOpen}
+                                searchContexts={searchContexts}
                                 onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                                isDisabled={languageModels.length === 0}
                             />
-                        </div>
-                    </CustomSlateEditor>
+                            <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
+                                <ChatBoxToolbar
+                                    languageModels={languageModels}
+                                    repos={repos}
+                                    searchContexts={searchContexts}
+                                    selectedSearchScopes={selectedSearchScopes}
+                                    onSelectedSearchScopesChange={onSelectedSearchScopesChange}
+                                    isContextSelectorOpen={isContextSelectorOpen}
+                                    onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                                />
+                            </div>
+                        </CustomSlateEditor>
+                    </div>
                 </div>
             )}
         </>

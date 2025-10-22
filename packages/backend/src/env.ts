@@ -44,6 +44,7 @@ export const env = createEnv({
         LOGTAIL_TOKEN: z.string().optional(),
         LOGTAIL_HOST: z.string().url().optional(),
         SOURCEBOT_LOG_LEVEL: z.enum(["info", "debug", "warn", "error"]).default("info"),
+        DEBUG_ENABLE_GROUPMQ_LOGGING: booleanSchema.default('false'),
 
         DATABASE_URL: z.string().url().default("postgresql://postgres:postgres@localhost:5432/postgres"),
         CONFIG_PATH: z.string().optional(),

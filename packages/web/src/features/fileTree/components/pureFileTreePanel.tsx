@@ -4,7 +4,7 @@ import { FileTreeNode as RawFileTreeNode } from "../actions";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import React, { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { FileTreeItemComponent } from "./fileTreeItemComponent";
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
 import { useDomain } from "@/hooks/useDomain";
 
@@ -116,7 +116,7 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
                 })}
             </>
         );
-    }, [path]);
+    }, [domain, path, repoName, revisionName, setIsCollapsed]);
 
     const renderedTree = useMemo(() => renderTree(tree), [tree, renderTree]);
 
