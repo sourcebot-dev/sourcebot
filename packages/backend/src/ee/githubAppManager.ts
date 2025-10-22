@@ -49,8 +49,11 @@ export class GithubAppManager {
     public async init(db: PrismaClient) {
         this.db = db;
         const config = await loadConfig(env.CONFIG_PATH!);
-        const githubApps = config.apps?.filter(app => app.type === 'githubApp') as GithubAppConfig[];
+        if (!config.apps) {
+            return;
+        }
 
+        const githubApps = config.apps.filter(app => app.type === 'githubApp') as GithubAppConfig[];
         logger.info(`Found ${githubApps.length} GitHub apps in config`);
 
         for (const app of githubApps) {
