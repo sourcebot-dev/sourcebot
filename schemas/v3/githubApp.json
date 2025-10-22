@@ -9,14 +9,13 @@
         },
         "deploymentHostname": {
             "type": "string",
-            "format": "url",
+            "format": "hostname",
             "default": "github.com",
             "description": "The hostname of the GitHub App deployment.",
             "examples": [
                 "github.com",
                 "github.example.com"
-            ],
-            "pattern": "^[^\\s/$.?#].[^\\s]*$"
+            ]
         },
         "id": {
             "type": "string",
@@ -25,10 +24,6 @@
         "privateKey": {
             "$ref": "./shared.json#/definitions/Token",
             "description": "The private key of the GitHub App."
-        },
-        "privateKeyPath": {
-            "$ref": "./shared.json#/definitions/Token",
-            "description": "The path to the private key of the GitHub App."
         }
     },
     "required": [

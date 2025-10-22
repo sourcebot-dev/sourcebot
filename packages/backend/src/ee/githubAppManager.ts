@@ -71,25 +71,30 @@ export class GithubAppManager {
             logger.info(`Found ${installations.data.length} GitHub App installations for ${deploymentHostname}/${app.id}:`);
 
             for (const installationData of installations.data) {
-                logger.info(`\tInstallation ID: ${installationData.id}, Account: ${installationData.account?.login}, Type: ${installationData.account?.type}`);
+                if (!installationData.account || !installationData.account.login || !installationData.account.type) {
+                    logger.warn(`Skipping installation ${installationData.id}: missing account data (${installationData.account})`);
+                    continue;
+                }
+
+                logger.info(`\tInstallation ID: ${installationData.id}, Account: ${installationData.account.login}, Type: ${installationData.account.type}`);
                 
-                    const owner = installationData.account?.login!;
-                    const accountType = installationData.account?.type!.toLowerCase() as 'organization' | 'user';
-                    const installationOctokit = await octokitApp.getInstallationOctokit(installationData.id);
-                    const auth = await installationOctokit.auth({ type: "installation" }) as { expires_at: string, token: string };
-                    
-                    const installation: Installation = {
-                        id: installationData.id,
-                        appId: Number(app.id),
-                        account: {
-                            login: owner,
-                            type: accountType,
-                        },
-                        createdAt: installationData.created_at,
-                        expiresAt: auth.expires_at,
-                        token: auth.token
-                    };
-                    this.installationMap.set(this.generateMapKey(owner, deploymentHostname), installation);
+                const owner = installationData.account.login;
+                const accountType = installationData.account.type.toLowerCase() as 'organization' | 'user';
+                const installationOctokit = await octokitApp.getInstallationOctokit(installationData.id);
+                const auth = await installationOctokit.auth({ type: "installation" }) as { expires_at: string, token: string };
+                
+                const installation: Installation = {
+                    id: installationData.id,
+                    appId: Number(app.id),
+                    account: {
+                        login: owner,
+                        type: accountType,
+                    },
+                    createdAt: installationData.created_at,
+                    expiresAt: auth.expires_at,
+                    token: auth.token
+                };
+                this.installationMap.set(this.generateMapKey(owner, deploymentHostname), installation);
             }
         }
         

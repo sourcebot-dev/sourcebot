@@ -10,14 +10,13 @@ const schema = {
     },
     "deploymentHostname": {
       "type": "string",
-      "format": "url",
+      "format": "hostname",
       "default": "github.com",
       "description": "The hostname of the GitHub App deployment.",
       "examples": [
         "github.com",
         "github.example.com"
-      ],
-      "pattern": "^[^\\s/$.?#].[^\\s]*$"
+      ]
     },
     "id": {
       "type": "string",
@@ -25,37 +24,6 @@ const schema = {
     },
     "privateKey": {
       "description": "The private key of the GitHub App.",
-      "anyOf": [
-        {
-          "type": "object",
-          "properties": {
-            "secret": {
-              "type": "string",
-              "description": "The name of the secret that contains the token."
-            }
-          },
-          "required": [
-            "secret"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "env": {
-              "type": "string",
-              "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
-            }
-          },
-          "required": [
-            "env"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "privateKeyPath": {
-      "description": "The path to the private key of the GitHub App.",
       "anyOf": [
         {
           "type": "object",
