@@ -118,6 +118,13 @@
             "items": {
                 "$ref": "./languageModel.json"
             }
+        },
+        "apps": {
+            "type": "array",
+            "description": "Defines a collection of apps that are available to Sourcebot.",
+            "items": {
+                "$ref": "./app.json"
+            }
         }
     },
     "additionalProperties": false

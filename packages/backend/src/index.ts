@@ -10,6 +10,7 @@ import { ConnectionManager } from './connectionManager.js';
 import { DEFAULT_SETTINGS, INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { UserPermissionSyncer } from "./ee/userPermissionSyncer.js";
+import { GithubAppManager } from "./ee/githubAppManager.js";
 import { env } from "./env.js";
 import { RepoIndexManager } from "./repoIndexManager.js";
 import { PromClient } from './promClient.js';
@@ -57,6 +58,11 @@ redis.ping().then(() => {
 const promClient = new PromClient();
 
 const settings = await getSettings(env.CONFIG_PATH);
+
+
+if (hasEntitlement('github-app')) {
+    await GithubAppManager.getInstance().init(prisma);
+}
 
 const connectionManager = new ConnectionManager(prisma, settings, redis);
 const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);

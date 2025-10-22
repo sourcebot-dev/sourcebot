@@ -25,6 +25,10 @@ export type LanguageModel =
   | OpenAICompatibleLanguageModel
   | OpenRouterLanguageModel
   | XaiLanguageModel;
+export type AppConfig = GithubAppConfig;
+export type GithubAppConfig = {
+  [k: string]: unknown;
+};
 
 export interface SourcebotConfig {
   $schema?: string;
@@ -45,6 +49,10 @@ export interface SourcebotConfig {
    * Defines a collection of language models that are available to Sourcebot.
    */
   models?: LanguageModel[];
+  /**
+   * Defines a collection of apps that are available to Sourcebot.
+   */
+  apps?: AppConfig[];
 }
 /**
  * Defines the global settings for Sourcebot.

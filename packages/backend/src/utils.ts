@@ -6,6 +6,8 @@ import { getTokenFromConfig as getTokenFromConfigBase } from "@sourcebot/crypto"
 import { BackendException, BackendError } from "@sourcebot/error";
 import * as Sentry from "@sentry/node";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
+import { GithubAppManager } from "./ee/githubAppManager.js";
+import { hasEntitlement } from "@sourcebot/shared";
 import { REPOS_CACHE_DIR } from "./constants.js";
 
 export const measure = async <T>(cb: () => Promise<T>) => {
@@ -126,6 +128,28 @@ export const fetchWithRetry = async <T>(
 // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
 // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
 export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: PrismaClient, logger?: Logger): Promise<RepoAuthCredentials | undefined> => {
+    // If we have github apps configured we assume that we must use them for github service auth
+    if (repo.external_codeHostType === 'github' && hasEntitlement('github-app') && GithubAppManager.getInstance().appsConfigured()) {
+        const owner = repo.displayName?.split('/')[0];
+        const deploymentHostname = new URL(repo.external_codeHostUrl).hostname;
+        if (!owner || !deploymentHostname) {
+            throw new Error(`Failed to fetch GitHub App for repo ${repo.displayName}:Invalid repo displayName (${repo.displayName}) or deployment hostname (${deploymentHostname})`);
+        }
+
+        const token = await GithubAppManager.getInstance().getInstallationToken(owner, deploymentHostname);
+        return {
+            hostUrl: repo.external_codeHostUrl,
+            token,
+            cloneUrlWithToken: createGitCloneUrlWithToken(
+                repo.cloneUrl,
+                {
+                    username: 'x-access-token',
+                    password: token
+                }
+            ),
+        }
+    }
+
     for (const { connection } of repo.connections) {
         if (connection.connectionType === 'github') {
             const config = connection.config as unknown as GithubConnectionConfig;

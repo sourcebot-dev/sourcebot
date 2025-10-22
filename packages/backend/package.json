@@ -24,6 +24,7 @@
     "dependencies": {
         "@coderabbitai/bitbucket": "^1.1.3",
         "@gitbeaker/rest": "^40.5.1",
+        "@octokit/app": "^16.1.1",
         "@octokit/rest": "^21.0.2",
         "@sentry/cli": "^2.42.2",
         "@sentry/node": "^9.3.0",
