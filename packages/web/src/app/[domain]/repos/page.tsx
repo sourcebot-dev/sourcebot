@@ -1,65 +1,49 @@
-import { env } from "@/env.mjs";
-import { RepoIndexingJob } from "@sourcebot/db";
-import { Header } from "../components/header";
-import { RepoStatus } from "./columns";
-import { RepositoryTable } from "./repositoryTable";
 import { sew } from "@/actions";
-import { withOptionalAuthV2 } from "@/withAuthV2";
-import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
+import { isServiceError } from "@/lib/utils";
+import { withOptionalAuthV2 } from "@/withAuthV2";
+import { ReposTable } from "./components/repos-table";
 
-function getRepoStatus(repo: { indexedAt: Date | null, jobs: RepoIndexingJob[] }): RepoStatus {
-    const latestJob = repo.jobs[0];
-    
-    if (latestJob?.status === 'PENDING' || latestJob?.status === 'IN_PROGRESS') {
-        return 'syncing';
-    }
-    
-    return repo.indexedAt ? 'indexed' : 'not-indexed';
-}
+export default async function ReposPage() {
 
-export default async function ReposPage(props: { params: Promise<{ domain: string }> }) {
-    const params = await props.params;
-
-    const {
-        domain
-    } = params;
-
-    const repos = await getReposWithJobs();
+    const repos = await getReposWithLatestJob();
     if (isServiceError(repos)) {
         throw new ServiceErrorException(repos);
     }
 
     return (
-        <div>
-            <Header>
-                <h1 className="text-3xl">Repositories</h1>
-            </Header>
-            <div className="px-6 py-6">
-                <RepositoryTable 
-                    repos={repos.map((repo) => ({
-                        repoId: repo.id,
-                        repoName: repo.name,
-                        repoDisplayName: repo.displayName ?? repo.name,
-                        imageUrl: repo.imageUrl ?? undefined,
-                        indexedAt: repo.indexedAt ?? undefined,
-                        status: getRepoStatus(repo),
-                    }))}
-                    domain={domain}
-                    isAddReposButtonVisible={env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED === 'true'}
-                />
+        <div className="container mx-auto py-10">
+            <div className="mb-6">
+                <h1 className="text-3xl font-semibold">Repositories</h1>
+                <p className="text-muted-foreground mt-2">View and manage your code repositories and their indexing status.</p>
             </div>
+            <ReposTable data={repos.map((repo) => ({
+                id: repo.id,
+                name: repo.name,
+                displayName: repo.displayName ?? repo.name,
+                isArchived: repo.isArchived,
+                isPublic: repo.isPublic,
+                indexedAt: repo.indexedAt,
+                createdAt: repo.createdAt,
+                webUrl: repo.webUrl,
+                imageUrl: repo.imageUrl,
+                latestJobStatus: repo.jobs.length > 0 ? repo.jobs[0].status : null
+            }))} />
         </div>
     )
 }
 
-const getReposWithJobs = async () => sew(() =>
+const getReposWithLatestJob = async () => sew(() =>
     withOptionalAuthV2(async ({ prisma }) => {
         const repos = await prisma.repo.findMany({
             include: {
-                jobs: true,
+                jobs: {
+                    orderBy: {
+                        createdAt: 'desc'
+                    },
+                    take: 1
+                }
             }
         });
-
         return repos;
     }));

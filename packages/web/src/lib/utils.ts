@@ -17,6 +17,7 @@ import { ErrorCode } from "./errorCodes";
 import { NextRequest } from "next/server";
 import { Org } from "@sourcebot/db";
 import { OrgMetadata, orgMetadataSchema } from "@/types";
+import { SINGLE_TENANT_ORG_DOMAIN } from "./constants";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -440,7 +441,7 @@ export const measure = async <T>(cb: () => Promise<T>, measureName: string, outp
 export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>): Promise<T> => {    
     const data = await promise;
     if (isServiceError(data)) {
-        throw new Error(data.message);
+        throw new Error(data);
     }
 
     return data;
@@ -458,7 +459,7 @@ export const requiredQueryParamGuard = (request: NextRequest, param: string): Se
     return value;
 }
 
-export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, domain: string): string | undefined => {
+export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number): string | undefined => {
     if (!imageUrl) return undefined;
     
     try {
@@ -478,7 +479,7 @@ export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, do
             return imageUrl;
         } else {
             // Use the proxied route for self-hosted instances
-            return `/api/${domain}/repos/${repoId}/image`;
+            return `/api/${SINGLE_TENANT_ORG_DOMAIN}/repos/${repoId}/image`;
         }
     } catch {
         // If URL parsing fails, use the original URL
