@@ -1,18 +1,21 @@
-import { Suspense } from "react"
-import { notFound } from "next/navigation"
-import Link from "next/link"
-import { ChevronLeft, ExternalLink } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { sew } from "@/actions"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { RepoJobsTable } from "../components/repoJobsTable"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { sew } from "@/actions"
-import { withOptionalAuthV2 } from "@/withAuthV2"
 import { ServiceErrorException } from "@/lib/serviceError"
 import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils"
+import { withOptionalAuthV2 } from "@/withAuthV2"
+import { ChevronLeft, ExternalLink, Info } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import { Suspense } from "react"
+import { RepoJobsTable } from "../components/repoJobsTable"
+import { getConfigSettings } from "@sourcebot/shared"
+import { env } from "@/env.mjs"
 
 function formatDate(date: Date | null) {
     if (!date) return "Never"
@@ -38,6 +41,21 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
         displayName: repo.displayName ?? undefined,
         webUrl: repo.webUrl ?? undefined,
     });
+
+    const configSettings = await getConfigSettings(env.CONFIG_PATH);
+
+    const nextIndexAttempt = (() => {
+        const latestJob = repo.jobs.length > 0 ? repo.jobs[0] : null;
+        if (!latestJob) {
+            return undefined;
+        }
+
+        if (latestJob.completedAt) {
+            return new Date(latestJob.completedAt.getTime() + configSettings.reindexIntervalMs);
+        }
+
+        return undefined;
+    })();
 
     return (
         <div className="container mx-auto">
@@ -78,16 +96,17 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
             <div className="grid gap-4 md:grid-cols-3 mb-8">
                 <Card>
                     <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">Last Indexed</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-semibold">{repo.indexedAt ? formatDate(repo.indexedAt) : "Never"}</div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">Created</CardTitle>
+                        <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                            Created
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>When this repository was first added to Sourcebot</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-semibold">{formatDate(repo.createdAt)}</div>
@@ -96,10 +115,39 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
 
                 <Card>
                     <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">Last Updated</CardTitle>
+                        <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                            Last indexed
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>The last time this repository was successfully indexed</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-semibold">{formatDate(repo.updatedAt)}</div>
+                        <div className="text-2xl font-semibold">{repo.indexedAt ? formatDate(repo.indexedAt) : "Never"}</div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                            Scheduled
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>When the next indexing job is scheduled to run</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-semibold">{nextIndexAttempt ? formatDate(nextIndexAttempt) : "-"}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -127,8 +175,12 @@ const getRepoWithJobs = async (repoId: number) => sew(() =>
                 id: repoId,
             },
             include: {
-                jobs: true,
-            }
+                jobs: {
+                    orderBy: {
+                        createdAt: 'desc'
+                    },
+                }
+            },
         });
 
         if (!repo) {

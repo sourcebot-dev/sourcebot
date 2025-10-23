@@ -18,10 +18,13 @@ import {
     useReactTable,
 } from "@tanstack/react-table"
 import { cva } from "class-variance-authority"
-import { AlertCircle, ArrowUpDown } from "lucide-react"
+import { AlertCircle, ArrowUpDown, RefreshCwIcon } from "lucide-react"
 import * as React from "react"
 import { CopyIconButton } from "../../components/copyIconButton"
 import { useMemo } from "react"
+import { LightweightCodeHighlighter } from "../../components/lightweightCodeHighlighter"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/components/hooks/use-toast"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -107,8 +110,14 @@ export const columns: ColumnDef<RepoIndexingJob>[] = [
                                 <TooltipTrigger>
                                     <AlertCircle className="h-4 w-4 text-destructive" />
                                 </TooltipTrigger>
-                                <TooltipContent className="max-w-sm">
-                                    <p className="text-sm">{job.errorMessage}</p>
+                                <TooltipContent className="max-w-[750px] max-h-96 overflow-scroll">
+                                    <LightweightCodeHighlighter
+                                        language="text"
+                                        lineNumbers={true}
+                                        renderWhitespace={false}
+                                    >
+                                        {job.errorMessage}
+                                    </LightweightCodeHighlighter>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -174,6 +183,8 @@ export const RepoJobsTable = ({ data }: { data: RepoIndexingJob[] }) => {
     const [sorting, setSorting] = React.useState<SortingState>([{ id: "createdAt", desc: true }])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+    const router = useRouter();
+    const { toast } = useToast();
 
     const table = useReactTable({
         data,
@@ -238,6 +249,20 @@ export const RepoJobsTable = ({ data }: { data: RepoIndexingJob[] }) => {
                         <SelectItem value="CLEANUP">Cleanup</SelectItem>
                     </SelectContent>
                 </Select>
+
+                <Button
+                    variant="outline"
+                    className="ml-auto"
+                    onClick={() => {
+                        router.refresh();
+                        toast({
+                            description: "Page refreshed",
+                        });
+                    }}
+                >
+                    <RefreshCwIcon className="w-3 h-3" />
+                    Refresh
+                </Button>
             </div>
 
             <div className="rounded-md border">

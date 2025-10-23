@@ -28,11 +28,13 @@ import {
     useReactTable,
 } from "@tanstack/react-table"
 import { cva } from "class-variance-authority"
-import { ArrowUpDown, ExternalLink, MoreHorizontal } from "lucide-react"
+import { ArrowUpDown, ExternalLink, MoreHorizontal, RefreshCwIcon } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { getBrowsePath } from "../../browse/hooks/utils"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/components/hooks/use-toast";
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -193,6 +195,8 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = useState({})
+    const router = useRouter();
+    const { toast } = useToast();
 
     const {
         numCompleted,
@@ -256,6 +260,19 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
                         <SelectItem value="null">No status ({numNoJobs})</SelectItem>
                     </SelectContent>
                 </Select>
+                <Button
+                    variant="outline"
+                    className="ml-auto"
+                    onClick={() => {
+                        router.refresh();
+                        toast({
+                            description: "Page refreshed",
+                        });
+                    }}
+                >
+                    <RefreshCwIcon className="w-3 h-3" />
+                    Refresh
+                </Button>
             </div>
             <div className="rounded-md border">
                 <Table>
