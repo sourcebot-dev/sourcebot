@@ -21,6 +21,9 @@ import { cva } from "class-variance-authority"
 import { AlertCircle, ArrowUpDown } from "lucide-react"
 import * as React from "react"
 import { CopyIconButton } from "../../components/copyIconButton"
+import { useMemo } from "react"
+
+// @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
 export type RepoIndexingJob = {
     id: string
@@ -189,6 +192,20 @@ export const RepoJobsTable = ({ data }: { data: RepoIndexingJob[] }) => {
         },
     })
 
+    const {
+        numCompleted,
+        numInProgress,
+        numPending,
+        numFailed,
+    } = useMemo(() => {
+        return {
+            numCompleted: data.filter((job) => job.status === "COMPLETED").length,
+            numInProgress: data.filter((job) => job.status === "IN_PROGRESS").length,
+            numPending: data.filter((job) => job.status === "PENDING").length,
+            numFailed: data.filter((job) => job.status === "FAILED").length,
+        };
+    }, [data]);
+
     return (
         <div className="w-full">
             <div className="flex items-center gap-4 py-4">
@@ -200,11 +217,11 @@ export const RepoJobsTable = ({ data }: { data: RepoIndexingJob[] }) => {
                         <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        <SelectItem value="PENDING">Pending</SelectItem>
-                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                        <SelectItem value="COMPLETED">Completed</SelectItem>
-                        <SelectItem value="FAILED">Failed</SelectItem>
+                        <SelectItem value="all">Filter by status</SelectItem>
+                        <SelectItem value="COMPLETED">Completed ({numCompleted})</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In progress ({numInProgress})</SelectItem>
+                        <SelectItem value="PENDING">Pending ({numPending})</SelectItem>
+                        <SelectItem value="FAILED">Failed ({numFailed})</SelectItem>
                     </SelectContent>
                 </Select>
 

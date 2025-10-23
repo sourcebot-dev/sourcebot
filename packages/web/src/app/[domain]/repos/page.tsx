@@ -2,7 +2,7 @@ import { sew } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
-import { ReposTable } from "./components/repos-table";
+import { ReposTable } from "./components/reposTable";
 
 export default async function ReposPage() {
 
@@ -27,7 +27,8 @@ export default async function ReposPage() {
                 createdAt: repo.createdAt,
                 webUrl: repo.webUrl,
                 imageUrl: repo.imageUrl,
-                latestJobStatus: repo.jobs.length > 0 ? repo.jobs[0].status : null
+                latestJobStatus: repo.jobs.length > 0 ? repo.jobs[0].status : null,
+                codeHostType: repo.external_codeHostType,
             }))} />
         </div>
     )

@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { getRepoImageSrc } from "@/lib/utils"
+import { getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -31,7 +31,10 @@ import { cva } from "class-variance-authority"
 import { ArrowUpDown, ExternalLink, MoreHorizontal } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import * as React from "react"
+import { useMemo, useState } from "react"
+import { getBrowsePath } from "../../browse/hooks/utils"
+
+// @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
 export type Repo = {
     id: number
@@ -42,6 +45,7 @@ export type Repo = {
     indexedAt: Date | null
     createdAt: Date
     webUrl: string | null
+    codeHostType: string
     imageUrl: string | null
     latestJobStatus: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | null
 }
@@ -112,7 +116,12 @@ export const columns: ColumnDef<Repo>[] = [
                             {repo.displayName?.charAt(0) ?? repo.name.charAt(0)}
                         </div>
                     )}
-                    <Link href={`/repos/${repo.id}`} className="font-medium hover:underline">
+                    <Link href={getBrowsePath({
+                        repoName: repo.name,
+                        path: '/',
+                        pathType: 'tree',
+                        domain: SINGLE_TENANT_ORG_DOMAIN,
+                    })} className="font-medium hover:underline">
                         {repo.displayName || repo.name}
                     </Link>
                 </div>
@@ -141,6 +150,12 @@ export const columns: ColumnDef<Repo>[] = [
         enableHiding: false,
         cell: ({ row }) => {
             const repo = row.original
+            const codeHostInfo = getCodeHostInfoForRepo({
+                codeHostType: repo.codeHostType,
+                name: repo.name,
+                displayName: repo.displayName ?? undefined,
+                webUrl: repo.webUrl ?? undefined,
+            });
 
             return (
                 <DropdownMenu>
@@ -155,12 +170,12 @@ export const columns: ColumnDef<Repo>[] = [
                         <DropdownMenuItem asChild>
                             <Link href={`/${SINGLE_TENANT_ORG_DOMAIN}/repos/${repo.id}`}>View details</Link>
                         </DropdownMenuItem>
-                        {repo.webUrl && (
+                        {(repo.webUrl && codeHostInfo) && (
                             <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild>
                                     <a href={repo.webUrl} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                        Open in GitHub
+                                        Open in {codeHostInfo.codeHostName}
                                         <ExternalLink className="ml-2 h-3 w-3" />
                                     </a>
                                 </DropdownMenuItem>
@@ -174,10 +189,26 @@ export const columns: ColumnDef<Repo>[] = [
 ]
 
 export const ReposTable = ({ data }: { data: Repo[] }) => {
-    const [sorting, setSorting] = React.useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-    const [rowSelection, setRowSelection] = React.useState({})
+    const [sorting, setSorting] = useState<SortingState>([])
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+    const [rowSelection, setRowSelection] = useState({})
+
+    const {
+        numCompleted,
+        numInProgress,
+        numPending,
+        numFailed,
+        numNoJobs,
+    } = useMemo(() => {
+        return {
+            numCompleted: data.filter((repo) => repo.latestJobStatus === "COMPLETED").length,
+            numInProgress: data.filter((repo) => repo.latestJobStatus === "IN_PROGRESS").length,
+            numPending: data.filter((repo) => repo.latestJobStatus === "PENDING").length,
+            numFailed: data.filter((repo) => repo.latestJobStatus === "FAILED").length,
+            numNoJobs: data.filter((repo) => repo.latestJobStatus === null).length,
+        }
+    }, [data]);
 
     const table = useReactTable({
         data,
@@ -217,12 +248,12 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
                         <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="COMPLETED">Completed</SelectItem>
-                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                        <SelectItem value="PENDING">Pending</SelectItem>
-                        <SelectItem value="FAILED">Failed</SelectItem>
-                        <SelectItem value="null">No Jobs</SelectItem>
+                        <SelectItem value="all">Filter by status</SelectItem>
+                        <SelectItem value="COMPLETED">Completed ({numCompleted})</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In progress ({numInProgress})</SelectItem>
+                        <SelectItem value="PENDING">Pending ({numPending})</SelectItem>
+                        <SelectItem value="FAILED">Failed ({numFailed})</SelectItem>
+                        <SelectItem value="null">No status ({numNoJobs})</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
