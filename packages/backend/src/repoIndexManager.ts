@@ -126,7 +126,7 @@ export class RepoIndexManager {
                                                 {
                                                     AND: [
                                                         { status: RepoIndexingJobStatus.FAILED },
-                                                        { completedAt: { gt: timeoutDate } },
+                                                        { completedAt: { gt: thresholdDate } },
                                                     ]
                                                 }
                                             ]
