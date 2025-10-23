@@ -40,7 +40,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
     });
 
     return (
-        <div className="container mx-auto py-10">
+        <div className="container mx-auto">
             <div className="mb-6">
                 <Button variant="ghost" asChild className="mb-4">
                     <Link href={`/${SINGLE_TENANT_ORG_DOMAIN}/repos`}>

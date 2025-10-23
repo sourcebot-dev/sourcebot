@@ -12,7 +12,7 @@ export default async function ReposPage() {
     }
 
     return (
-        <div className="container mx-auto py-10">
+        <div className="container mx-auto">
             <div className="mb-6">
                 <h1 className="text-3xl font-semibold">Repositories</h1>
                 <p className="text-muted-foreground mt-2">View and manage your code repositories and their indexing status.</p>
