@@ -14,6 +14,7 @@ export {
     loadConfig,
     loadJsonFile,
     isRemotePath,
+    getConfigSettings,
 } from "./utils.js";
 export {
     syncSearchContexts,
