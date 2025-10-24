@@ -155,8 +155,8 @@ export const columns: ColumnDef<Repo>[] = [
     },
     {
         accessorKey: "indexedCommitHash",
-        size: 120,
-        header: "Last commit",
+        size: 150,
+        header: "Synced commit",
         cell: ({ row }) => {
             const hash = row.getValue("indexedCommitHash") as string | null;
             if (!hash) {
