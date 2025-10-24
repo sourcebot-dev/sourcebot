@@ -7,7 +7,7 @@ import { Job, Queue, ReservedJob, Worker } from "groupmq";
 import { Redis } from 'ioredis';
 import { INDEX_CACHE_DIR } from './constants.js';
 import { env } from './env.js';
-import { cloneRepository, fetchRepository, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
+import { cloneRepository, fetchRepository, getCommitHashForRefName, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
 import { PromClient } from './promClient.js';
 import { repoMetadataSchema, RepoWithConnections, Settings } from "./types.js";
 import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, groupmqLifecycleExceptionWrapper, measure } from './utils.js';
@@ -384,16 +384,26 @@ export class RepoIndexManager {
                 data: {
                     status: RepoIndexingJobStatus.COMPLETED,
                     completedAt: new Date(),
+                },
+                include: {
+                    repo: true,
                 }
             });
 
             const jobTypeLabel = getJobTypePrometheusLabel(jobData.type);
 
             if (jobData.type === RepoIndexingJobType.INDEX) {
+                const { path: repoPath } = getRepoPath(jobData.repo);
+                const commitHash = await getCommitHashForRefName({
+                    path: repoPath,
+                    refName: 'HEAD',
+                });
+                
                 const repo = await this.db.repo.update({
                     where: { id: jobData.repoId },
                     data: {
                         indexedAt: new Date(),
+                        indexedCommitHash: commitHash,
                     }
                 });
 

@@ -29,6 +29,7 @@ export default async function ReposPage() {
                 imageUrl: repo.imageUrl,
                 latestJobStatus: repo.jobs.length > 0 ? repo.jobs[0].status : null,
                 codeHostType: repo.external_codeHostType,
+                indexedCommitHash: repo.indexedCommitHash,
             }))} />
         </div>
     )
@@ -44,6 +45,9 @@ const getReposWithLatestJob = async () => sew(() =>
                     },
                     take: 1
                 }
+            },
+            orderBy: {
+                name: 'asc'
             }
         });
         return repos;

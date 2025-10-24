@@ -19,7 +19,7 @@ import {
     VscSymbolVariable
 } from "react-icons/vsc";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
-import { getDisplayTime, isServiceError, unwrapServiceError } from "@/lib/utils";
+import { getFormattedDate, isServiceError, unwrapServiceError } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 
 
@@ -139,7 +139,7 @@ export const useSuggestionsData = ({
     const searchHistorySuggestions = useMemo(() => {
         return searchHistory.map(search => ({
             value: search.query,
-            description: getDisplayTime(new Date(search.date)),
+            description: getFormattedDate(new Date(search.date)),
         } satisfies Suggestion));
     }, [searchHistory]);
 

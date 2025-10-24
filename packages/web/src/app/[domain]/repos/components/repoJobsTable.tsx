@@ -25,6 +25,7 @@ import { useMemo } from "react"
 import { LightweightCodeHighlighter } from "../../components/lightweightCodeHighlighter"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast"
+import { DisplayDate } from "../../components/DisplayDate"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -66,17 +67,6 @@ const getTypeBadge = (type: RepoIndexingJob["type"]) => {
             {type}
         </Badge>
     )
-}
-
-const formatDate = (date: Date | null) => {
-    if (!date) return "-"
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    }).format(date)
 }
 
 const getDuration = (start: Date, end: Date | null) => {
@@ -139,7 +129,7 @@ export const columns: ColumnDef<RepoIndexingJob>[] = [
                 </Button>
             )
         },
-        cell: ({ row }) => formatDate(row.getValue("createdAt")),
+        cell: ({ row }) => <DisplayDate date={row.getValue("createdAt") as Date} className="ml-3"/>,
     },
     {
         accessorKey: "completedAt",
@@ -151,7 +141,14 @@ export const columns: ColumnDef<RepoIndexingJob>[] = [
                 </Button>
             )
         },
-        cell: ({ row }) => formatDate(row.getValue("completedAt")),
+        cell: ({ row }) => {
+            const completedAt = row.getValue("completedAt") as Date | null;
+            if (!completedAt) {
+                return "-";
+            }
+
+            return <DisplayDate date={completedAt} className="ml-3"/>
+        },
     },
     {
         id: "duration",

@@ -320,6 +320,38 @@ export const getCodeHostIcon = (codeHostType: string): { src: string, className?
     }
 }
 
+export const getCodeHostCommitUrl = ({
+    webUrl,
+    codeHostType,
+    commitHash,
+}: {
+    webUrl?: string | null,
+    codeHostType: CodeHostType,
+    commitHash: string,
+}) => {
+    if (!webUrl) {
+        return undefined;
+    }
+
+    switch (codeHostType) {
+        case 'github':
+            return `${webUrl}/commit/${commitHash}`;
+        case 'gitlab':
+            return `${webUrl}/-/commit/${commitHash}`;
+        case 'gitea':
+            return `${webUrl}/commit/${commitHash}`;
+        case 'azuredevops':
+            return `${webUrl}/commit/${commitHash}`;
+        case 'bitbucket-cloud':
+            return `${webUrl}/commits/${commitHash}`;
+        case 'bitbucket-server':
+            return `${webUrl}/commits/${commitHash}`;
+        case 'gerrit':
+        case 'generic-git-host':
+            return undefined;
+    }
+}
+
 export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean => {
     switch (codeHostType) {
         case "github":
@@ -348,32 +380,38 @@ export const isDefined = <T>(arg: T | null | undefined): arg is T extends null |
     return arg !== null && arg !== undefined;
 }
 
-export const getDisplayTime = (date: Date) => {
+export const getFormattedDate = (date: Date) => {
     const now = new Date();
-    const minutes = (now.getTime() - date.getTime()) / (1000 * 60);
+    const diffMinutes = (now.getTime() - date.getTime()) / (1000 * 60);
+    const isFuture = diffMinutes < 0;
+    
+    // Use absolute values for calculations
+    const minutes = Math.abs(diffMinutes);
     const hours = minutes / 60;
     const days = hours / 24;
     const months = days / 30;
 
-    const formatTime = (value: number, unit: 'minute' | 'hour' | 'day' | 'month') => {
+    const formatTime = (value: number, unit: 'minute' | 'hour' | 'day' | 'month', isFuture: boolean) => {
         const roundedValue = Math.floor(value);
-        if (roundedValue < 2) {
-            return `${roundedValue} ${unit} ago`;
+        const pluralUnit = roundedValue === 1 ? unit : `${unit}s`;
+        
+        if (isFuture) {
+            return `In ${roundedValue} ${pluralUnit}`;
         } else {
-            return `${roundedValue} ${unit}s ago`;
+            return `${roundedValue} ${pluralUnit} ago`;
         }
     }
 
     if (minutes < 1) {
         return 'just now';
     } else if (minutes < 60) {
-        return formatTime(minutes, 'minute');
+        return formatTime(minutes, 'minute', isFuture);
     } else if (hours < 24) {
-        return formatTime(hours, 'hour');
+        return formatTime(hours, 'hour', isFuture);
     } else if (days < 30) {
-        return formatTime(days, 'day');
+        return formatTime(days, 'day', isFuture);
     } else {
-        return formatTime(months, 'month');
+        return formatTime(months, 'month', isFuture);
     }
 }
 

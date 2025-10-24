@@ -16,17 +16,7 @@ import { Suspense } from "react"
 import { RepoJobsTable } from "../components/repoJobsTable"
 import { getConfigSettings } from "@sourcebot/shared"
 import { env } from "@/env.mjs"
-
-function formatDate(date: Date | null) {
-    if (!date) return "Never"
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    }).format(date)
-}
+import { DisplayDate } from "../../components/DisplayDate"
 
 export default async function RepoDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -109,7 +99,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-semibold">{formatDate(repo.createdAt)}</div>
+                        <DisplayDate date={repo.createdAt} className="text-2xl font-semibold"/>
                     </CardContent>
                 </Card>
 
@@ -128,7 +118,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-semibold">{repo.indexedAt ? formatDate(repo.indexedAt) : "Never"}</div>
+                        {repo.indexedAt ? <DisplayDate date={repo.indexedAt} className="text-2xl font-semibold"/> : "Never" }
                     </CardContent>
                 </Card>
 
@@ -147,7 +137,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-semibold">{nextIndexAttempt ? formatDate(nextIndexAttempt) : "-"}</div>
+                        {nextIndexAttempt ? <DisplayDate date={nextIndexAttempt} className="text-2xl font-semibold"/> : "-" }
                     </CardContent>
                 </Card>
             </div>

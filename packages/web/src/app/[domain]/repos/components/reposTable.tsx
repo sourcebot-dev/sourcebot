@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
+import { CodeHostType, getCodeHostCommitUrl, getCodeHostInfoForRepo, getFormattedDate, getRepoImageSrc } from "@/lib/utils"
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -35,6 +35,7 @@ import { useMemo, useState } from "react"
 import { getBrowsePath } from "../../browse/hooks/utils"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast";
+import { DisplayDate } from "../../components/DisplayDate"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -49,6 +50,7 @@ export type Repo = {
     webUrl: string | null
     codeHostType: string
     imageUrl: string | null
+    indexedCommitHash: string | null
     latestJobStatus: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | null
 }
 
@@ -81,13 +83,7 @@ const getStatusBadge = (status: Repo["latestJobStatus"]) => {
 
 const formatDate = (date: Date | null) => {
     if (!date) return "Never"
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    }).format(date)
+    return getFormattedDate(date);
 }
 
 export const columns: ColumnDef<Repo>[] = [
@@ -132,20 +128,64 @@ export const columns: ColumnDef<Repo>[] = [
     },
     {
         accessorKey: "latestJobStatus",
-        header: "Status",
+        header: "Lastest status",
         cell: ({ row }) => getStatusBadge(row.getValue("latestJobStatus")),
     },
     {
         accessorKey: "indexedAt",
         header: ({ column }) => {
             return (
-                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-                    Last Indexed
+                <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                >
+                    Last synced
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             )
         },
-        cell: ({ row }) => formatDate(row.getValue("indexedAt")),
+        cell: ({ row }) => {
+            const indexedAt = row.getValue("indexedAt") as Date | null;
+            if (!indexedAt) {
+                return "-";
+            }
+
+            return (
+                <DisplayDate date={indexedAt} className="ml-3"/>
+            )
+        }
+    },
+    {
+        accessorKey: "indexedCommitHash",
+        header: "Last commit",
+        cell: ({ row }) => {
+            const hash = row.getValue("indexedCommitHash") as string | null;
+            if (!hash) {
+                return "-";
+            }
+
+            const smallHash = hash.slice(0, 7);
+            const repo = row.original;
+            const codeHostType = repo.codeHostType as CodeHostType;
+            const webUrl = repo.webUrl;
+
+            const commitUrl = getCodeHostCommitUrl({
+                webUrl,
+                codeHostType,
+                commitHash: hash,
+            });
+
+            if (!commitUrl) {
+                return <span className="font-mono text-sm">{smallHash}</span>
+            }
+
+            return <Link
+                href={commitUrl}
+                className="font-mono text-sm text-link hover:underline"
+            >
+                {smallHash}
+            </Link>
+        },
     },
     {
         id: "actions",

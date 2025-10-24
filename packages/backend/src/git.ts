@@ -269,3 +269,15 @@ export const getTags = async (path: string) => {
     const tags = await git.tags();
     return tags.all;
 }
+
+export const getCommitHashForRefName = async ({
+    path,
+    refName,
+}: {
+    path: string,
+    refName: string,
+}) => {
+    const git = createGitClientForPath(path);
+    const rev = await git.revparse(refName);
+    return rev;
+}
