@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { CodeHostType, getCodeHostCommitUrl, getCodeHostInfoForRepo, getFormattedDate, getRepoImageSrc } from "@/lib/utils"
+import { CodeHostType, getCodeHostCommitUrl, getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -81,14 +81,10 @@ const getStatusBadge = (status: Repo["latestJobStatus"]) => {
     return <Badge className={statusBadgeVariants({ status })}>{labels[status]}</Badge>
 }
 
-const formatDate = (date: Date | null) => {
-    if (!date) return "Never"
-    return getFormattedDate(date);
-}
-
 export const columns: ColumnDef<Repo>[] = [
     {
         accessorKey: "displayName",
+        size: 400,
         header: ({ column }) => {
             return (
                 <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -128,11 +124,13 @@ export const columns: ColumnDef<Repo>[] = [
     },
     {
         accessorKey: "latestJobStatus",
+        size: 150,
         header: "Lastest status",
         cell: ({ row }) => getStatusBadge(row.getValue("latestJobStatus")),
     },
     {
         accessorKey: "indexedAt",
+        size: 200,
         header: ({ column }) => {
             return (
                 <Button
@@ -157,6 +155,7 @@ export const columns: ColumnDef<Repo>[] = [
     },
     {
         accessorKey: "indexedCommitHash",
+        size: 120,
         header: "Last commit",
         cell: ({ row }) => {
             const hash = row.getValue("indexedCommitHash") as string | null;
@@ -189,6 +188,7 @@ export const columns: ColumnDef<Repo>[] = [
     },
     {
         id: "actions",
+        size: 80,
         enableHiding: false,
         cell: ({ row }) => {
             const repo = row.original
@@ -265,6 +265,8 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
         getFilteredRowModel: getFilteredRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
+        columnResizeMode: 'onChange',
+        enableColumnResizing: false,
         state: {
             sorting,
             columnFilters,
@@ -315,13 +317,16 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
                 </Button>
             </div>
             <div className="rounded-md border">
-                <Table>
+                <Table style={{ tableLayout: 'fixed', width: '100%' }}>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead key={header.id}>
+                                        <TableHead 
+                                            key={header.id}
+                                            style={{ width: `${header.getSize()}px` }}
+                                        >
                                             {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                                         </TableHead>
                                     )
@@ -334,7 +339,12 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
                             table.getRowModel().rows.map((row) => (
                                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                                        <TableCell 
+                                            key={cell.id}
+                                            style={{ width: `${cell.column.getSize()}px` }}
+                                        >
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </TableCell>
                                     ))}
                                 </TableRow>
                             ))
