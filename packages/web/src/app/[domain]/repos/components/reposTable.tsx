@@ -36,6 +36,7 @@ import { getBrowsePath } from "../../browse/hooks/utils"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast";
 import { DisplayDate } from "../../components/DisplayDate"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -174,16 +175,29 @@ export const columns: ColumnDef<Repo>[] = [
                 commitHash: hash,
             });
 
-            if (!commitUrl) {
-                return <span className="font-mono text-sm">{smallHash}</span>
-            }
-
-            return <Link
+            const HashComponent = commitUrl ? (
+                <Link
                 href={commitUrl}
                 className="font-mono text-sm text-link hover:underline"
             >
                 {smallHash}
             </Link>
+            ) : (
+                <span className="font-mono text-sm text-muted-foreground">
+                    {smallHash}
+                </span>
+            )
+
+            return (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        {HashComponent}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <span className="font-mono">{hash}</span>
+                    </TooltipContent>
+                </Tooltip>
+            );
         },
     },
     {
