@@ -2,7 +2,7 @@
 
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { useDomain } from "@/hooks/useDomain";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItemNoItemText, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -87,7 +87,7 @@ export const SearchModeSelector = ({
                                 onMouseEnter={() => setFocusedSearchMode("precise")}
                                 onFocus={() => setFocusedSearchMode("precise")}
                             >
-                                <SelectItem
+                                <SelectItemNoItemText
                                     value="precise"
                                     className="cursor-pointer"
                                 >
@@ -99,7 +99,7 @@ export const SearchModeSelector = ({
                                         </div>
                                     </div>
 
-                                </SelectItem>
+                                </SelectItemNoItemText>
                                 <TooltipContent
                                     side="right"
                                     className="w-64 z-50"
@@ -126,7 +126,7 @@ export const SearchModeSelector = ({
                                 onMouseEnter={() => setFocusedSearchMode("agentic")}
                                 onFocus={() => setFocusedSearchMode("agentic")}
                             >
-                                <SelectItem
+                                <SelectItemNoItemText
                                     value="agentic"
                                     className="cursor-pointer"
                                 >
@@ -138,7 +138,7 @@ export const SearchModeSelector = ({
                                             <KeyboardShortcutHint shortcut="⌘ I" />
                                         </div>
                                     </div>
-                                </SelectItem>
+                                </SelectItemNoItemText>
 
                             </div>
                         </TooltipTrigger>
@@ -167,5 +167,3 @@ export const SearchModeSelector = ({
         </div>
     )
 }
-
-

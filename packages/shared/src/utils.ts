@@ -4,6 +4,8 @@ import { readFile } from 'fs/promises';
 import stripJsonComments from 'strip-json-comments';
 import { Ajv } from "ajv";
 import { z } from "zod";
+import { DEFAULT_CONFIG_SETTINGS } from "./constants.js";
+import { ConfigSettings } from "./types.js";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -129,4 +131,17 @@ export const loadConfig = async (configPath: string): Promise<SourcebotConfig> =
         throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
     }
     return config;
+}
+
+export const getConfigSettings = async (configPath?: string): Promise<ConfigSettings> => {
+    if (!configPath) {
+        return DEFAULT_CONFIG_SETTINGS;
+    }
+
+    const config = await loadConfig(configPath);
+
+    return {
+        ...DEFAULT_CONFIG_SETTINGS,
+        ...config.settings,
+    }
 }

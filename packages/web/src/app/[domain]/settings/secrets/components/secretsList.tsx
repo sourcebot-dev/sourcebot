@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { LucideKeyRound, MoreVertical, Search, LucideTrash } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getDisplayTime, isServiceError } from "@/lib/utils";
+import { getFormattedDate, isServiceError } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -104,7 +104,7 @@ export const SecretsList = ({ secrets }: SecretsListProps) => {
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <p className="text-sm text-muted-foreground">
-                                        Created {getDisplayTime(secret.createdAt)}
+                                        Created {getFormattedDate(secret.createdAt)}
                                     </p>
                                     <DropdownMenu modal={false}>
                                             <DropdownMenuTrigger asChild>
