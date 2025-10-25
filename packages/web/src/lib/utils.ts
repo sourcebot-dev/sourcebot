@@ -511,7 +511,7 @@ export const measure = async <T>(cb: () => Promise<T>, measureName: string, outp
 export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>): Promise<T> => {    
     const data = await promise;
     if (isServiceError(data)) {
-        throw new Error(data);
+        throw new Error(data.message);
     }
 
     return data;
