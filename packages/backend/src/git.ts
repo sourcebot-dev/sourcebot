@@ -269,3 +269,25 @@ export const getTags = async (path: string) => {
     const tags = await git.tags();
     return tags.all;
 }
+
+export const getCommitHashForRefName = async ({
+    path,
+    refName,
+}: {
+    path: string,
+    refName: string,
+}) => {
+    const git = createGitClientForPath(path);
+
+    try {
+        // The `^{commit}` suffix is used to fully dereference the ref to a commit hash.
+        const rev = await git.revparse(`${refName}^{commit}`);
+        return rev;
+
+        // @note: Was hitting errors when the repository is empty,
+        // so we're catching the error and returning undefined.
+    } catch (error: unknown) {
+        console.error(error);
+        return undefined;
+    }
+}

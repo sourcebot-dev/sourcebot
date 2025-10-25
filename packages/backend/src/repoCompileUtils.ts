@@ -13,12 +13,12 @@ import { marshalBool } from "./utils.js";
 import { createLogger } from '@sourcebot/logger';
 import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GenericGitHostConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { ProjectVisibility } from "azure-devops-node-api/interfaces/CoreInterfaces.js";
-import { RepoMetadata } from './types.js';
 import path from 'path';
 import { glob } from 'glob';
 import { getOriginUrl, isPathAValidGitRepoRoot, isUrlAValidGitRepo } from './git.js';
 import assert from 'assert';
 import GitUrlParse from 'git-url-parse';
+import { RepoMetadata } from '@sourcebot/shared';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 

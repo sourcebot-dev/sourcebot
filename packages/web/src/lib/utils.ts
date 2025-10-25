@@ -17,6 +17,7 @@ import { ErrorCode } from "./errorCodes";
 import { NextRequest } from "next/server";
 import { Org } from "@sourcebot/db";
 import { OrgMetadata, orgMetadataSchema } from "@/types";
+import { SINGLE_TENANT_ORG_DOMAIN } from "./constants";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -319,6 +320,70 @@ export const getCodeHostIcon = (codeHostType: string): { src: string, className?
     }
 }
 
+export const getCodeHostCommitUrl = ({
+    webUrl,
+    codeHostType,
+    commitHash,
+}: {
+    webUrl?: string | null,
+    codeHostType: CodeHostType,
+    commitHash: string,
+}) => {
+    if (!webUrl) {
+        return undefined;
+    }
+
+    switch (codeHostType) {
+        case 'github':
+            return `${webUrl}/commit/${commitHash}`;
+        case 'gitlab':
+            return `${webUrl}/-/commit/${commitHash}`;
+        case 'gitea':
+            return `${webUrl}/commit/${commitHash}`;
+        case 'azuredevops':
+            return `${webUrl}/commit/${commitHash}`;
+        case 'bitbucket-cloud':
+            return `${webUrl}/commits/${commitHash}`;
+        case 'bitbucket-server':
+            return `${webUrl}/commits/${commitHash}`;
+        case 'gerrit':
+        case 'generic-git-host':
+            return undefined;
+    }
+}
+
+export const getCodeHostBrowseAtBranchUrl = ({
+    webUrl,
+    codeHostType,
+    branchName,
+}: {
+    webUrl?: string | null,
+    codeHostType: CodeHostType,
+    branchName: string,
+}) => {
+    if (!webUrl) {
+        return undefined;
+    }
+    
+    switch (codeHostType) {
+        case 'github':
+            return `${webUrl}/tree/${branchName}`;
+        case 'gitlab':
+            return `${webUrl}/-/tree/${branchName}`;
+        case 'gitea':
+            return `${webUrl}/src/branch/${branchName}`;
+        case 'azuredevops':
+            return `${webUrl}?branch=${branchName}`;
+        case 'bitbucket-cloud':
+            return `${webUrl}?at=${branchName}`;
+        case 'bitbucket-server':
+            return `${webUrl}?at=${branchName}`;
+        case 'gerrit':
+        case 'generic-git-host':
+            return undefined;
+    }
+}
+
 export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean => {
     switch (codeHostType) {
         case "github":
@@ -347,32 +412,38 @@ export const isDefined = <T>(arg: T | null | undefined): arg is T extends null |
     return arg !== null && arg !== undefined;
 }
 
-export const getDisplayTime = (date: Date) => {
+export const getFormattedDate = (date: Date) => {
     const now = new Date();
-    const minutes = (now.getTime() - date.getTime()) / (1000 * 60);
+    const diffMinutes = (now.getTime() - date.getTime()) / (1000 * 60);
+    const isFuture = diffMinutes < 0;
+    
+    // Use absolute values for calculations
+    const minutes = Math.abs(diffMinutes);
     const hours = minutes / 60;
     const days = hours / 24;
     const months = days / 30;
 
-    const formatTime = (value: number, unit: 'minute' | 'hour' | 'day' | 'month') => {
+    const formatTime = (value: number, unit: 'minute' | 'hour' | 'day' | 'month', isFuture: boolean) => {
         const roundedValue = Math.floor(value);
-        if (roundedValue < 2) {
-            return `${roundedValue} ${unit} ago`;
+        const pluralUnit = roundedValue === 1 ? unit : `${unit}s`;
+        
+        if (isFuture) {
+            return `In ${roundedValue} ${pluralUnit}`;
         } else {
-            return `${roundedValue} ${unit}s ago`;
+            return `${roundedValue} ${pluralUnit} ago`;
         }
     }
 
     if (minutes < 1) {
         return 'just now';
     } else if (minutes < 60) {
-        return formatTime(minutes, 'minute');
+        return formatTime(minutes, 'minute', isFuture);
     } else if (hours < 24) {
-        return formatTime(hours, 'hour');
+        return formatTime(hours, 'hour', isFuture);
     } else if (days < 30) {
-        return formatTime(days, 'day');
+        return formatTime(days, 'day', isFuture);
     } else {
-        return formatTime(months, 'month');
+        return formatTime(months, 'month', isFuture);
     }
 }
 
@@ -458,7 +529,7 @@ export const requiredQueryParamGuard = (request: NextRequest, param: string): Se
     return value;
 }
 
-export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, domain: string): string | undefined => {
+export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number): string | undefined => {
     if (!imageUrl) return undefined;
     
     try {
@@ -478,7 +549,7 @@ export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, do
             return imageUrl;
         } else {
             // Use the proxied route for self-hosted instances
-            return `/api/${domain}/repos/${repoId}/image`;
+            return `/api/${SINGLE_TENANT_ORG_DOMAIN}/repos/${repoId}/image`;
         }
     } catch {
         // If URL parsing fails, use the original URL

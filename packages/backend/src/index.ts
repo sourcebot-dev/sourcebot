@@ -2,12 +2,12 @@ import "./instrument.js";
 
 import { PrismaClient } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { hasEntitlement, loadConfig } from '@sourcebot/shared';
+import { getConfigSettings, hasEntitlement } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { Redis } from 'ioredis';
 import { ConnectionManager } from './connectionManager.js';
-import { DEFAULT_SETTINGS, INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
+import { INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { UserPermissionSyncer } from "./ee/userPermissionSyncer.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
@@ -17,20 +17,6 @@ import { PromClient } from './promClient.js';
 
 
 const logger = createLogger('backend-entrypoint');
-
-const getSettings = async (configPath?: string) => {
-    if (!configPath) {
-        return DEFAULT_SETTINGS;
-    }
-
-    const config = await loadConfig(configPath);
-
-    return {
-        ...DEFAULT_SETTINGS,
-        ...config.settings,
-    }
-}
-
 
 const reposPath = REPOS_CACHE_DIR;
 const indexPath = INDEX_CACHE_DIR;
@@ -57,8 +43,7 @@ redis.ping().then(() => {
 
 const promClient = new PromClient();
 
-const settings = await getSettings(env.CONFIG_PATH);
-
+const settings = await getConfigSettings(env.CONFIG_PATH);
 
 if (hasEntitlement('github-app')) {
     await GithubAppManager.getInstance().init(prisma);

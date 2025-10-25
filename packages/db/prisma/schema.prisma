@@ -38,7 +38,7 @@ model Repo {
   isFork             Boolean
   isArchived         Boolean
   isPublic           Boolean                @default(false)
-  metadata           Json /// For schema see repoMetadataSchema in packages/backend/src/types.ts
+  metadata           Json /// For schema see repoMetadataSchema in packages/shared/src/types.ts
   cloneUrl           String
   webUrl             String?
   connections        RepoToConnection[]
@@ -50,6 +50,7 @@ model Repo {
 
   jobs RepoIndexingJob[]
   indexedAt          DateTime? /// When the repo was last indexed successfully.
+  indexedCommitHash  String? /// The commit hash of the last indexed commit (on HEAD).
 
   external_id           String /// The id of the repo in the external service
   external_codeHostType String /// The type of the external service (e.g., github, gitlab, etc.)
@@ -83,6 +84,7 @@ model RepoIndexingJob {
   createdAt   DateTime                    @default(now())
   updatedAt   DateTime                    @updatedAt
   completedAt DateTime?
+  metadata    Json? /// For schema see repoIndexingJobMetadataSchema in packages/shared/src/types.ts
 
   errorMessage String?
 
