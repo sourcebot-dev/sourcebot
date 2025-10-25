@@ -352,6 +352,38 @@ export const getCodeHostCommitUrl = ({
     }
 }
 
+export const getCodeHostBrowseAtBranchUrl = ({
+    webUrl,
+    codeHostType,
+    branchName,
+}: {
+    webUrl?: string | null,
+    codeHostType: CodeHostType,
+    branchName: string,
+}) => {
+    if (!webUrl) {
+        return undefined;
+    }
+    
+    switch (codeHostType) {
+        case 'github':
+            return `${webUrl}/tree/${branchName}`;
+        case 'gitlab':
+            return `${webUrl}/-/tree/${branchName}`;
+        case 'gitea':
+            return `${webUrl}/src/branch/${branchName}`;
+        case 'azuredevops':
+            return `${webUrl}?branch=${branchName}`;
+        case 'bitbucket-cloud':
+            return `${webUrl}?at=${branchName}`;
+        case 'bitbucket-server':
+            return `${webUrl}?at=${branchName}`;
+        case 'gerrit':
+        case 'generic-git-host':
+            return undefined;
+    }
+}
+
 export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean => {
     switch (codeHostType) {
         case "github":

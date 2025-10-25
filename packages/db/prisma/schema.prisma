@@ -38,7 +38,7 @@ model Repo {
   isFork             Boolean
   isArchived         Boolean
   isPublic           Boolean                @default(false)
-  metadata           Json /// For schema see repoMetadataSchema in packages/backend/src/types.ts
+  metadata           Json /// For schema see repoMetadataSchema in packages/shared/src/types.ts
   cloneUrl           String
   webUrl             String?
   connections        RepoToConnection[]
@@ -84,6 +84,7 @@ model RepoIndexingJob {
   createdAt   DateTime                    @default(now())
   updatedAt   DateTime                    @updatedAt
   completedAt DateTime?
+  metadata    Json? /// For schema see repoIndexingJobMetadataSchema in packages/shared/src/types.ts
 
   errorMessage String?
 

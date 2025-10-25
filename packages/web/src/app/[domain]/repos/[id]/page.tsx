@@ -17,6 +17,8 @@ import { RepoJobsTable } from "../components/repoJobsTable"
 import { getConfigSettings } from "@sourcebot/shared"
 import { env } from "@/env.mjs"
 import { DisplayDate } from "../../components/DisplayDate"
+import { RepoBranchesTable } from "../components/repoBranchesTable"
+import { repoMetadataSchema } from "@sourcebot/shared"
 
 export default async function RepoDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -46,6 +48,8 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
 
         return undefined;
     })();
+
+    const repoMetadata = repoMetadataSchema.parse(repo.metadata);
 
     return (
         <div className="container mx-auto">
@@ -99,7 +103,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <DisplayDate date={repo.createdAt} className="text-2xl font-semibold"/>
+                        <DisplayDate date={repo.createdAt} className="text-2xl font-semibold" />
                     </CardContent>
                 </Card>
 
@@ -118,7 +122,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {repo.indexedAt ? <DisplayDate date={repo.indexedAt} className="text-2xl font-semibold"/> : "Never" }
+                        {repo.indexedAt ? <DisplayDate date={repo.indexedAt} className="text-2xl font-semibold" /> : "Never"}
                     </CardContent>
                 </Card>
 
@@ -137,15 +141,35 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {nextIndexAttempt ? <DisplayDate date={nextIndexAttempt} className="text-2xl font-semibold"/> : "-" }
+                        {nextIndexAttempt ? <DisplayDate date={nextIndexAttempt} className="text-2xl font-semibold" /> : "-"}
                     </CardContent>
                 </Card>
             </div>
 
+            {repoMetadata.indexedRevisions && (
+                <Card className="mb-8">
+                    <CardHeader>
+                        <div className="flex items-center gap-2">
+                            <CardTitle>Indexed Branches</CardTitle>
+                        </div>
+                        <CardDescription>Branches that have been indexed for this repository. <Link href="https://docs.sourcebot.dev/docs/features/search/multi-branch-indexing" target="_blank" className="text-link hover:underline">Docs</Link></CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+                            <RepoBranchesTable
+                                indexRevisions={repoMetadata.indexedRevisions}
+                                repoWebUrl={repo.webUrl}
+                                repoCodeHostType={repo.external_codeHostType}
+                            />
+                        </Suspense>
+                    </CardContent>
+                </Card>
+            )}
+
             <Card>
                 <CardHeader>
                     <CardTitle>Indexing Jobs</CardTitle>
-                    <CardDescription>History of all indexing and cleanup jobs for this repository</CardDescription>
+                    <CardDescription>History of all indexing and cleanup jobs for this repository.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Suspense fallback={<Skeleton className="h-96 w-full" />}>

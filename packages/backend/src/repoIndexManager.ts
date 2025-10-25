@@ -1,15 +1,18 @@
 import * as Sentry from '@sentry/node';
 import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import { createLogger, Logger } from "@sourcebot/logger";
+import { repoMetadataSchema, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
 import { Job, Queue, ReservedJob, Worker } from "groupmq";
 import { Redis } from 'ioredis';
+import micromatch from 'micromatch';
 import { INDEX_CACHE_DIR } from './constants.js';
 import { env } from './env.js';
-import { cloneRepository, fetchRepository, getCommitHashForRefName, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
+import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
+import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
-import { repoMetadataSchema, RepoWithConnections, Settings } from "./types.js";
+import { RepoWithConnections, Settings } from "./types.js";
 import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, groupmqLifecycleExceptionWrapper, measure } from './utils.js';
 import { indexGitRepository } from './zoekt.js';
 
@@ -61,7 +64,7 @@ export class RepoIndexManager {
             concurrency: this.settings.maxRepoIndexingJobConcurrency,
             ...(env.DEBUG_ENABLE_GROUPMQ_LOGGING === 'true' ? {
                 logger: true,
-            }: {}),
+            } : {}),
         });
 
         this.worker.on('completed', this.onJobCompleted.bind(this));
@@ -263,7 +266,16 @@ export class RepoIndexManager {
 
         try {
             if (jobType === RepoIndexingJobType.INDEX) {
-                await this.indexRepository(repo, logger, abortController.signal);
+                const revisions = await this.indexRepository(repo, logger, abortController.signal);
+
+                await this.db.repoIndexingJob.update({
+                    where: { id },
+                    data: {
+                        metadata: {
+                            indexedRevisions: revisions,
+                        } satisfies RepoIndexingJobMetadata,
+                    },
+                });
             } else if (jobType === RepoIndexingJobType.CLEANUP) {
                 await this.cleanupRepository(repo, logger);
             }
@@ -285,7 +297,7 @@ export class RepoIndexManager {
         // If the repo path exists but it is not a valid git repository root, this indicates
         // that the repository is in a bad state. To fix, we remove the directory and perform
         // a fresh clone.
-        if (existsSync(repoPath) && !(await isPathAValidGitRepoRoot( { path: repoPath } ))) {
+        if (existsSync(repoPath) && !(await isPathAValidGitRepoRoot({ path: repoPath }))) {
             const isValidGitRepo = await isPathAValidGitRepoRoot({
                 path: repoPath,
                 signal,
@@ -354,10 +366,54 @@ export class RepoIndexManager {
             });
         }
 
+        let revisions = [
+            'HEAD'
+        ];
+
+        if (metadata.branches) {
+            const branchGlobs = metadata.branches
+            const allBranches = await getBranches(repoPath);
+            const matchingBranches =
+                allBranches
+                    .filter((branch) => micromatch.isMatch(branch, branchGlobs))
+                    .map((branch) => `refs/heads/${branch}`);
+
+            revisions = [
+                ...revisions,
+                ...matchingBranches
+            ];
+        }
+
+        if (metadata.tags) {
+            const tagGlobs = metadata.tags;
+            const allTags = await getTags(repoPath);
+            const matchingTags =
+                allTags
+                    .filter((tag) => micromatch.isMatch(tag, tagGlobs))
+                    .map((tag) => `refs/tags/${tag}`);
+
+            revisions = [
+                ...revisions,
+                ...matchingTags
+            ];
+        }
+
+        // zoekt has a limit of 64 branches/tags to index.
+        if (revisions.length > 64) {
+            logger.warn(`Too many revisions (${revisions.length}) for repo ${repo.id}, truncating to 64`);
+            captureEvent('backend_revisions_truncated', {
+                repoId: repo.id,
+                revisionCount: revisions.length,
+            });
+            revisions = revisions.slice(0, 64);
+        }
+
         logger.info(`Indexing ${repo.name} (id: ${repo.id})...`);
-        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, signal));
+        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, revisions, signal));
         const indexDuration_s = durationMs / 1000;
         logger.info(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
+
+        return revisions;
     }
 
     private async cleanupRepository(repo: Repo, logger: Logger) {
@@ -398,12 +454,18 @@ export class RepoIndexManager {
                     path: repoPath,
                     refName: 'HEAD',
                 });
-                
+
+                const jobMetadata = repoIndexingJobMetadataSchema.parse(jobData.metadata);
+
                 const repo = await this.db.repo.update({
                     where: { id: jobData.repoId },
                     data: {
                         indexedAt: new Date(),
                         indexedCommitHash: commitHash,
+                        metadata: {
+                            ...(jobData.repo.metadata as RepoMetadata),
+                            indexedRevisions: jobMetadata.indexedRevisions,
+                        } satisfies RepoMetadata,
                     }
                 });
 
