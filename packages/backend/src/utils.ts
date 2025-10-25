@@ -130,6 +130,8 @@ export const fetchWithRetry = async <T>(
 export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: PrismaClient, logger?: Logger): Promise<RepoAuthCredentials | undefined> => {
     // If we have github apps configured we assume that we must use them for github service auth
     if (repo.external_codeHostType === 'github' && hasEntitlement('github-app') && GithubAppManager.getInstance().appsConfigured()) {
+        logger?.debug(`Using GitHub App for service auth for repo ${repo.displayName} hosted at ${repo.external_codeHostUrl}`);
+
         const owner = repo.displayName?.split('/')[0];
         const deploymentHostname = new URL(repo.external_codeHostUrl).hostname;
         if (!owner || !deploymentHostname) {
