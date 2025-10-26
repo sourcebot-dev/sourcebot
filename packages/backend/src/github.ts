@@ -11,8 +11,8 @@ import { env } from "./env.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { hasEntitlement } from "@sourcebot/shared";
 
+export const GITHUB_CLOUD_HOSTNAME = "github.com";
 const logger = createLogger('github');
-const GITHUB_CLOUD_HOSTNAME = "github.com";
 
 export type OctokitRepository = {
     name: string,
@@ -44,9 +44,10 @@ const isHttpError = (error: unknown, status: number): boolean => {
 }
 
 export const createOctokitFromToken = async ({ token, url }: { token?: string, url?: string }): Promise<{ octokit: Octokit, isAuthenticated: boolean }> => {
+    const isGitHubCloud = url ? new URL(url).hostname === GITHUB_CLOUD_HOSTNAME : false;
     const octokit = new Octokit({
         auth: token,
-        ...(url ? {
+        ...(url && !isGitHubCloud ? {
             baseUrl: `${url}/api/v3`
         } : {}),
     });

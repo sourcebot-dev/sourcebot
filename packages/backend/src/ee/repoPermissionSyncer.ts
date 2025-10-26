@@ -6,7 +6,7 @@ import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { env } from "../env.js";
-import { createOctokitFromToken, getRepoCollaborators } from "../github.js";
+import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
 import { Settings } from "../types.js";
 import { getAuthCredentialsForRepo } from "../utils.js";
 
@@ -164,9 +164,10 @@ export class RepoPermissionSyncer {
 
         const userIds = await (async () => {
             if (repo.external_codeHostType === 'github') {
+                const isGitHubCloud = credentials.hostUrl ? new URL(credentials.hostUrl).hostname === GITHUB_CLOUD_HOSTNAME : false;
                 const { octokit } = await createOctokitFromToken({
                     token: credentials.token,
-                    url: credentials.hostUrl,
+                    url: isGitHubCloud ? undefined : credentials.hostUrl,
                 });
 
                 // @note: this is a bit of a hack since the displayName _might_ not be set..
