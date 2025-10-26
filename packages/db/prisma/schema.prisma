@@ -132,20 +132,46 @@ model Connection {
   isDeclarative      Boolean              @default(false)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
-  /// When the connection was last synced successfully.
-  syncedAt           DateTime?
   repos              RepoToConnection[]
+
+  /// @deprecated
   syncStatus         ConnectionSyncStatus @default(SYNC_NEEDED)
+  /// @deprecated
   syncStatusMetadata Json?
 
   // The type of connection (e.g., github, gitlab, etc.)
   connectionType String
+
+  syncJobs ConnectionSyncJob[]
+  /// When the connection was last synced successfully.
+  syncedAt           DateTime?
 
   // The organization that owns this connection
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
   @@unique([name, orgId])
+}
+
+enum ConnectionSyncJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model ConnectionSyncJob {
+  id          String                      @id @default(cuid())
+  status      ConnectionSyncJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  completedAt DateTime?
+
+  warningMessages String[]
+  errorMessage String?
+
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connectionId Int
 }
 
 model RepoToConnection {
