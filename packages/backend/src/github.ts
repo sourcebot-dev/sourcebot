@@ -1,15 +1,14 @@
 import { Octokit } from "@octokit/rest";
-import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
-import { createLogger } from "@sourcebot/logger";
-import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
-import micromatch from "micromatch";
-import { PrismaClient } from "@sourcebot/db";
-import { BackendException, BackendError } from "@sourcebot/error";
-import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
-import { env } from "./env.js";
-import { GithubAppManager } from "./ee/githubAppManager.js";
+import { PrismaClient } from "@sourcebot/db";
+import { createLogger } from "@sourcebot/logger";
+import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { hasEntitlement } from "@sourcebot/shared";
+import micromatch from "micromatch";
+import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
+import { GithubAppManager } from "./ee/githubAppManager.js";
+import { env } from "./env.js";
+import { fetchWithRetry, getTokenFromConfig, measure } from "./utils.js";
 
 export const GITHUB_CLOUD_HOSTNAME = "github.com";
 const logger = createLogger('github');
@@ -114,22 +113,8 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
             await octokit.rest.users.getAuthenticated();
         } catch (error) {
             Sentry.captureException(error);
-
-            if (isHttpError(error, 401)) {
-                const e = new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN, {
-                    ...(config.token && 'secret' in config.token ? {
-                        secretKey: config.token.secret,
-                    } : {}),
-                });
-                Sentry.captureException(e);
-                throw e;
-            }
-
-            const e = new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
-                message: `Failed to authenticate with GitHub`,
-            });
-            Sentry.captureException(e);
-            throw e;
+            logger.error(`Failed to authenticate with GitHub`, error);
+            throw error;
         }
     }
 

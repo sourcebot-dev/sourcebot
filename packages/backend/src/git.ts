@@ -35,6 +35,11 @@ const createGitClientForPath = (path: string, onProgress?: onProgressFn, signal?
              * parent directory.
              */
             GIT_CEILING_DIRECTORIES: parentPath,
+            /**
+             * Disable git credential prompts. This ensures that git operations will fail
+             * immediately if credentials are not available, rather than prompting for input.
+             */
+            GIT_TERMINAL_PROMPT: '0',
         })
         .cwd({
             path,

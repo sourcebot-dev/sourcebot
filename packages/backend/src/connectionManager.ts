@@ -1,14 +1,13 @@
-import { Connection, PrismaClient, ConnectionSyncJobStatus } from "@sourcebot/db";
-import { Job, Queue, ReservedJob, Worker } from "groupmq";
-import { Settings } from "./types.js";
-import { createLogger } from "@sourcebot/logger";
-import { Redis } from 'ioredis';
-import { RepoData, compileGithubConfig, compileGitlabConfig, compileGiteaConfig, compileGerritConfig, compileBitbucketConfig, compileAzureDevOpsConfig, compileGenericGitHostConfig } from "./repoCompileUtils.js";
-import { BackendError, BackendException } from "@sourcebot/error";
-import { env } from "./env.js";
 import * as Sentry from "@sentry/node";
-import { loadConfig, syncSearchContexts } from "@sourcebot/shared";
+import { Connection, ConnectionSyncJobStatus, PrismaClient } from "@sourcebot/db";
+import { createLogger } from "@sourcebot/logger";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
+import { loadConfig, syncSearchContexts } from "@sourcebot/shared";
+import { Job, Queue, ReservedJob, Worker } from "groupmq";
+import { Redis } from 'ioredis';
+import { env } from "./env.js";
+import { compileAzureDevOpsConfig, compileBitbucketConfig, compileGenericGitHostConfig, compileGerritConfig, compileGiteaConfig, compileGithubConfig, compileGitlabConfig } from "./repoCompileUtils.js";
+import { Settings } from "./types.js";
 import { groupmqLifecycleExceptionWrapper } from "./utils.js";
 
 const LOG_TAG = 'connection-manager';
@@ -166,53 +165,32 @@ export class ConnectionManager {
 
         const config = rawConnectionConfig as unknown as ConnectionConfig;
 
-        let result: {
-            repoData: RepoData[],
-            warnings: string[],
-        } = {
-            repoData: [],
-            warnings: [],
-        };
-
-        try {
-            result = await (async () => {
-                switch (config.type) {
-                    case 'github': {
-                        return await compileGithubConfig(config, job.data.connectionId, orgId, this.db, abortController);
-                    }
-                    case 'gitlab': {
-                        return await compileGitlabConfig(config, job.data.connectionId, orgId, this.db);
-                    }
-                    case 'gitea': {
-                        return await compileGiteaConfig(config, job.data.connectionId, orgId, this.db);
-                    }
-                    case 'gerrit': {
-                        return await compileGerritConfig(config, job.data.connectionId, orgId);
-                    }
-                    case 'bitbucket': {
-                        return await compileBitbucketConfig(config, job.data.connectionId, orgId, this.db);
-                    }
-                    case 'azuredevops': {
-                        return await compileAzureDevOpsConfig(config, job.data.connectionId, orgId, this.db);
-                    }
-                    case 'git': {
-                        return await compileGenericGitHostConfig(config, job.data.connectionId, orgId);
-                    }
+        const result = await (async () => {
+            switch (config.type) {
+                case 'github': {
+                    return await compileGithubConfig(config, job.data.connectionId, orgId, this.db, abortController);
                 }
-            })();
-        } catch (err) {
-            logger.error(`Failed to compile repo data for connection ${job.data.connectionId} (${connectionName}): ${err}`);
-            Sentry.captureException(err);
-
-            if (err instanceof BackendException) {
-                throw err;
-            } else {
-                throw new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
-                    message: `Failed to compile repo data for connection ${job.data.connectionId}`,
-                });
+                case 'gitlab': {
+                    return await compileGitlabConfig(config, job.data.connectionId, orgId, this.db);
+                }
+                case 'gitea': {
+                    return await compileGiteaConfig(config, job.data.connectionId, orgId, this.db);
+                }
+                case 'gerrit': {
+                    return await compileGerritConfig(config, job.data.connectionId, orgId);
+                }
+                case 'bitbucket': {
+                    return await compileBitbucketConfig(config, job.data.connectionId, orgId, this.db);
+                }
+                case 'azuredevops': {
+                    return await compileAzureDevOpsConfig(config, job.data.connectionId, orgId, this.db);
+                }
+                case 'git': {
+                    return await compileGenericGitHostConfig(config, job.data.connectionId, orgId);
+                }
             }
-        }
-
+        })();
+       
         let { repoData, warnings } = result;
 
         await this.db.connectionSyncJob.update({

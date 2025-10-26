@@ -37,7 +37,6 @@ const logger = createLogger('gerrit');
 
 export const getGerritReposFromConfig = async (config: GerritConnectionConfig): Promise<GerritProject[]> => {
    const url = config.url.endsWith('/') ? config.url : `${config.url}/`;
-   const hostname = new URL(config.url).hostname;
 
    let { durationMs, data: projects } = await measure(async () => {
       try {
