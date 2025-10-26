@@ -168,18 +168,10 @@ export class ConnectionManager {
 
         let result: {
             repoData: RepoData[],
-            notFound: {
-                users: string[],
-                orgs: string[],
-                repos: string[],
-            }
+            warnings: string[],
         } = {
             repoData: [],
-            notFound: {
-                users: [],
-                orgs: [],
-                repos: [],
-            }
+            warnings: [],
         };
 
         try {
@@ -201,7 +193,7 @@ export class ConnectionManager {
                         return await compileBitbucketConfig(config, job.data.connectionId, orgId, this.db);
                     }
                     case 'azuredevops': {
-                        return await compileAzureDevOpsConfig(config, job.data.connectionId, orgId, this.db, abortController);
+                        return await compileAzureDevOpsConfig(config, job.data.connectionId, orgId, this.db);
                     }
                     case 'git': {
                         return await compileGenericGitHostConfig(config, job.data.connectionId, orgId);
@@ -221,7 +213,17 @@ export class ConnectionManager {
             }
         }
 
-        let { repoData } = result;
+        let { repoData, warnings } = result;
+
+        await this.db.connectionSyncJob.update({
+            where: {
+                id: jobId,
+            },
+            data: {
+                warningMessages: warnings,
+            },
+        });
+
 
         // Filter out any duplicates by external_id and external_codeHostUrl.
         repoData = repoData.filter((repo, index, self) => {
