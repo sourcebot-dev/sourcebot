@@ -27,27 +27,27 @@ export const userScopedPrismaClientExtension = (userId?: string) => {
                 query: {
                     ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ? {
                         repo: {
-                            $allOperations({ args, query }) {
-                                if ('where' in args) {
-                                    args.where = {
-                                        ...args.where,
-                                        OR: [
-                                            // Only include repos that are permitted to the user
-                                            ...(userId ? [
-                                                {
-                                                    permittedUsers: {
-                                                        some: {
-                                                            userId,
-                                                        }
-                                                    }
-                                                },
-                                            ] : []),
-                                            // or are public.
+                            async $allOperations({ args, query }) {
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                const argsWithWhere = args as any;
+                                argsWithWhere.where = {
+                                    ...(argsWithWhere.where || {}),
+                                    OR: [
+                                        // Only include repos that are permitted to the user
+                                        ...(userId ? [
                                             {
-                                                isPublic: true,
-                                            }
-                                        ]
-                                    }
+                                                permittedUsers: {
+                                                    some: {
+                                                        userId,
+                                                    }
+                                                }
+                                            },
+                                        ] : []),
+                                        // or are public.
+                                        {
+                                            isPublic: true,
+                                        }
+                                    ]
                                 }
 
                                 return query(args);
