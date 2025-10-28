@@ -18,7 +18,7 @@ export const env = createEnv({
         
         // Auth
         FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
-        
+
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
@@ -130,10 +130,12 @@ export const env = createEnv({
 
         SOURCEBOT_DEMO_EXAMPLES_PATH: z.string().optional(),
 
+        // Experimental Environment Variables
+        // @note: These environment variables are subject to change at any time and are not garunteed to be backwards compatible.
+        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED: booleanSchema.default('false'),
         // @NOTE: Take care to update actions.ts when changing the name of this.
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),
-
         EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
     },
     // @NOTE: Please make sure of the following:
