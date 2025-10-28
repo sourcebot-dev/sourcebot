@@ -1,20 +1,14 @@
 "use client"
 
+import { DisplayDate } from "@/app/[domain]/components/DisplayDate"
+import { useToast } from "@/components/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { CodeHostType, getCodeHostCommitUrl, getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
+import { CodeHostType, getCodeHostIcon } from "@/lib/utils"
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -28,30 +22,18 @@ import {
     useReactTable,
 } from "@tanstack/react-table"
 import { cva } from "class-variance-authority"
-import { ArrowUpDown, ExternalLink, MoreHorizontal, RefreshCwIcon } from "lucide-react"
+import { ArrowUpDown, RefreshCwIcon } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useMemo, useState } from "react"
-import { getBrowsePath } from "../../browse/hooks/utils"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/components/hooks/use-toast";
-import { DisplayDate } from "../../components/DisplayDate"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useMemo, useState } from "react"
 
-// @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
-export type Repo = {
+export type Connection = {
     id: number
     name: string
-    displayName: string | null
-    isArchived: boolean
-    isPublic: boolean
-    indexedAt: Date | null
-    createdAt: Date
-    webUrl: string | null
-    codeHostType: string
-    imageUrl: string | null
-    indexedCommitHash: string | null
+    syncedAt: Date | null
+    codeHostType: CodeHostType
     latestJobStatus: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | null
 }
 
@@ -67,7 +49,7 @@ const statusBadgeVariants = cva("", {
     },
 })
 
-const getStatusBadge = (status: Repo["latestJobStatus"]) => {
+const getStatusBadge = (status: Connection["latestJobStatus"]) => {
     if (!status) {
         return <Badge className={statusBadgeVariants({ status: "NO_JOBS" })}>No Jobs</Badge>
     }
@@ -82,42 +64,32 @@ const getStatusBadge = (status: Repo["latestJobStatus"]) => {
     return <Badge className={statusBadgeVariants({ status })}>{labels[status]}</Badge>
 }
 
-export const columns: ColumnDef<Repo>[] = [
+export const columns: ColumnDef<Connection>[] = [
     {
-        accessorKey: "displayName",
+        accessorKey: "name",
         size: 400,
         header: ({ column }) => {
             return (
                 <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-                    Repository
+                    Name
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             )
         },
         cell: ({ row }) => {
-            const repo = row.original
+            const connection = row.original;
+            const codeHostIcon = getCodeHostIcon(connection.codeHostType);
+
             return (
                 <div className="flex flex-row gap-2 items-center">
-                    {repo.imageUrl ? (
-                        <Image
-                            src={getRepoImageSrc(repo.imageUrl, repo.id) || "/placeholder.svg"}
-                            alt={`${repo.displayName} logo`}
-                            width={32}
-                            height={32}
-                            className="object-cover"
-                        />
-                    ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-muted text-xs font-medium uppercase text-muted-foreground">
-                            {repo.displayName?.charAt(0) ?? repo.name.charAt(0)}
-                        </div>
-                    )}
-                    <Link href={getBrowsePath({
-                        repoName: repo.name,
-                        path: '/',
-                        pathType: 'tree',
-                        domain: SINGLE_TENANT_ORG_DOMAIN,
-                    })} className="font-medium hover:underline">
-                        {repo.displayName || repo.name}
+                    <Image
+                        src={codeHostIcon.src}
+                        alt={`${connection.codeHostType} logo`}
+                        width={20}
+                        height={20}
+                    />
+                    <Link href={`/${SINGLE_TENANT_ORG_DOMAIN}/settings/connections/${connection.id}`} className="font-medium hover:underline">
+                        {connection.name}
                     </Link>
                 </div>
             )
@@ -130,7 +102,7 @@ export const columns: ColumnDef<Repo>[] = [
         cell: ({ row }) => getStatusBadge(row.getValue("latestJobStatus")),
     },
     {
-        accessorKey: "indexedAt",
+        accessorKey: "syncedAt",
         size: 200,
         header: ({ column }) => {
             return (
@@ -144,107 +116,19 @@ export const columns: ColumnDef<Repo>[] = [
             )
         },
         cell: ({ row }) => {
-            const indexedAt = row.getValue("indexedAt") as Date | null;
-            if (!indexedAt) {
+            const syncedAt = row.getValue("syncedAt") as Date | null;
+            if (!syncedAt) {
                 return "-";
             }
 
             return (
-                <DisplayDate date={indexedAt} className="ml-3"/>
+                <DisplayDate date={syncedAt} className="ml-3" />
             )
         }
     },
-    {
-        accessorKey: "indexedCommitHash",
-        size: 150,
-        header: "Synced commit",
-        cell: ({ row }) => {
-            const hash = row.getValue("indexedCommitHash") as string | null;
-            if (!hash) {
-                return "-";
-            }
-
-            const smallHash = hash.slice(0, 7);
-            const repo = row.original;
-            const codeHostType = repo.codeHostType as CodeHostType;
-            const webUrl = repo.webUrl;
-
-            const commitUrl = getCodeHostCommitUrl({
-                webUrl,
-                codeHostType,
-                commitHash: hash,
-            });
-
-            const HashComponent = commitUrl ? (
-                <Link
-                href={commitUrl}
-                className="font-mono text-sm text-link hover:underline"
-            >
-                {smallHash}
-            </Link>
-            ) : (
-                <span className="font-mono text-sm text-muted-foreground">
-                    {smallHash}
-                </span>
-            )
-
-            return (
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        {HashComponent}
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <span className="font-mono">{hash}</span>
-                    </TooltipContent>
-                </Tooltip>
-            );
-        },
-    },
-    {
-        id: "actions",
-        size: 80,
-        enableHiding: false,
-        cell: ({ row }) => {
-            const repo = row.original
-            const codeHostInfo = getCodeHostInfoForRepo({
-                codeHostType: repo.codeHostType,
-                name: repo.name,
-                displayName: repo.displayName ?? undefined,
-                webUrl: repo.webUrl ?? undefined,
-            });
-
-            return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                            <Link href={`/${SINGLE_TENANT_ORG_DOMAIN}/repos/${repo.id}`}>View details</Link>
-                        </DropdownMenuItem>
-                        {(repo.webUrl && codeHostInfo) && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <a href={repo.webUrl} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                        Open in {codeHostInfo.codeHostName}
-                                        <ExternalLink className="ml-2 h-3 w-3" />
-                                    </a>
-                                </DropdownMenuItem>
-                            </>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            )
-        },
-    },
 ]
 
-export const ReposTable = ({ data }: { data: Repo[] }) => {
+export const ConnectionsTable = ({ data }: { data: Connection[] }) => {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -260,11 +144,11 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
         numNoJobs,
     } = useMemo(() => {
         return {
-            numCompleted: data.filter((repo) => repo.latestJobStatus === "COMPLETED").length,
-            numInProgress: data.filter((repo) => repo.latestJobStatus === "IN_PROGRESS").length,
-            numPending: data.filter((repo) => repo.latestJobStatus === "PENDING").length,
-            numFailed: data.filter((repo) => repo.latestJobStatus === "FAILED").length,
-            numNoJobs: data.filter((repo) => repo.latestJobStatus === null).length,
+            numCompleted: data.filter((connection) => connection.latestJobStatus === "COMPLETED").length,
+            numInProgress: data.filter((connection) => connection.latestJobStatus === "IN_PROGRESS").length,
+            numPending: data.filter((connection) => connection.latestJobStatus === "PENDING").length,
+            numFailed: data.filter((connection) => connection.latestJobStatus === "FAILED").length,
+            numNoJobs: data.filter((connection) => connection.latestJobStatus === null).length,
         }
     }, [data]);
 
@@ -293,9 +177,9 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
         <div className="w-full">
             <div className="flex items-center gap-4 py-4">
                 <Input
-                    placeholder="Filter repositories..."
-                    value={(table.getColumn("displayName")?.getFilterValue() as string) ?? ""}
-                    onChange={(event) => table.getColumn("displayName")?.setFilterValue(event.target.value)}
+                    placeholder="Filter connections..."
+                    value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+                    onChange={(event) => table.getColumn("name")?.setFilterValue(event.target.value)}
                     className="max-w-sm"
                 />
                 <Select
@@ -337,7 +221,7 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead 
+                                        <TableHead
                                             key={header.id}
                                             style={{ width: `${header.getSize()}px` }}
                                         >
@@ -353,7 +237,7 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
                             table.getRowModel().rows.map((row) => (
                                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell 
+                                        <TableCell
                                             key={cell.id}
                                             style={{ width: `${cell.column.getSize()}px` }}
                                         >
@@ -374,7 +258,7 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
             </div>
             <div className="flex items-center justify-end space-x-2 py-4">
                 <div className="flex-1 text-sm text-muted-foreground">
-                    {table.getFilteredRowModel().rows.length} {data.length > 1 ? 'repositories' : 'repository'} total
+                    {table.getFilteredRowModel().rows.length} {data.length > 1 ? 'connections' : 'connection'} total
                 </div>
                 <div className="space-x-2">
                     <Button

@@ -1,5 +1,5 @@
-import { cn, getCodeHostIcon } from "@/lib/utils";
-import { FolderIcon, LibraryBigIcon } from "lucide-react";
+import { cn, CodeHostType, getCodeHostIcon } from "@/lib/utils";
+import { LibraryBigIcon } from "lucide-react";
 import Image from "next/image";
 import { SearchScope } from "../types";
 
@@ -13,20 +13,16 @@ export const SearchScopeIcon = ({ searchScope, className = "h-4 w-4" }: SearchSc
         return <LibraryBigIcon className={cn(className, "text-muted-foreground flex-shrink-0")} />;
     } else {
         // Render code host icon for repos
-        const codeHostIcon = searchScope.codeHostType ? getCodeHostIcon(searchScope.codeHostType) : null;
-        if (codeHostIcon) {
-            const size = className.includes('h-3') ? 12 : 16;
-            return (
-                <Image
-                    src={codeHostIcon.src}
-                    alt={`${searchScope.codeHostType} icon`}
-                    width={size}
-                    height={size}
-                    className={cn(className, "flex-shrink-0", codeHostIcon.className)}
-                />
-            );
-        } else {
-            return <FolderIcon className={cn(className, "text-muted-foreground flex-shrink-0")} />;
-        }
+        const codeHostIcon = getCodeHostIcon(searchScope.codeHostType as CodeHostType);
+        const size = className.includes('h-3') ? 12 : 16;
+        return (
+            <Image
+                src={codeHostIcon.src}
+                alt={`${searchScope.codeHostType} icon`}
+                width={size}
+                height={size}
+                className={cn(className, "flex-shrink-0", codeHostIcon.className)}
+            />
+        );
     }
 }; 

@@ -4,21 +4,21 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { env } from "@/env.mjs"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { ServiceErrorException } from "@/lib/serviceError"
 import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils"
 import { withOptionalAuthV2 } from "@/withAuthV2"
-import { ChevronLeft, ExternalLink, Info } from "lucide-react"
+import { getConfigSettings, repoMetadataSchema } from "@sourcebot/shared"
+import { ExternalLink, Info } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
-import { RepoJobsTable } from "../components/repoJobsTable"
-import { getConfigSettings } from "@sourcebot/shared"
-import { env } from "@/env.mjs"
+import { BackButton } from "../../components/backButton"
 import { DisplayDate } from "../../components/DisplayDate"
 import { RepoBranchesTable } from "../components/repoBranchesTable"
-import { repoMetadataSchema } from "@sourcebot/shared"
+import { RepoJobsTable } from "../components/repoJobsTable"
 
 export default async function RepoDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -52,14 +52,13 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
     const repoMetadata = repoMetadataSchema.parse(repo.metadata);
 
     return (
-        <div className="container mx-auto">
+        <>
             <div className="mb-6">
-                <Button variant="ghost" asChild className="mb-4">
-                    <Link href={`/${SINGLE_TENANT_ORG_DOMAIN}/repos`}>
-                        <ChevronLeft className="mr-2 h-4 w-4" />
-                        Back to repositories
-                    </Link>
-                </Button>
+                <BackButton
+                    href={`/${SINGLE_TENANT_ORG_DOMAIN}/repos`}
+                    name="Back to repositories"
+                    className="mb-2"
+                />
 
                 <div className="flex items-start justify-between">
                     <div>
@@ -168,7 +167,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Indexing Jobs</CardTitle>
+                    <CardTitle>Indexing History</CardTitle>
                     <CardDescription>History of all indexing and cleanup jobs for this repository.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -177,16 +176,17 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                     </Suspense>
                 </CardContent>
             </Card>
-        </div>
+        </>
     )
 }
 
 const getRepoWithJobs = async (repoId: number) => sew(() =>
-    withOptionalAuthV2(async ({ prisma }) => {
+    withOptionalAuthV2(async ({ prisma, org }) => {
 
         const repo = await prisma.repo.findUnique({
             where: {
                 id: repoId,
+                orgId: org.id,
             },
             include: {
                 jobs: {

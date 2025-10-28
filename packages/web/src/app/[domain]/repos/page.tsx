@@ -12,7 +12,7 @@ export default async function ReposPage() {
     }
 
     return (
-        <div className="container mx-auto">
+        <>
             <div className="mb-6">
                 <h1 className="text-3xl font-semibold">Repositories</h1>
                 <p className="text-muted-foreground mt-2">View and manage your code repositories and their indexing status.</p>
@@ -31,12 +31,12 @@ export default async function ReposPage() {
                 codeHostType: repo.external_codeHostType,
                 indexedCommitHash: repo.indexedCommitHash,
             }))} />
-        </div>
+        </>
     )
 }
 
 const getReposWithLatestJob = async () => sew(() =>
-    withOptionalAuthV2(async ({ prisma }) => {
+    withOptionalAuthV2(async ({ prisma, org }) => {
         const repos = await prisma.repo.findMany({
             include: {
                 jobs: {
@@ -48,6 +48,9 @@ const getReposWithLatestJob = async () => sew(() =>
             },
             orderBy: {
                 name: 'asc'
+            },
+            where: {
+                orgId: org.id,
             }
         });
         return repos;

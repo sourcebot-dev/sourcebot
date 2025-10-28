@@ -1,8 +1,7 @@
 import React from "react"
 import { Metadata } from "next"
-import { SidebarNav } from "./components/sidebar-nav"
+import { SidebarNav, SidebarNavItem } from "./components/sidebar-nav"
 import { NavigationMenu } from "../components/navigationMenu"
-import { Header } from "./components/header";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -64,7 +63,7 @@ export default async function SettingsLayout(
         numJoinRequests = requests.length;
     }
 
-    const sidebarNavItems = [
+    const sidebarNavItems: SidebarNavItem[] = [
         {
             title: "General",
             href: `/${domain}/settings`,
@@ -94,6 +93,13 @@ export default async function SettingsLayout(
             ),
             href: `/${domain}/settings/members`,
         }] : []),
+        ...(userRoleInOrg === OrgRole.OWNER ? [
+            {
+                title: "Connections",
+                href: `/${domain}/settings/connections`,
+                hrefRegex: `/${domain}/settings/connections(\/[^/]+)?$`,
+            }
+        ] : []),
         {
             title: "Secrets",
             href: `/${domain}/settings/secrets`,
@@ -115,21 +121,23 @@ export default async function SettingsLayout(
     ]
 
     return (
-        <div className="min-h-screen flex flex-col bg-backgroundSecondary">
+        <div className="min-h-screen flex flex-col">
             <NavigationMenu domain={domain} />
-            <div className="flex-grow flex justify-center p-4 relative">
-                <div className="w-full max-w-6xl p-6">
-                    <Header className="w-full">
-                        <h1 className="text-3xl">Settings</h1>
-                    </Header>
-                    <div className="flex flex-row gap-10 mt-20">
-                        <aside className="lg:w-48">
-                            <SidebarNav items={sidebarNavItems} />
-                        </aside>
-                        <div className="w-full rounded-lg">{children}</div>
+            <main className="flex-grow flex justify-center p-4 bg-backgroundSecondary relative">
+                <div className="w-full max-w-6xl rounded-lg p-6">
+                    <div className="container mx-auto">
+                        <div className="mb-16">
+                            <h1 className="text-3xl font-semibold">Settings</h1>
+                        </div>
+                        <div className="flex flex-row gap-10">
+                            <aside className="lg:w-48">
+                                <SidebarNav items={sidebarNavItems} />
+                            </aside>
+                            <div className="w-full rounded-lg">{children}</div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </main>
         </div>
     )
 }
