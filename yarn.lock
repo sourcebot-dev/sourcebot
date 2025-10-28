@@ -7796,6 +7796,7 @@ __metadata:
     argparse: "npm:^2.0.1"
     azure-devops-node-api: "npm:^15.1.1"
     bullmq: "npm:^5.34.10"
+    chokidar: "npm:^4.0.3"
     cross-env: "npm:^7.0.3"
     cross-fetch: "npm:^4.0.0"
     dotenv: "npm:^16.4.5"

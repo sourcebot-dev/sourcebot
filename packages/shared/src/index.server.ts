@@ -24,7 +24,4 @@ export {
     isRemotePath,
     getConfigSettings,
 } from "./utils.js";
-export {
-    syncSearchContexts,
-} from "./ee/syncSearchContexts.js";
 export * from "./constants.js";

@@ -134,11 +134,6 @@ model Connection {
   updatedAt          DateTime             @updatedAt
   repos              RepoToConnection[]
 
-  /// @deprecated
-  syncStatus         ConnectionSyncStatus @default(SYNC_NEEDED)
-  /// @deprecated
-  syncStatusMetadata Json?
-
   // The type of connection (e.g., github, gitlab, etc.)
   connectionType String
 

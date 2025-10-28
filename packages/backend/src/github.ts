@@ -257,7 +257,7 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
 const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
     const results = await Promise.allSettled(orgs.map(async (org) => {
         try {
-            logger.info(`Fetching repository info for org ${org}...`);
+            logger.debug(`Fetching repository info for org ${org}...`);
 
             const octokitToUse = await getOctokitWithGithubApp(octokit, org, url, `org ${org}`);
             const { durationMs, data } = await measure(async () => {
@@ -272,7 +272,7 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
                 return fetchWithRetry(fetchFn, `org ${org}`, logger);
             });
 
-            logger.info(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
+            logger.debug(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
             return {
                 type: 'valid' as const,
                 data
@@ -306,7 +306,7 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
     const results = await Promise.allSettled(repoList.map(async (repo) => {
         try {
             const [owner, repoName] = repo.split('/');
-            logger.info(`Fetching repository info for ${repo}...`);
+            logger.debug(`Fetching repository info for ${repo}...`);
 
             const octokitToUse = await getOctokitWithGithubApp(octokit, owner, url, `repo ${repo}`);
             const { durationMs, data: result } = await measure(async () => {
@@ -321,7 +321,7 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
                 return fetchWithRetry(fetchFn, repo, logger);
             });
 
-            logger.info(`Found info for repository ${repo} in ${durationMs}ms`);
+            logger.debug(`Found info for repository ${repo} in ${durationMs}ms`);
             return {
                 type: 'valid' as const,
                 data: [result.data]

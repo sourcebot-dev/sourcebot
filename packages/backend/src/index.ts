@@ -6,14 +6,15 @@ import { getConfigSettings, hasEntitlement } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { Redis } from 'ioredis';
+import { ConfigManager } from "./configManager.js";
 import { ConnectionManager } from './connectionManager.js';
 import { INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
+import { GithubAppManager } from "./ee/githubAppManager.js";
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { UserPermissionSyncer } from "./ee/userPermissionSyncer.js";
-import { GithubAppManager } from "./ee/githubAppManager.js";
 import { env } from "./env.js";
-import { RepoIndexManager } from "./repoIndexManager.js";
 import { PromClient } from './promClient.js';
+import { RepoIndexManager } from "./repoIndexManager.js";
 
 
 const logger = createLogger('backend-entrypoint');
@@ -53,6 +54,7 @@ const connectionManager = new ConnectionManager(prisma, settings, redis);
 const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
 const userPermissionSyncer = new UserPermissionSyncer(prisma, settings, redis);
 const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClient);
+const configManager = new ConfigManager(prisma, connectionManager, env.CONFIG_PATH);
 
 connectionManager.startScheduler();
 repoIndexManager.startScheduler();
@@ -66,11 +68,13 @@ else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement(
     userPermissionSyncer.startScheduler();
 }
 
+logger.info('Worker started.');
+
 const cleanup = async (signal: string) => {
     logger.info(`Received ${signal}, cleaning up...`);
 
     const shutdownTimeout = 30000; // 30 seconds
-    
+
     try {
         await Promise.race([
             Promise.all([
@@ -79,8 +83,9 @@ const cleanup = async (signal: string) => {
                 repoPermissionSyncer.dispose(),
                 userPermissionSyncer.dispose(),
                 promClient.dispose(),
+                configManager.dispose(),
             ]),
-            new Promise((_, reject) => 
+            new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Shutdown timeout')), shutdownTimeout)
             )
         ]);

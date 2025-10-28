@@ -47,7 +47,7 @@ export const env = createEnv({
         DEBUG_ENABLE_GROUPMQ_LOGGING: booleanSchema.default('false'),
 
         DATABASE_URL: z.string().url().default("postgresql://postgres:postgres@localhost:5432/postgres"),
-        CONFIG_PATH: z.string().optional(),
+        CONFIG_PATH: z.string(),
 
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
         REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
@@ -56,6 +56,8 @@ export const env = createEnv({
 
         EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
         AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
+
+        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

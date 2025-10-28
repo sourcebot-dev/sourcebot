@@ -2,13 +2,15 @@ import * as Sentry from "@sentry/node";
 import { Connection, ConnectionSyncJobStatus, PrismaClient } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
-import { loadConfig, syncSearchContexts } from "@sourcebot/shared";
+import { loadConfig } from "@sourcebot/shared";
 import { Job, Queue, ReservedJob, Worker } from "groupmq";
 import { Redis } from 'ioredis';
 import { env } from "./env.js";
 import { compileAzureDevOpsConfig, compileBitbucketConfig, compileGenericGitHostConfig, compileGerritConfig, compileGiteaConfig, compileGithubConfig, compileGitlabConfig } from "./repoCompileUtils.js";
 import { Settings } from "./types.js";
 import { groupmqLifecycleExceptionWrapper } from "./utils.js";
+import { syncSearchContexts } from "./ee/syncSearchContexts.js";
+import { captureEvent } from "./posthog.js";
 
 const LOG_TAG = 'connection-manager';
 const logger = createLogger(LOG_TAG);
@@ -136,6 +138,8 @@ export class ConnectionManager {
                 jobId: job.id,
             });
         }
+
+        return jobs.map(job => job.id);
     }
 
     private async runJob(job: ReservedJob<JobPayload>): Promise<JobResult> {
@@ -297,10 +301,11 @@ export class ConnectionManager {
 
             logger.info(`Connection sync job ${job.id} for connection ${job.data.connectionName} (id: ${job.data.connectionId}) completed`);
 
-            // captureEvent('backend_connection_sync_job_completed', {
-            //     connectionId: connectionId,
-            //     repoCount: result.repoCount,
-            // });
+            const result = job.returnvalue as JobResult;
+            captureEvent('backend_connection_sync_job_completed', {
+                connectionId: connectionId,
+                repoCount: result.repoCount,
+            });
         });
 
     private onJobFailed = async (job: Job<JobPayload>) =>
@@ -332,10 +337,10 @@ export class ConnectionManager {
                 logger.warn(`Failed job ${job.id} for connection ${connection.name} (id: ${connection.id}). Attempt ${attempt} / ${job.opts.attempts}. Retrying.`);
             }
 
-            // captureEvent('backend_connection_sync_job_failed', {
-            //     connectionId: connectionId,
-            //     error: err instanceof BackendException ? err.code : 'UNKNOWN',
-            // });
+            captureEvent('backend_connection_sync_job_failed', {
+                connectionId: job.data.connectionId,
+                error: job.failedReason,
+            });
         });
 
     private onJobStalled = async (jobId: string) =>
@@ -354,6 +359,11 @@ export class ConnectionManager {
             });
 
             logger.error(`Job ${jobId} stalled for connection ${connection.name} (id: ${connection.id})`);
+
+            captureEvent('backend_connection_sync_job_failed', {
+                connectionId: connection.id,
+                error: 'Job stalled',
+            });
         });
 
     private async onWorkerError(error: Error) {
