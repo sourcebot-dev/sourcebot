@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed navbar indexing indicator to only report progress for first time indexing jobs. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
 - Improved repo indexing job stability and robustness. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
 - Improved repositories table. [#572](https://github.com/sourcebot-dev/sourcebot/pull/572)
+- Improved connections table. [#579](https://github.com/sourcebot-dev/sourcebot/pull/579)
 
 ### Removed
 - Removed spam "login page loaded" log. [#552](https://github.com/sourcebot-dev/sourcebot/pull/552)
