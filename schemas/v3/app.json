@@ -1,9 +1,44 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "AppConfig",
+    "definitions": {
+        "GitHubAppConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "githubApp",
+                    "description": "GitHub App Configuration"
+                },
+                "deploymentHostname": {
+                    "type": "string",
+                    "format": "hostname",
+                    "default": "github.com",
+                    "description": "The hostname of the GitHub App deployment.",
+                    "examples": [
+                        "github.com",
+                        "github.example.com"
+                    ]
+                },
+                "id": {
+                    "type": "string",
+                    "description": "The ID of the GitHub App."
+                },
+                "privateKey": {
+                    "$ref": "./shared.json#/definitions/Token",
+                    "description": "The private key of the GitHub App."
+                }
+            },
+            "required": [
+                "type",
+                "id",
+                "privateKey"
+            ],
+            "additionalProperties": false
+        }
+    },
     "oneOf": [
         {
-            "$ref": "./githubApp.json"
+            "$ref": "#/definitions/GitHubAppConfig"
         }
     ]
 }

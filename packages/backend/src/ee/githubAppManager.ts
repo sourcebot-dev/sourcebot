@@ -5,6 +5,7 @@ import { createLogger } from "@sourcebot/logger";
 import { getTokenFromConfig } from "../utils.js";
 import { PrismaClient } from "@sourcebot/db";
 import { App } from "@octokit/app";
+import { GitHubAppConfig } from "@sourcebot/schemas/v3/index.type";
 
 const logger = createLogger('githubAppManager');
 const GITHUB_DEFAULT_DEPLOYMENT_HOSTNAME = 'github.com';
