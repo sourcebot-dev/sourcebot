@@ -5,21 +5,21 @@ type ValidResult<T> = {
     data: T[];
 };
 
-type NotFoundResult = {
-    type: 'notFound';
-    value: string;
+type WarningResult = {
+    type: 'warning';
+    warning: string;
 };
 
-type CustomResult<T> = ValidResult<T> | NotFoundResult;
+type CustomResult<T> = ValidResult<T> | WarningResult;
 
 export function processPromiseResults<T>(
     results: PromiseSettledResult<CustomResult<T>>[],
 ): {
     validItems: T[];
-    notFoundItems: string[];
+    warnings: string[];
 } {
     const validItems: T[] = [];
-    const notFoundItems: string[] = [];
+    const warnings: string[] = [];
 
     results.forEach(result => {
         if (result.status === 'fulfilled') {
@@ -27,14 +27,14 @@ export function processPromiseResults<T>(
             if (value.type === 'valid') {
                 validItems.push(...value.data);
             } else {
-                notFoundItems.push(value.value);
+                warnings.push(value.warning);
             }
         }
     });
 
     return {
         validItems,
-        notFoundItems,
+        warnings,
     };
 }
 

@@ -1,10 +1,10 @@
-import { GithubAppConfig, SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import { loadConfig } from "@sourcebot/shared";
 import { env } from "../env.js";
 import { createLogger } from "@sourcebot/logger";
-import { getTokenFromConfig } from "../utils.js";
+import { getTokenFromConfig } from "@sourcebot/crypto";
 import { PrismaClient } from "@sourcebot/db";
 import { App } from "@octokit/app";
+import { GitHubAppConfig } from "@sourcebot/schemas/v3/index.type";
 
 const logger = createLogger('githubAppManager');
 const GITHUB_DEFAULT_DEPLOYMENT_HOSTNAME = 'github.com';
@@ -53,7 +53,7 @@ export class GithubAppManager {
             return;
         }
 
-        const githubApps = config.apps.filter(app => app.type === 'githubApp') as GithubAppConfig[];
+        const githubApps = config.apps.filter(app => app.type === 'githubApp') as GitHubAppConfig[];
         logger.info(`Found ${githubApps.length} GitHub apps in config`);
 
         for (const app of githubApps) {
@@ -62,7 +62,7 @@ export class GithubAppManager {
             // @todo: we should move SINGLE_TENANT_ORG_ID to shared package or just remove the need to pass this in 
             // when resolving tokens
             const SINGLE_TENANT_ORG_ID = 1;
-            const privateKey = await getTokenFromConfig(app.privateKey, SINGLE_TENANT_ORG_ID, this.db!);
+            const privateKey = await getTokenFromConfig(app.privateKey, SINGLE_TENANT_ORG_ID, this.db);
 
             const octokitApp = new App({
                 appId: Number(app.id),

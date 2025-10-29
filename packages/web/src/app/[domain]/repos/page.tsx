@@ -3,16 +3,33 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { ReposTable } from "./components/reposTable";
+import { RepoIndexingJobStatus } from "@sourcebot/db";
 
 export default async function ReposPage() {
 
-    const repos = await getReposWithLatestJob();
-    if (isServiceError(repos)) {
-        throw new ServiceErrorException(repos);
+    const _repos = await getReposWithLatestJob();
+    if (isServiceError(_repos)) {
+        throw new ServiceErrorException(_repos);
     }
 
+    const repos = _repos
+        .map((repo) => ({
+            ...repo,
+            latestJobStatus: repo.jobs.length > 0 ? repo.jobs[0].status : null,
+            isFirstTimeIndex: repo.indexedAt === null && repo.jobs.filter((job) => job.status === RepoIndexingJobStatus.PENDING || job.status === RepoIndexingJobStatus.IN_PROGRESS).length > 0,
+        }))
+        .sort((a, b) => {
+            if (a.isFirstTimeIndex && !b.isFirstTimeIndex) {
+                return -1;
+            }
+            if (!a.isFirstTimeIndex && b.isFirstTimeIndex) {
+                return 1;
+            }
+            return a.name.localeCompare(b.name);
+        });
+
     return (
-        <div className="container mx-auto">
+        <>
             <div className="mb-6">
                 <h1 className="text-3xl font-semibold">Repositories</h1>
                 <p className="text-muted-foreground mt-2">View and manage your code repositories and their indexing status.</p>
@@ -27,16 +44,17 @@ export default async function ReposPage() {
                 createdAt: repo.createdAt,
                 webUrl: repo.webUrl,
                 imageUrl: repo.imageUrl,
-                latestJobStatus: repo.jobs.length > 0 ? repo.jobs[0].status : null,
+                latestJobStatus: repo.latestJobStatus,
+                isFirstTimeIndex: repo.isFirstTimeIndex,
                 codeHostType: repo.external_codeHostType,
                 indexedCommitHash: repo.indexedCommitHash,
             }))} />
-        </div>
+        </>
     )
 }
 
 const getReposWithLatestJob = async () => sew(() =>
-    withOptionalAuthV2(async ({ prisma }) => {
+    withOptionalAuthV2(async ({ prisma, org }) => {
         const repos = await prisma.repo.findMany({
             include: {
                 jobs: {
@@ -48,6 +66,9 @@ const getReposWithLatestJob = async () => sew(() =>
             },
             orderBy: {
                 name: 'asc'
+            },
+            where: {
+                orgId: org.id,
             }
         });
         return repos;

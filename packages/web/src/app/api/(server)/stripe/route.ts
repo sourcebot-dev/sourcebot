@@ -2,7 +2,7 @@ import { headers } from 'next/headers';
 import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/prisma';
-import { ConnectionSyncStatus, StripeSubscriptionStatus } from '@sourcebot/db';
+import { StripeSubscriptionStatus } from '@sourcebot/db';
 import { stripeClient } from '@/ee/features/billing/stripe';
 import { env } from '@/env.mjs';
 import { createLogger } from "@sourcebot/logger";
@@ -84,16 +84,6 @@ export async function POST(req: NextRequest) {
                 }
             });
             logger.info(`Org ${org.id} subscription status updated to ACTIVE`);
-
-            // mark all of this org's connections for sync, since their repos may have been previously garbage collected
-            await prisma.connection.updateMany({
-                where: {
-                    orgId: org.id
-                },
-                data: {
-                    syncStatus: ConnectionSyncStatus.SYNC_NEEDED
-                }
-            });
 
             return new Response(JSON.stringify({ received: true }), {
                 status: 200

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
 import { DemoExamples, DemoSearchExample, DemoSearchScope } from "@/types";
-import { cn, getCodeHostIcon } from "@/lib/utils";
+import { cn, CodeHostType, getCodeHostIcon } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { SearchScopeInfoCard } from "@/features/chat/components/chatBox/searchScopeInfoCard";
 
@@ -41,25 +41,23 @@ export const DemoCards = ({
         }
 
         if (searchScope.codeHostType) {
-            const codeHostIcon = getCodeHostIcon(searchScope.codeHostType);
-            if (codeHostIcon) {
-                // When selected, icons need to match the inverted badge colors
-                // In light mode selected: light icon on dark bg (invert)
-                // In dark mode selected: dark icon on light bg (no invert, override dark:invert)
-                const selectedIconClass = isSelected
-                    ? "invert dark:invert-0"
-                    : codeHostIcon.className;
+            const codeHostIcon = getCodeHostIcon(searchScope.codeHostType as CodeHostType);
+            // When selected, icons need to match the inverted badge colors
+            // In light mode selected: light icon on dark bg (invert)
+            // In dark mode selected: dark icon on light bg (no invert, override dark:invert)
+            const selectedIconClass = isSelected
+                ? "invert dark:invert-0"
+                : codeHostIcon.className;
 
-                return (
-                    <Image
-                        src={codeHostIcon.src}
-                        alt={`${searchScope.codeHostType} icon`}
-                        width={size}
-                        height={size}
-                        className={cn(sizeClass, selectedIconClass)}
-                    />
-                );
-            }
+            return (
+                <Image
+                    src={codeHostIcon.src}
+                    alt={`${searchScope.codeHostType} icon`}
+                    width={size}
+                    height={size}
+                    className={cn(sizeClass, selectedIconClass)}
+                />
+            );
         }
 
         return <Code className={cn(sizeClass, colorClass)} />;

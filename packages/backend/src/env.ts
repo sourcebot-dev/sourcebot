@@ -47,7 +47,7 @@ export const env = createEnv({
         DEBUG_ENABLE_GROUPMQ_LOGGING: booleanSchema.default('false'),
 
         DATABASE_URL: z.string().url().default("postgresql://postgres:postgres@localhost:5432/postgres"),
-        CONFIG_PATH: z.string().optional(),
+        CONFIG_PATH: z.string(),
 
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
         REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),

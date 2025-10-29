@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDomain } from "@/hooks/useDomain";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { RepositoryQuery } from "@/lib/types";
 import { getCodeHostInfoForRepo, getShortenedNumberDisplayString } from "@/lib/utils";
 import clsx from "clsx";
@@ -110,13 +111,14 @@ const RepoItem = ({ repo }: { repo: RepositoryQuery }) => {
 
 
     return (
-        <div
+        <Link
             className={clsx("flex flex-row items-center gap-2 border rounded-md p-2 text-clip")}
+            href={`/${SINGLE_TENANT_ORG_DOMAIN}/repos/${repo.repoId}`}
         >
             {repoIcon}
             <span className="text-sm truncate">
                 {displayName}
             </span>
-        </div>
+        </Link>
     )
 }

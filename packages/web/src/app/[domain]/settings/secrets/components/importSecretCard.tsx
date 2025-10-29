@@ -27,7 +27,7 @@ export const ImportSecretCard = ({ className }: ImportSecretCardProps) => {
                 <CardContent className="flex flex-row gap-4 w-full justify-center">
                     <CodeHostIconButton
                         name="GitHub"
-                        logo={getCodeHostIcon("github")!}
+                        logo={getCodeHostIcon("github")}
                         onClick={() => {
                             setSelectedCodeHost("github");
                             setIsImportSecretDialogOpen(true);
@@ -35,7 +35,7 @@ export const ImportSecretCard = ({ className }: ImportSecretCardProps) => {
                     />
                     <CodeHostIconButton
                         name="GitLab"
-                        logo={getCodeHostIcon("gitlab")!}
+                        logo={getCodeHostIcon("gitlab")}
                         onClick={() => {
                             setSelectedCodeHost("gitlab");
                             setIsImportSecretDialogOpen(true);
@@ -43,7 +43,7 @@ export const ImportSecretCard = ({ className }: ImportSecretCardProps) => {
                     />
                     <CodeHostIconButton
                         name="Gitea"
-                        logo={getCodeHostIcon("gitea")!}
+                        logo={getCodeHostIcon("gitea")}
                         onClick={() => {
                             setSelectedCodeHost("gitea");
                             setIsImportSecretDialogOpen(true);

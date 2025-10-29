@@ -1,8 +1,7 @@
 import micromatch from "micromatch";
 import { createLogger } from "@sourcebot/logger";
 import { PrismaClient } from "@sourcebot/db";
-import { getPlan, hasEntitlement } from "../entitlements.js";
-import { SOURCEBOT_SUPPORT_EMAIL } from "../constants.js";
+import { getPlan, hasEntitlement, SOURCEBOT_SUPPORT_EMAIL } from "@sourcebot/shared";
 import { SearchContext } from "@sourcebot/schemas/v3/index.type";
 
 const logger = createLogger('sync-search-contexts');

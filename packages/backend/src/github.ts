@@ -1,15 +1,15 @@
 import { Octokit } from "@octokit/rest";
-import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
-import { createLogger } from "@sourcebot/logger";
-import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
-import micromatch from "micromatch";
-import { PrismaClient } from "@sourcebot/db";
-import { BackendException, BackendError } from "@sourcebot/error";
-import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
-import { env } from "./env.js";
-import { GithubAppManager } from "./ee/githubAppManager.js";
+import { PrismaClient } from "@sourcebot/db";
+import { createLogger } from "@sourcebot/logger";
+import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { hasEntitlement } from "@sourcebot/shared";
+import micromatch from "micromatch";
+import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
+import { GithubAppManager } from "./ee/githubAppManager.js";
+import { env } from "./env.js";
+import { fetchWithRetry, measure } from "./utils.js";
+import { getTokenFromConfig } from "@sourcebot/crypto";
 
 export const GITHUB_CLOUD_HOSTNAME = "github.com";
 const logger = createLogger('github');
@@ -92,13 +92,13 @@ const getOctokitWithGithubApp = async (
     }
 }
 
-export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal) => {
+export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal): Promise<{ repos: OctokitRepository[], warnings: string[] }> => {
     const hostname = config.url ?
         new URL(config.url).hostname :
         GITHUB_CLOUD_HOSTNAME;
 
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db, logger) :
+        await getTokenFromConfig(config.token, orgId, db) :
         hostname === GITHUB_CLOUD_HOSTNAME ?
             env.FALLBACK_GITHUB_CLOUD_TOKEN :
             undefined;
@@ -108,57 +108,36 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
         url: config.url,
     });
 
+
     if (isAuthenticated) {
         try {
             await octokit.rest.users.getAuthenticated();
         } catch (error) {
             Sentry.captureException(error);
-
-            if (isHttpError(error, 401)) {
-                const e = new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN, {
-                    ...(config.token && 'secret' in config.token ? {
-                        secretKey: config.token.secret,
-                    } : {}),
-                });
-                Sentry.captureException(e);
-                throw e;
-            }
-
-            const e = new BackendException(BackendError.CONNECTION_SYNC_SYSTEM_ERROR, {
-                message: `Failed to authenticate with GitHub`,
-            });
-            Sentry.captureException(e);
-            throw e;
+            logger.error(`Failed to authenticate with GitHub`, error);
+            throw error;
         }
     }
 
     let allRepos: OctokitRepository[] = [];
-    let notFound: {
-        users: string[],
-        orgs: string[],
-        repos: string[],
-    } = {
-        users: [],
-        orgs: [],
-        repos: [],
-    };
+    let allWarnings: string[] = [];
 
     if (config.orgs) {
-        const { validRepos, notFoundOrgs } = await getReposForOrgs(config.orgs, octokit, signal, config.url);
-        allRepos = allRepos.concat(validRepos);
-        notFound.orgs = notFoundOrgs;
+        const { repos, warnings } = await getReposForOrgs(config.orgs, octokit, signal, config.url);
+        allRepos = allRepos.concat(repos);
+        allWarnings = allWarnings.concat(warnings);
     }
 
     if (config.repos) {
-        const { validRepos, notFoundRepos } = await getRepos(config.repos, octokit, signal, config.url);
-        allRepos = allRepos.concat(validRepos);
-        notFound.repos = notFoundRepos;
+        const { repos, warnings } = await getRepos(config.repos, octokit, signal, config.url);
+        allRepos = allRepos.concat(repos);
+        allWarnings = allWarnings.concat(warnings);
     }
 
     if (config.users) {
-        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, octokit, signal, config.url);
-        allRepos = allRepos.concat(validRepos);
-        notFound.users = notFoundUsers;
+        const { repos, warnings } = await getReposOwnedByUsers(config.users, octokit, signal, config.url);
+        allRepos = allRepos.concat(repos);
+        allWarnings = allWarnings.concat(warnings);
     }
 
     let repos = allRepos
@@ -177,8 +156,8 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
     logger.debug(`Found ${repos.length} total repositories.`);
 
     return {
-        validRepos: repos,
-        notFound,
+        repos,
+        warnings: allWarnings,
     };
 }
 
@@ -256,10 +235,11 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
             logger.error(`Failed to fetch repositories for user ${user}.`, error);
 
             if (isHttpError(error, 404)) {
-                logger.error(`User ${user} not found or no access`);
+                const warning = `User ${user} not found or no access`;
+                logger.warn(warning);
                 return {
-                    type: 'notFound' as const,
-                    value: user
+                    type: 'warning' as const,
+                    warning
                 };
             }
             throw error;
@@ -267,18 +247,18 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: validRepos, notFoundItems: notFoundUsers } = processPromiseResults<OctokitRepository>(results);
+    const { validItems: repos, warnings } = processPromiseResults<OctokitRepository>(results);
 
     return {
-        validRepos,
-        notFoundUsers,
+        repos,
+        warnings,
     };
 }
 
 const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
     const results = await Promise.allSettled(orgs.map(async (org) => {
         try {
-            logger.info(`Fetching repository info for org ${org}...`);
+            logger.debug(`Fetching repository info for org ${org}...`);
 
             const octokitToUse = await getOctokitWithGithubApp(octokit, org, url, `org ${org}`);
             const { durationMs, data } = await measure(async () => {
@@ -293,7 +273,7 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
                 return fetchWithRetry(fetchFn, `org ${org}`, logger);
             });
 
-            logger.info(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
+            logger.debug(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
             return {
                 type: 'valid' as const,
                 data
@@ -303,10 +283,11 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
             logger.error(`Failed to fetch repositories for org ${org}.`, error);
 
             if (isHttpError(error, 404)) {
-                logger.error(`Organization ${org} not found or no access`);
+                const warning = `Organization ${org} not found or no access`;
+                logger.warn(warning);
                 return {
-                    type: 'notFound' as const,
-                    value: org
+                    type: 'warning' as const,
+                    warning
                 };
             }
             throw error;
@@ -314,11 +295,11 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: validRepos, notFoundItems: notFoundOrgs } = processPromiseResults<OctokitRepository>(results);
+    const { validItems: repos, warnings } = processPromiseResults<OctokitRepository>(results);
 
     return {
-        validRepos,
-        notFoundOrgs,
+        repos,
+        warnings,
     };
 }
 
@@ -326,7 +307,7 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
     const results = await Promise.allSettled(repoList.map(async (repo) => {
         try {
             const [owner, repoName] = repo.split('/');
-            logger.info(`Fetching repository info for ${repo}...`);
+            logger.debug(`Fetching repository info for ${repo}...`);
 
             const octokitToUse = await getOctokitWithGithubApp(octokit, owner, url, `repo ${repo}`);
             const { durationMs, data: result } = await measure(async () => {
@@ -341,7 +322,7 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
                 return fetchWithRetry(fetchFn, repo, logger);
             });
 
-            logger.info(`Found info for repository ${repo} in ${durationMs}ms`);
+            logger.debug(`Found info for repository ${repo} in ${durationMs}ms`);
             return {
                 type: 'valid' as const,
                 data: [result.data]
@@ -352,10 +333,11 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
             logger.error(`Failed to fetch repository ${repo}.`, error);
 
             if (isHttpError(error, 404)) {
-                logger.error(`Repository ${repo} not found or no access`);
+                const warning = `Repository ${repo} not found or no access`;
+                logger.warn(warning);
                 return {
-                    type: 'notFound' as const,
-                    value: repo
+                    type: 'warning' as const,
+                    warning
                 };
             }
             throw error;
@@ -363,11 +345,11 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults<OctokitRepository>(results);
+    const { validItems: repos, warnings } = processPromiseResults<OctokitRepository>(results);
 
     return {
-        validRepos,
-        notFoundRepos,
+        repos,
+        warnings,
     };
 }
 

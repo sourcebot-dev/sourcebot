@@ -149,7 +149,8 @@ export class RepoIndexManager {
     }
 
     private async scheduleCleanupJobs() {
-        const thresholdDate = new Date(Date.now() - this.settings.repoGarbageCollectionGracePeriodMs);
+        const gcGracePeriodMs = new Date(Date.now() - this.settings.repoGarbageCollectionGracePeriodMs);
+        const timeoutDate = new Date(Date.now() - this.settings.repoIndexTimeoutMs);
 
         const reposToCleanup = await this.db.repo.findMany({
             where: {
@@ -158,9 +159,8 @@ export class RepoIndexManager {
                 },
                 OR: [
                     { indexedAt: null },
-                    { indexedAt: { lt: thresholdDate } },
+                    { indexedAt: { lt: gcGracePeriodMs } },
                 ],
-                // Don't schedule if there are active jobs that were created within the threshold date.
                 NOT: {
                     jobs: {
                         some: {
@@ -178,7 +178,7 @@ export class RepoIndexManager {
                                 },
                                 {
                                     createdAt: {
-                                        gt: thresholdDate,
+                                        gt: timeoutDate,
                                     }
                                 }
                             ]

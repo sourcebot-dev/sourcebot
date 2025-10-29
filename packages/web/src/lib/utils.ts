@@ -74,7 +74,7 @@ export type CodeHostType =
     "azuredevops" |
     "generic-git-host";
 
-export type AuthProviderType = 
+export type AuthProviderType =
     "github" |
     "gitlab" |
     "google" |
@@ -105,7 +105,7 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
             };
         case "gitlab":
             return {
-                id: "gitlab", 
+                id: "gitlab",
                 name: "GitLab",
                 displayName: "GitLab",
                 icon: {
@@ -115,7 +115,7 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
         case "google":
             return {
                 id: "google",
-                name: "Google", 
+                name: "Google",
                 displayName: "Google",
                 icon: {
                     src: googleLogo,
@@ -125,7 +125,7 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
             return {
                 id: "okta",
                 name: "Okta",
-                displayName: "Okta", 
+                displayName: "Okta",
                 icon: {
                     src: oktaLogo,
                     className: "dark:invert",
@@ -145,7 +145,7 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
                 id: "microsoft-entra-id",
                 name: "Microsoft Entra ID",
                 displayName: "Microsoft Entra ID",
-               icon: {
+                icon: {
                     src: microsoftLogo,
                 },
             };
@@ -283,7 +283,7 @@ export const getCodeHostInfoForRepo = (repo: {
     }
 }
 
-export const getCodeHostIcon = (codeHostType: string): { src: string, className?: string } | null => {
+export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, className?: string } => {
     switch (codeHostType) {
         case "github":
             return {
@@ -315,8 +315,6 @@ export const getCodeHostIcon = (codeHostType: string): { src: string, className?
             return {
                 src: gitLogo,
             }
-        default:
-            return null;
     }
 }
 
@@ -364,7 +362,7 @@ export const getCodeHostBrowseAtBranchUrl = ({
     if (!webUrl) {
         return undefined;
     }
-    
+
     switch (codeHostType) {
         case 'github':
             return `${webUrl}/tree/${branchName}`;
@@ -416,7 +414,7 @@ export const getFormattedDate = (date: Date) => {
     const now = new Date();
     const diffMinutes = (now.getTime() - date.getTime()) / (1000 * 60);
     const isFuture = diffMinutes < 0;
-    
+
     // Use absolute values for calculations
     const minutes = Math.abs(diffMinutes);
     const hours = minutes / 60;
@@ -426,7 +424,7 @@ export const getFormattedDate = (date: Date) => {
     const formatTime = (value: number, unit: 'minute' | 'hour' | 'day' | 'month', isFuture: boolean) => {
         const roundedValue = Math.floor(value);
         const pluralUnit = roundedValue === 1 ? unit : `${unit}s`;
-        
+
         if (isFuture) {
             return `In ${roundedValue} ${pluralUnit}`;
         } else {
@@ -508,7 +506,7 @@ export const measure = async <T>(cb: () => Promise<T>, measureName: string, outp
  * @param promise The promise to unwrap.
  * @returns The data from the promise.
  */
-export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>): Promise<T> => {    
+export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>): Promise<T> => {
     const data = await promise;
     if (isServiceError(data)) {
         throw new Error(data.message);
@@ -531,10 +529,10 @@ export const requiredQueryParamGuard = (request: NextRequest, param: string): Se
 
 export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number): string | undefined => {
     if (!imageUrl) return undefined;
-    
+
     try {
         const url = new URL(imageUrl);
-        
+
         // List of known public instances that don't require authentication
         const publicHostnames = [
             'github.com',
@@ -542,9 +540,9 @@ export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number): s
             'gitea.com',
             'bitbucket.org',
         ];
-        
+
         const isPublicInstance = publicHostnames.includes(url.hostname);
-        
+
         if (isPublicInstance) {
             return imageUrl;
         } else {
@@ -566,8 +564,8 @@ export const IS_MAC = typeof navigator !== 'undefined' && /Mac OS X/.test(naviga
 
 
 export const isHttpError = (error: unknown, status: number): boolean => {
-    return error !== null 
+    return error !== null
         && typeof error === 'object'
-        && 'status' in error 
+        && 'status' in error
         && error.status === status;
 }
