@@ -11,6 +11,7 @@ import { Settings } from "./types.js";
 import { groupmqLifecycleExceptionWrapper } from "./utils.js";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import { captureEvent } from "./posthog.js";
+import { PromClient } from "./promClient.js";
 
 const LOG_TAG = 'connection-manager';
 const logger = createLogger(LOG_TAG);
@@ -38,6 +39,7 @@ export class ConnectionManager {
         private db: PrismaClient,
         private settings: Settings,
         redis: Redis,
+        private promClient: PromClient,
     ) {
         this.queue = new Queue<JobPayload>({
             redis,
@@ -137,6 +139,8 @@ export class ConnectionManager {
                 },
                 jobId: job.id,
             });
+
+            this.promClient.pendingConnectionSyncJobs.inc({ connection: job.connection.name });
         }
 
         return jobs.map(job => job.id);
@@ -146,6 +150,9 @@ export class ConnectionManager {
         const { jobId, connectionName } = job.data;
         const logger = createJobLogger(jobId);
         logger.info(`Running connection sync job ${jobId} for connection ${connectionName} (id: ${job.data.connectionId}) (attempt ${job.attempts + 1} / ${job.maxAttempts})`);
+
+        this.promClient.pendingConnectionSyncJobs.dec({ connection: connectionName });
+        this.promClient.activeConnectionSyncJobs.inc({ connection: connectionName });
 
         // @note: We aren't actually doing anything with this atm.
         const abortController = new AbortController();
@@ -265,7 +272,7 @@ export class ConnectionManager {
     private onJobCompleted = async (job: Job<JobPayload>) =>
         groupmqLifecycleExceptionWrapper('onJobCompleted', logger, async () => {
             const logger = createJobLogger(job.id);
-            const { connectionId, orgId } = job.data;
+            const { connectionId, connectionName, orgId } = job.data;
 
             await this.db.connectionSyncJob.update({
                 where: {
@@ -301,6 +308,9 @@ export class ConnectionManager {
 
             logger.info(`Connection sync job ${job.id} for connection ${job.data.connectionName} (id: ${job.data.connectionId}) completed`);
 
+            this.promClient.activeConnectionSyncJobs.dec({ connection: connectionName });
+            this.promClient.connectionSyncJobSuccessTotal.inc({ connection: connectionName });
+
             const result = job.returnvalue as JobResult;
             captureEvent('backend_connection_sync_job_completed', {
                 connectionId: connectionId,
@@ -328,11 +338,16 @@ export class ConnectionManager {
                     }
                 });
 
+                this.promClient.activeConnectionSyncJobs.dec({ connection: connection.name });
+                this.promClient.connectionSyncJobFailTotal.inc({ connection: connection.name });
+
                 logger.error(`Failed job ${job.id} for connection ${connection.name} (id: ${connection.id}). Attempt ${attempt} / ${job.opts.attempts}. Failing job.`);
             } else {
                 const connection = await this.db.connection.findUniqueOrThrow({
                     where: { id: job.data.connectionId },
                 });
+
+                this.promClient.connectionSyncJobReattemptsTotal.inc({ connection: connection.name });
 
                 logger.warn(`Failed job ${job.id} for connection ${connection.name} (id: ${connection.id}). Attempt ${attempt} / ${job.opts.attempts}. Retrying.`);
             }
@@ -357,6 +372,9 @@ export class ConnectionManager {
                     connection: true,
                 }
             });
+
+            this.promClient.activeConnectionSyncJobs.dec({ connection: connection.name });
+            this.promClient.connectionSyncJobFailTotal.inc({ connection: connection.name });
 
             logger.error(`Job ${jobId} stalled for connection ${connection.name} (id: ${connection.id})`);
 

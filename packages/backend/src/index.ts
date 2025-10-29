@@ -50,7 +50,7 @@ if (hasEntitlement('github-app')) {
     await GithubAppManager.getInstance().init(prisma);
 }
 
-const connectionManager = new ConnectionManager(prisma, settings, redis);
+const connectionManager = new ConnectionManager(prisma, settings, redis, promClient);
 const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
 const userPermissionSyncer = new UserPermissionSyncer(prisma, settings, redis);
 const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClient);

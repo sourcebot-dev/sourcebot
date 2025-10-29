@@ -56,8 +56,6 @@ export const env = createEnv({
 
         EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
         AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
-
-        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

@@ -50,8 +50,11 @@ export default async function ConnectionsPage() {
 }
 
 const getConnectionsWithLatestJob = async () => sew(() =>
-    withAuthV2(async ({ prisma }) => {
+    withAuthV2(async ({ prisma, org }) => {
         const connections = await prisma.connection.findMany({
+            where: {
+                orgId: org.id,
+            },
             include: {
                 _count: {
                     select: {
