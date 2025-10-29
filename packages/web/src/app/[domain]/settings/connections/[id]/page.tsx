@@ -140,7 +140,7 @@ export default async function ConnectionDetailPage(props: ConnectionDetailPagePr
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {connection.syncedAt ? <DisplayDate date={connection.syncedAt} className="text-2xl font-semibold" /> : "Never"}
+                        <span className="text-2xl font-semibold">{connection.syncedAt ? <DisplayDate date={connection.syncedAt} /> : "Never"}</span>
                     </CardContent>
                 </Card>
 
@@ -153,7 +153,7 @@ export default async function ConnectionDetailPage(props: ConnectionDetailPagePr
                                     <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>When the next sync job is scheduled to run</p>
+                                    <p>When the connection will be resynced next. Modifying the config will also trigger a resync.</p>
                                 </TooltipContent>
                             </Tooltip>
                         </CardTitle>
