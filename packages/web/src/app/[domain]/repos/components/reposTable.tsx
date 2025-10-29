@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { CodeHostType, getCodeHostCommitUrl, getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
+import { cn, CodeHostType, getCodeHostCommitUrl, getCodeHostIcon, getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -96,22 +96,29 @@ export const columns: ColumnDef<Repo>[] = [
             )
         },
         cell: ({ row }) => {
-            const repo = row.original
+            const repo = row.original;
+            const codeHostIcon = getCodeHostIcon(repo.codeHostType as CodeHostType);
+            const repoImageSrc = repo.imageUrl ? getRepoImageSrc(repo.imageUrl, repo.id) : undefined;
+
             return (
                 <div className="flex flex-row gap-2 items-center">
-                    {repo.imageUrl ? (
-                        <Image
-                            src={getRepoImageSrc(repo.imageUrl, repo.id) || "/placeholder.svg"}
+                    {
+                        repoImageSrc ? (
+                            <Image
+                                src={repoImageSrc}
+                                alt={`${repo.displayName} logo`}
+                                width={32}
+                                height={32}
+                                className="object-cover"
+                            />
+                        ) : <Image
+                            src={codeHostIcon.src}
                             alt={`${repo.displayName} logo`}
                             width={32}
                             height={32}
-                            className="object-cover"
+                            className={cn(codeHostIcon.className)}
                         />
-                    ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-muted text-xs font-medium uppercase text-muted-foreground">
-                            {repo.displayName?.charAt(0) ?? repo.name.charAt(0)}
-                        </div>
-                    )}
+                    }
 
                     {/* Link to the details page (instead of browse) when the repo is indexing
                         as the code will not be available yet */}
@@ -124,7 +131,7 @@ export const columns: ColumnDef<Repo>[] = [
                         })}
                         className="font-medium hover:underline"
                     >
-                        {repo.displayName || repo.name}
+                        <span>{repo.displayName || repo.name}</span>
                     </Link>
                     {repo.isFirstTimeIndex && (
                         <Tooltip>
