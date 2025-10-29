@@ -377,6 +377,8 @@ export const getCodeHostBrowseAtBranchUrl = ({
             return `${webUrl}?at=${branchName}`;
         case 'bitbucket-server':
             return `${webUrl}?at=${branchName}`;
+        case 'gerrit':
+            return `${webUrl}/+/${branchName}`;
         case 'generic-git-host':
             return undefined;
     }
