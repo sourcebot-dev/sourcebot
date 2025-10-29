@@ -102,7 +102,7 @@ export default async function SettingsLayout(
             {
                 title: "Connections",
                 href: `/${domain}/settings/connections`,
-                hrefRegex: `/${domain}/settings/connections(\/[^/]+)?$`,
+                hrefRegex: `/${domain}/settings/connections(/[^/]+)?$`,
                 isNotificationDotVisible: connectionStats.numberOfConnectionsWithFirstTimeSyncJobsInProgress > 0,
             }
         ] : []),
