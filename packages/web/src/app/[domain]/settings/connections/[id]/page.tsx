@@ -121,7 +121,7 @@ export default async function ConnectionDetailPage(props: ConnectionDetailPagePr
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <DisplayDate date={connection.createdAt} className="text-2xl font-semibold" />
+                        <span className="text-2xl font-semibold"><DisplayDate date={connection.createdAt} /></span>
                     </CardContent>
                 </Card>
 
@@ -159,7 +159,7 @@ export default async function ConnectionDetailPage(props: ConnectionDetailPagePr
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {nextSyncAttempt ? <DisplayDate date={nextSyncAttempt} className="text-2xl font-semibold" /> : "-"}
+                        <span className="text-2xl font-semibold">{nextSyncAttempt ? <DisplayDate date={nextSyncAttempt} /> : "-"}</span>
                     </CardContent>
                 </Card>
             </div>

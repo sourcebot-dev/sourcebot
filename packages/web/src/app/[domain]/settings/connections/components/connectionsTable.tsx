@@ -88,6 +88,7 @@ export const columns: ColumnDef<Connection>[] = [
                     <Image
                         src={codeHostIcon.src}
                         alt={`${connection.codeHostType} logo`}
+                        className={codeHostIcon.className}
                         width={20}
                         height={20}
                     />

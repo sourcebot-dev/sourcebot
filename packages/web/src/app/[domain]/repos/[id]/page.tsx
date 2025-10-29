@@ -102,7 +102,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <DisplayDate date={repo.createdAt} className="text-2xl font-semibold" />
+                        <span className="text-2xl font-semibold"><DisplayDate date={repo.createdAt} /></span>
                     </CardContent>
                 </Card>
 
@@ -121,7 +121,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {repo.indexedAt ? <DisplayDate date={repo.indexedAt} className="text-2xl font-semibold" /> : "Never"}
+                        <span className="text-2xl font-semibold">{repo.indexedAt ? <DisplayDate date={repo.indexedAt} /> : "Never"}</span>
                     </CardContent>
                 </Card>
 
@@ -140,7 +140,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {nextIndexAttempt ? <DisplayDate date={nextIndexAttempt} className="text-2xl font-semibold" /> : "-"}
+                        <span className="text-2xl font-semibold">{nextIndexAttempt ? <DisplayDate date={nextIndexAttempt} /> : "-"}</span>
                     </CardContent>
                 </Card>
             </div>
