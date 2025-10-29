@@ -247,8 +247,6 @@ RUN chmod +x ./prefix-output.sh
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
-COPY default-config.json .
-
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
