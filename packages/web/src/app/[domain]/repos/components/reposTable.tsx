@@ -37,6 +37,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast";
 import { DisplayDate } from "../../components/DisplayDate"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { NotificationDot } from "../../components/notificationDot"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -53,6 +54,7 @@ export type Repo = {
     imageUrl: string | null
     indexedCommitHash: string | null
     latestJobStatus: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | null
+    isFirstTimeIndex: boolean
 }
 
 const statusBadgeVariants = cva("", {
@@ -111,14 +113,32 @@ export const columns: ColumnDef<Repo>[] = [
                             {repo.displayName?.charAt(0) ?? repo.name.charAt(0)}
                         </div>
                     )}
-                    <Link href={getBrowsePath({
-                        repoName: repo.name,
-                        path: '/',
-                        pathType: 'tree',
-                        domain: SINGLE_TENANT_ORG_DOMAIN,
-                    })} className="font-medium hover:underline">
+
+                    {/* Link to the details page (instead of browse) when the repo is indexing
+                        as the code will not be available yet */}
+                    <Link
+                        href={repo.isFirstTimeIndex ? `/${SINGLE_TENANT_ORG_DOMAIN}/repos/${repo.id}` : getBrowsePath({
+                            repoName: repo.name,
+                            path: '/',
+                            pathType: 'tree',
+                            domain: SINGLE_TENANT_ORG_DOMAIN,
+                        })}
+                        className="font-medium hover:underline"
+                    >
                         {repo.displayName || repo.name}
                     </Link>
+                    {repo.isFirstTimeIndex && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span>
+                                    <NotificationDot className="ml-1.5" />
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <span>This is the first time Sourcebot is indexing this repository. It may take a few minutes to complete.</span>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
                 </div>
             )
         },
@@ -150,7 +170,7 @@ export const columns: ColumnDef<Repo>[] = [
             }
 
             return (
-                <DisplayDate date={indexedAt} className="ml-3"/>
+                <DisplayDate date={indexedAt} className="ml-3" />
             )
         }
     },
@@ -177,11 +197,11 @@ export const columns: ColumnDef<Repo>[] = [
 
             const HashComponent = commitUrl ? (
                 <Link
-                href={commitUrl}
-                className="font-mono text-sm text-link hover:underline"
-            >
-                {smallHash}
-            </Link>
+                    href={commitUrl}
+                    className="font-mono text-sm text-link hover:underline"
+                >
+                    {smallHash}
+                </Link>
             ) : (
                 <span className="font-mono text-sm text-muted-foreground">
                     {smallHash}
@@ -337,7 +357,7 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead 
+                                        <TableHead
                                             key={header.id}
                                             style={{ width: `${header.getSize()}px` }}
                                         >
@@ -353,7 +373,7 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
                             table.getRowModel().rows.map((row) => (
                                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell 
+                                        <TableCell
                                             key={cell.id}
                                             style={{ width: `${cell.column.getSize()}px` }}
                                         >

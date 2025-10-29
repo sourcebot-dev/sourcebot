@@ -10,7 +10,7 @@ import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
 import { encrypt, generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/crypto";
-import { ApiKey, Org, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType, StripeSubscriptionStatus } from "@sourcebot/db";
+import { ApiKey, ConnectionSyncJobStatus, Org, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType, StripeSubscriptionStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
@@ -30,7 +30,7 @@ import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { ApiKeyPayload, TenancyMode } from "./lib/types";
-import { withOptionalAuthV2 } from "./withAuthV2";
+import { withAuthV2, withOptionalAuthV2 } from "./withAuthV2";
 
 const logger = createLogger('web-actions');
 const auditService = getAuditService();
@@ -593,6 +593,7 @@ export const getReposStats = async () => sew(() =>
             prisma.repo.count({
                 where: {
                     orgId: org.id,
+                    indexedAt: null,
                     jobs: {
                         some: {
                             type: RepoIndexingJobType.INDEX,
@@ -604,7 +605,6 @@ export const getReposStats = async () => sew(() =>
                             }
                         },
                     },
-                    indexedAt: null,
                 }
             }),
             prisma.repo.count({
@@ -624,6 +624,42 @@ export const getReposStats = async () => sew(() =>
         };
     })
 )
+
+export const getConnectionStats = async () => sew(() =>
+    withAuthV2(async ({ org, prisma }) => {
+        const [
+            numberOfConnections,
+            numberOfConnectionsWithFirstTimeSyncJobsInProgress,
+        ] = await Promise.all([
+            prisma.connection.count({
+                where: {
+                    orgId: org.id,
+                }
+            }),
+            prisma.connection.count({
+                where: {
+                    orgId: org.id,
+                    syncedAt: null,
+                    syncJobs: {
+                        some: {
+                            status: {
+                                in: [
+                                    ConnectionSyncJobStatus.PENDING,
+                                    ConnectionSyncJobStatus.IN_PROGRESS,
+                                ]
+                            }
+                        }
+                    }
+                }
+            })
+        ]);
+
+        return {
+            numberOfConnections,
+            numberOfConnectionsWithFirstTimeSyncJobsInProgress,
+        };
+    })
+);
 
 export const getRepoInfoByName = async (repoName: string) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {

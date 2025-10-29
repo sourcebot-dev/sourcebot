@@ -1,6 +1,6 @@
 import { AzureDevOpsConnectionConfig } from "@sourcebot/schemas/v3/azuredevops.type";
 import { createLogger } from "@sourcebot/logger";
-import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
+import { measure, fetchWithRetry } from "./utils.js";
 import micromatch from "micromatch";
 import { PrismaClient } from "@sourcebot/db";
 import { BackendException, BackendError } from "@sourcebot/error";
@@ -8,6 +8,7 @@ import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
 import * as azdev from "azure-devops-node-api";
 import { GitRepository } from "azure-devops-node-api/interfaces/GitInterfaces.js";
+import { getTokenFromConfig } from "@sourcebot/crypto";
 
 const logger = createLogger('azuredevops');
 const AZUREDEVOPS_CLOUD_HOSTNAME = "dev.azure.com";
@@ -34,7 +35,7 @@ export const getAzureDevOpsReposFromConfig = async (
     const baseUrl = config.url || `https://${AZUREDEVOPS_CLOUD_HOSTNAME}`;
 
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db, logger) :
+        await getTokenFromConfig(config.token, orgId, db) :
         undefined;
 
     if (!token) {

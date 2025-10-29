@@ -1,12 +1,14 @@
 "use client"
 
 import { DisplayDate } from "@/app/[domain]/components/DisplayDate"
+import { NotificationDot } from "@/app/[domain]/components/notificationDot"
 import { useToast } from "@/components/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { CodeHostType, getCodeHostIcon } from "@/lib/utils"
 import {
@@ -35,6 +37,7 @@ export type Connection = {
     syncedAt: Date | null
     codeHostType: CodeHostType
     latestJobStatus: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | null
+    isFirstTimeSync: boolean
 }
 
 const statusBadgeVariants = cva("", {
@@ -91,6 +94,18 @@ export const columns: ColumnDef<Connection>[] = [
                     <Link href={`/${SINGLE_TENANT_ORG_DOMAIN}/settings/connections/${connection.id}`} className="font-medium hover:underline">
                         {connection.name}
                     </Link>
+                    {connection.isFirstTimeSync && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span>
+                                    <NotificationDot className="ml-1.5" />
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <span>This is the first time Sourcebot is syncing this connection. It may take a few minutes to complete.</span>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
                 </div>
             )
         },

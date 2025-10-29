@@ -8,7 +8,8 @@ import micromatch from "micromatch";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { env } from "./env.js";
-import { fetchWithRetry, getTokenFromConfig, measure } from "./utils.js";
+import { fetchWithRetry, measure } from "./utils.js";
+import { getTokenFromConfig } from "@sourcebot/crypto";
 
 export const GITHUB_CLOUD_HOSTNAME = "github.com";
 const logger = createLogger('github');
@@ -97,7 +98,7 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, o
         GITHUB_CLOUD_HOSTNAME;
 
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db, logger) :
+        await getTokenFromConfig(config.token, orgId, db) :
         hostname === GITHUB_CLOUD_HOSTNAME ?
             env.FALLBACK_GITHUB_CLOUD_TOKEN :
             undefined;

@@ -4,7 +4,7 @@ import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type"
 import type { ClientOptions, ClientPathsWithMethod } from "openapi-fetch";
 import { createLogger } from "@sourcebot/logger";
 import { PrismaClient } from "@sourcebot/db";
-import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
+import { measure, fetchWithRetry } from "./utils.js";
 import * as Sentry from "@sentry/node";
 import {
     SchemaRepository as CloudRepository,
@@ -12,6 +12,7 @@ import {
 import { SchemaRestRepository as ServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { processPromiseResults } from "./connectionUtils.js";
 import { throwIfAnyFailed } from "./connectionUtils.js";
+import { getTokenFromConfig } from "@sourcebot/crypto";
 
 const logger = createLogger('bitbucket');
 const BITBUCKET_CLOUD_GIT = 'https://bitbucket.org';
@@ -59,7 +60,7 @@ type ServerPaginatedResponse<T> = {
 
 export const getBitbucketReposFromConfig = async (config: BitbucketConnectionConfig, orgId: number, db: PrismaClient) => {
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db, logger) :
+        await getTokenFromConfig(config.token, orgId, db) :
         undefined;
 
     if (config.deploymentType === 'server' && !config.url) {

@@ -1,4 +1,4 @@
-import { getRepos, getReposStats } from "@/actions";
+import { getConnectionStats, getRepos, getReposStats } from "@/actions";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,11 @@ export const NavigationMenu = async ({
     const repoStats = await getReposStats();
     if (isServiceError(repoStats)) {
         throw new ServiceErrorException(repoStats);
+    }
+
+    const connectionStats = isAuthenticated ? await getConnectionStats() : null;
+    if (isServiceError(connectionStats)) {
+        throw new ServiceErrorException(connectionStats);
     }
 
     const sampleRepos = await getRepos({
@@ -93,7 +98,12 @@ export const NavigationMenu = async ({
                         <NavigationItems
                             domain={domain}
                             numberOfRepos={numberOfRepos}
-                            numberOfReposWithFirstTimeIndexingJobsInProgress={numberOfReposWithFirstTimeIndexingJobsInProgress}
+                            isReposButtonNotificationDotVisible={numberOfReposWithFirstTimeIndexingJobsInProgress > 0}
+                            isSettingsButtonNotificationDotVisible={
+                                connectionStats ?
+                                    connectionStats.numberOfConnectionsWithFirstTimeSyncJobsInProgress > 0 :
+                                    false
+                            }
                             isAuthenticated={isAuthenticated}
                         />
                     </NavigationMenuBase>

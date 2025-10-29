@@ -1,6 +1,6 @@
 import { Api, giteaApi, HttpResponse, Repository as GiteaRepository } from 'gitea-js';
 import { GiteaConnectionConfig } from '@sourcebot/schemas/v3/gitea.type';
-import { getTokenFromConfig, measure } from './utils.js';
+import { measure } from './utils.js';
 import fetch from 'cross-fetch';
 import { createLogger } from '@sourcebot/logger';
 import micromatch from 'micromatch';
@@ -8,6 +8,7 @@ import { PrismaClient } from '@sourcebot/db';
 import { processPromiseResults, throwIfAnyFailed } from './connectionUtils.js';
 import * as Sentry from "@sentry/node";
 import { env } from './env.js';
+import { getTokenFromConfig } from "@sourcebot/crypto";
 
 const logger = createLogger('gitea');
 const GITEA_CLOUD_HOSTNAME = "gitea.com";
@@ -18,7 +19,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, org
         GITEA_CLOUD_HOSTNAME;
 
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db, logger) :
+        await getTokenFromConfig(config.token, orgId, db) :
         hostname === GITEA_CLOUD_HOSTNAME ?
         env.FALLBACK_GITEA_CLOUD_TOKEN :
         undefined;

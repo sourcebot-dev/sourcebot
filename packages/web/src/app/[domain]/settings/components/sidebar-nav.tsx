@@ -1,15 +1,17 @@
 "use client"
 
-import React from "react"
+import { buttonVariants } from "@/components/ui/button"
+import { NotificationDot } from "@/app/[domain]/components/notificationDot"
+import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
+import React from "react"
 
 export type SidebarNavItem = {
     href: string
     hrefRegex?: string
     title: React.ReactNode
+    isNotificationDotVisible?: boolean
 }
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
@@ -43,6 +45,7 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
                         )}
                     >
                         {item.title}
+                        {item.isNotificationDotVisible && <NotificationDot className="ml-1.5" />}
                     </Link>
                 )
             })}

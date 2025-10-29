@@ -3,20 +3,23 @@
 import { NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn, getShortenedNumberDisplayString } from "@/lib/utils";
-import { SearchIcon, MessageCircleIcon, BookMarkedIcon, SettingsIcon, CircleIcon } from "lucide-react";
+import { SearchIcon, MessageCircleIcon, BookMarkedIcon, SettingsIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { NotificationDot } from "../notificationDot";
 
 interface NavigationItemsProps {
     domain: string;
     numberOfRepos: number;
-    numberOfReposWithFirstTimeIndexingJobsInProgress: number;
+    isReposButtonNotificationDotVisible: boolean;
+    isSettingsButtonNotificationDotVisible: boolean;
     isAuthenticated: boolean;
 }
 
 export const NavigationItems = ({
     domain,
     numberOfRepos,
-    numberOfReposWithFirstTimeIndexingJobsInProgress,
+    isReposButtonNotificationDotVisible,
+    isSettingsButtonNotificationDotVisible,
     isAuthenticated,
 }: NavigationItemsProps) => {
     const pathname = usePathname();
@@ -59,9 +62,7 @@ export const NavigationItems = ({
                     <span className="mr-2">Repositories</span>
                     <Badge variant="secondary" className="px-1.5 relative">
                         {getShortenedNumberDisplayString(numberOfRepos)}
-                        {numberOfReposWithFirstTimeIndexingJobsInProgress > 0 && (
-                            <CircleIcon className="absolute -right-0.5 -top-0.5 h-2 w-2 text-green-600" fill="currentColor" />
-                        )}
+                        {isReposButtonNotificationDotVisible && <NotificationDot className="absolute -right-0.5 -top-0.5" />}
                     </Badge>
                 </NavigationMenuLink>
                 {isActive(`/${domain}/repos`) && <ActiveIndicator />}
@@ -74,6 +75,7 @@ export const NavigationItems = ({
                     >
                         <SettingsIcon className="w-4 h-4 mr-1" />
                         Settings
+                        {isSettingsButtonNotificationDotVisible && <NotificationDot className="absolute -right-0.5 -top-0.5" />}
                     </NavigationMenuLink>
                     {isActive(`/${domain}/settings`) && <ActiveIndicator />}
                 </NavigationMenuItem>

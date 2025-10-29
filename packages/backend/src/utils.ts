@@ -2,8 +2,7 @@ import { Logger } from "winston";
 import { RepoAuthCredentials, RepoWithConnections } from "./types.js";
 import path from 'path';
 import { PrismaClient, Repo } from "@sourcebot/db";
-import { getTokenFromConfig as getTokenFromConfigBase } from "@sourcebot/crypto";
-import { BackendException, BackendError } from "@sourcebot/error";
+import { getTokenFromConfig } from "@sourcebot/crypto";
 import * as Sentry from "@sentry/node";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { GithubAppManager } from "./ee/githubAppManager.js";
@@ -23,22 +22,6 @@ export const measure = async <T>(cb: () => Promise<T>) => {
 export const marshalBool = (value?: boolean) => {
     return !!value ? '1' : '0';
 }
-
-export const getTokenFromConfig = async (token: any, orgId: number, db: PrismaClient, logger?: Logger) => {
-    try {
-        return await getTokenFromConfigBase(token, orgId, db);
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            const e = new BackendException(BackendError.CONNECTION_SYNC_SECRET_DNE, {
-                message: error.message,
-            });
-            Sentry.captureException(e);
-            logger?.error(error.message);
-            throw e;
-        }
-        throw error;
-    }
-};
 
 export const resolvePathRelativeToConfig = (localPath: string, configPath: string) => {
     let absolutePath = localPath;
@@ -156,7 +139,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
         if (connection.connectionType === 'github') {
             const config = connection.config as unknown as GithubConnectionConfig;
             if (config.token) {
-                const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+                const token = await getTokenFromConfig(config.token, connection.orgId, db);
                 return {
                     hostUrl: config.url,
                     token,
@@ -171,7 +154,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
         } else if (connection.connectionType === 'gitlab') {
             const config = connection.config as unknown as GitlabConnectionConfig;
             if (config.token) {
-                const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+                const token = await getTokenFromConfig(config.token, connection.orgId, db);
                 return {
                     hostUrl: config.url,
                     token,
@@ -187,7 +170,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
         } else if (connection.connectionType === 'gitea') {
             const config = connection.config as unknown as GiteaConnectionConfig;
             if (config.token) {
-                const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+                const token = await getTokenFromConfig(config.token, connection.orgId, db);
                 return {
                     hostUrl: config.url,
                     token,
@@ -202,7 +185,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
         } else if (connection.connectionType === 'bitbucket') {
             const config = connection.config as unknown as BitbucketConnectionConfig;
             if (config.token) {
-                const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+                const token = await getTokenFromConfig(config.token, connection.orgId, db);
                 const username = config.user ?? 'x-token-auth';
                 return {
                     hostUrl: config.url,
@@ -219,7 +202,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
         } else if (connection.connectionType === 'azuredevops') {
             const config = connection.config as unknown as AzureDevOpsConnectionConfig;
             if (config.token) {
-                const token = await getTokenFromConfig(config.token, connection.orgId, db, logger);
+                const token = await getTokenFromConfig(config.token, connection.orgId, db);
 
                 // For ADO server, multiple auth schemes may be supported. If the ADO deployment supports NTLM, the git clone will default
                 // to this over basic auth. As a result, we cannot embed the token in the clone URL and must force basic auth by passing in the token

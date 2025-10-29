@@ -6,7 +6,7 @@ import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
-import { getMe, getOrgAccountRequests } from "@/actions";
+import { getConnectionStats, getMe, getOrgAccountRequests } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getOrgFromDomain } from "@/data/org";
 import { OrgRole } from "@prisma/client";
@@ -63,6 +63,11 @@ export default async function SettingsLayout(
         numJoinRequests = requests.length;
     }
 
+    const connectionStats = await getConnectionStats();
+    if (isServiceError(connectionStats)) {
+        throw new ServiceErrorException(connectionStats);
+    }
+
     const sidebarNavItems: SidebarNavItem[] = [
         {
             title: "General",
@@ -98,6 +103,7 @@ export default async function SettingsLayout(
                 title: "Connections",
                 href: `/${domain}/settings/connections`,
                 hrefRegex: `/${domain}/settings/connections(\/[^/]+)?$`,
+                isNotificationDotVisible: connectionStats.numberOfConnectionsWithFirstTimeSyncJobsInProgress > 0,
             }
         ] : []),
         {
@@ -141,3 +147,4 @@ export default async function SettingsLayout(
         </div>
     )
 }
+
