@@ -64,14 +64,13 @@ const statusBadgeVariants = cva("", {
             IN_PROGRESS: "bg-primary text-primary-foreground hover:bg-primary/90",
             COMPLETED: "bg-green-600 text-white hover:bg-green-700",
             FAILED: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-            NO_JOBS: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         },
     },
 })
 
 const getStatusBadge = (status: Repo["latestJobStatus"]) => {
     if (!status) {
-        return <Badge className={statusBadgeVariants({ status: "NO_JOBS" })}>No Jobs</Badge>
+        return "-";
     }
 
     const labels = {
