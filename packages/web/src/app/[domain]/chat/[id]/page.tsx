@@ -53,7 +53,7 @@ export default async function Page(props: PageProps) {
     const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
 
     return (
-        <>
+        <div className="flex flex-col h-screen w-screen">
             <TopBar
                 domain={params.domain}
                 homePath={`/${params.domain}/chat`}
@@ -87,6 +87,6 @@ export default async function Page(props: PageProps) {
                     isChatReadonly={isReadonly}
                 />
             </ResizablePanelGroup>
-        </>
+        </div>
     )
 }

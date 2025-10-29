@@ -345,6 +345,7 @@ export const getCodeHostCommitUrl = ({
         case 'bitbucket-server':
             return `${webUrl}/commits/${commitHash}`;
         case 'gerrit':
+            return `${webUrl}/+/${commitHash}`;
         case 'generic-git-host':
             return undefined;
     }
@@ -377,6 +378,7 @@ export const getCodeHostBrowseAtBranchUrl = ({
         case 'bitbucket-server':
             return `${webUrl}?at=${branchName}`;
         case 'gerrit':
+            return `${webUrl}/+/${branchName}`;
         case 'generic-git-host':
             return undefined;
     }
