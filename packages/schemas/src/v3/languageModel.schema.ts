@@ -1201,6 +1201,16 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "reasoningTag": {
+          "type": "string",
+          "description": "The name of the XML tag to extract reasoning from (without angle brackets). Defaults to `think`.",
+          "default": "think",
+          "examples": [
+            "think",
+            "thinking",
+            "reasoning"
+          ]
         }
       },
       "required": [
@@ -2620,6 +2630,16 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "reasoningTag": {
+          "type": "string",
+          "description": "The name of the XML tag to extract reasoning from (without angle brackets). Defaults to `think`.",
+          "default": "think",
+          "examples": [
+            "think",
+            "thinking",
+            "reasoning"
+          ]
         }
       },
       "required": [

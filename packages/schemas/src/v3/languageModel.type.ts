@@ -453,6 +453,10 @@ export interface OpenAICompatibleLanguageModel {
   baseUrl: string;
   headers?: LanguageModelHeaders;
   queryParams?: LanguageModelQueryParams;
+  /**
+   * The name of the XML tag to extract reasoning from (without angle brackets). Defaults to `think`.
+   */
+  reasoningTag?: string;
 }
 /**
  * Optional query parameters to include in the request url.

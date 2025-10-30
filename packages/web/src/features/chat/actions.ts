@@ -25,7 +25,7 @@ import { ChatVisibility, OrgRole, Prisma, PrismaClient } from "@sourcebot/db";
 import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
 import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { loadConfig } from "@sourcebot/shared";
-import { generateText, JSONValue } from "ai";
+import { generateText, JSONValue, extractReasoningMiddleware, wrapLanguageModel } from "ai";
 import fs from 'fs';
 import { StatusCodes } from "http-status-codes";
 import path from 'path';
@@ -568,8 +568,17 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel, or
                     : undefined,
             });
 
-            return {
+            const model = wrapLanguageModel({
                 model: openai.chatModel(modelId),
+                middleware: [
+                    extractReasoningMiddleware({
+                        tagName: config.reasoningTag ?? 'think',
+                    }),
+                ]
+            });
+
+            return {
+                model,
             }
         }
         case 'openrouter': {
