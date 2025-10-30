@@ -110,24 +110,25 @@ export class RepoPermissionSyncer {
     }
 
     private async schedulePermissionSync(repos: Repo[]) {
-        await this.db.$transaction(async (tx) => {
-            const jobs = await tx.repoPermissionSyncJob.createManyAndReturn({
-                data: repos.map(repo => ({
-                    repoId: repo.id,
-                })),
-            });
-
-            await this.queue.addBulk(jobs.map((job) => ({
-                name: 'repoPermissionSyncJob',
-                data: {
-                    jobId: job.id,
-                },
-                opts: {
-                    removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
-                    removeOnFail: env.REDIS_REMOVE_ON_FAIL,
-                }
-            })))
+        // @note: we don't perform this in a transaction because
+        // we want to avoid the situation where a job is created and run
+        // prior to the transaction being committed.
+        const jobs = await this.db.repoPermissionSyncJob.createManyAndReturn({
+            data: repos.map(repo => ({
+                repoId: repo.id,
+            })),
         });
+
+        await this.queue.addBulk(jobs.map((job) => ({
+            name: 'repoPermissionSyncJob',
+            data: {
+                jobId: job.id,
+            },
+            opts: {
+                removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+            }
+        })))
     }
 
     private async runJob(job: Job<RepoPermissionSyncJob>) {

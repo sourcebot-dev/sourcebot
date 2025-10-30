@@ -6,7 +6,7 @@ import { Redis } from "ioredis";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { env } from "../env.js";
 import { createOctokitFromToken, getReposForAuthenticatedUser } from "../github.js";
-import { createGitLabFromOAuthToken, createGitLabFromPersonalAccessToken, getProjectsForAuthenticatedUser } from "../gitlab.js";
+import { createGitLabFromOAuthToken, getProjectsForAuthenticatedUser } from "../gitlab.js";
 import { hasEntitlement } from "@sourcebot/shared";
 import { Settings } from "../types.js";
 
@@ -113,24 +113,25 @@ export class UserPermissionSyncer {
     }
 
     private async schedulePermissionSync(users: User[]) {
-        await this.db.$transaction(async (tx) => {
-            const jobs = await tx.userPermissionSyncJob.createManyAndReturn({
-                data: users.map(user => ({
-                    userId: user.id,
-                })),
-            });
-
-            await this.queue.addBulk(jobs.map((job) => ({
-                name: 'userPermissionSyncJob',
-                data: {
-                    jobId: job.id,
-                },
-                opts: {
-                    removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
-                    removeOnFail: env.REDIS_REMOVE_ON_FAIL,
-                }
-            })))
+        // @note: we don't perform this in a transaction because
+        // we want to avoid the situation where a job is created and run
+        // prior to the transaction being committed.
+        const jobs = await this.db.userPermissionSyncJob.createManyAndReturn({
+            data: users.map(user => ({
+                userId: user.id,
+            })),
         });
+
+        await this.queue.addBulk(jobs.map((job) => ({
+            name: 'userPermissionSyncJob',
+            data: {
+                jobId: job.id,
+            },
+            opts: {
+                removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+            }
+        })))
     }
 
     private async runJob(job: Job<UserPermissionSyncJob>) {
