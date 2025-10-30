@@ -7,6 +7,7 @@ import { Redis } from 'ioredis';
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { env } from "../env.js";
 import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
+import { createGitLabFromPersonalAccessToken, getProjectMembers } from "../gitlab.js";
 import { Settings } from "../types.js";
 import { getAuthCredentialsForRepo } from "../utils.js";
 
@@ -187,6 +188,33 @@ export class RepoPermissionSyncer {
                         provider: 'github',
                         providerAccountId: {
                             in: githubUserIds,
+                        }
+                    },
+                    select: {
+                        userId: true,
+                    },
+                });
+
+                return accounts.map(account => account.userId);
+            } else if (repo.external_codeHostType === 'gitlab') {
+                const api = await createGitLabFromPersonalAccessToken({
+                    token: credentials.token,
+                    url: credentials.hostUrl,
+                });
+
+                const projectId = repo.external_id;
+                if (!projectId) {
+                    throw new Error(`Repo ${id} does not have an external_id`);
+                }
+
+                const members = await getProjectMembers(projectId, api);
+                const gitlabUserIds = members.map(member => member.id.toString());
+
+                const accounts = await this.db.account.findMany({
+                    where: {
+                        provider: 'gitlab',
+                        providerAccountId: {
+                            in: gitlabUserIds,
                         }
                     },
                     select: {

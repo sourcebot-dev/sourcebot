@@ -121,7 +121,6 @@ export const compileGitlabConfig = async (
         const projectUrl = `${hostUrl}/${project.path_with_namespace}`;
         const cloneUrl = new URL(project.http_url_to_repo);
         const isFork = project.forked_from_project !== undefined;
-        // @todo: we will need to double check whether 'internal' should also be considered public or not.
         const isPublic = project.visibility === 'public';
         const repoDisplayName = project.path_with_namespace;
         const repoName = path.join(repoNameRoot, repoDisplayName);

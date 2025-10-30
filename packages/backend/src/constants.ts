@@ -5,6 +5,7 @@ export const SINGLE_TENANT_ORG_ID = 1;
 
 export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES = [
     'github',
+    'gitlab',
 ];
 
 export const REPOS_CACHE_DIR = path.join(env.DATA_CACHE_DIR, 'repos');
