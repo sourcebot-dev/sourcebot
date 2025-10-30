@@ -6,10 +6,13 @@ import { Redis } from "ioredis";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { env } from "../env.js";
 import { createOctokitFromToken, getReposForAuthenticatedUser } from "../github.js";
+import { createGitLabFromOAuthToken, getProjectsForAuthenticatedUser } from "../gitlab.js";
 import { hasEntitlement } from "@sourcebot/shared";
 import { Settings } from "../types.js";
 
-const logger = createLogger('user-permission-syncer');
+const LOG_TAG = 'user-permission-syncer';
+const logger = createLogger(LOG_TAG);
+const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 
 const QUEUE_NAME = 'userPermissionSyncQueue';
 
@@ -110,28 +113,31 @@ export class UserPermissionSyncer {
     }
 
     private async schedulePermissionSync(users: User[]) {
-        await this.db.$transaction(async (tx) => {
-            const jobs = await tx.userPermissionSyncJob.createManyAndReturn({
-                data: users.map(user => ({
-                    userId: user.id,
-                })),
-            });
-
-            await this.queue.addBulk(jobs.map((job) => ({
-                name: 'userPermissionSyncJob',
-                data: {
-                    jobId: job.id,
-                },
-                opts: {
-                    removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
-                    removeOnFail: env.REDIS_REMOVE_ON_FAIL,
-                }
-            })))
+        // @note: we don't perform this in a transaction because
+        // we want to avoid the situation where a job is created and run
+        // prior to the transaction being committed.
+        const jobs = await this.db.userPermissionSyncJob.createManyAndReturn({
+            data: users.map(user => ({
+                userId: user.id,
+            })),
         });
+
+        await this.queue.addBulk(jobs.map((job) => ({
+            name: 'userPermissionSyncJob',
+            data: {
+                jobId: job.id,
+            },
+            opts: {
+                removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+            }
+        })))
     }
 
     private async runJob(job: Job<UserPermissionSyncJob>) {
         const id = job.data.jobId;
+        const logger = createJobLogger(id);
+
         const { user } = await this.db.userPermissionSyncJob.update({
             where: {
                 id,
@@ -184,6 +190,37 @@ export class UserPermissionSyncer {
                     });
 
                     repos.forEach(repo => aggregatedRepoIds.add(repo.id));
+                } else if (account.provider === 'gitlab') {
+                    if (!account.access_token) {
+                        throw new Error(`User '${user.email}' does not have a GitLab OAuth access token associated with their GitLab account.`);
+                    }
+
+                    const api = await createGitLabFromOAuthToken({
+                        oauthToken: account.access_token,
+                        url: env.AUTH_EE_GITLAB_BASE_URL,
+                    });
+
+                    // @note: we only care about the private and internal repos since we don't need to build a mapping
+                    // for public repos.
+                    // @see: packages/web/src/prisma.ts
+                    const privateGitLabProjects = await getProjectsForAuthenticatedUser('private', api);
+                    const internalGitLabProjects = await getProjectsForAuthenticatedUser('internal', api);
+
+                    const gitLabProjectIds = [
+                        ...privateGitLabProjects,
+                        ...internalGitLabProjects,
+                    ].map(project => project.id.toString());
+
+                    const repos = await this.db.repo.findMany({
+                        where: {
+                            external_codeHostType: 'gitlab',
+                            external_id: {
+                                in: gitLabProjectIds,
+                            }
+                        }
+                    });
+
+                    repos.forEach(repo => aggregatedRepoIds.add(repo.id));
                 }
             }
 
@@ -212,6 +249,8 @@ export class UserPermissionSyncer {
     }
 
     private async onJobCompleted(job: Job<UserPermissionSyncJob>) {
+        const logger = createJobLogger(job.data.jobId);
+
         const { user } = await this.db.userPermissionSyncJob.update({
             where: {
                 id: job.data.jobId,
@@ -234,6 +273,8 @@ export class UserPermissionSyncer {
     }
 
     private async onJobFailed(job: Job<UserPermissionSyncJob> | undefined, err: Error) {
+        const logger = createJobLogger(job?.data.jobId ?? 'unknown');
+
         Sentry.captureException(err, {
             tags: {
                 jobId: job?.data.jobId,
@@ -260,7 +301,7 @@ export class UserPermissionSyncer {
 
             logger.error(errorMessage(user.email ?? user.id));
         } else {
-            logger.error(errorMessage('unknown user (id not found)'));
+            logger.error(errorMessage('unknown job (id not found)'));
         }
     }
 }

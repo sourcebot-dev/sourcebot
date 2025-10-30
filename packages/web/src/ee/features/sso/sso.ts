@@ -51,7 +51,16 @@ export const getSSOProviders = (): Provider[] => {
             authorization: {
                 url: `${env.AUTH_EE_GITLAB_BASE_URL}/oauth/authorize`,
                 params: {
-                    scope: "read_user",
+                    scope: [
+                        "read_user",
+                        // Permission syncing requires the `read_api` scope in order to fetch projects
+                        // for the authenticated user and project members.
+                        // @see: https://docs.gitlab.com/ee/api/projects.html#list-all-projects
+                        ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
+                            ['read_api'] :
+                            []
+                        ),
+                    ].join(' '),
                 },
             },
             token: {

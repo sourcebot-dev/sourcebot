@@ -56,6 +56,7 @@ export const env = createEnv({
 
         EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
         AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
+        AUTH_EE_GITLAB_BASE_URL: z.string().default("https://gitlab.com"),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

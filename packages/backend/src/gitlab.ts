@@ -12,6 +12,28 @@ import { getTokenFromConfig } from "@sourcebot/crypto";
 const logger = createLogger('gitlab');
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
+export const createGitLabFromPersonalAccessToken = async ({ token, url }: { token?: string, url?: string }) => {
+    const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : false;
+    return new Gitlab({
+        token,
+        ...(isGitLabCloud ? {} : {
+            host: url,
+        }),
+        queryTimeout: env.GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS * 1000,
+    });
+}
+
+export const createGitLabFromOAuthToken = async ({ oauthToken, url }: { oauthToken?: string, url?: string }) => {
+    const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : false;
+    return new Gitlab({
+        oauthToken,
+        ...(isGitLabCloud ? {} : {
+            host: url,
+        }),
+        queryTimeout: env.GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS * 1000,
+    });
+}
+
 export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {
     const hostname = config.url ?
         new URL(config.url).hostname :
@@ -22,15 +44,10 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, o
         hostname === GITLAB_CLOUD_HOSTNAME ?
         env.FALLBACK_GITLAB_CLOUD_TOKEN :
         undefined;
-    
-    const api = new Gitlab({
-        ...(token ? {
-            token,
-        } : {}),
-        ...(config.url ? {
-            host: config.url,
-        } : {}),
-        queryTimeout: env.GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS * 1000,
+
+    const api = await createGitLabFromPersonalAccessToken({
+        token,
+        url: config.url,
     });
 
     let allRepos: ProjectSchema[] = [];
@@ -261,4 +278,38 @@ export const shouldExcludeProject = ({
     }
 
     return false;
+}
+
+export const getProjectMembers = async (projectId: string, api: InstanceType<typeof Gitlab>) => {
+    try {
+        const fetchFn = () => api.ProjectMembers.all(projectId, {
+            perPage: 100,
+            includeInherited: true,
+        });
+
+        const members = await fetchWithRetry(fetchFn, `project ${projectId}`, logger);
+        return members as Array<{ id: number }>;
+    } catch (error) {
+        Sentry.captureException(error);
+        logger.error(`Failed to fetch members for project ${projectId}.`, error);
+        throw error;
+    }
+}
+
+export const getProjectsForAuthenticatedUser = async (visibility: 'private' | 'internal' | 'public' | 'all' = 'all', api: InstanceType<typeof Gitlab>) => {
+    try {
+        const fetchFn = () => api.Projects.all({
+            membership: true,
+            ...(visibility !== 'all' ? {
+                visibility,
+            } : {}),
+            perPage: 100,
+        });
+        const response = await fetchWithRetry(fetchFn, `authenticated user`, logger);
+        return response;
+    } catch (error) {
+        Sentry.captureException(error);
+        logger.error(`Failed to fetch projects for authenticated user.`, error);
+        throw error;
+    }
 }

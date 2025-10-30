@@ -7,6 +7,7 @@ import { Redis } from 'ioredis';
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { env } from "../env.js";
 import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
+import { createGitLabFromPersonalAccessToken, getProjectMembers } from "../gitlab.js";
 import { Settings } from "../types.js";
 import { getAuthCredentialsForRepo } from "../utils.js";
 
@@ -16,7 +17,9 @@ type RepoPermissionSyncJob = {
 
 const QUEUE_NAME = 'repoPermissionSyncQueue';
 
-const logger = createLogger('repo-permission-syncer');
+const LOG_TAG = 'repo-permission-syncer';
+const logger = createLogger(LOG_TAG);
+const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 
 export class RepoPermissionSyncer {
     private queue: Queue<RepoPermissionSyncJob>;
@@ -109,28 +112,31 @@ export class RepoPermissionSyncer {
     }
 
     private async schedulePermissionSync(repos: Repo[]) {
-        await this.db.$transaction(async (tx) => {
-            const jobs = await tx.repoPermissionSyncJob.createManyAndReturn({
-                data: repos.map(repo => ({
-                    repoId: repo.id,
-                })),
-            });
-
-            await this.queue.addBulk(jobs.map((job) => ({
-                name: 'repoPermissionSyncJob',
-                data: {
-                    jobId: job.id,
-                },
-                opts: {
-                    removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
-                    removeOnFail: env.REDIS_REMOVE_ON_FAIL,
-                }
-            })))
+        // @note: we don't perform this in a transaction because
+        // we want to avoid the situation where a job is created and run
+        // prior to the transaction being committed.
+        const jobs = await this.db.repoPermissionSyncJob.createManyAndReturn({
+            data: repos.map(repo => ({
+                repoId: repo.id,
+            })),
         });
+
+        await this.queue.addBulk(jobs.map((job) => ({
+            name: 'repoPermissionSyncJob',
+            data: {
+                jobId: job.id,
+            },
+            opts: {
+                removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+            }
+        })))
     }
 
     private async runJob(job: Job<RepoPermissionSyncJob>) {
         const id = job.data.jobId;
+        const logger = createJobLogger(id);
+
         const { repo } = await this.db.repoPermissionSyncJob.update({
             where: {
                 id,
@@ -195,6 +201,33 @@ export class RepoPermissionSyncer {
                 });
 
                 return accounts.map(account => account.userId);
+            } else if (repo.external_codeHostType === 'gitlab') {
+                const api = await createGitLabFromPersonalAccessToken({
+                    token: credentials.token,
+                    url: credentials.hostUrl,
+                });
+
+                const projectId = repo.external_id;
+                if (!projectId) {
+                    throw new Error(`Repo ${id} does not have an external_id`);
+                }
+
+                const members = await getProjectMembers(projectId, api);
+                const gitlabUserIds = members.map(member => member.id.toString());
+
+                const accounts = await this.db.account.findMany({
+                    where: {
+                        provider: 'gitlab',
+                        providerAccountId: {
+                            in: gitlabUserIds,
+                        }
+                    },
+                    select: {
+                        userId: true,
+                    },
+                });
+
+                return accounts.map(account => account.userId);
             }
 
             return [];
@@ -221,6 +254,8 @@ export class RepoPermissionSyncer {
     }
 
     private async onJobCompleted(job: Job<RepoPermissionSyncJob>) {
+        const logger = createJobLogger(job.data.jobId);
+
         const { repo } = await this.db.repoPermissionSyncJob.update({
             where: {
                 id: job.data.jobId,
@@ -243,6 +278,8 @@ export class RepoPermissionSyncer {
     }
 
     private async onJobFailed(job: Job<RepoPermissionSyncJob> | undefined, err: Error) {
+        const logger = createJobLogger(job?.data.jobId ?? 'unknown');
+
         Sentry.captureException(err, {
             tags: {
                 jobId: job?.data.jobId,
