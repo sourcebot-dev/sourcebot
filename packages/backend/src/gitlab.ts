@@ -305,7 +305,8 @@ export const getProjectsForAuthenticatedUser = async (visibility: 'private' | 'i
             } : {}),
             perPage: 100,
         });
-        return fetchWithRetry(fetchFn, `authenticated user`, logger) as Promise<ProjectSchema[]>;
+        const response = await fetchWithRetry(fetchFn, `authenticated user`, logger);
+        return response;
     } catch (error) {
         Sentry.captureException(error);
         logger.error(`Failed to fetch projects for authenticated user.`, error);
