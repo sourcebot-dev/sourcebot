@@ -17,7 +17,9 @@ type RepoPermissionSyncJob = {
 
 const QUEUE_NAME = 'repoPermissionSyncQueue';
 
-const logger = createLogger('repo-permission-syncer');
+const LOG_TAG = 'repo-permission-syncer';
+const logger = createLogger(LOG_TAG);
+const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 
 export class RepoPermissionSyncer {
     private queue: Queue<RepoPermissionSyncJob>;
@@ -133,6 +135,8 @@ export class RepoPermissionSyncer {
 
     private async runJob(job: Job<RepoPermissionSyncJob>) {
         const id = job.data.jobId;
+        const logger = createJobLogger(id);
+
         const { repo } = await this.db.repoPermissionSyncJob.update({
             where: {
                 id,
@@ -250,6 +254,8 @@ export class RepoPermissionSyncer {
     }
 
     private async onJobCompleted(job: Job<RepoPermissionSyncJob>) {
+        const logger = createJobLogger(job.data.jobId);
+
         const { repo } = await this.db.repoPermissionSyncJob.update({
             where: {
                 id: job.data.jobId,
@@ -272,6 +278,8 @@ export class RepoPermissionSyncer {
     }
 
     private async onJobFailed(job: Job<RepoPermissionSyncJob> | undefined, err: Error) {
+        const logger = createJobLogger(job?.data.jobId ?? 'unknown');
+
         Sentry.captureException(err, {
             tags: {
                 jobId: job?.data.jobId,
