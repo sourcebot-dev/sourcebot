@@ -52,6 +52,14 @@ Optional environment variables:
 
 [Auth.js GitLab Provider Docs](https://authjs.dev/getting-started/providers/gitlab)
 
+Authentication using GitLab is supported via a [OAuth2.0 app](https://docs.gitlab.com/integration/oauth_provider/#create-an-instance-wide-application) installed on the GitLab instance. Follow the instructions in the [GitLab docs](https://docs.gitlab.com/integration/oauth_provider/) to create an app. The callback URL should be configurd to `<sourcebot_deployment_url>/api/auth/callback/gitlab`, and the following scopes need to be set:
+
+| Scope      | Required | Notes                                                                                              |
+|------------|----------|----------------------------------------------------------------------------------------------------|
+| read_user  | Yes      | Allows Sourcebot to read basic user information required for authentication.                       |
+| read_api   | Conditional | Required **only** when [permission syncing](/docs/features/permission-syncing) is enabled. Enables Sourcebot to list all repositories and projects for the authenticated user. |
+
+
 **Required environment variables:**
 - `AUTH_EE_GITLAB_CLIENT_ID`
 - `AUTH_EE_GITLAB_CLIENT_SECRET`
