@@ -16,9 +16,6 @@ type Installation = {
         login: string;
         type: 'organization' | 'user';
     };
-    createdAt: string;
-    expiresAt: string;
-    token: string;
 };
 
 export class GithubAppManager {
@@ -83,9 +80,6 @@ export class GithubAppManager {
                 
                 const owner = installationData.account.login;
                 const accountType = installationData.account.type.toLowerCase() as 'organization' | 'user';
-                const installationOctokit = await octokitApp.getInstallationOctokit(installationData.id);
-                const auth = await installationOctokit.auth({ type: "installation" }) as { expires_at: string, token: string };
-                
                 const installation: Installation = {
                     id: installationData.id,
                     appId: Number(app.id),
@@ -93,9 +87,6 @@ export class GithubAppManager {
                         login: owner,
                         type: accountType,
                     },
-                    createdAt: installationData.created_at,
-                    expiresAt: auth.expires_at,
-                    token: auth.token
                 };
                 this.installationMap.set(this.generateMapKey(owner, deploymentHostname), installation);
             }
@@ -113,22 +104,10 @@ export class GithubAppManager {
             throw new Error(`GitHub App Installation not found for ${key}`);
         }
 
-        if (installation.expiresAt < new Date().toISOString()) {
-            const octokitApp = this.octokitApps.get(installation.appId) as App;
-            const installationOctokit = await octokitApp.getInstallationOctokit(installation.id);
-            const auth = await installationOctokit.auth({ type: "installation" }) as { expires_at: string, token: string };
-
-            const newInstallation: Installation = {
-                ...installation,
-                expiresAt: auth.expires_at,
-                token: auth.token
-            };
-            this.installationMap.set(key, newInstallation);
-            
-            return newInstallation.token;
-        } else {
-            return installation.token;
-        }
+        const octokitApp = this.octokitApps.get(installation.appId) as App;
+        const installationOctokit = await octokitApp.getInstallationOctokit(installation.id);
+        const auth = await installationOctokit.auth({ type: "installation" }) as { expires_at: string, token: string };
+        return auth.token;
     }
 
     public appsConfigured() {
