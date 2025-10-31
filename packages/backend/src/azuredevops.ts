@@ -2,7 +2,6 @@ import { AzureDevOpsConnectionConfig } from "@sourcebot/schemas/v3/azuredevops.t
 import { createLogger } from "@sourcebot/logger";
 import { measure, fetchWithRetry } from "./utils.js";
 import micromatch from "micromatch";
-import { PrismaClient } from "@sourcebot/db";
 import { BackendException, BackendError } from "@sourcebot/error";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
@@ -29,13 +28,11 @@ function createAzureDevOpsConnection(
 
 export const getAzureDevOpsReposFromConfig = async (
     config: AzureDevOpsConnectionConfig, 
-    orgId: number, 
-    db: PrismaClient
 ) => {
     const baseUrl = config.url || `https://${AZUREDEVOPS_CLOUD_HOSTNAME}`;
 
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db) :
+        await getTokenFromConfig(config.token) :
         undefined;
 
     if (!token) {

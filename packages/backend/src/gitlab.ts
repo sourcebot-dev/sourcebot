@@ -3,7 +3,6 @@ import micromatch from "micromatch";
 import { createLogger } from "@sourcebot/logger";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type"
 import { measure, fetchWithRetry } from "./utils.js";
-import { PrismaClient } from "@sourcebot/db";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
 import { env } from "./env.js";
@@ -34,13 +33,13 @@ export const createGitLabFromOAuthToken = async ({ oauthToken, url }: { oauthTok
     });
 }
 
-export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig, orgId: number, db: PrismaClient) => {
+export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) => {
     const hostname = config.url ?
         new URL(config.url).hostname :
         GITLAB_CLOUD_HOSTNAME;
 
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db) :
+        await getTokenFromConfig(config.token) :
         hostname === GITLAB_CLOUD_HOSTNAME ?
         env.FALLBACK_GITLAB_CLOUD_TOKEN :
         undefined;

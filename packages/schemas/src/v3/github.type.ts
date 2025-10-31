@@ -8,19 +8,12 @@ export interface GithubConnectionConfig {
   /**
    * A Personal Access Token (PAT).
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * The URL of the GitHub host. Defaults to https://github.com
    */

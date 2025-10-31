@@ -7,7 +7,7 @@ import { BitbucketRepository, getBitbucketReposFromConfig } from "./bitbucket.js
 import { getAzureDevOpsReposFromConfig } from "./azuredevops.js";
 import { SchemaRestRepository as BitbucketServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { SchemaRepository as BitbucketCloudRepository } from "@coderabbitai/bitbucket/cloud/openapi";
-import { Prisma, PrismaClient } from '@sourcebot/db';
+import { Prisma } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
 import { createLogger } from '@sourcebot/logger';
@@ -19,6 +19,7 @@ import { getOriginUrl, isPathAValidGitRepoRoot, isUrlAValidGitRepo } from './git
 import assert from 'assert';
 import GitUrlParse from 'git-url-parse';
 import { RepoMetadata } from '@sourcebot/shared';
+import { SINGLE_TENANT_ORG_ID } from './constants.js';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 
@@ -32,10 +33,8 @@ type CompileResult = {
 export const compileGithubConfig = async (
     config: GithubConnectionConfig,
     connectionId: number,
-    orgId: number,
-    db: PrismaClient,
     abortController: AbortController): Promise<CompileResult> => {
-    const gitHubReposResult = await getGitHubReposFromConfig(config, orgId, db, abortController.signal);
+    const gitHubReposResult = await getGitHubReposFromConfig(config, abortController.signal);
     const gitHubRepos = gitHubReposResult.repos;
     const warnings = gitHubReposResult.warnings;
 
@@ -66,7 +65,7 @@ export const compileGithubConfig = async (
             isPublic: isPublic,
             org: {
                 connect: {
-                    id: orgId,
+                    id: SINGLE_TENANT_ORG_ID,
                 },
             },
             connections: {
@@ -104,11 +103,9 @@ export const compileGithubConfig = async (
 
 export const compileGitlabConfig = async (
     config: GitlabConnectionConfig,
-    connectionId: number,
-    orgId: number,
-    db: PrismaClient): Promise<CompileResult> => {
+    connectionId: number): Promise<CompileResult> => {
 
-    const gitlabReposResult = await getGitLabReposFromConfig(config, orgId, db);
+    const gitlabReposResult = await getGitLabReposFromConfig(config);
     const gitlabRepos = gitlabReposResult.repos;
     const warnings = gitlabReposResult.warnings;
 
@@ -144,7 +141,7 @@ export const compileGitlabConfig = async (
             isArchived: !!project.archived,
             org: {
                 connect: {
-                    id: orgId,
+                    id: SINGLE_TENANT_ORG_ID,
                 },
             },
             connections: {
@@ -180,11 +177,9 @@ export const compileGitlabConfig = async (
 
 export const compileGiteaConfig = async (
     config: GiteaConnectionConfig,
-    connectionId: number,
-    orgId: number,
-    db: PrismaClient): Promise<CompileResult> => {
+    connectionId: number): Promise<CompileResult> => {
 
-    const giteaReposResult = await getGiteaReposFromConfig(config, orgId, db);
+    const giteaReposResult = await getGiteaReposFromConfig(config);
     const giteaRepos = giteaReposResult.repos;
     const warnings = giteaReposResult.warnings;
 
@@ -217,7 +212,7 @@ export const compileGiteaConfig = async (
             isArchived: !!repo.archived,
             org: {
                 connect: {
-                    id: orgId,
+                    id: SINGLE_TENANT_ORG_ID,
                 },
             },
             connections: {
@@ -251,8 +246,7 @@ export const compileGiteaConfig = async (
 
 export const compileGerritConfig = async (
     config: GerritConnectionConfig,
-    connectionId: number,
-    orgId: number): Promise<CompileResult> => {
+    connectionId: number): Promise<CompileResult> => {
 
     const gerritRepos = await getGerritReposFromConfig(config);
     const hostUrl = config.url;
@@ -298,7 +292,7 @@ export const compileGerritConfig = async (
             isArchived: false,
             org: {
                 connect: {
-                    id: orgId,
+                    id: SINGLE_TENANT_ORG_ID,
                 },
             },
             connections: {
@@ -332,11 +326,9 @@ export const compileGerritConfig = async (
 
 export const compileBitbucketConfig = async (
     config: BitbucketConnectionConfig,
-    connectionId: number,
-    orgId: number,
-    db: PrismaClient): Promise<CompileResult> => {
+    connectionId: number): Promise<CompileResult> => {
 
-    const bitbucketReposResult = await getBitbucketReposFromConfig(config, orgId, db);
+    const bitbucketReposResult = await getBitbucketReposFromConfig(config);
     const bitbucketRepos = bitbucketReposResult.repos;
     const warnings = bitbucketReposResult.warnings;
 
@@ -415,7 +407,7 @@ export const compileBitbucketConfig = async (
             isArchived: isArchived,
             org: {
                 connect: {
-                    id: orgId,
+                    id: SINGLE_TENANT_ORG_ID,
                 },
             },
             connections: {
@@ -449,15 +441,14 @@ export const compileBitbucketConfig = async (
 
 export const compileGenericGitHostConfig = async (
     config: GenericGitHostConnectionConfig,
-    connectionId: number,
-    orgId: number,
+    connectionId: number
 ): Promise<CompileResult> => {
     const configUrl = new URL(config.url);
     if (configUrl.protocol === 'file:') {
-        return compileGenericGitHostConfig_file(config, orgId, connectionId);
+        return compileGenericGitHostConfig_file(config, connectionId);
     }
     else if (configUrl.protocol === 'http:' || configUrl.protocol === 'https:') {
-        return compileGenericGitHostConfig_url(config, orgId, connectionId);
+        return compileGenericGitHostConfig_url(config, connectionId);
     }
     else {
         // Schema should prevent this, but throw an error just in case.
@@ -467,7 +458,6 @@ export const compileGenericGitHostConfig = async (
 
 export const compileGenericGitHostConfig_file = async (
     config: GenericGitHostConnectionConfig,
-    orgId: number,
     connectionId: number,
 ): Promise<CompileResult> => {
     const configUrl = new URL(config.url);
@@ -480,7 +470,7 @@ export const compileGenericGitHostConfig_file = async (
 
     const repos: RepoData[] = [];
     const warnings: string[] = [];
-    
+
     await Promise.all(repoPaths.map(async (repoPath) => {
         const isGitRepo = await isPathAValidGitRepoRoot({
             path: repoPath,
@@ -517,7 +507,7 @@ export const compileGenericGitHostConfig_file = async (
             isArchived: false,
             org: {
                 connect: {
-                    id: orgId,
+                    id: SINGLE_TENANT_ORG_ID,
                 },
             },
             connections: {
@@ -546,7 +536,6 @@ export const compileGenericGitHostConfig_file = async (
 
 export const compileGenericGitHostConfig_url = async (
     config: GenericGitHostConnectionConfig,
-    orgId: number,
     connectionId: number,
 ): Promise<CompileResult> => {
     const remoteUrl = new URL(config.url);
@@ -581,7 +570,7 @@ export const compileGenericGitHostConfig_url = async (
         isArchived: false,
         org: {
             connect: {
-                id: orgId,
+                id: SINGLE_TENANT_ORG_ID,
             },
         },
         connections: {
@@ -603,11 +592,9 @@ export const compileGenericGitHostConfig_url = async (
 
 export const compileAzureDevOpsConfig = async (
     config: AzureDevOpsConnectionConfig,
-    connectionId: number,
-    orgId: number,
-    db: PrismaClient): Promise<CompileResult> => {
+    connectionId: number): Promise<CompileResult> => {
 
-    const azureDevOpsReposResult = await getAzureDevOpsReposFromConfig(config, orgId, db);
+    const azureDevOpsReposResult = await getAzureDevOpsReposFromConfig(config);
     const azureDevOpsRepos = azureDevOpsReposResult.repos;
     const warnings = azureDevOpsReposResult.warnings;
 
@@ -620,18 +607,18 @@ export const compileAzureDevOpsConfig = async (
         if (!repo.project) {
             throw new Error(`No project found for repository ${repo.name}`);
         }
-        
+
         const repoDisplayName = `${repo.project.name}/${repo.name}`;
         const repoName = path.join(repoNameRoot, repoDisplayName);
         const isPublic = repo.project.visibility === ProjectVisibility.Public;
-        
+
         if (!repo.remoteUrl) {
             throw new Error(`No remoteUrl found for repository ${repoDisplayName}`);
         }
         if (!repo.id) {
             throw new Error(`No id found for repository ${repoDisplayName}`);
         }
-        
+
         // Construct web URL for the repository
         const webUrl = repo.webUrl || `${hostUrl}/${repo.project.name}/_git/${repo.name}`;
 
@@ -651,7 +638,7 @@ export const compileAzureDevOpsConfig = async (
             isPublic: isPublic,
             org: {
                 connect: {
-                    id: orgId,
+                    id: SINGLE_TENANT_ORG_ID,
                 },
             },
             connections: {

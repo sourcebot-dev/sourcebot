@@ -179,25 +179,25 @@ export class ConnectionManager {
         const result = await (async () => {
             switch (config.type) {
                 case 'github': {
-                    return await compileGithubConfig(config, job.data.connectionId, orgId, this.db, abortController);
+                    return await compileGithubConfig(config, job.data.connectionId, abortController);
                 }
                 case 'gitlab': {
-                    return await compileGitlabConfig(config, job.data.connectionId, orgId, this.db);
+                    return await compileGitlabConfig(config, job.data.connectionId);
                 }
                 case 'gitea': {
-                    return await compileGiteaConfig(config, job.data.connectionId, orgId, this.db);
+                    return await compileGiteaConfig(config, job.data.connectionId);
                 }
                 case 'gerrit': {
-                    return await compileGerritConfig(config, job.data.connectionId, orgId);
+                    return await compileGerritConfig(config, job.data.connectionId);
                 }
                 case 'bitbucket': {
-                    return await compileBitbucketConfig(config, job.data.connectionId, orgId, this.db);
+                    return await compileBitbucketConfig(config, job.data.connectionId);
                 }
                 case 'azuredevops': {
-                    return await compileAzureDevOpsConfig(config, job.data.connectionId, orgId, this.db);
+                    return await compileAzureDevOpsConfig(config, job.data.connectionId);
                 }
                 case 'git': {
-                    return await compileGenericGitHostConfig(config, job.data.connectionId, orgId);
+                    return await compileGenericGitHostConfig(config, job.data.connectionId);
                 }
             }
         })();

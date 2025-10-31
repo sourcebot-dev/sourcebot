@@ -3,7 +3,6 @@ import { createBitbucketServerClient } from "@coderabbitai/bitbucket/server";
 import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type";
 import type { ClientOptions, ClientPathsWithMethod } from "openapi-fetch";
 import { createLogger } from "@sourcebot/logger";
-import { PrismaClient } from "@sourcebot/db";
 import { measure, fetchWithRetry } from "./utils.js";
 import * as Sentry from "@sentry/node";
 import {
@@ -58,9 +57,9 @@ type ServerPaginatedResponse<T> = {
     readonly nextPageStart: number;
 }
 
-export const getBitbucketReposFromConfig = async (config: BitbucketConnectionConfig, orgId: number, db: PrismaClient) => {
+export const getBitbucketReposFromConfig = async (config: BitbucketConnectionConfig) => {
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db) :
+        await getTokenFromConfig(config.token) :
         undefined;
 
     if (config.deploymentType === 'server' && !config.url) {

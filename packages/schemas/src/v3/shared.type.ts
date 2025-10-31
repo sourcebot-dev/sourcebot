@@ -4,19 +4,12 @@
  * This interface was referenced by `Shared`'s JSON-Schema
  * via the `definition` "Token".
  */
-export type Token =
-  | {
-      /**
-       * The name of the secret that contains the token.
-       */
-      secret: string;
-    }
-  | {
-      /**
-       * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-       */
-      env: string;
-    };
+export type Token = {
+  /**
+   * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+   */
+  env: string;
+};
 
 export interface Shared {
   [k: string]: unknown;

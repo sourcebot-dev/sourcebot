@@ -255,89 +255,6 @@ export const completeOnboarding = async (domain: string): Promise<{ success: boo
         })
     ));
 
-export const getSecrets = async (domain: string): Promise<{ createdAt: Date; key: string; }[] | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const secrets = await prisma.secret.findMany({
-                where: {
-                    orgId: org.id,
-                },
-                select: {
-                    key: true,
-                    createdAt: true
-                }
-            });
-
-            return secrets.map((secret) => ({
-                key: secret.key,
-                createdAt: secret.createdAt,
-            }));
-        })));
-
-export const createSecret = async (key: string, value: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const encrypted = encrypt(value);
-            const existingSecret = await prisma.secret.findUnique({
-                where: {
-                    orgId_key: {
-                        orgId: org.id,
-                        key,
-                    }
-                }
-            });
-
-            if (existingSecret) {
-                return secretAlreadyExists();
-            }
-
-            await prisma.secret.create({
-                data: {
-                    orgId: org.id,
-                    key,
-                    encryptedValue: encrypted.encryptedData,
-                    iv: encrypted.iv,
-                }
-            });
-
-
-            return {
-                success: true,
-            }
-        })));
-
-export const checkIfSecretExists = async (key: string, domain: string): Promise<boolean | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const secret = await prisma.secret.findUnique({
-                where: {
-                    orgId_key: {
-                        orgId: org.id,
-                        key,
-                    }
-                }
-            });
-
-            return !!secret;
-        })));
-
-export const deleteSecret = async (key: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            await prisma.secret.delete({
-                where: {
-                    orgId_key: {
-                        orgId: org.id,
-                        key,
-                    }
-                }
-            });
-
-            return {
-                success: true,
-            }
-        })));
-
 export const verifyApiKey = async (apiKeyPayload: ApiKeyPayload): Promise<{ apiKey: ApiKey } | ServiceError> => sew(async () => {
     const parts = apiKeyPayload.apiKey.split("-");
     if (parts.length !== 2 || parts[0] !== "sourcebot") {
@@ -1778,21 +1695,21 @@ export const getRepoImage = async (repoId: number): Promise<ArrayBuffer | Servic
                 if (connection.connectionType === 'github') {
                     const config = connection.config as unknown as GithubConnectionConfig;
                     if (config.token) {
-                        const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                        const token = await getTokenFromConfig(config.token);
                         authHeaders['Authorization'] = `token ${token}`;
                         break;
                     }
                 } else if (connection.connectionType === 'gitlab') {
                     const config = connection.config as unknown as GitlabConnectionConfig;
                     if (config.token) {
-                        const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                        const token = await getTokenFromConfig(config.token);
                         authHeaders['PRIVATE-TOKEN'] = token;
                         break;
                     }
                 } else if (connection.connectionType === 'gitea') {
                     const config = connection.config as unknown as GiteaConnectionConfig;
                     if (config.token) {
-                        const token = await getTokenFromConfig(config.token, connection.orgId, prisma);
+                        const token = await getTokenFromConfig(config.token);
                         authHeaders['Authorization'] = `token ${token}`;
                         break;
                     }
