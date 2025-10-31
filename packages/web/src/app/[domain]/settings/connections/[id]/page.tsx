@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { env } from "@/env.mjs";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { notFound, ServiceErrorException } from "@/lib/serviceError";
-import { CodeHostType, isServiceError } from "@/lib/utils";
+import { isServiceError } from "@/lib/utils";
 import { withAuthV2 } from "@/withAuthV2";
 import { AzureDevOpsConnectionConfig, BitbucketConnectionConfig, GenericGitHostConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GithubConnectionConfig, GitlabConnectionConfig } from "@sourcebot/schemas/v3/index.type";
 import { getConfigSettings } from "@sourcebot/shared";
@@ -47,8 +47,9 @@ export default async function ConnectionDetailPage(props: ConnectionDetailPagePr
         return undefined;
     })();
 
-    const codeHostUrl = (() => {
-        const connectionType = connection.connectionType as CodeHostType;
+    // Extracts the code host URL from the connection config.
+    const codeHostUrl: string = (() => {
+        const connectionType = connection.connectionType;
         switch (connectionType) {
             case 'github': {
                 const config = connection.config as unknown as GithubConnectionConfig;
@@ -66,19 +67,19 @@ export default async function ConnectionDetailPage(props: ConnectionDetailPagePr
                 const config = connection.config as unknown as GerritConnectionConfig;
                 return config.url;
             }
-            case 'bitbucket-server': {
+            case 'bitbucket': {
                 const config = connection.config as unknown as BitbucketConnectionConfig;
-                return config.url!;
-            }
-            case 'bitbucket-cloud': {
-                const config = connection.config as unknown as BitbucketConnectionConfig;
-                return config.url ?? 'https://bitbucket.org';
+                if (config.deploymentType === 'cloud') {
+                    return config.url ?? 'https://bitbucket.org';
+                } else {
+                    return config.url!;
+                }
             }
             case 'azuredevops': {
                 const config = connection.config as unknown as AzureDevOpsConnectionConfig;
                 return config.url ?? 'https://dev.azure.com';
             }
-            case 'generic-git-host': {
+            case 'git': {
                 const config = connection.config as unknown as GenericGitHostConnectionConfig;
                 return config.url;
             }

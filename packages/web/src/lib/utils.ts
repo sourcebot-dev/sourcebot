@@ -15,9 +15,10 @@ import { ServiceError } from "./serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
 import { NextRequest } from "next/server";
-import { Org } from "@sourcebot/db";
+import { ConnectionType, Org } from "@sourcebot/db";
 import { OrgMetadata, orgMetadataSchema } from "@/types";
 import { SINGLE_TENANT_ORG_DOMAIN } from "./constants";
+import { CodeHostType } from "@sourcebot/db";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -63,16 +64,6 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
     const queryString = queryParams.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value ?? '')}`).join('&');
     return `${path}?${queryString}`;
 }
-
-export type CodeHostType =
-    "github" |
-    "gitlab" |
-    "gitea" |
-    "gerrit" |
-    "bitbucket-cloud" |
-    "bitbucket-server" |
-    "azuredevops" |
-    "generic-git-host";
 
 export type AuthProviderType =
     "github" |
@@ -183,11 +174,11 @@ type CodeHostInfo = {
 }
 
 export const getCodeHostInfoForRepo = (repo: {
-    codeHostType: string,
+    codeHostType: CodeHostType,
     name: string,
     displayName?: string,
     webUrl?: string,
-}): CodeHostInfo | undefined => {
+}): CodeHostInfo => {
     const { codeHostType, name, displayName, webUrl } = repo;
 
     switch (codeHostType) {
@@ -235,8 +226,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case 'gerrit':
-        case 'gitiles': {
+        case 'gerrit': {
             const { src, className } = getCodeHostIcon('gerrit')!;
             return {
                 type: "gerrit",
@@ -247,10 +237,10 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case "bitbucket-server": {
-            const { src, className } = getCodeHostIcon('bitbucket-server')!;
+        case "bitbucketServer": {
+            const { src, className } = getCodeHostIcon('bitbucketServer')!;
             return {
-                type: "bitbucket-server",
+                type: "bitbucketServer",
                 displayName: displayName ?? name,
                 codeHostName: "Bitbucket",
                 repoLink: webUrl,
@@ -258,10 +248,10 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case "bitbucket-cloud": {
-            const { src, className } = getCodeHostIcon('bitbucket-cloud')!;
+        case "bitbucketCloud": {
+            const { src, className } = getCodeHostIcon('bitbucketCloud')!;
             return {
-                type: "bitbucket-cloud",
+                type: "bitbucketCloud",
                 displayName: displayName ?? name,
                 codeHostName: "Bitbucket",
                 repoLink: webUrl,
@@ -269,10 +259,10 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case "generic-git-host": {
-            const { src, className } = getCodeHostIcon('generic-git-host')!;
+        case "genericGitHost": {
+            const { src, className } = getCodeHostIcon('genericGitHost')!;
             return {
-                type: "generic-git-host",
+                type: "genericGitHost",
                 displayName: displayName ?? name,
                 codeHostName: "Git Host",
                 repoLink: webUrl,
@@ -283,7 +273,7 @@ export const getCodeHostInfoForRepo = (repo: {
     }
 }
 
-export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, className?: string } => {
+export const getCodeHostIcon = (codeHostType: CodeHostType | ConnectionType): { src: string, className?: string } => {
     switch (codeHostType) {
         case "github":
             return {
@@ -302,8 +292,9 @@ export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, clas
             return {
                 src: gerritLogo,
             }
-        case "bitbucket-cloud":
-        case "bitbucket-server":
+        case "bitbucket":
+        case "bitbucketCloud":
+        case "bitbucketServer":
             return {
                 src: bitbucketLogo,
             }
@@ -311,7 +302,8 @@ export const getCodeHostIcon = (codeHostType: CodeHostType): { src: string, clas
             return {
                 src: azuredevopsLogo,
             }
-        case "generic-git-host":
+        case "git":
+        case "genericGitHost":
             return {
                 src: gitLogo,
             }
@@ -340,13 +332,13 @@ export const getCodeHostCommitUrl = ({
             return `${webUrl}/commit/${commitHash}`;
         case 'azuredevops':
             return `${webUrl}/commit/${commitHash}`;
-        case 'bitbucket-cloud':
+        case 'bitbucketCloud':
             return `${webUrl}/commits/${commitHash}`;
-        case 'bitbucket-server':
+        case 'bitbucketServer':
             return `${webUrl}/commits/${commitHash}`;
         case 'gerrit':
             return `${webUrl}/+/${commitHash}`;
-        case 'generic-git-host':
+        case 'genericGitHost':
             return undefined;
     }
 }
@@ -373,13 +365,13 @@ export const getCodeHostBrowseAtBranchUrl = ({
             return `${webUrl}/src/branch/${branchName}`;
         case 'azuredevops':
             return `${webUrl}?branch=${branchName}`;
-        case 'bitbucket-cloud':
+        case 'bitbucketCloud':
             return `${webUrl}?at=${branchName}`;
-        case 'bitbucket-server':
+        case 'bitbucketServer':
             return `${webUrl}?at=${branchName}`;
         case 'gerrit':
             return `${webUrl}/+/${branchName}`;
-        case 'generic-git-host':
+        case 'genericGitHost':
             return undefined;
     }
 }
@@ -389,11 +381,11 @@ export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean 
         case "github":
         case "gitlab":
         case "gitea":
-        case "bitbucket-cloud":
-        case "bitbucket-server":
+        case "bitbucketCloud":
+        case "bitbucketServer":
         case "azuredevops":
             return true;
-        case "generic-git-host":
+        case "genericGitHost":
         case "gerrit":
             return false;
     }

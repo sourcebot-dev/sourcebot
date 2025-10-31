@@ -7,7 +7,7 @@ import { BitbucketRepository, getBitbucketReposFromConfig } from "./bitbucket.js
 import { getAzureDevOpsReposFromConfig } from "./azuredevops.js";
 import { SchemaRestRepository as BitbucketServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { SchemaRepository as BitbucketCloudRepository } from "@coderabbitai/bitbucket/cloud/openapi";
-import { Prisma, PrismaClient } from '@sourcebot/db';
+import { CodeHostType, Prisma, PrismaClient } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
 import { createLogger } from '@sourcebot/logger';
@@ -392,7 +392,7 @@ export const compileBitbucketConfig = async (
 
     const repos = bitbucketRepos.map((repo) => {
         const isServer = config.deploymentType === 'server';
-        const codeHostType = isServer ? 'bitbucket-server' : 'bitbucket-cloud'; // zoekt expects bitbucket-server
+        const codeHostType: CodeHostType = isServer ? 'bitbucketServer' : 'bitbucketCloud';
         const displayName = isServer ? (repo as BitbucketServerRepository).name! : (repo as BitbucketCloudRepository).full_name!;
         const externalId = isServer ? (repo as BitbucketServerRepository).id!.toString() : (repo as BitbucketCloudRepository).uuid!;
         const isPublic = isServer ? (repo as BitbucketServerRepository).public : (repo as BitbucketCloudRepository).is_private === false;
@@ -425,7 +425,8 @@ export const compileBitbucketConfig = async (
             },
             metadata: {
                 gitConfig: {
-                    'zoekt.web-url-type': codeHostType,
+                    // zoekt expects bitbucket-server and bitbucket-cloud
+                    'zoekt.web-url-type': codeHostType === 'bitbucketServer' ? 'bitbucket-server' : 'bitbucket-cloud',
                     'zoekt.web-url': webUrl,
                     'zoekt.name': repoName,
                     'zoekt.archived': marshalBool(isArchived),
@@ -507,7 +508,7 @@ export const compileGenericGitHostConfig_file = async (
         const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
 
         const repo: RepoData = {
-            external_codeHostType: 'generic-git-host',
+            external_codeHostType: 'genericGitHost',
             external_codeHostUrl: remoteUrl.resource,
             external_id: remoteUrl.toString(),
             cloneUrl: `file://${repoPath}`,
@@ -571,7 +572,7 @@ export const compileGenericGitHostConfig_url = async (
     const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
 
     const repo: RepoData = {
-        external_codeHostType: 'generic-git-host',
+        external_codeHostType: 'genericGitHost',
         external_codeHostUrl: remoteUrl.origin,
         external_id: remoteUrl.toString(),
         cloneUrl: remoteUrl.toString(),

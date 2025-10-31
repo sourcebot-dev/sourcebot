@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
 import { DemoExamples, DemoSearchExample, DemoSearchScope } from "@/types";
-import { cn, CodeHostType, getCodeHostIcon } from "@/lib/utils";
+import { cn, getCodeHostIcon } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { SearchScopeInfoCard } from "@/features/chat/components/chatBox/searchScopeInfoCard";
+import { CodeHostType } from "@sourcebot/db";
 
 interface DemoCards {
     demoExamples: DemoExamples;

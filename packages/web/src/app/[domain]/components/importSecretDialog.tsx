@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useDomain } from "@/hooks/useDomain";
-import { CodeHostType, isServiceError } from "@/lib/utils";
+import { isServiceError } from "@/lib/utils";
 import githubPatCreation from "@/public/github_pat_creation.png";
 import gitlabPatCreation from "@/public/gitlab_pat_creation.png";
 import giteaPatCreation from "@/public/gitea_pat_creation.png";
+import { CodeHostType } from "@sourcebot/db";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Image from "next/image";
@@ -88,9 +89,9 @@ export const ImportSecretDialog = ({ open, onOpenChange, onSecretCreated, codeHo
                 return <GitHubPATCreationStep step={1} />;
             case 'gitlab':
                 return <GitLabPATCreationStep step={1} />;
-            case 'bitbucket-cloud':
+            case 'bitbucketCloud':
                 return <BitbucketCloudPATCreationStep step={1} />;
-            case 'bitbucket-server':
+            case 'bitbucketServer':
                 return <BitbucketServerPATCreationStep step={1} />;
             case 'gitea':
                 return <GiteaPATCreationStep step={1} />;
