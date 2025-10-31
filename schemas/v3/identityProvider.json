@@ -9,7 +9,7 @@
                     "const": "github"
                 },
                 "purpose": {
-                    "enum": ["sso", "identity"]
+                    "enum": ["sso", "integration"]
                 },
                 "clientId": {
                     "$ref": "./shared.json#/definitions/Token"
@@ -30,7 +30,7 @@
                     "const": "gitlab"
                 },
                 "purpose": {
-                    "enum": ["sso", "identity"]
+                    "enum": ["sso", "integration"]
                 },
                 "clientId": {
                     "$ref": "./shared.json#/definitions/Token"

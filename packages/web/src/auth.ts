@@ -20,6 +20,7 @@ import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 
 const auditService = getAuditService();
+const ssoProviders = hasEntitlement("sso") ? await getSSOProviders() : [];
 
 export const runtime = 'nodejs';
 
@@ -38,11 +39,7 @@ declare module 'next-auth/jwt' {
 }
 
 export const getProviders = () => {
-    const providers: Provider[] = [];
-
-    if (hasEntitlement("sso")) {
-        providers.push(...getSSOProviders());
-    }
+    const providers: Provider[] = ssoProviders;
 
     if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
         providers.push(EmailProvider({

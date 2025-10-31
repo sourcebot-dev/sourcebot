@@ -130,7 +130,7 @@
             "type": "array",
             "description": "Defines a collection of identity providers that are available to Sourcebot.",
             "items": {
-                "$ref": "./authProvider.json"
+                "$ref": "./identityProvider.json"
             }
         }
     },
