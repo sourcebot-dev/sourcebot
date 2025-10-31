@@ -4,6 +4,7 @@ import { createLogger } from "@sourcebot/logger";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { hasEntitlement } from "@sourcebot/shared";
 import micromatch from "micromatch";
+import pLimit from "p-limit";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { env } from "./env.js";
@@ -11,6 +12,10 @@ import { fetchWithRetry, measure } from "./utils.js";
 import { getTokenFromConfig } from "@sourcebot/crypto";
 
 export const GITHUB_CLOUD_HOSTNAME = "github.com";
+
+// Limit concurrent GitHub requests to avoid hitting rate limits and overwhelming installations.
+const MAX_CONCURRENT_GITHUB_QUERIES = 5;
+const githubQueryLimit = pLimit(MAX_CONCURRENT_GITHUB_QUERIES);
 const logger = createLogger('github');
 
 export type OctokitRepository = {
@@ -194,7 +199,7 @@ export const getReposForAuthenticatedUser = async (visibility: 'all' | 'private'
 }
 
 const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
-    const results = await Promise.allSettled(users.map(async (user) => {
+    const results = await Promise.allSettled(users.map((user) => githubQueryLimit(async () => {
         try {
             logger.debug(`Fetching repository info for user ${user}...`);
 
@@ -243,7 +248,7 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
             }
             throw error;
         }
-    }));
+    })));
 
     throwIfAnyFailed(results);
     const { validItems: repos, warnings } = processPromiseResults<OctokitRepository>(results);
@@ -255,7 +260,7 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
 }
 
 const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
-    const results = await Promise.allSettled(orgs.map(async (org) => {
+    const results = await Promise.allSettled(orgs.map((org) => githubQueryLimit(async () => {
         try {
             logger.debug(`Fetching repository info for org ${org}...`);
 
@@ -291,7 +296,7 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
             }
             throw error;
         }
-    }));
+    })));
 
     throwIfAnyFailed(results);
     const { validItems: repos, warnings } = processPromiseResults<OctokitRepository>(results);
@@ -303,7 +308,7 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
 }
 
 const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
-    const results = await Promise.allSettled(repoList.map(async (repo) => {
+    const results = await Promise.allSettled(repoList.map((repo) => githubQueryLimit(async () => {
         try {
             const [owner, repoName] = repo.split('/');
             logger.debug(`Fetching repository info for ${repo}...`);
@@ -341,7 +346,7 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
             }
             throw error;
         }
-    }));
+    })));
 
     throwIfAnyFailed(results);
     const { validItems: repos, warnings } = processPromiseResults<OctokitRepository>(results);
