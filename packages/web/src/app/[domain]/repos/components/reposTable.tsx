@@ -253,7 +253,7 @@ export const columns: ColumnDef<Repo>[] = [
                         <DropdownMenuItem asChild>
                             <Link href={`/${SINGLE_TENANT_ORG_DOMAIN}/repos/${repo.id}`}>View details</Link>
                         </DropdownMenuItem>
-                        {(repo.webUrl && codeHostInfo) && (
+                        {repo.webUrl && (
                             <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild>

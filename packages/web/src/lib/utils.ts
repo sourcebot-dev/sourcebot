@@ -174,11 +174,11 @@ type CodeHostInfo = {
 }
 
 export const getCodeHostInfoForRepo = (repo: {
-    codeHostType: string,
+    codeHostType: CodeHostType,
     name: string,
     displayName?: string,
     webUrl?: string,
-}): CodeHostInfo | undefined => {
+}): CodeHostInfo => {
     const { codeHostType, name, displayName, webUrl } = repo;
 
     switch (codeHostType) {
@@ -226,8 +226,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case 'gerrit':
-        case 'gitiles': {
+        case 'gerrit': {
             const { src, className } = getCodeHostIcon('gerrit')!;
             return {
                 type: "gerrit",
@@ -238,7 +237,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case "bitbucket-server": {
+        case "bitbucketServer": {
             const { src, className } = getCodeHostIcon('bitbucketServer')!;
             return {
                 type: "bitbucketServer",
@@ -249,7 +248,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case "bitbucket-cloud": {
+        case "bitbucketCloud": {
             const { src, className } = getCodeHostIcon('bitbucketCloud')!;
             return {
                 type: "bitbucketCloud",
@@ -260,7 +259,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case "generic-git-host": {
+        case "genericGitHost": {
             const { src, className } = getCodeHostIcon('genericGitHost')!;
             return {
                 type: "genericGitHost",

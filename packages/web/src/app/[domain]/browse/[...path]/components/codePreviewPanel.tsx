@@ -52,7 +52,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
                     branchDisplayName={revisionName}
                 />
 
-                {(fileWebUrl && codeHostInfo) && (
+                {fileWebUrl && (
 
                     <a
                         href={fileWebUrl}
