@@ -7,76 +7,81 @@ import Image from "next/image";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
 
 interface CodePreviewPanelProps {
-    path: string;
-    repoName: string;
-    revisionName?: string;
+  path: string;
+  repoName: string;
+  revisionName?: string;
 }
 
 export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePreviewPanelProps) => {
-    const [fileSourceResponse, repoInfoResponse] = await Promise.all([
-        getFileSource({
-            fileName: path,
-            repository: repoName,
-            branch: revisionName,
-        }),
-        getRepoInfoByName(repoName),
-    ]);
+  const [fileSourceResponse, repoInfoResponse] = await Promise.all([
+    getFileSource({
+      fileName: path,
+      repository: repoName,
+      branch: revisionName,
+    }),
+    getRepoInfoByName(repoName),
+  ]);
 
-    if (isServiceError(fileSourceResponse) || isServiceError(repoInfoResponse)) {
-        return <div>Error loading file source</div>
-    }
+  if (isServiceError(fileSourceResponse) || isServiceError(repoInfoResponse)) {
+    return <div>Error loading file source</div>
+  }
 
-    const codeHostInfo = getCodeHostInfoForRepo({
-        codeHostType: repoInfoResponse.codeHostType,
-        name: repoInfoResponse.name,
-        displayName: repoInfoResponse.displayName,
-        webUrl: repoInfoResponse.webUrl,
-    });
+  const codeHostInfo = getCodeHostInfoForRepo({
+    codeHostType: repoInfoResponse.codeHostType,
+    name: repoInfoResponse.name,
+    displayName: repoInfoResponse.displayName,
+    webUrl: repoInfoResponse.webUrl,
+  });
 
-    // @todo: this is a hack to support linking to files for ADO. ADO doesn't support web urls with HEAD so we replace it with main. THis
-    // will break if the default branch is not main.
-    const fileWebUrl = repoInfoResponse.codeHostType === "azuredevops" && fileSourceResponse.webUrl ?
-        fileSourceResponse.webUrl.replace("version=GBHEAD", "version=GBmain") : fileSourceResponse.webUrl;
+  // @todo: this is a hack to support linking to files for ADO. ADO doesn't support web urls with HEAD so we replace it with main. THis
+  // will break if the default branch is not main.
+  const fileWebUrl = repoInfoResponse.codeHostType === "azuredevops" && fileSourceResponse.webUrl ?
+    fileSourceResponse.webUrl.replace("version=GBHEAD", "version=GBmain") : fileSourceResponse.webUrl;
 
-    return (
-        <>
-            <div className="flex flex-row py-1 px-2 items-center justify-between">
-                <PathHeader
-                    path={path}
-                    repo={{
-                        name: repoName,
-                        codeHostType: repoInfoResponse.codeHostType,
-                        displayName: repoInfoResponse.displayName,
-                        webUrl: repoInfoResponse.webUrl,
-                    }}
-                    branchDisplayName={revisionName}
-                />
+  return (
+    <>
+      <div className="flex flex-row py-1 px-2 items-center justify-between ">
+        <div className="w-2/3">
+        <PathHeader
+          path={path}
+          repo={{
+            name: repoName,
+            codeHostType: repoInfoResponse.codeHostType,
+            displayName: repoInfoResponse.displayName,
+            webUrl: repoInfoResponse.webUrl,
+          }}
+          branchDisplayName={revisionName}
+        />
+        </div>
 
-                {(fileWebUrl && codeHostInfo) && (
+        <div className="w-1/3 flex justify-end">
+          {(fileWebUrl && codeHostInfo) && (
+            <a
+              href={fileWebUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-row items-center gap-4 px-2 py-0.5 rounded-md"
+            >
+              <Image
+                src={codeHostInfo.icon}
+                alt={codeHostInfo.codeHostName}
+                className={cn('w-4 h-4 flex-shrink-0', codeHostInfo.iconClassName)}
+              />
+              <span className="text-xs font-medium">Open in {codeHostInfo.codeHostName}</span>
+            </a>
+          )}
+        </div>
+      </div>
 
-                    <a
-                        href={fileWebUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-row items-center gap-2 px-2 py-0.5 rounded-md flex-shrink-0"
-                    >
-                        <Image
-                            src={codeHostInfo.icon}
-                            alt={codeHostInfo.codeHostName}
-                            className={cn('w-4 h-4 flex-shrink-0', codeHostInfo.iconClassName)}
-                        />
-                        <span className="text-sm font-medium">Open in {codeHostInfo.codeHostName}</span>
-                    </a>
-                )}
-            </div>
-            <Separator />
-            <PureCodePreviewPanel
-                source={fileSourceResponse.source}
-                language={fileSourceResponse.language}
-                repoName={repoName}
-                path={path}
-                revisionName={revisionName ?? 'HEAD'}
-            />
-        </>
-    )
+      <Separator />
+      <PureCodePreviewPanel
+        source={fileSourceResponse.source}
+        language={fileSourceResponse.language}
+        repoName={repoName}
+        path={path}
+        revisionName={revisionName ?? 'HEAD'}
+      />
+
+    </>
+  )
 }
