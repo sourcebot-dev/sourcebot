@@ -100,7 +100,7 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
 Azure Devops Server requires you to provide a PAT in order to index your repositories. To learn how to create PAT, check out the [Azure Devops docs](https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=Windows).
 Sourcebot needs the `Read` access for the `Code` scope in order to find and clone your repos.
 
-Next, provide the access token via the `token` property, either as an environment variable or a secret:
+Next, provide the access token via an environment variable which is referenced in the `token` property:
 
 <Tabs>
     <Tab title="Environment Variable">
@@ -126,28 +126,6 @@ Next, provide the access token via the `token` property, either as an environmen
             /* additional args */ \
             ghcr.io/sourcebot-dev/sourcebot:latest
         ```
-    </Tab>
-
-    <Tab title="Secret">
-        <Note>Secrets are only supported when [authentication](/docs/configuration/auth/overview) is enabled.</Note>
-
-        1. Navigate to **Secrets** in settings and create a new secret with your PAT:
-
-        ![](/images/secrets_list.png)
-
-        2. Add the `token` property to your connection config:
-
-        ```json
-        {
-            "type": "azuredevops",
-            "deploymentType": "server",
-            "token": {
-                "secret": "mysecret"
-            }
-            // .. rest of config ..
-        }
-        ```
-
     </Tab>
 </Tabs>
 

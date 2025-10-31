@@ -8,19 +8,6 @@ const schema = {
         {
           "type": "object",
           "properties": {
-            "secret": {
-              "type": "string",
-              "description": "The name of the secret that contains the token."
-            }
-          },
-          "required": [
-            "secret"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
             "env": {
               "type": "string",
               "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -88,19 +75,6 @@ const schema = {
                 {
                   "type": "object",
                   "properties": {
-                    "secret": {
-                      "type": "string",
-                      "description": "The name of the secret that contains the token."
-                    }
-                  },
-                  "required": [
-                    "secret"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
                     "env": {
                       "type": "string",
                       "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -129,19 +103,6 @@ const schema = {
             },
             {
               "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "secret": {
-                      "type": "string",
-                      "description": "The name of the secret that contains the token."
-                    }
-                  },
-                  "required": [
-                    "secret"
-                  ],
-                  "additionalProperties": false
-                },
                 {
                   "type": "object",
                   "properties": {

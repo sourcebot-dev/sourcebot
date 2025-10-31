@@ -9,12 +9,7 @@
         },
         "token": {
             "$ref": "./shared.json#/definitions/Token",
-            "description": "A Personal Access Token (PAT).",
-            "examples": [
-                {
-                    "secret": "SECRET_KEY"
-                }
-            ]
+            "description": "A Personal Access Token (PAT)."
         },
         "url": {
             "type": "string",

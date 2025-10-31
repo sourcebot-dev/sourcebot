@@ -4,7 +4,6 @@ import { measure } from './utils.js';
 import fetch from 'cross-fetch';
 import { createLogger } from '@sourcebot/logger';
 import micromatch from 'micromatch';
-import { PrismaClient } from '@sourcebot/db';
 import { processPromiseResults, throwIfAnyFailed } from './connectionUtils.js';
 import * as Sentry from "@sentry/node";
 import { env } from './env.js';
@@ -13,13 +12,13 @@ import { getTokenFromConfig } from "@sourcebot/crypto";
 const logger = createLogger('gitea');
 const GITEA_CLOUD_HOSTNAME = "gitea.com";
 
-export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {
+export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig) => {
     const hostname = config.url ?
         new URL(config.url).hostname :
         GITEA_CLOUD_HOSTNAME;
 
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db) :
+        await getTokenFromConfig(config.token) :
         hostname === GITEA_CLOUD_HOSTNAME ?
         env.FALLBACK_GITEA_CLOUD_TOKEN :
         undefined;
@@ -53,7 +52,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, org
     allRepos = allRepos.filter(repo => repo.full_name !== undefined);
     allRepos = allRepos.filter(repo => {
         if (repo.full_name === undefined) {
-            logger.warn(`Repository with undefined full_name found: orgId=${orgId}, repoId=${repo.id}`);
+            logger.warn(`Repository with undefined full_name found: repoId=${repo.id}`);
             return false;
         }
         return true;

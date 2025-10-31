@@ -55,11 +55,7 @@ export class GithubAppManager {
 
         for (const app of githubApps) {
             const deploymentHostname = app.deploymentHostname as string || GITHUB_DEFAULT_DEPLOYMENT_HOSTNAME;
-            
-            // @todo: we should move SINGLE_TENANT_ORG_ID to shared package or just remove the need to pass this in 
-            // when resolving tokens
-            const SINGLE_TENANT_ORG_ID = 1;
-            const privateKey = await getTokenFromConfig(app.privateKey, SINGLE_TENANT_ORG_ID, this.db);
+            const privateKey = await getTokenFromConfig(app.privateKey);
 
             const octokitApp = new App({
                 appId: Number(app.id),

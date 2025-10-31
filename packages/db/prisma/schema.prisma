@@ -253,7 +253,6 @@ model Org {
   members     UserToOrg[]
   connections Connection[]
   repos       Repo[]
-  secrets     Secret[]
   apiKeys     ApiKey[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
@@ -301,19 +300,6 @@ model UserToOrg {
   role OrgRole @default(MEMBER)
 
   @@id([orgId, userId])
-}
-
-model Secret {
-  orgId          Int
-  key            String
-  encryptedValue String
-  iv             String
-
-  createdAt DateTime @default(now())
-
-  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
-
-  @@id([orgId, key])
 }
 
 model ApiKey {

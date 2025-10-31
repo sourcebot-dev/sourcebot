@@ -163,7 +163,7 @@ export class RepoPermissionSyncer {
 
         logger.info(`Syncing permissions for repo ${repo.displayName}...`);
 
-        const credentials = await getAuthCredentialsForRepo(repo, this.db, logger);
+        const credentials = await getAuthCredentialsForRepo(repo, logger);
         if (!credentials) {
             throw new Error(`No credentials found for repo ${id}`);
         }

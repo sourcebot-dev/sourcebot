@@ -10,25 +10,7 @@ const schema = {
     },
     "token": {
       "description": "A Personal Access Token (PAT).",
-      "examples": [
-        {
-          "secret": "SECRET_KEY"
-        }
-      ],
       "anyOf": [
-        {
-          "type": "object",
-          "properties": {
-            "secret": {
-              "type": "string",
-              "description": "The name of the secret that contains the token."
-            }
-          },
-          "required": [
-            "secret"
-          ],
-          "additionalProperties": false
-        },
         {
           "type": "object",
           "properties": {

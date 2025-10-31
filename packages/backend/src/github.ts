@@ -1,6 +1,5 @@
 import { Octokit } from "@octokit/rest";
 import * as Sentry from "@sentry/node";
-import { PrismaClient } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { hasEntitlement } from "@sourcebot/shared";
@@ -92,13 +91,13 @@ const getOctokitWithGithubApp = async (
     }
 }
 
-export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, orgId: number, db: PrismaClient, signal: AbortSignal): Promise<{ repos: OctokitRepository[], warnings: string[] }> => {
+export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, signal: AbortSignal): Promise<{ repos: OctokitRepository[], warnings: string[] }> => {
     const hostname = config.url ?
         new URL(config.url).hostname :
         GITHUB_CLOUD_HOSTNAME;
 
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db) :
+        await getTokenFromConfig(config.token) :
         hostname === GITHUB_CLOUD_HOSTNAME ?
             env.FALLBACK_GITHUB_CLOUD_TOKEN :
             undefined;

@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed "The account is already associated with another user" errors with GitLab oauth provider. [#584](https://github.com/sourcebot-dev/sourcebot/pull/584)
 - Fixed error when viewing a generic git connection in `/settings/connections`. [#588](https://github.com/sourcebot-dev/sourcebot/pull/588)
 
+## Removed
+- Removed built-in secret manager. [#592](https://github.com/sourcebot-dev/sourcebot/pull/592)
+
 ## [4.8.1] - 2025-10-29
 
 ### Fixed
