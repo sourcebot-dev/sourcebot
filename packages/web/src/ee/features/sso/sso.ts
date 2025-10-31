@@ -14,7 +14,7 @@ import { onCreateUser } from "@/lib/authUtils";
 import { createLogger } from "@sourcebot/logger";
 import { hasEntitlement, loadConfig } from "@sourcebot/shared";
 import { getTokenFromConfig } from "@sourcebot/crypto";
-import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
+import { GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
 
 const logger = createLogger('web-sso');
 
@@ -26,19 +26,60 @@ export const getSSOProviders = async (): Promise<Provider[]> => {
 
     for (const identityProvider of identityProviders) {
         if (identityProvider.provider === "github") {
-            const clientId = await getTokenFromConfig(identityProvider.clientId, SINGLE_TENANT_ORG_ID, db);
-            const clientSecret = await getTokenFromConfig(identityProvider.clientSecret, SINGLE_TENANT_ORG_ID, db);
-            const baseUrl = identityProvider.baseUrl ? await getTokenFromConfig(identityProvider.baseUrl, SINGLE_TENANT_ORG_ID, db) : undefined;
+            const providerConfig = identityProvider as GitHubIdentityProviderConfig;
+            if (providerConfig.purpose !== "sso") {
+                continue;
+            }
+            const clientId = await getTokenFromConfig(providerConfig.clientId);
+            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+            const baseUrl = providerConfig.baseUrl ? await getTokenFromConfig(providerConfig.baseUrl) : undefined;
             providers.push(createGitHubProvider(clientId, clientSecret, baseUrl));
         }
         if (identityProvider.provider === "gitlab") {
-            const clientId = await getTokenFromConfig(identityProvider.clientId, SINGLE_TENANT_ORG_ID, db);
-            const clientSecret = await getTokenFromConfig(identityProvider.clientSecret, SINGLE_TENANT_ORG_ID, db);
-            const baseUrl = identityProvider.baseUrl ? await getTokenFromConfig(identityProvider.baseUrl, SINGLE_TENANT_ORG_ID, db) : undefined;
+            const providerConfig = identityProvider as GitLabIdentityProviderConfig;
+            if (providerConfig.purpose !== "sso") {
+                continue;
+            }
+            const clientId = await getTokenFromConfig(providerConfig.clientId);
+            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+            const baseUrl = providerConfig.baseUrl ? await getTokenFromConfig(providerConfig.baseUrl) : undefined;
             providers.push(createGitLabProvider(clientId, clientSecret, baseUrl));
+        }
+        if (identityProvider.provider === "google") {
+            const providerConfig = identityProvider as GoogleIdentityProviderConfig;
+            const clientId = await getTokenFromConfig(providerConfig.clientId);
+            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+            providers.push(createGoogleProvider(clientId, clientSecret));
+        }
+        if (identityProvider.provider === "okta") {
+            const providerConfig = identityProvider as OktaIdentityProviderConfig;
+            const clientId = await getTokenFromConfig(providerConfig.clientId);
+            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+            const issuer = await getTokenFromConfig(providerConfig.issuer);
+            providers.push(createOktaProvider(clientId, clientSecret, issuer));
+        }
+        if (identityProvider.provider === "keycloak") {
+            const providerConfig = identityProvider as KeycloakIdentityProviderConfig;
+            const clientId = await getTokenFromConfig(providerConfig.clientId);
+            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+            const issuer = await getTokenFromConfig(providerConfig.issuer);
+            providers.push(createKeycloakProvider(clientId, clientSecret, issuer));
+        }
+        if (identityProvider.provider === "microsoft-entra-id") {
+            const providerConfig = identityProvider as MicrosoftEntraIDIdentityProviderConfig;
+            const clientId = await getTokenFromConfig(providerConfig.clientId);
+            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+            const issuer = await getTokenFromConfig(providerConfig.issuer);
+            providers.push(createMicrosoftEntraIDProvider(clientId, clientSecret, issuer));
+        }
+        if (identityProvider.provider === "gcp-iap") {
+            const providerConfig = identityProvider as GCPIAPIdentityProviderConfig;
+            const audience = await getTokenFromConfig(providerConfig.audience);
+            providers.push(createGCPIAPProvider(audience));
         }
     }
 
+    // @deprecate
     if (env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
         providers.push(createGitHubProvider(env.AUTH_EE_GITHUB_CLIENT_ID, env.AUTH_EE_GITHUB_CLIENT_SECRET, env.AUTH_EE_GITHUB_BASE_URL));
     }

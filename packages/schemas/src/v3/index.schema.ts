@@ -3623,24 +3623,11 @@ const schema = {
               "purpose": {
                 "enum": [
                   "sso",
-                  "identity"
+                  "integration"
                 ]
               },
               "clientId": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -3661,19 +3648,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -3688,19 +3662,6 @@ const schema = {
               },
               "baseUrl": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -3733,24 +3694,11 @@ const schema = {
               "purpose": {
                 "enum": [
                   "sso",
-                  "identity"
+                  "integration"
                 ]
               },
               "clientId": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -3771,19 +3719,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -3798,19 +3733,6 @@ const schema = {
               },
               "baseUrl": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -3846,19 +3768,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -3873,19 +3782,6 @@ const schema = {
               },
               "clientSecret": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -3919,19 +3815,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -3949,19 +3832,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -3976,19 +3846,6 @@ const schema = {
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4023,19 +3880,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4053,19 +3897,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4080,19 +3911,6 @@ const schema = {
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4127,19 +3945,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4157,19 +3962,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4184,19 +3976,6 @@ const schema = {
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4231,19 +4010,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4273,24 +4039,11 @@ const schema = {
               "purpose": {
                 "enum": [
                   "sso",
-                  "identity"
+                  "integration"
                 ]
               },
               "clientId": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4311,19 +4064,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4338,19 +4078,6 @@ const schema = {
               },
               "baseUrl": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4383,24 +4110,11 @@ const schema = {
               "purpose": {
                 "enum": [
                   "sso",
-                  "identity"
+                  "integration"
                 ]
               },
               "clientId": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4421,19 +4135,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4448,19 +4149,6 @@ const schema = {
               },
               "baseUrl": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4496,19 +4184,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4523,19 +4198,6 @@ const schema = {
               },
               "clientSecret": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4569,19 +4231,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4599,19 +4248,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4626,19 +4262,6 @@ const schema = {
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4673,19 +4296,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4703,19 +4313,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4730,19 +4327,6 @@ const schema = {
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4777,19 +4361,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4807,19 +4378,6 @@ const schema = {
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4834,19 +4392,6 @@ const schema = {
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4878,19 +4423,6 @@ const schema = {
               },
               "audience": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {

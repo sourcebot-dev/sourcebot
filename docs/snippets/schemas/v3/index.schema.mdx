@@ -3624,24 +3624,11 @@
               "purpose": {
                 "enum": [
                   "sso",
-                  "identity"
+                  "integration"
                 ]
               },
               "clientId": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -3662,19 +3649,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -3689,19 +3663,6 @@
               },
               "baseUrl": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -3734,24 +3695,11 @@
               "purpose": {
                 "enum": [
                   "sso",
-                  "identity"
+                  "integration"
                 ]
               },
               "clientId": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -3772,19 +3720,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -3799,19 +3734,6 @@
               },
               "baseUrl": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -3847,19 +3769,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -3874,19 +3783,6 @@
               },
               "clientSecret": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -3920,19 +3816,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -3950,19 +3833,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -3977,19 +3847,6 @@
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4024,19 +3881,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4054,19 +3898,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4081,19 +3912,6 @@
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4128,19 +3946,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4158,19 +3963,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4185,19 +3977,6 @@
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4232,19 +4011,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4274,24 +4040,11 @@
               "purpose": {
                 "enum": [
                   "sso",
-                  "identity"
+                  "integration"
                 ]
               },
               "clientId": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4312,19 +4065,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4339,19 +4079,6 @@
               },
               "baseUrl": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4384,24 +4111,11 @@
               "purpose": {
                 "enum": [
                   "sso",
-                  "identity"
+                  "integration"
                 ]
               },
               "clientId": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4422,19 +4136,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4449,19 +4150,6 @@
               },
               "baseUrl": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4497,19 +4185,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4524,19 +4199,6 @@
               },
               "clientSecret": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4570,19 +4232,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4600,19 +4249,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4627,19 +4263,6 @@
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4674,19 +4297,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4704,19 +4314,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4731,19 +4328,6 @@
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4778,19 +4362,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4808,19 +4379,6 @@
                   {
                     "type": "object",
                     "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
                       "env": {
                         "type": "string",
                         "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
@@ -4835,19 +4393,6 @@
               },
               "issuer": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
@@ -4879,19 +4424,6 @@
               },
               "audience": {
                 "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "secret": {
-                        "type": "string",
-                        "description": "The name of the secret that contains the token."
-                      }
-                    },
-                    "required": [
-                      "secret"
-                    ],
-                    "additionalProperties": false
-                  },
                   {
                     "type": "object",
                     "properties": {
