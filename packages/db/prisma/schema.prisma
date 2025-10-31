@@ -29,6 +29,21 @@ enum ChatVisibility {
   PUBLIC
 }
 
+/// @note: The @map annotation is required to maintain backwards compatibility
+/// with the existing database.
+/// @note: In the generated client, these mapped values will be in pascalCase.
+/// This behaviour will change in prisma v7. See: https://github.com/prisma/prisma/issues/8446#issuecomment-3356119713
+enum CodeHostType {
+  github
+  gitlab
+  gitea
+  gerrit
+  bitbucketServer         @map("bitbucket-server")
+  bitbucketCloud          @map("bitbucket-cloud")
+  genericGitHost          @map("generic-git-host")
+  azuredevops
+}
+
 model Repo {
   id                 Int                    @id @default(autoincrement())
   name               String /// Full repo name, including the vcs hostname (ex. github.com/sourcebot-dev/sourcebot)
@@ -53,7 +68,7 @@ model Repo {
   indexedCommitHash  String? /// The commit hash of the last indexed commit (on HEAD).
 
   external_id           String /// The id of the repo in the external service
-  external_codeHostType String /// The type of the external service (e.g., github, gitlab, etc.)
+  external_codeHostType CodeHostType /// The type of the external service (e.g., github, gitlab, etc.)
   external_codeHostUrl  String /// The base url of the external service (e.g., https://github.com)
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -125,6 +140,18 @@ model SearchContext {
   @@unique([name, orgId])
 }
 
+/// Matches the union of `type` fields in the schema.
+/// @see: schemas/v3/connection.type.ts
+enum ConnectionType {
+  github
+  gitlab
+  gitea
+  gerrit
+  bitbucket
+  azuredevops
+  git
+}
+
 model Connection {
   id                 Int                  @id @default(autoincrement())
   name               String
@@ -135,7 +162,7 @@ model Connection {
   repos              RepoToConnection[]
 
   // The type of connection (e.g., github, gitlab, etc.)
-  connectionType String
+  connectionType ConnectionType
 
   syncJobs ConnectionSyncJob[]
   /// When the connection was last synced successfully.
@@ -226,7 +253,6 @@ model Org {
   members     UserToOrg[]
   connections Connection[]
   repos       Repo[]
-  secrets     Secret[]
   apiKeys     ApiKey[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
@@ -274,19 +300,6 @@ model UserToOrg {
   role OrgRole @default(MEMBER)
 
   @@id([orgId, userId])
-}
-
-model Secret {
-  orgId          Int
-  key            String
-  encryptedValue String
-  iv             String
-
-  createdAt DateTime @default(now())
-
-  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
-
-  @@id([orgId, key])
 }
 
 model ApiKey {

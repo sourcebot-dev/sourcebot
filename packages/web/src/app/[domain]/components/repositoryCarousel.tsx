@@ -8,7 +8,6 @@ import {
 import { captureEvent } from "@/hooks/useCaptureEvent";
 import { RepositoryQuery } from "@/lib/types";
 import { getCodeHostInfoForRepo } from "@/lib/utils";
-import { FileIcon } from "@radix-ui/react-icons";
 import clsx from "clsx";
 import Autoscroll from "embla-carousel-auto-scroll";
 import Image from "next/image";
@@ -121,20 +120,13 @@ const RepositoryBadge = ({
             webUrl: repo.webUrl,
         });
 
-        if (info) {
-            return {
-                repoIcon: <Image
-                    src={info.icon}
-                    alt={info.codeHostName}
-                    className={`w-4 h-4 ${info.iconClassName}`}
-                />,
-                displayName: info.displayName,
-            }
-        }
-
         return {
-            repoIcon: <FileIcon className="w-4 h-4" />,
-            displayName: repo.repoName,
+            repoIcon: <Image
+                src={info.icon}
+                alt={info.codeHostName}
+                className={`w-4 h-4 ${info.iconClassName}`}
+            />,
+            displayName: info.displayName,
         }
     })();
 

@@ -1,7 +1,7 @@
 import { Logger } from "winston";
 import { RepoAuthCredentials, RepoWithConnections } from "./types.js";
 import path from 'path';
-import { PrismaClient, Repo } from "@sourcebot/db";
+import { Repo } from "@sourcebot/db";
 import { getTokenFromConfig } from "@sourcebot/crypto";
 import * as Sentry from "@sentry/node";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
@@ -59,7 +59,7 @@ export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } =
     // If we are dealing with a local repository, then use that as the path.
     // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
     const cloneUrl = new URL(repo.cloneUrl);
-    if (repo.external_codeHostType === 'generic-git-host' && cloneUrl.protocol === 'file:') {
+    if (repo.external_codeHostType === 'genericGitHost' && cloneUrl.protocol === 'file:') {
         return {
             path: cloneUrl.pathname,
             isReadOnly: true,
@@ -110,7 +110,7 @@ export const fetchWithRetry = async <T>(
 // fetch the token here using the connections from the repo. Multiple connections could be referencing this repo, and each
 // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
 // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
-export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: PrismaClient, logger?: Logger): Promise<RepoAuthCredentials | undefined> => {
+export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logger?: Logger): Promise<RepoAuthCredentials | undefined> => {
     // If we have github apps configured we assume that we must use them for github service auth
     if (repo.external_codeHostType === 'github' && hasEntitlement('github-app') && GithubAppManager.getInstance().appsConfigured()) {
         logger?.debug(`Using GitHub App for service auth for repo ${repo.displayName} hosted at ${repo.external_codeHostUrl}`);
@@ -139,7 +139,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
         if (connection.connectionType === 'github') {
             const config = connection.config as unknown as GithubConnectionConfig;
             if (config.token) {
-                const token = await getTokenFromConfig(config.token, connection.orgId, db);
+                const token = await getTokenFromConfig(config.token);
                 return {
                     hostUrl: config.url,
                     token,
@@ -154,7 +154,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
         } else if (connection.connectionType === 'gitlab') {
             const config = connection.config as unknown as GitlabConnectionConfig;
             if (config.token) {
-                const token = await getTokenFromConfig(config.token, connection.orgId, db);
+                const token = await getTokenFromConfig(config.token);
                 return {
                     hostUrl: config.url,
                     token,
@@ -170,7 +170,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
         } else if (connection.connectionType === 'gitea') {
             const config = connection.config as unknown as GiteaConnectionConfig;
             if (config.token) {
-                const token = await getTokenFromConfig(config.token, connection.orgId, db);
+                const token = await getTokenFromConfig(config.token);
                 return {
                     hostUrl: config.url,
                     token,
@@ -185,7 +185,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
         } else if (connection.connectionType === 'bitbucket') {
             const config = connection.config as unknown as BitbucketConnectionConfig;
             if (config.token) {
-                const token = await getTokenFromConfig(config.token, connection.orgId, db);
+                const token = await getTokenFromConfig(config.token);
                 const username = config.user ?? 'x-token-auth';
                 return {
                     hostUrl: config.url,
@@ -202,7 +202,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, db: P
         } else if (connection.connectionType === 'azuredevops') {
             const config = connection.config as unknown as AzureDevOpsConnectionConfig;
             if (config.token) {
-                const token = await getTokenFromConfig(config.token, connection.orgId, db);
+                const token = await getTokenFromConfig(config.token);
 
                 // For ADO server, multiple auth schemes may be supported. If the ADO deployment supports NTLM, the git clone will default
                 // to this over basic auth. As a result, we cannot embed the token in the clone URL and must force basic auth by passing in the token

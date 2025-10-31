@@ -1,4 +1,5 @@
 // @NOTE : Please keep this file in sync with @sourcebot/mcp/src/schemas.ts
+import { CodeHostType } from "@sourcebot/db";
 import { z } from "zod";
 
 export const locationSchema = z.object({
@@ -33,7 +34,7 @@ export const searchRequestSchema = z.object({
 
 export const repositoryInfoSchema = z.object({
     id: z.number(),
-    codeHostType: z.string(),
+    codeHostType: z.nativeEnum(CodeHostType),
     name: z.string(),
     displayName: z.string().optional(),
     webUrl: z.string().optional(),
@@ -153,7 +154,7 @@ export const fileSourceResponseSchema = z.object({
     language: z.string(),
     path: z.string(),
     repository: z.string(),
-    repositoryCodeHostType: z.string(),
+    repositoryCodeHostType: z.nativeEnum(CodeHostType),
     repositoryDisplayName: z.string().optional(),
     repositoryWebUrl: z.string().optional(),
     branch: z.string().optional(),

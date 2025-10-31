@@ -92,7 +92,7 @@ export async function POST(req: Request) {
                     });
                 }
 
-                const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig, org.id);
+                const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
 
                 return createMessageStreamResponse({
                     messages,

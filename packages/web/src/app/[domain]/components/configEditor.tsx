@@ -12,8 +12,8 @@ import { Separator } from "@/components/ui/separator";
 import { Schema } from "ajv";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { CodeHostType } from "@/lib/utils";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
+import { CodeHostType } from "@sourcebot/db";
 
 export type QuickActionFn<T> = (previous: T) => T;
 export type QuickAction<T> = {

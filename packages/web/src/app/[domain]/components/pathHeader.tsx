@@ -1,7 +1,6 @@
 'use client';
 
 import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
-import { LaptopIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { getBrowsePath } from "../browse/hooks/utils";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
@@ -17,6 +16,7 @@ import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { CopyIconButton } from "./copyIconButton";
 import Link from "next/link";
 import { useDomain } from "@/hooks/useDomain";
+import { CodeHostType } from "@sourcebot/db";
 
 interface FileHeaderProps {
     path: string;
@@ -27,7 +27,7 @@ interface FileHeaderProps {
     pathType?: 'blob' | 'tree';
     repo: {
         name: string;
-        codeHostType: string;
+        codeHostType: CodeHostType;
         displayName?: string;
         webUrl?: string;
     },
@@ -202,17 +202,13 @@ export const PathHeader = ({
         <div className="flex flex-row gap-2 items-center w-full overflow-hidden">
             {isCodeHostIconVisible && (
                 <>
-                    {info?.icon ? (
-                        <a href={info.repoLink} target="_blank" rel="noopener noreferrer">
-                            <Image
-                                src={info.icon}
-                                alt={info.codeHostName}
-                                className={`w-4 h-4 ${info.iconClassName}`}
-                            />
-                        </a>
-                    ) : (
-                        <LaptopIcon className="w-4 h-4" />
-                    )}
+                    <a href={info.repoLink} target="_blank" rel="noopener noreferrer">
+                        <Image
+                            src={info.icon}
+                            alt={info.codeHostName}
+                            className={`w-4 h-4 ${info.iconClassName}`}
+                        />
+                    </a>
                 </>
             )}
 

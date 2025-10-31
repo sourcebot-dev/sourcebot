@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { CodeHostType, getCodeHostIcon } from "@/lib/utils"
+import { getCodeHostIcon } from "@/lib/utils"
+import { ConnectionType } from "@sourcebot/db"
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -35,7 +36,7 @@ export type Connection = {
     id: number
     name: string
     syncedAt: Date | null
-    codeHostType: CodeHostType
+    connectionType: ConnectionType
     latestJobStatus: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | null
     isFirstTimeSync: boolean
 }
@@ -80,13 +81,13 @@ export const columns: ColumnDef<Connection>[] = [
         },
         cell: ({ row }) => {
             const connection = row.original;
-            const codeHostIcon = getCodeHostIcon(connection.codeHostType);
+            const codeHostIcon = getCodeHostIcon(connection.connectionType);
 
             return (
                 <div className="flex flex-row gap-2 items-center">
                     <Image
                         src={codeHostIcon.src}
-                        alt={`${connection.codeHostType} logo`}
+                        alt={`${connection.connectionType} logo`}
                         className={codeHostIcon.className}
                         width={20}
                         height={20}

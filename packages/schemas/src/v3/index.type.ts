@@ -167,19 +167,12 @@ export interface GithubConnectionConfig {
   /**
    * A Personal Access Token (PAT).
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * The URL of the GitHub host. Defaults to https://github.com
    */
@@ -256,19 +249,12 @@ export interface GitlabConnectionConfig {
   /**
    * An authentication token.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * The URL of the GitLab host. Defaults to https://gitlab.com
    */
@@ -327,19 +313,12 @@ export interface GiteaConnectionConfig {
   /**
    * A Personal Access Token (PAT).
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * The URL of the Gitea host. Defaults to https://gitea.com
    */
@@ -413,19 +392,12 @@ export interface BitbucketConnectionConfig {
   /**
    * An authentication token.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Bitbucket URL
    */
@@ -470,19 +442,12 @@ export interface AzureDevOpsConnectionConfig {
   /**
    * A Personal Access Token (PAT).
    */
-  token:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * The URL of the Azure DevOps host. For Azure DevOps Cloud, use https://dev.azure.com. For Azure DevOps Server, use your server URL.
    */
@@ -563,51 +528,30 @@ export interface AmazonBedrockLanguageModel {
   /**
    * Optional access key ID to use with the model. Defaults to the `AWS_ACCESS_KEY_ID` environment variable.
    */
-  accessKeyId?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  accessKeyId?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Optional secret access key to use with the model. Defaults to the `AWS_SECRET_ACCESS_KEY` environment variable.
    */
-  accessKeySecret?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  accessKeySecret?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Optional session token to use with the model. Defaults to the `AWS_SESSION_TOKEN` environment variable.
    */
-  sessionToken?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  sessionToken?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * The AWS region. Defaults to the `AWS_REGION` environment variable.
    */
@@ -628,20 +572,12 @@ export interface LanguageModelHeaders {
    */
   [k: string]:
     | string
-    | (
-        | {
-            /**
-             * The name of the secret that contains the token.
-             */
-            secret: string;
-          }
-        | {
-            /**
-             * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-             */
-            env: string;
-          }
-      );
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
 }
 export interface AnthropicLanguageModel {
   /**
@@ -659,19 +595,12 @@ export interface AnthropicLanguageModel {
   /**
    * Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Optional base URL.
    */
@@ -698,19 +627,12 @@ export interface AzureLanguageModel {
   /**
    * Optional API key to use with the model. Defaults to the `AZURE_API_KEY` environment variable.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Sets a custom api version. Defaults to `preview`.
    */
@@ -737,19 +659,12 @@ export interface DeepSeekLanguageModel {
   /**
    * Optional API key to use with the model. Defaults to the `DEEPSEEK_API_KEY` environment variable.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Optional base URL.
    */
@@ -772,19 +687,12 @@ export interface GoogleGenerativeAILanguageModel {
   /**
    * Optional API key to use with the model. Defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Optional base URL.
    */
@@ -815,19 +723,12 @@ export interface GoogleVertexAnthropicLanguageModel {
   /**
    * Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.
    */
-  credentials?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  credentials?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Optional base URL.
    */
@@ -858,19 +759,12 @@ export interface GoogleVertexLanguageModel {
   /**
    * Optional file path to service account credentials JSON. Defaults to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable or application default credentials.
    */
-  credentials?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  credentials?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Optional base URL.
    */
@@ -893,19 +787,12 @@ export interface MistralLanguageModel {
   /**
    * Optional API key to use with the model. Defaults to the `MISTRAL_API_KEY` environment variable.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Optional base URL.
    */
@@ -928,19 +815,12 @@ export interface OpenAILanguageModel {
   /**
    * Optional API key to use with the model. Defaults to the `OPENAI_API_KEY` environment variable.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Optional base URL.
    */
@@ -967,19 +847,12 @@ export interface OpenAICompatibleLanguageModel {
   /**
    * Optional API key. If specified, adds an `Authorization` header to request headers with the value Bearer <token>.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Base URL of the OpenAI-compatible chat completions API endpoint.
    */
@@ -1001,20 +874,12 @@ export interface LanguageModelQueryParams {
    */
   [k: string]:
     | string
-    | (
-        | {
-            /**
-             * The name of the secret that contains the token.
-             */
-            secret: string;
-          }
-        | {
-            /**
-             * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-             */
-            env: string;
-          }
-      );
+    | {
+        /**
+         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         */
+        env: string;
+      };
 }
 export interface OpenRouterLanguageModel {
   /**
@@ -1032,19 +897,12 @@ export interface OpenRouterLanguageModel {
   /**
    * Optional API key to use with the model. Defaults to the `OPENROUTER_API_KEY` environment variable.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Optional base URL.
    */
@@ -1067,19 +925,12 @@ export interface XaiLanguageModel {
   /**
    * Optional API key to use with the model. Defaults to the `XAI_API_KEY` environment variable.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Optional base URL.
    */
@@ -1102,19 +953,12 @@ export interface GitHubAppConfig {
   /**
    * The private key of the GitHub App.
    */
-  privateKey:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  privateKey: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
 }
 export interface GitHubIdentityProviderConfig {
   provider: "github";

@@ -12,19 +12,12 @@ export interface BitbucketConnectionConfig {
   /**
    * An authentication token.
    */
-  token?:
-    | {
-        /**
-         * The name of the secret that contains the token.
-         */
-        secret: string;
-      }
-    | {
-        /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-         */
-        env: string;
-      };
+  token?: {
+    /**
+     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+     */
+    env: string;
+  };
   /**
    * Bitbucket URL
    */

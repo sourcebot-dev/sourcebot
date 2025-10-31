@@ -2,6 +2,7 @@ import { checkIfOrgDomainExists } from "@/actions";
 import { z } from "zod";
 import { isServiceError } from "./utils";
 import { serviceErrorSchema } from "./serviceError";
+import { CodeHostType } from "@sourcebot/db";
 
 export const secretCreateRequestSchema = z.object({
     key: z.string(),
@@ -13,7 +14,7 @@ export const secreteDeleteRequestSchema = z.object({
 });
 
 export const repositoryQuerySchema = z.object({
-    codeHostType: z.string(),
+    codeHostType: z.nativeEnum(CodeHostType),
     repoId: z.number(),
     repoName: z.string(),
     repoDisplayName: z.string().optional(),

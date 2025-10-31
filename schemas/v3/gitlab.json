@@ -9,12 +9,7 @@
         },
         "token": {
             "$ref": "./shared.json#/definitions/Token",
-            "description": "An authentication token.",
-            "examples": [
-                {
-                    "secret": "SECRET_KEY"
-                }
-            ]
+            "description": "An authentication token."
         },
         "url": {
             "type": "string",

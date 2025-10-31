@@ -20,6 +20,7 @@ import { createCodeFoldingExtension } from "./codeFoldingExtension";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { createAuditAction } from "@/ee/features/audit/actions";
 import { useDomain } from "@/hooks/useDomain";
+import { CodeHostType } from "@sourcebot/db";
 
 const lineDecoration = Decoration.line({
     attributes: { class: "cm-range-border-radius chat-lineHighlight" },
@@ -40,7 +41,7 @@ interface ReferencedFileSourceListItemProps {
     language: string;
     revision: string;
     repoName: string;
-    repoCodeHostType: string;
+    repoCodeHostType: CodeHostType;
     repoDisplayName?: string;
     repoWebUrl?: string;
     fileName: string;
