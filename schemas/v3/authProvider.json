@@ -1,0 +1,152 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "IdentityProviderConfig",
+    "definitions": {
+        "GitHubIdentityProviderConfig": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "const": "github"
+                },
+                "purpose": {
+                    "enum": ["sso", "identity"]
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "baseUrl": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret"]
+        },
+        "GitLabIdentityProviderConfig": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "const": "gitlab"
+                },
+                "purpose": {
+                    "enum": ["sso", "identity"]
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "baseUrl": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret", "baseUrl"]
+        },
+        "GoogleIdentityProviderConfig": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "const": "google"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "clientId", "clientSecret"]
+        },
+        "OktaIdentityProviderConfig": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "const": "okta"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "issuer": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "clientId", "clientSecret", "issuer"]
+        },
+        "KeycloakIdentityProviderConfig": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "const": "keycloak"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "issuer": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "clientId", "clientSecret", "issuer"]
+        },
+        "MicrosoftEntraIDIdentityProviderConfig": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "const": "microsoft-entra-id"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "issuer": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "clientId", "clientSecret", "issuer"]
+        },
+        "GCPIAPIdentityProviderConfig": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "const": "gcp-iap"
+                },
+                "audience": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "audience"]
+        }
+    },
+    "oneOf": [
+        {
+            "$ref": "#/definitions/GitHubIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/GitLabIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/GoogleIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/OktaIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/KeycloakIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/MicrosoftEntraIDIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/GCPIAPIdentityProviderConfig"
+        }
+    ]
+}

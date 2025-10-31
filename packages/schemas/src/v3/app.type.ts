@@ -6,7 +6,7 @@ export interface GitHubAppConfig {
   /**
    * GitHub App Configuration
    */
-  type: "githubApp";
+  type: "github";
   /**
    * The hostname of the GitHub App deployment.
    */
