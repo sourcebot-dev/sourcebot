@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { cn, CodeHostType, getCodeHostCommitUrl, getCodeHostIcon, getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
+import { cn, getCodeHostCommitUrl, getCodeHostIcon, getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -38,6 +38,7 @@ import { useToast } from "@/components/hooks/use-toast";
 import { DisplayDate } from "../../components/DisplayDate"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { NotificationDot } from "../../components/notificationDot"
+import { CodeHostType } from "@sourcebot/db"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -50,7 +51,7 @@ export type Repo = {
     indexedAt: Date | null
     createdAt: Date
     webUrl: string | null
-    codeHostType: string
+    codeHostType: CodeHostType
     imageUrl: string | null
     indexedCommitHash: string | null
     latestJobStatus: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | null
@@ -97,7 +98,7 @@ export const columns: ColumnDef<Repo>[] = [
         },
         cell: ({ row }) => {
             const repo = row.original;
-            const codeHostIcon = getCodeHostIcon(repo.codeHostType as CodeHostType);
+            const codeHostIcon = getCodeHostIcon(repo.codeHostType);
             const repoImageSrc = repo.imageUrl ? getRepoImageSrc(repo.imageUrl, repo.id) : undefined;
 
             return (
@@ -192,7 +193,7 @@ export const columns: ColumnDef<Repo>[] = [
 
             const smallHash = hash.slice(0, 7);
             const repo = row.original;
-            const codeHostType = repo.codeHostType as CodeHostType;
+            const codeHostType = repo.codeHostType;
             const webUrl = repo.webUrl;
 
             const commitUrl = getCodeHostCommitUrl({

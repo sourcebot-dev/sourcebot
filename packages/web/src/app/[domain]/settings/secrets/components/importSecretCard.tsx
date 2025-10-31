@@ -3,7 +3,8 @@
 import { CodeHostIconButton } from "@/app/[domain]/components/codeHostIconButton";
 import { Card, CardTitle, CardDescription, CardHeader, CardContent } from "@/components/ui/card";
 import { getCodeHostIcon } from "@/lib/utils";
-import { cn, CodeHostType } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { CodeHostType } from "@sourcebot/db";
 import { useState } from "react";
 import { ImportSecretDialog } from "@/app/[domain]/components/importSecretDialog";
 import { useRouter } from "next/navigation";

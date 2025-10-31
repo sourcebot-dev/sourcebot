@@ -15,13 +15,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CodeHostType, getCodeHostBrowseAtBranchUrl } from "@/lib/utils"
+import { getCodeHostBrowseAtBranchUrl } from "@/lib/utils"
 import Link from "next/link"
+import { CodeHostType } from "@sourcebot/db";
 
 type RepoBranchesTableProps = {
     indexRevisions: string[];
     repoWebUrl: string | null;
-    repoCodeHostType: string;
+    repoCodeHostType: CodeHostType;
 }
 
 export const RepoBranchesTable = ({ indexRevisions, repoWebUrl, repoCodeHostType }: RepoBranchesTableProps) => {
@@ -39,7 +40,7 @@ export const RepoBranchesTable = ({ indexRevisions, repoWebUrl, repoCodeHostType
 
                     const branchUrl = getCodeHostBrowseAtBranchUrl({
                         webUrl: repoWebUrl,
-                        codeHostType: repoCodeHostType as CodeHostType,
+                        codeHostType: repoCodeHostType,
                         branchName: refName,
                     });
 

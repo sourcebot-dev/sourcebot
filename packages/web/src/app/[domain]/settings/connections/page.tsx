@@ -1,6 +1,6 @@
 import { sew } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
-import { CodeHostType, isServiceError } from "@/lib/utils";
+import { isServiceError } from "@/lib/utils";
 import { withAuthV2 } from "@/withAuthV2";
 import Link from "next/link";
 import { ConnectionsTable } from "./components/connectionsTable";
@@ -40,7 +40,7 @@ export default async function ConnectionsPage() {
             <ConnectionsTable data={connections.map((connection) => ({
                 id: connection.id,
                 name: connection.name,
-                codeHostType: connection.connectionType as CodeHostType,
+                connectionType: connection.connectionType,
                 syncedAt: connection.syncedAt,
                 latestJobStatus: connection.latestJobStatus,
                 isFirstTimeSync: connection.isFirstTimeSync,
