@@ -65,7 +65,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         <h1 className="text-3xl font-semibold">{repo.displayName || repo.name}</h1>
                         <p className="text-muted-foreground mt-2">{repo.name}</p>
                     </div>
-                    {(codeHostInfo && codeHostInfo.repoLink) && (
+                    {codeHostInfo.repoLink && (
                         <Button variant="outline" asChild>
                             <Link href={codeHostInfo.repoLink} target="_blank" rel="noopener noreferrer" className="flex items-center">
                                 <Image

@@ -263,7 +263,7 @@ const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } => {
     // If we are dealing with a local repository, then use that as the path.
     // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
     const cloneUrl = new URL(repo.cloneUrl);
-    if (repo.external_codeHostType === 'generic-git-host' && cloneUrl.protocol === 'file:') {
+    if (repo.external_codeHostType === 'genericGitHost' && cloneUrl.protocol === 'file:') {
         return {
             path: cloneUrl.pathname,
             isReadOnly: true,

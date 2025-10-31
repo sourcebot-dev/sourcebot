@@ -10,7 +10,7 @@ import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { RepositoryQuery } from "@/lib/types";
 import { getCodeHostInfoForRepo, getShortenedNumberDisplayString } from "@/lib/utils";
 import clsx from "clsx";
-import { FileIcon, Loader2Icon, RefreshCwIcon } from "lucide-react";
+import { Loader2Icon, RefreshCwIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -90,23 +90,14 @@ const RepoItem = ({ repo }: { repo: RepositoryQuery }) => {
             webUrl: repo.webUrl,
         });
 
-        if (info) {
-            return {
-                repoIcon: <Image
-                    src={info.icon}
-                    alt={info.codeHostName}
-                    className={`w-4 h-4 ${info.iconClassName}`}
-                />,
-                displayName: info.displayName,
-            }
-        }
-
         return {
-            repoIcon: <FileIcon className="w-4 h-4" />,
-            displayName: repo.repoName,
+            repoIcon: <Image
+                src={info.icon}
+                alt={info.codeHostName}
+                className={`w-4 h-4 ${info.iconClassName}`}
+            />,
+            displayName: info.displayName,
         }
-
-
     }, [repo.repoName, repo.codeHostType, repo.repoDisplayName, repo.webUrl]);
 
 
