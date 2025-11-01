@@ -1,18 +1,19 @@
 import { getProviders } from "@/auth";
 
-export interface AuthProvider {
+export interface IdentityProviderMetadata {
     id: string;
     name: string;
+    purpose: "sso" | "integration";
 }
 
-export const getAuthProviders = (): AuthProvider[] => {
+export const getIdentityProviderMetadata = (): IdentityProviderMetadata[] => {
     const providers = getProviders();
     return providers.map((provider) => {
-        if (typeof provider === "function") {
-            const providerInfo = provider();
-            return { id: providerInfo.id, name: providerInfo.name };
+        if (typeof provider.provider === "function") {
+            const providerInfo = provider.provider();
+            return { id: providerInfo.id, name: providerInfo.name, purpose: provider.purpose };
         } else {
-            return { id: provider.id, name: provider.name };
+            return { id: provider.provider.id, name: provider.provider.name, purpose: provider.purpose };
         }
     });
 }; 

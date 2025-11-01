@@ -13,16 +13,21 @@ import { createTransport } from 'nodemailer';
 import { render } from '@react-email/render';
 import MagicLinkEmail from './emails/magicLinkEmail';
 import bcrypt from 'bcryptjs';
-import { getSSOProviders } from '@/ee/features/sso/sso';
+import { getEEIdentityProviders } from '@/ee/features/sso/sso';
 import { hasEntitlement } from '@sourcebot/shared';
 import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 
 const auditService = getAuditService();
-const ssoProviders = hasEntitlement("sso") ? await getSSOProviders() : [];
+const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
 
 export const runtime = 'nodejs';
+
+export type IdentityProvider = {
+    provider: Provider;
+    purpose: "sso" | "integration";
+}
 
 declare module 'next-auth' {
     interface Session {
@@ -33,16 +38,16 @@ declare module 'next-auth' {
 }
 
 declare module 'next-auth/jwt' {
-    interface JWT {
+    interface JWT { 
         userId: string
     }
 }
 
 export const getProviders = () => {
-    const providers: Provider[] = ssoProviders;
+    const providers: IdentityProvider[] = eeIdentityProviders;
 
     if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
-        providers.push(EmailProvider({
+        providers.push({ provider: EmailProvider({
             server: env.SMTP_CONNECTION_URL,
             from: env.EMAIL_FROM_ADDRESS,
             maxAge: 60 * 10,
@@ -66,11 +71,11 @@ export const getProviders = () => {
                     throw new Error(`Email(s) (${failed.join(", ")}) could not be sent`);
                 }
             }
-        }));
+        }), purpose: "sso"});
     }
 
     if (env.AUTH_CREDENTIALS_LOGIN_ENABLED === 'true') {
-        providers.push(Credentials({
+        providers.push({ provider: Credentials({
             credentials: {
                 email: {},
                 password: {}
@@ -123,7 +128,7 @@ export const getProviders = () => {
                     };
                 }
             }
-        }));
+        }), purpose: "sso"});
     }
 
     return providers;
@@ -193,7 +198,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return session;
         },
     },
-    providers: getProviders(),
+    providers: getProviders().map((provider) => provider.provider),
     pages: {
         signIn: "/login",
         // We set redirect to false in signInOptions so we can pass the email is as a param

@@ -8,10 +8,10 @@ import { CredentialsForm } from "@/app/login/components/credentialsForm";
 import { DividerSet } from "@/app/components/dividerSet";
 import { ProviderButton } from "@/app/components/providerButton";
 import { AuthSecurityNotice } from "@/app/components/authSecurityNotice";
-import type { AuthProvider } from "@/lib/authProviders";
+import type { IdentityProviderMetadata } from "@/lib/authProviders";
 
 interface AuthMethodSelectorProps {
-    providers: AuthProvider[];
+    providers: IdentityProviderMetadata[];
     callbackUrl?: string;
     context: "login" | "signup";
     onProviderClick?: (providerId: string) => void;
@@ -35,11 +35,11 @@ export const AuthMethodSelector = ({
     }, [callbackUrl, onProviderClick]);
 
     // Separate OAuth providers from special auth methods
-    const oauthProviders = providers.filter(p =>
+    const oauthProviders = providers.filter(p => p.purpose === "sso" &&
         !["credentials", "nodemailer"].includes(p.id)
     );
-    const hasCredentials = providers.some(p => p.id === "credentials");
-    const hasMagicLink = providers.some(p => p.id === "nodemailer");
+    const hasCredentials = providers.some(p => p.purpose === "sso" && p.id === "credentials");
+    const hasMagicLink = providers.some(p => p.purpose === "sso" && p.id === "nodemailer");
 
     return (
         <>
