@@ -20,10 +20,16 @@ import assert from 'assert';
 import GitUrlParse from 'git-url-parse';
 import { RepoMetadata } from '@sourcebot/shared';
 import { SINGLE_TENANT_ORG_ID } from './constants.js';
+import pLimit from 'p-limit';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 
 const logger = createLogger('repo-compile-utils');
+
+// Limit concurrent git operations to prevent resource exhaustion (EAGAIN errors)
+// when processing thousands of repositories simultaneously
+const MAX_CONCURRENT_GIT_OPERATIONS = 100;
+const gitOperationLimit = pLimit(MAX_CONCURRENT_GIT_OPERATIONS);
 
 type CompileResult = {
     repoData: RepoData[],
@@ -472,7 +478,7 @@ export const compileGenericGitHostConfig_file = async (
     const repos: RepoData[] = [];
     const warnings: string[] = [];
 
-    await Promise.all(repoPaths.map(async (repoPath) => {
+    await Promise.all(repoPaths.map((repoPath) => gitOperationLimit(async () => {
         const isGitRepo = await isPathAValidGitRepoRoot({
             path: repoPath,
         });
@@ -526,7 +532,7 @@ export const compileGenericGitHostConfig_file = async (
         }
 
         repos.push(repo);
-    }));
+    })));
 
     return {
         repoData: repos,
