@@ -259,12 +259,10 @@ const createGitCloneUrlWithToken = (cloneUrl: string, credentials: { username?: 
  * the app. 
  * @see: https://openpanel-dev.github.io/groupmq/api-worker/#events
  */
-export const groupmqLifecycleExceptionWrapper = async (name: string, logger: Logger, fn: () => Promise<void>) => {
-    try {
-        await fn();
-    } catch (error) {
+export const groupmqLifecycleExceptionWrapper = (name: string, logger: Logger, fn: () => Promise<void>) => {
+    fn().catch((error) => {
         Sentry.captureException(error);
         logger.error(`Exception thrown while executing lifecycle function \`${name}\`.`, error);
-    }
+    })
 }
 

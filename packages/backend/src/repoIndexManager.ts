@@ -80,7 +80,7 @@ export class RepoIndexManager {
             await this.scheduleCleanupJobs();
         }, this.settings.reindexRepoPollingIntervalMs);
 
-        this.worker.run();
+        await this.worker.run();
     }
 
     private async scheduleIndexJobs() {
@@ -432,7 +432,7 @@ export class RepoIndexManager {
         }
     }
 
-    private onJobCompleted = async (job: Job<JobPayload>) =>
+    private onJobCompleted = (job: Job<JobPayload>) =>
         groupmqLifecycleExceptionWrapper('onJobCompleted', logger, async () => {
             const logger = createJobLogger(job.data.jobId);
             const jobData = await this.db.repoIndexingJob.update({
@@ -484,7 +484,7 @@ export class RepoIndexManager {
             this.promClient.repoIndexJobSuccessTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
         });
 
-    private onJobFailed = async (job: Job<JobPayload>) =>
+    private onJobFailed = (job: Job<JobPayload>) =>
         groupmqLifecycleExceptionWrapper('onJobFailed', logger, async () => {
             const logger = createJobLogger(job.data.jobId);
 
@@ -519,7 +519,7 @@ export class RepoIndexManager {
             }
         });
 
-    private onJobStalled = async (jobId: string) =>
+    private onJobStalled = (jobId: string) =>
         groupmqLifecycleExceptionWrapper('onJobStalled', logger, async () => {
             const logger = createJobLogger(jobId);
             const { repo, type } = await this.db.repoIndexingJob.update({
@@ -539,7 +539,7 @@ export class RepoIndexManager {
             logger.error(`Job ${jobId} stalled for repo ${repo.name} (id: ${repo.id})`);
         });
 
-    private async onWorkerError(error: Error) {
+    private onWorkerError(error: Error) {
         Sentry.captureException(error);
         logger.error(`Index syncer worker error.`, error);
     }

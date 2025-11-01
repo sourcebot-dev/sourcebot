@@ -65,7 +65,7 @@ export class ConnectionManager {
         this.worker.on('error', this.onWorkerError.bind(this));
     }
 
-    public startScheduler() {
+    public async startScheduler() {
         logger.debug('Starting scheduler');
         this.interval = setInterval(async () => {
             const thresholdDate = new Date(Date.now() - this.settings.resyncConnectionIntervalMs);
@@ -114,7 +114,7 @@ export class ConnectionManager {
             }
         }, this.settings.resyncConnectionPollingIntervalMs);
 
-        this.worker.run();
+        await this.worker.run();
     }
 
 
@@ -179,25 +179,25 @@ export class ConnectionManager {
         const result = await (async () => {
             switch (config.type) {
                 case 'github': {
-                    return await compileGithubConfig(config, job.data.connectionId, abortController);
+                    return compileGithubConfig(config, job.data.connectionId, abortController);
                 }
                 case 'gitlab': {
-                    return await compileGitlabConfig(config, job.data.connectionId);
+                    return compileGitlabConfig(config, job.data.connectionId);
                 }
                 case 'gitea': {
-                    return await compileGiteaConfig(config, job.data.connectionId);
+                    return compileGiteaConfig(config, job.data.connectionId);
                 }
                 case 'gerrit': {
-                    return await compileGerritConfig(config, job.data.connectionId);
+                    return compileGerritConfig(config, job.data.connectionId);
                 }
                 case 'bitbucket': {
-                    return await compileBitbucketConfig(config, job.data.connectionId);
+                    return compileBitbucketConfig(config, job.data.connectionId);
                 }
                 case 'azuredevops': {
-                    return await compileAzureDevOpsConfig(config, job.data.connectionId);
+                    return compileAzureDevOpsConfig(config, job.data.connectionId);
                 }
                 case 'git': {
-                    return await compileGenericGitHostConfig(config, job.data.connectionId);
+                    return compileGenericGitHostConfig(config, job.data.connectionId);
                 }
             }
         })();
@@ -269,7 +269,7 @@ export class ConnectionManager {
     }
 
 
-    private onJobCompleted = async (job: Job<JobPayload>) =>
+    private onJobCompleted = (job: Job<JobPayload>) =>
         groupmqLifecycleExceptionWrapper('onJobCompleted', logger, async () => {
             const logger = createJobLogger(job.id);
             const { connectionId, connectionName, orgId } = job.data;
@@ -318,7 +318,7 @@ export class ConnectionManager {
             });
         });
 
-    private onJobFailed = async (job: Job<JobPayload>) =>
+    private onJobFailed = (job: Job<JobPayload>) =>
         groupmqLifecycleExceptionWrapper('onJobFailed', logger, async () => {
             const logger = createJobLogger(job.id);
 
@@ -358,7 +358,7 @@ export class ConnectionManager {
             });
         });
 
-    private onJobStalled = async (jobId: string) =>
+    private onJobStalled = (jobId: string) =>
         groupmqLifecycleExceptionWrapper('onJobStalled', logger, async () => {
             const logger = createJobLogger(jobId);
             const { connection } = await this.db.connectionSyncJob.update({
@@ -384,7 +384,7 @@ export class ConnectionManager {
             });
         });
 
-    private async onWorkerError(error: Error) {
+    private onWorkerError(error: Error) {
         Sentry.captureException(error);
         logger.error(`Connection syncer worker error.`, error);
     }

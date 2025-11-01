@@ -8,17 +8,21 @@
         "dev:watch": "tsc-watch --preserveWatchOutput --onSuccess \"yarn dev\"",
         "dev": "node ./dist/index.js",
         "build": "tsc",
-        "test": "cross-env SKIP_ENV_VALIDATION=1 vitest --config ./vitest.config.ts"
+        "test": "cross-env SKIP_ENV_VALIDATION=1 vitest --config ./vitest.config.ts",
+        "lint": "eslint ."
     },
     "devDependencies": {
+        "@eslint/js": "^9.39.0",
         "@types/argparse": "^2.0.16",
         "@types/micromatch": "^4.0.9",
         "@types/node": "^22.7.5",
         "cross-env": "^7.0.3",
+        "eslint": "^9.39.0",
         "json-schema-to-typescript": "^15.0.4",
         "tsc-watch": "^6.2.0",
         "tsx": "^4.19.1",
-        "typescript": "^5.6.2",
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.46.2",
         "vitest": "^2.1.9"
     },
     "dependencies": {
