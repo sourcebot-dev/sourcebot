@@ -32,11 +32,24 @@ const schema = {
               "properties": {
                 "env": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
                 "env"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "gcpSecretName": {
+                  "type": "string",
+                  "description": "The name of the GCP secret that contains the token."
+                }
+              },
+              "required": [
+                "gcpSecretName"
               ],
               "additionalProperties": false
             }
@@ -81,11 +94,24 @@ const schema = {
               "properties": {
                 "env": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
                 "env"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "gcpSecretName": {
+                  "type": "string",
+                  "description": "The name of the GCP secret that contains the token."
+                }
+              },
+              "required": [
+                "gcpSecretName"
               ],
               "additionalProperties": false
             }

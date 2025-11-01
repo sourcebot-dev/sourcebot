@@ -18,10 +18,17 @@ export interface GitHubAppConfig {
   /**
    * The private key of the GitHub App.
    */
-  privateKey: {
-    /**
-     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-     */
-    env: string;
-  };
+  privateKey:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The name of the GCP secret that contains the token.
+         */
+        gcpSecretName: string;
+      };
 }

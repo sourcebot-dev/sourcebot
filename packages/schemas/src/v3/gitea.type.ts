@@ -8,12 +8,19 @@ export interface GiteaConnectionConfig {
   /**
    * A Personal Access Token (PAT).
    */
-  token?: {
-    /**
-     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-     */
-    env: string;
-  };
+  token?:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The name of the GCP secret that contains the token.
+         */
+        gcpSecretName: string;
+      };
   /**
    * The URL of the Gitea host. Defaults to https://gitea.com
    */
