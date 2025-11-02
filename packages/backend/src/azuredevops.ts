@@ -2,7 +2,6 @@ import { AzureDevOpsConnectionConfig } from "@sourcebot/schemas/v3/azuredevops.t
 import { createLogger } from "@sourcebot/shared";
 import { measure, fetchWithRetry } from "./utils.js";
 import micromatch from "micromatch";
-import { BackendException, BackendError } from "@sourcebot/error";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
 import * as azdev from "azure-devops-node-api";
@@ -36,9 +35,7 @@ export const getAzureDevOpsReposFromConfig = async (
         undefined;
 
     if (!token) {
-        const e = new BackendException(BackendError.CONNECTION_SYNC_INVALID_TOKEN, {
-            message: 'Azure DevOps requires a Personal Access Token',
-        });
+        const e = new Error('Azure DevOps requires a Personal Access Token');
         Sentry.captureException(e);
         throw e;
     }

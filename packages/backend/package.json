@@ -30,7 +30,6 @@
         "@sentry/node": "^9.3.0",
         "@sentry/profiling-node": "^9.3.0",
         "@sourcebot/db": "workspace:*",
-        "@sourcebot/error": "workspace:*",
         "@sourcebot/schemas": "workspace:*",
         "@sourcebot/shared": "workspace:*",
         "@t3-oss/env-core": "^0.12.0",

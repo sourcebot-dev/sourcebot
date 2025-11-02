@@ -4,8 +4,8 @@
         "packages/*"
     ],
     "scripts": {
-        "build": "cross-env SKIP_ENV_VALIDATION=1 yarn workspaces foreach -A run build",
-        "test": "yarn workspaces foreach -A run test",
+        "build": "cross-env SKIP_ENV_VALIDATION=1 yarn workspaces foreach --all --topological run build",
+        "test": "yarn workspaces foreach --all --topological run test",
         "dev": "concurrently --kill-others --names \"zoekt,worker,web,mcp,schemas\" 'yarn dev:zoekt' 'yarn dev:backend' 'yarn dev:web' 'yarn watch:mcp' 'yarn watch:schemas'",
         "with-env": "cross-env PATH=\"$PWD/bin:$PATH\" dotenv -e .env.development -c --",
         "dev:zoekt": "yarn with-env zoekt-webserver -index .sourcebot/index -rpc",
@@ -18,7 +18,7 @@
         "dev:prisma:studio": "yarn with-env yarn workspace @sourcebot/db prisma:studio",
         "dev:prisma:migrate:reset": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:reset",
         "dev:prisma:db:push": "yarn with-env yarn workspace @sourcebot/db prisma:db:push",
-        "build:deps": "yarn workspaces foreach -R --from '{@sourcebot/schemas,@sourcebot/error,@sourcebot/db,@sourcebot/shared}' run build"
+        "build:deps": "yarn workspaces foreach --recursive --topological --from '{@sourcebot/schemas,@sourcebot/db,@sourcebot/shared}' run build"
     },
     "devDependencies": {
         "concurrently": "^9.2.1",

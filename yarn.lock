@@ -7894,7 +7894,6 @@ __metadata:
     "@sentry/node": "npm:^9.3.0"
     "@sentry/profiling-node": "npm:^9.3.0"
     "@sourcebot/db": "workspace:*"
-    "@sourcebot/error": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@sourcebot/shared": "workspace:*"
     "@t3-oss/env-core": "npm:^0.12.0"
@@ -7955,15 +7954,6 @@ __metadata:
     prisma: "npm:^6.2.1"
     readline-sync: "npm:^1.4.10"
     tsx: "npm:^4.19.1"
-    typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@sourcebot/error@workspace:*, @sourcebot/error@workspace:packages/error":
-  version: 0.0.0-use.local
-  resolution: "@sourcebot/error@workspace:packages/error"
-  dependencies:
-    "@types/node": "npm:^22.7.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
@@ -8107,7 +8097,6 @@ __metadata:
     "@shopify/lang-jsonc": "npm:^1.0.0"
     "@sourcebot/codemirror-lang-tcl": "npm:^1.0.12"
     "@sourcebot/db": "workspace:*"
-    "@sourcebot/error": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@sourcebot/shared": "workspace:*"
     "@ssddanbrown/codemirror-lang-twig": "npm:^1.0.0"
