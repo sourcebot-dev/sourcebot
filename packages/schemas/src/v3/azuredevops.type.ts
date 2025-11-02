@@ -17,9 +17,9 @@ export interface AzureDevOpsConnectionConfig {
       }
     | {
         /**
-         * The name of the GCP secret that contains the token.
+         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
          */
-        gcpSecretName: string;
+        gcpSecretPath: string;
       };
   /**
    * The URL of the Azure DevOps host. For Azure DevOps Cloud, use https://dev.azure.com. For Azure DevOps Server, use your server URL.

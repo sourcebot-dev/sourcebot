@@ -37,13 +37,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -68,13 +68,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -99,13 +99,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -153,13 +153,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -210,13 +210,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -256,13 +256,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -317,13 +317,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -367,13 +367,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -424,13 +424,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -470,13 +470,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -527,13 +527,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -573,13 +573,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -646,13 +646,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -692,13 +692,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -767,13 +767,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -813,13 +813,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -870,13 +870,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -916,13 +916,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -979,13 +979,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -1035,13 +1035,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -1092,13 +1092,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -1141,13 +1141,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -1185,13 +1185,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -1253,13 +1253,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -1299,13 +1299,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -1360,13 +1360,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -1406,13 +1406,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -1466,13 +1466,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -1497,13 +1497,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -1528,13 +1528,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -1582,13 +1582,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -1639,13 +1639,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -1685,13 +1685,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -1746,13 +1746,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -1796,13 +1796,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -1853,13 +1853,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -1899,13 +1899,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -1956,13 +1956,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -2002,13 +2002,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -2075,13 +2075,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -2121,13 +2121,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -2196,13 +2196,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -2242,13 +2242,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -2299,13 +2299,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -2345,13 +2345,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -2408,13 +2408,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -2464,13 +2464,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -2521,13 +2521,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -2570,13 +2570,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -2614,13 +2614,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -2682,13 +2682,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -2728,13 +2728,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }
@@ -2789,13 +2789,13 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "gcpSecretName": {
+                "gcpSecretPath": {
                   "type": "string",
-                  "description": "The name of the GCP secret that contains the token."
+                  "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                 }
               },
               "required": [
-                "gcpSecretName"
+                "gcpSecretPath"
               ],
               "additionalProperties": false
             }
@@ -2835,13 +2835,13 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "gcpSecretName": {
+                        "gcpSecretPath": {
                           "type": "string",
-                          "description": "The name of the GCP secret that contains the token."
+                          "description": "The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`."
                         }
                       },
                       "required": [
-                        "gcpSecretName"
+                        "gcpSecretPath"
                       ],
                       "additionalProperties": false
                     }

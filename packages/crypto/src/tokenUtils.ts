@@ -1,7 +1,7 @@
 import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 
-export const getTokenFromConfig = async (token: Token) => {
+export const getTokenFromConfig = async (token: Token): Promise<string> => {
     if ('env' in token) {
         const envToken = process.env[token.env];
         if (!envToken) {
@@ -9,23 +9,17 @@ export const getTokenFromConfig = async (token: Token) => {
         }
 
         return envToken;
-    } else if ('gcpSecretName' in token) {
-        try {
-
+    } else if ('gcpSecretPath' in token) {
         const client = new SecretManagerServiceClient();
-        const [ response ] = await client.accessSecretVersion({
-            name: token.gcpSecretName,
+        const [response] = await client.accessSecretVersion({
+            name: token.gcpSecretPath,
         });
 
         if (!response.payload?.data) {
-            throw new Error(`Secret ${token.gcpSecretName} not found.`);
+            throw new Error(`Secret ${token.gcpSecretPath} not found.`);
         }
 
         return response.payload.data.toString();
-        } catch (error) {
-            console.log("HERE IN THE EXCEPTION HANDLER");
-            throw error;
-        }
     } else {
         throw new Error('Invalid token configuration');
     }

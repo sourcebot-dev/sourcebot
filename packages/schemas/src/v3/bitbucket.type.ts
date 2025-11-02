@@ -21,9 +21,9 @@ export interface BitbucketConnectionConfig {
       }
     | {
         /**
-         * The name of the GCP secret that contains the token.
+         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
          */
-        gcpSecretName: string;
+        gcpSecretPath: string;
       };
   /**
    * Bitbucket URL
