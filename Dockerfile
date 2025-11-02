@@ -42,13 +42,11 @@ COPY package.json yarn.lock* .yarnrc.yml ./
 COPY .yarn ./.yarn
 COPY ./packages/db ./packages/db
 COPY ./packages/schemas ./packages/schemas
-COPY ./packages/crypto ./packages/crypto
 COPY ./packages/error ./packages/error
 COPY ./packages/shared ./packages/shared
 
 RUN yarn workspace @sourcebot/db install
 RUN yarn workspace @sourcebot/schemas install
-RUN yarn workspace @sourcebot/crypto install
 RUN yarn workspace @sourcebot/error install
 RUN yarn workspace @sourcebot/shared install
 # ------------------------------------
@@ -95,7 +93,6 @@ COPY ./packages/web ./packages/web
 COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
-COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 
@@ -135,7 +132,6 @@ COPY ./packages/backend ./packages/backend
 COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
-COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 RUN yarn workspace @sourcebot/backend install
@@ -221,7 +217,6 @@ COPY --from=backend-builder /app/packages/backend ./packages/backend
 COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
-COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
 COPY --from=shared-libs-builder /app/packages/error ./packages/error
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 

@@ -2,7 +2,7 @@ import { Logger } from "winston";
 import { RepoAuthCredentials, RepoWithConnections } from "./types.js";
 import path from 'path';
 import { Repo } from "@sourcebot/db";
-import { getTokenFromConfig } from "@sourcebot/crypto";
+import { getTokenFromConfig } from "@sourcebot/shared";
 import * as Sentry from "@sentry/node";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { GithubAppManager } from "./ee/githubAppManager.js";

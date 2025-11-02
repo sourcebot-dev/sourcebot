@@ -20,7 +20,7 @@ import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import { createXai } from '@ai-sdk/xai';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { getTokenFromConfig } from "@sourcebot/crypto";
+import { getTokenFromConfig } from "@sourcebot/shared";
 import { ChatVisibility, OrgRole, Prisma } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";

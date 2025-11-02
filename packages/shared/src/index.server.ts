@@ -34,3 +34,11 @@ export {
 export type {
     Logger,
 } from "./logger.js";
+export {
+    getTokenFromConfig,
+    encrypt,
+    decrypt,
+    hashSecret,
+    generateApiKey,
+    verifySignature,
+} from "./crypto.js";

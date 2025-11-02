@@ -7,7 +7,7 @@ import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
 import * as azdev from "azure-devops-node-api";
 import { GitRepository } from "azure-devops-node-api/interfaces/GitInterfaces.js";
-import { getTokenFromConfig } from "@sourcebot/crypto";
+import { getTokenFromConfig } from "@sourcebot/shared";
 
 const logger = createLogger('azuredevops');
 const AZUREDEVOPS_CLOUD_HOSTNAME = "dev.azure.com";

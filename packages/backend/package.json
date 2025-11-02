@@ -29,7 +29,6 @@
         "@sentry/cli": "^2.42.2",
         "@sentry/node": "^9.3.0",
         "@sentry/profiling-node": "^9.3.0",
-        "@sourcebot/crypto": "workspace:*",
         "@sourcebot/db": "workspace:*",
         "@sourcebot/error": "workspace:*",
         "@sourcebot/schemas": "workspace:*",

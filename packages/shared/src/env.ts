@@ -2,7 +2,7 @@ import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 import { SOURCEBOT_CLOUD_ENVIRONMENT } from "./constants.js";
 import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
-import { getTokenFromConfig } from "@sourcebot/crypto";
+import { getTokenFromConfig } from "./crypto.js";
 import { loadConfig } from "./utils.js";
 
 // Booleans are specified as 'true' or 'false' strings.

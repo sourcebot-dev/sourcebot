@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import fs from 'fs';
-import { SOURCEBOT_ENCRYPTION_KEY } from './environment';
+import { env } from './env.js';
+import { Token } from '@sourcebot/schemas/v3/shared.type';
+import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 
 const algorithm = 'aes-256-cbc';
 const ivLength = 16; // 16 bytes for CBC
@@ -12,11 +14,7 @@ const generateIV = (): Buffer => {
 };
 
 export function encrypt(text: string): { iv: string; encryptedData: string } {
-    if (!SOURCEBOT_ENCRYPTION_KEY) {
-        throw new Error('Encryption key is not set');
-    }
-
-    const encryptionKey = Buffer.from(SOURCEBOT_ENCRYPTION_KEY, 'ascii');
+    const encryptionKey = Buffer.from(env.SOURCEBOT_ENCRYPTION_KEY, 'ascii');
 
     const iv = generateIV();
     const cipher = crypto.createCipheriv(algorithm, encryptionKey, iv);
@@ -28,18 +26,10 @@ export function encrypt(text: string): { iv: string; encryptedData: string } {
 }
 
 export function hashSecret(text: string): string {
-    if (!SOURCEBOT_ENCRYPTION_KEY) {
-        throw new Error('Encryption key is not set');
-    }
-
-    return crypto.createHmac('sha256', SOURCEBOT_ENCRYPTION_KEY).update(text).digest('hex');
+    return crypto.createHmac('sha256', env.SOURCEBOT_ENCRYPTION_KEY).update(text).digest('hex');
 }
 
 export function generateApiKey(): { key: string; hash: string } {
-    if (!SOURCEBOT_ENCRYPTION_KEY) {
-        throw new Error('Encryption key is not set');
-    }
-
     const secret = crypto.randomBytes(32).toString('hex');
     const hash = hashSecret(secret);
 
@@ -50,11 +40,7 @@ export function generateApiKey(): { key: string; hash: string } {
 }
 
 export function decrypt(iv: string, encryptedText: string): string {
-    if (!SOURCEBOT_ENCRYPTION_KEY) {
-        throw new Error('Encryption key is not set');
-    }
-
-    const encryptionKey = Buffer.from(SOURCEBOT_ENCRYPTION_KEY, 'ascii');
+    const encryptionKey = Buffer.from(env.SOURCEBOT_ENCRYPTION_KEY, 'ascii');
 
     const ivBuffer = Buffer.from(iv, 'hex');
     const encryptedBuffer = Buffer.from(encryptedText, 'hex');
@@ -92,4 +78,30 @@ export function verifySignature(data: string, signature: string, publicKeyPath: 
     }
 }
 
-export { getTokenFromConfig } from './tokenUtils.js';
+export const getTokenFromConfig = async (token: Token): Promise<string> => {
+    if ('env' in token) {
+        const envToken = process.env[token.env];
+        if (!envToken) {
+            throw new Error(`Environment variable ${token.env} not found.`);
+        }
+
+        return envToken;
+    } else if ('googleCloudSecret' in token) {
+        try {
+            const client = new SecretManagerServiceClient();
+            const [response] = await client.accessSecretVersion({
+                name: token.googleCloudSecret,
+            });
+
+            if (!response.payload?.data) {
+                throw new Error(`Secret ${token.googleCloudSecret} not found.`);
+            }
+
+            return response.payload.data.toString();
+        } catch (error) {
+            throw new Error(`Failed to access Google Cloud secret ${token.googleCloudSecret}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    } else {
+        throw new Error('Invalid token configuration');
+    }
+}; 

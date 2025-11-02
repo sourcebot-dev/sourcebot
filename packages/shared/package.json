@@ -9,9 +9,9 @@
         "postinstall": "yarn build"
     },
     "dependencies": {
+        "@google-cloud/secret-manager": "^6.1.1",
         "@logtail/node": "^0.5.2",
         "@logtail/winston": "^0.5.2",
-        "@sourcebot/crypto": "workspace:*",
         "@sourcebot/db": "workspace:*",
         "@sourcebot/schemas": "workspace:*",
         "@t3-oss/env-core": "^0.12.0",

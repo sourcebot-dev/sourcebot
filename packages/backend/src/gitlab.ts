@@ -1,6 +1,6 @@
 import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
 import * as Sentry from "@sentry/node";
-import { getTokenFromConfig } from "@sourcebot/crypto";
+import { getTokenFromConfig } from "@sourcebot/shared";
 import { createLogger } from "@sourcebot/shared";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { env } from "@sourcebot/shared";

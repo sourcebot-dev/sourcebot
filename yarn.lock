@@ -7893,7 +7893,6 @@ __metadata:
     "@sentry/cli": "npm:^2.42.2"
     "@sentry/node": "npm:^9.3.0"
     "@sentry/profiling-node": "npm:^9.3.0"
-    "@sourcebot/crypto": "workspace:*"
     "@sourcebot/db": "workspace:*"
     "@sourcebot/error": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
@@ -7945,20 +7944,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sourcebot/crypto@workspace:*, @sourcebot/crypto@workspace:packages/crypto":
-  version: 0.0.0-use.local
-  resolution: "@sourcebot/crypto@workspace:packages/crypto"
-  dependencies:
-    "@google-cloud/secret-manager": "npm:^6.1.1"
-    "@sourcebot/db": "npm:*"
-    "@sourcebot/schemas": "npm:*"
-    "@types/node": "npm:^22.7.5"
-    dotenv: "npm:^16.4.5"
-    typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@sourcebot/db@npm:*, @sourcebot/db@workspace:*, @sourcebot/db@workspace:packages/db":
+"@sourcebot/db@workspace:*, @sourcebot/db@workspace:packages/db":
   version: 0.0.0-use.local
   resolution: "@sourcebot/db@workspace:packages/db"
   dependencies:
@@ -8001,7 +7987,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sourcebot/schemas@npm:*, @sourcebot/schemas@workspace:*, @sourcebot/schemas@workspace:packages/schemas":
+"@sourcebot/schemas@workspace:*, @sourcebot/schemas@workspace:packages/schemas":
   version: 0.0.0-use.local
   resolution: "@sourcebot/schemas@workspace:packages/schemas"
   dependencies:
@@ -8018,9 +8004,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@sourcebot/shared@workspace:packages/shared"
   dependencies:
+    "@google-cloud/secret-manager": "npm:^6.1.1"
     "@logtail/node": "npm:^0.5.2"
     "@logtail/winston": "npm:^0.5.2"
-    "@sourcebot/crypto": "workspace:*"
     "@sourcebot/db": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@t3-oss/env-core": "npm:^0.12.0"
@@ -8120,7 +8106,6 @@ __metadata:
     "@sentry/nextjs": "npm:^9"
     "@shopify/lang-jsonc": "npm:^1.0.0"
     "@sourcebot/codemirror-lang-tcl": "npm:^1.0.12"
-    "@sourcebot/crypto": "workspace:*"
     "@sourcebot/db": "workspace:*"
     "@sourcebot/error": "workspace:*"
     "@sourcebot/schemas": "workspace:*"

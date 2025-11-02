@@ -1,5 +1,5 @@
 import { App } from "@octokit/app";
-import { getTokenFromConfig } from "@sourcebot/crypto";
+import { getTokenFromConfig } from "@sourcebot/shared";
 import { PrismaClient } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
 import { GitHubAppConfig } from "@sourcebot/schemas/v3/index.type";

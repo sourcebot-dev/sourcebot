@@ -11,7 +11,7 @@ import {
 import { SchemaRestRepository as ServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { processPromiseResults } from "./connectionUtils.js";
 import { throwIfAnyFailed } from "./connectionUtils.js";
-import { getTokenFromConfig } from "@sourcebot/crypto";
+import { getTokenFromConfig } from "@sourcebot/shared";
 
 const logger = createLogger('bitbucket');
 const BITBUCKET_CLOUD_GIT = 'https://bitbucket.org';
