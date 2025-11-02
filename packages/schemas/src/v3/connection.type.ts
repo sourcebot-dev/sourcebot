@@ -26,9 +26,9 @@ export interface GithubConnectionConfig {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * The URL of the GitHub host. Defaults to https://github.com
@@ -115,9 +115,9 @@ export interface GitlabConnectionConfig {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * The URL of the GitLab host. Defaults to https://gitlab.com
@@ -186,9 +186,9 @@ export interface GiteaConnectionConfig {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * The URL of the Gitea host. Defaults to https://gitea.com
@@ -272,9 +272,9 @@ export interface BitbucketConnectionConfig {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Bitbucket URL
@@ -329,9 +329,9 @@ export interface AzureDevOpsConnectionConfig {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * The URL of the Azure DevOps host. For Azure DevOps Cloud, use https://dev.azure.com. For Azure DevOps Server, use your server URL.

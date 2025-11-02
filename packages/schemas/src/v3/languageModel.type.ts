@@ -39,9 +39,9 @@ export interface AmazonBedrockLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional secret access key to use with the model. Defaults to the `AWS_SECRET_ACCESS_KEY` environment variable.
@@ -55,9 +55,9 @@ export interface AmazonBedrockLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional session token to use with the model. Defaults to the `AWS_SESSION_TOKEN` environment variable.
@@ -71,9 +71,9 @@ export interface AmazonBedrockLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * The AWS region. Defaults to the `AWS_REGION` environment variable.
@@ -104,9 +104,9 @@ export interface LanguageModelHeaders {
           }
         | {
             /**
-             * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+             * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
              */
-            gcpSecretPath: string;
+            googleCloudSecret: string;
           }
       );
 }
@@ -135,9 +135,9 @@ export interface AnthropicLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -174,9 +174,9 @@ export interface AzureLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Sets a custom api version. Defaults to `preview`.
@@ -213,9 +213,9 @@ export interface DeepSeekLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -248,9 +248,9 @@ export interface GoogleGenerativeAILanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -291,9 +291,9 @@ export interface GoogleVertexAnthropicLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -334,9 +334,9 @@ export interface GoogleVertexLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -369,9 +369,9 @@ export interface MistralLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -404,9 +404,9 @@ export interface OpenAILanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -443,9 +443,9 @@ export interface OpenAICompatibleLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Base URL of the OpenAI-compatible chat completions API endpoint.
@@ -477,9 +477,9 @@ export interface LanguageModelQueryParams {
           }
         | {
             /**
-             * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+             * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
              */
-            gcpSecretPath: string;
+            googleCloudSecret: string;
           }
       );
 }
@@ -508,9 +508,9 @@ export interface OpenRouterLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -543,9 +543,9 @@ export interface XaiLanguageModel {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.

@@ -9,14 +9,14 @@ export const getTokenFromConfig = async (token: Token): Promise<string> => {
         }
 
         return envToken;
-    } else if ('gcpSecretPath' in token) {
+    } else if ('googleCloudSecret' in token) {
         const client = new SecretManagerServiceClient();
         const [response] = await client.accessSecretVersion({
-            name: token.gcpSecretPath,
+            name: token.googleCloudSecret,
         });
 
         if (!response.payload?.data) {
-            throw new Error(`Secret ${token.gcpSecretPath} not found.`);
+            throw new Error(`Secret ${token.googleCloudSecret} not found.`);
         }
 
         return response.payload.data.toString();

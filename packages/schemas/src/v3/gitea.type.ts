@@ -17,9 +17,9 @@ export interface GiteaConnectionConfig {
       }
     | {
         /**
-         * The path to the GCP secret that contains the token. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        gcpSecretPath: string;
+        googleCloudSecret: string;
       };
   /**
    * The URL of the Gitea host. Defaults to https://gitea.com
