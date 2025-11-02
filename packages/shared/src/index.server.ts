@@ -25,3 +25,6 @@ export {
     getConfigSettings,
 } from "./utils.js";
 export * from "./constants.js";
+export {
+    env
+} from "./env.js";
