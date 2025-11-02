@@ -7896,7 +7896,6 @@ __metadata:
     "@sourcebot/db": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@sourcebot/shared": "workspace:*"
-    "@t3-oss/env-core": "npm:^0.12.0"
     "@types/argparse": "npm:^2.0.16"
     "@types/express": "npm:^5.0.0"
     "@types/micromatch": "npm:^4.0.9"
@@ -7925,7 +7924,7 @@ __metadata:
     tsx: "npm:^4.19.1"
     typescript: "npm:^5.6.2"
     vitest: "npm:^2.1.9"
-    zod: "npm:^3.24.3"
+    zod: "npm:^3.25.74"
   languageName: unknown
   linkType: soft
 
@@ -8009,7 +8008,7 @@ __metadata:
     tsc-watch: "npm:6.2.1"
     typescript: "npm:^5.7.3"
     winston: "npm:^3.15.0"
-    zod: "npm:^3.24.3"
+    zod: "npm:^3.25.74"
   languageName: unknown
   linkType: soft
 

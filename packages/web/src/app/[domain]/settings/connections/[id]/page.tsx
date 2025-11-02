@@ -4,7 +4,7 @@ import { DisplayDate } from "@/app/[domain]/components/DisplayDate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { notFound, ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";

@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 import { App, Octokit } from "octokit";
 import { WebhookEventDefinition} from "@octokit/webhooks/types";
 import { EndpointDefaults } from "@octokit/types";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { processGitHubPullRequest } from "@/features/agents/review-agent/app";
 import { throttling } from "@octokit/plugin-throttling";
 import fs from "fs";

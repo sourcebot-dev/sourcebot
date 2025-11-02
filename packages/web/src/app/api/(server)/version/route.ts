@@ -1,4 +1,4 @@
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared/client";
 import { GetVersionResponse } from "@/lib/types";
 
 // Note: In Next.JS 14, GET methods with no params are cached by default at build time.

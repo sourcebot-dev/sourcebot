@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { NavigationMenu } from "../components/navigationMenu";
 import { FaCogs } from "react-icons/fa";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 
 const agents = [
   {

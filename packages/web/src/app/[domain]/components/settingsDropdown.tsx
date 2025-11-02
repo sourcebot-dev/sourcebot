@@ -32,7 +32,7 @@ import { useKeymapType } from "@/hooks/useKeymapType"
 import { useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react"
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared/client";
 import posthog from "posthog-js";
 import { useDomain } from "@/hooks/useDomain";
 

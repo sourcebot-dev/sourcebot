@@ -2,7 +2,7 @@ import winston, { format, Logger } from 'winston';
 import { Logtail } from '@logtail/node';
 import { LogtailTransport } from '@logtail/winston';
 import { MESSAGE } from 'triple-beam';
-import { env } from './env.js';
+import { env } from './env.server.js';
 
 /**
  * Logger configuration with support for structured JSON logging.

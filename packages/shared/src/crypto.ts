@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import fs from 'fs';
-import { env } from './env.js';
+import { env } from './env.server.js';
 import { Token } from '@sourcebot/schemas/v3/shared.type';
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 

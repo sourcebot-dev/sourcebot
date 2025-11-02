@@ -1,4 +1,4 @@
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 
 interface ZoektRequest {
     path: string,

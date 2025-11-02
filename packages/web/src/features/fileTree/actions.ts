@@ -1,7 +1,7 @@
 'use server';
 
 import { sew } from '@/actions';
-import { env } from '@/env.mjs';
+import { env } from '@sourcebot/shared';
 import { notFound, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuthV2 } from '@/withAuthV2';
 import { Repo } from '@sourcebot/db';

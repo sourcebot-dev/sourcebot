@@ -16,6 +16,7 @@ export type {
 export {
     repoMetadataSchema,
     repoIndexingJobMetadataSchema,
+    tenancyModeSchema,
 } from "./types.js";
 export {
     base64Decode,
@@ -27,7 +28,7 @@ export {
 export * from "./constants.js";
 export {
     env
-} from "./env.js";
+} from "./env.server.js";
 export {
     createLogger,
 } from "./logger.js";

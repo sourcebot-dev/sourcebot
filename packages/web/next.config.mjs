@@ -1,4 +1,3 @@
-await import("./src/env.mjs");
 import { withSentryConfig } from "@sentry/nextjs";
 
 
@@ -8,7 +7,7 @@ const nextConfig = {
 
     // This is required when using standalone builds.
     // @see: https://env.t3.gg/docs/nextjs#create-your-schema
-    transpilePackages: ["@t3-oss/env-nextjs", "@t3-oss/env-core"],
+    transpilePackages: ["@t3-oss/env-core"],
 
     // @see : https://posthog.com/docs/advanced/proxy/nextjs
     async rewrites() {

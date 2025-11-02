@@ -1,4 +1,4 @@
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 import Okta from "next-auth/providers/okta";

@@ -7,7 +7,7 @@ import { prisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { stripeClient } from "./stripe";
 import { isServiceError } from "@/lib/utils";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { headers } from "next/headers";

@@ -1,7 +1,7 @@
 'use server';
 
 import { sew, withAuth, withOrgMembership } from "@/actions";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
 import { ErrorCode } from "@/lib/errorCodes";
 import { chatIsReadonly, notFound, ServiceError, serviceErrorResponse } from "@/lib/serviceError";

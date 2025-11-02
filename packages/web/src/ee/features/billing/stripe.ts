@@ -1,5 +1,5 @@
 import 'server-only';
-import { env } from '@/env.mjs'
+import { env } from '@sourcebot/shared'
 import Stripe from "stripe";
 import { hasEntitlement } from '@sourcebot/shared';
 

@@ -17,7 +17,7 @@ import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
 import { BetweenHorizontalStart, Brain, GitBranchIcon, LockIcon } from "lucide-react";
 import { hasEntitlement } from "@sourcebot/shared";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
 
 interface OnboardingProps {

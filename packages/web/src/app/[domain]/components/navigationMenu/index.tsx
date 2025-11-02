@@ -6,7 +6,7 @@ import { NavigationMenu as NavigationMenuBase } from "@/components/ui/navigation
 import { Separator } from "@/components/ui/separator";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";

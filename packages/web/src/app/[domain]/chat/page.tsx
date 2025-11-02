@@ -9,7 +9,7 @@ import { RepositoryCarousel } from "../components/repositoryCarousel";
 import { NavigationMenu } from "../components/navigationMenu";
 import { Separator } from "@/components/ui/separator";
 import { DemoCards } from "./components/demoCards";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { loadJsonFile } from "@sourcebot/shared";
 import { DemoExamples, demoExamplesSchema } from "@/types";
 

@@ -1,7 +1,7 @@
 'use server';
 
 import { getAuditService } from "@/ee/features/audit/factory";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notAuthenticated, notFound, orgNotFound, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
