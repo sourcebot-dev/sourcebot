@@ -13,7 +13,17 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 // @todo: we can mark this as `__unsafePrisma` in the future once we've migrated
 // all of the actions & queries to use the userScopedPrismaClientExtension to avoid
 // accidental misuse.
-export const prisma = globalForPrisma.prisma || new PrismaClient()
+export const prisma = globalForPrisma.prisma || new PrismaClient({
+    // @note: even though DATABASE_URL is of type string, we need to check if it's defined
+    // because this code will be executed at build time, and env.DATABASE_URL will be undefined.
+    ...(env.DATABASE_URL ? {
+        datasources: {
+            db: {
+                url: env.DATABASE_URL,
+            },
+        }
+    } : {})
+})
 if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 
 /**
