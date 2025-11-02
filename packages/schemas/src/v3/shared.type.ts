@@ -4,12 +4,19 @@
  * This interface was referenced by `Shared`'s JSON-Schema
  * via the `definition` "Token".
  */
-export type Token = {
-  /**
-   * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-   */
-  env: string;
-};
+export type Token =
+  | {
+      /**
+       * The name of the environment variable that contains the token.
+       */
+      env: string;
+    }
+  | {
+      /**
+       * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+       */
+      googleCloudSecret: string;
+    };
 
 export interface Shared {
   [k: string]: unknown;

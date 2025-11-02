@@ -17,12 +17,19 @@ export interface GithubConnectionConfig {
   /**
    * A Personal Access Token (PAT).
    */
-  token?: {
-    /**
-     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-     */
-    env: string;
-  };
+  token?:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
   /**
    * The URL of the GitHub host. Defaults to https://github.com
    */
@@ -99,12 +106,19 @@ export interface GitlabConnectionConfig {
   /**
    * An authentication token.
    */
-  token?: {
-    /**
-     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-     */
-    env: string;
-  };
+  token?:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
   /**
    * The URL of the GitLab host. Defaults to https://gitlab.com
    */
@@ -163,12 +177,19 @@ export interface GiteaConnectionConfig {
   /**
    * A Personal Access Token (PAT).
    */
-  token?: {
-    /**
-     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-     */
-    env: string;
-  };
+  token?:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
   /**
    * The URL of the Gitea host. Defaults to https://gitea.com
    */
@@ -242,12 +263,19 @@ export interface BitbucketConnectionConfig {
   /**
    * An authentication token.
    */
-  token?: {
-    /**
-     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-     */
-    env: string;
-  };
+  token?:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
   /**
    * Bitbucket URL
    */
@@ -292,12 +320,19 @@ export interface AzureDevOpsConnectionConfig {
   /**
    * A Personal Access Token (PAT).
    */
-  token: {
-    /**
-     * The name of the environment variable that contains the token. Only supported in declarative connection configs.
-     */
-    env: string;
-  };
+  token:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
   /**
    * The URL of the Azure DevOps host. For Azure DevOps Cloud, use https://dev.azure.com. For Azure DevOps Server, use your server URL.
    */
