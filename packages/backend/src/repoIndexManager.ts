@@ -1,14 +1,13 @@
 import * as Sentry from '@sentry/node';
 import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import { createLogger, Logger } from "@sourcebot/logger";
-import { repoMetadataSchema, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata } from '@sourcebot/shared';
+import { env, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata, repoMetadataSchema } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
 import { Job, Queue, ReservedJob, Worker } from "groupmq";
 import { Redis } from 'ioredis';
 import micromatch from 'micromatch';
 import { INDEX_CACHE_DIR } from './constants.js';
-import { env } from './env.js';
 import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';

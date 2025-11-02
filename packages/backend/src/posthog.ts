@@ -1,6 +1,6 @@
+import { env } from "@sourcebot/shared";
 import { PostHog } from 'posthog-node';
 import { PosthogEvent, PosthogEventMap } from './posthogEvents.js';
-import { env } from './env.js';
 
 let posthog: PostHog | undefined = undefined;
 

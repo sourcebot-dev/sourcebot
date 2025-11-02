@@ -1,11 +1,10 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, Repo, RepoPermissionSyncJobStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
-import { hasEntitlement } from "@sourcebot/shared";
+import { env, hasEntitlement } from "@sourcebot/shared";
 import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
-import { env } from "../env.js";
 import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
 import { createGitLabFromPersonalAccessToken, getProjectMembers } from "../gitlab.js";
 import { Settings } from "../types.js";

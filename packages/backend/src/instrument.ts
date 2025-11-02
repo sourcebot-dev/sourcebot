@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
-import { env } from "./env.js";
 import { createLogger } from "@sourcebot/logger";
+import { env } from "@sourcebot/shared";
 
 const logger = createLogger('instrument');
 

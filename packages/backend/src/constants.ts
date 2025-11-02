@@ -1,5 +1,5 @@
 import { CodeHostType } from "@sourcebot/db";
-import { env } from "./env.js";
+import { env } from "@sourcebot/shared";
 import path from "path";
 
 export const SINGLE_TENANT_ORG_ID = 1;

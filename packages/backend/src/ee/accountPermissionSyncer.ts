@@ -1,13 +1,12 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, AccountPermissionSyncJobStatus, Account } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
+import { env, hasEntitlement } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
-import { env } from "../env.js";
 import { createOctokitFromToken, getReposForAuthenticatedUser } from "../github.js";
 import { createGitLabFromOAuthToken, getProjectsForAuthenticatedUser } from "../gitlab.js";
-import { hasEntitlement } from "@sourcebot/shared";
 import { Settings } from "../types.js";
 
 const LOG_TAG = 'user-permission-syncer';
