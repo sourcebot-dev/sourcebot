@@ -32,7 +32,6 @@
         "@sourcebot/crypto": "workspace:*",
         "@sourcebot/db": "workspace:*",
         "@sourcebot/error": "workspace:*",
-        "@sourcebot/logger": "workspace:*",
         "@sourcebot/schemas": "workspace:*",
         "@sourcebot/shared": "workspace:*",
         "@t3-oss/env-core": "^0.12.0",

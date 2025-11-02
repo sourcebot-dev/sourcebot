@@ -1,5 +1,5 @@
 import { AzureDevOpsConnectionConfig } from "@sourcebot/schemas/v3/azuredevops.type";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { measure, fetchWithRetry } from "./utils.js";
 import micromatch from "micromatch";
 import { BackendException, BackendError } from "@sourcebot/error";

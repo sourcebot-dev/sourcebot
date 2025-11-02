@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { getTokenFromConfig } from "@sourcebot/crypto";
-import { createLogger } from '@sourcebot/logger';
+import { createLogger } from '@sourcebot/shared';
 import { GiteaConnectionConfig } from '@sourcebot/schemas/v3/gitea.type';
 import { env } from "@sourcebot/shared";
 import fetch from 'cross-fetch';

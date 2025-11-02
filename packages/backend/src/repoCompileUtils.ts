@@ -10,7 +10,7 @@ import { SchemaRepository as BitbucketCloudRepository } from "@coderabbitai/bitb
 import { CodeHostType, Prisma } from '@sourcebot/db';
 import { WithRequired } from "./types.js"
 import { marshalBool } from "./utils.js";
-import { createLogger } from '@sourcebot/logger';
+import { createLogger } from '@sourcebot/shared';
 import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GenericGitHostConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { ProjectVisibility } from "azure-devops-node-api/interfaces/CoreInterfaces.js";
 import path from 'path';

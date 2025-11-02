@@ -93,7 +93,6 @@
     "@sourcebot/crypto": "workspace:*",
     "@sourcebot/db": "workspace:*",
     "@sourcebot/error": "workspace:*",
-    "@sourcebot/logger": "workspace:*",
     "@sourcebot/schemas": "workspace:*",
     "@sourcebot/shared": "workspace:*",
     "@ssddanbrown/codemirror-lang-twig": "^1.0.0",

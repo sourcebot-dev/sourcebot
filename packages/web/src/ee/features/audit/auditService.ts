@@ -1,7 +1,7 @@
 import { IAuditService, AuditEvent } from '@/ee/features/audit/types';
 import { prisma } from '@/prisma';
 import { Audit } from '@prisma/client';
-import { createLogger } from '@sourcebot/logger';
+import { createLogger } from '@sourcebot/shared';
 
 const logger = createLogger('audit-service');
 

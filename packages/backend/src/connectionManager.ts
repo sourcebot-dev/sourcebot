@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { Connection, ConnectionSyncJobStatus, PrismaClient } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { loadConfig, env } from "@sourcebot/shared";
 import { Job, Queue, ReservedJob, Worker } from "groupmq";

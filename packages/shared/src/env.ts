@@ -72,16 +72,13 @@ export const env = createEnv({
         FALLBACK_GITLAB_CLOUD_TOKEN: z.string().optional(),
         FALLBACK_GITEA_CLOUD_TOKEN: z.string().optional(),
 
-        REDIS_URL: z.string().url(),
+        REDIS_URL: z.string().url().default("redis://localhost:6379"),
         REDIS_REMOVE_ON_COMPLETE: numberSchema.default(0),
         REDIS_REMOVE_ON_FAIL: numberSchema.default(100),
 
-        LOGTAIL_TOKEN: z.string().optional(),
-        LOGTAIL_HOST: z.string().url().optional(),
-        SOURCEBOT_LOG_LEVEL: z.enum(["info", "debug", "warn", "error"]).default("info"),
         DEBUG_ENABLE_GROUPMQ_LOGGING: booleanSchema.default('false'),
 
-        DATABASE_URL: z.string().url(),
+        DATABASE_URL: z.string().url().default("postgresql://postgres:postgres@localhost:5432/postgres"),
         CONFIG_PATH: z.string(),
 
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
@@ -92,6 +89,12 @@ export const env = createEnv({
         EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
         AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
         AUTH_EE_GITLAB_BASE_URL: z.string().default("https://gitlab.com"),
+
+        SOURCEBOT_LOG_LEVEL: z.enum(["info", "debug", "warn", "error"]).default("info"),
+        SOURCEBOT_STRUCTURED_LOGGING_ENABLED: booleanSchema.default("false"),
+        SOURCEBOT_STRUCTURED_LOGGING_FILE: z.string().optional(),
+        LOGTAIL_TOKEN: z.string().optional(),
+        LOGTAIL_HOST: z.string().url().optional(),
     },
     client: {
         NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: z.enum(SOURCEBOT_CLOUD_ENVIRONMENT).optional(),

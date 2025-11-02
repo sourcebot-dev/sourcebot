@@ -12,7 +12,7 @@ import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { headers } from "next/headers";
 import { getSubscriptionForOrg } from "./serverUtils";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('billing-actions');
 

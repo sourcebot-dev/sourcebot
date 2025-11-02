@@ -1,5 +1,5 @@
 import micromatch from "micromatch";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { PrismaClient } from "@sourcebot/db";
 import { getPlan, hasEntitlement, SOURCEBOT_SUPPORT_EMAIL } from "@sourcebot/shared";
 import { SearchContext } from "@sourcebot/schemas/v3/index.type";

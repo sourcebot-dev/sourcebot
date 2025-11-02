@@ -1,6 +1,6 @@
 import { Octokit } from "octokit";
 import { sourcebot_pr_payload, sourcebot_file_diff_review } from "@/features/agents/review-agent/types";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('github-push-pr-reviews');
 

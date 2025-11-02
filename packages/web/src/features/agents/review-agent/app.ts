@@ -6,7 +6,7 @@ import { env } from "@/env.mjs";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
 import path from "path";
 import fs from "fs";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const rules = [
     "Do NOT provide general feedback, summaries, explanations of changes, or praises for making good additions.",

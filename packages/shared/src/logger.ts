@@ -16,7 +16,7 @@ import { env } from './env.js';
  * - Logs will be formatted as: "timestamp level: [label] message"
  */
 
-const { combine, colorize, timestamp, prettyPrint, errors, printf, label: labelFn, json } = format;
+const { combine, colorize, timestamp, errors, printf, label: labelFn, json } = format;
 
 const datadogFormat = format((info) => {
     info.status = info.level.toLowerCase();

@@ -11,7 +11,7 @@ import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
 import { generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/crypto";
 import { ApiKey, ConnectionSyncJobStatus, Org, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType, StripeSubscriptionStatus } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";

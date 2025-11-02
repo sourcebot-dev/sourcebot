@@ -2,7 +2,7 @@ import { createGuestUser } from '@/lib/authUtils';
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { prisma } from "@/prisma";
 import { OrgRole } from '@sourcebot/db';
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { hasEntitlement, loadConfig } from '@sourcebot/shared';
 import { getOrgFromDomain } from './data/org';
 import { env } from './env.mjs';

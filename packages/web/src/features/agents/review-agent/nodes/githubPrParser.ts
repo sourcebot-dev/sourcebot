@@ -2,7 +2,7 @@ import { sourcebot_pr_payload, sourcebot_file_diff, sourcebot_diff } from "@/fea
 import parse from "parse-diff";
 import { Octokit } from "octokit";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('github-pr-parser');
 

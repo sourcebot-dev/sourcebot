@@ -4,7 +4,7 @@ import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
 import { OrgRole } from "@sourcebot/db";
 import { isServiceError } from "@/lib/utils";
 import { serviceErrorResponse } from "@/lib/serviceError";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { getAuditService } from "@/ee/features/audit/factory";
 
 const logger = createLogger('ee-users-api');

@@ -7896,7 +7896,6 @@ __metadata:
     "@sourcebot/crypto": "workspace:*"
     "@sourcebot/db": "workspace:*"
     "@sourcebot/error": "workspace:*"
-    "@sourcebot/logger": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@sourcebot/shared": "workspace:*"
     "@t3-oss/env-core": "npm:^0.12.0"
@@ -7964,7 +7963,6 @@ __metadata:
   resolution: "@sourcebot/db@workspace:packages/db"
   dependencies:
     "@prisma/client": "npm:6.2.1"
-    "@sourcebot/logger": "workspace:*"
     "@types/argparse": "npm:^2.0.16"
     "@types/readline-sync": "npm:^1.4.8"
     argparse: "npm:^2.0.1"
@@ -7981,22 +7979,6 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.7.5"
     typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@sourcebot/logger@workspace:*, @sourcebot/logger@workspace:packages/logger":
-  version: 0.0.0-use.local
-  resolution: "@sourcebot/logger@workspace:packages/logger"
-  dependencies:
-    "@logtail/node": "npm:^0.5.2"
-    "@logtail/winston": "npm:^0.5.2"
-    "@t3-oss/env-core": "npm:^0.12.0"
-    "@types/node": "npm:^22.7.5"
-    dotenv: "npm:^16.4.5"
-    triple-beam: "npm:^1.4.1"
-    typescript: "npm:^5.7.3"
-    winston: "npm:^3.15.0"
-    zod: "npm:^3.24.3"
   languageName: unknown
   linkType: soft
 
@@ -8036,9 +8018,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@sourcebot/shared@workspace:packages/shared"
   dependencies:
+    "@logtail/node": "npm:^0.5.2"
+    "@logtail/winston": "npm:^0.5.2"
     "@sourcebot/crypto": "workspace:*"
     "@sourcebot/db": "workspace:*"
-    "@sourcebot/logger": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@t3-oss/env-core": "npm:^0.12.0"
     "@types/micromatch": "npm:^4.0.9"
@@ -8046,8 +8029,10 @@ __metadata:
     ajv: "npm:^8.17.1"
     micromatch: "npm:^4.0.8"
     strip-json-comments: "npm:^5.0.1"
+    triple-beam: "npm:^1.4.1"
     tsc-watch: "npm:6.2.1"
     typescript: "npm:^5.7.3"
+    winston: "npm:^3.15.0"
     zod: "npm:^3.24.3"
   languageName: unknown
   linkType: soft
@@ -8138,7 +8123,6 @@ __metadata:
     "@sourcebot/crypto": "workspace:*"
     "@sourcebot/db": "workspace:*"
     "@sourcebot/error": "workspace:*"
-    "@sourcebot/logger": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@sourcebot/shared": "workspace:*"
     "@ssddanbrown/codemirror-lang-twig": "npm:^1.0.0"

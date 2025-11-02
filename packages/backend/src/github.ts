@@ -1,7 +1,7 @@
 import { Octokit } from "@octokit/rest";
 import * as Sentry from "@sentry/node";
 import { getTokenFromConfig } from "@sourcebot/crypto";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { env, hasEntitlement } from "@sourcebot/shared";
 import micromatch from "micromatch";

@@ -1,6 +1,6 @@
 import fetch from 'cross-fetch';
 import { GerritConnectionConfig } from "@sourcebot/schemas/v3/index.type"
-import { createLogger } from '@sourcebot/logger';
+import { createLogger } from '@sourcebot/shared';
 import micromatch from "micromatch";
 import { measure, fetchWithRetry } from './utils.js';
 import { BackendError } from '@sourcebot/error';

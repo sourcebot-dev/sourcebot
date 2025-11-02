@@ -1,7 +1,7 @@
 import "./instrument.js";
 
 import { PrismaClient } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { env, getConfigSettings, hasEntitlement } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';

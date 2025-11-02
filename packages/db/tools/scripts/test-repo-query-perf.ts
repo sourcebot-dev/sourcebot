@@ -1,8 +1,5 @@
 import { Script } from "../scriptRunner";
 import { PrismaClient } from "../../dist";
-import { createLogger } from "@sourcebot/logger";
-
-const logger = createLogger('test-repo-query-perf');
 
 export const testRepoQueryPerf: Script = {
     run: async (prisma: PrismaClient) => {
@@ -23,6 +20,6 @@ export const testRepoQueryPerf: Script = {
         });
 
         const durationMs = Date.now() - start;
-        logger.info(`Found ${allRepos.length} repos in ${durationMs}ms`);
+        console.log(`Found ${allRepos.length} repos in ${durationMs}ms`);
     }
 }; 

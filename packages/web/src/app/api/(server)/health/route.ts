@@ -1,6 +1,6 @@
 'use server';
 
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('health-check');
 

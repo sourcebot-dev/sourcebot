@@ -11,11 +11,11 @@ import Credentials from "next-auth/providers/credentials";
 import type { User as AuthJsUser } from "next-auth";
 import type { Provider } from "next-auth/providers";
 import { onCreateUser } from "@/lib/authUtils";
-import { createLogger } from "@sourcebot/logger";
 import { hasEntitlement, loadConfig } from "@sourcebot/shared";
 import { getTokenFromConfig } from "@sourcebot/crypto";
 import type { IdentityProvider } from "@/auth";
 import { GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('web-sso');
 

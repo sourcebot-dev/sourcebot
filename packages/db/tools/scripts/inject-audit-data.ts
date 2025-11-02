@@ -1,9 +1,6 @@
 import { Script } from "../scriptRunner";
 import { PrismaClient } from "../../dist";
 import { confirmAction } from "../utils";
-import { createLogger } from "@sourcebot/logger";
-
-const logger = createLogger('inject-audit-data');
 
 // Generate realistic audit data for analytics testing
 // Simulates 50 engineers with varying activity patterns
@@ -17,11 +14,11 @@ export const injectAuditData: Script = {
         });
         
         if (!org) {
-            logger.error(`Organization with id ${orgId} not found. Please create it first.`);
+            console.error(`Organization with id ${orgId} not found. Please create it first.`);
             return;
         }
 
-        logger.info(`Injecting audit data for organization: ${org.name} (${org.domain})`);
+        console.log(`Injecting audit data for organization: ${org.name} (${org.domain})`);
 
         // Generate 50 fake user IDs
         const userIds = Array.from({ length: 50 }, (_, i) => `user_${String(i + 1).padStart(3, '0')}`);
@@ -38,7 +35,7 @@ export const injectAuditData: Script = {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 90);
 
-        logger.info(`Generating data from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+        console.log(`Generating data from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
 
         confirmAction();
 
@@ -125,9 +122,9 @@ export const injectAuditData: Script = {
             }
         }
 
-        logger.info(`\nAudit data injection complete!`);
-        logger.info(`Users: ${userIds.length}`);
-        logger.info(`Date range: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+        console.log(`\nAudit data injection complete!`);
+        console.log(`Users: ${userIds.length}`);
+        console.log(`Date range: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
         
         // Show some statistics
         const stats = await prisma.audit.groupBy({
@@ -136,9 +133,9 @@ export const injectAuditData: Script = {
             _count: { action: true }
         });
         
-        logger.info('\nAction breakdown:');
+        console.log('\nAction breakdown:');
         stats.forEach(stat => {
-            logger.info(`  ${stat.action}: ${stat._count.action}`);
+            console.log(`  ${stat.action}: ${stat._count.action}`);
         });
     },
 }; 

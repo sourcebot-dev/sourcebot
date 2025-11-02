@@ -1,7 +1,6 @@
 import * as Sentry from "@sentry/node";
-import { PrismaClient, AccountPermissionSyncJobStatus, Account } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
-import { env, hasEntitlement } from "@sourcebot/shared";
+import { PrismaClient, AccountPermissionSyncJobStatus, Account} from "@sourcebot/db";
+import { env, hasEntitlement, createLogger } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";

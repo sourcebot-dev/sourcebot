@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node';
 import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
-import { createLogger, Logger } from "@sourcebot/logger";
+import { createLogger, Logger } from "@sourcebot/shared";
 import { env, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata, repoMetadataSchema } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';

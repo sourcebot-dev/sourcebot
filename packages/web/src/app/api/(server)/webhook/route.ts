@@ -9,7 +9,7 @@ import { processGitHubPullRequest } from "@/features/agents/review-agent/app";
 import { throttling } from "@octokit/plugin-throttling";
 import fs from "fs";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('github-webhook');
 
