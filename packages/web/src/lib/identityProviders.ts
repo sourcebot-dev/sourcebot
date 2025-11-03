@@ -12,9 +12,19 @@ export const getIdentityProviderMetadata = (): IdentityProviderMetadata[] => {
     return providers.map((provider) => {
         if (typeof provider.provider === "function") {
             const providerInfo = provider.provider();
-            return { id: providerInfo.id, name: providerInfo.name, purpose: provider.purpose };
+            return {
+                id: providerInfo.id,
+                name: providerInfo.name,
+                purpose: provider.purpose,
+                required: provider.required ?? true,
+            };
         } else {
-            return { id: provider.provider.id, name: provider.provider.name, purpose: provider.purpose };
+            return {
+                id: provider.provider.id,
+                name: provider.provider.name,
+                purpose: provider.purpose,
+                required: provider.required ?? true,
+            };
         }
     });
 }; 
