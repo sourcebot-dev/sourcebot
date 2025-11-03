@@ -8,6 +8,7 @@
     "postinstall": "yarn build"
   },
   "dependencies": {
+    "@google-cloud/secret-manager": "^6.1.1",
     "@sourcebot/db": "*",
     "@sourcebot/schemas": "*",
     "dotenv": "^16.4.5"
