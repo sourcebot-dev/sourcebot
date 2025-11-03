@@ -182,14 +182,30 @@ ENV SOURCEBOT_LOG_LEVEL=info
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
-COPY package.json yarn.lock* .yarnrc.yml public.pem ./
-COPY .yarn ./.yarn
+# Configure dependencies
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib openssl util-linux unzip
+
+ARG UID=1500
+ARG GID=1500
+
+# To run as non-root, the user must be part of postgres, redis and node groups
+RUN addgroup -g $GID sourcebot && \
+    adduser -D -u $UID -h /app -S sourcebot && \
+    adduser sourcebot postgres && \
+    adduser sourcebot redis && \
+    adduser sourcebot node && \
+    chown -R sourcebot /app && \
+    mkdir /var/log/sourcebot && \
+    chown sourcebot /var/log/sourcebot
+
+COPY --chown=sourcebot:sourcebot package.json yarn.lock* .yarnrc.yml public.pem ./
+COPY --chown=sourcebot:sourcebot .yarn ./.yarn
 
 # Configure zoekt
-COPY vendor/zoekt/install-ctags-alpine.sh .
+COPY --chown=sourcebot:sourcebot vendor/zoekt/install-ctags-alpine.sh .
 RUN ./install-ctags-alpine.sh && rm install-ctags-alpine.sh
-RUN mkdir -p ${DATA_CACHE_DIR}
-COPY --from=zoekt-builder \
+RUN mkdir -p ${DATA_CACHE_DIR} && chown -R sourcebot ${DATA_CACHE_DIR}
+COPY --chown=sourcebot:sourcebot --from=zoekt-builder \
 /cmd/zoekt-git-index \
 /cmd/zoekt-indexserver \
 /cmd/zoekt-mirror-github \
@@ -202,20 +218,18 @@ COPY --from=zoekt-builder \
 /usr/local/bin/
 
 # Copy all of the things
-COPY --from=web-builder /app/packages/web/public ./packages/web/public
-COPY --from=web-builder /app/packages/web/.next/standalone ./
-COPY --from=web-builder /app/packages/web/.next/static ./packages/web/.next/static
+COPY --chown=sourcebot:sourcebot --from=web-builder /app/packages/web/public ./packages/web/public
+COPY --chown=sourcebot:sourcebot --from=web-builder /app/packages/web/.next/standalone ./
+COPY --chown=sourcebot:sourcebot --from=web-builder /app/packages/web/.next/static ./packages/web/.next/static
 
-COPY --from=backend-builder /app/node_modules ./node_modules
-COPY --from=backend-builder /app/packages/backend ./packages/backend
+COPY --chown=sourcebot:sourcebot --from=backend-builder /app/node_modules ./node_modules
+COPY --chown=sourcebot:sourcebot --from=backend-builder /app/packages/backend ./packages/backend
 
-COPY --from=shared-libs-builder /app/node_modules ./node_modules
-COPY --from=shared-libs-builder /app/packages/db ./packages/db
-COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
-COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
+COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/node_modules ./node_modules
+COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/db ./packages/db
+COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/schemas ./packages/schemas
+COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/shared ./packages/shared
 
-# Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql postgresql-contrib openssl util-linux unzip
 
 # Fixes git "dubious ownership" issues when the volume is mounted with different permissions to the container.
 RUN git config --global safe.directory "*"
@@ -225,21 +239,10 @@ RUN mkdir -p /run/postgresql && \
     chown -R postgres:postgres /run/postgresql && \
     chmod 775 /run/postgresql
 
-# To run as non-root, the user must be part of postgres, redis and node groups
-RUN addgroup -g 1500 sourcebot && \
-    adduser -D -u 1500 -h /app -S sourcebot && \
-    adduser sourcebot postgres && \
-    adduser sourcebot redis && \
-    adduser sourcebot node && \
-    chown -R sourcebot /data && \
-    chown -R sourcebot /app && \
-    mkdir /var/log/sourcebot && \
-    chown sourcebot /var/log/sourcebot
-
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY prefix-output.sh ./prefix-output.sh
+COPY --chown=sourcebot:sourcebot supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY --chown=sourcebot:sourcebot prefix-output.sh ./prefix-output.sh
 RUN chmod +x ./prefix-output.sh
-COPY entrypoint.sh ./entrypoint.sh
+COPY --chown=sourcebot:sourcebot entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 
