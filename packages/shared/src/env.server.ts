@@ -20,6 +20,8 @@ const resolveEnvironmentVariableOverridesFromConfig = async (config: SourcebotCo
     }
 
     const resolved: Record<string, string> = {};
+
+    const start = performance.now();
     console.debug('resolving environment variable overrides');
 
     for (const [key, override] of Object.entries(config.environmentOverrides)) {
@@ -38,6 +40,9 @@ const resolveEnvironmentVariableOverridesFromConfig = async (config: SourcebotCo
                 break;
         }
     }
+
+    const end = performance.now();
+    console.debug(`resolved environment variable overrides in ${end - start}ms`);
 
     return resolved;
 }
