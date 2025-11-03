@@ -65,6 +65,10 @@ const schema = {
               "additionalProperties": false
             }
           ]
+        },
+        "required": {
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -136,6 +140,10 @@ const schema = {
               "additionalProperties": false
             }
           ]
+        },
+        "required": {
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -481,6 +489,10 @@ const schema = {
               "additionalProperties": false
             }
           ]
+        },
+        "required": {
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -552,6 +564,10 @@ const schema = {
               "additionalProperties": false
             }
           ]
+        },
+        "required": {
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [

@@ -9,6 +9,7 @@ import { prisma } from "@/prisma";
 import { OAuth2Client } from "google-auth-library";
 import Credentials from "next-auth/providers/credentials";
 import type { User as AuthJsUser } from "next-auth";
+import type { Provider } from "next-auth/providers";
 import { onCreateUser } from "@/lib/authUtils";
 import { createLogger } from "@sourcebot/logger";
 import { hasEntitlement, loadConfig } from "@sourcebot/shared";
@@ -21,7 +22,7 @@ const logger = createLogger('web-sso');
 export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
     const providers: IdentityProvider[] = [];
 
-    const config = env.CONFIG_PATH ? await loadConfig(env.CONFIG_PATH) : undefined;
+    const config = await loadConfig(env.CONFIG_PATH);
     const identityProviders = config?.identityProviders ?? [];
 
     for (const identityProvider of identityProviders) {
@@ -30,14 +31,14 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const baseUrl = providerConfig.baseUrl ? await getTokenFromConfig(providerConfig.baseUrl) : undefined;
-            providers.push({ provider: createGitHubProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose });
+            providers.push({ provider: createGitHubProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.required ?? true });
         }
         if (identityProvider.provider === "gitlab") {
             const providerConfig = identityProvider as GitLabIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const baseUrl = providerConfig.baseUrl ? await getTokenFromConfig(providerConfig.baseUrl) : undefined;
-            providers.push({ provider: createGitLabProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose });
+            providers.push({ provider: createGitLabProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.required ?? true });
         }
         if (identityProvider.provider === "google") {
             const providerConfig = identityProvider as GoogleIdentityProviderConfig;
@@ -57,49 +58,49 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const issuer = await getTokenFromConfig(providerConfig.issuer);
-            providers.push({ provider: createKeycloakProvider(clientId, clientSecret, issuer), purpose: "sso"});
+            providers.push({ provider: createKeycloakProvider(clientId, clientSecret, issuer), purpose: "sso" });
         }
         if (identityProvider.provider === "microsoft-entra-id") {
             const providerConfig = identityProvider as MicrosoftEntraIDIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const issuer = await getTokenFromConfig(providerConfig.issuer);
-            providers.push({ provider: createMicrosoftEntraIDProvider(clientId, clientSecret, issuer), purpose: "sso"});
+            providers.push({ provider: createMicrosoftEntraIDProvider(clientId, clientSecret, issuer), purpose: "sso" });
         }
         if (identityProvider.provider === "gcp-iap") {
             const providerConfig = identityProvider as GCPIAPIdentityProviderConfig;
             const audience = await getTokenFromConfig(providerConfig.audience);
-            providers.push({ provider: createGCPIAPProvider(audience), purpose: "sso"});
+            providers.push({ provider: createGCPIAPProvider(audience), purpose: "sso" });
         }
     }
 
     // @deprecate
     if (env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
-        providers.push(createGitHubProvider(env.AUTH_EE_GITHUB_CLIENT_ID, env.AUTH_EE_GITHUB_CLIENT_SECRET, env.AUTH_EE_GITHUB_BASE_URL));
+        providers.push({ provider: createGitHubProvider(env.AUTH_EE_GITHUB_CLIENT_ID, env.AUTH_EE_GITHUB_CLIENT_SECRET, env.AUTH_EE_GITHUB_BASE_URL), purpose: "sso" });
     }
 
     if (env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
-        providers.push(createGitLabProvider(env.AUTH_EE_GITLAB_CLIENT_ID, env.AUTH_EE_GITLAB_CLIENT_SECRET, env.AUTH_EE_GITLAB_BASE_URL));
+        providers.push({ provider: createGitLabProvider(env.AUTH_EE_GITLAB_CLIENT_ID, env.AUTH_EE_GITLAB_CLIENT_SECRET, env.AUTH_EE_GITLAB_BASE_URL), purpose: "sso" });
     }
 
     if (env.AUTH_EE_GOOGLE_CLIENT_ID && env.AUTH_EE_GOOGLE_CLIENT_SECRET) {
-        providers.push(createGoogleProvider(env.AUTH_EE_GOOGLE_CLIENT_ID, env.AUTH_EE_GOOGLE_CLIENT_SECRET));
+        providers.push({ provider: createGoogleProvider(env.AUTH_EE_GOOGLE_CLIENT_ID, env.AUTH_EE_GOOGLE_CLIENT_SECRET), purpose: "sso" });
     }
 
     if (env.AUTH_EE_OKTA_CLIENT_ID && env.AUTH_EE_OKTA_CLIENT_SECRET && env.AUTH_EE_OKTA_ISSUER) {
-        providers.push(createOktaProvider(env.AUTH_EE_OKTA_CLIENT_ID, env.AUTH_EE_OKTA_CLIENT_SECRET, env.AUTH_EE_OKTA_ISSUER));
+        providers.push({ provider: createOktaProvider(env.AUTH_EE_OKTA_CLIENT_ID, env.AUTH_EE_OKTA_CLIENT_SECRET, env.AUTH_EE_OKTA_ISSUER), purpose: "sso" });
     }
 
     if (env.AUTH_EE_KEYCLOAK_CLIENT_ID && env.AUTH_EE_KEYCLOAK_CLIENT_SECRET && env.AUTH_EE_KEYCLOAK_ISSUER) {
-        providers.push(createKeycloakProvider(env.AUTH_EE_KEYCLOAK_CLIENT_ID, env.AUTH_EE_KEYCLOAK_CLIENT_SECRET, env.AUTH_EE_KEYCLOAK_ISSUER));
+        providers.push({ provider: createKeycloakProvider(env.AUTH_EE_KEYCLOAK_CLIENT_ID, env.AUTH_EE_KEYCLOAK_CLIENT_SECRET, env.AUTH_EE_KEYCLOAK_ISSUER), purpose: "sso" });
     }
 
     if (env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID && env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET && env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER) {
-        providers.push(createMicrosoftEntraIDProvider(env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID, env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET, env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER));
+        providers.push({ provider: createMicrosoftEntraIDProvider(env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID, env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET, env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER), purpose: "sso" });
     }
 
     if (env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
-        providers.push(createGCPIAPProvider(env.AUTH_EE_GCP_IAP_AUDIENCE));
+        providers.push({ provider: createGCPIAPProvider(env.AUTH_EE_GCP_IAP_AUDIENCE), purpose: "sso" });
     }
 
     return providers;

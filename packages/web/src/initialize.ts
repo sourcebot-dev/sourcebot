@@ -65,30 +65,28 @@ const initSingleTenancy = async () => {
     }
 
     // Sync anonymous access config from the config file
-    if (env.CONFIG_PATH) {
-        const config = await loadConfig(env.CONFIG_PATH);
-        const forceEnableAnonymousAccess = config.settings?.enablePublicAccess ?? env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true';
+    const config = await loadConfig(env.CONFIG_PATH);
+    const forceEnableAnonymousAccess = config.settings?.enablePublicAccess ?? env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true';
 
-        if (forceEnableAnonymousAccess) {
-            if (!hasAnonymousAccessEntitlement) {
-                logger.warn(`FORCE_ENABLE_ANONYMOUS_ACCESS env var is set to true but anonymous access entitlement is not available. Setting will be ignored.`);
-            } else {
-                const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
-                if (org) {
-                    const currentMetadata = getOrgMetadata(org);
-                    const mergedMetadata = {
-                        ...(currentMetadata ?? {}),
-                        anonymousAccessEnabled: true,
-                    };
+    if (forceEnableAnonymousAccess) {
+        if (!hasAnonymousAccessEntitlement) {
+            logger.warn(`FORCE_ENABLE_ANONYMOUS_ACCESS env var is set to true but anonymous access entitlement is not available. Setting will be ignored.`);
+        } else {
+            const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+            if (org) {
+                const currentMetadata = getOrgMetadata(org);
+                const mergedMetadata = {
+                    ...(currentMetadata ?? {}),
+                    anonymousAccessEnabled: true,
+                };
 
-                    await prisma.org.update({
-                        where: { id: org.id },
-                        data: {
-                            metadata: mergedMetadata,
-                        },
-                    });
-                    logger.info(`Anonymous access enabled via FORCE_ENABLE_ANONYMOUS_ACCESS environment variable`);
-                }
+                await prisma.org.update({
+                    where: { id: org.id },
+                    data: {
+                        metadata: mergedMetadata,
+                    },
+                });
+                logger.info(`Anonymous access enabled via FORCE_ENABLE_ANONYMOUS_ACCESS environment variable`);
             }
         }
     }

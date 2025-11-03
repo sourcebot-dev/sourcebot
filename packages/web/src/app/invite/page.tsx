@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
-import { getIdentityProviderMetadata, IdentityProviderMetadata } from "@/lib/authProviders";
+import { getIdentityProviderMetadata, IdentityProviderMetadata } from "@/lib/identityProviders";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 
 interface InvitePageProps {

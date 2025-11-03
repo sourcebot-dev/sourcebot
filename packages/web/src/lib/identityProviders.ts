@@ -4,6 +4,7 @@ export interface IdentityProviderMetadata {
     id: string;
     name: string;
     purpose: "sso" | "integration";
+    required: boolean;
 }
 
 export const getIdentityProviderMetadata = (): IdentityProviderMetadata[] => {

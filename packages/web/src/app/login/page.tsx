@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { LoginForm } from "./components/loginForm";
 import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
-import { getIdentityProviderMetadata } from "@/lib/authProviders";
+import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 

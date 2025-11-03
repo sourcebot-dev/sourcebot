@@ -27,6 +27,7 @@ export const runtime = 'nodejs';
 export type IdentityProvider = {
     provider: Provider;
     purpose: "sso" | "integration";
+    required?: boolean;
 }
 
 declare module 'next-auth' {

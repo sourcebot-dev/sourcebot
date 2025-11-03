@@ -8,7 +8,7 @@ import { CredentialsForm } from "@/app/login/components/credentialsForm";
 import { DividerSet } from "@/app/components/dividerSet";
 import { ProviderButton } from "@/app/components/providerButton";
 import { AuthSecurityNotice } from "@/app/components/authSecurityNotice";
-import type { IdentityProviderMetadata } from "@/lib/authProviders";
+import type { IdentityProviderMetadata } from "@/lib/identityProviders";
 
 interface AuthMethodSelectorProps {
     providers: IdentityProviderMetadata[];

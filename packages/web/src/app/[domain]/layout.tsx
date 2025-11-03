@@ -7,7 +7,7 @@ import { UpgradeGuard } from "./components/upgradeGuard";
 import { cookies, headers } from "next/headers";
 import { getSelectorsByUserAgent } from "react-device-detect";
 import { MobileUnsupportedSplashScreen } from "./components/mobileUnsupportedSplashScreen";
-import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "@/lib/constants";
+import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from "@/lib/constants";
 import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
@@ -23,6 +23,8 @@ import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
 import { UpgradeToast } from "./components/upgradeToast";
+import { getUnlinkedIntegrationProviders, userNeedsToLinkIdentityProvider } from "@/ee/features/permissionSyncing/actions";
+import { LinkAccounts } from "@/ee/features/permissionSyncing/linkAccounts";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -121,6 +123,49 @@ export default async function Layout(props: LayoutProps) {
                 {children}
             </OnboardGuard>
         )
+    }
+
+    if (hasEntitlement("permission-syncing")) {
+        const unlinkedAccounts = await getUnlinkedIntegrationProviders();
+        if (isServiceError(unlinkedAccounts)) {
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-6">
+                    <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
+                    <div className="bg-red-50 border border-red-200 rounded-md p-6 max-w-md w-full text-center">
+                        <h2 className="text-lg font-semibold text-red-800 mb-2">An error occurred</h2>
+                        <p className="text-red-700 mb-1">
+                            {typeof unlinkedAccounts.message === 'string'
+                                ? unlinkedAccounts.message
+                                : "A server error occurred while checking your account status. Please try again or contact support."}
+                        </p>
+                    </div>
+                </div>
+            )
+        }
+
+        if (unlinkedAccounts.length > 0) {
+            // Separate required and optional providers
+            const requiredProviders = unlinkedAccounts.filter(p => p.required !== false);
+            const hasRequiredProviders = requiredProviders.length > 0;
+
+            // Check if user has skipped optional providers
+            const cookieStore = await cookies();
+            const hasSkippedOptional = cookieStore.has(OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME);
+
+            // Show LinkAccounts if:
+            // 1. There are required providers, OR
+            // 2. There are only optional providers AND user hasn't skipped yet
+            const shouldShowLinkAccounts = hasRequiredProviders || !hasSkippedOptional;
+
+            if (shouldShowLinkAccounts) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6">
+                        <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
+                        <LinkAccounts unlinkedAccounts={unlinkedAccounts} />
+                    </div>
+                )
+            }
+        }
     }
 
     if (IS_BILLING_ENABLED) {

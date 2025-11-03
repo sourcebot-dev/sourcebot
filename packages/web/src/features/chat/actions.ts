@@ -24,8 +24,8 @@ import { getTokenFromConfig } from "@sourcebot/crypto";
 import { ChatVisibility, OrgRole, Prisma } from "@sourcebot/db";
 import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
 import { Token } from "@sourcebot/schemas/v3/shared.type";
-import { loadConfig } from "@sourcebot/shared";
 import { generateText, JSONValue, extractReasoningMiddleware, wrapLanguageModel } from "ai";
+import { loadConfig } from "@sourcebot/shared";
 import fs from 'fs';
 import { StatusCodes } from "http-status-codes";
 import path from 'path';
@@ -355,22 +355,13 @@ export const getConfiguredLanguageModelsInfo = async (): Promise<LanguageModelIn
 
 /**
  * Returns the full configuration of the language models.
- * 
+ *
  * @warning Do NOT call this function from the client,
  * or pass the result of calling this function to the client.
  */
 export const _getConfiguredLanguageModelsFull = async (): Promise<LanguageModel[]> => {
-    if (!env.CONFIG_PATH) {
-        return [];
-    }
-
-    try {
-        const config = await loadConfig(env.CONFIG_PATH);
-        return config.models ?? [];
-    } catch (error) {
-        console.error(`Failed to load config file ${env.CONFIG_PATH}: ${error}`);
-        return [];
-    }
+    const config = await loadConfig(env.CONFIG_PATH);
+    return config.models ?? [];
 }
 
 

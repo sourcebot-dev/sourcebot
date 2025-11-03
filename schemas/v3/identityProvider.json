@@ -19,6 +19,10 @@
                 },
                 "baseUrl": {
                     "$ref": "./shared.json#/definitions/Token"
+                },
+                "required": {
+                    "type": "boolean",
+                    "default": true
                 }
             },
             "required": ["provider", "purpose", "clientId", "clientSecret"]
@@ -40,6 +44,10 @@
                 },
                 "baseUrl": {
                     "$ref": "./shared.json#/definitions/Token"
+                },
+                "required": {
+                    "type": "boolean",
+                    "default": true
                 }
             },
             "required": ["provider", "purpose", "clientId", "clientSecret", "baseUrl"]

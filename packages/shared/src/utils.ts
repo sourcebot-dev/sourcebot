@@ -81,7 +81,11 @@ export const loadJsonFile = async <T>(
     }
 }
 
-export const loadConfig = async (configPath: string): Promise<SourcebotConfig> => {
+export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> => {
+    if (!configPath) {
+        throw new Error('CONFIG_PATH is required but not provided');
+    }
+
     const configContent = await (async () => {
         if (isRemotePath(configPath)) {
             const response = await fetch(configPath);

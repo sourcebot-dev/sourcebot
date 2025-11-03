@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { AuthMethodSelector } from "@/app/components/authMethodSelector"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth";
-import { getIdentityProviderMetadata } from "@/lib/authProviders";
+import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { OrganizationAccessSettings } from "@/app/components/organizationAccessSettings";
 import { CompleteOnboardingButton } from "./components/completeOnboardingButton";
 import { getOrgFromDomain } from "@/data/org";

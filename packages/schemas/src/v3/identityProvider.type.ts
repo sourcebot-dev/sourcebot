@@ -30,6 +30,7 @@ export interface GitHubIdentityProviderConfig {
      */
     env: string;
   };
+  required?: boolean;
   [k: string]: unknown;
 }
 export interface GitLabIdentityProviderConfig {
@@ -53,6 +54,7 @@ export interface GitLabIdentityProviderConfig {
      */
     env: string;
   };
+  required?: boolean;
   [k: string]: unknown;
 }
 export interface GoogleIdentityProviderConfig {
