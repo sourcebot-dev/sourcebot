@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Unlink, Loader2 } from "lucide-react";
-import { unlinkIntegrationProvider } from "./actions";
+import { unlinkIntegrationProvider } from "../actions";
 import { isServiceError } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/hooks/use-toast";

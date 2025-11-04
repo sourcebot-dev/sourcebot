@@ -24,7 +24,7 @@ import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
 import { UpgradeToast } from "./components/upgradeToast";
 import { getIntegrationProviderStates } from "@/ee/features/permissionSyncing/actions";
-import { LinkAccounts } from "@/ee/features/permissionSyncing/linkAccounts";
+import { LinkAccounts } from "@/ee/features/permissionSyncing/components/linkAccounts";
 
 interface LayoutProps {
     children: React.ReactNode,

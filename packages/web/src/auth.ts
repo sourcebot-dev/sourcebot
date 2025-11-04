@@ -18,6 +18,7 @@ import { hasEntitlement } from '@sourcebot/shared';
 import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
+import { refreshOAuthToken } from '@/ee/features/permissionSyncing/actions';
 
 const auditService = getAuditService();
 const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
@@ -40,7 +41,12 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
     interface JWT { 
-        userId: string
+        userId: string;
+        accessToken?: string;
+        refreshToken?: string;
+        expiresAt?: number;
+        provider?: string;
+        error?: string;
     }
 }
 
@@ -179,13 +185,51 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
     },
     callbacks: {
-        async jwt({ token, user: _user }) {
+        async jwt({ token, user: _user, account }) {
             const user = _user as User | undefined;
             // @note: `user` will be available on signUp or signIn triggers.
             // Cache the userId in the JWT for later use.
             if (user) {
                 token.userId = user.id;
             }
+
+            if (account) {
+                token.accessToken = account.access_token;
+                token.refreshToken = account.refresh_token;
+                token.expiresAt = account.expires_at;
+                token.provider = account.provider;
+            }
+
+            if (hasEntitlement('permission-syncing') && 
+                token.provider && 
+                ['github', 'gitlab'].includes(token.provider) && 
+                token.expiresAt && 
+                token.refreshToken) {
+                const now = Math.floor(Date.now() / 1000);
+                const bufferTimeS = 5 * 60;
+
+                if (now >= (token.expiresAt - bufferTimeS)) {
+                    try {
+                        const refreshedTokens = await refreshOAuthToken(
+                            token.provider,
+                            token.refreshToken,
+                            token.userId
+                        );
+
+                        if (refreshedTokens) {
+                            token.accessToken = refreshedTokens.accessToken;
+                            token.refreshToken = refreshedTokens.refreshToken ?? token.refreshToken;
+                            token.expiresAt = refreshedTokens.expiresAt;
+                        } else {
+                            token.error = 'RefreshTokenError';
+                        }
+                    } catch (error) {
+                        console.error('Error refreshing token:', error);
+                        token.error = 'RefreshTokenError';
+                    }
+                }
+            }
+
             return token;
         },
         async session({ session, token }) {

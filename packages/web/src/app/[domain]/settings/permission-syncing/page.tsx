@@ -1,6 +1,6 @@
 import { hasEntitlement } from "@sourcebot/shared";
 import { notFound } from "@/lib/serviceError";
-import { LinkedAccountsSettings } from "@/ee/features/permissionSyncing/linkedAccountsSettings";
+import { LinkedAccountsSettings } from "@/ee/features/permissionSyncing/components/linkedAccountsSettings";
 
 export default async function PermissionSyncingPage() {
     const hasPermissionSyncingEntitlement = await hasEntitlement("permission-syncing");

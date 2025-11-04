@@ -1,8 +1,8 @@
 import { getAuthProviderInfo } from "@/lib/utils";
 import { Check, X } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProviderIcon } from "./components/providerIcon";
-import { ProviderInfo } from "./components/providerInfo";
+import { ProviderIcon } from "./providerIcon";
+import { ProviderInfo } from "./providerInfo";
 import { UnlinkButton } from "./unlinkButton";
 import { LinkButton } from "./linkButton";
 import { IntegrationIdentityProviderState } from "@/ee/features/permissionSyncing/types"

@@ -189,7 +189,7 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
 
 export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageModelId, message }: { chatId: string, languageModelId: string, message: string }, domain: string) => sew(() =>
     withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
+        withOrgMembership(userId, domain, async () => {
             // From the language model ID, attempt to find the
             // corresponding config in `config.json`.
             const languageModelConfig =
