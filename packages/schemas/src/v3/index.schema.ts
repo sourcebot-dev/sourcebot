@@ -281,7 +281,7 @@ const schema = {
     "environmentOverrides": {
       "type": "object",
       "description": "Environment variable overrides.",
-      "name": "EnvironmentOverrides",
+      "title": "EnvironmentOverrides",
       "not": {
         "$comment": "List of environment variables that are not allowed to be overridden.",
         "anyOf": [
