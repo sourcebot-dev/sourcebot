@@ -3,6 +3,9 @@ title: Config File
 sidebarTitle: Config file
 ---
 
+import ConfigSchema from '/snippets/schemas/v3/index.schema.mdx'
+import EnvironmentOverridesSchema from '/snippets/schemas/v3/environmentOverrides.schema.mdx'
+
 When self-hosting Sourcebot, you **must** provide it a config file. This is done by defining a config file in a volume that's mounted to Sourcebot, and providing the path to this
 file in the `CONFIG_PATH` environment variable. For example:
 
@@ -49,3 +52,103 @@ The following are settings that can be provided in your config file to modify So
 | `enablePublicAccess` **(deprecated)**           | boolean | false      | —       | Use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.                  |
 | `experiment_repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       | Interval at which the repo permission syncer should run.                               |
 | `experiment_userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       | Interval at which the user permission syncer should run.                               |
+
+# Tokens
+
+Tokens are used to securely pass secrets to Sourcebot in a config file. They are used in various places, including connections, language model providers, auth providers, etc. Tokens can be passed as either environment variables or Google Cloud secrets:
+
+<AccordionGroup>
+  <Accordion title="Environment Variables">
+    ```json
+    {
+        "token": {
+            "env": "TOKEN_NAME"
+        }
+    }
+    ```
+  </Accordion>
+  <Accordion title="Google Cloud Secrets">
+    ```json
+    {
+        "token": {
+            "googleCloudSecret": "projects/<project-id>/secrets/<secret-name>/versions/<version-id>"
+        }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+# Overriding environment variables from the config
+
+You can override / set environment variables from the config file by using the `environmentOverrides` property. Overrides can be of type `string`, `number`, `boolean`, or a [token](/docs/configuration/config-file#tokens). Tokens are useful when you want to configure a environment variable using a Google Cloud Secret or other supported secret management service.
+
+<AccordionGroup>
+    <Accordion title="Token">
+    ```jsonc
+    {
+        "environmentOverrides": {
+            "DATABASE_URL": {
+                "type": "token",
+                "value": {
+                    "googleCloudSecret": "projects/<id>/secrets/postgres-connection-string/versions/latest"
+                }
+            },
+            "REDIS_URL": {
+                "type": "token",
+                "value": {
+                    "googleCloudSecret": "projects/<id>/secrets/redis-connection-string/versions/latest"
+                }
+            }
+        },
+    }
+    ```
+    </Accordion>
+
+    <Accordion title="String">
+    ```jsonc
+    {
+        "environmentOverrides": {
+            "EMAIL_FROM_ADDRESS": {
+                "type": "string",
+                "value": "hello@sourcebot.dev"
+            }
+        }
+    }
+    ```
+    </Accordion>
+
+    <Accordion title="Number">
+    ```jsonc
+    {
+        "environmentOverrides": {
+            "SOURCEBOT_CHAT_MODEL_TEMPERATURE": {
+                "type": "number",
+                "value": 0.5
+            }
+        }
+    }
+    ```
+    </Accordion>
+    
+    <Accordion title="Boolean">
+    ```jsonc
+    {
+        "environmentOverrides": {
+            "SOURCEBOT_TELEMETRY_DISABLED": {
+                "type": "boolean",
+                "value": false
+            }
+        }
+    }
+    ```
+    </Accordion>
+</AccordionGroup>
+
+
+**Note:** Overrides are **not** set as system environment variables, and instead are resolved at runtime on startup and stored in memory.
+
+<Accordion title="Schema reference">
+[schemas/v3/environmentOverrides.json](https://github.com/sourcebot-dev/sourcebot/blob/main/schemas/v3/environmentOverrides.json)
+
+<EnvironmentOverridesSchema />
+</Accordion>

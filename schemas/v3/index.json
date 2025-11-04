@@ -83,90 +83,6 @@
         },
         "SearchContext": {
             "$ref": "./searchContext.json"
-        },
-        "EnvironmentOverrides": {
-            "type": "object",
-            "description": "Environment variable overrides.",
-            "not": {
-                "$comment": "List of environment variables that are not allowed to be overridden.",
-                "anyOf": [
-                    {
-                        "required": [
-                            "CONFIG_PATH"
-                        ]
-                    }
-                ]
-            },
-            "patternProperties": {
-                "^[a-zA-Z0-9_-]+$": {
-                    "oneOf": [
-                        {
-                            "type": "object",
-                            "properties": {
-                                "type": {
-                                    "const": "token"
-                                },
-                                "value": {
-                                    "$ref": "./shared.json#/definitions/Token"
-                                }
-                            },
-                            "required": [
-                                "type",
-                                "value"
-                            ],
-                            "additionalProperties": false
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "type": {
-                                    "const": "string"
-                                },
-                                "value": {
-                                    "type": "string"
-                                }
-                            },
-                            "required": [
-                                "type",
-                                "value"
-                            ],
-                            "additionalProperties": false
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "type": {
-                                    "const": "number"
-                                },
-                                "value": {
-                                    "type": "number"
-                                }
-                            },
-                            "required": [
-                                "type",
-                                "value"
-                            ],
-                            "additionalProperties": false
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "type": {
-                                    "const": "boolean"
-                                },
-                                "value": {
-                                    "type": "boolean"
-                                }
-                            },
-                            "required": [
-                                "type",
-                                "value"
-                            ],
-                            "additionalProperties": false
-                        }
-                    ]
-                }
-            }
         }
     },
     "properties": {
@@ -187,7 +103,7 @@
             "additionalProperties": false
         },
         "environmentOverrides": {
-            "$ref": "#/definitions/EnvironmentOverrides"
+            "$ref": "./environmentOverrides.json"
         },
         "connections": {
             "type": "object",

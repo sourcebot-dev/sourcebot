@@ -162,9 +162,6 @@ export interface SearchContext {
 }
 /**
  * Environment variable overrides.
- *
- * This interface was referenced by `SourcebotConfig`'s JSON-Schema
- * via the `definition` "EnvironmentOverrides".
  */
 export interface EnvironmentOverrides {
   /**
