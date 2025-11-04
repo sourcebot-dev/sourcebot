@@ -79,6 +79,7 @@
                                 ]
                             },
                             "docs/configuration/language-model-providers",
+                            "docs/configuration/idp",
                             {
                                 "group": "Authentication",
                                 "pages": [

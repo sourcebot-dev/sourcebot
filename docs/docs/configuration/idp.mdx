@@ -1,0 +1,125 @@
+---
+title: External Identity Providers
+sidebarTitle: External identity providers
+---
+
+import LicenseKeyRequired from '/snippets/license-key-required.mdx'
+
+<LicenseKeyRequired />
+
+You can connect Sourcebot to various **external identity providers** to associate a Sourcebot user with one or more external service accounts (ex. Google, GitHub, etc).
+
+External identity providers can be used for [authentication](/docs/configuration/auth) and/or [permission syncing](/docs/features/permission-syncing). They're defined in the
+[config file](/docs/configuration/config-file) in the top-level `identityProviders` object:
+
+```json wrap icon="code" Example config with both google and github identity providers defined
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "identityProviders": [
+        {
+            "provider": "github",
+            "purpose": "integration",
+            "required": true,
+/*
+Secrets are provided through environment variables. Set the secret into
+an env var and provide the name here to tell Sourcebot where to get
+the value
+*/
+            "clientId": {
+                "env": "GITHUB_IDENTITY_PROVIDER_CLIENT_ID"
+            },
+            "clientSecret": {
+                "env": "GITHUB_IDENTITY_PROVIDER_CLIENT_SECRET"
+            }
+        },
+        {
+            "provider": "google",
+            "clientId": {
+                "env": "GOOGLE_IDENTITY_PROVIDER_CLIENT_ID"
+            },
+            "clientSecret": {
+                "env": "GOOGLE_IDENTITY_PROVIDER_CLIENT_SECRET"
+            }
+        }
+    ]
+}
+```
+
+# Supported External Identity Providers
+
+Sourcebot uses [Auth.js](https://authjs.dev/) to connect to external identity providers. If there's a provider supported by Auth.js that you don't see below, please submit a
+[feature request](https://github.com/sourcebot-dev/sourcebot/issues) to have it added.
+
+### GitHub
+
+[Auth.js GitHub Provider Docs](https://authjs.dev/getting-started/providers/github)
+
+A GitHub connection can be used for either [authentication](/docs/configuration/auth) or [permission syncing](/docs/features/permission-syncing). This is controlled using the `purpose` field
+in the GitHub identity provider config.
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Register an Oauth Client">
+        To begin, you must register an Oauth client in GitHub to faciliate the identity provider connection. You can do this by creating a **GitHub App** or a **GitHub OAuth App**. Either
+        one works, but the **GitHub App** is the [modern way](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/differences-between-github-apps-and-oauth-apps).
+
+
+        The result of registering an OAuth client is a `CLIENT_ID` and `CLIENT_SECRET` which you'll provide to Sourcebot.
+    <Tabs>
+        <Tab title="GitHub App">
+            <Note>You don't need to install the app to use it as an external identity provider</Note>
+            Follow [this guide](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) to register a new GitHub App.
+
+            When asked to provide a callback url, provide `<sourcebot_url>/api/auth/callback/github` (ex. https://sourcebot.coolcorp.com/api/auth/callback/github)
+
+            Set the following fine-grained permissions in the GitHub App:
+                - `“Email addresses” account permissions (read)`
+        </Tab>
+        <Tab title="GitHub OAuth App">
+            Follow [this guide](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) by GitHub to create an OAuth App. 
+            
+            When asked to provide a callback url, provide `<sourcebot_url>/api/auth/callback/github` (ex. https://sourcebot.coolcorp.com/api/auth/callback/github)
+        </Tab>
+        </Tabs>
+    </Step>
+    <Step title="Define environemnt variables">
+        To provide Sourcebot the client id and secret for your OAuth client you must set them as environment variables. These can be named whatever you like
+        (ex. `GITHUB_IDENTITY_PROVIDER_CLIENT_ID` and `GITHUB_IDENTITY_PROVIDER_CLIENT_SECRET`) 
+    </Step>
+    <Step title="Define the identity provider config">
+        Finally, pass the client id and secret to Sourcebot by defining a `identityProvider` object in the [config file](/docs/configuration/config-file):
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "github",
+                    // "sso" for auth + perm sync, "integration" for only perm sync
+                    "purpose": "integration",
+                    // if purpose == "integration" this controls if a user must connect to the IdP
+                    "required": true,
+                    "clientId": {
+                        "env": "YOUR_CLIENT_ID_ENV_VAR"
+                    },
+                    "clientSecret": {
+                        "env": "YOUR_CLIENT_SECRET_ENV_VAR"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+### GitLab
+
+### Google
+
+### Okta
+
+### Keycloak
+
+### Microsoft Entra ID
+
