@@ -8006,6 +8006,7 @@ __metadata:
     strip-json-comments: "npm:^5.0.1"
     triple-beam: "npm:^1.4.1"
     tsc-watch: "npm:6.2.1"
+    tsx: "npm:^4.19.1"
     typescript: "npm:^5.7.3"
     winston: "npm:^3.15.0"
     zod: "npm:^3.25.74"

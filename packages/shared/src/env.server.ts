@@ -1,9 +1,9 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
-import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
-import { getTokenFromConfig } from "./crypto.js";
 import { loadConfig } from "./utils.js";
 import { tenancyModeSchema } from "./types.js";
+import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
+import { getTokenFromConfig } from "./crypto.js";
 
 // Booleans are specified as 'true' or 'false' strings.
 const booleanSchema = z.enum(["true", "false"]);
@@ -13,8 +13,7 @@ const booleanSchema = z.enum(["true", "false"]);
 // @see: https://zod.dev/?id=coercion-for-primitives
 const numberSchema = z.coerce.number();
 
-
-const resolveEnvironmentVariableOverridesFromConfig = async (config: SourcebotConfig): Promise<Record<string, string>> => {
+export const resolveEnvironmentVariableOverridesFromConfig = async (config: SourcebotConfig): Promise<Record<string, string>> => {
     if (!config.environmentOverrides) {
         return {};
     }
@@ -22,7 +21,6 @@ const resolveEnvironmentVariableOverridesFromConfig = async (config: SourcebotCo
     const resolved: Record<string, string> = {};
 
     const start = performance.now();
-    console.debug('resolving environment variable overrides');
 
     for (const [key, override] of Object.entries(config.environmentOverrides)) {
         switch (override.type) {
@@ -122,7 +120,16 @@ export const env = createEnv({
         CONFIG_MAX_REPOS_NO_TOKEN: numberSchema.default(Number.MAX_SAFE_INTEGER),
         NODE_ENV: z.enum(["development", "test", "production"]),
         SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default('false'),
-        DATABASE_URL: z.string().url(),
+
+        // Database variables
+        // Either DATABASE_URL or DATABASE_HOST, DATABASE_USERNAME, DATABASE_PASSWORD, and DATABASE_NAME must be set.
+        // @see: shared/src/db.ts for more details.
+        DATABASE_URL: z.string().url().optional(),
+        DATABASE_HOST: z.string().optional(),
+        DATABASE_USERNAME: z.string().optional(),
+        DATABASE_PASSWORD: z.string().optional(),
+        DATABASE_NAME: z.string().optional(),
+        DATABASE_ARGS: z.string().optional(),
 
         SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
         CONFIG_PATH: z.string(),

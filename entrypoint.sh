@@ -1,27 +1,56 @@
 #!/bin/sh
+
+# Exit immediately if a command fails
 set -e
+# Disable auto-exporting of variables
+set +a
 
-# Check if DATABASE_URL is not set
-if [ -z "$DATABASE_URL" ]; then
-    # Check if the individual database variables are set and construct the URL
-    if [ -n "$DATABASE_HOST" ] && [ -n "$DATABASE_USERNAME" ] && [ -n "$DATABASE_PASSWORD" ]  && [ -n "$DATABASE_NAME" ]; then
-        DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}/${DATABASE_NAME}"
+# If a CONFIG_PATH is set, resolve the environment overrides from the config file.
+# The overrides will be written into variables scopped to the current shell. This is
+# required in case one of the variables used in this entrypoint is overriden (e.g.,
+# DATABASE_URL, REDIS_URL, etc.)
+if [ -n "$CONFIG_PATH" ]; then
+    echo -e "\e[34m[Info] Resolving environment overrides from $CONFIG_PATH...\e[0m"
 
-        if [ -n "$DATABASE_ARGS" ]; then
-            DATABASE_URL="${DATABASE_URL}?$DATABASE_ARGS"
-        fi
+    set +e # Disable exist on error so we can capture EXIT_CODE
+    OVERRIDES_OUTPUT=$(SKIP_ENV_VALIDATION=1 yarn tool:resolve-env-overrides 2>&1)
+    EXIT_CODE=$?
+    set -e # Re-enable exit on error
 
-        export DATABASE_URL
+    if [ $EXIT_CODE -eq 0 ]; then
+        eval "$OVERRIDES_OUTPUT"
     else
-        # Otherwise, fallback to a default value
-        DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
-        export DATABASE_URL
+        echo -e "\e[31m[Error] Failed to resolve environment overrides.\e[0m"
+        echo "$OVERRIDES_OUTPUT"
+        exit 1
     fi
 fi
 
-if [ "$DATABASE_URL" = "postgresql://postgres@localhost:5432/sourcebot" ]; then
-    DATABASE_EMBEDDED="true"
+# Descontruct the database URL from the individual variables if DATABASE_URL is not set
+if [ -z "$DATABASE_URL" ] && [ -n "$DATABASE_HOST" ] && [ -n "$DATABASE_USERNAME" ] && [ -n "$DATABASE_PASSWORD" ]  && [ -n "$DATABASE_NAME" ]; then
+    DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}/${DATABASE_NAME}"
+
+    if [ -n "$DATABASE_ARGS" ]; then
+        DATABASE_URL="${DATABASE_URL}?$DATABASE_ARGS"
+    fi
 fi
+
+if [ -z "$DATABASE_URL" ]; then
+    echo -e "\e[34m[Info] DATABASE_URL is not set. Using embeded database.\e[0m"
+    export DATABASE_EMBEDDED="true"
+    export DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
+else
+    export DATABASE_EMBEDDED="false"
+fi
+
+if [ -z "$REDIS_URL" ]; then
+    echo -e "\e[34m[Info] REDIS_URL is not set. Using embeded redis.\e[0m"
+    export REDIS_EMBEDDED="true"
+    export REDIS_URL="redis://localhost:6379"
+else
+    export REDIS_EMBEDDED="false"
+fi
+
 
 echo -e "\e[34m[Info] Sourcebot version: $NEXT_PUBLIC_SOURCEBOT_VERSION\e[0m"
 
@@ -59,7 +88,7 @@ if [ "$DATABASE_EMBEDDED" = "true" ] && [ ! -d "$DATABASE_DATA_DIR" ]; then
 fi
 
 # Create the redis data directory if it doesn't exist
-if [ ! -d "$REDIS_DATA_DIR" ]; then
+if [ "$REDIS_EMBEDDED" = "true" ] && [ ! -d "$REDIS_DATA_DIR" ]; then
     mkdir -p $REDIS_DATA_DIR
 fi
 
@@ -149,7 +178,6 @@ fi
 
 echo "{\"version\": \"$NEXT_PUBLIC_SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL_ID\"}" > "$FIRST_RUN_FILE"
 
-
 # Start the database and wait for it to be ready before starting any other service
 if [ "$DATABASE_EMBEDDED" = "true" ]; then
     su postgres -c "postgres -D $DATABASE_DATA_DIR" &
@@ -171,7 +199,7 @@ fi
 
 # Run a Database migration
 echo -e "\e[34m[Info] Running database migration...\e[0m"
-yarn workspace @sourcebot/db prisma:migrate:prod
+DATABASE_URL="$DATABASE_URL" yarn workspace @sourcebot/db prisma:migrate:prod
 
 # Create the log directory
 mkdir -p /var/log/sourcebot

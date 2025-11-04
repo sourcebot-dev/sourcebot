@@ -6,7 +6,8 @@
     "scripts": {
         "build": "tsc",
         "build:watch": "tsc-watch --preserveWatchOutput",
-        "postinstall": "yarn build"
+        "postinstall": "yarn build",
+        "tool:resolve-env-overrides": "tsx tools/resolveEnvOverrides.ts"
     },
     "dependencies": {
         "@google-cloud/secret-manager": "^6.1.1",
@@ -26,6 +27,7 @@
         "@types/micromatch": "^4.0.9",
         "@types/node": "^22.7.5",
         "tsc-watch": "6.2.1",
+        "tsx": "^4.19.1",
         "typescript": "^5.7.3"
     },
     "exports": {
