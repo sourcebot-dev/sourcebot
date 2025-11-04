@@ -18,7 +18,7 @@ import { hasEntitlement } from '@sourcebot/shared';
 import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
-import { refreshOAuthToken } from '@/ee/features/permissionSyncing/actions';
+import { refreshIntegrationTokens } from '@/ee/features/permissionSyncing/tokenRefresh';
 
 const auditService = getAuditService();
 const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
@@ -36,16 +36,19 @@ declare module 'next-auth' {
         user: {
             id: string;
         } & DefaultSession['user'];
+        integrationProviderErrors?: Record<string, string>;
     }
 }
 
 declare module 'next-auth/jwt' {
-    interface JWT { 
+    interface JWT {
         userId: string;
-        accessToken?: string;
-        refreshToken?: string;
-        expiresAt?: number;
-        provider?: string;
+        integrationTokens?: Record<string, {
+            accessToken: string;
+            refreshToken: string;
+            expiresAt: number;
+            error?: string;
+        }>;
         error?: string;
     }
 }
@@ -193,41 +196,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 token.userId = user.id;
             }
 
-            if (account) {
-                token.accessToken = account.access_token;
-                token.refreshToken = account.refresh_token;
-                token.expiresAt = account.expires_at;
-                token.provider = account.provider;
+            // When a user links a new account, store the tokens if it's an integration provider
+            if (account && hasEntitlement('permission-syncing')) {
+                if (account.access_token && account.refresh_token && account.expires_at) {
+                    token.integrationTokens = token.integrationTokens || {};
+                    token.integrationTokens[account.provider] = {
+                        accessToken: account.access_token,
+                        refreshToken: account.refresh_token,
+                        expiresAt: account.expires_at,
+                    };
+                }
             }
 
-            if (hasEntitlement('permission-syncing') && 
-                token.provider && 
-                ['github', 'gitlab'].includes(token.provider) && 
-                token.expiresAt && 
-                token.refreshToken) {
-                const now = Math.floor(Date.now() / 1000);
-                const bufferTimeS = 5 * 60;
-
-                if (now >= (token.expiresAt - bufferTimeS)) {
-                    try {
-                        const refreshedTokens = await refreshOAuthToken(
-                            token.provider,
-                            token.refreshToken,
-                            token.userId
-                        );
-
-                        if (refreshedTokens) {
-                            token.accessToken = refreshedTokens.accessToken;
-                            token.refreshToken = refreshedTokens.refreshToken ?? token.refreshToken;
-                            token.expiresAt = refreshedTokens.expiresAt;
-                        } else {
-                            token.error = 'RefreshTokenError';
-                        }
-                    } catch (error) {
-                        console.error('Error refreshing token:', error);
-                        token.error = 'RefreshTokenError';
-                    }
-                }
+            // Refresh all integration provider tokens that are about to expire
+            if (hasEntitlement('permission-syncing') && token.integrationTokens) {
+                token.integrationTokens = await refreshIntegrationTokens(
+                    token.integrationTokens,
+                    token.userId
+                );
             }
 
             return token;
@@ -239,6 +225,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 ...session.user,
                 // Propagate the userId to the session.
                 id: token.userId,
+            }
+            // Pass only integration provider errors to the session (not sensitive tokens)
+            if (token.integrationTokens) {
+                const errors: Record<string, string> = {};
+                for (const [provider, tokenData] of Object.entries(token.integrationTokens)) {
+                    if (tokenData.error) {
+                        errors[provider] = tokenData.error;
+                    }
+                }
+                if (Object.keys(errors).length > 0) {
+                    session.integrationProviderErrors = errors;
+                }
             }
             return session;
         },

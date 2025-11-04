@@ -1,5 +1,5 @@
 import { getAuthProviderInfo } from "@/lib/utils";
-import { Check, X } from "lucide-react";
+import { Check, X, AlertCircle } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProviderIcon } from "./providerIcon";
 import { ProviderInfo } from "./providerInfo";
@@ -41,31 +41,41 @@ export function IntegrationProviderCard({
                                 />
                             </CardTitle>
                             <CardDescription className="text-xs">
-                                {integrationProviderState.isLinked? (
-                                    <div className="flex items-center gap-2">
+                                <div className="flex flex-col gap-1.5">
+                                    {integrationProviderState.isLinked? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-1.5">
+                                                <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-500" />
+                                                <span className="text-green-600 dark:text-green-500 font-medium">
+                                                    Connected
+                                                </span>
+                                            </div>
+                                            {integrationProviderState.linkedAccountId && (
+                                                <>
+                                                    <span className="text-muted-foreground">•</span>
+                                                    <span className="text-muted-foreground font-mono truncate">
+                                                        {integrationProviderState.linkedAccountId}
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
+                                    ) : (
                                         <div className="flex items-center gap-1.5">
-                                            <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-500" />
-                                            <span className="text-green-600 dark:text-green-500 font-medium">
-                                                Connected
+                                            <X className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span className="text-muted-foreground">
+                                                Not connected
                                             </span>
                                         </div>
-                                        {integrationProviderState.linkedAccountId && (
-                                            <>
-                                                <span className="text-muted-foreground">•</span>
-                                                <span className="text-muted-foreground font-mono truncate">
-                                                    {integrationProviderState.linkedAccountId}
-                                                </span>
-                                            </>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-1.5">
-                                        <X className="h-3.5 w-3.5 text-muted-foreground" />
-                                        <span className="text-muted-foreground">
-                                            Not connected
-                                        </span>
-                                    </div>
-                                )}
+                                    )}
+                                    {integrationProviderState.error && (
+                                        <div className="flex items-center gap-1.5">
+                                            <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                                            <span className="text-destructive font-medium">
+                                                Token refresh failed - please reconnect
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
                             </CardDescription>
                         </div>
                     </div>

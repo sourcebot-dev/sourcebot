@@ -3,4 +3,5 @@ export type IntegrationIdentityProviderState = {
     required: boolean;
     isLinked: boolean;
     linkedAccountId?: string;
+    error?: string;
 };
