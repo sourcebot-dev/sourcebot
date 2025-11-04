@@ -107,7 +107,7 @@ const schema = {
         },
         "required": {
           "type": "boolean",
-          "default": true
+          "default": false
         }
       },
       "required": [
@@ -221,7 +221,7 @@ const schema = {
         },
         "required": {
           "type": "boolean",
-          "default": true
+          "default": false
         }
       },
       "required": [
@@ -764,7 +764,7 @@ const schema = {
         },
         "required": {
           "type": "boolean",
-          "default": true
+          "default": false
         }
       },
       "required": [
@@ -878,7 +878,7 @@ const schema = {
         },
         "required": {
           "type": "boolean",
-          "default": true
+          "default": false
         }
       },
       "required": [

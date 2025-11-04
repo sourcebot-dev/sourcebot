@@ -31,14 +31,14 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const baseUrl = providerConfig.baseUrl ? await getTokenFromConfig(providerConfig.baseUrl) : undefined;
-            providers.push({ provider: createGitHubProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.required ?? true });
+            providers.push({ provider: createGitHubProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.required ?? false});
         }
         if (identityProvider.provider === "gitlab") {
             const providerConfig = identityProvider as GitLabIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const baseUrl = providerConfig.baseUrl ? await getTokenFromConfig(providerConfig.baseUrl) : undefined;
-            providers.push({ provider: createGitLabProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.required ?? true });
+            providers.push({ provider: createGitLabProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.required ?? false});
         }
         if (identityProvider.provider === "google") {
             const providerConfig = identityProvider as GoogleIdentityProviderConfig;

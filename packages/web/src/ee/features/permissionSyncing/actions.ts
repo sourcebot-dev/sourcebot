@@ -43,7 +43,7 @@ export const getIntegrationProviderStates = async () => sew(() =>
                     );
 
                     const isLinked = !!linkedAccount;
-                    const isRequired = integrationProviderConfig.required ?? true;
+                    const isRequired = integrationProviderConfig.required ?? false;
                     const providerError = providerErrors?.[integrationProviderConfig.provider];
 
                     integrationProviderState.push({
@@ -85,7 +85,7 @@ export const unlinkIntegrationProvider = async (provider: string) => sew(() =>
 
             // If we're unlinking a required identity provider then we want to wipe the optional skip cookie if it exists so that we give the
             // user the option of linking optional providers in the same link accounts screen
-            const isRequired = providerConfig.required ?? true;
+            const isRequired = providerConfig.required ?? false;
             if (isRequired) {
                 const cookieStore = await cookies();
                 cookieStore.delete(OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME);

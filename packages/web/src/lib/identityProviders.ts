@@ -16,14 +16,14 @@ export const getIdentityProviderMetadata = (): IdentityProviderMetadata[] => {
                 id: providerInfo.id,
                 name: providerInfo.name,
                 purpose: provider.purpose,
-                required: provider.required ?? true,
+                required: provider.required ?? false,
             };
         } else {
             return {
                 id: provider.provider.id,
                 name: provider.provider.name,
                 purpose: provider.purpose,
-                required: provider.required ?? true,
+                required: provider.required ?? false,
             };
         }
     });

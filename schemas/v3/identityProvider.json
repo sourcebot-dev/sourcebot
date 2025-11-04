@@ -22,7 +22,7 @@
                 },
                 "required": {
                     "type": "boolean",
-                    "default": true
+                    "default": false
                 }
             },
             "required": ["provider", "purpose", "clientId", "clientSecret"]
@@ -47,7 +47,7 @@
                 },
                 "required": {
                     "type": "boolean",
-                    "default": true
+                    "default": false 
                 }
             },
             "required": ["provider", "purpose", "clientId", "clientSecret"]
