@@ -23,7 +23,7 @@ import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
 import { UpgradeToast } from "./components/upgradeToast";
-import { getUnlinkedIntegrationProviders, userNeedsToLinkIdentityProvider } from "@/ee/features/permissionSyncing/actions";
+import { getIntegrationProviderStates } from "@/ee/features/permissionSyncing/actions";
 import { LinkAccounts } from "@/ee/features/permissionSyncing/linkAccounts";
 
 interface LayoutProps {
@@ -126,16 +126,16 @@ export default async function Layout(props: LayoutProps) {
     }
 
     if (hasEntitlement("permission-syncing")) {
-        const unlinkedAccounts = await getUnlinkedIntegrationProviders();
-        if (isServiceError(unlinkedAccounts)) {
+        const integrationProviderStates = await getIntegrationProviderStates();
+        if (isServiceError(integrationProviderStates)) {
             return (
                 <div className="min-h-screen flex flex-col items-center justify-center p-6">
                     <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
                     <div className="bg-red-50 border border-red-200 rounded-md p-6 max-w-md w-full text-center">
                         <h2 className="text-lg font-semibold text-red-800 mb-2">An error occurred</h2>
                         <p className="text-red-700 mb-1">
-                            {typeof unlinkedAccounts.message === 'string'
-                                ? unlinkedAccounts.message
+                            {typeof integrationProviderStates.message === 'string'
+                                ? integrationProviderStates.message
                                 : "A server error occurred while checking your account status. Please try again or contact support."}
                         </p>
                     </div>
@@ -143,25 +143,18 @@ export default async function Layout(props: LayoutProps) {
             )
         }
 
-        if (unlinkedAccounts.length > 0) {
-            // Separate required and optional providers
-            const requiredProviders = unlinkedAccounts.filter(p => p.required !== false);
-            const hasRequiredProviders = requiredProviders.length > 0;
-
-            // Check if user has skipped optional providers
+        const hasUnlinkedProviders = integrationProviderStates.some(state => state.isLinked === false);
+        if (hasUnlinkedProviders) {
             const cookieStore = await cookies();
             const hasSkippedOptional = cookieStore.has(OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME);
 
-            // Show LinkAccounts if:
-            // 1. There are required providers, OR
-            // 2. There are only optional providers AND user hasn't skipped yet
-            const shouldShowLinkAccounts = hasRequiredProviders || !hasSkippedOptional;
-
+            const hasUnlinkedRequiredProviders = integrationProviderStates.some(state => state.required && !state.isLinked)
+            const shouldShowLinkAccounts = hasUnlinkedRequiredProviders || !hasSkippedOptional;
             if (shouldShowLinkAccounts) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-6">
                         <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
-                        <LinkAccounts unlinkedAccounts={unlinkedAccounts} />
+                        <LinkAccounts integrationProviderStates={integrationProviderStates} callbackUrl={`/${domain}`}/>
                     </div>
                 )
             }

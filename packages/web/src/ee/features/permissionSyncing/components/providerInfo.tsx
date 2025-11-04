@@ -1,5 +1,4 @@
 import { getAuthProviderInfo } from "@/lib/utils";
-import { ProviderIcon } from "./providerIcon";
 import { ProviderBadge } from "./providerBadge";
 
 interface ProviderInfoProps {

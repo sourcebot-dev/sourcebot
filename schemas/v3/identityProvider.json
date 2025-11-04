@@ -50,7 +50,7 @@
                     "default": true
                 }
             },
-            "required": ["provider", "purpose", "clientId", "clientSecret", "baseUrl"]
+            "required": ["provider", "purpose", "clientId", "clientSecret"]
         },
         "GoogleIdentityProviderConfig": {
             "type": "object",

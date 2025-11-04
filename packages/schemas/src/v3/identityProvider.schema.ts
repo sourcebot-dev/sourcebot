@@ -228,8 +228,7 @@ const schema = {
         "provider",
         "purpose",
         "clientId",
-        "clientSecret",
-        "baseUrl"
+        "clientSecret"
       ]
     },
     "GoogleIdentityProviderConfig": {
@@ -886,8 +885,7 @@ const schema = {
         "provider",
         "purpose",
         "clientId",
-        "clientSecret",
-        "baseUrl"
+        "clientSecret"
       ]
     },
     {

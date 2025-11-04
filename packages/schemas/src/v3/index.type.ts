@@ -1190,7 +1190,7 @@ export interface GitLabIdentityProviderConfig {
          */
         googleCloudSecret: string;
       };
-  baseUrl:
+  baseUrl?:
     | {
         /**
          * The name of the environment variable that contains the token.

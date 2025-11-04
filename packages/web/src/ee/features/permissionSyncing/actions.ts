@@ -8,76 +8,51 @@ import { env } from "@/env.mjs";
 import { OrgRole } from "@sourcebot/db";
 import { cookies } from "next/headers";
 import { OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from "@/lib/constants";
+import { IntegrationIdentityProviderState } from "@/ee/features/permissionSyncing/types";
 
 const logger = createLogger('web-ee-permission-syncing-actions');
 
-export const userNeedsToLinkIdentityProvider = async () => sew(() =>
+export const getIntegrationProviderStates = async () => sew(() =>
     withAuthV2(async ({ prisma, role, user }) =>
         withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
             const config = await loadConfig(env.CONFIG_PATH);
-            const identityProviders = config.identityProviders ?? [];
-
-            for (const identityProvider of identityProviders) {
-                if (identityProvider.purpose === "integration") {
-                    // Only check required providers (default to true if not specified)
-                    const isRequired = 'required' in identityProvider ? identityProvider.required : true;
-
-                    if (!isRequired) {
-                        continue;
+            const integrationProviderConfigs = config.identityProviders ?? [];
+            const linkedAccounts = await prisma.account.findMany({
+                where: {
+                    userId: user.id,
+                    provider: {
+                        in: integrationProviderConfigs.map(p => p.provider)
                     }
+                },
+                select: {
+                    provider: true,
+                    providerAccountId: true
+                }
+            });
 
-                    const linkedAccount = await prisma.account.findFirst({
-                        where: {
-                            provider: identityProvider.provider,
-                            userId: user.id,
-                        },
-                    });
+            const integrationProviderState: IntegrationIdentityProviderState[] = [];
+            for (const integrationProviderConfig of integrationProviderConfigs) {
+                if (integrationProviderConfig.purpose === "integration") {
+                    const linkedAccount = linkedAccounts.find(
+                        account => account.provider === integrationProviderConfig.provider
+                    );
 
-                    if (!linkedAccount) {
-                        logger.info(`Required integration identity provider ${identityProvider.provider} account info not found for user ${user.id}`);
-                        return true;
-                    }
+                    const isLinked = !!linkedAccount;
+                    const isRequired = integrationProviderConfig.required ?? true;
+                    integrationProviderState.push({
+                        id: integrationProviderConfig.provider,
+                        required: isRequired,
+                        isLinked,
+                        linkedAccountId: linkedAccount?.providerAccountId
+                    } as IntegrationIdentityProviderState);
                 }
             }
 
-            return false;
+            return integrationProviderState;
         })
     )
 );
 
-export const getUnlinkedIntegrationProviders = async () => sew(() =>
-    withAuthV2(async ({ prisma, role, user }) =>
-        withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
-            const config = await loadConfig(env.CONFIG_PATH);
-            const identityProviders = config.identityProviders ?? [];
-            const unlinkedProviders = [];
-
-            for (const identityProvider of identityProviders) {
-                if (identityProvider.purpose === "integration") {
-                    const linkedAccount = await prisma.account.findFirst({
-                        where: {
-                            provider: identityProvider.provider,
-                            userId: user.id,
-                        },
-                    });
-
-                    if (!linkedAccount) {
-                        const isRequired = 'required' in identityProvider ? identityProvider.required as boolean : true;
-                        logger.info(`Integration identity provider ${identityProvider.provider} not linked for user ${user.id}`);
-                        unlinkedProviders.push({
-                            id: identityProvider.provider,
-                            name: identityProvider.provider,
-                            purpose: "integration" as const,
-                            required: isRequired,
-                        });
-                    }
-                }
-            }
-
-            return unlinkedProviders;
-        })
-    )
-);
 
 export const unlinkIntegrationProvider = async (provider: string) => sew(() =>
     withAuthV2(async ({ prisma, role, user }) =>
@@ -85,12 +60,8 @@ export const unlinkIntegrationProvider = async (provider: string) => sew(() =>
             const config = await loadConfig(env.CONFIG_PATH);
             const identityProviders = config.identityProviders ?? [];
 
-            // Verify this is an integration provider
-            const isIntegrationProvider = identityProviders.some(
-                idp => idp.provider === provider && idp.purpose === "integration"
-            );
-
-            if (!isIntegrationProvider) {
+            const providerConfig = identityProviders.find(idp => idp.provider === provider)
+            if (!providerConfig || !('purpose' in providerConfig) || providerConfig.purpose !== "integration") {
                 throw new Error("Provider is not an integration provider");
             }
 
@@ -103,6 +74,14 @@ export const unlinkIntegrationProvider = async (provider: string) => sew(() =>
             });
 
             logger.info(`Unlinked integration provider ${provider} for user ${user.id}. Deleted ${result.count} account(s).`);
+
+            // If we're unlinking a required identity provider then we want to wipe the optional skip cookie if it exists so that we give the
+            // user the option of linking optional providers in the same link accounts screen
+            const isRequired = providerConfig.required ?? true;
+            if (isRequired) {
+                const cookieStore = await cookies();
+                cookieStore.delete(OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME);
+            }
 
             return { success: true, count: result.count };
         })

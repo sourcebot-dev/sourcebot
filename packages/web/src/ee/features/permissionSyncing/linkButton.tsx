@@ -6,11 +6,10 @@ import { signIn } from "next-auth/react";
 
 interface LinkButtonProps {
     provider: string;
-    providerName: string;
     callbackUrl: string;
 }
 
-export const LinkButton = ({ provider, providerName, callbackUrl }: LinkButtonProps) => {
+export const LinkButton = ({ provider, callbackUrl }: LinkButtonProps) => {
     const handleLink = () => {
         signIn(provider, {
             redirectTo: callbackUrl
