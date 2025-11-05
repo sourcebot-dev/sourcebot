@@ -36,15 +36,20 @@
     docker compose -f docker-compose-dev.yml up -d
     ```
 
-6. Create a copy of `.env.development` and name it `.env.development.local`. Update the required environment variables.
+6. Generate the database schema.
+    ```sh
+    yarn dev:prisma:migrate:dev
+    ```
 
-7. If you're using a declarative configuration file, create a configuration file and update the `CONFIG_PATH` environment variable in your `.env.development.local` file.
+7. Create a copy of `.env.development` and name it `.env.development.local`. Update the required environment variables.
 
-8. Start Sourcebot with the command:
+8. If you're using a declarative configuration file, create a configuration file and update the `CONFIG_PATH` environment variable in your `.env.development.local` file.
+
+9. Start Sourcebot with the command:
     ```sh
     yarn dev
     ```
 
     A `.sourcebot` directory will be created and zoekt will begin to index the repositories found in the `config.json` file.
 
-9. Start searching at `http://localhost:3000`.
+10. Start searching at `http://localhost:3000`.
