@@ -18,8 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issue with an unbounded `Promise.allSettled(...)` when retrieving details from the GitHub API about a large number of repositories (or orgs or users). [#591](https://github.com/sourcebot-dev/sourcebot/pull/591)
 - Fixed resource exhaustion (EAGAIN errors) when syncing generic-git-host connections with thousands of repositories. [#593](https://github.com/sourcebot-dev/sourcebot/pull/593)
 
-## Removed
+### Removed
 - Removed built-in secret manager. [#592](https://github.com/sourcebot-dev/sourcebot/pull/592)
+
+### Changed
+- Changed internal representation of how repo permissions are represented in the database. [#600](https://github.com/sourcebot-dev/sourcebot/pull/600)
 
 ## [4.8.1] - 2025-10-29
 
