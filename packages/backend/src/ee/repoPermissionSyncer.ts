@@ -168,7 +168,7 @@ export class RepoPermissionSyncer {
             throw new Error(`No credentials found for repo ${id}`);
         }
 
-        const userIds = await (async () => {
+        const accountIds = await (async () => {
             if (repo.external_codeHostType === 'github') {
                 const isGitHubCloud = credentials.hostUrl ? new URL(credentials.hostUrl).hostname === GITHUB_CLOUD_HOSTNAME : false;
                 const { octokit } = await createOctokitFromToken({
@@ -195,12 +195,9 @@ export class RepoPermissionSyncer {
                             in: githubUserIds,
                         }
                     },
-                    select: {
-                        userId: true,
-                    },
                 });
 
-                return accounts.map(account => account.userId);
+                return accounts.map(account => account.id);
             } else if (repo.external_codeHostType === 'gitlab') {
                 const api = await createGitLabFromPersonalAccessToken({
                     token: credentials.token,
@@ -222,12 +219,9 @@ export class RepoPermissionSyncer {
                             in: gitlabUserIds,
                         }
                     },
-                    select: {
-                        userId: true,
-                    },
                 });
 
-                return accounts.map(account => account.userId);
+                return accounts.map(account => account.id);
             }
 
             return [];
@@ -239,14 +233,14 @@ export class RepoPermissionSyncer {
                     id: repo.id,
                 },
                 data: {
-                    permittedUsers: {
+                    permittedAccounts: {
                         deleteMany: {},
                     }
                 }
             }),
-            this.db.userToRepoPermission.createMany({
-                data: userIds.map(userId => ({
-                    userId,
+            this.db.accountToRepoPermission.createMany({
+                data: accountIds.map(accountId => ({
+                    accountId,
                     repoId: repo.id,
                 })),
             })

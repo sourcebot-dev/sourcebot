@@ -59,7 +59,7 @@ model Repo {
   connections        RepoToConnection[]
   imageUrl           String?
 
-  permittedUsers     UserToRepoPermission[]
+  permittedAccounts  AccountToRepoPermission[]
   permissionSyncJobs RepoPermissionSyncJob[]
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
 
@@ -349,7 +349,6 @@ model User {
   accounts        Account[]
   orgs            UserToOrg[]
   accountRequest  AccountRequest?
-  accessibleRepos UserToRepoPermission[]
 
   /// List of pending invites that the user has created
   invites Invite[]
@@ -361,40 +360,38 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  permissionSyncJobs UserPermissionSyncJob[]
-  permissionSyncedAt DateTime?
 }
 
-enum UserPermissionSyncJobStatus {
+enum AccountPermissionSyncJobStatus {
   PENDING
   IN_PROGRESS
   COMPLETED
   FAILED
 }
 
-model UserPermissionSyncJob {
+model AccountPermissionSyncJob {
   id          String                      @id @default(cuid())
-  status      UserPermissionSyncJobStatus @default(PENDING)
+  status      AccountPermissionSyncJobStatus @default(PENDING)
   createdAt   DateTime                    @default(now())
   updatedAt   DateTime                    @updatedAt
   completedAt DateTime?
 
   errorMessage String?
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String
 }
 
-model UserToRepoPermission {
+model AccountToRepoPermission {
   createdAt DateTime @default(now())
 
   repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
   repoId Int
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String
 
-  @@id([repoId, userId])
+  @@id([repoId, accountId])
 }
 
 // @see : https://authjs.dev/concepts/database-models#account
@@ -411,6 +408,12 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
+  
+  /// List of repos that this account has access to.
+  accessibleRepos AccountToRepoPermission[]
+
+  permissionSyncJobs AccountPermissionSyncJob[]
+  permissionSyncedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
