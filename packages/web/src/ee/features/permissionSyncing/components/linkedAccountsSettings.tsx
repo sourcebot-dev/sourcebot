@@ -26,7 +26,7 @@ export async function LinkedAccountsSettings() {
             <div>
                 <h3 className="text-lg font-medium">Linked Accounts</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                    Manage your linked account integrations for permission syncing.
+                    Manage the accounts linked to Sourcebot.
                 </p>
             </div>
 
@@ -36,9 +36,9 @@ export async function LinkedAccountsSettings() {
                         <div className="rounded-full bg-muted p-3 mb-4">
                             <ShieldCheck className="h-6 w-6 text-muted-foreground" />
                         </div>
-                        <p className="text-sm font-medium text-foreground mb-1">No integration providers configured</p>
+                        <p className="text-sm font-medium text-foreground mb-1">No linked accounts configured</p>
                         <p className="text-sm text-muted-foreground max-w-sm">
-                            Contact your administrator to configure integration providers for your organization.
+                            Contact your administrator to configure linked account providers for your organization.
                         </p>
                     </CardContent>
                 </Card>
