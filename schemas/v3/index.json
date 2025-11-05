@@ -125,6 +125,13 @@
             "items": {
                 "$ref": "./app.json"
             }
+        },
+        "identityProviders": {
+            "type": "array",
+            "description": "Defines a collection of identity providers that are available to Sourcebot.",
+            "items": {
+                "$ref": "./identityProvider.json"
+            }
         }
     },
     "additionalProperties": false

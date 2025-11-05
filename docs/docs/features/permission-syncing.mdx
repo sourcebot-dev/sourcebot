@@ -12,10 +12,12 @@ import ExperimentalFeatureWarning from '/snippets/experimental-feature-warning.m
 
 # Overview
 
-Permission syncing allows you to sync Access Permission Lists (ACLs) from a code host to Sourcebot. When configured, users signed into Sourcebot (via the code host's OAuth provider) will only be able to access repositories that they have access to on the code host. Practically, this means:
+Permission syncing allows you to sync Access Permission Lists (ACLs) from a code host to Sourcebot. When configured, users signed into Sourcebot will only be able to access repositories
+that they have access to on the code host. Practically, this means:
 
 - Code Search results will only include repositories that the user has access to.
 - Code navigation results will only include repositories that the user has access to.
+- MCP results will only include results from repositories the user has access to.
 - Ask Sourcebot (and the underlying LLM) will only have access to repositories that the user has access to.
 - File browsing is scoped to the repositories that the user has access to.
 
@@ -46,7 +48,7 @@ We are actively working on supporting more code hosts. If you'd like to see a sp
 
 ## GitHub
 
-Prerequisite: [Add GitHub as an OAuth provider](/docs/configuration/auth/providers#github).
+Prerequisite: Configure GitHub as an [external identity provider](/docs/configuration/idp).
 
 Permission syncing works with **GitHub.com**, **GitHub Enterprise Cloud**, and **GitHub Enterprise Server**. For organization-owned repositories, users that have **read-only** access (or above) via the following methods will have their access synced to Sourcebot:
 - Outside collaborators
@@ -56,18 +58,18 @@ Permission syncing works with **GitHub.com**, **GitHub Enterprise Cloud**, and *
 - Organization owners.
 
 **Notes:**
-- A GitHub OAuth provider must be configured to (1) correlate a Sourcebot user with a GitHub user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
+- A GitHub [external identity provider](/docs/configuration/idp) must be configured to (1) correlate a Sourcebot user with a GitHub user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens must assume the `repo` scope in order to use the [List repositories for the authenticated user API](https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user) during [User driven syncing](/docs/features/permission-syncing#how-it-works). Sourcebot **will only** use this token for **reads**.
 
 ## GitLab
 
-Prerequisite: [Add GitLab as an OAuth provider](/docs/configuration/auth/providers#gitlab).
+Prerequisite: Configure GitLab as an [external identity provider](/docs/configuration/idp).
 
 Permission syncing works with **GitLab Self-managed** and **GitLab Cloud**. Users with **Guest** role or above with membership to a group or project will have their access synced to Sourcebot. Both direct and indirect membership to a group or project will be synced with Sourcebot. For more details, see the [GitLab docs](https://docs.gitlab.com/user/project/members/#membership-types).
 
 
 **Notes:**
-- A GitLab OAuth provider must be configured to (1) correlate a Sourcebot user with a GitLab user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
+- A GitLab [external identity provider](/docs/configuration/idp) must be configured to (1) correlate a Sourcebot user with a GitLab user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens require the `read_api` scope in order to use the [List projects for the authenticated user API](https://docs.gitlab.com/ee/api/projects.html#list-all-projects) during [User driven syncing](/docs/features/permission-syncing#how-it-works).
 
 

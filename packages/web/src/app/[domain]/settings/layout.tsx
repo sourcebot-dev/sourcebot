@@ -11,6 +11,7 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { getOrgFromDomain } from "@/data/org";
 import { OrgRole } from "@prisma/client";
 import { env } from "@/env.mjs";
+import { hasEntitlement } from "@sourcebot/shared";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -68,6 +69,8 @@ export default async function SettingsLayout(
         throw new ServiceErrorException(connectionStats);
     }
 
+    const hasPermissionSyncingEntitlement = await hasEntitlement("permission-syncing");
+
     const sidebarNavItems: SidebarNavItem[] = [
         {
             title: "General",
@@ -114,6 +117,12 @@ export default async function SettingsLayout(
             title: "Analytics",
             href: `/${domain}/settings/analytics`,
         },
+        ...(hasPermissionSyncingEntitlement ? [
+            {
+                title: "Linked Accounts",
+                href: `/${domain}/settings/permission-syncing`,
+            }
+        ] : []),
         ...(env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined ? [
             {
                 title: "License",

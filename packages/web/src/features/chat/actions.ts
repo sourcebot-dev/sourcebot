@@ -22,14 +22,17 @@ import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { getTokenFromConfig } from "@sourcebot/crypto";
 import { ChatVisibility, OrgRole, Prisma } from "@sourcebot/db";
+import { createLogger } from "@sourcebot/logger";
 import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
 import { Token } from "@sourcebot/schemas/v3/shared.type";
-import { loadConfig } from "@sourcebot/shared";
 import { generateText, JSONValue, extractReasoningMiddleware, wrapLanguageModel } from "ai";
+import { loadConfig } from "@sourcebot/shared";
 import fs from 'fs';
 import { StatusCodes } from "http-status-codes";
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from "./types";
+
+const logger = createLogger('chat-actions');
 
 export const createChat = async (domain: string) => sew(() =>
     withAuth((userId) =>
@@ -189,7 +192,7 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
 
 export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageModelId, message }: { chatId: string, languageModelId: string, message: string }, domain: string) => sew(() =>
     withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
+        withOrgMembership(userId, domain, async () => {
             // From the language model ID, attempt to find the
             // corresponding config in `config.json`.
             const languageModelConfig =
@@ -355,24 +358,19 @@ export const getConfiguredLanguageModelsInfo = async (): Promise<LanguageModelIn
 
 /**
  * Returns the full configuration of the language models.
- * 
+ *
  * @warning Do NOT call this function from the client,
  * or pass the result of calling this function to the client.
  */
 export const _getConfiguredLanguageModelsFull = async (): Promise<LanguageModel[]> => {
-    if (!env.CONFIG_PATH) {
-        return [];
-    }
-
     try {
         const config = await loadConfig(env.CONFIG_PATH);
         return config.models ?? [];
     } catch (error) {
-        console.error(`Failed to load config file ${env.CONFIG_PATH}: ${error}`);
+        logger.error('Failed to load language model configuration', error);
         return [];
     }
 }
-
 
 export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel): Promise<{
     model: AISDKLanguageModelV2,

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Added
 - [Experimental][Sourcebot EE] Added GitLab permission syncing. [#585](https://github.com/sourcebot-dev/sourcebot/pull/585)
+- [Sourcebot EE] Added external identity provider config and support for multiple accounts. [#595](https://github.com/sourcebot-dev/sourcebot/pull/595)
 
 ### Fixed
 - [ask sb] Fixed issue where reasoning tokens would appear in `text` content for openai compatible models. [#582](https://github.com/sourcebot-dev/sourcebot/pull/582)

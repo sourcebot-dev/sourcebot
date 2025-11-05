@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { LoginForm } from "./components/loginForm";
 import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
-import { getAuthProviders } from "@/lib/authProviders";
+import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
@@ -25,7 +25,7 @@ export default async function Login(props: LoginProps) {
         return redirect("/onboard");
     }
 
-    const providers = getAuthProviders();
+    const providers = getIdentityProviderMetadata();
     return (
         <div className="flex flex-col min-h-screen bg-backgroundSecondary">
             <div className="flex-1 flex flex-col items-center p-4 sm:p-12 w-full">

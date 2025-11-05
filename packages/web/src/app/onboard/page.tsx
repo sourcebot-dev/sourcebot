@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { AuthMethodSelector } from "@/app/components/authMethodSelector"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth";
-import { getAuthProviders } from "@/lib/authProviders";
+import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { OrganizationAccessSettings } from "@/app/components/organizationAccessSettings";
 import { CompleteOnboardingButton } from "./components/completeOnboardingButton";
 import { getOrgFromDomain } from "@/data/org";
@@ -41,7 +41,7 @@ interface ResourceCard {
 
 export default async function Onboarding(props: OnboardingProps) {
     const searchParams = await props.searchParams;
-    const providers = getAuthProviders();
+    const providers = getIdentityProviderMetadata();
     const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
     const session = await auth();
 

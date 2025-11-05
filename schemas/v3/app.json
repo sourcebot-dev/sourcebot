@@ -6,7 +6,7 @@
             "type": "object",
             "properties": {
                 "type": {
-                    "const": "githubApp",
+                    "const": "github",
                     "description": "GitHub App Configuration"
                 },
                 "deploymentHostname": {

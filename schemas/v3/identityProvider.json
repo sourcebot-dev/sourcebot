@@ -1,0 +1,198 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "IdentityProviderConfig",
+    "definitions": {
+        "GitHubIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "github"
+                },
+                "purpose": {
+                    "enum": ["sso", "account_linking"]
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "baseUrl": {
+                    "type": "string",
+                    "format": "url",
+                    "default": "https://github.com",
+                    "description": "The URL of the GitHub host. Defaults to https://github.com",
+                    "examples": [
+                        "https://github.com",
+                        "https://github.example.com"
+                    ],
+                    "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+                },
+                "accountLinkingRequired": {
+                    "type": "boolean",
+                    "default": false
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret"]
+        },
+        "GitLabIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "gitlab"
+                },
+                "purpose": {
+                    "enum": ["sso", "account_linking"]
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "baseUrl": {
+                    "type": "string",
+                    "format": "url",
+                    "default": "https://gitlab.com",
+                    "description": "The URL of the GitLab host. Defaults to https://gitlab.com",
+                    "examples": [
+                        "https://gitlab.com",
+                        "https://gitlab.example.com"
+                    ],
+                    "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+                },
+                "accountLinkingRequired": {
+                    "type": "boolean",
+                    "default": false
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret"]
+        },
+        "GoogleIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "google"
+                },
+                "purpose": {
+                    "const": "sso"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret"]
+        },
+        "OktaIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "okta"
+                },
+                "purpose": {
+                    "const": "sso"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "issuer": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret", "issuer"]
+        },
+        "KeycloakIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "keycloak"
+                },
+                "purpose": {
+                    "const": "sso"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "issuer": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret", "issuer"]
+        },
+        "MicrosoftEntraIDIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "microsoft-entra-id"
+                },
+                "purpose": {
+                    "const": "sso"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "issuer": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret", "issuer"]
+        },
+        "GCPIAPIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "gcp-iap"
+                },
+                "purpose": {
+                    "const": "sso"
+                },
+                "audience": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "purpose", "audience"]
+        }
+    },
+    "oneOf": [
+        {
+            "$ref": "#/definitions/GitHubIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/GitLabIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/GoogleIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/OktaIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/KeycloakIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/MicrosoftEntraIDIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/GCPIAPIdentityProviderConfig"
+        }
+    ]
+}

@@ -6,12 +6,12 @@ import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import Link from "next/link";
-import type { AuthProvider } from "@/lib/authProviders";
+import type { IdentityProviderMetadata } from "@/lib/identityProviders";
 
 interface LoginFormProps {
     callbackUrl?: string;
     error?: string;
-    providers: AuthProvider[];
+    providers: IdentityProviderMetadata[];
     context: "login" | "signup";
 }
 

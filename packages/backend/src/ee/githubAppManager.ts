@@ -50,7 +50,7 @@ export class GithubAppManager {
             return;
         }
 
-        const githubApps = config.apps.filter(app => app.type === 'githubApp') as GitHubAppConfig[];
+        const githubApps = config.apps.filter(app => app.type === 'github') as GitHubAppConfig[];
         logger.info(`Found ${githubApps.length} GitHub apps in config`);
 
         for (const app of githubApps) {
