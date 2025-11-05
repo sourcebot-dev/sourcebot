@@ -20,7 +20,7 @@ if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
  * Creates a prisma client extension that scopes queries to striclty information
  * a given user should be able to access.
  */
-export const userScopedPrismaClientExtension = (userId?: string) => {
+export const userScopedPrismaClientExtension = (accountIds?: string[]) => {
     return Prisma.defineExtension(
         (prisma) => {
             return prisma.$extends({
@@ -28,17 +28,21 @@ export const userScopedPrismaClientExtension = (userId?: string) => {
                     ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ? {
                         repo: {
                             async $allOperations({ args, query }) {
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                const argsWithWhere = args as any;
+                                const argsWithWhere = args as Record<string, unknown> & {
+                                    where?: Prisma.RepoWhereInput;
+                                }
+
                                 argsWithWhere.where = {
                                     ...(argsWithWhere.where || {}),
                                     OR: [
                                         // Only include repos that are permitted to the user
-                                        ...(userId ? [
+                                        ...(accountIds ? [
                                             {
-                                                permittedUsers: {
+                                                permittedAccounts: {
                                                     some: {
-                                                        userId,
+                                                        accountId: {
+                                                            in: accountIds,
+                                                        }
                                                     }
                                                 }
                                             },
@@ -48,7 +52,7 @@ export const userScopedPrismaClientExtension = (userId?: string) => {
                                             isPublic: true,
                                         }
                                     ]
-                                }
+                                };
 
                                 return query(args);
                             }

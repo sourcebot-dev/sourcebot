@@ -11,7 +11,7 @@ import { ConnectionManager } from './connectionManager.js';
 import { INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
-import { UserPermissionSyncer } from "./ee/userPermissionSyncer.js";
+import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
 import { env } from "./env.js";
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from "./repoIndexManager.js";
@@ -52,7 +52,7 @@ if (hasEntitlement('github-app')) {
 
 const connectionManager = new ConnectionManager(prisma, settings, redis, promClient);
 const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
-const userPermissionSyncer = new UserPermissionSyncer(prisma, settings, redis);
+const accountPermissionSyncer = new AccountPermissionSyncer(prisma, settings, redis);
 const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClient);
 const configManager = new ConfigManager(prisma, connectionManager, env.CONFIG_PATH);
 
@@ -65,7 +65,7 @@ if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('per
 }
 else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')) {
     repoPermissionSyncer.startScheduler();
-    userPermissionSyncer.startScheduler();
+    accountPermissionSyncer.startScheduler();
 }
 
 logger.info('Worker started.');
@@ -81,7 +81,7 @@ const cleanup = async (signal: string) => {
                 repoIndexManager.dispose(),
                 connectionManager.dispose(),
                 repoPermissionSyncer.dispose(),
-                userPermissionSyncer.dispose(),
+                accountPermissionSyncer.dispose(),
                 promClient.dispose(),
                 configManager.dispose(),
             ]),

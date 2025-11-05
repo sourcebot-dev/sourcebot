@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/node";
-import { PrismaClient, User, UserPermissionSyncJobStatus } from "@sourcebot/db";
+import { PrismaClient, AccountPermissionSyncJobStatus, Account } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/logger";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
@@ -14,16 +14,15 @@ const LOG_TAG = 'user-permission-syncer';
 const logger = createLogger(LOG_TAG);
 const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 
-const QUEUE_NAME = 'userPermissionSyncQueue';
+const QUEUE_NAME = 'accountPermissionSyncQueue';
 
-type UserPermissionSyncJob = {
+type AccountPermissionSyncJob = {
     jobId: string;
 }
 
-
-export class UserPermissionSyncer {
-    private queue: Queue<UserPermissionSyncJob>;
-    private worker: Worker<UserPermissionSyncJob>;
+export class AccountPermissionSyncer {
+    private queue: Queue<AccountPermissionSyncJob>;
+    private worker: Worker<AccountPermissionSyncJob>;
     private interval?: NodeJS.Timeout;
 
     constructor(
@@ -31,10 +30,10 @@ export class UserPermissionSyncer {
         private settings: Settings,
         redis: Redis,
     ) {
-        this.queue = new Queue<UserPermissionSyncJob>(QUEUE_NAME, {
+        this.queue = new Queue<AccountPermissionSyncJob>(QUEUE_NAME, {
             connection: redis,
         });
-        this.worker = new Worker<UserPermissionSyncJob>(QUEUE_NAME, this.runJob.bind(this), {
+        this.worker = new Worker<AccountPermissionSyncJob>(QUEUE_NAME, this.runJob.bind(this), {
             connection: redis,
             concurrency: 1,
         });
@@ -52,16 +51,12 @@ export class UserPermissionSyncer {
         this.interval = setInterval(async () => {
             const thresholdDate = new Date(Date.now() - this.settings.experiment_userDrivenPermissionSyncIntervalMs);
 
-            const users = await this.db.user.findMany({
+            const accounts = await this.db.account.findMany({
                 where: {
                     AND: [
                         {
-                            accounts: {
-                                some: {
-                                    provider: {
-                                        in: PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES
-                                    }
-                                }
+                            provider: {
+                                in: PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES
                             }
                         },
                         {
@@ -79,15 +74,15 @@ export class UserPermissionSyncer {
                                             {
                                                 status: {
                                                     in: [
-                                                        UserPermissionSyncJobStatus.PENDING,
-                                                        UserPermissionSyncJobStatus.IN_PROGRESS,
+                                                        AccountPermissionSyncJobStatus.PENDING,
+                                                        AccountPermissionSyncJobStatus.IN_PROGRESS,
                                                     ],
                                                 }
                                             },
                                             // Don't schedule if there are recent failed jobs (within the threshold date). Note `gt` is used here since this is a inverse condition.
                                             {
                                                 AND: [
-                                                    { status: UserPermissionSyncJobStatus.FAILED },
+                                                    { status: AccountPermissionSyncJobStatus.FAILED },
                                                     { completedAt: { gt: thresholdDate } },
                                                 ]
                                             }
@@ -100,7 +95,7 @@ export class UserPermissionSyncer {
                 }
             });
 
-            await this.schedulePermissionSync(users);
+            await this.schedulePermissionSync(accounts);
         }, 1000 * 5);
     }
 
@@ -112,18 +107,18 @@ export class UserPermissionSyncer {
         await this.queue.close();
     }
 
-    private async schedulePermissionSync(users: User[]) {
+    private async schedulePermissionSync(accounts: Account[]) {
         // @note: we don't perform this in a transaction because
         // we want to avoid the situation where a job is created and run
         // prior to the transaction being committed.
-        const jobs = await this.db.userPermissionSyncJob.createManyAndReturn({
-            data: users.map(user => ({
-                userId: user.id,
+        const jobs = await this.db.accountPermissionSyncJob.createManyAndReturn({
+            data: accounts.map(account => ({
+                accountId: account.id,
             })),
         });
 
         await this.queue.addBulk(jobs.map((job) => ({
-            name: 'userPermissionSyncJob',
+            name: 'accountPermissionSyncJob',
             data: {
                 jobId: job.id,
             },
@@ -134,103 +129,97 @@ export class UserPermissionSyncer {
         })))
     }
 
-    private async runJob(job: Job<UserPermissionSyncJob>) {
+    private async runJob(job: Job<AccountPermissionSyncJob>) {
         const id = job.data.jobId;
         const logger = createJobLogger(id);
 
-        const { user } = await this.db.userPermissionSyncJob.update({
+        const { account } = await this.db.accountPermissionSyncJob.update({
             where: {
                 id,
             },
             data: {
-                status: UserPermissionSyncJobStatus.IN_PROGRESS,
+                status: AccountPermissionSyncJobStatus.IN_PROGRESS,
             },
             select: {
-                user: {
+                account: {
                     include: {
-                        accounts: true,
+                        user: true,
                     }
                 }
             }
         });
 
-        if (!user) {
-            throw new Error(`User ${id} not found`);
-        }
-
-        logger.info(`Syncing permissions for user ${user.email}...`);
+        logger.info(`Syncing permissions for ${account.provider} account (id: ${account.id}) for user ${account.user.email}...`);
 
         // Get a list of all repos that the user has access to from all connected accounts.
         const repoIds = await (async () => {
             const aggregatedRepoIds: Set<number> = new Set();
 
-            for (const account of user.accounts) {
-                if (account.provider === 'github') {
-                    if (!account.access_token) {
-                        throw new Error(`User '${user.email}' does not have an GitHub OAuth access token associated with their GitHub account.`);
-                    }
-
-                    const { octokit } = await createOctokitFromToken({
-                        token: account.access_token,
-                        url: env.AUTH_EE_GITHUB_BASE_URL,
-                    });
-                    // @note: we only care about the private repos since we don't need to build a mapping
-                    // for public repos.
-                    // @see: packages/web/src/prisma.ts
-                    const githubRepos = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
-                    const gitHubRepoIds = githubRepos.map(repo => repo.id.toString());
-
-                    const repos = await this.db.repo.findMany({
-                        where: {
-                            external_codeHostType: 'github',
-                            external_id: {
-                                in: gitHubRepoIds,
-                            }
-                        }
-                    });
-
-                    repos.forEach(repo => aggregatedRepoIds.add(repo.id));
-                } else if (account.provider === 'gitlab') {
-                    if (!account.access_token) {
-                        throw new Error(`User '${user.email}' does not have a GitLab OAuth access token associated with their GitLab account.`);
-                    }
-
-                    const api = await createGitLabFromOAuthToken({
-                        oauthToken: account.access_token,
-                        url: env.AUTH_EE_GITLAB_BASE_URL,
-                    });
-
-                    // @note: we only care about the private and internal repos since we don't need to build a mapping
-                    // for public repos.
-                    // @see: packages/web/src/prisma.ts
-                    const privateGitLabProjects = await getProjectsForAuthenticatedUser('private', api);
-                    const internalGitLabProjects = await getProjectsForAuthenticatedUser('internal', api);
-
-                    const gitLabProjectIds = [
-                        ...privateGitLabProjects,
-                        ...internalGitLabProjects,
-                    ].map(project => project.id.toString());
-
-                    const repos = await this.db.repo.findMany({
-                        where: {
-                            external_codeHostType: 'gitlab',
-                            external_id: {
-                                in: gitLabProjectIds,
-                            }
-                        }
-                    });
-
-                    repos.forEach(repo => aggregatedRepoIds.add(repo.id));
+            if (account.provider === 'github') {
+                if (!account.access_token) {
+                    throw new Error(`User '${account.user.email}' does not have an GitHub OAuth access token associated with their GitHub account.`);
                 }
+
+                const { octokit } = await createOctokitFromToken({
+                    token: account.access_token,
+                    url: env.AUTH_EE_GITHUB_BASE_URL,
+                });
+                // @note: we only care about the private repos since we don't need to build a mapping
+                // for public repos.
+                // @see: packages/web/src/prisma.ts
+                const githubRepos = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
+                const gitHubRepoIds = githubRepos.map(repo => repo.id.toString());
+
+                const repos = await this.db.repo.findMany({
+                    where: {
+                        external_codeHostType: 'github',
+                        external_id: {
+                            in: gitHubRepoIds,
+                        }
+                    }
+                });
+
+                repos.forEach(repo => aggregatedRepoIds.add(repo.id));
+            } else if (account.provider === 'gitlab') {
+                if (!account.access_token) {
+                    throw new Error(`User '${account.user.email}' does not have a GitLab OAuth access token associated with their GitLab account.`);
+                }
+
+                const api = await createGitLabFromOAuthToken({
+                    oauthToken: account.access_token,
+                    url: env.AUTH_EE_GITLAB_BASE_URL,
+                });
+
+                // @note: we only care about the private and internal repos since we don't need to build a mapping
+                // for public repos.
+                // @see: packages/web/src/prisma.ts
+                const privateGitLabProjects = await getProjectsForAuthenticatedUser('private', api);
+                const internalGitLabProjects = await getProjectsForAuthenticatedUser('internal', api);
+
+                const gitLabProjectIds = [
+                    ...privateGitLabProjects,
+                    ...internalGitLabProjects,
+                ].map(project => project.id.toString());
+
+                const repos = await this.db.repo.findMany({
+                    where: {
+                        external_codeHostType: 'gitlab',
+                        external_id: {
+                            in: gitLabProjectIds,
+                        }
+                    }
+                });
+
+                repos.forEach(repo => aggregatedRepoIds.add(repo.id));
             }
 
             return Array.from(aggregatedRepoIds);
         })();
 
         await this.db.$transaction([
-            this.db.user.update({
+            this.db.account.update({
                 where: {
-                    id: user.id,
+                    id: account.id,
                 },
                 data: {
                     accessibleRepos: {
@@ -238,9 +227,9 @@ export class UserPermissionSyncer {
                     }
                 }
             }),
-            this.db.userToRepoPermission.createMany({
+            this.db.accountToRepoPermission.createMany({
                 data: repoIds.map(repoId => ({
-                    userId: user.id,
+                    accountId: account.id,
                     repoId,
                 })),
                 skipDuplicates: true,
@@ -248,31 +237,35 @@ export class UserPermissionSyncer {
         ]);
     }
 
-    private async onJobCompleted(job: Job<UserPermissionSyncJob>) {
+    private async onJobCompleted(job: Job<AccountPermissionSyncJob>) {
         const logger = createJobLogger(job.data.jobId);
 
-        const { user } = await this.db.userPermissionSyncJob.update({
+        const { account } = await this.db.accountPermissionSyncJob.update({
             where: {
                 id: job.data.jobId,
             },
             data: {
-                status: UserPermissionSyncJobStatus.COMPLETED,
-                user: {
+                status: AccountPermissionSyncJobStatus.COMPLETED,
+                account: {
                     update: {
                         permissionSyncedAt: new Date(),
-                    }
+                    },
                 },
                 completedAt: new Date(),
             },
             select: {
-                user: true
+                account: {
+                    include: {
+                        user: true,
+                    }
+                }
             }
         });
 
-        logger.info(`Permissions synced for user ${user.email}`);
+        logger.info(`Permissions synced for ${account.provider} account (id: ${account.id}) for user ${account.user.email}`);
     }
 
-    private async onJobFailed(job: Job<UserPermissionSyncJob> | undefined, err: Error) {
+    private async onJobFailed(job: Job<AccountPermissionSyncJob> | undefined, err: Error) {
         const logger = createJobLogger(job?.data.jobId ?? 'unknown');
 
         Sentry.captureException(err, {
@@ -282,26 +275,30 @@ export class UserPermissionSyncer {
             }
         });
 
-        const errorMessage = (email: string) => `User permission sync job failed for user ${email}: ${err.message}`;
+        const errorMessage = (accountId: string, email: string) => `Account permission sync job failed for account (id: ${accountId}) for user ${email}: ${err.message}`;
 
         if (job) {
-            const { user } = await this.db.userPermissionSyncJob.update({
+            const { account } = await this.db.accountPermissionSyncJob.update({
                 where: {
                     id: job.data.jobId,
                 },
                 data: {
-                    status: UserPermissionSyncJobStatus.FAILED,
+                    status: AccountPermissionSyncJobStatus.FAILED,
                     completedAt: new Date(),
                     errorMessage: err.message,
                 },
                 select: {
-                    user: true,
+                    account: {
+                        include: {
+                            user: true,
+                        }
+                    }
                 }
             });
 
-            logger.error(errorMessage(user.email ?? user.id));
+            logger.error(errorMessage(account.id, account.user.email ?? 'unknown user (email not found)'));
         } else {
-            logger.error(errorMessage('unknown job (id not found)'));
+            logger.error(errorMessage('unknown account (id not found)', 'unknown user (id not found)'));
         }
     }
 }

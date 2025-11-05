@@ -1,5 +1,5 @@
 import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_NAME } from '@/lib/constants';
-import { ApiKey, Org, PrismaClient, User } from '@prisma/client';
+import { Account, ApiKey, Org, PrismaClient, User } from '@prisma/client';
 import { beforeEach, vi } from 'vitest';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
 
@@ -35,7 +35,7 @@ export const MOCK_API_KEY: ApiKey = {
     createdById: '1',
 }
 
-export const MOCK_USER: User = {
+export const MOCK_USER_WITH_ACCOUNTS: User & { accounts: Account[] } = {
     id: '1',
     name: 'Test User',
     email: 'test@test.com',
@@ -44,7 +44,7 @@ export const MOCK_USER: User = {
     hashedPassword: null,
     emailVerified: null,
     image: null,
-    permissionSyncedAt: null
+    accounts: [],
 }
 
 export const userScopedPrismaClientExtension = vi.fn();
