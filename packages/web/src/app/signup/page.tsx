@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
 import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { createLogger } from "@sourcebot/shared";
-import { getAuthProviders } from "@/lib/authProviders";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
