@@ -19,6 +19,8 @@ import { GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdent
 
 const logger = createLogger('web-sso');
 
+const GITHUB_CLOUD_HOSTNAME = "github.com"
+
 export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
     const providers: IdentityProvider[] = [];
 
@@ -30,89 +32,93 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const providerConfig = identityProvider as GitHubIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const baseUrl = providerConfig.baseUrl ? await getTokenFromConfig(providerConfig.baseUrl) : undefined;
-            providers.push({ provider: createGitHubProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.required ?? false});
+            const baseUrl = providerConfig.baseUrl;
+            providers.push({ provider: createGitHubProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.accountLinkingRequired ?? false});
         }
         if (identityProvider.provider === "gitlab") {
             const providerConfig = identityProvider as GitLabIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const baseUrl = providerConfig.baseUrl ? await getTokenFromConfig(providerConfig.baseUrl) : undefined;
-            providers.push({ provider: createGitLabProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.required ?? false});
+            const baseUrl = providerConfig.baseUrl;
+            providers.push({ provider: createGitLabProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.accountLinkingRequired ?? false});
         }
         if (identityProvider.provider === "google") {
             const providerConfig = identityProvider as GoogleIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            providers.push({ provider: createGoogleProvider(clientId, clientSecret), purpose: "sso"});
+            providers.push({ provider: createGoogleProvider(clientId, clientSecret), purpose: providerConfig.purpose});
         }
         if (identityProvider.provider === "okta") {
             const providerConfig = identityProvider as OktaIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const issuer = await getTokenFromConfig(providerConfig.issuer);
-            providers.push({ provider: createOktaProvider(clientId, clientSecret, issuer), purpose: "sso"});
+            providers.push({ provider: createOktaProvider(clientId, clientSecret, issuer), purpose: providerConfig.purpose});
         }
         if (identityProvider.provider === "keycloak") {
             const providerConfig = identityProvider as KeycloakIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const issuer = await getTokenFromConfig(providerConfig.issuer);
-            providers.push({ provider: createKeycloakProvider(clientId, clientSecret, issuer), purpose: "sso" });
+            providers.push({ provider: createKeycloakProvider(clientId, clientSecret, issuer), purpose: providerConfig.purpose });
         }
         if (identityProvider.provider === "microsoft-entra-id") {
             const providerConfig = identityProvider as MicrosoftEntraIDIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const issuer = await getTokenFromConfig(providerConfig.issuer);
-            providers.push({ provider: createMicrosoftEntraIDProvider(clientId, clientSecret, issuer), purpose: "sso" });
+            providers.push({ provider: createMicrosoftEntraIDProvider(clientId, clientSecret, issuer), purpose: providerConfig.purpose });
         }
         if (identityProvider.provider === "gcp-iap") {
             const providerConfig = identityProvider as GCPIAPIdentityProviderConfig;
             const audience = await getTokenFromConfig(providerConfig.audience);
-            providers.push({ provider: createGCPIAPProvider(audience), purpose: "sso" });
+            providers.push({ provider: createGCPIAPProvider(audience), purpose: providerConfig.purpose });
         }
     }
 
-    // @deprecate
-    if (env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
-        providers.push({ provider: createGitHubProvider(env.AUTH_EE_GITHUB_CLIENT_ID, env.AUTH_EE_GITHUB_CLIENT_SECRET, env.AUTH_EE_GITHUB_BASE_URL), purpose: "sso" });
+    // @deprecate in favor of defining identity providers throught the identityProvider object in the config file. This was done to allow for more control over
+    // which identity providers are defined and their purpose. We've left this logic here to support backwards compat with deployments that expect these env vars,
+    // but this logic will be removed in the future
+    // We only go through this path if no identityProviders are defined in the config to prevent accidental duplication of providers
+    if (identityProviders.length == 0) {
+        if (env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
+            providers.push({ provider: createGitHubProvider(env.AUTH_EE_GITHUB_CLIENT_ID, env.AUTH_EE_GITHUB_CLIENT_SECRET, env.AUTH_EE_GITHUB_BASE_URL), purpose: "sso" });
+        }
+        
+        if (env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
+            providers.push({ provider: createGitLabProvider(env.AUTH_EE_GITLAB_CLIENT_ID, env.AUTH_EE_GITLAB_CLIENT_SECRET, env.AUTH_EE_GITLAB_BASE_URL), purpose: "sso" });
+        }
+        
+        if (env.AUTH_EE_GOOGLE_CLIENT_ID && env.AUTH_EE_GOOGLE_CLIENT_SECRET) {
+            providers.push({ provider: createGoogleProvider(env.AUTH_EE_GOOGLE_CLIENT_ID, env.AUTH_EE_GOOGLE_CLIENT_SECRET), purpose: "sso" });
+        }
+        
+        if (env.AUTH_EE_OKTA_CLIENT_ID && env.AUTH_EE_OKTA_CLIENT_SECRET && env.AUTH_EE_OKTA_ISSUER) {
+            providers.push({ provider: createOktaProvider(env.AUTH_EE_OKTA_CLIENT_ID, env.AUTH_EE_OKTA_CLIENT_SECRET, env.AUTH_EE_OKTA_ISSUER), purpose: "sso" });
+        }
+        
+        if (env.AUTH_EE_KEYCLOAK_CLIENT_ID && env.AUTH_EE_KEYCLOAK_CLIENT_SECRET && env.AUTH_EE_KEYCLOAK_ISSUER) {
+            providers.push({ provider: createKeycloakProvider(env.AUTH_EE_KEYCLOAK_CLIENT_ID, env.AUTH_EE_KEYCLOAK_CLIENT_SECRET, env.AUTH_EE_KEYCLOAK_ISSUER), purpose: "sso" });
+        }
+        
+        if (env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID && env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET && env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER) {
+            providers.push({ provider: createMicrosoftEntraIDProvider(env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID, env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET, env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER), purpose: "sso" });
+        }
+        
+        if (env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
+            providers.push({ provider: createGCPIAPProvider(env.AUTH_EE_GCP_IAP_AUDIENCE), purpose: "sso" });
+        }
     }
-
-    if (env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
-        providers.push({ provider: createGitLabProvider(env.AUTH_EE_GITLAB_CLIENT_ID, env.AUTH_EE_GITLAB_CLIENT_SECRET, env.AUTH_EE_GITLAB_BASE_URL), purpose: "sso" });
-    }
-
-    if (env.AUTH_EE_GOOGLE_CLIENT_ID && env.AUTH_EE_GOOGLE_CLIENT_SECRET) {
-        providers.push({ provider: createGoogleProvider(env.AUTH_EE_GOOGLE_CLIENT_ID, env.AUTH_EE_GOOGLE_CLIENT_SECRET), purpose: "sso" });
-    }
-
-    if (env.AUTH_EE_OKTA_CLIENT_ID && env.AUTH_EE_OKTA_CLIENT_SECRET && env.AUTH_EE_OKTA_ISSUER) {
-        providers.push({ provider: createOktaProvider(env.AUTH_EE_OKTA_CLIENT_ID, env.AUTH_EE_OKTA_CLIENT_SECRET, env.AUTH_EE_OKTA_ISSUER), purpose: "sso" });
-    }
-
-    if (env.AUTH_EE_KEYCLOAK_CLIENT_ID && env.AUTH_EE_KEYCLOAK_CLIENT_SECRET && env.AUTH_EE_KEYCLOAK_ISSUER) {
-        providers.push({ provider: createKeycloakProvider(env.AUTH_EE_KEYCLOAK_CLIENT_ID, env.AUTH_EE_KEYCLOAK_CLIENT_SECRET, env.AUTH_EE_KEYCLOAK_ISSUER), purpose: "sso" });
-    }
-
-    if (env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID && env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET && env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER) {
-        providers.push({ provider: createMicrosoftEntraIDProvider(env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID, env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET, env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER), purpose: "sso" });
-    }
-
-    if (env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
-        providers.push({ provider: createGCPIAPProvider(env.AUTH_EE_GCP_IAP_AUDIENCE), purpose: "sso" });
-    }
-
+        
     return providers;
 }
 
 const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl?: string): Provider => {
+    const hostname = baseUrl ? new URL(baseUrl).hostname : GITHUB_CLOUD_HOSTNAME
     return GitHub({
         clientId: clientId,
         clientSecret: clientSecret,
-        enterprise: {
-            baseUrl: baseUrl,
-        },
+        ...(hostname === GITHUB_CLOUD_HOSTNAME ? { enterprise: { baseUrl: baseUrl } } : {}), // if this is set the provider expects GHE so we need this check
         authorization: {
             params: {
                 scope: [

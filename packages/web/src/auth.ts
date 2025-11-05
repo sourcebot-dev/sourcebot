@@ -18,7 +18,7 @@ import { hasEntitlement } from '@sourcebot/shared';
 import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
-import { refreshIntegrationTokens } from '@/ee/features/permissionSyncing/tokenRefresh';
+import { refreshLinkedAccountTokens } from '@/ee/features/permissionSyncing/tokenRefresh';
 
 const auditService = getAuditService();
 const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
@@ -27,29 +27,32 @@ export const runtime = 'nodejs';
 
 export type IdentityProvider = {
     provider: Provider;
-    purpose: "sso" | "integration";
+    purpose: "sso" | "account_linking";
     required?: boolean;
 }
+
+export type LinkedAccountToken = {
+    provider: string;
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: number;
+    error?: string;
+};
+export type LinkedAccountTokensMap = Record<string, LinkedAccountToken>;
 
 declare module 'next-auth' {
     interface Session {
         user: {
             id: string;
         } & DefaultSession['user'];
-        integrationProviderErrors?: Record<string, string>;
+        linkedAccountProviderErrors?: Record<string, string>;
     }
 }
 
 declare module 'next-auth/jwt' {
     interface JWT {
         userId: string;
-        integrationTokens?: Record<string, {
-            accessToken: string;
-            refreshToken: string;
-            expiresAt: number;
-            error?: string;
-        }>;
-        error?: string;
+        linkedAccountTokens?: LinkedAccountTokensMap;
     }
 }
 
@@ -196,24 +199,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 token.userId = user.id;
             }
 
-            // When a user links a new account, store the tokens if it's an integration provider
-            if (account && hasEntitlement('permission-syncing')) {
-                if (account.access_token && account.refresh_token && account.expires_at) {
-                    token.integrationTokens = token.integrationTokens || {};
-                    token.integrationTokens[account.provider] = {
+            if (hasEntitlement('permission-syncing')) {
+                if (account && account.access_token && account.refresh_token && account.expires_at) {
+                    token.linkedAccountTokens = token.linkedAccountTokens || {};
+                    token.linkedAccountTokens[account.providerAccountId] = {
+                        provider: account.provider,
                         accessToken: account.access_token,
                         refreshToken: account.refresh_token,
                         expiresAt: account.expires_at,
                     };
                 }
-            }
 
-            // Refresh all integration provider tokens that are about to expire
-            if (hasEntitlement('permission-syncing') && token.integrationTokens) {
-                token.integrationTokens = await refreshIntegrationTokens(
-                    token.integrationTokens,
-                    token.userId
-                );
+                if (token.linkedAccountTokens) {
+                    token.linkedAccountTokens = await refreshLinkedAccountTokens(token.linkedAccountTokens);
+                }
             }
 
             return token;
@@ -226,16 +225,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 // Propagate the userId to the session.
                 id: token.userId,
             }
-            // Pass only integration provider errors to the session (not sensitive tokens)
-            if (token.integrationTokens) {
+            
+            // Pass only linked account provider errors to the session (not sensitive tokens)
+            if (token.linkedAccountTokens) {
                 const errors: Record<string, string> = {};
-                for (const [provider, tokenData] of Object.entries(token.integrationTokens)) {
+                for (const [providerAccountId, tokenData] of Object.entries(token.linkedAccountTokens)) {
                     if (tokenData.error) {
-                        errors[provider] = tokenData.error;
+                        errors[providerAccountId] = tokenData.error;
                     }
                 }
                 if (Object.keys(errors).length > 0) {
-                    session.integrationProviderErrors = errors;
+                    session.linkedAccountProviderErrors = errors;
                 }
             }
             return session;

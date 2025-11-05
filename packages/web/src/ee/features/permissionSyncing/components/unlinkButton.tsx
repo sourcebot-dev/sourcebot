@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Unlink, Loader2 } from "lucide-react";
-import { unlinkIntegrationProvider } from "../actions";
+import { unlinkLinkedAccountProvider } from "../actions";
 import { isServiceError } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/hooks/use-toast";
@@ -25,7 +25,7 @@ export const UnlinkButton = ({ provider, providerName }: UnlinkButtonProps) => {
 
         setIsUnlinking(true);
         try {
-            const result = await unlinkIntegrationProvider(provider);
+            const result = await unlinkLinkedAccountProvider(provider);
 
             if (isServiceError(result)) {
                 toast({

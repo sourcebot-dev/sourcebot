@@ -25,8 +25,15 @@ const sizeClasses = {
     }
 };
 
+const sizeDimensions = {
+    sm: { width: 16, height: 16 },
+    md: { width: 20, height: 20 },
+    lg: { width: 24, height: 24 }
+};
+
 export function ProviderIcon({ icon, displayName, size = "md" }: ProviderIconProps) {
     const sizes = sizeClasses[size];
+    const dimensions = sizeDimensions[size];
 
     if (icon) {
         return (
@@ -34,6 +41,8 @@ export function ProviderIcon({ icon, displayName, size = "md" }: ProviderIconPro
                 <Image
                     src={icon.src}
                     alt={displayName}
+                    width={dimensions.width}
+                    height={dimensions.height}
                     className={`${sizes.icon} ${icon.className || ''}`}
                 />
             </div>

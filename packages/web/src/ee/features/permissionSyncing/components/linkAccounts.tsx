@@ -5,15 +5,15 @@ import { Button } from "@/components/ui/button";
 import { skipOptionalProvidersLink } from "@/ee/features/permissionSyncing/actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { IntegrationProviderCard } from "./integrationProviderCard";
-import { IntegrationIdentityProviderState } from "@/ee/features/permissionSyncing/types";
+import { LinkedAccountProviderCard } from "./linkedAccountProviderCard";
+import { LinkedAccountProviderState } from "@/ee/features/permissionSyncing/types";
 
 interface LinkAccountsProps {
-    integrationProviderStates: IntegrationIdentityProviderState[]
+    linkedAccountProviderStates: LinkedAccountProviderState[]
     callbackUrl?: string;
 }
 
-export const LinkAccounts = ({ integrationProviderStates, callbackUrl }: LinkAccountsProps) => {
+export const LinkAccounts = ({ linkedAccountProviderStates, callbackUrl }: LinkAccountsProps) => {
     const router = useRouter();
     const [isSkipping, setIsSkipping] = useState(false);
 
@@ -29,7 +29,7 @@ export const LinkAccounts = ({ integrationProviderStates, callbackUrl }: LinkAcc
         }
     };
 
-    const canSkip = !integrationProviderStates.some(state => state.required && !state.isLinked);
+    const canSkip = !linkedAccountProviderStates.some(state => state.required && !state.isLinked);
     return (
         <Card>
             <CardHeader>
@@ -42,12 +42,12 @@ export const LinkAccounts = ({ integrationProviderStates, callbackUrl }: LinkAcc
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
-                    {integrationProviderStates
+                    {linkedAccountProviderStates
                         .sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))
                         .map(state => (
-                        <IntegrationProviderCard
+                        <LinkedAccountProviderCard
                             key={state.id}
-                            integrationProviderState={state}
+                            linkedAccountProviderState={state}
                             callbackUrl={callbackUrl}
                         />
                     ))}

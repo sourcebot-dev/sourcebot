@@ -1,20 +1,20 @@
 import { ShieldCheck } from "lucide-react";
-import { getIntegrationProviderStates } from "@/ee/features/permissionSyncing/actions"
+import { getLinkedAccountProviderStates } from "@/ee/features/permissionSyncing/actions"
 import { Card, CardContent } from "@/components/ui/card";
-import { IntegrationProviderCard } from "./integrationProviderCard";
+import { LinkedAccountProviderCard } from "./linkedAccountProviderCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { isServiceError } from "@/lib/utils";
 
 export async function LinkedAccountsSettings() {
-    const integrationProviderStates = await getIntegrationProviderStates();
-    if (isServiceError(integrationProviderStates)) {
+    const linkedAccountProviderStates = await getLinkedAccountProviderStates();
+    if (isServiceError(linkedAccountProviderStates)) {
         return <div className="min-h-screen flex flex-col items-center justify-center p-6">
             <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
             <div className="bg-red-50 border border-red-200 rounded-md p-6 max-w-md w-full text-center">
                 <h2 className="text-lg font-semibold text-red-800 mb-2">An error occurred</h2>
                 <p className="text-red-700 mb-1">
-                    {typeof integrationProviderStates.message === 'string'
-                        ? integrationProviderStates.message
+                    {typeof linkedAccountProviderStates.message === 'string'
+                        ? linkedAccountProviderStates.message
                         : "A server error occurred while checking your account status. Please try again or contact support."}
                 </p>
             </div>
@@ -30,7 +30,7 @@ export async function LinkedAccountsSettings() {
                 </p>
             </div>
 
-            {integrationProviderStates.length === 0 ? (
+            {linkedAccountProviderStates.length === 0 ? (
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                         <div className="rounded-full bg-muted p-3 mb-4">
@@ -44,13 +44,13 @@ export async function LinkedAccountsSettings() {
                 </Card>
             ) : (
                 <div className="space-y-4">
-                    {integrationProviderStates
+                    {linkedAccountProviderStates
                         .sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))
                         .map((state) => {
                             return (
-                                <IntegrationProviderCard
+                                <LinkedAccountProviderCard
                                     key={state.id}
-                                    integrationProviderState={state}
+                                    linkedAccountProviderState={state}
                                 />
                             );
                         })}

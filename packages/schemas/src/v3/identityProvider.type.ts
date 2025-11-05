@@ -11,7 +11,7 @@ export type IdentityProviderConfig =
 
 export interface GitHubIdentityProviderConfig {
   provider: "github";
-  purpose: "sso" | "integration";
+  purpose: "sso" | "account_linking";
   clientId:
     | {
         /**
@@ -38,25 +38,15 @@ export interface GitHubIdentityProviderConfig {
          */
         googleCloudSecret: string;
       };
-  baseUrl?:
-    | {
-        /**
-         * The name of the environment variable that contains the token.
-         */
-        env: string;
-      }
-    | {
-        /**
-         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
-         */
-        googleCloudSecret: string;
-      };
-  required?: boolean;
-  [k: string]: unknown;
+  /**
+   * The URL of the GitHub host. Defaults to https://github.com
+   */
+  baseUrl?: string;
+  accountLinkingRequired?: boolean;
 }
 export interface GitLabIdentityProviderConfig {
   provider: "gitlab";
-  purpose: "sso" | "integration";
+  purpose: "sso" | "account_linking";
   clientId:
     | {
         /**
@@ -83,24 +73,15 @@ export interface GitLabIdentityProviderConfig {
          */
         googleCloudSecret: string;
       };
-  baseUrl?:
-    | {
-        /**
-         * The name of the environment variable that contains the token.
-         */
-        env: string;
-      }
-    | {
-        /**
-         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
-         */
-        googleCloudSecret: string;
-      };
-  required?: boolean;
-  [k: string]: unknown;
+  /**
+   * The URL of the GitLab host. Defaults to https://gitlab.com
+   */
+  baseUrl?: string;
+  accountLinkingRequired?: boolean;
 }
 export interface GoogleIdentityProviderConfig {
   provider: "google";
+  purpose: "sso";
   clientId:
     | {
         /**
@@ -127,10 +108,10 @@ export interface GoogleIdentityProviderConfig {
          */
         googleCloudSecret: string;
       };
-  [k: string]: unknown;
 }
 export interface OktaIdentityProviderConfig {
   provider: "okta";
+  purpose: "sso";
   clientId:
     | {
         /**
@@ -170,10 +151,10 @@ export interface OktaIdentityProviderConfig {
          */
         googleCloudSecret: string;
       };
-  [k: string]: unknown;
 }
 export interface KeycloakIdentityProviderConfig {
   provider: "keycloak";
+  purpose: "sso";
   clientId:
     | {
         /**
@@ -213,10 +194,10 @@ export interface KeycloakIdentityProviderConfig {
          */
         googleCloudSecret: string;
       };
-  [k: string]: unknown;
 }
 export interface MicrosoftEntraIDIdentityProviderConfig {
   provider: "microsoft-entra-id";
+  purpose: "sso";
   clientId:
     | {
         /**
@@ -256,10 +237,10 @@ export interface MicrosoftEntraIDIdentityProviderConfig {
          */
         googleCloudSecret: string;
       };
-  [k: string]: unknown;
 }
 export interface GCPIAPIdentityProviderConfig {
   provider: "gcp-iap";
+  purpose: "sso";
   audience:
     | {
         /**
@@ -273,5 +254,4 @@ export interface GCPIAPIdentityProviderConfig {
          */
         googleCloudSecret: string;
       };
-  [k: string]: unknown;
 }

@@ -21,9 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Removed
 - Removed built-in secret manager. [#592](https://github.com/sourcebot-dev/sourcebot/pull/592)
 
-## Removed
-- Removed built-in secret manager. [#592](https://github.com/sourcebot-dev/sourcebot/pull/592)
-
 ## [4.8.1] - 2025-10-29
 
 ### Fixed

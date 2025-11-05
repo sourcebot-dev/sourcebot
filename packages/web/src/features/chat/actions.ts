@@ -22,6 +22,7 @@ import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { getTokenFromConfig } from "@sourcebot/crypto";
 import { ChatVisibility, OrgRole, Prisma } from "@sourcebot/db";
+import { createLogger } from "@sourcebot/logger";
 import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
 import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { generateText, JSONValue, extractReasoningMiddleware, wrapLanguageModel } from "ai";
@@ -30,6 +31,8 @@ import fs from 'fs';
 import { StatusCodes } from "http-status-codes";
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from "./types";
+
+const logger = createLogger('chat-actions');
 
 export const createChat = async (domain: string) => sew(() =>
     withAuth((userId) =>
@@ -360,10 +363,14 @@ export const getConfiguredLanguageModelsInfo = async (): Promise<LanguageModelIn
  * or pass the result of calling this function to the client.
  */
 export const _getConfiguredLanguageModelsFull = async (): Promise<LanguageModel[]> => {
-    const config = await loadConfig(env.CONFIG_PATH);
-    return config.models ?? [];
+    try {
+        const config = await loadConfig(env.CONFIG_PATH);
+        return config.models ?? [];
+    } catch (error) {
+        logger.error('Failed to load language model configuration', error);
+        return [];
+    }
 }
-
 
 export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel): Promise<{
     model: AISDKLanguageModelV2,

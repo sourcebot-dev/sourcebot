@@ -5,19 +5,19 @@ import { ProviderIcon } from "./providerIcon";
 import { ProviderInfo } from "./providerInfo";
 import { UnlinkButton } from "./unlinkButton";
 import { LinkButton } from "./linkButton";
-import { IntegrationIdentityProviderState } from "@/ee/features/permissionSyncing/types"
+import { LinkedAccountProviderState } from "@/ee/features/permissionSyncing/types"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
-interface IntegrationProviderCardProps {
-    integrationProviderState: IntegrationIdentityProviderState;
+interface LinkedAccountProviderCardProps {
+    linkedAccountProviderState: LinkedAccountProviderState;
     callbackUrl?: string;
 }
 
-export function IntegrationProviderCard({
-    integrationProviderState,
+export function LinkedAccountProviderCard({
+    linkedAccountProviderState,
     callbackUrl,
-}: IntegrationProviderCardProps) {
-    const providerInfo = getAuthProviderInfo(integrationProviderState.id);
+}: LinkedAccountProviderCardProps) {
+    const providerInfo = getAuthProviderInfo(linkedAccountProviderState.id);
     const defaultCallbackUrl = `/${SINGLE_TENANT_ORG_DOMAIN}/settings/permission-syncing`;
 
     return (
@@ -35,14 +35,14 @@ export function IntegrationProviderCard({
                         <div className="flex flex-col gap-1.5 min-w-0 flex-1">
                             <CardTitle className="text-base">
                                 <ProviderInfo
-                                    providerId={integrationProviderState.id}
-                                    required={integrationProviderState.required}
+                                    providerId={linkedAccountProviderState.id}
+                                    required={linkedAccountProviderState.required}
                                     showBadge={true}
                                 />
                             </CardTitle>
                             <CardDescription className="text-xs">
                                 <div className="flex flex-col gap-1.5">
-                                    {integrationProviderState.isLinked? (
+                                    {linkedAccountProviderState.isLinked? (
                                         <div className="flex items-center gap-2">
                                             <div className="flex items-center gap-1.5">
                                                 <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-500" />
@@ -50,11 +50,11 @@ export function IntegrationProviderCard({
                                                     Connected
                                                 </span>
                                             </div>
-                                            {integrationProviderState.linkedAccountId && (
+                                            {linkedAccountProviderState.linkedAccountId && (
                                                 <>
                                                     <span className="text-muted-foreground">•</span>
                                                     <span className="text-muted-foreground font-mono truncate">
-                                                        {integrationProviderState.linkedAccountId}
+                                                        {linkedAccountProviderState.linkedAccountId}
                                                     </span>
                                                 </>
                                             )}
@@ -67,7 +67,7 @@ export function IntegrationProviderCard({
                                             </span>
                                         </div>
                                     )}
-                                    {integrationProviderState.error && (
+                                    {linkedAccountProviderState.error && (
                                         <div className="flex items-center gap-1.5">
                                             <AlertCircle className="h-3.5 w-3.5 text-destructive" />
                                             <span className="text-destructive font-medium">
@@ -80,14 +80,14 @@ export function IntegrationProviderCard({
                         </div>
                     </div>
                     <div className="flex-shrink-0 ml-4">
-                        {integrationProviderState.isLinked? (
+                        {linkedAccountProviderState.isLinked? (
                             <UnlinkButton
-                                provider={integrationProviderState.id}
+                                provider={linkedAccountProviderState.id}
                                 providerName={providerInfo.displayName}
                             />
                         ) : (
                             <LinkButton
-                                provider={integrationProviderState.id}
+                                provider={linkedAccountProviderState.id}
                                 callbackUrl={callbackUrl ?? defaultCallbackUrl}
                             />
                         )}

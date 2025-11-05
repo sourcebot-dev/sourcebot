@@ -3,7 +3,7 @@ import { getProviders } from "@/auth";
 export interface IdentityProviderMetadata {
     id: string;
     name: string;
-    purpose: "sso" | "integration";
+    purpose: "sso" | "account_linking";
     required: boolean;
 }
 

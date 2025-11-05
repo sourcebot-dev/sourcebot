@@ -8,21 +8,21 @@ import { env } from "@/env.mjs";
 import { OrgRole } from "@sourcebot/db";
 import { cookies } from "next/headers";
 import { OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from "@/lib/constants";
-import { IntegrationIdentityProviderState } from "@/ee/features/permissionSyncing/types";
+import { LinkedAccountProviderState } from "@/ee/features/permissionSyncing/types";
 import { auth } from "@/auth";
 
 const logger = createLogger('web-ee-permission-syncing-actions');
 
-export const getIntegrationProviderStates = async () => sew(() =>
+export const getLinkedAccountProviderStates = async () => sew(() =>
     withAuthV2(async ({ prisma, role, user }) =>
         withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
             const config = await loadConfig(env.CONFIG_PATH);
-            const integrationProviderConfigs = config.identityProviders ?? [];
+            const linkedAccountProviderConfigs = config.identityProviders ?? [];
             const linkedAccounts = await prisma.account.findMany({
                 where: {
                     userId: user.id,
                     provider: {
-                        in: integrationProviderConfigs.map(p => p.provider)
+                        in: linkedAccountProviderConfigs.map(p => p.provider)
                     }
                 },
                 select: {
@@ -33,44 +33,44 @@ export const getIntegrationProviderStates = async () => sew(() =>
 
             // Fetch the session to get token errors
             const session = await auth();
-            const providerErrors = session?.integrationProviderErrors;
+            const providerErrors = session?.linkedAccountProviderErrors;
 
-            const integrationProviderState: IntegrationIdentityProviderState[] = [];
-            for (const integrationProviderConfig of integrationProviderConfigs) {
-                if (integrationProviderConfig.purpose === "integration") {
+            const linkedAccountProviderState: LinkedAccountProviderState[] = [];
+            for (const linkedAccountProviderConfig of linkedAccountProviderConfigs) {
+                if (linkedAccountProviderConfig.purpose === "account_linking") {
                     const linkedAccount = linkedAccounts.find(
-                        account => account.provider === integrationProviderConfig.provider
+                        account => account.provider === linkedAccountProviderConfig.provider
                     );
 
                     const isLinked = !!linkedAccount;
-                    const isRequired = integrationProviderConfig.required ?? false;
-                    const providerError = providerErrors?.[integrationProviderConfig.provider];
+                    const isRequired = linkedAccountProviderConfig.accountLinkingRequired ?? false;
+                    const providerError = linkedAccount ? providerErrors?.[linkedAccount.providerAccountId] : undefined;
 
-                    integrationProviderState.push({
-                        id: integrationProviderConfig.provider,
+                    linkedAccountProviderState.push({
+                        id: linkedAccountProviderConfig.provider,
                         required: isRequired,
                         isLinked,
                         linkedAccountId: linkedAccount?.providerAccountId,
                         error: providerError
-                    } as IntegrationIdentityProviderState);
+                    } as LinkedAccountProviderState);
                 }
             }
 
-            return integrationProviderState;
+            return linkedAccountProviderState;
         })
     )
 );
 
 
-export const unlinkIntegrationProvider = async (provider: string) => sew(() =>
+export const unlinkLinkedAccountProvider = async (provider: string) => sew(() =>
     withAuthV2(async ({ prisma, role, user }) =>
         withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
             const config = await loadConfig(env.CONFIG_PATH);
             const identityProviders = config.identityProviders ?? [];
 
             const providerConfig = identityProviders.find(idp => idp.provider === provider)
-            if (!providerConfig || !('purpose' in providerConfig) || providerConfig.purpose !== "integration") {
-                throw new Error("Provider is not an integration provider");
+            if (!providerConfig || providerConfig.purpose !== "account_linking") {
+                throw new Error("Provider is not a linked account provider");
             }
 
             // Delete the account
@@ -81,11 +81,11 @@ export const unlinkIntegrationProvider = async (provider: string) => sew(() =>
                 },
             });
 
-            logger.info(`Unlinked integration provider ${provider} for user ${user.id}. Deleted ${result.count} account(s).`);
+            logger.info(`Unlinked account provider ${provider} for user ${user.id}. Deleted ${result.count} account(s).`);
 
             // If we're unlinking a required identity provider then we want to wipe the optional skip cookie if it exists so that we give the
             // user the option of linking optional providers in the same link accounts screen
-            const isRequired = providerConfig.required ?? false;
+            const isRequired = providerConfig.accountLinkingRequired ?? false;
             if (isRequired) {
                 const cookieStore = await cookies();
                 cookieStore.delete(OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME);
