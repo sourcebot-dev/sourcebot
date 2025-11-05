@@ -20,11 +20,6 @@ External identity providers can be used for [authentication](/docs/configuration
             "provider": "github",
             "purpose": "account_linking",
             "accountLinkingRequired": true,
-/*
-Secrets are provided through environment variables. Set the secret into
-an env var and provide the name here to tell Sourcebot where to get
-the value
-*/
             "clientId": {
                 "env": "GITHUB_IDENTITY_PROVIDER_CLIENT_ID"
             },
@@ -44,6 +39,8 @@ the value
     ]
 }
 ```
+
+Secret values (such as `clientId` and `clientSecret`) can be provided as environment variables or Google Cloud secrets via [tokens](/docs/configuration/config-file#tokens).
 
 # Supported External Identity Providers
 
