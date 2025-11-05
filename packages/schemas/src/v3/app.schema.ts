@@ -7,7 +7,7 @@ const schema = {
       "type": "object",
       "properties": {
         "type": {
-          "const": "githubApp",
+          "const": "github",
           "description": "GitHub App Configuration"
         },
         "deploymentHostname": {
@@ -69,7 +69,7 @@ const schema = {
       "type": "object",
       "properties": {
         "type": {
-          "const": "githubApp",
+          "const": "github",
           "description": "GitHub App Configuration"
         },
         "deploymentHostname": {
