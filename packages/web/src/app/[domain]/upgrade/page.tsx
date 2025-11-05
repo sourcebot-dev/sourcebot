@@ -8,7 +8,7 @@ import { isServiceError } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@radix-ui/react-icons";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 

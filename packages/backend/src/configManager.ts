@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { loadConfig } from "@sourcebot/shared";
 import chokidar, { FSWatcher } from 'chokidar';

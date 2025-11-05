@@ -1,10 +1,9 @@
 'use server';
 
 import { sew } from "@/actions";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger, env } from "@sourcebot/shared";
 import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
 import { loadConfig } from "@sourcebot/shared";
-import { env } from "@/env.mjs";
 import { OrgRole } from "@sourcebot/db";
 import { cookies } from "next/headers";
 import { OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from "@/lib/constants";

@@ -4,7 +4,7 @@ import { Info, Mail } from "lucide-react";
 import { getOrgMembers } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { notFound, ServiceErrorException } from "@/lib/serviceError";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared/client";
 
 interface LicensePageProps {
     params: Promise<{

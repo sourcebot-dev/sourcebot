@@ -7893,13 +7893,9 @@ __metadata:
     "@sentry/cli": "npm:^2.42.2"
     "@sentry/node": "npm:^9.3.0"
     "@sentry/profiling-node": "npm:^9.3.0"
-    "@sourcebot/crypto": "workspace:*"
     "@sourcebot/db": "workspace:*"
-    "@sourcebot/error": "workspace:*"
-    "@sourcebot/logger": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@sourcebot/shared": "workspace:*"
-    "@t3-oss/env-core": "npm:^0.12.0"
     "@types/argparse": "npm:^2.0.16"
     "@types/express": "npm:^5.0.0"
     "@types/micromatch": "npm:^4.0.9"
@@ -7928,7 +7924,7 @@ __metadata:
     tsx: "npm:^4.19.1"
     typescript: "npm:^5.6.2"
     vitest: "npm:^2.1.9"
-    zod: "npm:^3.24.3"
+    zod: "npm:^3.25.74"
   languageName: unknown
   linkType: soft
 
@@ -7946,25 +7942,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sourcebot/crypto@workspace:*, @sourcebot/crypto@workspace:packages/crypto":
-  version: 0.0.0-use.local
-  resolution: "@sourcebot/crypto@workspace:packages/crypto"
-  dependencies:
-    "@google-cloud/secret-manager": "npm:^6.1.1"
-    "@sourcebot/db": "npm:*"
-    "@sourcebot/schemas": "npm:*"
-    "@types/node": "npm:^22.7.5"
-    dotenv: "npm:^16.4.5"
-    typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@sourcebot/db@npm:*, @sourcebot/db@workspace:*, @sourcebot/db@workspace:packages/db":
+"@sourcebot/db@workspace:*, @sourcebot/db@workspace:packages/db":
   version: 0.0.0-use.local
   resolution: "@sourcebot/db@workspace:packages/db"
   dependencies:
     "@prisma/client": "npm:6.2.1"
-    "@sourcebot/logger": "workspace:*"
     "@types/argparse": "npm:^2.0.16"
     "@types/readline-sync": "npm:^1.4.8"
     argparse: "npm:^2.0.1"
@@ -7972,31 +7954,6 @@ __metadata:
     readline-sync: "npm:^1.4.10"
     tsx: "npm:^4.19.1"
     typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@sourcebot/error@workspace:*, @sourcebot/error@workspace:packages/error":
-  version: 0.0.0-use.local
-  resolution: "@sourcebot/error@workspace:packages/error"
-  dependencies:
-    "@types/node": "npm:^22.7.5"
-    typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@sourcebot/logger@workspace:*, @sourcebot/logger@workspace:packages/logger":
-  version: 0.0.0-use.local
-  resolution: "@sourcebot/logger@workspace:packages/logger"
-  dependencies:
-    "@logtail/node": "npm:^0.5.2"
-    "@logtail/winston": "npm:^0.5.2"
-    "@t3-oss/env-core": "npm:^0.12.0"
-    "@types/node": "npm:^22.7.5"
-    dotenv: "npm:^16.4.5"
-    triple-beam: "npm:^1.4.1"
-    typescript: "npm:^5.7.3"
-    winston: "npm:^3.15.0"
-    zod: "npm:^3.24.3"
   languageName: unknown
   linkType: soft
 
@@ -8019,7 +7976,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sourcebot/schemas@npm:*, @sourcebot/schemas@workspace:*, @sourcebot/schemas@workspace:packages/schemas":
+"@sourcebot/schemas@workspace:*, @sourcebot/schemas@workspace:packages/schemas":
   version: 0.0.0-use.local
   resolution: "@sourcebot/schemas@workspace:packages/schemas"
   dependencies:
@@ -8036,9 +7993,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@sourcebot/shared@workspace:packages/shared"
   dependencies:
-    "@sourcebot/crypto": "workspace:*"
+    "@google-cloud/secret-manager": "npm:^6.1.1"
+    "@logtail/node": "npm:^0.5.2"
+    "@logtail/winston": "npm:^0.5.2"
     "@sourcebot/db": "workspace:*"
-    "@sourcebot/logger": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@t3-oss/env-core": "npm:^0.12.0"
     "@types/micromatch": "npm:^4.0.9"
@@ -8046,9 +8004,12 @@ __metadata:
     ajv: "npm:^8.17.1"
     micromatch: "npm:^4.0.8"
     strip-json-comments: "npm:^5.0.1"
+    triple-beam: "npm:^1.4.1"
     tsc-watch: "npm:6.2.1"
+    tsx: "npm:^4.19.1"
     typescript: "npm:^5.7.3"
-    zod: "npm:^3.24.3"
+    winston: "npm:^3.15.0"
+    zod: "npm:^3.25.74"
   languageName: unknown
   linkType: soft
 
@@ -8135,16 +8096,12 @@ __metadata:
     "@sentry/nextjs": "npm:^9"
     "@shopify/lang-jsonc": "npm:^1.0.0"
     "@sourcebot/codemirror-lang-tcl": "npm:^1.0.12"
-    "@sourcebot/crypto": "workspace:*"
     "@sourcebot/db": "workspace:*"
-    "@sourcebot/error": "workspace:*"
-    "@sourcebot/logger": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@sourcebot/shared": "workspace:*"
     "@ssddanbrown/codemirror-lang-twig": "npm:^1.0.0"
     "@stripe/react-stripe-js": "npm:^3.1.1"
     "@stripe/stripe-js": "npm:^5.6.0"
-    "@t3-oss/env-nextjs": "npm:^0.12.0"
     "@tailwindcss/typography": "npm:^0.5.16"
     "@tanstack/eslint-plugin-query": "npm:^5.74.7"
     "@tanstack/react-query": "npm:^5.53.3"
@@ -8323,7 +8280,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@t3-oss/env-core@npm:0.12.0, @t3-oss/env-core@npm:^0.12.0":
+"@t3-oss/env-core@npm:^0.12.0":
   version: 0.12.0
   resolution: "@t3-oss/env-core@npm:0.12.0"
   peerDependencies:
@@ -8357,26 +8314,6 @@ __metadata:
     zod:
       optional: true
   checksum: 10c0/3598c1582b4cd0aead095a492d60cb7656ffa308c0362744fe32f04ec6563601c04d898c0da7b5efb4dc7ace1d3b18a77f268a15a9e940a6997d9dd84f86a749
-  languageName: node
-  linkType: hard
-
-"@t3-oss/env-nextjs@npm:^0.12.0":
-  version: 0.12.0
-  resolution: "@t3-oss/env-nextjs@npm:0.12.0"
-  dependencies:
-    "@t3-oss/env-core": "npm:0.12.0"
-  peerDependencies:
-    typescript: ">=5.0.0"
-    valibot: ^1.0.0-beta.7 || ^1.0.0
-    zod: ^3.24.0
-  peerDependenciesMeta:
-    typescript:
-      optional: true
-    valibot:
-      optional: true
-    zod:
-      optional: true
-  checksum: 10c0/f39cae67353c09818b13836cf1f0ab8186058f6fd2f5e8983f43c8601f1cd6948d3a159a2f166420049080ca56e73ba69e483229f21593aba0d6d8f4cf79ef32
   languageName: node
   linkType: hard
 

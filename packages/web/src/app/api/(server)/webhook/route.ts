@@ -4,12 +4,12 @@ import { NextRequest } from "next/server";
 import { App, Octokit } from "octokit";
 import { WebhookEventDefinition} from "@octokit/webhooks/types";
 import { EndpointDefaults } from "@octokit/types";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { processGitHubPullRequest } from "@/features/agents/review-agent/app";
 import { throttling } from "@octokit/plugin-throttling";
 import fs from "fs";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('github-webhook');
 

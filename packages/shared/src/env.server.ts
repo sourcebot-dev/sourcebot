@@ -1,15 +1,64 @@
-import { createEnv } from "@t3-oss/env-nextjs";
+import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
-import { SOURCEBOT_CLOUD_ENVIRONMENT } from "@sourcebot/shared/client";
+import { loadConfig } from "./utils.js";
+import { tenancyModeSchema } from "./types.js";
+import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
+import { getTokenFromConfig } from "./crypto.js";
 
 // Booleans are specified as 'true' or 'false' strings.
 const booleanSchema = z.enum(["true", "false"]);
-export const tenancyModeSchema = z.enum(["multi", "single"]);
 
 // Numbers are treated as strings in .env files.
 // coerce helps us convert them to numbers.
 // @see: https://zod.dev/?id=coercion-for-primitives
 const numberSchema = z.coerce.number();
+
+export const resolveEnvironmentVariableOverridesFromConfig = async (config: SourcebotConfig): Promise<Record<string, string>> => {
+    if (!config.environmentOverrides) {
+        return {};
+    }
+
+    const resolved: Record<string, string> = {};
+
+    const start = performance.now();
+
+    for (const [key, override] of Object.entries(config.environmentOverrides)) {
+        switch (override.type) {
+            case 'token':
+                resolved[key] = await getTokenFromConfig(override.value);
+                break;
+            case 'boolean':
+                resolved[key] = override.value ? 'true' : 'false';
+                break;
+            case 'number':
+                resolved[key] = override.value.toString();
+                break;
+            case 'string':
+                resolved[key] = override.value;
+                break;
+        }
+    }
+
+    const end = performance.now();
+    console.debug(`resolved environment variable overrides in ${end - start}ms`);
+
+    return resolved;
+}
+
+// Merge process.env with environment variables resolved from config.json
+const runtimeEnv = await (async () => {
+    const configPath = process.env.CONFIG_PATH;
+    if (!configPath) {
+        return process.env;
+    }
+
+    const config = await loadConfig(configPath);
+    const overrides = await resolveEnvironmentVariableOverridesFromConfig(config);
+    return {
+        ...process.env,
+        ...overrides,
+    }
+})();
 
 export const env = createEnv({
     server: {
@@ -18,7 +67,6 @@ export const env = createEnv({
         
         // Auth
         FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
-
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
@@ -72,10 +120,19 @@ export const env = createEnv({
         CONFIG_MAX_REPOS_NO_TOKEN: numberSchema.default(Number.MAX_SAFE_INTEGER),
         NODE_ENV: z.enum(["development", "test", "production"]),
         SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default('false'),
-        DATABASE_URL: z.string().url(),
+
+        // Database variables
+        // Either DATABASE_URL or DATABASE_HOST, DATABASE_USERNAME, DATABASE_PASSWORD, and DATABASE_NAME must be set.
+        // @see: shared/src/db.ts for more details.
+        DATABASE_URL: z.string().url().optional(),
+        DATABASE_HOST: z.string().optional(),
+        DATABASE_USERNAME: z.string().optional(),
+        DATABASE_PASSWORD: z.string().optional(),
+        DATABASE_NAME: z.string().optional(),
+        DATABASE_ARGS: z.string().optional(),
 
         SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
-        CONFIG_PATH: z.string().optional(),
+        CONFIG_PATH: z.string(),
 
         // Misc UI flags
         SECURITY_CARD_ENABLED: booleanSchema.default('false'),
@@ -137,31 +194,30 @@ export const env = createEnv({
         // @NOTE: Take care to update actions.ts when changing the name of this.
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),
         EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
-    },
-    // @NOTE: Please make sure of the following:
-    // - Make sure you destructure all client variables in
-    //   the `experimental__runtimeEnv` block below.
-    // - Update the Dockerfile to pass these variables as build-args.
-    client: {
-        // PostHog
-        NEXT_PUBLIC_POSTHOG_PAPIK: z.string().optional(),
 
-        // Misc
-        NEXT_PUBLIC_SOURCEBOT_VERSION: z.string().default('unknown'),
+        SOURCEBOT_ENCRYPTION_KEY: z.string(),
+        SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
 
-        NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: z.enum(SOURCEBOT_CLOUD_ENVIRONMENT).optional(),
+        FALLBACK_GITHUB_CLOUD_TOKEN: z.string().optional(),
+        FALLBACK_GITLAB_CLOUD_TOKEN: z.string().optional(),
+        FALLBACK_GITEA_CLOUD_TOKEN: z.string().optional(),
 
-        NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY: z.string().optional(),
-        NEXT_PUBLIC_LANGFUSE_BASE_URL: z.string().optional()
+        REDIS_URL: z.string().url().default("redis://localhost:6379"),
+        REDIS_REMOVE_ON_COMPLETE: numberSchema.default(0),
+        REDIS_REMOVE_ON_FAIL: numberSchema.default(100),
+
+        DEBUG_ENABLE_GROUPMQ_LOGGING: booleanSchema.default('false'),
+
+        CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
+        REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
+
+        GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS: numberSchema.default(60 * 10),
+
+        SOURCEBOT_LOG_LEVEL: z.enum(["info", "debug", "warn", "error"]).default("info"),
+        SOURCEBOT_STRUCTURED_LOGGING_ENABLED: booleanSchema.default("false"),
+        SOURCEBOT_STRUCTURED_LOGGING_FILE: z.string().optional(),
     },
-    // For Next.js >= 13.4.4, you only need to destructure client variables:
-    experimental__runtimeEnv: {
-        NEXT_PUBLIC_POSTHOG_PAPIK: process.env.NEXT_PUBLIC_POSTHOG_PAPIK,
-        NEXT_PUBLIC_SOURCEBOT_VERSION: process.env.NEXT_PUBLIC_SOURCEBOT_VERSION,
-        NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT: process.env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT,
-        NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY: process.env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY,
-        NEXT_PUBLIC_LANGFUSE_BASE_URL: process.env.NEXT_PUBLIC_LANGFUSE_BASE_URL,
-    },
-    skipValidation: process.env.SKIP_ENV_VALIDATION === "1",
+    runtimeEnv,
     emptyStringAsUndefined: true,
+    skipValidation: process.env.SKIP_ENV_VALIDATION === "1",
 });

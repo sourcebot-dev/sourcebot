@@ -102,6 +102,9 @@
             },
             "additionalProperties": false
         },
+        "environmentOverrides": {
+            "$ref": "./environmentOverrides.json"
+        },
         "connections": {
             "type": "object",
             "description": "Defines a collection of connections from varying code hosts that Sourcebot should sync with. This is only available in single-tenancy mode.",

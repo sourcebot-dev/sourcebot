@@ -17,7 +17,7 @@ import { isServiceError } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { LangfuseWeb } from "langfuse";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared/client";
 
 interface AnswerCardProps {
     answerText: string;

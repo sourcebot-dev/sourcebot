@@ -42,16 +42,10 @@ COPY package.json yarn.lock* .yarnrc.yml ./
 COPY .yarn ./.yarn
 COPY ./packages/db ./packages/db
 COPY ./packages/schemas ./packages/schemas
-COPY ./packages/crypto ./packages/crypto
-COPY ./packages/error ./packages/error
-COPY ./packages/logger ./packages/logger
 COPY ./packages/shared ./packages/shared
 
 RUN yarn workspace @sourcebot/db install
 RUN yarn workspace @sourcebot/schemas install
-RUN yarn workspace @sourcebot/crypto install
-RUN yarn workspace @sourcebot/error install
-RUN yarn workspace @sourcebot/logger install
 RUN yarn workspace @sourcebot/shared install
 # ------------------------------------
 
@@ -97,9 +91,6 @@ COPY ./packages/web ./packages/web
 COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
-COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
-COPY --from=shared-libs-builder /app/packages/error ./packages/error
-COPY --from=shared-libs-builder /app/packages/logger ./packages/logger
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 
 # Fixes arm64 timeouts
@@ -138,9 +129,6 @@ COPY ./packages/backend ./packages/backend
 COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
-COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
-COPY --from=shared-libs-builder /app/packages/error ./packages/error
-COPY --from=shared-libs-builder /app/packages/logger ./packages/logger
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 RUN yarn workspace @sourcebot/backend install
 RUN yarn workspace @sourcebot/backend build
@@ -185,7 +173,6 @@ ENV DATA_DIR=/data
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
 ENV DATABASE_DATA_DIR=$DATA_CACHE_DIR/db
 ENV REDIS_DATA_DIR=$DATA_CACHE_DIR/redis
-ENV REDIS_URL="redis://localhost:6379"
 ENV SRC_TENANT_ENFORCEMENT_MODE=strict
 ENV SOURCEBOT_PUBLIC_KEY_PATH=/app/public.pem
 
@@ -225,9 +212,6 @@ COPY --from=backend-builder /app/packages/backend ./packages/backend
 COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
-COPY --from=shared-libs-builder /app/packages/crypto ./packages/crypto
-COPY --from=shared-libs-builder /app/packages/error ./packages/error
-COPY --from=shared-libs-builder /app/packages/logger ./packages/logger
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 
 # Configure dependencies

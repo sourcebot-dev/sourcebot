@@ -16,7 +16,7 @@ import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
 import { hasEntitlement } from "@sourcebot/shared";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { GcpIapAuth } from "./components/gcpIapAuth";
 import { getAnonymousAccessStatus, getMemberApprovalRequired } from "@/actions";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";

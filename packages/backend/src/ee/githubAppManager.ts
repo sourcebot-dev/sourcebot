@@ -1,10 +1,9 @@
-import { loadConfig } from "@sourcebot/shared";
-import { env } from "../env.js";
-import { createLogger } from "@sourcebot/logger";
-import { getTokenFromConfig } from "@sourcebot/crypto";
-import { PrismaClient } from "@sourcebot/db";
 import { App } from "@octokit/app";
+import { getTokenFromConfig } from "@sourcebot/shared";
+import { PrismaClient } from "@sourcebot/db";
+import { createLogger } from "@sourcebot/shared";
 import { GitHubAppConfig } from "@sourcebot/schemas/v3/index.type";
+import { env, loadConfig } from "@sourcebot/shared";
 
 const logger = createLogger('githubAppManager');
 const GITHUB_DEFAULT_DEPLOYMENT_HOSTNAME = 'github.com';
@@ -45,7 +44,7 @@ export class GithubAppManager {
 
     public async init(db: PrismaClient) {
         this.db = db;
-        const config = await loadConfig(env.CONFIG_PATH!);
+        const config = await loadConfig(env.CONFIG_PATH);
         if (!config.apps) {
             return;
         }

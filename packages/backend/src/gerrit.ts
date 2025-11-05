@@ -1,11 +1,8 @@
+import { GerritConnectionConfig } from "@sourcebot/schemas/v3/index.type";
+import { createLogger } from '@sourcebot/shared';
 import fetch from 'cross-fetch';
-import { GerritConnectionConfig } from "@sourcebot/schemas/v3/index.type"
-import { createLogger } from '@sourcebot/logger';
 import micromatch from "micromatch";
-import { measure, fetchWithRetry } from './utils.js';
-import { BackendError } from '@sourcebot/error';
-import { BackendException } from '@sourcebot/error';
-import * as Sentry from "@sentry/node";
+import { fetchWithRetry, measure } from './utils.js';
 
 // https://gerrit-review.googlesource.com/Documentation/rest-api.html
 interface GerritProjects {
@@ -39,25 +36,9 @@ export const getGerritReposFromConfig = async (config: GerritConnectionConfig): 
    const url = config.url.endsWith('/') ? config.url : `${config.url}/`;
 
    let { durationMs, data: projects } = await measure(async () => {
-      try {
-         const fetchFn = () => fetchAllProjects(url);
-         return fetchWithRetry(fetchFn, `projects from ${url}`, logger);
-      } catch (err) {
-         Sentry.captureException(err);
-         if (err instanceof BackendException) {
-            throw err;
-         }
-
-         logger.error(`Failed to fetch projects from ${url}`, err);
-         return null;
-      }
+      const fetchFn = () => fetchAllProjects(url);
+      return fetchWithRetry(fetchFn, `projects from ${url}`, logger);
    });
-
-   if (!projects) {
-      const e = new Error(`Failed to fetch projects from ${url}`);
-      Sentry.captureException(e);
-      throw e;
-   }
 
    // include repos by glob if specified in config
    if (config.projects) {
@@ -91,27 +72,9 @@ const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
       logger.debug(`Fetching projects from Gerrit at ${endpointWithParams}`);
 
       let response: Response;
-      try {
-         response = await fetch(endpointWithParams);
-         if (!response.ok) {
-            logger.error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${response.status}`);
-            const e = new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
-               status: response.status,
-            });
-            Sentry.captureException(e);
-            throw e;
-         }
-      } catch (err) {
-         Sentry.captureException(err);
-         if (err instanceof BackendException) {
-            throw err;
-         }
-
-         const status = (err as any).code;
-         logger.error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${status}`);
-         throw new BackendException(BackendError.CONNECTION_SYNC_FAILED_TO_FETCH_GERRIT_PROJECTS, {
-            status: status,
-         });
+      response = await fetch(endpointWithParams);
+      if (!response.ok) {
+         throw new Error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${response.status}`);
       }
 
       const text = await response.text();
@@ -151,11 +114,11 @@ const shouldExcludeProject = ({
 
    const shouldExclude = (() => {
       if ([
-            'All-Projects',
-            'All-Users',
-            'All-Avatars',
-            'All-Archived-Projects'
-         ].includes(project.name)) {
+         'All-Projects',
+         'All-Users',
+         'All-Avatars',
+         'All-Archived-Projects'
+      ].includes(project.name)) {
          reason = `Project is a special project.`;
          return true;
       }

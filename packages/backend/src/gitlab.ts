@@ -1,12 +1,12 @@
 import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
-import micromatch from "micromatch";
-import { createLogger } from "@sourcebot/logger";
-import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type"
-import { measure, fetchWithRetry } from "./utils.js";
-import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import * as Sentry from "@sentry/node";
-import { env } from "./env.js";
-import { getTokenFromConfig } from "@sourcebot/crypto";
+import { getTokenFromConfig } from "@sourcebot/shared";
+import { createLogger } from "@sourcebot/shared";
+import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
+import { env } from "@sourcebot/shared";
+import micromatch from "micromatch";
+import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
+import { fetchWithRetry, measure } from "./utils.js";
 
 const logger = createLogger('gitlab');
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";

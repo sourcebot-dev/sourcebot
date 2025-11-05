@@ -5,7 +5,7 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { sew, withAuth, withOrgMembership } from "@/actions";
 import { OrgRole } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { ServiceError } from "@/lib/serviceError";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { AuditEvent } from "./types";

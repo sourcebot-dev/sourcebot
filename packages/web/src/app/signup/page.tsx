@@ -2,8 +2,8 @@ import { auth } from "@/auth";
 import { LoginForm } from "../login/components/loginForm";
 import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
-import { createLogger } from "@sourcebot/logger";
 import { getIdentityProviderMetadata } from "@/lib/identityProviders";
+import { createLogger } from "@sourcebot/shared";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 

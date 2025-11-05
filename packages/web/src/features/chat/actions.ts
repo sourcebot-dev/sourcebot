@@ -1,7 +1,6 @@
 'use server';
 
 import { sew, withAuth, withOrgMembership } from "@/actions";
-import { env } from "@/env.mjs";
 import { SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
 import { ErrorCode } from "@/lib/errorCodes";
 import { chatIsReadonly, notFound, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
@@ -20,9 +19,8 @@ import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import { createXai } from '@ai-sdk/xai';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { getTokenFromConfig } from "@sourcebot/crypto";
+import { getTokenFromConfig, createLogger, env } from "@sourcebot/shared";
 import { ChatVisibility, OrgRole, Prisma } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
 import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
 import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { generateText, JSONValue, extractReasoningMiddleware, wrapLanguageModel } from "ai";

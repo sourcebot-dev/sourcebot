@@ -1,15 +1,14 @@
 import { Octokit } from "@octokit/rest";
 import * as Sentry from "@sentry/node";
-import { createLogger } from "@sourcebot/logger";
+import { getTokenFromConfig } from "@sourcebot/shared";
+import { createLogger } from "@sourcebot/shared";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
-import { hasEntitlement } from "@sourcebot/shared";
+import { env, hasEntitlement } from "@sourcebot/shared";
 import micromatch from "micromatch";
 import pLimit from "p-limit";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
-import { env } from "./env.js";
 import { fetchWithRetry, measure } from "./utils.js";
-import { getTokenFromConfig } from "@sourcebot/crypto";
 
 export const GITHUB_CLOUD_HOSTNAME = "github.com";
 

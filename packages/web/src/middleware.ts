@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { env } from './env.mjs'
 import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants'
 
 export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
-
-    if (env.SOURCEBOT_TENANCY_MODE !== 'single') {
-        return NextResponse.next();
-    }
 
     if (
         url.pathname.startsWith('/login') ||

@@ -2,7 +2,7 @@ import winston, { format, Logger } from 'winston';
 import { Logtail } from '@logtail/node';
 import { LogtailTransport } from '@logtail/winston';
 import { MESSAGE } from 'triple-beam';
-import { env } from './env.js';
+import { env } from './env.server.js';
 
 /**
  * Logger configuration with support for structured JSON logging.
@@ -16,7 +16,7 @@ import { env } from './env.js';
  * - Logs will be formatted as: "timestamp level: [label] message"
  */
 
-const { combine, colorize, timestamp, prettyPrint, errors, printf, label: labelFn, json } = format;
+const { combine, colorize, timestamp, errors, printf, label: labelFn, json } = format;
 
 const datadogFormat = format((info) => {
     info.status = info.level.toLowerCase();

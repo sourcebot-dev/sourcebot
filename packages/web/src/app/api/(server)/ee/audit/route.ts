@@ -6,7 +6,7 @@ import { isServiceError } from "@/lib/utils";
 import { serviceErrorResponse } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { getEntitlements } from "@sourcebot/shared";
 
 export const GET = async (request: NextRequest) => {

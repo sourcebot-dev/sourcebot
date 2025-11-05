@@ -1,8 +1,8 @@
-import { CheckRepoActions, GitConfigScope, simpleGit, SimpleGitProgressEvent } from 'simple-git';
-import { mkdir } from 'node:fs/promises';
-import { env } from './env.js';
-import { dirname, resolve } from 'node:path';
+import { env } from "@sourcebot/shared";
 import { existsSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { CheckRepoActions, GitConfigScope, simpleGit, SimpleGitProgressEvent } from 'simple-git';
 
 type onProgressFn = (event: SimpleGitProgressEvent) => void;
 

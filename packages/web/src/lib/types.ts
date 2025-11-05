@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getReposResponseSchema, getVersionResponseSchema, repositoryQuerySchema, searchContextQuerySchema } from "./schemas";
-import { tenancyModeSchema } from "@/env.mjs";
+import { tenancyModeSchema } from "@sourcebot/shared";
 
 export type KeymapType = "default" | "vim";
 

@@ -1,7 +1,7 @@
 'use server';
 
 import { getAuditService } from "@/ee/features/audit/factory";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notAuthenticated, notFound, orgNotFound, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
@@ -9,9 +9,9 @@ import { getOrgMetadata, isHttpError, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
-import { generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/crypto";
+import { generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/shared";
 import { ApiKey, ConnectionSyncJobStatus, Org, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType, StripeSubscriptionStatus } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";

@@ -1,8 +1,8 @@
 import "./instrument.js";
 
 import { PrismaClient } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
-import { getConfigSettings, hasEntitlement } from '@sourcebot/shared';
+import { createLogger } from "@sourcebot/shared";
+import { env, getConfigSettings, hasEntitlement, getDBConnectionString } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { Redis } from 'ioredis';
@@ -12,7 +12,6 @@ import { INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
-import { env } from "./env.js";
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from "./repoIndexManager.js";
 
@@ -29,7 +28,13 @@ if (!existsSync(indexPath)) {
     await mkdir(indexPath, { recursive: true });
 }
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+    datasources: {
+        db: {
+            url: getDBConnectionString(),
+        },
+    },
+});
 
 const redis = new Redis(env.REDIS_URL, {
     maxRetriesPerRequest: null

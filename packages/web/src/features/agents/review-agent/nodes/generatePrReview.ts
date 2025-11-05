@@ -2,7 +2,7 @@ import { sourcebot_pr_payload, sourcebot_diff_review, sourcebot_file_diff_review
 import { generateDiffReviewPrompt } from "@/features/agents/review-agent/nodes/generateDiffReviewPrompt";
 import { invokeDiffReviewLlm } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
 import { fetchFileContent } from "@/features/agents/review-agent/nodes/fetchFileContent";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('generate-pr-review');
 

@@ -1,9 +1,10 @@
 import { base64Decode } from "./utils.js";
 import { z } from "zod";
-import { createLogger } from "@sourcebot/logger";
-import { verifySignature } from "@sourcebot/crypto";
-import { env } from "./env.js";
+import { createLogger } from "./logger.js";
+import { env } from "./env.server.js";
+import { env as clientEnv } from "./env.client.js";
 import { SOURCEBOT_SUPPORT_EMAIL, SOURCEBOT_UNLIMITED_SEATS } from "./constants.js";
+import { verifySignature } from "./crypto.js";
 
 const logger = createLogger('entitlements');
 
@@ -89,8 +90,8 @@ export const getLicenseKey = (): LicenseKeyPayload | null => {
 }
 
 export const getPlan = (): Plan => {
-    if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT) {
-        if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo") {
+    if (clientEnv.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT) {
+        if (clientEnv.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo") {
             return "cloud:demo";
         }
 

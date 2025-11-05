@@ -4,7 +4,7 @@ import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
 import { OrgRole } from "@sourcebot/db";
 import { isServiceError } from "@/lib/utils";
 import { serviceErrorResponse, missingQueryParam, notFound } from "@/lib/serviceError";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { NextRequest } from "next/server";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";

@@ -4,8 +4,8 @@ import Stripe from 'stripe';
 import { prisma } from '@/prisma';
 import { StripeSubscriptionStatus } from '@sourcebot/db';
 import { stripeClient } from '@/ee/features/billing/stripe';
-import { env } from '@/env.mjs';
-import { createLogger } from "@sourcebot/logger";
+import { env } from '@sourcebot/shared';
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('stripe-webhook');
 

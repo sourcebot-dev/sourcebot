@@ -1,21 +1,18 @@
-import { env } from "@/env.mjs";
-import GitHub from "next-auth/providers/github";
-import Google from "next-auth/providers/google";
-import Okta from "next-auth/providers/okta";
-import Keycloak from "next-auth/providers/keycloak";
-import Gitlab from "next-auth/providers/gitlab";
-import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
+import type { IdentityProvider } from "@/auth";
+import { onCreateUser } from "@/lib/authUtils";
 import { prisma } from "@/prisma";
+import { GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
+import { createLogger, env, getTokenFromConfig, hasEntitlement, loadConfig } from "@sourcebot/shared";
 import { OAuth2Client } from "google-auth-library";
-import Credentials from "next-auth/providers/credentials";
 import type { User as AuthJsUser } from "next-auth";
 import type { Provider } from "next-auth/providers";
-import { onCreateUser } from "@/lib/authUtils";
-import { createLogger } from "@sourcebot/logger";
-import { hasEntitlement, loadConfig } from "@sourcebot/shared";
-import { getTokenFromConfig } from "@sourcebot/crypto";
-import type { IdentityProvider } from "@/auth";
-import { GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
+import Credentials from "next-auth/providers/credentials";
+import GitHub from "next-auth/providers/github";
+import Gitlab from "next-auth/providers/gitlab";
+import Google from "next-auth/providers/google";
+import Keycloak from "next-auth/providers/keycloak";
+import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
+import Okta from "next-auth/providers/okta";
 
 const logger = createLogger('web-sso');
 

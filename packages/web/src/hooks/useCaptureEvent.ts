@@ -3,7 +3,7 @@
 import { CaptureOptions } from "posthog-js";
 import posthog from "posthog-js";
 import { PosthogEvent, PosthogEventMap } from "../lib/posthogEvents";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared/client";
 
 export function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E], options?: CaptureOptions) {
     if(!options) {

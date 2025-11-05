@@ -2,7 +2,7 @@ import { sourcebot_context, sourcebot_pr_payload } from "@/features/agents/revie
 import { getFileSource } from "@/features/search/fileSourceApi";
 import { fileSourceResponseSchema } from "@/features/search/schemas";
 import { isServiceError } from "@/lib/utils";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('fetch-file-content');
 

@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { Server } from 'http';
 import client, { Registry, Counter, Gauge } from 'prom-client';
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('prometheus-client');
 

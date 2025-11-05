@@ -1,10 +1,12 @@
 import 'server-only';
-import { env } from "@/env.mjs";
+import { env, getDBConnectionString } from "@sourcebot/shared";
 import { Prisma, PrismaClient } from "@sourcebot/db";
 import { hasEntitlement } from "@sourcebot/shared";
 
 // @see: https://authjs.dev/getting-started/adapters/prisma
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
+
+const dbConnectionString = getDBConnectionString();
 
 // @NOTE: In almost all cases, the userScopedPrismaClientExtension should be used
 // (since actions & queries are scoped to a particular user). There are some exceptions
@@ -13,7 +15,17 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 // @todo: we can mark this as `__unsafePrisma` in the future once we've migrated
 // all of the actions & queries to use the userScopedPrismaClientExtension to avoid
 // accidental misuse.
-export const prisma = globalForPrisma.prisma || new PrismaClient()
+export const prisma = globalForPrisma.prisma || new PrismaClient({
+    // @note: this code is evaluated at build time, and will throw exceptions if these env vars are not set.
+    // Here we explicitly check if the DATABASE_URL or the individual database variables are set, and only
+    ...(dbConnectionString !== undefined ? {
+        datasources: {
+            db: {
+                url: dbConnectionString,
+            },
+        }
+    }: {}),
+})
 if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 
 /**

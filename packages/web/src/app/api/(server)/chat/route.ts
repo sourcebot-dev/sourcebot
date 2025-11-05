@@ -10,7 +10,7 @@ import { prisma } from "@/prisma";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import * as Sentry from "@sentry/nextjs";
 import { OrgRole } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import {
     createUIMessageStream,
     createUIMessageStreamResponse,

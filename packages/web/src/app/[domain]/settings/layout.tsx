@@ -10,8 +10,8 @@ import { getConnectionStats, getMe, getOrgAccountRequests } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getOrgFromDomain } from "@/data/org";
 import { OrgRole } from "@prisma/client";
-import { env } from "@/env.mjs";
 import { hasEntitlement } from "@sourcebot/shared";
+import { env } from "@sourcebot/shared/client";
 
 interface LayoutProps {
     children: React.ReactNode;

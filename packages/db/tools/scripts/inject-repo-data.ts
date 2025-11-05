@@ -1,8 +1,5 @@
 import { Script } from "../scriptRunner";
 import { PrismaClient } from "../../dist";
-import { createLogger } from "@sourcebot/logger";
-
-const logger = createLogger('inject-repo-data');
 
 const NUM_REPOS = 100000;
 
@@ -35,7 +32,7 @@ export const injectRepoData: Script = {
         });
 
 
-        logger.info(`Creating ${NUM_REPOS} repos...`);
+        console.log(`Creating ${NUM_REPOS} repos...`);
 
         for (let i = 0; i < NUM_REPOS; i++) {
             await prisma.repo.create({
@@ -59,6 +56,6 @@ export const injectRepoData: Script = {
             });
         }
 
-        logger.info(`Created ${NUM_REPOS} repos.`);
+        console.log(`Created ${NUM_REPOS} repos.`);
     }
 }; 

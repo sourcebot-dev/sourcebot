@@ -18,16 +18,8 @@ vi.mock('./auth', () => ({
     auth: mocks.auth,
 }));
 
-vi.mock('@/env.mjs', () => ({
-    env: {}
-}));
-
 vi.mock('next/headers', () => ({
     headers: mocks.headers,
-}));
-
-vi.mock('@/env.mjs', () => ({
-    env: {}
 }));
 
 vi.mock('@/prisma', async () => {
@@ -38,16 +30,14 @@ vi.mock('@/prisma', async () => {
     };
 });
 
-vi.mock('@sourcebot/crypto', () => ({
-    hashSecret: vi.fn((secret: string) => secret),
-}));
-
 vi.mock('server-only', () => ({
     default: vi.fn(),
 }));
 
 vi.mock('@sourcebot/shared', () => ({
     hasEntitlement: mocks.hasEntitlement,
+    hashSecret: vi.fn((secret: string) => secret),
+    env: {}
 }));
 
 // Test utility to set the mock session

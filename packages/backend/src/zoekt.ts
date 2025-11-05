@@ -1,5 +1,5 @@
 import { Repo } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { exec } from "child_process";
 import { INDEX_CACHE_DIR } from "./constants.js";
 import { Settings } from "./types.js";

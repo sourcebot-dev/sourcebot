@@ -1,7 +1,6 @@
 ---
 title: Environment variables 
 sidebarTitle: Environment variables 
-mode: "wide"
 ---
 
 <Note>This page provides a detailed reference of all environment variables supported by Sourcebot. If you're just looking to get up and running, we recommend starting with the [deployment guide](/docs/deployment-guide) instead.</Note>
@@ -71,3 +70,6 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `REVIEW_AGENT_LOGGING_ENABLED` | `true` | <p>Enables/disables logging for the review agent. Logs are saved in `DATA_CACHE_DIR/review-agent`</p> |
 | `REVIEW_AGENT_REVIEW_COMMAND` | `review` | <p>The command used to trigger a code review by the review agent.</p> |
 
+### Overriding environment variables from the config
+
+You can override environment variables from the config file by using the `environmentOverrides` property. See [this doc](/docs/configuration/config-file#overriding-environment-variables-from-the-config) for more info.

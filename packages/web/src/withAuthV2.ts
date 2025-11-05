@@ -1,5 +1,5 @@
 import { prisma as __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
-import { hashSecret } from "@sourcebot/crypto";
+import { hashSecret } from "@sourcebot/shared";
 import { ApiKey, Org, OrgRole, PrismaClient, User } from "@sourcebot/db";
 import { headers } from "next/headers";
 import { auth } from "./auth";
