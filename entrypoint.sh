@@ -89,13 +89,13 @@ fi
 
 # Check if DATA_CACHE_DIR exists, if not create it
 if [ ! -d "$DATA_CACHE_DIR" ]; then
-    mkdir -m 0750 -p "$DATA_CACHE_DIR"
+    mkdir -p "$DATA_CACHE_DIR"
 fi
 
 # Check if DATABASE_DATA_DIR exists, if not initialize it
 if [ "$DATABASE_EMBEDDED" = "true" ] && [ ! -d "$DATABASE_DATA_DIR" ]; then
     echo -e "\e[34m[Info] Initializing database at $DATABASE_DATA_DIR...\e[0m"
-    mkdir -m 0750 -p $DATABASE_DATA_DIR
+    mkdir -p $DATABASE_DATA_DIR
     if [ "$IS_ROOT" = "true" ]; then
         chown -R postgres:postgres "$DATABASE_DATA_DIR"
         su postgres -c "initdb -D $DATABASE_DATA_DIR"
@@ -106,7 +106,7 @@ fi
 
 # Create the redis data directory if it doesn't exist
 if [ "$REDIS_EMBEDDED" = "true" ] && [ ! -d "$REDIS_DATA_DIR" ]; then
-    mkdir -m 0750 -p $REDIS_DATA_DIR
+    mkdir -p $REDIS_DATA_DIR
 fi
 
 if [ -z "$SOURCEBOT_ENCRYPTION_KEY" ]; then
@@ -221,7 +221,7 @@ if [ "$DATABASE_EMBEDDED" = "true" ]; then
             || createuser postgres -s
     fi
 
-    # Check if the database already exists, and create it if it doesn't
+    # Check if the database already exists, and create it if it doesn't exist
     EXISTING_DB=$(psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'sourcebot'")
 
     if [ "$EXISTING_DB" = "1" ]; then
@@ -237,9 +237,7 @@ echo -e "\e[34m[Info] Running database migration...\e[0m"
 DATABASE_URL="$DATABASE_URL" yarn workspace @sourcebot/db prisma:migrate:prod
 
 # Create the log directory if it doesn't exist
-if [ ! -d "/var/log/sourcebot" ]; then
-    mkdir -m 0750 -p /var/log/sourcebot
-fi
+mkdir -p /var/log/sourcebot
 
 # Run supervisord
 exec supervisord -c /etc/supervisor/conf.d/supervisord.conf

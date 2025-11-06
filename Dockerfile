@@ -247,8 +247,9 @@ RUN chmod +x ./prefix-output.sh
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
-# Default to root user, but can be overridden at runtime with --user flag
-# No USER directive = runs as root by default
+# Note: for back-compat cases, we do _not_ set the USER directive here.
+# Instead, the user can be overridden at runtime with --user flag.
+# USER sourcebot
 
 EXPOSE 3000
 ENV PORT=3000
