@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added support for running Sourcebot as non-root user. [#599](https://github.com/sourcebot-dev/sourcebot/pull/599)
+
 ## [4.9.0] - 2025-11-04
 
-## Added
+### Added
 - [Experimental][Sourcebot EE] Added GitLab permission syncing. [#585](https://github.com/sourcebot-dev/sourcebot/pull/585)
 - [Sourcebot EE] Added external identity provider config and support for multiple accounts. [#595](https://github.com/sourcebot-dev/sourcebot/pull/595)
 - Added ability to configure environment variables from the config. [#597](https://github.com/sourcebot-dev/sourcebot/pull/597)
