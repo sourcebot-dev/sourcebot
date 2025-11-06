@@ -100,7 +100,7 @@ if [ "$DATABASE_EMBEDDED" = "true" ] && [ ! -d "$DATABASE_DATA_DIR" ]; then
         chown -R postgres:postgres "$DATABASE_DATA_DIR"
         su postgres -c "initdb -D $DATABASE_DATA_DIR"
     else
-        initdb -D "$DATABASE_DATA_DIR"
+        initdb -D "$DATABASE_DATA_DIR" -U postgres
     fi
 fi
 
