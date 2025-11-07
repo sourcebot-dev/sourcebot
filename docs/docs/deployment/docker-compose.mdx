@@ -1,0 +1,61 @@
+---
+title: "Docker Compose"
+---
+
+This guide will walk you through deploying Sourcebot locally or on a VM using Docker Compose. We will use the [docker-compose.yml](https://github.com/sourcebot-dev/sourcebot/blob/main/docker-compose.yml) file from the Sourcebot repository. This is the simplest way to get started with Sourcebot.
+
+If you are looking to deploy onto Kubernetes, see the [Kubernetes (Helm)](/docs/deployment/k8s) guide.
+
+## Get started
+
+<Steps>
+    <Step title="Requirements">
+        - docker & docker compose. Use [Docker Desktop](https://www.docker.com/products/docker-desktop/) on Mac or Windows.
+    </Step>
+    <Step title="Obtain the Docker Compose file">
+        Download the [docker-compose.yml](https://github.com/sourcebot-dev/sourcebot/blob/main/docker-compose.yml) file from the Sourcebot repository.
+
+        ```bash wrap icon="terminal"
+        curl -o docker-compose.yml https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/docker-compose.yml
+        ```
+    </Step>
+
+    <Step title="Create a config.json">
+
+        In the same directory as the `docker-compose.yml` file, create a [configuration file](/docs/configuration/config-file). The configuration file is a JSON file that configures Sourcebot's behaviour, including what repositories to index, language model providers, auth providers, and more.
+
+        ```bash wrap icon="terminal" Create example config
+        touch config.json
+        echo '{
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            // Comments are supported.
+            // This config creates a single connection to GitHub.com that
+            // indexes the Sourcebot repository
+            "connections": {
+                "starter-connection": {
+                    "type": "github",
+                    "repos": [
+                        "sourcebot-dev/sourcebot"
+                    ]
+                }
+            }
+        }' > config.json
+        ```
+    </Step>
+
+    <Step title="Launch your instance">
+        Update the secrets in the `docker-compose.yml` and then run Sourcebot using:
+
+        ```bash wrap icon="terminal"
+        docker compose up
+        ```
+    </Step>
+
+    <Step title="Done">
+        You're all set! Navigate to [http://localhost:3000](http://localhost:3000) to access your Sourcebot instance.
+    </Step>
+</Steps>
+
+## Next steps
+
+
