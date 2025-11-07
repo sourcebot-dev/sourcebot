@@ -21,7 +21,13 @@
                         "group": "Getting Started",
                         "pages": [
                             "docs/overview",
-                            "docs/deployment-guide"
+                            {
+                                "group": "Deployment",
+                                "pages": [
+                                    "docs/deployment/docker-compose",
+                                    "docs/deployment/k8s"
+                                ]
+                            }
                         ]
                     },
                     {
