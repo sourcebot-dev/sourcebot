@@ -1,8 +1,14 @@
 services:
   sourcebot:
     image: ghcr.io/sourcebot-dev/sourcebot:latest
-    pull_policy: always
+    user: sourcebot
+    restart: always
     container_name: sourcebot
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "3000:3000"
     volumes:
@@ -10,53 +16,51 @@ services:
       - sourcebot_data:/data
     environment:
       - CONFIG_PATH=/data/config.json
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres@localhost:5432/sourcebot}
-      - REDIS_URL=${REDIS_URL:-redis://localhost:6379}
       - AUTH_URL=${AUTH_URL:-http://localhost:3000}
-      - AUTH_SECRET=${AUTH_SECRET:-}
-      - AUTH_CREDENTIALS_LOGIN_ENABLED=${AUTH_CREDENTIALS_LOGIN_ENABLED:-true}
-      - AUTH_EMAIL_CODE_LOGIN_ENABLED=${AUTH_EMAIL_CODE_LOGIN_ENABLED:-false}
-      - SMTP_CONNECTION_URL=${SMTP_CONNECTION_URL:-}
-      - EMAIL_FROM_ADDRESS=${EMAIL_FROM_ADDRESS:-}
+      - AUTH_SECRET=${AUTH_SECRET:-000000000000000000000000000000000} # CHANGEME: generate via `openssl rand -base64 33`
+      - SOURCEBOT_ENCRYPTION_KEY=${SOURCEBOT_ENCRYPTION_KEY:-000000000000000000000000000000000} # CHANGEME: generate via `openssl rand -base64 24`
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/postgres} # CHANGEME
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379} # CHANGEME
       - SOURCEBOT_EE_LICENSE_KEY=${SOURCEBOT_EE_LICENSE_KEY:-}
-      - SOURCEBOT_ENCRYPTION_KEY=${SOURCEBOT_ENCRYPTION_KEY:-}
       - SOURCEBOT_TELEMETRY_DISABLED=${SOURCEBOT_TELEMETRY_DISABLED:-false}
-      - ZOEKT_WEBSERVER_URL=${ZOEKT_WEBSERVER_URL:-http://localhost:6070}
-      - SHARD_MAX_MATCH_COUNT=${SHARD_MAX_MATCH_COUNT:-}
-      - TOTAL_MAX_MATCH_COUNT=${TOTAL_MAX_MATCH_COUNT:-}
-      - ZOEKT_MAX_WALL_TIME_MS=${ZOEKT_MAX_WALL_TIME_MS:-}
 
-      # AWS
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
-      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
-      - AWS_REGION=${AWS_REGION:-}
-      # OpenAI
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      # Anthropic
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      # Azure
-      - AZURE_API_KEY=${AZURE_API_KEY:-}
-      - AZURE_RESOURCE_NAME=${AZURE_RESOURCE_NAME:-}
-      # DeepSeek
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
-      # Google gen ai
-      - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY:-}
-      # Google vertex
-      - GOOGLE_VERTEX_PROJECT=${GOOGLE_VERTEX_PROJECT:-}
-      - GOOGLE_VERTEX_REGION=${GOOGLE_VERTEX_REGION:-}
-      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-}
-      - GOOGLE_VERTEX_THINKING_BUDGET_TOKENS=${GOOGLE_VERTEX_THINKING_BUDGET_TOKENS:-}
-      - GOOGLE_VERTEX_INCLUDE_THOUGHTS=${GOOGLE_VERTEX_INCLUDE_THOUGHTS:-}
-      # XAI
-      - XAI_API_KEY=${XAI_API_KEY:-}
-      # Mistral
-      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
-      # Openrouter
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      # For the full list of environment variables see:
+      # https://docs.sourcebot.dev/docs/configuration/environment-variables
 
-    restart: unless-stopped
+  postgres:
+    image: docker.io/postgres:${POSTGRES_VERSION:-latest}
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres # CHANGEME
+      POSTGRES_DB: postgres
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - sourcebot_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: docker.io/redis:${REDIS_VERSION:-latest}
+    restart: always
+    ports:
+      - 127.0.0.1:6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - sourcebot_redis_data:/data
 
 volumes:
   sourcebot_data:
+    driver: local
+  sourcebot_postgres_data:
+    driver: local
+  sourcebot_redis_data:
     driver: local

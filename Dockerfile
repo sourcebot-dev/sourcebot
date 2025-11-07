@@ -240,6 +240,8 @@ RUN mkdir -p /run/postgresql && \
 
 # Make app directory accessible to both root and sourcebot user
 RUN chown -R sourcebot:sourcebot /app
+# Make data directory accessible to both root and sourcebot user
+RUN chown -R sourcebot:sourcebot /data
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY prefix-output.sh ./prefix-output.sh
