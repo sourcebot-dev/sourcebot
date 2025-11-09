@@ -7,7 +7,7 @@ import { Job, Queue, ReservedJob, Worker } from "groupmq";
 import { Redis } from 'ioredis';
 import { compileAzureDevOpsConfig, compileBitbucketConfig, compileGenericGitHostConfig, compileGerritConfig, compileGiteaConfig, compileGithubConfig, compileGitlabConfig } from "./repoCompileUtils.js";
 import { Settings } from "./types.js";
-import { groupmqLifecycleExceptionWrapper } from "./utils.js";
+import { groupmqLifecycleExceptionWrapper, setIntervalAsync } from "./utils.js";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import { captureEvent } from "./posthog.js";
 import { PromClient } from "./promClient.js";
@@ -66,7 +66,7 @@ export class ConnectionManager {
 
     public startScheduler() {
         logger.debug('Starting scheduler');
-        this.interval = setInterval(async () => {
+        this.interval = setIntervalAsync(async () => {
             const thresholdDate = new Date(Date.now() - this.settings.resyncConnectionIntervalMs);
             const timeoutDate = new Date(Date.now() - JOB_TIMEOUT_MS);
 

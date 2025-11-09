@@ -7,6 +7,7 @@ import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { createOctokitFromToken, getReposForAuthenticatedUser } from "../github.js";
 import { createGitLabFromOAuthToken, getProjectsForAuthenticatedUser } from "../gitlab.js";
 import { Settings } from "../types.js";
+import { setIntervalAsync } from "../utils.js";
 
 const LOG_TAG = 'user-permission-syncer';
 const logger = createLogger(LOG_TAG);
@@ -46,7 +47,7 @@ export class AccountPermissionSyncer {
 
         logger.debug('Starting scheduler');
 
-        this.interval = setInterval(async () => {
+        this.interval = setIntervalAsync(async () => {
             const thresholdDate = new Date(Date.now() - this.settings.experiment_userDrivenPermissionSyncIntervalMs);
 
             const accounts = await this.db.account.findMany({
