@@ -279,8 +279,11 @@ export const setIntervalAsync = (target: () => Promise<void>, pollingIntervalMs:
             if ((target as any).isRunning) return;
     
             (target as any).isRunning = true;
-            await target(...args);
-            (target as any).isRunning = false;
+            try {
+                await target(...args);
+            } finally {
+                (target as any).isRunning = false;
+            }
         };
     }
 
