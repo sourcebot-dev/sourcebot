@@ -8,7 +8,7 @@ import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
 import { createGitLabFromPersonalAccessToken, getProjectMembers } from "../gitlab.js";
 import { Settings } from "../types.js";
-import { getAuthCredentialsForRepo } from "../utils.js";
+import { getAuthCredentialsForRepo, setIntervalAsync } from "../utils.js";
 
 type RepoPermissionSyncJob = {
     jobId: string;
@@ -48,7 +48,7 @@ export class RepoPermissionSyncer {
 
         logger.debug('Starting scheduler');
 
-        this.interval = setInterval(async () => {
+        this.interval = setIntervalAsync(async () => {
             // @todo: make this configurable
             const thresholdDate = new Date(Date.now() - this.settings.experiment_repoDrivenPermissionSyncIntervalMs);
 

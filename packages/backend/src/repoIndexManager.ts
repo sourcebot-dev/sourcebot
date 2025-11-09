@@ -12,7 +12,7 @@ import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName,
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
-import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, groupmqLifecycleExceptionWrapper, measure } from './utils.js';
+import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, groupmqLifecycleExceptionWrapper, measure, setIntervalAsync } from './utils.js';
 import { indexGitRepository } from './zoekt.js';
 
 const LOG_TAG = 'repo-index-manager';
@@ -72,9 +72,9 @@ export class RepoIndexManager {
         this.worker.on('error', this.onWorkerError.bind(this));
     }
 
-    public async startScheduler() {
+    public startScheduler() {
         logger.debug('Starting scheduler');
-        this.interval = setInterval(async () => {
+        this.interval = setIntervalAsync(async () => {
             await this.scheduleIndexJobs();
             await this.scheduleCleanupJobs();
         }, this.settings.reindexRepoPollingIntervalMs);
