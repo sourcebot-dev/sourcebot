@@ -14,6 +14,7 @@ import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from "./repoIndexManager.js";
+import { shutdownPosthog } from "./posthog.js";
 
 
 const logger = createLogger('backend-entrypoint');
@@ -101,6 +102,7 @@ const cleanup = async (signal: string) => {
 
     await prisma.$disconnect();
     await redis.quit();
+    await shutdownPosthog();
 }
 
 process.on('SIGINT', () => cleanup('SIGINT').finally(() => process.exit(0)));
