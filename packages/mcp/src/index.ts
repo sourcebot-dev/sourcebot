@@ -123,6 +123,22 @@ server.tool(
             const tokens = text.length / 4;
 
             if ((totalTokens + tokens) > maxTokens) {
+                // Calculate remaining token budget
+                const remainingTokens = maxTokens - totalTokens;
+
+                if (remainingTokens > 100) {  // Only truncate if meaningful space left
+                    // Truncate text to fit remaining tokens (tokens ≈ chars/4)
+                    const maxLength = Math.floor(remainingTokens * 4);
+                    const truncatedText = text.substring(0, maxLength) + "\n\n...[content truncated due to token limit]";
+
+                    content.push({
+                        type: "text",
+                        text: truncatedText,
+                    });
+
+                    totalTokens += remainingTokens;
+                }
+
                 isResponseTruncated = true;
                 break;
             }
