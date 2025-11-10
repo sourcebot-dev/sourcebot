@@ -7,13 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2025-11-10
+
 ### Fixed
 - Fixed issue where search results exceeding token limits would be completely discarded instead of returning truncated content. [#604](https://github.com/sourcebot-dev/sourcebot/pull/604)
 
 ## [1.0.7] - 2025-10-28
+
+### Changed
 - Updated API client to match the latest Sourcebot release. [#555](https://github.com/sourcebot-dev/sourcebot/pull/555)
 
 ## [1.0.6] - 2025-09-26
+
+### Fixed
 - Fix `linkedConnections is required` schema error.
 
 ## [1.0.5] - 2025-09-15
