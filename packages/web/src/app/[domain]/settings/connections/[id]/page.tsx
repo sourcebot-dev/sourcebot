@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
-import { notFound, ServiceErrorException } from "@/lib/serviceError";
+import { notFound as notFoundServiceError, ServiceErrorException } from "@/lib/serviceError";
+import { notFound } from "next/navigation";
 import { isServiceError } from "@/lib/utils";
 import { withAuthV2 } from "@/withAuthV2";
 import { AzureDevOpsConnectionConfig, BitbucketConnectionConfig, GenericGitHostConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GithubConnectionConfig, GitlabConnectionConfig } from "@sourcebot/schemas/v3/index.type";
@@ -203,7 +204,7 @@ const getConnectionWithJobs = async (id: number) => sew(() =>
         });
 
         if (!connection) {
-            return notFound();
+            return notFoundServiceError();
         }
 
         return connection;
