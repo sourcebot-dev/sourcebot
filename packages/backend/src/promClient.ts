@@ -1,14 +1,6 @@
-import express, { Request, Response } from 'express';
-import { Server } from 'http';
 import client, { Registry, Counter, Gauge } from 'prom-client';
-import { createLogger } from "@sourcebot/shared";
-
-const logger = createLogger('prometheus-client');
-
 export class PromClient {
-    private registry: Registry;
-    private app: express.Application;
-    private server: Server;
+    public registry: Registry;
 
     public activeRepoIndexJobs: Gauge<string>;
     public pendingRepoIndexJobs: Gauge<string>;
@@ -21,8 +13,6 @@ export class PromClient {
     public connectionSyncJobReattemptsTotal: Counter<string>;
     public connectionSyncJobFailTotal: Counter<string>;
     public connectionSyncJobSuccessTotal: Counter<string>;
-
-    public readonly PORT = 3060;
 
     constructor() {
         this.registry = new Registry();
@@ -99,27 +89,6 @@ export class PromClient {
 
         client.collectDefaultMetrics({
             register: this.registry,
-        });
-
-        this.app = express();
-        this.app.get('/metrics', async (req: Request, res: Response) => {
-            res.set('Content-Type', this.registry.contentType);
-
-            const metrics = await this.registry.metrics();
-            res.end(metrics);
-        });
-
-        this.server = this.app.listen(this.PORT, () => {
-            logger.info(`Prometheus metrics server is running on port ${this.PORT}`);
-        });
-    }
-
-    async dispose() {
-        return new Promise<void>((resolve, reject) => {
-            this.server.close((err) => {
-                if (err) reject(err);
-                else resolve();
-            });
         });
     }
 }

@@ -1,21 +1,21 @@
 import "./instrument.js";
 
 import { PrismaClient } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
-import { env, getConfigSettings, hasEntitlement, getDBConnectionString } from '@sourcebot/shared';
+import { createLogger, env, getConfigSettings, getDBConnectionString, hasEntitlement } from "@sourcebot/shared";
+import 'express-async-errors';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { Redis } from 'ioredis';
+import { Api } from "./api.js";
 import { ConfigManager } from "./configManager.js";
 import { ConnectionManager } from './connectionManager.js';
 import { INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
+import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
-import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
+import { shutdownPosthog } from "./posthog.js";
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from "./repoIndexManager.js";
-import { shutdownPosthog } from "./posthog.js";
-
 
 const logger = createLogger('backend-entrypoint');
 
@@ -74,6 +74,8 @@ else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement(
     accountPermissionSyncer.startScheduler();
 }
 
+const api = new Api(promClient, prisma, connectionManager);
+
 logger.info('Worker started.');
 
 const cleanup = async (signal: string) => {
@@ -88,7 +90,6 @@ const cleanup = async (signal: string) => {
                 connectionManager.dispose(),
                 repoPermissionSyncer.dispose(),
                 accountPermissionSyncer.dispose(),
-                promClient.dispose(),
                 configManager.dispose(),
             ]),
             new Promise((_, reject) =>
@@ -102,6 +103,7 @@ const cleanup = async (signal: string) => {
 
     await prisma.$disconnect();
     await redis.quit();
+    await api.dispose();
     await shutdownPosthog();
 }
 
