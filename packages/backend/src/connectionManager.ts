@@ -62,9 +62,12 @@ export class ConnectionManager {
 
         this.worker.on('completed', this.onJobCompleted.bind(this));
         this.worker.on('failed', this.onJobFailed.bind(this));
-        this.worker.on('graceful-timeout', this.onJobGracefulTimeout.bind(this));
         this.worker.on('stalled', this.onJobStalled.bind(this));
         this.worker.on('error', this.onWorkerError.bind(this));
+        // graceful-timeout is triggered when a job is still processing after
+        // worker.close() is called and the timeout period has elapsed. In this case,
+        // we fail the job with no retry.
+        this.worker.on('graceful-timeout', this.onJobGracefulTimeout.bind(this));
     }
 
     public startScheduler() {
@@ -163,8 +166,8 @@ export class ConnectionManager {
             }
         });
 
-        if (currentStatus.status !== ConnectionSyncJobStatus.PENDING) {
-            throw new Error(`Job ${jobId} is not in a valid state. Expected: ${ConnectionSyncJobStatus.PENDING}. Actual: ${currentStatus.status}. Skipping.`);
+        if (currentStatus.status !== ConnectionSyncJobStatus.PENDING && currentStatus.status !== ConnectionSyncJobStatus.IN_PROGRESS) {
+            throw new Error(`Job ${jobId} is not in a valid state. Expected: ${ConnectionSyncJobStatus.PENDING} or ${ConnectionSyncJobStatus.IN_PROGRESS}. Actual: ${currentStatus.status}. Skipping.`);
         }
 
 
@@ -455,7 +458,8 @@ export class ConnectionManager {
         }
 
         // @note: As of groupmq v1.0.0, queue.close() will just close the underlying
-        // redis connection. Since we share the same redis client between 
+        // redis connection. Since we share the same redis client between, skip this
+        // step and close the redis client directly in index.ts.
         // @see: https://github.com/Openpanel-dev/groupmq/blob/main/src/queue.ts#L1900
         // await this.queue.close();
     }

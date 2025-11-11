@@ -68,9 +68,12 @@ export class RepoIndexManager {
 
         this.worker.on('completed', this.onJobCompleted.bind(this));
         this.worker.on('failed', this.onJobFailed.bind(this));
-        this.worker.on('graceful-timeout', this.onJobGracefulTimeout.bind(this));
         this.worker.on('stalled', this.onJobStalled.bind(this));
         this.worker.on('error', this.onWorkerError.bind(this));
+        // graceful-timeout is triggered when a job is still processing after
+        // worker.close() is called and the timeout period has elapsed. In this case,
+        // we fail the job with no retry.
+        this.worker.on('graceful-timeout', this.onJobGracefulTimeout.bind(this));
     }
 
     public startScheduler() {
@@ -231,6 +234,23 @@ export class RepoIndexManager {
         const logger = createJobLogger(id);
         logger.info(`Running ${job.data.type} job ${id} for repo ${job.data.repoName} (id: ${job.data.repoId}) (attempt ${job.attempts + 1} / ${job.maxAttempts})`);
 
+        const currentStatus = await this.db.repoIndexingJob.findUniqueOrThrow({
+            where: {
+                id,
+            },
+            select: {
+                status: true,
+            }
+        });
+        
+        // Fail safe: if the job is not PENDING (first run) or IN_PROGRESS (retry), it indicates the job
+        // is in an invalid state and should be skipped.
+        if (
+            currentStatus.status !== RepoIndexingJobStatus.PENDING &&
+            currentStatus.status !== RepoIndexingJobStatus.IN_PROGRESS
+        ) {
+            throw new Error(`Job ${id} is not in a valid state. Expected: ${RepoIndexingJobStatus.PENDING} or ${RepoIndexingJobStatus.IN_PROGRESS}. Actual: ${currentStatus.status}. Skipping.`);
+        }
 
         const { repo, type: jobType } = await this.db.repoIndexingJob.update({
             where: {
@@ -583,8 +603,8 @@ export class RepoIndexManager {
         }
 
         // @note: As of groupmq v1.0.0, queue.close() will just close the underlying
-        // redis connection. Since we share the same redis client between 
-        // @see: https://github.com/Openpanel-dev/groupmq/blob/main/src/queue.ts#L1900
+        // redis connection. Since we share the same redis client between, skip this
+        // step and close the redis client directly in index.ts.
         // await this.queue.close();
     }
 }
