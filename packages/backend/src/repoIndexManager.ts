@@ -45,7 +45,7 @@ export class RepoIndexManager {
     constructor(
         private db: PrismaClient,
         private settings: Settings,
-        redis: Redis,
+        private redis: Redis,
         private promClient: PromClient,
     ) {
         this.queue = new Queue<JobPayload>({
@@ -68,6 +68,7 @@ export class RepoIndexManager {
 
         this.worker.on('completed', this.onJobCompleted.bind(this));
         this.worker.on('failed', this.onJobFailed.bind(this));
+        this.worker.on('graceful-timeout', this.onJobGracefulTimeout.bind(this));
         this.worker.on('stalled', this.onJobStalled.bind(this));
         this.worker.on('error', this.onWorkerError.bind(this));
     }
@@ -540,6 +541,28 @@ export class RepoIndexManager {
             logger.error(`Job ${jobId} stalled for repo ${repo.name} (id: ${repo.id})`);
         });
 
+    private onJobGracefulTimeout = async (job: Job<JobPayload>) =>
+        groupmqLifecycleExceptionWrapper('onJobGracefulTimeout', logger, async () => {
+            const logger = createJobLogger(job.data.jobId);
+            const jobTypeLabel = getJobTypePrometheusLabel(job.data.type);
+
+            const { repo } = await this.db.repoIndexingJob.update({
+                where: { id: job.data.jobId },
+                data: {
+                    status: RepoIndexingJobStatus.FAILED,
+                    completedAt: new Date(),
+                    errorMessage: 'Job timed out',
+                },
+                select: { repo: true }
+            });
+
+            this.promClient.activeRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
+            this.promClient.repoIndexJobFailTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
+
+            logger.error(`Job ${job.data.jobId} timed out for repo ${repo.name} (id: ${repo.id}). Failing job.`);
+
+        });
+
     private async onWorkerError(error: Error) {
         Sentry.captureException(error);
         logger.error(`Index syncer worker error.`, error);
@@ -549,7 +572,16 @@ export class RepoIndexManager {
         if (this.interval) {
             clearInterval(this.interval);
         }
+        const inProgressJobs = this.worker.getCurrentJobs();
         await this.worker.close(GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS);
+        // Manually release group locks for in progress jobs to prevent deadlocks.
+        // @see: https://github.com/Openpanel-dev/groupmq/issues/8
+        for (const { job } of inProgressJobs) {
+            const lockKey = `groupmq:repo-index-queue:lock:${job.groupId}`;
+            logger.debug(`Releasing group lock ${lockKey} for in progress job ${job.id}`);
+            await this.redis.del(lockKey);
+        }
+
         // @note: As of groupmq v1.0.0, queue.close() will just close the underlying
         // redis connection. Since we share the same redis client between 
         // @see: https://github.com/Openpanel-dev/groupmq/blob/main/src/queue.ts#L1900
