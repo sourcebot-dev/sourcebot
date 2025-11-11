@@ -202,7 +202,7 @@ export const RepoJobsTable = ({
         if (!isServiceError(response)) {
             const { jobId } = response;
             toast({
-                description: `✅ Repository indexed successfully. Job ID: ${jobId}`,
+                description: `✅ Repository sync triggered successfully. Job ID: ${jobId}`,
             })
             router.refresh();
         } else {
@@ -299,7 +299,7 @@ export const RepoJobsTable = ({
                             variant="outline"
                         >
                             <PlusCircleIcon className="w-3 h-3" />
-                            Index now
+                            Trigger sync
                         </LoadingButton>
                     )}
                 </div>
