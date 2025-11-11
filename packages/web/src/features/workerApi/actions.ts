@@ -33,3 +33,27 @@ export const syncConnection = async (connectionId: number) => sew(() =>
         })
     )
 );
+
+export const indexRepo = async (repoId: number) => sew(() =>
+    withAuthV2(({ role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const response = await fetch(`${WORKER_API_URL}/api/index-repo`, {
+                method: 'POST',
+                body: JSON.stringify({ repoId }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                return unexpectedError('Failed to index repo');
+            }
+
+            const data = await response.json();
+            const schema = z.object({
+                jobId: z.string(),
+            });
+            return schema.parse(data);
+        })
+    )
+);

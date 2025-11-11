@@ -74,7 +74,12 @@ else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement(
     accountPermissionSyncer.startScheduler();
 }
 
-const api = new Api(promClient, prisma, connectionManager);
+const api = new Api(
+    promClient,
+    prisma,
+    connectionManager,
+    repoIndexManager,
+);
 
 logger.info('Worker started.');
 
