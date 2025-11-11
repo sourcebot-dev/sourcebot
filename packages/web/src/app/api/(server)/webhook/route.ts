@@ -6,7 +6,7 @@ import { WebhookEventDefinition} from "@octokit/webhooks/types";
 import { EndpointDefaults } from "@octokit/types";
 import { env } from "@sourcebot/shared";
 import { processGitHubPullRequest } from "@/features/agents/review-agent/app";
-import { throttling } from "@octokit/plugin-throttling";
+import { throttling, type ThrottlingOptions } from "@octokit/plugin-throttling";
 import fs from "fs";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
 import { createLogger } from "@sourcebot/shared";
@@ -14,7 +14,7 @@ import { createLogger } from "@sourcebot/shared";
 const logger = createLogger('github-webhook');
 
 const DEFAULT_GITHUB_API_BASE_URL = "https://api.github.com";
-type GitHubAppBaseOptions = Omit<ConstructorParameters<typeof App>[0], "Octokit">;
+type GitHubAppBaseOptions = Omit<ConstructorParameters<typeof App>[0], "Octokit"> & { throttle: ThrottlingOptions };
 
 let githubAppBaseOptions: GitHubAppBaseOptions | undefined;
 const githubAppCache = new Map<string, App>();
@@ -30,7 +30,8 @@ if (env.GITHUB_REVIEW_AGENT_APP_ID && env.GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET
                 secret: env.GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET,
             },
             throttle: {
-                onRateLimit: (retryAfter: number, options: Required<EndpointDefaults>, octokit: Octokit, retryCount: number) => {
+                enabled: true,
+                onRateLimit: (retryAfter, _options, _octokit, retryCount) => {
                     if (retryCount > 3) {
                         logger.warn(`Rate limit exceeded: ${retryAfter} seconds`);
                         return false;
@@ -38,6 +39,10 @@ if (env.GITHUB_REVIEW_AGENT_APP_ID && env.GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET
 
                     return true;
                 },
+                onSecondaryRateLimit: (_retryAfter, options) => {
+                  // no retries on secondary rate limits
+                  logger.warn(`SecondaryRateLimit detected for ${options.method} ${options.url}`);
+                }
             },
         };
     } catch (error) {
