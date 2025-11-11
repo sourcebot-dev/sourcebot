@@ -7908,6 +7908,7 @@ __metadata:
     cross-fetch: "npm:^4.0.0"
     dotenv: "npm:^16.4.5"
     express: "npm:^4.21.2"
+    express-async-errors: "npm:^3.1.1"
     git-url-parse: "npm:^16.1.0"
     gitea-js: "npm:^1.22.0"
     glob: "npm:^11.0.0"
@@ -12535,6 +12536,15 @@ __metadata:
   version: 3.1.2
   resolution: "exponential-backoff@npm:3.1.2"
   checksum: 10c0/d9d3e1eafa21b78464297df91f1776f7fbaa3d5e3f7f0995648ca5b89c069d17055033817348d9f4a43d1c20b0eab84f75af6991751e839df53e4dfd6f22e844
+  languageName: node
+  linkType: hard
+
+"express-async-errors@npm:^3.1.1":
+  version: 3.1.1
+  resolution: "express-async-errors@npm:3.1.1"
+  peerDependencies:
+    express: ^4.16.2
+  checksum: 10c0/56c4e90c44e98c7edc5bd38e18dd23b0d9a7139cb94ff3e25943ba257415b433e0e52ea8f9bc1fb5b70a5e6c5246eaace4fb69ab171edfb8896580928bb97ec6
   languageName: node
   linkType: hard
 

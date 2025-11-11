@@ -4,13 +4,13 @@ import { DisplayDate } from "@/app/[domain]/components/DisplayDate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { env } from "@sourcebot/shared";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
-import { notFound, ServiceErrorException } from "@/lib/serviceError";
+import { notFound as notFoundServiceError, ServiceErrorException } from "@/lib/serviceError";
+import { notFound } from "next/navigation";
 import { isServiceError } from "@/lib/utils";
 import { withAuthV2 } from "@/withAuthV2";
 import { AzureDevOpsConnectionConfig, BitbucketConnectionConfig, GenericGitHostConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GithubConnectionConfig, GitlabConnectionConfig } from "@sourcebot/schemas/v3/index.type";
-import { getConfigSettings } from "@sourcebot/shared";
+import { env, getConfigSettings } from "@sourcebot/shared";
 import { Info } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -22,12 +22,16 @@ interface ConnectionDetailPageProps {
     }>
 }
 
-
 export default async function ConnectionDetailPage(props: ConnectionDetailPageProps) {
     const params = await props.params;
     const { id } = params;
 
-    const connection = await getConnectionWithJobs(Number.parseInt(id));
+    const connectionId = Number.parseInt(id);
+    if (isNaN(connectionId)) {
+        return notFound();
+    }
+
+    const connection = await getConnectionWithJobs(connectionId);
     if (isServiceError(connection)) {
         throw new ServiceErrorException(connection);
     }
@@ -172,7 +176,10 @@ export default async function ConnectionDetailPage(props: ConnectionDetailPagePr
                 </CardHeader>
                 <CardContent>
                     <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                        <ConnectionJobsTable data={connection.syncJobs} />
+                        <ConnectionJobsTable
+                            data={connection.syncJobs}
+                            connectionId={connectionId}
+                        />
                     </Suspense>
                 </CardContent>
             </Card>
@@ -197,7 +204,7 @@ const getConnectionWithJobs = async (id: number) => sew(() =>
         });
 
         if (!connection) {
-            return notFound();
+            return notFoundServiceError();
         }
 
         return connection;

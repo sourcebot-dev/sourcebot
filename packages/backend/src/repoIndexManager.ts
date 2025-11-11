@@ -192,7 +192,7 @@ export class RepoIndexManager {
         }
     }
 
-    private async createJobs(repos: Repo[], type: RepoIndexingJobType) {
+    public async createJobs(repos: Repo[], type: RepoIndexingJobType) {
         // @note: we don't perform this in a transaction because
         // we want to avoid the situation where a job is created and run
         // prior to the transaction being committed.
@@ -221,6 +221,8 @@ export class RepoIndexManager {
             const jobTypeLabel = getJobTypePrometheusLabel(type);
             this.promClient.pendingRepoIndexJobs.inc({ repo: job.repo.name, type: jobTypeLabel });
         }
+
+        return jobs.map(job => job.id);
     }
 
     private async runJob(job: ReservedJob<JobPayload>) {
