@@ -1,5 +1,6 @@
 import "./instrument.js";
 
+import * as Sentry from "@sentry/node";
 import { PrismaClient } from "@sourcebot/db";
 import { createLogger, env, getConfigSettings, getDBConnectionString, hasEntitlement } from "@sourcebot/shared";
 import 'express-async-errors';
@@ -9,13 +10,14 @@ import { Redis } from 'ioredis';
 import { Api } from "./api.js";
 import { ConfigManager } from "./configManager.js";
 import { ConnectionManager } from './connectionManager.js';
-import { INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
+import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS } from './constants.js';
 import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { shutdownPosthog } from "./posthog.js";
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from "./repoIndexManager.js";
+
 
 const logger = createLogger('backend-entrypoint');
 
@@ -83,45 +85,65 @@ const api = new Api(
 
 logger.info('Worker started.');
 
-const cleanup = async (signal: string) => {
-    logger.info(`Received ${signal}, cleaning up...`);
 
-    const shutdownTimeout = 30000; // 30 seconds
 
-    try {
-        await Promise.race([
-            Promise.all([
-                repoIndexManager.dispose(),
-                connectionManager.dispose(),
-                repoPermissionSyncer.dispose(),
-                accountPermissionSyncer.dispose(),
-                configManager.dispose(),
-            ]),
-            new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Shutdown timeout')), shutdownTimeout)
-            )
-        ]);
-        logger.info('All workers shut down gracefully');
-    } catch (error) {
-        logger.warn('Shutdown timeout or error, forcing exit:', error instanceof Error ? error.message : String(error));
+const listenToShutdownSignals = () => {
+    const signals = SHUTDOWN_SIGNALS;
+
+    let receivedSignal = false;
+
+    const cleanup = async (signal: string) => {
+        try {
+            if (receivedSignal) {
+                logger.debug(`Recieved repeat signal ${signal}, ignoring.`);
+                return;
+            }
+            receivedSignal = true;
+
+            logger.info(`Received ${signal}, cleaning up...`);
+
+            await repoIndexManager.dispose()
+            await connectionManager.dispose()
+            await repoPermissionSyncer.dispose()
+            await accountPermissionSyncer.dispose()
+            await promClient.dispose()
+            await configManager.dispose()
+
+            logger.info('Disposed all workers');
+
+            await prisma.$disconnect();
+            await redis.quit();
+            await api.dispose();
+            await shutdownPosthog();
+
+            
+            logger.info('All workers shut down gracefully');
+
+            signals.forEach(sig => process.removeListener(sig, cleanup));
+            process.kill(process.pid, signal);
+        } catch (error) {
+            Sentry.captureException(error);
+            logger.error('Error shutting down worker:', error);
+            process.exit(1);
+        }
     }
 
-    await prisma.$disconnect();
-    await redis.quit();
-    await api.dispose();
-    await shutdownPosthog();
+    signals.forEach(signal => {
+        process.on(signal, cleanup);
+    });
+
+    // Register handlers for uncaught exceptions and unhandled rejections
+    process.on('uncaughtException', (err) => {
+        logger.error(`Uncaught exception: ${err.message}`);
+        cleanup('uncaughtException').finally(() => process.exit(1));
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+        logger.error(`Unhandled rejection at: ${promise}, reason: ${reason}`);
+        cleanup('unhandledRejection').finally(() => process.exit(1));
+    });
+
+
 }
 
-process.on('SIGINT', () => cleanup('SIGINT').finally(() => process.exit(0)));
-process.on('SIGTERM', () => cleanup('SIGTERM').finally(() => process.exit(0)));
-
-// Register handlers for uncaught exceptions and unhandled rejections
-process.on('uncaughtException', (err) => {
-    logger.error(`Uncaught exception: ${err.message}`);
-    cleanup('uncaughtException').finally(() => process.exit(1));
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    logger.error(`Unhandled rejection at: ${promise}, reason: ${reason}`);
-    cleanup('unhandledRejection').finally(() => process.exit(1));
-});
+listenToShutdownSignals();

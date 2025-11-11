@@ -7,7 +7,7 @@ import { readdir, rm } from 'fs/promises';
 import { Job, Queue, ReservedJob, Worker } from "groupmq";
 import { Redis } from 'ioredis';
 import micromatch from 'micromatch';
-import { INDEX_CACHE_DIR } from './constants.js';
+import { GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS, INDEX_CACHE_DIR } from './constants.js';
 import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
@@ -549,8 +549,11 @@ export class RepoIndexManager {
         if (this.interval) {
             clearInterval(this.interval);
         }
-        await this.worker.close();
-        await this.queue.close();
+        await this.worker.close(GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS);
+        // @note: As of groupmq v1.0.0, queue.close() will just close the underlying
+        // redis connection. Since we share the same redis client between 
+        // @see: https://github.com/Openpanel-dev/groupmq/blob/main/src/queue.ts#L1900
+        // await this.queue.close();
     }
 }
 

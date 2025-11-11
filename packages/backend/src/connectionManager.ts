@@ -11,6 +11,7 @@ import { groupmqLifecycleExceptionWrapper, setIntervalAsync } from "./utils.js";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import { captureEvent } from "./posthog.js";
 import { PromClient } from "./promClient.js";
+import { GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS, SHUTDOWN_SIGNALS } from "./constants.js";
 
 const LOG_TAG = 'connection-manager';
 const logger = createLogger(LOG_TAG);
@@ -60,6 +61,7 @@ export class ConnectionManager {
 
         this.worker.on('completed', this.onJobCompleted.bind(this));
         this.worker.on('failed', this.onJobFailed.bind(this));
+        // this.worker.on('graceful-timeout', this.onJobFailed.bind(this));
         this.worker.on('stalled', this.onJobStalled.bind(this));
         this.worker.on('error', this.onWorkerError.bind(this));
     }
@@ -156,6 +158,9 @@ export class ConnectionManager {
         // @note: We aren't actually doing anything with this atm.
         const abortController = new AbortController();
 
+        logger.info('Waiting for 60 seconds...');
+        await new Promise(resolve => setTimeout(resolve, 60 * 1000));
+       
         const { connection: { config: rawConnectionConfig, orgId } } = await this.db.connectionSyncJob.update({
             where: {
                 id: jobId,
@@ -392,8 +397,12 @@ export class ConnectionManager {
         if (this.interval) {
             clearInterval(this.interval);
         }
-        await this.worker.close();
-        await this.queue.close();
+
+        await this.worker.close(GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS);
+        // @note: As of groupmq v1.0.0, queue.close() will just close the underlying
+        // redis connection. Since we share the same redis client between 
+        // @see: https://github.com/Openpanel-dev/groupmq/blob/main/src/queue.ts#L1900
+        // await this.queue.close();
     }
 }
 
