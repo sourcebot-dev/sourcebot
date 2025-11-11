@@ -166,6 +166,8 @@ export class ConnectionManager {
             }
         });
 
+        // Fail safe: if the job is not PENDING (first run) or IN_PROGRESS (retry), it indicates the job
+        // is in an invalid state and should be skipped.
         if (currentStatus.status !== ConnectionSyncJobStatus.PENDING && currentStatus.status !== ConnectionSyncJobStatus.IN_PROGRESS) {
             throw new Error(`Job ${jobId} is not in a valid state. Expected: ${ConnectionSyncJobStatus.PENDING} or ${ConnectionSyncJobStatus.IN_PROGRESS}. Actual: ${currentStatus.status}. Skipping.`);
         }
