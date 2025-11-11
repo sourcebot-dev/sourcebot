@@ -106,10 +106,7 @@ const listenToShutdownSignals = () => {
             await connectionManager.dispose()
             await repoPermissionSyncer.dispose()
             await accountPermissionSyncer.dispose()
-            await promClient.dispose()
             await configManager.dispose()
-
-            logger.info('Disposed all workers');
 
             await prisma.$disconnect();
             await redis.quit();
