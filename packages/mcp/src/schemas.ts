@@ -156,6 +156,25 @@ export const repositoryQuerySchema = z.object({
 
 export const listRepositoriesResponseSchema = repositoryQuerySchema.array();
 
+export const listReposRequestSchema = z.object({
+    query: z
+        .string()
+        .describe("Filter repositories by name or displayName (case-insensitive)")
+        .optional(),
+    pageNumber: z
+        .number()
+        .int()
+        .positive()
+        .describe("Page number (1-indexed, default: 1)")
+        .default(1),
+    limit: z
+        .number()
+        .int()
+        .positive()
+        .describe("Number of repositories per page (default: 50)")
+        .default(50),
+});
+
 export const fileSourceRequestSchema = z.object({
     fileName: z.string(),
     repository: z.string(),
