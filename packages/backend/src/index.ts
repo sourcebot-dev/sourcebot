@@ -1,5 +1,6 @@
 import "./instrument.js";
 
+import * as Sentry from "@sentry/node";
 import { PrismaClient } from "@sourcebot/db";
 import { createLogger, env, getConfigSettings, getDBConnectionString, hasEntitlement } from "@sourcebot/shared";
 import 'express-async-errors';
@@ -9,13 +10,14 @@ import { Redis } from 'ioredis';
 import { Api } from "./api.js";
 import { ConfigManager } from "./configManager.js";
 import { ConnectionManager } from './connectionManager.js';
-import { INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
+import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS } from './constants.js';
 import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { shutdownPosthog } from "./posthog.js";
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from "./repoIndexManager.js";
+
 
 const logger = createLogger('backend-entrypoint');
 
@@ -40,13 +42,14 @@ const prisma = new PrismaClient({
 const redis = new Redis(env.REDIS_URL, {
     maxRetriesPerRequest: null
 });
-redis.ping().then(() => {
+
+try {
+    await redis.ping();
     logger.info('Connected to redis');
-}).catch((err: unknown) => {
-    logger.error('Failed to connect to redis');
-    logger.error(err);
+} catch (err: unknown) {
+    logger.error('Failed to connect to redis. Error:', err);
     process.exit(1);
-});
+}
 
 const promClient = new PromClient();
 
@@ -83,45 +86,65 @@ const api = new Api(
 
 logger.info('Worker started.');
 
-const cleanup = async (signal: string) => {
-    logger.info(`Received ${signal}, cleaning up...`);
+const listenToShutdownSignals = () => {
+    const signals = SHUTDOWN_SIGNALS;
 
-    const shutdownTimeout = 30000; // 30 seconds
+    let receivedSignal = false;
 
-    try {
-        await Promise.race([
-            Promise.all([
-                repoIndexManager.dispose(),
-                connectionManager.dispose(),
-                repoPermissionSyncer.dispose(),
-                accountPermissionSyncer.dispose(),
-                configManager.dispose(),
-            ]),
-            new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Shutdown timeout')), shutdownTimeout)
-            )
-        ]);
-        logger.info('All workers shut down gracefully');
-    } catch (error) {
-        logger.warn('Shutdown timeout or error, forcing exit:', error instanceof Error ? error.message : String(error));
+    const cleanup = async (signal: string) => {
+        try {
+            if (receivedSignal) {
+                logger.debug(`Recieved repeat signal ${signal}, ignoring.`);
+                return;
+            }
+            receivedSignal = true;
+
+            logger.info(`Received ${signal}, cleaning up...`);
+
+            await repoIndexManager.dispose()
+            await connectionManager.dispose()
+            await repoPermissionSyncer.dispose()
+            await accountPermissionSyncer.dispose()
+            await configManager.dispose()
+
+            await prisma.$disconnect();
+            await redis.quit();
+            await api.dispose();
+            await shutdownPosthog();
+
+            
+            logger.info('All workers shut down gracefully');
+            signals.forEach(sig => process.removeListener(sig, cleanup));
+        } catch (error) {
+            Sentry.captureException(error);
+            logger.error('Error shutting down worker:', error);
+        }
     }
 
-    await prisma.$disconnect();
-    await redis.quit();
-    await api.dispose();
-    await shutdownPosthog();
+    signals.forEach(signal => {
+        process.on(signal, (err) => {
+            cleanup(err).finally(() => {
+                process.kill(process.pid, signal);
+            });
+        });
+    });
+
+    // Register handlers for uncaught exceptions and unhandled rejections
+    process.on('uncaughtException', (err) => {
+        logger.error(`Uncaught exception: ${err.message}`);
+        cleanup('uncaughtException').finally(() => {
+            process.exit(1);
+        });
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+        logger.error(`Unhandled rejection at: ${promise}, reason: ${reason}`);
+        cleanup('unhandledRejection').finally(() => {
+            process.exit(1);
+        });
+    });
+
+
 }
 
-process.on('SIGINT', () => cleanup('SIGINT').finally(() => process.exit(0)));
-process.on('SIGTERM', () => cleanup('SIGTERM').finally(() => process.exit(0)));
-
-// Register handlers for uncaught exceptions and unhandled rejections
-process.on('uncaughtException', (err) => {
-    logger.error(`Uncaught exception: ${err.message}`);
-    cleanup('uncaughtException').finally(() => process.exit(1));
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    logger.error(`Unhandled rejection at: ${promise}, reason: ${reason}`);
-    cleanup('unhandledRejection').finally(() => process.exit(1));
-});
+listenToShutdownSignals();
