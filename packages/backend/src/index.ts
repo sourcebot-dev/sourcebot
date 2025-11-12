@@ -42,13 +42,14 @@ const prisma = new PrismaClient({
 const redis = new Redis(env.REDIS_URL, {
     maxRetriesPerRequest: null
 });
-redis.ping().then(() => {
+
+try {
+    await redis.ping();
     logger.info('Connected to redis');
-}).catch((err: unknown) => {
-    logger.error('Failed to connect to redis');
-    logger.error(err);
+} catch (err: unknown) {
+    logger.error('Failed to connect to redis. Error:', err);
     process.exit(1);
-});
+}
 
 const promClient = new PromClient();
 
@@ -85,8 +86,6 @@ const api = new Api(
 
 logger.info('Worker started.');
 
-
-
 const listenToShutdownSignals = () => {
     const signals = SHUTDOWN_SIGNALS;
 
@@ -115,29 +114,34 @@ const listenToShutdownSignals = () => {
 
             
             logger.info('All workers shut down gracefully');
-
             signals.forEach(sig => process.removeListener(sig, cleanup));
-            process.kill(process.pid, signal);
         } catch (error) {
             Sentry.captureException(error);
             logger.error('Error shutting down worker:', error);
-            process.exit(1);
         }
     }
 
     signals.forEach(signal => {
-        process.on(signal, cleanup);
+        process.on(signal, (err) => {
+            cleanup(err).finally(() => {
+                process.kill(process.pid, signal);
+            });
+        });
     });
 
     // Register handlers for uncaught exceptions and unhandled rejections
     process.on('uncaughtException', (err) => {
         logger.error(`Uncaught exception: ${err.message}`);
-        cleanup('uncaughtException').finally(() => process.exit(1));
+        cleanup('uncaughtException').finally(() => {
+            process.exit(1);
+        });
     });
 
     process.on('unhandledRejection', (reason, promise) => {
         logger.error(`Unhandled rejection at: ${promise}, reason: ${reason}`);
-        cleanup('unhandledRejection').finally(() => process.exit(1));
+        cleanup('unhandledRejection').finally(() => {
+            process.exit(1);
+        });
     });
 
 

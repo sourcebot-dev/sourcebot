@@ -93,8 +93,8 @@ export class ConfigManager {
                     });
 
                 if (connectionNeedsSyncing) {
-                    const [jobId] = await this.connectionManager.createJobs([connection]);
-                    logger.info(`Change detected for connection '${key}' (id: ${connection.id}). Created sync job ${jobId}.`);
+                    logger.info(`Change detected for connection '${key}' (id: ${connection.id}). Creating sync job.`);
+                    await this.connectionManager.createJobs([connection]);
                 }
             }
         }
