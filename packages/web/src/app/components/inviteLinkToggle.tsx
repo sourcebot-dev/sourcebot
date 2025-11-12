@@ -121,7 +121,7 @@ export function InviteLinkToggle({ inviteLinkEnabled, inviteLink }: InviteLinkTo
                     </div>
                     
                     <p className="text-sm text-[var(--muted-foreground)]">
-                        You can find this link again in the <strong>Settings → Members</strong> page.
+                        You can find this link again in the <strong>Settings → Access</strong> page.
                     </p>
                 </div>
             </div>

@@ -11,11 +11,11 @@ import { OrgRole } from "@prisma/client";
 import placeholderAvatar from "@/public/placeholder_avatar.png";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDomain } from "@/hooks/useDomain";
-import { transferOwnership, removeMemberFromOrg, leaveOrg } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { removeMemberFromOrg } from "@/features/members/actions";
 
 type Member = {
     id: string
@@ -30,20 +30,18 @@ export interface MembersListProps {
     members: Member[],
     currentUserId: string,
     currentUserRole: OrgRole,
-    orgName: string,
 }
 
-export const MembersList = ({ members, currentUserId, currentUserRole, orgName }: MembersListProps) => {
+export const MembersList = ({ members, currentUserId, currentUserRole }: MembersListProps) => {
     const [searchQuery, setSearchQuery] = useState("")
     const [roleFilter, setRoleFilter] = useState<"all" | OrgRole>("all")
     const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest")
     const [memberToRemove, setMemberToRemove] = useState<Member | null>(null)
-    const [memberToTransfer, setMemberToTransfer] = useState<Member | null>(null)
+    const [roleChangeData, setRoleChangeData] = useState<{ member: Member; newRole: OrgRole } | null>(null)
     const domain = useDomain()
     const { toast } = useToast()
     const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
-    const [isTransferOwnershipDialogOpen, setIsTransferOwnershipDialogOpen] = useState(false)
-    const [isLeaveOrgDialogOpen, setIsLeaveOrgDialogOpen] = useState(false)
+    const [isRoleChangeDialogOpen, setIsRoleChangeDialogOpen] = useState(false)
     const router = useRouter();
     const captureEvent = useCaptureEvent();
 
@@ -83,45 +81,9 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
             });
     }, [domain, toast, router, captureEvent]);
 
-    const onTransferOwnership = useCallback((memberId: string) => {
-        transferOwnership(memberId, domain)
-            .then((response) => {
-                if (isServiceError(response)) {
-                    toast({
-                        description: `❌ Failed to transfer ownership. Reason: ${response.message}`
-                    })
-                    captureEvent('wa_members_list_transfer_ownership_fail', {
-                        error: response.errorCode,
-                    })
-                } else {
-                    toast({
-                        description: `✅ Ownership transferred successfully.`
-                    })
-                    captureEvent('wa_members_list_transfer_ownership_success', {})
-                    router.refresh();
-                }
-            });
-    }, [domain, toast, router, captureEvent]);
-
-    const onLeaveOrg = useCallback(() => {
-        leaveOrg(domain)
-            .then((response) => {
-                if (isServiceError(response)) {
-                    toast({
-                        description: `❌ Failed to leave organization. Reason: ${response.message}`
-                    })
-                    captureEvent('wa_members_list_leave_org_fail', {
-                        error: response.errorCode,
-                    })
-                } else {
-                    toast({
-                        description: `✅ You have left the organization.`
-                    })
-                    captureEvent('wa_members_list_leave_org_success', {})
-                    router.push("/");
-                }
-            });
-    }, [domain, toast, router, captureEvent]);
+    const onChangeMembership = useCallback((_memberId: string, _newRole: OrgRole) => {
+        // @todo
+    }, []);
 
     return (
         <div>
@@ -181,7 +143,25 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <span className="text-sm text-muted-foreground capitalize">{member.role.toLowerCase()}</span>
+                                        <Select 
+                                            value={member.role} 
+                                            onValueChange={(value) => {
+                                                const newRole = value as OrgRole;
+                                                if (newRole !== member.role) {
+                                                    setRoleChangeData({ member, newRole });
+                                                    setIsRoleChangeDialogOpen(true);
+                                                }
+                                            }}
+                                            disabled={member.id === currentUserId || currentUserRole !== OrgRole.OWNER}
+                                        >
+                                            <SelectTrigger className="w-[180px]">
+                                                <SelectValue placeholder={member.role.toLowerCase()} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value={OrgRole.OWNER}>Owner</SelectItem>
+                                                <SelectItem value={OrgRole.MEMBER}>Member</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                         <DropdownMenu modal={false}>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -209,17 +189,6 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                                                 </DropdownMenuItem>
                                                 {member.id !== currentUserId && currentUserRole === OrgRole.OWNER && (
                                                     <DropdownMenuItem
-                                                        className="cursor-pointer"
-                                                        onClick={() => {
-                                                            setMemberToTransfer(member);
-                                                            setIsTransferOwnershipDialogOpen(true);
-                                                        }}
-                                                    >
-                                                        Transfer ownership
-                                                    </DropdownMenuItem>
-                                                )}
-                                                {member.id !== currentUserId && currentUserRole === OrgRole.OWNER && (
-                                                    <DropdownMenuItem
                                                         className="cursor-pointer text-destructive"
                                                         onClick={() => {
                                                             setMemberToRemove(member);
@@ -227,17 +196,6 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                                                         }}
                                                     >
                                                         Remove
-                                                    </DropdownMenuItem>
-                                                )}
-                                                {member.id === currentUserId && (
-                                                    <DropdownMenuItem
-                                                        className="cursor-pointer text-destructive"
-                                                        disabled={currentUserRole === OrgRole.OWNER}
-                                                        onClick={() => {
-                                                            setIsLeaveOrgDialogOpen(true);
-                                                        }}
-                                                    >
-                                                        Leave organization
                                                     </DropdownMenuItem>
                                                 )}
                                             </DropdownMenuContent>
@@ -273,46 +231,26 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                     </AlertDialogContent>
                 </AlertDialog>
                 <AlertDialog
-                    open={isTransferOwnershipDialogOpen}
-                    onOpenChange={setIsTransferOwnershipDialogOpen}
+                    open={isRoleChangeDialogOpen}
+                    onOpenChange={setIsRoleChangeDialogOpen}
                 >
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Transfer Ownership</AlertDialogTitle>
+                            <AlertDialogTitle>Change Member Role</AlertDialogTitle>
                             <AlertDialogDescription>
-                                {`Are you sure you want to transfer ownership of ${orgName} to ${memberToTransfer?.name ?? memberToTransfer?.email}?`}
+                                {roleChangeData && `Are you sure you want to change ${roleChangeData.member.name ?? roleChangeData.member.email}'s role to ${roleChangeData.newRole.toLowerCase()}?`}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                                 onClick={() => {
-                                    onTransferOwnership(memberToTransfer?.id ?? "");
+                                    if (roleChangeData) {
+                                        onChangeMembership(roleChangeData.member.id, roleChangeData.newRole);
+                                    }
                                 }}
                             >
-                                Transfer
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-                <AlertDialog
-                    open={isLeaveOrgDialogOpen}
-                    onOpenChange={setIsLeaveOrgDialogOpen}
-                >
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Leave Organization</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {`Are you sure you want to leave ${orgName}?`}
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={onLeaveOrg}
-                            >
-                                Leave
+                                Confirm
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>

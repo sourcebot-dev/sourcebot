@@ -149,10 +149,6 @@ export type PosthogEventMap = {
     wa_members_list_remove_member_fail: {
         error: string,
     },
-    wa_members_list_transfer_ownership_success: {},
-    wa_members_list_transfer_ownership_fail: {
-        error: string,
-    },
     wa_members_list_leave_org_success: {},
     wa_members_list_leave_org_fail: {
         error: string,

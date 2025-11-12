@@ -22,7 +22,7 @@ import { createTransport } from "nodemailer";
 import { Octokit } from "octokit";
 import { auth } from "./auth";
 import { getOrgFromDomain } from "./data/org";
-import { decrementOrgSeatCount, getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
+import { getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
 import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
@@ -1139,102 +1139,6 @@ export const getInviteInfo = async (inviteId: string) => sew(() =>
         }
     }));
 
-export const transferOwnership = async (newOwnerId: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const currentUserId = userId;
-
-            const failAuditCallback = async (error: string) => {
-                await auditService.createAudit({
-                    action: "org.ownership_transfer_failed",
-                    actor: {
-                        id: currentUserId,
-                        type: "user"
-                    },
-                    target: {
-                        id: org.id.toString(),
-                        type: "org"
-                    },
-                    orgId: org.id,
-                    metadata: {
-                        message: error
-                    }
-                })
-            }
-            if (newOwnerId === currentUserId) {
-                await failAuditCallback("User is already the owner of this org");
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "You're already the owner of this org",
-                } satisfies ServiceError;
-            }
-
-            const newOwner = await prisma.userToOrg.findUnique({
-                where: {
-                    orgId_userId: {
-                        userId: newOwnerId,
-                        orgId: org.id,
-                    },
-                },
-            });
-
-            if (!newOwner) {
-                await failAuditCallback("The user you're trying to make the owner doesn't exist");
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "The user you're trying to make the owner doesn't exist",
-                } satisfies ServiceError;
-            }
-
-            await prisma.$transaction([
-                prisma.userToOrg.update({
-                    where: {
-                        orgId_userId: {
-                            userId: newOwnerId,
-                            orgId: org.id,
-                        },
-                    },
-                    data: {
-                        role: "OWNER",
-                    }
-                }),
-                prisma.userToOrg.update({
-                    where: {
-                        orgId_userId: {
-                            userId: currentUserId,
-                            orgId: org.id,
-                        },
-                    },
-                    data: {
-                        role: "MEMBER",
-                    }
-                })
-            ]);
-
-            await auditService.createAudit({
-                action: "org.ownership_transferred",
-                actor: {
-                    id: currentUserId,
-                    type: "user"
-                },
-                target: {
-                    id: org.id.toString(),
-                    type: "org"
-                },
-                orgId: org.id,
-                metadata: {
-                    message: `Ownership transferred from ${currentUserId} to ${newOwnerId}`
-                }
-            });
-
-            return {
-                success: true,
-            }
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    ));
-
 export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | ServiceError> => sew(() =>
     withAuth(async () => {
         const org = await prisma.org.findFirst({
@@ -1245,81 +1149,6 @@ export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | 
 
         return !!org;
     }));
-
-export const removeMemberFromOrg = async (memberId: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth(async (userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const targetMember = await prisma.userToOrg.findUnique({
-                where: {
-                    orgId_userId: {
-                        orgId: org.id,
-                        userId: memberId,
-                    }
-                }
-            });
-
-            if (!targetMember) {
-                return notFound();
-            }
-
-            await prisma.$transaction(async (tx) => {
-                await tx.userToOrg.delete({
-                    where: {
-                        orgId_userId: {
-                            orgId: org.id,
-                            userId: memberId,
-                        }
-                    }
-                });
-
-                if (IS_BILLING_ENABLED) {
-                    const result = await decrementOrgSeatCount(org.id, tx);
-                    if (isServiceError(result)) {
-                        throw result;
-                    }
-                }
-            });
-
-            return {
-                success: true,
-            }
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    ));
-
-export const leaveOrg = async (domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth(async (userId) =>
-        withOrgMembership(userId, domain, async ({ org, userRole }) => {
-            if (userRole === OrgRole.OWNER) {
-                return {
-                    statusCode: StatusCodes.FORBIDDEN,
-                    errorCode: ErrorCode.OWNER_CANNOT_LEAVE_ORG,
-                    message: "Organization owners cannot leave their own organization",
-                } satisfies ServiceError;
-            }
-
-            await prisma.$transaction(async (tx) => {
-                await tx.userToOrg.delete({
-                    where: {
-                        orgId_userId: {
-                            orgId: org.id,
-                            userId: userId,
-                        }
-                    }
-                });
-
-                if (IS_BILLING_ENABLED) {
-                    const result = await decrementOrgSeatCount(org.id, tx);
-                    if (isServiceError(result)) {
-                        throw result;
-                    }
-                }
-            });
-
-            return {
-                success: true,
-            }
-        })
-    ));
 
 export const getOrgMembers = async (domain: string) => sew(() =>
     withAuth(async (userId) =>

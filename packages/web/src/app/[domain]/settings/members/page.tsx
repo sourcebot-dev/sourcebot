@@ -144,7 +144,6 @@ export default async function MembersSettingsPage(props: MembersSettingsPageProp
                         members={members}
                         currentUserId={me.id}
                         currentUserRole={userRoleInOrg}
-                        orgName={org.name}
                     />
                 </TabsContent>
 
