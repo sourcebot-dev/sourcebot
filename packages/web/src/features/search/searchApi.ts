@@ -2,19 +2,16 @@
 
 import { sew } from "@/actions";
 import { withOptionalAuthV2 } from "@/withAuthV2";
-import { ZodAccelerator } from "@duplojs/zod-accelerator";
 import { PrismaClient, Repo } from "@sourcebot/db";
 import { base64Decode, createLogger } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
-import z from "zod";
 import { ErrorCode } from "../../lib/errorCodes";
 import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
 import { isServiceError, measure } from "../../lib/utils";
 import { SearchRequest, SearchResponse, SourceRange } from "./types";
 import { zoektFetch } from "./zoektClient";
-import { zoektSearchResponseSchema } from "./zoektSchema";
+import { ZoektSearchResponse } from "./zoektSchema";
 
-const acceleratedZoektSearchResponseSchema = ZodAccelerator.build(zoektSearchResponseSchema);
 const logger = createLogger("searchApi");
 
 // List of supported query prefixes in zoekt.
@@ -220,7 +217,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             return invalidZoektResponse(searchResponse);
         }
 
-        const transformZoektSearchResponse = async ({ Result }: z.infer<typeof zoektSearchResponseSchema>) => {
+        const transformZoektSearchResponse = async ({ Result }: ZoektSearchResponse) => {
             // @note (2025-05-12): in zoekt, repositories are identified by the `RepositoryID` field
             // which corresponds to the `id` in the Repo table. In order to efficiently fetch repository
             // metadata when transforming (potentially thousands) of file matches, we aggregate a unique
@@ -394,11 +391,9 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             false
         );
 
-        const { data: zoektResponse, durationMs: parseZoektResponseDurationMs } = await measure(
-            () => acceleratedZoektSearchResponseSchema.parseAsync(rawZoektResponse),
-            "parse_zoekt_response",
-            false
-        );
+        // @note: We do not use zod parseAsync here since in cases where the
+        // response is large (> 40MB), there can be significant performance issues.
+        const zoektResponse = rawZoektResponse as ZoektSearchResponse;
 
         const { data: response, durationMs: transformZoektResponseDurationMs } = await measure(
             () => transformZoektSearchResponse(zoektResponse),
@@ -406,13 +401,12 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             false
         );
 
-        const totalDurationMs = fetchDurationMs + parseJsonDurationMs + parseZoektResponseDurationMs + transformZoektResponseDurationMs;
+        const totalDurationMs = fetchDurationMs + parseJsonDurationMs + transformZoektResponseDurationMs;
 
         // Debug log: timing breakdown
         const timings = [
             { name: "zoekt_fetch", duration: fetchDurationMs },
             { name: "parse_json", duration: parseJsonDurationMs },
-            { name: "parse_zoekt_response", duration: parseZoektResponseDurationMs },
             { name: "transform_zoekt_response", duration: transformZoektResponseDurationMs },
         ];
 
@@ -430,7 +424,6 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             __debug_timings: {
                 zoekt_fetch: fetchDurationMs,
                 parse_json: parseJsonDurationMs,
-                parse_zoekt_response: parseZoektResponseDurationMs,
                 transform_zoekt_response: transformZoektResponseDurationMs,
             }
         } satisfies SearchResponse;
