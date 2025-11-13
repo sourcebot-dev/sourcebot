@@ -1,6 +1,5 @@
 'use client';
 
-import { getVersionResponseSchema, getReposResponseSchema } from "@/lib/schemas";
 import { ServiceError } from "@/lib/serviceError";
 import { GetVersionResponse, GetReposResponse } from "@/lib/types";
 import { isServiceError } from "@/lib/utils";
@@ -10,10 +9,6 @@ import {
     SearchRequest,
     SearchResponse,
 } from "@/features/search/types";
-import {
-    fileSourceResponseSchema,
-    searchResponseSchema,
-} from "@/features/search/schemas";
 
 export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -29,10 +24,10 @@ export const search = async (body: SearchRequest, domain: string): Promise<Searc
         return result;
     }
 
-    return searchResponseSchema.parse(result);
+    return result as SearchResponse | ServiceError;
 }
 
-export const fetchFileSource = async (body: FileSourceRequest, domain: string): Promise<FileSourceResponse> => {
+export const fetchFileSource = async (body: FileSourceRequest, domain: string): Promise<FileSourceResponse | ServiceError> => {
     const result = await fetch("/api/source", {
         method: "POST",
         headers: {
@@ -42,7 +37,7 @@ export const fetchFileSource = async (body: FileSourceRequest, domain: string): 
         body: JSON.stringify(body),
     }).then(response => response.json());
 
-    return fileSourceResponseSchema.parse(result);
+    return result as FileSourceResponse | ServiceError;
 }
 
 export const getRepos = async (): Promise<GetReposResponse> => {
@@ -53,7 +48,7 @@ export const getRepos = async (): Promise<GetReposResponse> => {
         },
     }).then(response => response.json());
 
-    return getReposResponseSchema.parse(result);
+    return result as GetReposResponse | ServiceError;
 }
 
 export const getVersion = async (): Promise<GetVersionResponse> => {
@@ -63,5 +58,5 @@ export const getVersion = async (): Promise<GetVersionResponse> => {
             "Content-Type": "application/json",
         },
     }).then(response => response.json());
-    return getVersionResponseSchema.parse(result);
+    return result as GetVersionResponse;
 }
