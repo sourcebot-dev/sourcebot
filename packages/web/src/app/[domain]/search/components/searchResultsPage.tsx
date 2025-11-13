@@ -35,14 +35,14 @@ import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel } from "./searchResultsPanel";
 
-const DEFAULT_MAX_MATCH_COUNT = 100_000;
-
 interface SearchResultsPageProps {
     searchQuery: string;
+    defaultMaxMatchCount: number;
 }
 
 export const SearchResultsPage = ({
     searchQuery,
+    defaultMaxMatchCount,
 }: SearchResultsPageProps) => {
     const router = useRouter();
     const { setSearchHistory } = useSearchHistory();
@@ -51,8 +51,8 @@ export const SearchResultsPage = ({
     const { toast } = useToast();
 
     // Encodes the number of matches to return in the search response.
-    const _maxMatchCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.matches) ?? `${DEFAULT_MAX_MATCH_COUNT}`);
-    const maxMatchCount = isNaN(_maxMatchCount) ? DEFAULT_MAX_MATCH_COUNT : _maxMatchCount;
+    const _maxMatchCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.matches) ?? `${defaultMaxMatchCount}`);
+    const maxMatchCount = isNaN(_maxMatchCount) ? defaultMaxMatchCount : _maxMatchCount;
 
     const {
         data: searchResponse,
