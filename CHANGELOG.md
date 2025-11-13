@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.9.2] - 2025-11-13
+
 ### Changed
 - Bumped the default requested search result count from 5k to 10k after optimization pass. [#615](https://github.com/sourcebot-dev/sourcebot/pull/615)
 
