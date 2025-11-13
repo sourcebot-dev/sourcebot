@@ -1,3 +1,4 @@
+import { env } from "@sourcebot/shared";
 import { SearchLandingPage } from "./components/searchLandingPage";
 import { SearchResultsPage } from "./components/searchResultsPage";
 
@@ -18,6 +19,7 @@ export default async function SearchPage(props: SearchPageProps) {
     return (
         <SearchResultsPage
             searchQuery={query}
+            defaultMaxMatchCount={env.DEFAULT_MAX_MATCH_COUNT}
         />
     )
 }

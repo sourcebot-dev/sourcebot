@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Bumped the default requested search result count from 5k to 100k after optimization pass. [#615](https://github.com/sourcebot-dev/sourcebot/pull/615)
+- Bumped the default requested search result count from 5k to 10k after optimization pass. [#615](https://github.com/sourcebot-dev/sourcebot/pull/615)
 
 ### Fixed
 - Fixed incorrect shutdown of PostHog SDK in the worker. [#609](https://github.com/sourcebot-dev/sourcebot/pull/609)
@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added force resync buttons for connections and repositories. [#610](https://github.com/sourcebot-dev/sourcebot/pull/610)
+- Added environment variable to configure default search result count. [#616](https://github.com/sourcebot-dev/sourcebot/pull/616)
 
 ## [4.9.1] - 2025-11-07
 
