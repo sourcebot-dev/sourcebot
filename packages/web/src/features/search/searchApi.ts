@@ -1,5 +1,4 @@
-'use server';
-
+import 'server-only';
 import { sew } from "@/actions";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { PrismaClient, Repo } from "@sourcebot/db";

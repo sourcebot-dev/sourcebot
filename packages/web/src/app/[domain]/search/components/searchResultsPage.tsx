@@ -66,7 +66,7 @@ export const SearchResultsPage = ({
             matches: maxMatchCount,
             contextLines: 3,
             whole: false,
-        }, domain)), "client.search"),
+        })), "client.search"),
         select: ({ data, durationMs }) => ({
             ...data,
             totalClientSearchDurationMs: durationMs,
