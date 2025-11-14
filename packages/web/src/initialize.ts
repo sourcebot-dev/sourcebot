@@ -68,7 +68,11 @@ const initSingleTenancy = async () => {
     // the entitlement, synced search contexts, and then no longer had the entitlement
     const hasSearchContextEntitlement = hasEntitlement("search-contexts")
     if(!hasSearchContextEntitlement) {
-        clearSearchContexts(SINGLE_TENANT_ORG_DOMAIN)
+        await prisma.searchContext.deleteMany({
+            where: {
+                orgId: SINGLE_TENANT_ORG_ID,
+            },
+        });
     }
 
     // Sync anonymous access config from the config file
