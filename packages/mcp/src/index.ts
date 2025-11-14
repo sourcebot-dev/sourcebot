@@ -7,6 +7,7 @@ import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
 import { listRepos, search, getFileSource } from './client.js';
 import { env, numberSchema } from './env.js';
+import { listReposRequestSchema } from './schemas.js';
 import { TextContent } from './types.js';
 import { isServiceError } from './utils.js';
 
@@ -165,8 +166,13 @@ server.tool(
 
 server.tool(
     "list_repos",
-    "Lists all repositories in the organization. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.",
-    async () => {
+    "Lists repositories in the organization with optional filtering and pagination. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.",
+    listReposRequestSchema.shape,
+    async ({ query, pageNumber = 1, limit = 50 }: {
+        query?: string;
+        pageNumber?: number;
+        limit?: number;
+    }) => {
         const response = await listRepos();
         if (isServiceError(response)) {
             return {
@@ -177,12 +183,41 @@ server.tool(
             };
         }
 
-        const content: TextContent[] = response.map(repo => {
+        // Apply query filter if provided
+        let filtered = response;
+        if (query) {
+            const lowerQuery = query.toLowerCase();
+            filtered = response.filter(repo =>
+                repo.repoName.toLowerCase().includes(lowerQuery) ||
+                repo.repoDisplayName?.toLowerCase().includes(lowerQuery)
+            );
+        }
+
+        // Apply pagination
+        const startIndex = (pageNumber - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginated = filtered.slice(startIndex, endIndex);
+
+        // Format output
+        const content: TextContent[] = paginated.map(repo => {
             return {
                 type: "text",
                 text: `id: ${repo.repoName}\nurl: ${repo.webUrl}`,
             }
         });
+
+        // Add pagination info
+        if (content.length === 0 && filtered.length > 0) {
+            content.push({
+                type: "text",
+                text: `No results on page ${pageNumber}. Total matching repositories: ${filtered.length}`,
+            });
+        } else if (filtered.length > endIndex) {
+            content.push({
+                type: "text",
+                text: `Showing ${paginated.length} repositories (page ${pageNumber}). Total matching: ${filtered.length}. Use pageNumber ${pageNumber + 1} to see more.`,
+            });
+        }
 
         return {
             content,

@@ -182,7 +182,18 @@ Fetches code that matches the provided regex pattern in `query`.
 
 ### list_repos
 
-Lists all repositories indexed by Sourcebot.
+Lists repositories indexed by Sourcebot with optional filtering and pagination.
+
+<details>
+<summary>Parameters</summary>
+
+| Name         | Required | Description                                                         |
+|:-------------|:---------|:--------------------------------------------------------------------|
+| `query`      | no       | Filter repositories by name (case-insensitive).                     |
+| `pageNumber` | no       | Page number (1-indexed, default: 1).                                |
+| `limit`      | no       | Number of repositories per page (default: 50).                      |
+
+</details>
 
 ### get_file_source
 
