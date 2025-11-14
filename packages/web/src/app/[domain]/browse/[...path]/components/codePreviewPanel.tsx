@@ -1,10 +1,10 @@
 import { getRepoInfoByName } from "@/actions";
 import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { Separator } from "@/components/ui/separator";
-import { getFileSource } from "@/features/search/fileSourceApi";
 import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
 import Image from "next/image";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
+import { getFileSource } from "@/features/search/fileSourceApi";
 
 interface CodePreviewPanelProps {
     path: string;

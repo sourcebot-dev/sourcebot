@@ -55,7 +55,7 @@ export const useSuggestionsData = ({
             query: `file:${suggestionQuery}`,
             matches: 15,
             contextLines: 1,
-        }, domain),
+        }),
         select: (data): Suggestion[] => {
             if (isServiceError(data)) {
                 return [];
@@ -75,7 +75,7 @@ export const useSuggestionsData = ({
             query: `sym:${suggestionQuery.length > 0 ? suggestionQuery : ".*"}`,
             matches: 15,
             contextLines: 1,
-        }, domain),
+        }),
         select: (data): Suggestion[] => {
             if (isServiceError(data)) {
                 return [];

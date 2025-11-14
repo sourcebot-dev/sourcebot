@@ -5,8 +5,8 @@ import { CodePreview } from "./codePreview";
 import { SearchResultFile } from "@/features/search/types";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { SetStateAction, Dispatch, useMemo } from "react";
-import { getFileSource } from "@/features/search/fileSourceApi";
 import { unwrapServiceError } from "@/lib/utils";
+import { fetchFileSource } from "@/app/api/(client)/client";
 
 interface CodePreviewPanelProps {
     previewedFile: SearchResultFile;
@@ -31,7 +31,7 @@ export const CodePreviewPanel = ({
     const { data: file, isLoading, isPending, isError } = useQuery({
         queryKey: ["source", previewedFile, branch],
         queryFn: () => unwrapServiceError(
-            getFileSource({
+            fetchFileSource({
                 fileName: previewedFile.fileName.text,
                 repository: previewedFile.repository,
                 branch,

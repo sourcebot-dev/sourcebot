@@ -11,12 +11,11 @@ import {
 } from "@/features/search/types";
 import { FindRelatedSymbolsRequest, FindRelatedSymbolsResponse } from "@/features/codeNav/types";
 
-export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse | ServiceError> => {
+export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "X-Org-Domain": domain,
         },
         body: JSON.stringify(body),
     }).then(response => response.json());
@@ -28,12 +27,11 @@ export const search = async (body: SearchRequest, domain: string): Promise<Searc
     return result as SearchResponse | ServiceError;
 }
 
-export const fetchFileSource = async (body: FileSourceRequest, domain: string): Promise<FileSourceResponse | ServiceError> => {
+export const fetchFileSource = async (body: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
     const result = await fetch("/api/source", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "X-Org-Domain": domain,
         },
         body: JSON.stringify(body),
     }).then(response => response.json());
