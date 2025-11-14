@@ -7,7 +7,6 @@ import { getOrgFromDomain } from './data/org';
 import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
 import { ServiceErrorException } from './lib/serviceError';
 import { getOrgMetadata, isServiceError } from './lib/utils';
-import { clearSearchContexts } from './actions';
 
 const logger = createLogger('web-initialize');
 
