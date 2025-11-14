@@ -9,7 +9,16 @@ import {
     SearchRequest,
     SearchResponse,
 } from "@/features/search/types";
-import { FindRelatedSymbolsRequest, FindRelatedSymbolsResponse } from "@/features/codeNav/types";
+import {
+    FindRelatedSymbolsRequest,
+    FindRelatedSymbolsResponse,
+} from "@/features/codeNav/types";
+import {
+    GetFilesRequest,
+    GetFilesResponse,
+    GetTreeRequest,
+    GetTreeResponse,
+} from "@/features/fileTree/types";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -27,7 +36,7 @@ export const search = async (body: SearchRequest): Promise<SearchResponse | Serv
     return result as SearchResponse | ServiceError;
 }
 
-export const fetchFileSource = async (body: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
+export const getFileSource = async (body: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
     const result = await fetch("/api/source", {
         method: "POST",
         headers: {
@@ -74,4 +83,20 @@ export const findSearchBasedSymbolDefinitions = async (body: FindRelatedSymbolsR
         body: JSON.stringify(body),
     }).then(response => response.json());
     return result as FindRelatedSymbolsResponse | ServiceError;
+}
+
+export const getTree = async (body: GetTreeRequest): Promise<GetTreeResponse | ServiceError> => {
+    const result = await fetch("/api/tree", {
+        method: "POST",
+        body: JSON.stringify(body),
+    }).then(response => response.json());
+    return result as GetTreeResponse | ServiceError;
+}
+
+export const getFiles = async (body: GetFilesRequest): Promise<GetFilesResponse | ServiceError> => {
+    const result = await fetch("/api/files", {
+        method: "POST",
+        body: JSON.stringify(body),
+    }).then(response => response.json());
+    return result as GetFilesResponse | ServiceError;
 }

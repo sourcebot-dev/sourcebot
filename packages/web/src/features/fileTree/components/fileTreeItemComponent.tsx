@@ -1,6 +1,6 @@
 'use client';
 
-import { FileTreeItem } from "../actions";
+import { FileTreeItem } from "../api";
 import { useEffect, useRef } from "react";
 import clsx from "clsx";
 import scrollIntoView from 'scroll-into-view-if-needed';
