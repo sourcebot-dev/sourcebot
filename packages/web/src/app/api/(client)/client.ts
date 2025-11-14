@@ -9,6 +9,7 @@ import {
     SearchRequest,
     SearchResponse,
 } from "@/features/search/types";
+import { FindRelatedSymbolsRequest, FindRelatedSymbolsResponse } from "@/features/codeNav/types";
 
 export const search = async (body: SearchRequest, domain: string): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -59,4 +60,20 @@ export const getVersion = async (): Promise<GetVersionResponse> => {
         },
     }).then(response => response.json());
     return result as GetVersionResponse;
+}
+
+export const findSearchBasedSymbolReferences = async (body: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => {
+    const result = await fetch("/api/find_references", {
+        method: "POST",
+        body: JSON.stringify(body),
+    }).then(response => response.json());
+    return result as FindRelatedSymbolsResponse | ServiceError;
+}
+
+export const findSearchBasedSymbolDefinitions = async (body: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => {
+    const result = await fetch("/api/find_definitions", {
+        method: "POST",
+        body: JSON.stringify(body),
+    }).then(response => response.json());
+    return result as FindRelatedSymbolsResponse | ServiceError;
 }
