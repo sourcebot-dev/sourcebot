@@ -1,9 +1,9 @@
 'use client';
 
-import { FileTreeItem } from "../api";
 import { useMemo } from "react";
 import { VscodeFolderIcon } from "@/app/components/vscodeFolderIcon";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
+import { FileTreeItem } from "../types";
 
 interface FileTreeItemIconProps {
     item: FileTreeItem;
