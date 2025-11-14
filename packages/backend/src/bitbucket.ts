@@ -5,6 +5,7 @@ import type { ClientOptions, ClientPathsWithMethod } from "openapi-fetch";
 import { createLogger } from "@sourcebot/shared";
 import { measure, fetchWithRetry } from "./utils.js";
 import * as Sentry from "@sentry/node";
+import micromatch from "micromatch";
 import {
     SchemaRepository as CloudRepository,
 } from "@coderabbitai/bitbucket/cloud/openapi";
@@ -346,10 +347,15 @@ async function cloudGetRepos(client: BitbucketClient, repoList: string[]): Promi
 
 function cloudShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
     const cloudRepo = repo as CloudRepository;
+    let reason = '';
+    const repoName = cloudRepo.full_name!;
     
     const shouldExclude = (() => {
-        if (config.exclude?.repos && config.exclude.repos.includes(cloudRepo.full_name!)) {
-            return true;
+        if (config.exclude?.repos) {
+            if (micromatch.isMatch(repoName, config.exclude.repos)) {
+                reason = `\`exclude.repos\` contains ${repoName}`;
+                return true;
+            }
         }
 
         if (!!config.exclude?.archived) {
@@ -357,12 +363,15 @@ function cloudShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConn
         }
 
         if (!!config.exclude?.forks && cloudRepo.parent !== undefined) {
+            reason = `\`exclude.forks\` is true`;
             return true;
         }
+
+        return false;
     })();
 
     if (shouldExclude) {
-        logger.debug(`Excluding repo ${cloudRepo.full_name} because it matches the exclude pattern`);
+        logger.debug(`Excluding repo ${repoName}. Reason: ${reason}`);
         return true;
     }
     return false;
@@ -548,23 +557,32 @@ function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketCon
 
     const projectName = serverRepo.project!.key;
     const repoSlug = serverRepo.slug!;
+    const repoName = `${projectName}/${repoSlug}`;
+    let reason = '';
     
     const shouldExclude = (() => {
-        if (config.exclude?.repos && config.exclude.repos.includes(`${projectName}/${repoSlug}`)) {
-            return true;
+        if (config.exclude?.repos) {
+            if (micromatch.isMatch(repoName, config.exclude.repos)) {
+                reason = `\`exclude.repos\` contains ${repoName}`;
+                return true;
+            }
         }
 
         if (!!config.exclude?.archived && serverRepo.archived) {
+            reason = `\`exclude.archived\` is true`;
             return true;
         }
 
         if (!!config.exclude?.forks && serverRepo.origin !== undefined) {
+            reason = `\`exclude.forks\` is true`;
             return true;
         }
+
+        return false;
     })();
 
     if (shouldExclude) {
-        logger.debug(`Excluding repo ${projectName}/${repoSlug} because it matches the exclude pattern`);
+        logger.debug(`Excluding repo ${repoName}. Reason: ${reason}`);
         return true;
     }
     return false;
