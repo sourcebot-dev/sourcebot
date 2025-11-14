@@ -1669,6 +1669,22 @@ export const getSearchContexts = async (domain: string) => sew(() =>
         }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true
     ));
 
+export const clearSearchContexts = async (domain: string) => sew(() =>
+    withAuth((userId) =>
+        withOrgMembership(userId, domain, async ({ org }) => {
+            await prisma.searchContext.deleteMany({
+                where: {
+                    orgId: org.id,
+                },
+            });
+
+            return {
+                success: true,
+            };
+        }, /* minRequiredRole = */ OrgRole.OWNER)
+    )
+)
+
 export const getRepoImage = async (repoId: number): Promise<ArrayBuffer | ServiceError> => sew(async () => {
     return await withOptionalAuthV2(async ({ org, prisma }) => {
         const repo = await prisma.repo.findUnique({
