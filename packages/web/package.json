@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "cross-env SKIP_ENV_VALIDATION=1 eslint .",
     "test": "cross-env SKIP_ENV_VALIDATION=1 vitest",
+    "generate:protos": "proto-loader-gen-types --includeComments --longs=Number --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --keepCase --includeDirs=../../vendor/zoekt/grpc/protos --outDir=src/proto zoekt/webserver/v1/webserver.proto zoekt/webserver/v1/query.proto",
     "dev:emails": "email dev --dir ./src/emails",
     "stripe:listen": "stripe listen --forward-to http://localhost:3000/api/stripe"
   },
@@ -52,6 +53,8 @@
     "@codemirror/state": "^6.4.1",
     "@codemirror/view": "^6.33.0",
     "@floating-ui/react": "^0.27.2",
+    "@grpc/grpc-js": "^1.14.1",
+    "@grpc/proto-loader": "^0.8.0",
     "@hookform/resolvers": "^3.9.0",
     "@iconify/react": "^5.1.0",
     "@iizukak/codemirror-lang-wgsl": "^0.3.0",

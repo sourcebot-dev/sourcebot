@@ -2338,6 +2338,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@grpc/grpc-js@npm:^1.14.1":
+  version: 1.14.1
+  resolution: "@grpc/grpc-js@npm:1.14.1"
+  dependencies:
+    "@grpc/proto-loader": "npm:^0.8.0"
+    "@js-sdsl/ordered-map": "npm:^4.4.2"
+  checksum: 10c0/a9a8fc7f4dfa374a34e37350b37ad2c092ed533b203fe16d45ba3220fe38195d17a87527dade2e5546afeeeccfcf68d3e914705d94e44e8df461321b0c02cc7a
+  languageName: node
+  linkType: hard
+
 "@grpc/proto-loader@npm:^0.8.0":
   version: 0.8.0
   resolution: "@grpc/proto-loader@npm:0.8.0"
@@ -8060,6 +8070,8 @@ __metadata:
     "@codemirror/view": "npm:^6.33.0"
     "@eslint/eslintrc": "npm:^3"
     "@floating-ui/react": "npm:^0.27.2"
+    "@grpc/grpc-js": "npm:^1.14.1"
+    "@grpc/proto-loader": "npm:^0.8.0"
     "@hookform/resolvers": "npm:^3.9.0"
     "@iconify/react": "npm:^5.1.0"
     "@iizukak/codemirror-lang-wgsl": "npm:^0.3.0"
