@@ -7,7 +7,7 @@ import { getOrgFromDomain } from './data/org';
 import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
 import { ServiceErrorException } from './lib/serviceError';
 import { getOrgMetadata, isServiceError } from './lib/utils';
-import { clearSearchContexts, getSearchContexts } from './actions';
+import { clearSearchContexts } from './actions';
 
 const logger = createLogger('web-initialize');
 
@@ -67,10 +67,7 @@ const initSingleTenancy = async () => {
     // search contexts that may be present in the DB 
     const hasSearchContextEntitlement = hasEntitlement("search-contexts")
     if(!hasSearchContextEntitlement) {
-        const searchContexts = await getSearchContexts(SINGLE_TENANT_ORG_DOMAIN);
-        if (!isServiceError(searchContexts) && searchContexts.length > 0) {
-            clearSearchContexts(SINGLE_TENANT_ORG_DOMAIN)
-        }
+        clearSearchContexts(SINGLE_TENANT_ORG_DOMAIN)
     }
 
     // Sync anonymous access config from the config file
