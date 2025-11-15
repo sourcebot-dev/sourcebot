@@ -216,7 +216,7 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             return invalidZoektResponse(searchResponse);
         }
 
-        const transformZoektSearchResponse = async ({ Result }: ZoektSearchResponse) => {
+        const transformZoektSearchResponse = async ({ Result }: ZoektSearchResponse): Promise<SearchResponse> => {
             // @note (2025-05-12): in zoekt, repositories are identified by the `RepositoryID` field
             // which corresponds to the `id` in the Repo table. In order to efficiently fetch repository
             // metadata when transforming (potentially thousands) of file matches, we aggregate a unique
