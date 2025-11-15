@@ -31,7 +31,7 @@ import { useStreamedSearch } from "../useStreamedSearch";
 import { CodePreviewPanel } from "./codePreviewPanel";
 import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
-import { SearchResultsPanel } from "./searchResultsPanel";
+import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
 
 interface SearchResultsPageProps {
     searchQuery: string;
@@ -198,6 +198,7 @@ const PanelGroup = ({
     const [previewedFile, setPreviewedFile] = useState<SearchResultFile | undefined>(undefined);
     const filteredFileMatches = useFilteredMatches(fileMatches);
     const filterPanelRef = useRef<ImperativePanelHandle>(null);
+    const searchResultsPanelRef = useRef<SearchResultsPanelHandle>(null);
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
 
     const [isFilterPanelCollapsed, setIsFilterPanelCollapsed] = useLocalStorage('isFilterPanelCollapsed', false);
@@ -238,6 +239,9 @@ const PanelGroup = ({
                 <FilterPanel
                     matches={fileMatches}
                     repoInfo={repoInfo}
+                    onFilterChange={() => {
+                        searchResultsPanelRef.current?.resetScroll();
+                    }}
                 />
             </ResizablePanel>
             {isFilterPanelCollapsed && (
@@ -325,6 +329,7 @@ const PanelGroup = ({
                 </div>
                 {filteredFileMatches.length > 0 ? (
                     <SearchResultsPanel
+                        ref={searchResultsPanelRef}
                         fileMatches={filteredFileMatches}
                         onOpenFilePreview={(fileMatch, matchIndex) => {
                             setSelectedMatchIndex(matchIndex ?? 0);

@@ -15,6 +15,7 @@ import { useGetSelectedFromQuery } from "./useGetSelectedFromQuery";
 interface FilePanelProps {
     matches: SearchResultFile[];
     repoInfo: Record<number, RepositoryInfo>;
+    onFilterChange?: () => void;
 }
 
 /**
@@ -31,10 +32,12 @@ interface FilePanelProps {
  * 
  * @param matches - Array of search result files to filter
  * @param repoInfo - Information about repositories including their display names and icons
+ * @param onFilterChange - Optional callback that is called whenever a filter is applied or removed
  */
 export const FilterPanel = ({
     matches,
     repoInfo,
+    onFilterChange,
 }: FilePanelProps) => {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -148,6 +151,7 @@ export const FilterPanel = ({
 
                     if (newParams.toString() !== searchParams.toString()) {
                         router.replace(`?${newParams.toString()}`, { scroll: false });
+                        onFilterChange?.();
                     }
                 }}
                 className="max-h-[50%]"
@@ -170,6 +174,7 @@ export const FilterPanel = ({
 
                     if (newParams.toString() !== searchParams.toString()) {
                         router.replace(`?${newParams.toString()}`, { scroll: false });
+                        onFilterChange?.();
                     }
                 }}
                 className="overflow-auto"

@@ -3,8 +3,8 @@
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
 import { FileMatchContainer, MAX_MATCHES_TO_PREVIEW } from "./fileMatchContainer";
 import { useVirtualizer, VirtualItem } from "@tanstack/react-virtual";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useDebounce, usePrevious } from "@uidotdev/usehooks";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, forwardRef } from "react";
+import { useDebounce } from "@uidotdev/usehooks";
 
 interface SearchResultsPanelProps {
     fileMatches: SearchResultFile[];
@@ -13,6 +13,10 @@ interface SearchResultsPanelProps {
     onLoadMoreButtonClicked: () => void;
     isBranchFilteringEnabled: boolean;
     repoInfo: Record<number, RepositoryInfo>;
+}
+
+export interface SearchResultsPanelHandle {
+    resetScroll: () => void;
 }
 
 const ESTIMATED_LINE_HEIGHT_PX = 20;
@@ -25,14 +29,14 @@ type ScrollHistoryState = {
     showAllMatchesStates?: boolean[];
 }
 
-export const SearchResultsPanel = ({
+export const SearchResultsPanel = forwardRef<SearchResultsPanelHandle, SearchResultsPanelProps>(({
     fileMatches,
     onOpenFilePreview,
     isLoadMoreButtonVisible,
     onLoadMoreButtonClicked,
     isBranchFilteringEnabled,
     repoInfo,
-}: SearchResultsPanelProps) => {
+}, ref) => {
     const parentRef = useRef<HTMLDivElement>(null);
 
     // Restore the scroll offset, measurements cache, and other state from the history
@@ -73,18 +77,16 @@ export const SearchResultsPanel = ({
         debug: false,
     });
 
-    // When the number of file matches changes, we need to reset our scroll state.
-    const prevFileMatches = usePrevious(fileMatches);
-    useEffect(() => {
-        if (!prevFileMatches) {
-            return;
-        }
+    const resetScroll = useCallback(() => {
+        setShowAllMatchesStates(Array(fileMatches.length).fill(false));
+        virtualizer.scrollToIndex(0);
+    }, [fileMatches.length, virtualizer]);
 
-        if (prevFileMatches.length !== fileMatches.length) {
-            setShowAllMatchesStates(Array(fileMatches.length).fill(false));
-            virtualizer.scrollToIndex(0);
-        }
-    }, [fileMatches.length, prevFileMatches, virtualizer]);
+    // Expose the resetScroll function to parent components
+    useImperativeHandle(ref, () => ({
+        resetScroll,
+    }), [resetScroll]);
+
 
     // Save the scroll state to the history stack.
     const debouncedScrollOffset = useDebounce(virtualizer.scrollOffset, 100);
@@ -177,4 +179,6 @@ export const SearchResultsPanel = ({
             )}
         </div>
     )
-}
+});
+
+SearchResultsPanel.displayName = 'SearchResultsPanel';
