@@ -217,6 +217,9 @@ COPY --from=zoekt-builder \
 /cmd/zoekt-index \
 /usr/local/bin/
 
+# Copy zoekt proto files (needed for gRPC client at runtime)
+COPY vendor/zoekt/grpc/protos /app/vendor/zoekt/grpc/protos
+
 # Copy all of the things
 COPY --from=web-builder /app/packages/web/public ./packages/web/public
 COPY --from=web-builder /app/packages/web/.next/standalone ./
