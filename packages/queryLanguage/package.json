@@ -1,0 +1,19 @@
+{
+    "name": "@sourcebot/query-language",
+    "private": true,
+    "scripts": {
+        "build": "lezer-generator src/query.grammar -o src/parser --typeScript --names && tsc",
+        "test": "vitest",
+        "asdf": "tsx test.ts"
+    },
+    "devDependencies": {
+        "@lezer/generator": "^1.8.0",
+        "tsx": "^4.19.1",
+        "typescript": "^5.7.3",
+        "vitest": "^2.1.9"
+    },
+    "dependencies": {
+        "@lezer/common": "^1.3.0",
+        "@lezer/lr": "^1.4.3"
+    }
+}

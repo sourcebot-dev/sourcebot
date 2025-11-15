@@ -2925,6 +2925,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@lezer/common@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "@lezer/common@npm:1.3.0"
+  checksum: 10c0/e164094920761c2f56c8634d0ae9261ea7c5e6b8202aa08773febc59b8d8284dde5bc7a810c9438e27b978e5ad67d0db03af1ed72924df61b8fa2704acb55deb
+  languageName: node
+  linkType: hard
+
 "@lezer/cpp@npm:^1.0.0":
   version: 1.1.3
   resolution: "@lezer/cpp@npm:1.1.3"
@@ -2944,6 +2951,18 @@ __metadata:
     "@lezer/highlight": "npm:^1.0.0"
     "@lezer/lr": "npm:^1.0.0"
   checksum: 10c0/f4e870f1890b8131bf641ac3455e26ba72081b311f62dc6204d0df64228f137b8e5a157ba162b752c03d623e6064cac1fc4b96a7f06f6c20b4415dc66baf8821
+  languageName: node
+  linkType: hard
+
+"@lezer/generator@npm:^1.8.0":
+  version: 1.8.0
+  resolution: "@lezer/generator@npm:1.8.0"
+  dependencies:
+    "@lezer/common": "npm:^1.1.0"
+    "@lezer/lr": "npm:^1.3.0"
+  bin:
+    lezer-generator: src/lezer-generator.cjs
+  checksum: 10c0/c9dab9a27b6b757544f51b1612842ded77db7322d23cfd175274f89d783e0987b106c0f51e1203af74b7e56ccc567e8efd633aaffa2086cb55bfc1e3ea591fa6
   languageName: node
   linkType: hard
 
@@ -3026,6 +3045,15 @@ __metadata:
   dependencies:
     "@lezer/common": "npm:^1.0.0"
   checksum: 10c0/22bb5d0d4b33d0de5eb0706b7e5b5f2d20f570e112d9110009bd35b62ff10f2eb4eff8da4cf373dd4ddf5e06a304120b8f039add7ed9997c981c13945d5329cd
+  languageName: node
+  linkType: hard
+
+"@lezer/lr@npm:^1.4.3":
+  version: 1.4.3
+  resolution: "@lezer/lr@npm:1.4.3"
+  dependencies:
+    "@lezer/common": "npm:^1.0.0"
+  checksum: 10c0/3c9fd7eefb0641addfdd0955b4c4014bb8702285c52890b58c937d766320ba2fec8c6b374b46f514079a093c9dd21b6632746a01fed16c250c90d649e5dd12c1
   languageName: node
   linkType: hard
 
@@ -7985,6 +8013,19 @@ __metadata:
     zod: "npm:^3.24.3"
   bin:
     sourcebot-mcp: ./dist/index.js
+  languageName: unknown
+  linkType: soft
+
+"@sourcebot/query-language@workspace:packages/queryLanguage":
+  version: 0.0.0-use.local
+  resolution: "@sourcebot/query-language@workspace:packages/queryLanguage"
+  dependencies:
+    "@lezer/common": "npm:^1.3.0"
+    "@lezer/generator": "npm:^1.8.0"
+    "@lezer/lr": "npm:^1.4.3"
+    tsx: "npm:^4.19.1"
+    typescript: "npm:^5.7.3"
+    vitest: "npm:^2.1.9"
   languageName: unknown
   linkType: soft
 

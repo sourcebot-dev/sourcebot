@@ -1,0 +1,271 @@
+# Simple OR
+
+test or example
+
+==>
+
+Program(OrExpr(Term,Term))
+
+# Multiple OR
+
+one or two or three
+
+==>
+
+Program(OrExpr(Term,Term,Term))
+
+# OR with prefixes
+
+file:test.js or file:example.js
+
+==>
+
+Program(OrExpr(PrefixExpr(FileExpr),PrefixExpr(FileExpr)))
+
+# OR with negation
+
+test or -file:excluded.js
+
+==>
+
+Program(OrExpr(Term,NegateExpr(PrefixExpr(FileExpr))))
+
+# OR with quoted strings
+
+"first option" or "second option"
+
+==>
+
+Program(OrExpr(Term,Term))
+
+# OR with different prefixes
+
+lang:python or lang:javascript
+
+==>
+
+Program(OrExpr(PrefixExpr(LangExpr),PrefixExpr(LangExpr)))
+
+# Multiple terms with OR
+
+function test or class example
+
+==>
+
+Program(OrExpr(AndExpr(Term,Term),AndExpr(Term,Term)))
+
+# OR in parentheses
+
+(test or example)
+
+==>
+
+Program(ParenExpr(OrExpr(Term,Term)))
+
+# OR with parentheses outside
+
+(test) or (example)
+
+==>
+
+Program(OrExpr(ParenExpr(Term),ParenExpr(Term)))
+
+# Complex OR with grouping
+
+(file:*.js lang:javascript) or (file:*.ts lang:typescript)
+
+==>
+
+Program(OrExpr(ParenExpr(AndExpr(PrefixExpr(FileExpr),PrefixExpr(LangExpr))),ParenExpr(AndExpr(PrefixExpr(FileExpr),PrefixExpr(LangExpr)))))
+
+# OR with mixed content
+
+test or file:example.js
+
+==>
+
+Program(OrExpr(Term,PrefixExpr(FileExpr)))
+
+# Prefix OR term
+
+file:test.js or example
+
+==>
+
+Program(OrExpr(PrefixExpr(FileExpr),Term))
+
+# OR with short form prefixes
+
+f:test.js or r:myrepo
+
+==>
+
+Program(OrExpr(PrefixExpr(FileExpr),PrefixExpr(RepoExpr)))
+
+# OR with repo prefixes
+
+repo:project1 or repo:project2
+
+==>
+
+Program(OrExpr(PrefixExpr(RepoExpr),PrefixExpr(RepoExpr)))
+
+# OR with branch prefixes
+
+branch:main or branch:develop
+
+==>
+
+Program(OrExpr(PrefixExpr(BranchExpr),PrefixExpr(BranchExpr)))
+
+# OR with lang prefixes
+
+lang:rust or lang:go
+
+==>
+
+Program(OrExpr(PrefixExpr(LangExpr),PrefixExpr(LangExpr)))
+
+# OR with content
+
+content:TODO or content:FIXME
+
+==>
+
+Program(OrExpr(PrefixExpr(ContentExpr),PrefixExpr(ContentExpr)))
+
+# OR with negated terms
+
+-file:test.js or -file:spec.js
+
+==>
+
+Program(OrExpr(NegateExpr(PrefixExpr(FileExpr)),NegateExpr(PrefixExpr(FileExpr))))
+
+# OR in nested parentheses
+
+((a or b) or (c or d))
+
+==>
+
+Program(ParenExpr(OrExpr(ParenExpr(OrExpr(Term,Term)),ParenExpr(OrExpr(Term,Term)))))
+
+# Multiple OR with parentheses and implicit AND
+
+(a or b) and (c or d)
+
+==>
+
+Program(AndExpr(ParenExpr(OrExpr(Term,Term)),Term,ParenExpr(OrExpr(Term,Term))))
+
+# OR with wildcards
+
+*.test.js or *.spec.js
+
+==>
+
+Program(OrExpr(Term,Term))
+
+# OR with regex patterns
+
+[a-z]+ or [0-9]+
+
+==>
+
+Program(OrExpr(Term,Term))
+
+# OR with dots
+
+com.example.test or org.example.test
+
+==>
+
+Program(OrExpr(Term,Term))
+
+# OR with dashes
+
+test-one or test-two
+
+==>
+
+Program(OrExpr(Term,Term))
+
+# Word containing 'or'
+
+order
+
+==>
+
+Program(Term)
+
+# Word containing 'or' in middle
+
+before
+
+==>
+
+Program(Term)
+
+# OR at start
+
+or test
+
+==>
+
+Program(⚠,Term)
+
+# OR at end (or becomes term)
+
+test or
+
+==>
+
+Program(AndExpr(Term,Term))
+
+# Multiple consecutive OR
+
+test or or example
+
+==>
+
+Program(OrExpr(Term,⚠,Term))
+
+# OR with all prefix types
+
+file:*.js or repo:myrepo or lang:javascript
+
+==>
+
+Program(OrExpr(PrefixExpr(FileExpr),PrefixExpr(RepoExpr),PrefixExpr(LangExpr)))
+
+# Complex query with OR and negation
+
+(lang:python or lang:ruby) -file:test.py
+
+==>
+
+Program(AndExpr(ParenExpr(OrExpr(PrefixExpr(LangExpr),PrefixExpr(LangExpr))),NegateExpr(PrefixExpr(FileExpr))))
+
+# OR with quoted prefix values
+
+file:"test one.js" or file:"test two.js"
+
+==>
+
+Program(OrExpr(PrefixExpr(FileExpr),PrefixExpr(FileExpr)))
+
+# OR with empty parentheses
+
+() or ()
+
+==>
+
+Program(OrExpr(ParenExpr(Term(⚠)),ParenExpr(Term(⚠))))
+
+# OR with negated groups
+
+-(file:a.js) or -(file:b.js)
+
+==>
+
+Program(OrExpr(NegateExpr(ParenExpr(PrefixExpr(FileExpr))),NegateExpr(ParenExpr(PrefixExpr(FileExpr)))))

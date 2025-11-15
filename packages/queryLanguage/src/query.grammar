@@ -1,0 +1,89 @@
+@external tokens negateToken from "./tokens" { negate }
+
+@top Program { query }
+
+@precedence {
+  negate,
+  and,
+  or @left
+}
+
+query {
+  OrExpr |
+  AndExpr |
+  expr
+}
+
+OrExpr { andExpr (or andExpr)+ }
+
+AndExpr { expr expr+ }
+
+andExpr { AndExpr | expr }
+
+expr {
+  NegateExpr |
+  ParenExpr |
+  PrefixExpr |
+  Term
+}
+
+NegateExpr { !negate negate (PrefixExpr | ParenExpr) }
+
+ParenExpr { "(" query ")" }
+
+PrefixExpr {
+  ArchivedExpr { archivedKw value } |
+  BranchExpr { branchKw value } |
+  ContentExpr { contentKw value } |
+  CaseExpr { caseKw value } |
+  FileExpr { fileKw value } |
+  ForkExpr { forkKw value } |
+  PublicExpr { publicKw value } |
+  RepoExpr { repoKw value } |
+  RegexExpr { regexKw value } |
+  LangExpr { langKw value } |
+  SymExpr { symKw value } |
+  TypeExpr { typeKw value } |
+  RepoSetExpr { reposetKw value }
+}
+
+
+Term { quotedString | word }
+
+value { quotedString | word }
+
+@skip { space }
+
+@tokens {
+  archivedKw { "archived:" }
+  branchKw { "branch:" | "b:" }
+  contentKw { "content:" | "c:" }
+  caseKw { "case:" }
+  fileKw { "file:" | "f:" }
+  forkKw { "fork:" }
+  publicKw { "public:" }
+  repoKw { "repo:" | "r:" }
+  regexKw { "regex:" }
+  langKw { "lang:" }
+  symKw { "sym:" }
+  typeKw { "type:" | "t:" }
+  reposetKw { "reposet:" }
+  
+  or { "or" ![a-zA-Z0-9_] }
+  
+  quotedString { '"' (!["\\\n] | "\\" _)* '"' }
+  
+  // Allow almost anything in a word except spaces, parens, quotes
+  // Colons and dashes are allowed anywhere in words (including at the start)
+  word { (![ \t\n()"]) (![ \t\n()":] | ":" | "-")* }
+  
+  space { $[ \t\n]+ }
+  
+  @precedence { 
+    quotedString,
+    archivedKw, branchKw, contentKw, caseKw, fileKw, 
+    forkKw, publicKw, repoKw, regexKw, langKw, 
+    symKw, typeKw, reposetKw, or,
+    word 
+  }
+}

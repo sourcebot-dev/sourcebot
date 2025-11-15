@@ -1,0 +1,72 @@
+# Single term
+
+hello
+
+==>
+
+Program(Term)
+
+# Multiple terms
+
+hello world
+
+==>
+
+Program(AndExpr(Term,Term))
+
+# Multiple terms with various characters
+
+console.log error_handler
+
+==>
+
+Program(AndExpr(Term,Term))
+
+# Term with underscores
+
+my_variable_name
+
+==>
+
+Program(Term)
+
+# Term with dots
+
+com.example.package
+
+==>
+
+Program(Term)
+
+# Term with numbers
+
+func123 test_456
+
+==>
+
+Program(AndExpr(Term,Term))
+
+# Regex pattern
+
+[a-z]+
+
+==>
+
+Program(Term)
+
+# Wildcard pattern
+
+test.*
+
+==>
+
+Program(Term)
+
+# Multiple regex patterns
+
+\w+ [0-9]+ \s*
+
+==>
+
+Program(AndExpr(Term,Term,Term))
+

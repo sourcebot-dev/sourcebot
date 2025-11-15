@@ -1,0 +1,287 @@
+# Literal dash term
+
+-test
+
+==>
+
+Program(Term)
+
+# Quoted dash term
+
+"-excluded"
+
+==>
+
+Program(Term)
+
+# Dash in middle
+
+test-case
+
+==>
+
+Program(Term)
+
+# Multiple dash terms
+
+-one -two -three
+
+==>
+
+Program(AndExpr(Term,Term,Term))
+
+# Negate file prefix
+
+-file:test.js
+
+==>
+
+Program(NegateExpr(PrefixExpr(FileExpr)))
+
+# Negate repo prefix
+
+-repo:archived
+
+==>
+
+Program(NegateExpr(PrefixExpr(RepoExpr)))
+
+# Negate lang prefix
+
+-lang:python
+
+==>
+
+Program(NegateExpr(PrefixExpr(LangExpr)))
+
+# Negate content prefix
+
+-content:TODO
+
+==>
+
+Program(NegateExpr(PrefixExpr(ContentExpr)))
+
+# Negate branch prefix
+
+-branch:develop
+
+==>
+
+Program(NegateExpr(PrefixExpr(BranchExpr)))
+
+# Negate case prefix
+
+-case:yes
+
+==>
+
+Program(NegateExpr(PrefixExpr(CaseExpr)))
+
+# Negate archived prefix
+
+-archived:yes
+
+==>
+
+Program(NegateExpr(PrefixExpr(ArchivedExpr)))
+
+# Negate fork prefix
+
+-fork:yes
+
+==>
+
+Program(NegateExpr(PrefixExpr(ForkExpr)))
+
+# Negate public prefix
+
+-public:no
+
+==>
+
+Program(NegateExpr(PrefixExpr(PublicExpr)))
+
+# Negate symbol prefix
+
+-sym:OldClass
+
+==>
+
+Program(NegateExpr(PrefixExpr(SymExpr)))
+
+# Negate type prefix
+
+-type:repo
+
+==>
+
+Program(NegateExpr(PrefixExpr(TypeExpr)))
+
+# Negate regex prefix
+
+-regex:test.*
+
+==>
+
+Program(NegateExpr(PrefixExpr(RegexExpr)))
+
+# Negate parentheses
+
+-(test)
+
+==>
+
+Program(NegateExpr(ParenExpr(Term)))
+
+# Negate group with multiple terms
+
+-(test exclude)
+
+==>
+
+Program(NegateExpr(ParenExpr(AndExpr(Term,Term))))
+
+# Negate group with prefix
+
+-(file:test.js console.log)
+
+==>
+
+Program(NegateExpr(ParenExpr(AndExpr(PrefixExpr(FileExpr),Term))))
+
+# Prefix with negated term
+
+file:test.js -console
+
+==>
+
+Program(AndExpr(PrefixExpr(FileExpr),Term))
+
+# Multiple prefixes with negation
+
+file:test.js -lang:python
+
+==>
+
+Program(AndExpr(PrefixExpr(FileExpr),NegateExpr(PrefixExpr(LangExpr))))
+
+# Complex negation pattern
+
+function -file:test.js -lang:java
+
+==>
+
+Program(AndExpr(Term,NegateExpr(PrefixExpr(FileExpr)),NegateExpr(PrefixExpr(LangExpr))))
+
+# Negation inside parentheses
+
+(-file:test.js)
+
+==>
+
+Program(ParenExpr(NegateExpr(PrefixExpr(FileExpr))))
+
+# Multiple negations in group
+
+(-file:a.js -lang:python)
+
+==>
+
+Program(ParenExpr(AndExpr(NegateExpr(PrefixExpr(FileExpr)),NegateExpr(PrefixExpr(LangExpr)))))
+
+# Mixed in parentheses
+
+(include -file:test.js)
+
+==>
+
+Program(ParenExpr(AndExpr(Term,NegateExpr(PrefixExpr(FileExpr)))))
+
+# Negate nested group
+
+-((file:test.js))
+
+==>
+
+Program(NegateExpr(ParenExpr(ParenExpr(PrefixExpr(FileExpr)))))
+
+# Negate short form prefix
+
+-f:test.js
+
+==>
+
+Program(NegateExpr(PrefixExpr(FileExpr)))
+
+# Negate short form repo
+
+-r:myrepo
+
+==>
+
+Program(NegateExpr(PrefixExpr(RepoExpr)))
+
+# Negate short form branch
+
+-b:main
+
+==>
+
+Program(NegateExpr(PrefixExpr(BranchExpr)))
+
+# Negate short form content
+
+-c:console
+
+==>
+
+Program(NegateExpr(PrefixExpr(ContentExpr)))
+
+# Negate short form type
+
+-t:file
+
+==>
+
+Program(NegateExpr(PrefixExpr(TypeExpr)))
+
+# Negate with prefix in quotes
+
+-file:"test file.js"
+
+==>
+
+Program(NegateExpr(PrefixExpr(FileExpr)))
+
+# Complex with multiple negated prefixes
+
+lang:typescript -file:*.test.ts -file:*.spec.ts
+
+==>
+
+Program(AndExpr(PrefixExpr(LangExpr),NegateExpr(PrefixExpr(FileExpr)),NegateExpr(PrefixExpr(FileExpr))))
+
+# Negated group with prefix
+
+-(file:test.js lang:python)
+
+==>
+
+Program(NegateExpr(ParenExpr(AndExpr(PrefixExpr(FileExpr),PrefixExpr(LangExpr)))))
+
+# Negate empty group
+
+-()
+
+==>
+
+Program(NegateExpr(ParenExpr(Term(⚠))))
+
+# Negate with space after dash
+
+- file:test.js
+
+==>
+
+Program(NegateExpr(PrefixExpr(FileExpr)))

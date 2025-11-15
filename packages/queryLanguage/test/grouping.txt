@@ -1,0 +1,120 @@
+# Empty parentheses
+
+()
+
+==>
+
+Program(ParenExpr(Term(⚠)))
+
+# Simple grouping
+
+(test)
+
+==>
+
+Program(ParenExpr(Term))
+
+# Multiple terms in group
+
+(hello world)
+
+==>
+
+Program(ParenExpr(AndExpr(Term,Term)))
+
+# Nested parentheses
+
+((test))
+
+==>
+
+Program(ParenExpr(ParenExpr(Term)))
+
+# Multiple groups
+
+(first) (second)
+
+==>
+
+Program(AndExpr(ParenExpr(Term),ParenExpr(Term)))
+
+# Group with multiple terms
+
+(one two three)
+
+==>
+
+Program(ParenExpr(AndExpr(Term,Term,Term)))
+
+# Mixed grouped and ungrouped
+
+test (grouped) another
+
+==>
+
+Program(AndExpr(Term,ParenExpr(Term),Term))
+
+# Deeply nested
+
+(((nested)))
+
+==>
+
+Program(ParenExpr(ParenExpr(ParenExpr(Term))))
+
+# Multiple nested groups
+
+((a b) (c d))
+
+==>
+
+Program(ParenExpr(AndExpr(ParenExpr(AndExpr(Term,Term)),ParenExpr(AndExpr(Term,Term)))))
+
+# Group at start
+
+(start) middle end
+
+==>
+
+Program(AndExpr(ParenExpr(Term),Term,Term))
+
+# Group at end
+
+start middle (end)
+
+==>
+
+Program(AndExpr(Term,Term,ParenExpr(Term)))
+
+# Complex grouping pattern
+
+(a (b c) d)
+
+==>
+
+Program(ParenExpr(AndExpr(Term,ParenExpr(AndExpr(Term,Term)),Term)))
+
+# Sequential groups
+
+(a)(b)(c)
+
+==>
+
+Program(AndExpr(ParenExpr(Term),ParenExpr(Term),ParenExpr(Term)))
+
+# Group with regex
+
+([a-z]+)
+
+==>
+
+Program(ParenExpr(Term))
+
+# Group with dots
+
+(com.example.test)
+
+==>
+
+Program(ParenExpr(Term))
+
