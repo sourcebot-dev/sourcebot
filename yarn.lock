@@ -8016,7 +8016,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sourcebot/query-language@workspace:packages/queryLanguage":
+"@sourcebot/query-language@workspace:*, @sourcebot/query-language@workspace:packages/queryLanguage":
   version: 0.0.0-use.local
   resolution: "@sourcebot/query-language@workspace:packages/queryLanguage"
   dependencies:
@@ -8152,6 +8152,7 @@ __metadata:
     "@shopify/lang-jsonc": "npm:^1.0.0"
     "@sourcebot/codemirror-lang-tcl": "npm:^1.0.12"
     "@sourcebot/db": "workspace:*"
+    "@sourcebot/query-language": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
     "@sourcebot/shared": "workspace:*"
     "@ssddanbrown/codemirror-lang-twig": "npm:^1.0.0"

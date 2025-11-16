@@ -1,10 +1,10 @@
 {
     "name": "@sourcebot/query-language",
     "private": true,
+    "main": "dist/index.js",
     "scripts": {
         "build": "lezer-generator src/query.grammar -o src/parser --typeScript --names && tsc",
-        "test": "vitest",
-        "asdf": "tsx test.ts"
+        "test": "vitest"
     },
     "devDependencies": {
         "@lezer/generator": "^1.8.0",

@@ -18,7 +18,7 @@
         "dev:prisma:studio": "yarn with-env yarn workspace @sourcebot/db prisma:studio",
         "dev:prisma:migrate:reset": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:reset",
         "dev:prisma:db:push": "yarn with-env yarn workspace @sourcebot/db prisma:db:push",
-        "build:deps": "yarn workspaces foreach --recursive --topological --from '{@sourcebot/schemas,@sourcebot/db,@sourcebot/shared}' run build"
+        "build:deps": "yarn workspaces foreach --recursive --topological --from '{@sourcebot/schemas,@sourcebot/db,@sourcebot/shared,@sourcebot/query-language}' run build"
     },
     "devDependencies": {
         "concurrently": "^9.2.1",

@@ -1,0 +1,200 @@
+# OR has lowest precedence - implicit AND groups first
+
+a b or c d
+
+==>
+
+Program(OrExpr(AndExpr(Term,Term),AndExpr(Term,Term)))
+
+# Multiple OR operators are left-associative
+
+a or b or c
+
+==>
+
+Program(OrExpr(Term,Term,Term))
+
+# AND before OR
+
+file:test.js error or file:test.go panic
+
+==>
+
+Program(OrExpr(AndExpr(PrefixExpr(FileExpr),Term),AndExpr(PrefixExpr(FileExpr),Term)))
+
+# Negation binds tighter than AND
+
+-file:test.js error
+
+==>
+
+Program(AndExpr(NegateExpr(PrefixExpr(FileExpr)),Term))
+
+# Negation binds tighter than OR
+
+-file:a.js or file:b.js
+
+==>
+
+Program(OrExpr(NegateExpr(PrefixExpr(FileExpr)),PrefixExpr(FileExpr)))
+
+# Parentheses override precedence
+
+(a or b) c
+
+==>
+
+Program(AndExpr(ParenExpr(OrExpr(Term,Term)),Term))
+
+# Parentheses override - OR inside parens groups first
+
+a (b or c)
+
+==>
+
+Program(AndExpr(Term,ParenExpr(OrExpr(Term,Term))))
+
+# Complex: AND, OR, and negation
+
+a -b or c d
+
+==>
+
+Program(OrExpr(AndExpr(Term,Term),AndExpr(Term,Term)))
+
+# Negated group in OR expression
+
+-(a b) or c
+
+==>
+
+Program(OrExpr(NegateExpr(ParenExpr(AndExpr(Term,Term))),Term))
+
+# Multiple negations in OR
+
+-file:a.js or -file:b.js or file:c.js
+
+==>
+
+Program(OrExpr(NegateExpr(PrefixExpr(FileExpr)),NegateExpr(PrefixExpr(FileExpr)),PrefixExpr(FileExpr)))
+
+# Prefix binds to its value only
+
+file:a.js b.js
+
+==>
+
+Program(AndExpr(PrefixExpr(FileExpr),Term))
+
+# OR with prefixes and terms mixed
+
+repo:backend error or repo:frontend warning
+
+==>
+
+Program(OrExpr(AndExpr(PrefixExpr(RepoExpr),Term),AndExpr(PrefixExpr(RepoExpr),Term)))
+
+# Nested parentheses with OR
+
+((a or b) c) or d
+
+==>
+
+Program(OrExpr(ParenExpr(AndExpr(ParenExpr(OrExpr(Term,Term)),Term)),Term))
+
+# OR at different nesting levels
+
+(a or (b or c))
+
+==>
+
+Program(ParenExpr(OrExpr(Term,ParenExpr(OrExpr(Term,Term)))))
+
+# Implicit AND groups all adjacent terms before OR
+
+a b c or d e f
+
+==>
+
+Program(OrExpr(AndExpr(Term,Term,Term),AndExpr(Term,Term,Term)))
+
+# Mixed prefix and regular terms with OR
+
+lang:go func or lang:rust fn
+
+==>
+
+Program(OrExpr(AndExpr(PrefixExpr(LangExpr),Term),AndExpr(PrefixExpr(LangExpr),Term)))
+
+# Negation doesn't affect OR grouping
+
+a or -b or c
+
+==>
+
+Program(OrExpr(Term,Term,Term))
+
+# Parentheses can isolate OR from surrounding AND
+
+a (b or c) d
+
+==>
+
+Program(AndExpr(Term,ParenExpr(OrExpr(Term,Term)),Term))
+
+# Multiple parenthesized groups with AND
+
+(a or b) (c or d)
+
+==>
+
+Program(AndExpr(ParenExpr(OrExpr(Term,Term)),ParenExpr(OrExpr(Term,Term))))
+
+# Quoted strings are atomic - no precedence inside
+
+"a or b"
+
+==>
+
+Program(Term)
+
+# Prefix with OR value doesn't split
+
+file:"a.js or b.js"
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# Negated prefix in complex expression
+
+-file:test.js lang:go error or warning
+
+==>
+
+Program(OrExpr(AndExpr(NegateExpr(PrefixExpr(FileExpr)),PrefixExpr(LangExpr),Term),Term))
+
+# OR followed by parenthesized AND
+
+a or (b c)
+
+==>
+
+Program(OrExpr(Term,ParenExpr(AndExpr(Term,Term))))
+
+# Empty parens don't affect precedence
+
+() or a b
+
+==>
+
+Program(OrExpr(ParenExpr(Term(⚠)),AndExpr(Term,Term)))
+
+# Negation of empty group
+
+-() a
+
+==>
+
+Program(AndExpr(NegateExpr(ParenExpr(Term(⚠))),Term))
+
