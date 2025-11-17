@@ -2911,21 +2911,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lezer/common@npm:^0.15.0, @lezer/common@npm:^0.15.5":
-  version: 0.15.12
-  resolution: "@lezer/common@npm:0.15.12"
-  checksum: 10c0/ed9cbeeee81e4da94a4fba735caddb6aa5d1908a4b2a95737b35492a2b0ec220be792ef7b2d302914904b3d9fa7307f43e8b627973e10b04cd1c1a88e5647622
-  languageName: node
-  linkType: hard
-
-"@lezer/common@npm:^1.0.0, @lezer/common@npm:^1.0.2, @lezer/common@npm:^1.0.3, @lezer/common@npm:^1.1.0, @lezer/common@npm:^1.2.0, @lezer/common@npm:^1.2.1":
-  version: 1.2.3
-  resolution: "@lezer/common@npm:1.2.3"
-  checksum: 10c0/fe9f8e111080ef94037a34ca2af1221c8d01c1763ba5ecf708a286185c76119509a5d19d924c8842172716716ddce22d7834394670c4a9432f0ba9f3b7c0f50d
-  languageName: node
-  linkType: hard
-
-"@lezer/common@npm:^1.3.0":
+"@lezer/common@npm:1.3.0":
   version: 1.3.0
   resolution: "@lezer/common@npm:1.3.0"
   checksum: 10c0/e164094920761c2f56c8634d0ae9261ea7c5e6b8202aa08773febc59b8d8284dde5bc7a810c9438e27b978e5ad67d0db03af1ed72924df61b8fa2704acb55deb
