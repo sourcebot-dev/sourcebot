@@ -46,21 +46,13 @@ c:console.log
 
 Program(PrefixExpr(ContentExpr))
 
-# Branch prefix
+# Revision prefix
 
-branch:main
-
-==>
-
-Program(PrefixExpr(BranchExpr))
-
-# Branch prefix short form
-
-b:develop
+rev:main
 
 ==>
 
-Program(PrefixExpr(BranchExpr))
+Program(PrefixExpr(RevisionExpr))
 
 # Lang prefix
 
@@ -69,14 +61,6 @@ lang:typescript
 ==>
 
 Program(PrefixExpr(LangExpr))
-
-# Case prefix
-
-case:yes
-
-==>
-
-Program(PrefixExpr(CaseExpr))
 
 # Archived prefix
 
@@ -94,13 +78,13 @@ fork:yes
 
 Program(PrefixExpr(ForkExpr))
 
-# Public prefix
+# Visibility prefix - public
 
-public:yes
+visibility:public
 
 ==>
 
-Program(PrefixExpr(PublicExpr))
+Program(PrefixExpr(VisibilityExpr))
 
 # Symbol prefix
 
@@ -109,30 +93,6 @@ sym:MyClass
 ==>
 
 Program(PrefixExpr(SymExpr))
-
-# Type prefix
-
-type:file
-
-==>
-
-Program(PrefixExpr(TypeExpr))
-
-# Type prefix short form
-
-t:repo
-
-==>
-
-Program(PrefixExpr(TypeExpr))
-
-# Regex prefix
-
-regex:test.*
-
-==>
-
-Program(PrefixExpr(RegexExpr))
 
 # RepoSet prefix
 
@@ -214,21 +174,13 @@ content:hello
 
 Program(PrefixExpr(ContentExpr))
 
-# Branch with slashes
+# Revision with slashes
 
-branch:feature/new-feature
-
-==>
-
-Program(PrefixExpr(BranchExpr))
-
-# Case values
-
-case:auto
+rev:feature/new-feature
 
 ==>
 
-Program(PrefixExpr(CaseExpr))
+Program(PrefixExpr(RevisionExpr))
 
 # RepoSet with multiple repos
 
@@ -245,14 +197,6 @@ sym:package.Class.method
 ==>
 
 Program(PrefixExpr(SymExpr))
-
-# Type variations
-
-type:filename
-
-==>
-
-Program(PrefixExpr(TypeExpr))
 
 # Lang with various languages
 
@@ -278,21 +222,13 @@ fork:no
 
 Program(PrefixExpr(ForkExpr))
 
-# Public values
+# Visibility prefix - private
 
-public:no
-
-==>
-
-Program(PrefixExpr(PublicExpr))
-
-# Regex with complex pattern
-
-regex:\w+\s*=\s*\d+
+visibility:private
 
 ==>
 
-Program(PrefixExpr(RegexExpr))
+Program(PrefixExpr(VisibilityExpr))
 
 # File with dashes
 

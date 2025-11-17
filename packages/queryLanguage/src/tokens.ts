@@ -3,7 +3,7 @@ import { negate } from "./parser.terms";
 
 // External tokenizer for negation
 // Only tokenizes `-` as negate when followed by a prefix keyword or `(`
-export const negateToken = new ExternalTokenizer((input, stack) => {
+export const negateToken = new ExternalTokenizer((input) => {
     if (input.next !== 45 /* '-' */) return; // Not a dash
     
     const startPos = input.pos;
@@ -25,24 +25,22 @@ export const negateToken = new ExternalTokenizer((input, stack) => {
     }
     
     // Check if followed by a prefix keyword (by checking for keyword followed by colon)
-    // We need to look ahead to find the colon
+    // Look ahead until we hit a delimiter or colon
     const checkPos = input.pos;
     let foundColon = false;
-    let charCount = 0;
     
-    // Look ahead up to 10 characters to find a colon
-    while (charCount < 10 && ch >= 0) {
+    // Look ahead until we hit a delimiter or colon
+    while (ch >= 0) {
         if (ch === 58 /* ':' */) {
             foundColon = true;
             break;
         }
+        // Hit a delimiter (whitespace, paren, or quote) - not a prefix keyword
         if (ch === 32 || ch === 9 || ch === 10 || ch === 40 || ch === 41 || ch === 34) {
-            // Hit whitespace, paren, or quote - not a prefix
             break;
         }
         input.advance();
         ch = input.next;
-        charCount++;
     }
     
     // Reset position

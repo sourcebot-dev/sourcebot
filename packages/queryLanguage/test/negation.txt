@@ -62,21 +62,13 @@ Program(NegateExpr(PrefixExpr(LangExpr)))
 
 Program(NegateExpr(PrefixExpr(ContentExpr)))
 
-# Negate branch prefix
+# Negate revision prefix
 
--branch:develop
-
-==>
-
-Program(NegateExpr(PrefixExpr(BranchExpr)))
-
-# Negate case prefix
-
--case:yes
+-rev:develop
 
 ==>
 
-Program(NegateExpr(PrefixExpr(CaseExpr)))
+Program(NegateExpr(PrefixExpr(RevisionExpr)))
 
 # Negate archived prefix
 
@@ -94,13 +86,13 @@ Program(NegateExpr(PrefixExpr(ArchivedExpr)))
 
 Program(NegateExpr(PrefixExpr(ForkExpr)))
 
-# Negate public prefix
+# Negate visibility prefix
 
--public:no
+-visibility:any
 
 ==>
 
-Program(NegateExpr(PrefixExpr(PublicExpr)))
+Program(NegateExpr(PrefixExpr(VisibilityExpr)))
 
 # Negate symbol prefix
 
@@ -109,22 +101,6 @@ Program(NegateExpr(PrefixExpr(PublicExpr)))
 ==>
 
 Program(NegateExpr(PrefixExpr(SymExpr)))
-
-# Negate type prefix
-
--type:repo
-
-==>
-
-Program(NegateExpr(PrefixExpr(TypeExpr)))
-
-# Negate regex prefix
-
--regex:test.*
-
-==>
-
-Program(NegateExpr(PrefixExpr(RegexExpr)))
 
 # Negate parentheses
 
@@ -222,14 +198,6 @@ Program(NegateExpr(PrefixExpr(FileExpr)))
 
 Program(NegateExpr(PrefixExpr(RepoExpr)))
 
-# Negate short form branch
-
--b:main
-
-==>
-
-Program(NegateExpr(PrefixExpr(BranchExpr)))
-
 # Negate short form content
 
 -c:console
@@ -237,14 +205,6 @@ Program(NegateExpr(PrefixExpr(BranchExpr)))
 ==>
 
 Program(NegateExpr(PrefixExpr(ContentExpr)))
-
-# Negate short form type
-
--t:file
-
-==>
-
-Program(NegateExpr(PrefixExpr(TypeExpr)))
 
 # Negate with prefix in quotes
 

@@ -32,20 +32,30 @@ NegateExpr { !negate negate (PrefixExpr | ParenExpr) }
 ParenExpr { "(" query ")" }
 
 PrefixExpr {
-  ArchivedExpr { archivedKw value } |
-  BranchExpr { branchKw value } |
-  ContentExpr { contentKw value } |
-  CaseExpr { caseKw value } |
-  FileExpr { fileKw value } |
-  ForkExpr { forkKw value } |
-  PublicExpr { publicKw value } |
-  RepoExpr { repoKw value } |
-  RegexExpr { regexKw value } |
-  LangExpr { langKw value } |
-  SymExpr { symKw value } |
-  TypeExpr { typeKw value } |
-  RepoSetExpr { reposetKw value }
+  ArchivedExpr |
+  RevisionExpr |
+  ContentExpr |
+  FileExpr |
+  ForkExpr |
+  VisibilityExpr |
+  RepoExpr |
+  LangExpr |
+  SymExpr |
+  RepoSetExpr
 }
+
+RevisionExpr { revisionKw value }
+ContentExpr { contentKw value }
+FileExpr { fileKw value }
+RepoExpr { repoKw value }
+LangExpr { langKw value }
+SymExpr { symKw value }
+RepoSetExpr { reposetKw value }
+
+// Modifiers
+ArchivedExpr { archivedKw value }
+ForkExpr { forkKw value }
+VisibilityExpr { visibilityKw value }
 
 
 Term { quotedString | word }
@@ -56,17 +66,14 @@ value { quotedString | word }
 
 @tokens {
   archivedKw { "archived:" }
-  branchKw { "branch:" | "b:" }
+  revisionKw { "rev:" }
   contentKw { "content:" | "c:" }
-  caseKw { "case:" }
   fileKw { "file:" | "f:" }
   forkKw { "fork:" }
-  publicKw { "public:" }
+  visibilityKw { "visibility:" }
   repoKw { "repo:" | "r:" }
-  regexKw { "regex:" }
   langKw { "lang:" }
   symKw { "sym:" }
-  typeKw { "type:" | "t:" }
   reposetKw { "reposet:" }
   
   or { "or" ![a-zA-Z0-9_] }
@@ -81,9 +88,9 @@ value { quotedString | word }
   
   @precedence { 
     quotedString,
-    archivedKw, branchKw, contentKw, caseKw, fileKw, 
-    forkKw, publicKw, repoKw, regexKw, langKw, 
-    symKw, typeKw, reposetKw, or,
+    archivedKw, revisionKw, contentKw, fileKw, 
+    forkKw, visibilityKw, repoKw, langKw, 
+    symKw, reposetKw, or,
     word 
   }
 }

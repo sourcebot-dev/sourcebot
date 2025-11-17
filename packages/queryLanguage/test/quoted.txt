@@ -102,13 +102,13 @@ content:"console.log"
 
 Program(PrefixExpr(ContentExpr))
 
-# Quoted string in branch prefix
+# Quoted string in revision prefix
 
-branch:"feature/my feature"
+rev:"feature/my feature"
 
 ==>
 
-Program(PrefixExpr(BranchExpr))
+Program(PrefixExpr(RevisionExpr))
 
 # Multiple quoted strings
 
@@ -285,22 +285,6 @@ content:"TODO: fix this"
 ==>
 
 Program(PrefixExpr(ContentExpr))
-
-# Regex prefix with quoted pattern
-
-regex:"func\\s+\\w+"
-
-==>
-
-Program(PrefixExpr(RegexExpr))
-
-# Case prefix with quoted value
-
-case:"yes"
-
-==>
-
-Program(PrefixExpr(CaseExpr))
 
 # Quoted string with at symbol
 
@@ -486,9 +470,9 @@ Program(AndExpr(Term,PrefixExpr(FileExpr)))
 
 Program(Term)
 
-# Quoted branch prefix
+# Quoted revision prefix
 
-"branch:main"
+"rev:main"
 
 ==>
 

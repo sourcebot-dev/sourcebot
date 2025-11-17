@@ -110,13 +110,13 @@ repo:project1 or repo:project2
 
 Program(OrExpr(PrefixExpr(RepoExpr),PrefixExpr(RepoExpr)))
 
-# OR with branch prefixes
+# OR with revision prefixes
 
-branch:main or branch:develop
+rev:main or rev:develop
 
 ==>
 
-Program(OrExpr(PrefixExpr(BranchExpr),PrefixExpr(BranchExpr)))
+Program(OrExpr(PrefixExpr(RevisionExpr),PrefixExpr(RevisionExpr)))
 
 # OR with lang prefixes
 

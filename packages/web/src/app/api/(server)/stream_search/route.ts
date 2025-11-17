@@ -16,7 +16,7 @@ import { PrismaClient, Repo } from '@sourcebot/db';
 import { createLogger, env } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
 import * as path from 'path';
-import { parser } from '@sourcebot/query-language';
+import { parser as _parser } from '@sourcebot/query-language';
 import { transformToZoektQuery } from './transformer';
 
 const logger = createLogger('streamSearchApi');
@@ -69,13 +69,38 @@ export const POST = async (request: NextRequest) => {
 
         const { query, matches, contextLines, whole } = parsed.data;
 
+        const isCaseSensitivityEnabled = false;
+        const isRegexEnabled = false;
+
+        const parser = _parser.configure({
+            strict: true,
+        })
+
         const tree = parser.parse(query);
-        const zoektQuery = transformToZoektQuery(tree, query);
+        const zoektQuery = transformToZoektQuery({
+            tree,
+            input: query,
+            isCaseSensitivityEnabled,
+            isRegexEnabled,
+        });
 
         console.log(JSON.stringify(zoektQuery, null, 2));
 
         const searchRequest: SearchRequest = {
-            query: zoektQuery,
+            query: {
+                and: {
+                    children: [
+                        zoektQuery,
+                        // {
+                        //     raw_config: {
+                        //         flags: [
+                        //             'FLAG_NO_FORKS',
+                        //         ]
+                        //     }
+                        // }
+                    ]
+                }
+            },
             // query: {
             //     and: {
             //         // @todo: we should use repo_ids to filter out repositories that the user
