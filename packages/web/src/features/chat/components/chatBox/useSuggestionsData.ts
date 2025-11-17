@@ -41,7 +41,7 @@ export const useSuggestionsData = ({
                 query,
                 matches: 10,
                 contextLines: 1,
-            }, domain))
+            }))
         },
         select: (data): FileSuggestion[] => {
             return data.files.map((file) => {

@@ -39,8 +39,8 @@ type CompileResult = {
 export const compileGithubConfig = async (
     config: GithubConnectionConfig,
     connectionId: number,
-    abortController: AbortController): Promise<CompileResult> => {
-    const gitHubReposResult = await getGitHubReposFromConfig(config, abortController.signal);
+    signal: AbortSignal): Promise<CompileResult> => {
+    const gitHubReposResult = await getGitHubReposFromConfig(config, signal);
     const gitHubRepos = gitHubReposResult.repos;
     const warnings = gitHubReposResult.warnings;
 

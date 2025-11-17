@@ -18,7 +18,7 @@ import {
     useReactTable,
 } from "@tanstack/react-table"
 import { cva } from "class-variance-authority"
-import { AlertCircle, AlertTriangle, ArrowUpDown, RefreshCwIcon } from "lucide-react"
+import { AlertCircle, AlertTriangle, ArrowUpDown, PlusCircleIcon, RefreshCwIcon } from "lucide-react"
 import * as React from "react"
 import { CopyIconButton } from "@/app/[domain]/components/copyIconButton"
 import { useMemo } from "react"
@@ -26,6 +26,9 @@ import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweigh
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast"
 import { DisplayDate } from "@/app/[domain]/components/DisplayDate"
+import { LoadingButton } from "@/components/ui/loading-button"
+import { syncConnection } from "@/features/workerApi/actions"
+import { isServiceError } from "@/lib/utils"
 
 
 export type ConnectionSyncJob = {
@@ -181,12 +184,32 @@ export const columns: ColumnDef<ConnectionSyncJob>[] = [
     },
 ]
 
-export const ConnectionJobsTable = ({ data }: { data: ConnectionSyncJob[] }) => {
+export const ConnectionJobsTable = ({ data, connectionId }: { data: ConnectionSyncJob[], connectionId: number }) => {
     const [sorting, setSorting] = React.useState<SortingState>([{ id: "createdAt", desc: true }])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
     const router = useRouter();
     const { toast } = useToast();
+
+    const [isSyncSubmitting, setIsSyncSubmitting] = React.useState(false);
+    const onSyncButtonClick = React.useCallback(async () => {
+        setIsSyncSubmitting(true);
+        const response = await syncConnection(connectionId);
+
+        if (!isServiceError(response)) {
+            const { jobId } = response;
+            toast({
+                description: `✅ Connection synced successfully. Job ID: ${jobId}`,
+            })
+            router.refresh();
+        } else {
+            toast({
+                description: `❌ Failed to sync connection. ${response.message}`,
+            });
+        }
+
+        setIsSyncSubmitting(false);
+    }, [connectionId, router, toast]);
 
     const table = useReactTable({
         data,
@@ -238,19 +261,29 @@ export const ConnectionJobsTable = ({ data }: { data: ConnectionSyncJob[] }) => 
                     </SelectContent>
                 </Select>
 
-                <Button
-                    variant="outline"
-                    className="ml-auto"
-                    onClick={() => {
-                        router.refresh();
-                        toast({
-                            description: "Page refreshed",
-                        });
-                    }}
-                >
-                    <RefreshCwIcon className="w-3 h-3" />
-                    Refresh
-                </Button>
+                <div className="ml-auto flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            router.refresh();
+                            toast({
+                                description: "Page refreshed",
+                            });
+                        }}
+                    >
+                        <RefreshCwIcon className="w-3 h-3" />
+                        Refresh
+                    </Button>
+
+                    <LoadingButton
+                        onClick={onSyncButtonClick}
+                        loading={isSyncSubmitting}
+                        variant="outline"
+                    >
+                        <PlusCircleIcon className="w-3 h-3" />
+                        Trigger sync
+                    </LoadingButton>
+                </div>
             </div>
 
             <div className="rounded-md border">

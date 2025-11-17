@@ -1,12 +1,12 @@
 'use client';
 
-import { FileTreeItem } from "../actions";
 import { useEffect, useRef } from "react";
 import clsx from "clsx";
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import { FileTreeItemIcon } from "./fileTreeItemIcon";
 import Link from "next/link";
+import { FileTreeItem } from "../types";
 
 export const FileTreeItemComponent = ({
     node,

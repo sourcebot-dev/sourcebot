@@ -1,60 +1,43 @@
-'use server';
+import 'server-only';
 
-import { sew, withAuth, withOrgMembership } from "@/actions";
+import { sew } from "@/actions";
 import { searchResponseSchema } from "@/features/search/schemas";
 import { search } from "@/features/search/searchApi";
-import { isServiceError } from "@/lib/utils";
-import { FindRelatedSymbolsResponse } from "./types";
 import { ServiceError } from "@/lib/serviceError";
+import { isServiceError } from "@/lib/utils";
+import { withOptionalAuthV2 } from "@/withAuthV2";
 import { SearchResponse } from "../search/types";
-import { OrgRole } from "@sourcebot/db";
+import { FindRelatedSymbolsRequest, FindRelatedSymbolsResponse } from "./types";
 
 // The maximum number of matches to return from the search API.
 const MAX_REFERENCE_COUNT = 1000;
 
-export const findSearchBasedSymbolReferences = async (
-    props: {
-        symbolName: string,
-        language: string,
-        revisionName?: string,
-    },
-    domain: string,
-): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async () => {
-            const {
-                symbolName,
-                language,
-                revisionName = "HEAD",
-            } = props;
+export const findSearchBasedSymbolReferences = async (props: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
+    withOptionalAuthV2(async () => {
+        const {
+            symbolName,
+            language,
+            revisionName = "HEAD",
+        } = props;
 
-            const query = `\\b${symbolName}\\b rev:${revisionName} ${getExpandedLanguageFilter(language)} case:yes`;
+        const query = `\\b${symbolName}\\b rev:${revisionName} ${getExpandedLanguageFilter(language)} case:yes`;
 
-            const searchResult = await search({
-                query,
-                matches: MAX_REFERENCE_COUNT,
-                contextLines: 0,
-            });
+        const searchResult = await search({
+            query,
+            matches: MAX_REFERENCE_COUNT,
+            contextLines: 0,
+        });
 
-            if (isServiceError(searchResult)) {
-                return searchResult;
-            }
+        if (isServiceError(searchResult)) {
+            return searchResult;
+        }
 
-            return parseRelatedSymbolsSearchResponse(searchResult);
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true)
-);
+        return parseRelatedSymbolsSearchResponse(searchResult);
+    }));
 
 
-export const findSearchBasedSymbolDefinitions = async (
-    props: {
-        symbolName: string,
-        language: string,
-        revisionName?: string,
-    },
-    domain: string,
-): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
-    withAuth((session) =>
-        withOrgMembership(session, domain, async () => {
+export const findSearchBasedSymbolDefinitions = async (props: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
+    withOptionalAuthV2(async () => {
             const {
                 symbolName,
                 language,
@@ -74,8 +57,7 @@ export const findSearchBasedSymbolDefinitions = async (
             }
 
             return parseRelatedSymbolsSearchResponse(searchResult);
-        }, /* minRequiredRole = */ OrgRole.GUEST), /* allowAnonymousAccess = */ true)
-);
+    }));
 
 const parseRelatedSymbolsSearchResponse = (searchResult: SearchResponse) => {
     const parser = searchResponseSchema.transform(async ({ files }) => ({

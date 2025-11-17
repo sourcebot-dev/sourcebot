@@ -251,7 +251,6 @@ const resolveFileSource = async ({ path, repo, revision }: FileSource) => {
         fileName: path,
         repository: repo,
         branch: revision,
-        // @todo: handle multi-tenancy.
     });
 
     if (isServiceError(fileSource)) {

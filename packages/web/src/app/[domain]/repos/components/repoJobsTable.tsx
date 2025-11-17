@@ -18,7 +18,7 @@ import {
     useReactTable,
 } from "@tanstack/react-table"
 import { cva } from "class-variance-authority"
-import { AlertCircle, ArrowUpDown, RefreshCwIcon } from "lucide-react"
+import { AlertCircle, ArrowUpDown, PlusCircleIcon, RefreshCwIcon } from "lucide-react"
 import * as React from "react"
 import { CopyIconButton } from "../../components/copyIconButton"
 import { useMemo } from "react"
@@ -26,6 +26,9 @@ import { LightweightCodeHighlighter } from "../../components/lightweightCodeHigh
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast"
 import { DisplayDate } from "../../components/DisplayDate"
+import { LoadingButton } from "@/components/ui/loading-button"
+import { indexRepo } from "@/features/workerApi/actions"
+import { isServiceError } from "@/lib/utils"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -129,7 +132,7 @@ export const columns: ColumnDef<RepoIndexingJob>[] = [
                 </Button>
             )
         },
-        cell: ({ row }) => <DisplayDate date={row.getValue("createdAt") as Date} className="ml-3"/>,
+        cell: ({ row }) => <DisplayDate date={row.getValue("createdAt") as Date} className="ml-3" />,
     },
     {
         accessorKey: "completedAt",
@@ -147,7 +150,7 @@ export const columns: ColumnDef<RepoIndexingJob>[] = [
                 return "-";
             }
 
-            return <DisplayDate date={completedAt} className="ml-3"/>
+            return <DisplayDate date={completedAt} className="ml-3" />
         },
     },
     {
@@ -176,12 +179,40 @@ export const columns: ColumnDef<RepoIndexingJob>[] = [
     },
 ]
 
-export const RepoJobsTable = ({ data }: { data: RepoIndexingJob[] }) => {
+export const RepoJobsTable = ({
+    data,
+    repoId,
+    isIndexButtonVisible,
+}: {
+    data: RepoIndexingJob[],
+    repoId: number,
+    isIndexButtonVisible: boolean,
+}) => {
     const [sorting, setSorting] = React.useState<SortingState>([{ id: "createdAt", desc: true }])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
     const router = useRouter();
     const { toast } = useToast();
+
+    const [isIndexSubmitting, setIsIndexSubmitting] = React.useState(false);
+    const onIndexButtonClick = React.useCallback(async () => {
+        setIsIndexSubmitting(true);
+        const response = await indexRepo(repoId);
+
+        if (!isServiceError(response)) {
+            const { jobId } = response;
+            toast({
+                description: `✅ Repository sync triggered successfully. Job ID: ${jobId}`,
+            })
+            router.refresh();
+        } else {
+            toast({
+                description: `❌ Failed to index repository. ${response.message}`,
+            });
+        }
+
+        setIsIndexSubmitting(false);
+    }, [repoId, router, toast]);
 
     const table = useReactTable({
         data,
@@ -247,19 +278,31 @@ export const RepoJobsTable = ({ data }: { data: RepoIndexingJob[] }) => {
                     </SelectContent>
                 </Select>
 
-                <Button
-                    variant="outline"
-                    className="ml-auto"
-                    onClick={() => {
-                        router.refresh();
-                        toast({
-                            description: "Page refreshed",
-                        });
-                    }}
-                >
-                    <RefreshCwIcon className="w-3 h-3" />
-                    Refresh
-                </Button>
+                <div className="ml-auto flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            router.refresh();
+                            toast({
+                                description: "Page refreshed",
+                            });
+                        }}
+                    >
+                        <RefreshCwIcon className="w-3 h-3" />
+                        Refresh
+                    </Button>
+
+                    {isIndexButtonVisible && (
+                        <LoadingButton
+                            onClick={onIndexButtonClick}
+                            loading={isIndexSubmitting}
+                            variant="outline"
+                        >
+                            <PlusCircleIcon className="w-3 h-3" />
+                            Trigger sync
+                        </LoadingButton>
+                    )}
+                </div>
             </div>
 
             <div className="rounded-md border">

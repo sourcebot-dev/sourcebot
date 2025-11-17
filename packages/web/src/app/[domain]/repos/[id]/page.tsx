@@ -1,4 +1,4 @@
-import { sew } from "@/actions"
+import { getCurrentUserRole, sew } from "@/actions"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +19,7 @@ import { BackButton } from "../../components/backButton"
 import { DisplayDate } from "../../components/DisplayDate"
 import { RepoBranchesTable } from "../components/repoBranchesTable"
 import { RepoJobsTable } from "../components/repoJobsTable"
+import { OrgRole } from "@sourcebot/db"
 
 export default async function RepoDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -50,6 +51,11 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
     })();
 
     const repoMetadata = repoMetadataSchema.parse(repo.metadata);
+
+    const userRole = await getCurrentUserRole(SINGLE_TENANT_ORG_DOMAIN);
+    if (isServiceError(userRole)) {
+        throw new ServiceErrorException(userRole);
+    }
 
     return (
         <>
@@ -172,7 +178,11 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                 </CardHeader>
                 <CardContent>
                     <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                        <RepoJobsTable data={repo.jobs} />
+                        <RepoJobsTable
+                            data={repo.jobs}
+                            repoId={repo.id}
+                            isIndexButtonVisible={userRole === OrgRole.OWNER}
+                        />
                     </Suspense>
                 </CardContent>
             </Card>

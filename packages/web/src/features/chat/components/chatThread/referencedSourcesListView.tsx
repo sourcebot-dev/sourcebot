@@ -1,6 +1,6 @@
 'use client';
 
-import { fetchFileSource } from "@/app/api/(client)/client";
+import { getFileSource } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -99,11 +99,11 @@ export const ReferencedSourcesListView = ({
     const fileSourceQueries = useQueries({
         queries: referencedFileSources.map((file) => ({
             queryKey: ['fileSource', file.path, file.repo, file.revision, domain],
-            queryFn: () => unwrapServiceError(fetchFileSource({
+            queryFn: () => unwrapServiceError(getFileSource({
                 fileName: file.path,
                 repository: file.repo,
                 branch: file.revision,
-            }, domain)),
+            })),
             staleTime: Infinity,
         })),
     });

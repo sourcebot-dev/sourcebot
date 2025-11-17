@@ -11,10 +11,12 @@ import { groupmqLifecycleExceptionWrapper, setIntervalAsync } from "./utils.js";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import { captureEvent } from "./posthog.js";
 import { PromClient } from "./promClient.js";
+import { GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS } from "./constants.js";
 
 const LOG_TAG = 'connection-manager';
 const logger = createLogger(LOG_TAG);
 const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
+const QUEUE_NAME = 'connection-sync-queue';
 
 type JobPayload = {
     jobId: string,
@@ -30,19 +32,19 @@ type JobResult = {
 const JOB_TIMEOUT_MS = 1000 * 60 * 60 * 2; // 2 hour timeout
 
 export class ConnectionManager {
-    private worker: Worker;
+    private worker: Worker<JobPayload>;
     private queue: Queue<JobPayload>;
     private interval?: NodeJS.Timeout;
 
     constructor(
         private db: PrismaClient,
         private settings: Settings,
-        redis: Redis,
+        private redis: Redis,
         private promClient: PromClient,
     ) {
         this.queue = new Queue<JobPayload>({
             redis,
-            namespace: 'connection-sync-queue',
+            namespace: QUEUE_NAME,
             jobTimeoutMs: JOB_TIMEOUT_MS,
             maxAttempts: 3,
             logger: env.DEBUG_ENABLE_GROUPMQ_LOGGING === 'true',
@@ -62,6 +64,10 @@ export class ConnectionManager {
         this.worker.on('failed', this.onJobFailed.bind(this));
         this.worker.on('stalled', this.onJobStalled.bind(this));
         this.worker.on('error', this.onWorkerError.bind(this));
+        // graceful-timeout is triggered when a job is still processing after
+        // worker.close() is called and the timeout period has elapsed. In this case,
+        // we fail the job with no retry.
+        this.worker.on('graceful-timeout', this.onJobGracefulTimeout.bind(this));
     }
 
     public startScheduler() {
@@ -128,6 +134,7 @@ export class ConnectionManager {
         });
 
         for (const job of jobs) {
+            logger.info(`Scheduling job ${job.id} for connection ${job.connection.name} (id: ${job.connectionId})`);
             await this.queue.add({
                 groupId: `connection:${job.connectionId}`,
                 data: {
@@ -149,6 +156,22 @@ export class ConnectionManager {
         const { jobId, connectionName } = job.data;
         const logger = createJobLogger(jobId);
         logger.info(`Running connection sync job ${jobId} for connection ${connectionName} (id: ${job.data.connectionId}) (attempt ${job.attempts + 1} / ${job.maxAttempts})`);
+
+        const currentStatus = await this.db.connectionSyncJob.findUniqueOrThrow({
+            where: {
+                id: jobId,
+            },
+            select: {
+                status: true,
+            }
+        });
+
+        // Fail safe: if the job is not PENDING (first run) or IN_PROGRESS (retry), it indicates the job
+        // is in an invalid state and should be skipped.
+        if (currentStatus.status !== ConnectionSyncJobStatus.PENDING && currentStatus.status !== ConnectionSyncJobStatus.IN_PROGRESS) {
+            throw new Error(`Job ${jobId} is not in a valid state. Expected: ${ConnectionSyncJobStatus.PENDING} or ${ConnectionSyncJobStatus.IN_PROGRESS}. Actual: ${currentStatus.status}. Skipping.`);
+        }
+
 
         this.promClient.pendingConnectionSyncJobs.dec({ connection: connectionName });
         this.promClient.activeConnectionSyncJobs.inc({ connection: connectionName });
@@ -178,7 +201,7 @@ export class ConnectionManager {
         const result = await (async () => {
             switch (config.type) {
                 case 'github': {
-                    return await compileGithubConfig(config, job.data.connectionId, abortController);
+                    return await compileGithubConfig(config, job.data.connectionId, abortController.signal);
                 }
                 case 'gitlab': {
                     return await compileGitlabConfig(config, job.data.connectionId);
@@ -200,7 +223,7 @@ export class ConnectionManager {
                 }
             }
         })();
-       
+
         let { repoData, warnings } = result;
 
         await this.db.connectionSyncJob.update({
@@ -383,6 +406,33 @@ export class ConnectionManager {
             });
         });
 
+    private onJobGracefulTimeout = async (job: Job<JobPayload>) =>
+        groupmqLifecycleExceptionWrapper('onJobGracefulTimeout', logger, async () => {
+            const logger = createJobLogger(job.id);
+
+            const { connection } = await this.db.connectionSyncJob.update({
+                where: { id: job.id },
+                data: {
+                    status: ConnectionSyncJobStatus.FAILED,
+                    completedAt: new Date(),
+                    errorMessage: 'Job timed out',
+                },
+                select: {
+                    connection: true,
+                }
+            });
+
+            this.promClient.activeConnectionSyncJobs.dec({ connection: connection.name });
+            this.promClient.connectionSyncJobFailTotal.inc({ connection: connection.name });
+
+            logger.error(`Job ${job.id} timed out for connection ${connection.name} (id: ${connection.id})`);
+
+            captureEvent('backend_connection_sync_job_failed', {
+                connectionId: connection.id,
+                error: 'Job timed out',
+            });
+        });
+
     private async onWorkerError(error: Error) {
         Sentry.captureException(error);
         logger.error(`Connection syncer worker error.`, error);
@@ -392,8 +442,28 @@ export class ConnectionManager {
         if (this.interval) {
             clearInterval(this.interval);
         }
-        await this.worker.close();
-        await this.queue.close();
+
+        const inProgressJobs = this.worker.getCurrentJobs();
+        await this.worker.close(GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS);
+
+        // Manually release group locks for in progress jobs to prevent deadlocks.
+        // @see: https://github.com/Openpanel-dev/groupmq/issues/8
+        for (const { job } of inProgressJobs) {
+            const lockKey = `groupmq:${QUEUE_NAME}:lock:${job.groupId}`;
+            logger.debug(`Releasing group lock ${lockKey} for in progress job ${job.id}`);
+            try {
+                await this.redis.del(lockKey);
+            } catch (error) {
+                Sentry.captureException(error);
+                logger.error(`Failed to release group lock ${lockKey} for in progress job ${job.id}. Error: `, error);
+            }
+        }
+
+        // @note: As of groupmq v1.0.0, queue.close() will just close the underlying
+        // redis connection. Since we share the same redis client between, skip this
+        // step and close the redis client directly in index.ts.
+        // @see: https://github.com/Openpanel-dev/groupmq/blob/main/src/queue.ts#L1900
+        // await this.queue.close();
     }
 }
 

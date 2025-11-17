@@ -6,6 +6,7 @@ import chokidar, { FSWatcher } from 'chokidar';
 import { ConnectionManager } from "./connectionManager.js";
 import { SINGLE_TENANT_ORG_ID } from "./constants.js";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
+import isEqual from 'fast-deep-equal';
 
 const logger = createLogger('config-manager');
 
@@ -64,8 +65,8 @@ export class ConfigManager {
 
                 const existingConnectionConfig = existingConnection ? existingConnection.config as unknown as ConnectionConfig : undefined;
                 const connectionNeedsSyncing =
-                    !existingConnection ||
-                    (JSON.stringify(existingConnectionConfig) !== JSON.stringify(newConnectionConfig));
+                    !existingConnectionConfig ||
+                    !isEqual(existingConnectionConfig, newConnectionConfig);
 
                 // Either update the existing connection or create a new one.
                 const connection = existingConnection ?
@@ -93,8 +94,8 @@ export class ConfigManager {
                     });
 
                 if (connectionNeedsSyncing) {
-                    const [jobId] = await this.connectionManager.createJobs([connection]);
-                    logger.info(`Change detected for connection '${key}' (id: ${connection.id}). Created sync job ${jobId}.`);
+                    logger.info(`Change detected for connection '${key}' (id: ${connection.id}). Creating sync job.`);
+                    await this.connectionManager.createJobs([connection]);
                 }
             }
         }

@@ -1,4 +1,4 @@
-import { findSearchBasedSymbolDefinitions } from "@/features/codeNav/actions";
+import { findSearchBasedSymbolDefinitions } from "@/app/api/(client)/client";
 import { SourceRange } from "@/features/search/types";
 import { useDomain } from "@/hooks/useDomain";
 import { unwrapServiceError } from "@/lib/utils";
@@ -56,7 +56,7 @@ export const useHoveredOverSymbolInfo = ({
                 symbolName: symbolName!,
                 language,
                 revisionName,
-            }, domain)
+            })
         ),
         select: ((data) => {
             return data.files.flatMap((file) => {

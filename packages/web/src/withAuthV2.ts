@@ -181,7 +181,7 @@ export const withMinimumOrgRole = async <T>(
     userRole: OrgRole,
     minRequiredRole: OrgRole = OrgRole.MEMBER,
     fn: () => Promise<T>,
-) => {
+): Promise<T | ServiceError> => {
 
     const getAuthorizationPrecedence = (role: OrgRole): number => {
         switch (role) {

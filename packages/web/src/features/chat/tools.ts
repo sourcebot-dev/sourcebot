@@ -1,10 +1,9 @@
 import { z } from "zod"
 import { search } from "@/features/search/searchApi"
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { InferToolInput, InferToolOutput, InferUITool, tool, ToolUIPart } from "ai";
 import { isServiceError } from "@/lib/utils";
 import { getFileSource } from "../search/fileSourceApi";
-import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/actions";
+import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/api";
 import { FileSourceResponse } from "../search/types";
 import { addLineNumbers, buildSearchQuery } from "./utils";
 import { toolNames } from "./constants";
@@ -36,8 +35,7 @@ export const findSymbolReferencesTool = tool({
             symbolName: symbol,
             language,
             revisionName: "HEAD",
-            // @todo(mt): handle multi-tenancy.
-        }, SINGLE_TENANT_ORG_DOMAIN);
+        });
 
         if (isServiceError(response)) {
             return response;
@@ -74,8 +72,7 @@ export const findSymbolDefinitionsTool = tool({
             symbolName: symbol,
             language,
             revisionName: revision,
-            // @todo(mt): handle multi-tenancy.
-        }, SINGLE_TENANT_ORG_DOMAIN);
+        });
 
         if (isServiceError(response)) {
             return response;

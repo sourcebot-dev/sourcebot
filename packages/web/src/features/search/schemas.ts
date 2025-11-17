@@ -141,6 +141,7 @@ export const searchResponseSchema = z.object({
     repositoryInfo: z.array(repositoryInfoSchema),
     isBranchFilteringEnabled: z.boolean(),
     isSearchExhaustive: z.boolean(),
+    __debug_timings: z.record(z.string(), z.number()).optional(),
 });
 
 export const fileSourceRequestSchema = z.object({

@@ -1,11 +1,11 @@
 'use client';
 
 import { useBrowseState } from "@/app/[domain]/browse/hooks/useBrowseState";
+import { findSearchBasedSymbolReferences, findSearchBasedSymbolDefinitions} from "@/app/api/(client)/client";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 import { Badge } from "@/components/ui/badge";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "@/features/codeNav/actions";
 import { useDomain } from "@/hooks/useDomain";
 import { unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -46,7 +46,7 @@ export const ExploreMenu = ({
                 symbolName: selectedSymbolInfo.symbolName,
                 language: selectedSymbolInfo.language,
                 revisionName: selectedSymbolInfo.revisionName,
-            }, domain)
+            })
         ),
     });
 
@@ -62,7 +62,7 @@ export const ExploreMenu = ({
                 symbolName: selectedSymbolInfo.symbolName,
                 language: selectedSymbolInfo.language,
                 revisionName: selectedSymbolInfo.revisionName,
-            }, domain)
+            })
         ),
     });
 
