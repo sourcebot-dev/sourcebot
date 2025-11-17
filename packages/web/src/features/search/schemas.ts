@@ -30,6 +30,10 @@ export const searchRequestSchema = z.object({
     contextLines: z.number().optional(),
     // Whether to return the whole file as part of the response.
     whole: z.boolean().optional(),
+    // Whether to enable regular expression search.
+    isRegexEnabled: z.boolean().optional(),
+    // Whether to enable case sensitivity.
+    isCaseSensitivityEnabled: z.boolean().optional(),
 });
 
 export const repositoryInfoSchema = z.object({

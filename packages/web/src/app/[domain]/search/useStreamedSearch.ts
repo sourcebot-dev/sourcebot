@@ -4,7 +4,7 @@ import { RepositoryInfo, SearchRequest, SearchResponse, SearchResultFile } from 
 import { useState, useCallback, useRef, useEffect } from 'react';
 
 
-export const useStreamedSearch = ({ query, matches, contextLines, whole }: SearchRequest) => {
+export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegexEnabled, isCaseSensitivityEnabled }: SearchRequest) => {
 
     const [state, setState] = useState<{
         isStreaming: boolean,
@@ -64,6 +64,8 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole }: Searc
                         matches,
                         contextLines,
                         whole,
+                        isRegexEnabled,
+                        isCaseSensitivityEnabled,
                     }),
                     signal: abortControllerRef.current.signal,
                 });
@@ -162,7 +164,14 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole }: Searc
 
         return () => {
         }
-    }, [query, matches, contextLines, whole]);
+    }, [
+        query,
+        matches,
+        contextLines,
+        whole,
+        isRegexEnabled,
+        isCaseSensitivityEnabled,
+    ]);
 
     return {
         ...state,

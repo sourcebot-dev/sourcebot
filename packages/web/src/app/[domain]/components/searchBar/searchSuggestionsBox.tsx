@@ -183,7 +183,7 @@ const SearchSuggestionsBox = forwardRef(({
                 case "file":
                     return {
                         list: fileSuggestions,
-                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                        onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
                         isClientSideSearchEnabled: false,
                         DefaultIcon: VscFile,
                     }

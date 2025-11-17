@@ -36,11 +36,15 @@ import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPan
 interface SearchResultsPageProps {
     searchQuery: string;
     defaultMaxMatchCount: number;
+    isRegexEnabled: boolean;
+    isCaseSensitivityEnabled: boolean;
 }
 
 export const SearchResultsPage = ({
     searchQuery,
     defaultMaxMatchCount,
+    isRegexEnabled,
+    isCaseSensitivityEnabled,
 }: SearchResultsPageProps) => {
     const router = useRouter();
     const { setSearchHistory } = useSearchHistory();
@@ -63,6 +67,8 @@ export const SearchResultsPage = ({
         matches: maxMatchCount,
         contextLines: 3,
         whole: false,
+        isRegexEnabled,
+        isCaseSensitivityEnabled,
     });
 
     useEffect(() => {
@@ -141,7 +147,11 @@ export const SearchResultsPage = ({
             >
                 <SearchBar
                     size="sm"
-                    defaultQuery={searchQuery}
+                    defaults={{
+                        isRegexEnabled,
+                        isCaseSensitivityEnabled,
+                        query: searchQuery,
+                    }}
                     className="w-full"
                 />
             </TopBar>

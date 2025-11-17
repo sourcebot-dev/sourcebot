@@ -67,10 +67,14 @@ export const POST = async (request: NextRequest) => {
             return serviceErrorResponse(schemaValidationError(parsed.error));
         }
 
-        const { query, matches, contextLines, whole } = parsed.data;
-
-        const isCaseSensitivityEnabled = false;
-        const isRegexEnabled = false;
+        const {
+            query,
+            matches,
+            contextLines,
+            whole,
+            isRegexEnabled = false,
+            isCaseSensitivityEnabled = false,
+        } = parsed.data;
 
         const parser = _parser.configure({
             strict: true,

@@ -136,13 +136,13 @@ export const transformToZoektQuery = ({
         switch (prefixTypeId) {
             case FileExpr:
                 return {
-                    substring: {
-                        pattern: value,
+                    regexp: {
+                        regexp: value,
                         case_sensitive: isCaseSensitivityEnabled,
                         file_name: true,
                         content: false
                     },
-                    query: "substring"
+                    query: "regexp"
                 };
 
             case RepoExpr:
