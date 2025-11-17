@@ -1,26 +1,25 @@
 'use client';
 
-import { getTree } from "../actions";
-import { useQuery } from "@tanstack/react-query";
-import { unwrapServiceError } from "@/lib/utils";
-import { ResizablePanel } from "@/components/ui/resizable";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
 import { useBrowseState } from "@/app/[domain]/browse/hooks/useBrowseState";
-import { PureFileTreePanel } from "./pureFileTreePanel";
+import { getTree } from "@/app/api/(client)/client";
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Button } from "@/components/ui/button";
-import { ImperativePanelHandle } from "react-resizable-panels";
+import { ResizablePanel } from "@/components/ui/resizable";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { unwrapServiceError } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { SearchIcon } from "lucide-react";
 import { useRef } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { Separator } from "@/components/ui/separator";
 import {
-    GoSidebarCollapse as ExpandIcon,
-    GoSidebarExpand as CollapseIcon
+    GoSidebarExpand as CollapseIcon,
+    GoSidebarCollapse as ExpandIcon
 } from "react-icons/go";
-import { Tooltip, TooltipContent } from "@/components/ui/tooltip";
-import { TooltipTrigger } from "@/components/ui/tooltip";
-import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
-import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
-import { SearchIcon } from "lucide-react";
+import { ImperativePanelHandle } from "react-resizable-panels";
+import { PureFileTreePanel } from "./pureFileTreePanel";
 
 
 interface FileTreePanelProps {

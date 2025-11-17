@@ -5,7 +5,6 @@ import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useQuery } from "@tanstack/react-query";
 import { unwrapServiceError } from "@/lib/utils";
-import { FileTreeItem, getFiles } from "@/features/fileTree/actions";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useBrowseNavigation } from "../hooks/useBrowseNavigation";
 import { useBrowseState } from "../hooks/useBrowseState";
@@ -13,6 +12,8 @@ import { useBrowseParams } from "../hooks/useBrowseParams";
 import { FileTreeItemIcon } from "@/features/fileTree/components/fileTreeItemIcon";
 import { useLocalStorage } from "usehooks-ts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FileTreeItem } from "@/features/fileTree/types";
+import { getFiles } from "@/app/api/(client)/client";
 
 const MAX_RESULTS = 100;
 

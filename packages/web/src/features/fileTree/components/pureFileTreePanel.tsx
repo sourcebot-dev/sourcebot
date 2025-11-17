@@ -1,6 +1,6 @@
 'use client';
 
-import { FileTreeNode as RawFileTreeNode } from "../actions";
+import { FileTreeNode as RawFileTreeNode } from "../types";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import React, { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { FileTreeItemComponent } from "./fileTreeItemComponent";

@@ -1,5 +1,4 @@
-'use server';
-
+import 'server-only';
 import escapeStringRegexp from "escape-string-regexp";
 import { fileNotFound, ServiceError, unexpectedError } from "../../lib/serviceError";
 import { FileSourceRequest, FileSourceResponse } from "./types";

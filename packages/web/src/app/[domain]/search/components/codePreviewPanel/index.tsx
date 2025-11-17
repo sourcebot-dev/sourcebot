@@ -5,8 +5,8 @@ import { CodePreview } from "./codePreview";
 import { SearchResultFile } from "@/features/search/types";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { SetStateAction, Dispatch, useMemo } from "react";
-import { getFileSource } from "@/features/search/fileSourceApi";
 import { unwrapServiceError } from "@/lib/utils";
+import { getFileSource } from "@/app/api/(client)/client";
 
 interface CodePreviewPanelProps {
     previewedFile: SearchResultFile;

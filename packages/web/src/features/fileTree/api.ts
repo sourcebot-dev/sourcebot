@@ -1,4 +1,4 @@
-'use server';
+import 'server-only';
 
 import { sew } from '@/actions';
 import { env } from '@sourcebot/shared';
@@ -8,18 +8,9 @@ import { Repo } from '@sourcebot/db';
 import { createLogger } from '@sourcebot/shared';
 import path from 'path';
 import { simpleGit } from 'simple-git';
+import { FileTreeItem, FileTreeNode } from './types';
 
 const logger = createLogger('file-tree');
-
-export type FileTreeItem = {
-    type: string;
-    path: string;
-    name: string;
-}
-
-export type FileTreeNode = FileTreeItem & {
-    children: FileTreeNode[];
-}
 
 /**
  * Returns the tree of files (blobs) and directories (trees) for a given repository,
@@ -218,7 +209,7 @@ const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode
             const part = parts[i];
             const isLeaf = i === parts.length - 1;
             const nodeType = isLeaf ? item.type : 'tree';
-            let next = current.children.find(child => child.name === part && child.type === nodeType);
+            let next = current.children.find((child: FileTreeNode) => child.name === part && child.type === nodeType);
 
             if (!next) {
                 next = {
@@ -240,7 +231,7 @@ const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode
 
         const sortedChildren = node.children
             .map(sortTree)
-            .sort((a, b) => {
+            .sort((a: FileTreeNode, b: FileTreeNode) => {
                 if (a.type !== b.type) {
                     return a.type === 'tree' ? -1 : 1;
                 }

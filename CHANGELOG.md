@@ -8,13 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Fixed spurious infinite loads with explore panel, file tree, and file search command. [#617](https://github.com/sourcebot-dev/sourcebot/pull/617)
+- Wipe search context on init if entitlement no longer exists [#618](https://github.com/sourcebot-dev/sourcebot/pull/618)
+
+## [4.9.2] - 2025-11-13
+
+### Changed
+- Bumped the default requested search result count from 5k to 10k after optimization pass. [#615](https://github.com/sourcebot-dev/sourcebot/pull/615)
+
+### Fixed
 - Fixed incorrect shutdown of PostHog SDK in the worker. [#609](https://github.com/sourcebot-dev/sourcebot/pull/609)
 - Fixed race condition in job schedulers. [#607](https://github.com/sourcebot-dev/sourcebot/pull/607)
 - Fixed connection sync jobs getting stuck in pending or in progress after restarting the worker. [#612](https://github.com/sourcebot-dev/sourcebot/pull/612)
 - Fixed issue where connections would always sync on startup, regardless if they changed or not. [#613](https://github.com/sourcebot-dev/sourcebot/pull/613)
+- Fixed performance bottleneck in search api. Result is a order of magnitutde improvement to average search time according to benchmarks. [#615](https://github.com/sourcebot-dev/sourcebot/pull/615) 
 
 ### Added
 - Added force resync buttons for connections and repositories. [#610](https://github.com/sourcebot-dev/sourcebot/pull/610)
+- Added environment variable to configure default search result count. [#616](https://github.com/sourcebot-dev/sourcebot/pull/616)
 
 ## [4.9.1] - 2025-11-07
 

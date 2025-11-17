@@ -62,6 +62,18 @@ const initSingleTenancy = async () => {
         }
     }
 
+    // If we don't have the search context entitlement then wipe any existing
+    // search contexts that may be present in the DB. This could happen if a deployment had
+    // the entitlement, synced search contexts, and then no longer had the entitlement
+    const hasSearchContextEntitlement = hasEntitlement("search-contexts")
+    if(!hasSearchContextEntitlement) {
+        await prisma.searchContext.deleteMany({
+            where: {
+                orgId: SINGLE_TENANT_ORG_ID,
+            },
+        });
+    }
+
     // Sync anonymous access config from the config file
     const config = await loadConfig(env.CONFIG_PATH);
     const forceEnableAnonymousAccess = config.settings?.enablePublicAccess ?? env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true';

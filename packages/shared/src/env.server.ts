@@ -216,6 +216,9 @@ export const env = createEnv({
         SOURCEBOT_LOG_LEVEL: z.enum(["info", "debug", "warn", "error"]).default("info"),
         SOURCEBOT_STRUCTURED_LOGGING_ENABLED: booleanSchema.default("false"),
         SOURCEBOT_STRUCTURED_LOGGING_FILE: z.string().optional(),
+
+        // Configure the default maximum number of search results to return by default.
+        DEFAULT_MAX_MATCH_COUNT: numberSchema.default(10_000),
     },
     runtimeEnv,
     emptyStringAsUndefined: true,

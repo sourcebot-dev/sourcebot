@@ -75,6 +75,8 @@ export const zoektSearchResponseSchema = z.object({
     }),
 });
 
+export type ZoektSearchResponse = z.infer<typeof zoektSearchResponseSchema>;
+
 // @see : https://github.com/sourcebot-dev/zoekt/blob/3780e68cdb537d5a7ed2c84d9b3784f80c7c5d04/api.go#L728
 const zoektRepoStatsSchema = z.object({
     Repos: z.number(),

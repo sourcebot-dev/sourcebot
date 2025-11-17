@@ -1,16 +1,17 @@
-'use server';
-
-import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
-import { isServiceError } from "../../lib/utils";
-import { zoektFetch } from "./zoektClient";
-import { ErrorCode } from "../../lib/errorCodes";
-import { StatusCodes } from "http-status-codes";
-import { zoektSearchResponseSchema } from "./zoektSchema";
-import { SearchRequest, SearchResponse, SourceRange } from "./types";
-import { PrismaClient, Repo } from "@sourcebot/db";
+import 'server-only';
 import { sew } from "@/actions";
-import { base64Decode } from "@sourcebot/shared";
 import { withOptionalAuthV2 } from "@/withAuthV2";
+import { PrismaClient, Repo } from "@sourcebot/db";
+import { base64Decode, createLogger } from "@sourcebot/shared";
+import { StatusCodes } from "http-status-codes";
+import { ErrorCode } from "../../lib/errorCodes";
+import { invalidZoektResponse, ServiceError } from "../../lib/serviceError";
+import { isServiceError, measure } from "../../lib/utils";
+import { SearchRequest, SearchResponse, SourceRange } from "./types";
+import { zoektFetch } from "./zoektClient";
+import { ZoektSearchResponse } from "./zoektSchema";
+
+const logger = createLogger("searchApi");
 
 // List of supported query prefixes in zoekt.
 // @see : https://github.com/sourcebot-dev/zoekt/blob/main/query/parse.go#L417
@@ -126,7 +127,7 @@ const getFileWebUrl = (template: string, branch: string, fileName: string): stri
     return encodeURI(url + optionalQueryParams);
 }
 
-export const search = async ({ query, matches, contextLines, whole }: SearchRequest) => sew(() =>
+export const search = async ({ query, matches, contextLines, whole }: SearchRequest): Promise<SearchResponse | ServiceError> => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
         const transformedQuery = await transformZoektQuery(query, org.id, prisma);
         if (isServiceError(transformedQuery)) {
@@ -200,20 +201,22 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
             "X-Tenant-ID": org.id.toString()
         };
 
-        const searchResponse = await zoektFetch({
-            path: "/api/search",
-            body,
-            header,
-            method: "POST",
-        });
+        const { data: searchResponse, durationMs: fetchDurationMs } = await measure(
+            () => zoektFetch({
+                path: "/api/search",
+                body,
+                header,
+                method: "POST",
+            }),
+            "zoekt_fetch",
+            false
+        );
 
         if (!searchResponse.ok) {
             return invalidZoektResponse(searchResponse);
         }
 
-        const searchBody = await searchResponse.json();
-
-        const parser = zoektSearchResponseSchema.transform(async ({ Result }) => {
+        const transformZoektSearchResponse = async ({ Result }: ZoektSearchResponse) => {
             // @note (2025-05-12): in zoekt, repositories are identified by the `RepositoryID` field
             // which corresponds to the `id` in the Repo table. In order to efficiently fetch repository
             // metadata when transforming (potentially thousands) of file matches, we aggregate a unique
@@ -379,7 +382,48 @@ export const search = async ({ query, matches, contextLines, whole }: SearchRequ
                     flushReason: Result.FlushReason,
                 }
             } satisfies SearchResponse;
-        });
+        }
 
-        return parser.parseAsync(searchBody);
+        const { data: rawZoektResponse, durationMs: parseJsonDurationMs } = await measure(
+            () => searchResponse.json(),
+            "parse_json",
+            false
+        );
+
+        // @note: We do not use zod parseAsync here since in cases where the
+        // response is large (> 40MB), there can be significant performance issues.
+        const zoektResponse = rawZoektResponse as ZoektSearchResponse;
+
+        const { data: response, durationMs: transformZoektResponseDurationMs } = await measure(
+            () => transformZoektSearchResponse(zoektResponse),
+            "transform_zoekt_response",
+            false
+        );
+
+        const totalDurationMs = fetchDurationMs + parseJsonDurationMs + transformZoektResponseDurationMs;
+
+        // Debug log: timing breakdown
+        const timings = [
+            { name: "zoekt_fetch", duration: fetchDurationMs },
+            { name: "parse_json", duration: parseJsonDurationMs },
+            { name: "transform_zoekt_response", duration: transformZoektResponseDurationMs },
+        ];
+
+        logger.debug(`Search timing breakdown (query: "${query}"):`);
+        timings.forEach(({ name, duration }) => {
+            const percentage = ((duration / totalDurationMs) * 100).toFixed(1);
+            const durationStr = duration.toFixed(2).padStart(8);
+            const percentageStr = percentage.padStart(5);
+            logger.debug(`  ${name.padEnd(25)} ${durationStr}ms (${percentageStr}%)`);
+        });
+        logger.debug(`  ${"TOTAL".padEnd(25)} ${totalDurationMs.toFixed(2).padStart(8)}ms (100.0%)`);
+
+        return {
+            ...response,
+            __debug_timings: {
+                zoekt_fetch: fetchDurationMs,
+                parse_json: parseJsonDurationMs,
+                transform_zoekt_response: transformZoektResponseDurationMs,
+            }
+        } satisfies SearchResponse;
     }));
