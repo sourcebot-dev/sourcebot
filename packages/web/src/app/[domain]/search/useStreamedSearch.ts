@@ -3,6 +3,31 @@
 import { RepositoryInfo, SearchRequest, SearchResponse, SearchResultFile } from '@/features/search/types';
 import { useState, useCallback, useRef, useEffect } from 'react';
 
+interface CacheEntry {
+    files: SearchResultFile[];
+    repoInfo: Record<number, RepositoryInfo>;
+    numMatches: number;
+    durationMs: number;
+    timestamp: number;
+}
+
+const searchCache = new Map<string, CacheEntry>();
+const CACHE_TTL = 5 * 60 * 1000;
+
+const createCacheKey = (params: SearchRequest): string => {
+    return JSON.stringify({
+        query: params.query,
+        matches: params.matches,
+        contextLines: params.contextLines,
+        whole: params.whole,
+        isRegexEnabled: params.isRegexEnabled,
+        isCaseSensitivityEnabled: params.isCaseSensitivityEnabled,
+    });
+};
+
+const isCacheValid = (entry: CacheEntry): boolean => {
+    return Date.now() - entry.timestamp < CACHE_TTL;
+};
 
 export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegexEnabled, isCaseSensitivityEnabled }: SearchRequest) => {
 
@@ -43,6 +68,30 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                 abortControllerRef.current.abort();
             }
             abortControllerRef.current = new AbortController();
+
+            const cacheKey = createCacheKey({
+                query,
+                matches,
+                contextLines,
+                whole,
+                isRegexEnabled,
+                isCaseSensitivityEnabled,
+            });
+
+            // Check if we have a valid cached result. If so, use it.
+            const cachedEntry = searchCache.get(cacheKey);
+            if (cachedEntry && isCacheValid(cachedEntry)) {
+                console.debug('Using cached search results');
+                setState({
+                    isStreaming: false,
+                    error: null,
+                    files: cachedEntry.files,
+                    repoInfo: cachedEntry.repoInfo,
+                    durationMs: cachedEntry.durationMs,
+                    numMatches: cachedEntry.numMatches,
+                });
+                return;
+            }
 
             setState({
                 isStreaming: true,
@@ -153,10 +202,19 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
             } finally {
                 const endTime = performance.now();
                 const durationMs = endTime - startTime;
-                setState(prev => ({
-                    ...prev,
-                    durationMs,
-                }));
+                setState(prev => {
+                    searchCache.set(cacheKey, {
+                        files: prev.files,
+                        repoInfo: prev.repoInfo,
+                        numMatches: prev.numMatches,
+                        durationMs,
+                        timestamp: Date.now(),
+                    });
+                    return {
+                        ...prev,
+                        durationMs,
+                    }
+                });
             }
         }
 
