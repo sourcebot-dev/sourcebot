@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2025-11-17
+
 ### Added
 - Added pagination and filtering to `list_repos` tool to handle large repository lists efficiently and prevent oversized responses that waste token context. [#614](https://github.com/sourcebot-dev/sourcebot/pull/614)
 
