@@ -1,10 +1,11 @@
 'use client';
 
 import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
-import { FileMatchContainer, MAX_MATCHES_TO_PREVIEW } from "./fileMatchContainer";
 import { useVirtualizer, VirtualItem } from "@tanstack/react-virtual";
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, forwardRef } from "react";
 import { useDebounce } from "@uidotdev/usehooks";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
+import { useMap } from "usehooks-ts";
+import { FileMatchContainer, MAX_MATCHES_TO_PREVIEW } from "./fileMatchContainer";
 
 interface SearchResultsPanelProps {
     fileMatches: SearchResultFile[];
@@ -26,7 +27,15 @@ const ESTIMATED_MATCH_CONTAINER_HEIGHT_PX = 30;
 type ScrollHistoryState = {
     scrollOffset?: number;
     measurementsCache?: VirtualItem[];
-    showAllMatchesStates?: boolean[];
+    showAllMatchesMap?: [string, boolean][];
+}
+
+/**
+ * Unique key for a given file match. Used to store the "show all matches" state for a
+ * given file match.
+ */
+const getFileMatchKey = (fileMatch: SearchResultFile) => {
+    return `${fileMatch.repository}-${fileMatch.fileName.text}`;
 }
 
 export const SearchResultsPanel = forwardRef<SearchResultsPanelHandle, SearchResultsPanelProps>(({
@@ -46,17 +55,17 @@ export const SearchResultsPanel = forwardRef<SearchResultsPanelHandle, SearchRes
     const {
         scrollOffset: restoreOffset,
         measurementsCache: restoreMeasurementsCache,
-        showAllMatchesStates: restoreShowAllMatchesStates,
+        showAllMatchesMap: restoreShowAllMatchesStates,
     } = history.state as ScrollHistoryState;
 
-    const [showAllMatchesStates, setShowAllMatchesStates] = useState(restoreShowAllMatchesStates || Array(fileMatches.length).fill(false));
+    const [showAllMatchesMap, showAllMatchesActions] = useMap<string, boolean>(restoreShowAllMatchesStates || []);
 
     const virtualizer = useVirtualizer({
         count: fileMatches.length,
         getScrollElement: () => parentRef.current,
         estimateSize: (index) => {
             const fileMatch = fileMatches[index];
-            const showAllMatches = showAllMatchesStates[index];
+            const showAllMatches = showAllMatchesMap.get(getFileMatchKey(fileMatch));
 
             // Quick guesstimation ;) This needs to be quick since the virtualizer will
             // run this upfront for all items in the list.
@@ -78,7 +87,6 @@ export const SearchResultsPanel = forwardRef<SearchResultsPanelHandle, SearchRes
     });
 
     const resetScroll = useCallback(() => {
-        setShowAllMatchesStates(Array(fileMatches.length).fill(false));
         virtualizer.scrollToIndex(0);
     }, [fileMatches.length, virtualizer]);
 
@@ -89,24 +97,22 @@ export const SearchResultsPanel = forwardRef<SearchResultsPanelHandle, SearchRes
 
 
     // Save the scroll state to the history stack.
-    const debouncedScrollOffset = useDebounce(virtualizer.scrollOffset, 100);
+    const debouncedScrollOffset = useDebounce(virtualizer.scrollOffset, 500);
     useEffect(() => {
         history.replaceState(
             {
                 scrollOffset: debouncedScrollOffset ?? undefined,
                 measurementsCache: virtualizer.measurementsCache,
-                showAllMatchesStates,
+                showAllMatchesMap: Array.from(showAllMatchesMap.entries()),
             } satisfies ScrollHistoryState,
             '',
             window.location.href
         );
-    }, [debouncedScrollOffset, virtualizer.measurementsCache, showAllMatchesStates]);
+    }, [debouncedScrollOffset, virtualizer.measurementsCache, showAllMatchesMap]);
 
-    const onShowAllMatchesButtonClicked = useCallback((index: number) => {
-        const states = [...showAllMatchesStates];
-        const wasShown = states[index];
-        states[index] = !wasShown;
-        setShowAllMatchesStates(states);
+    const onShowAllMatchesButtonClicked = useCallback((fileMatchKey: string, index: number) => {
+        const wasShown = showAllMatchesMap.get(fileMatchKey) ?? false;
+        showAllMatchesActions.set(fileMatchKey, !wasShown);
 
         // When collapsing, scroll to the top of the file match container. This ensures
         // that the focused "show fewer matches" button is visible.
@@ -115,7 +121,7 @@ export const SearchResultsPanel = forwardRef<SearchResultsPanelHandle, SearchRes
                 align: 'start'
             });
         }
-    }, [showAllMatchesStates, virtualizer]);
+    }, [showAllMatchesMap, virtualizer]);
 
 
     return (
@@ -155,9 +161,9 @@ export const SearchResultsPanel = forwardRef<SearchResultsPanelHandle, SearchRes
                                 onOpenFilePreview={(matchIndex) => {
                                     onOpenFilePreview(file, matchIndex);
                                 }}
-                                showAllMatches={showAllMatchesStates[virtualRow.index]}
+                                showAllMatches={showAllMatchesMap.get(getFileMatchKey(file)) ?? false}
                                 onShowAllMatchesButtonClicked={() => {
-                                    onShowAllMatchesButtonClicked(virtualRow.index);
+                                    onShowAllMatchesButtonClicked(getFileMatchKey(file), virtualRow.index);
                                 }}
                                 isBranchFilteringEnabled={isBranchFilteringEnabled}
                                 repoInfo={repoInfo}

@@ -1,24 +1,25 @@
-import { Tree, SyntaxNode } from "@sourcebot/query-language";
 import { Q } from '@/proto/zoekt/webserver/v1/Q';
 import {
-    Program,
     AndExpr,
-    OrExpr,
-    NegateExpr,
-    ParenExpr,
-    PrefixExpr,
-    Term,
-    FileExpr,
-    RepoExpr,
-    RevisionExpr,
+    ArchivedExpr,
     ContentExpr,
     ContextExpr,
-    LangExpr,
-    SymExpr,
-    ArchivedExpr,
+    FileExpr,
     ForkExpr,
-    VisibilityExpr,
+    LangExpr,
+    NegateExpr,
+    OrExpr,
+    ParenExpr,
+    PrefixExpr,
+    Program,
+    RepoExpr,
     RepoSetExpr,
+    RevisionExpr,
+    SymExpr,
+    SyntaxNode,
+    Term,
+    Tree,
+    VisibilityExpr,
 } from '@sourcebot/query-language';
 
 type ArchivedValue = 'yes' | 'no' | 'only';
@@ -227,12 +228,13 @@ export const transformToZoektQuery = ({
 
                 const flags: ('FLAG_ONLY_PUBLIC' | 'FLAG_ONLY_PRIVATE')[] = [];
 
-                if (rawValue === 'public') {
+                if (rawValue === 'any') {
+                    // 'any' means no filter
+                } else if (rawValue === 'public') {
                     flags.push('FLAG_ONLY_PUBLIC');
                 } else if (rawValue === 'private') {
                     flags.push('FLAG_ONLY_PRIVATE');
                 }
-                // 'any' means no filter
 
                 return {
                     raw_config: {
