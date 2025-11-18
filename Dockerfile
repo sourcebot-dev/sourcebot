@@ -43,10 +43,12 @@ COPY .yarn ./.yarn
 COPY ./packages/db ./packages/db
 COPY ./packages/schemas ./packages/schemas
 COPY ./packages/shared ./packages/shared
+COPY ./packages/queryLanguage ./packages/queryLanguage
 
 RUN yarn workspace @sourcebot/db install
 RUN yarn workspace @sourcebot/schemas install
 RUN yarn workspace @sourcebot/shared install
+RUN yarn workspace @sourcebot/query-language install
 # ------------------------------------
 
 # ------ Build Web ------
@@ -92,6 +94,7 @@ COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
+COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
 
 # Fixes arm64 timeouts
 RUN yarn workspace @sourcebot/web install
@@ -130,6 +133,7 @@ COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
+COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
 RUN yarn workspace @sourcebot/backend install
 RUN yarn workspace @sourcebot/backend build
 
@@ -232,6 +236,7 @@ COPY --from=shared-libs-builder /app/node_modules ./node_modules
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
+COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
 
 # Fixes git "dubious ownership" issues when the volume is mounted with different permissions to the container.
 RUN git config --global safe.directory "*"
