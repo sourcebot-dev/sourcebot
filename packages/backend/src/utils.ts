@@ -198,7 +198,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                         repo.cloneUrl,
                         {
                             username,
-                            password: token,
+                            password: token
                         }
                     ),
                 };
