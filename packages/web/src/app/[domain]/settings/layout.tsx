@@ -69,7 +69,7 @@ export default async function SettingsLayout(
         throw new ServiceErrorException(connectionStats);
     }
 
-    const hasPermissionSyncingEntitlement = await hasEntitlement("permission-syncing");
+    const hasPermissionSyncingEntitlement = hasEntitlement("permission-syncing");
 
     const sidebarNavItems: SidebarNavItem[] = [
         {
@@ -89,16 +89,8 @@ export default async function SettingsLayout(
             }
         ] : []),
         ...(userRoleInOrg === OrgRole.OWNER ? [{
-            title: (
-                <div className="flex items-center gap-2">
-                    Members
-                    {numJoinRequests !== undefined && numJoinRequests > 0 && (
-                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
-                            {numJoinRequests}
-                        </span>
-                    )}
-                </div>
-            ),
+            title:"Members",
+            isNotificationDotVisible: numJoinRequests !== undefined && numJoinRequests > 0,
             href: `/${domain}/settings/members`,
         }] : []),
         ...(userRoleInOrg === OrgRole.OWNER ? [
