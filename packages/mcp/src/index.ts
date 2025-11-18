@@ -193,6 +193,9 @@ server.tool(
             );
         }
 
+        // Sort alphabetically for consistent pagination
+        filtered.sort((a, b) => a.repoName.localeCompare(b.repoName));
+
         // Apply pagination
         const startIndex = (pageNumber - 1) * limit;
         const endIndex = startIndex + limit;
