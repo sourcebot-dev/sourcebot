@@ -16,6 +16,7 @@ interface FilePanelProps {
     matches: SearchResultFile[];
     repoInfo: Record<number, RepositoryInfo>;
     onFilterChange?: () => void;
+    isStreaming: boolean;
 }
 
 /**
@@ -33,11 +34,13 @@ interface FilePanelProps {
  * @param matches - Array of search result files to filter
  * @param repoInfo - Information about repositories including their display names and icons
  * @param onFilterChange - Optional callback that is called whenever a filter is applied or removed
+ * @param isStreaming - Whether the search is streaming
  */
 export const FilterPanel = ({
     matches,
     repoInfo,
     onFilterChange,
+    isStreaming,
 }: FilePanelProps) => {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -155,6 +158,7 @@ export const FilterPanel = ({
                     }
                 }}
                 className="max-h-[50%]"
+                isStreaming={isStreaming}
             />
             <Filter
                 title="Filter By Language"
@@ -178,6 +182,7 @@ export const FilterPanel = ({
                     }
                 }}
                 className="overflow-auto"
+                isStreaming={isStreaming}
             />
         </div>
     )

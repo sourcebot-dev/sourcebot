@@ -249,6 +249,7 @@ const PanelGroup = ({
                 <FilterPanel
                     matches={fileMatches}
                     repoInfo={repoInfo}
+                    isStreaming={isStreaming}
                     onFilterChange={() => {
                         searchResultsPanelRef.current?.resetScroll();
                     }}
