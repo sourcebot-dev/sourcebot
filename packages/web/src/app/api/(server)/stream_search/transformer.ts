@@ -17,8 +17,24 @@ import {
     ArchivedExpr,
     ForkExpr,
     VisibilityExpr,
-    RepoSetExpr
+    RepoSetExpr,
 } from '@sourcebot/query-language';
+
+type ArchivedValue = 'yes' | 'no' | 'only';
+type VisibilityValue = 'public' | 'private' | 'any';
+type ForkValue = 'yes' | 'no' | 'only';
+
+const isArchivedValue = (value: string): value is ArchivedValue => {
+    return value === 'yes' || value === 'no' || value === 'only';
+}
+
+const isVisibilityValue = (value: string): value is VisibilityValue => {
+    return value === 'public' || value === 'private' || value === 'any';
+}
+
+const isForkValue = (value: string): value is ForkValue => {
+    return value === 'yes' || value === 'no' || value === 'only';
+}
 
 /**
  * Transform a Lezer parse tree into a Zoekt gRPC query
@@ -199,12 +215,17 @@ export const transformToZoektQuery = ({
                 };
 
             case VisibilityExpr: {
-                const visibilityValue = value.toLowerCase();
+                const rawValue = value.toLowerCase();
+
+                if (!isVisibilityValue(rawValue)) {
+                    throw new Error(`Invalid visibility value: ${rawValue}. Expected 'public', 'private', or 'any'`);
+                }
+
                 const flags: ('FLAG_ONLY_PUBLIC' | 'FLAG_ONLY_PRIVATE')[] = [];
 
-                if (visibilityValue === 'public') {
+                if (rawValue === 'public') {
                     flags.push('FLAG_ONLY_PUBLIC');
-                } else if (visibilityValue === 'private') {
+                } else if (rawValue === 'private') {
                     flags.push('FLAG_ONLY_PRIVATE');
                 }
                 // 'any' means no filter
@@ -217,16 +238,20 @@ export const transformToZoektQuery = ({
                 };
             }
 
-            // @todo: handle this
             case ArchivedExpr: {
-                const archivedValue = value.toLowerCase();
+                const rawValue = value.toLowerCase();
+
+                if (!isArchivedValue(rawValue)) {
+                    throw new Error(`Invalid archived value: ${rawValue}. Expected 'yes', 'no', or 'only'`);
+                }
+
                 const flags: ('FLAG_ONLY_ARCHIVED' | 'FLAG_NO_ARCHIVED')[] = [];
 
-                if (archivedValue === 'yes') {
+                if (rawValue === 'yes') {
                     // 'yes' means include archived repositories (default)
-                } else if (archivedValue === 'no') {
+                } else if (rawValue === 'no') {
                     flags.push('FLAG_NO_ARCHIVED');
-                } else if (archivedValue === 'only') {
+                } else if (rawValue === 'only') {
                     flags.push('FLAG_ONLY_ARCHIVED');
                 }
 
@@ -237,12 +262,30 @@ export const transformToZoektQuery = ({
                     query: "raw_config"
                 };
             }
-            case ForkExpr:
-                // These are repo metadata filters
-                // They need to be handled via repo filters in Zoekt
-                // For now, return a const query (you might need custom handling)
-                console.warn(`${prefixNode.type.name} not yet implemented`);
-                return { const: true, query: "const" };
+            case ForkExpr: {
+                const rawValue = value.toLowerCase();
+                
+                if (!isForkValue(rawValue)) {
+                    throw new Error(`Invalid fork value: ${rawValue}. Expected 'yes', 'no', or 'only'`);
+                }
+                
+                const flags: ('FLAG_ONLY_FORKS' | 'FLAG_NO_FORKS')[] = [];
+
+                if (rawValue === 'yes') {
+                    // 'yes' means include forks (default)
+                } else if (rawValue === 'no') {
+                    flags.push('FLAG_NO_FORKS');
+                } else if (rawValue === 'only') {
+                    flags.push('FLAG_ONLY_FORKS');
+                }
+
+                return {
+                    raw_config: {
+                        flags
+                    },
+                    query: "raw_config"
+                };
+            }
 
             case RepoSetExpr: {
                 return {

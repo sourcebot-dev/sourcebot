@@ -91,34 +91,7 @@ export const POST = async (request: NextRequest) => {
         console.log(JSON.stringify(zoektQuery, null, 2));
 
         const searchRequest: SearchRequest = {
-            query: {
-                and: {
-                    children: [
-                        zoektQuery,
-                        // {
-                        //     raw_config: {
-                        //         flags: [
-                        //             'FLAG_NO_FORKS',
-                        //         ]
-                        //     }
-                        // }
-                    ]
-                }
-            },
-            // query: {
-            //     and: {
-            //         // @todo: we should use repo_ids to filter out repositories that the user
-            //         // has access to (if permission syncing is enabled!).
-            //         children: [
-            //             {
-            //                 regexp: {
-            //                     regexp: query,
-            //                     case_sensitive: true,
-            //                 }
-            //             }
-            //         ]
-            //     }
-            // },
+            query: zoektQuery,
             opts: {
                 chunk_matches: true,
                 max_match_display_count: matches,

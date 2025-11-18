@@ -53,10 +53,13 @@ SymExpr { symKw value }
 RepoSetExpr { reposetKw value }
 
 // Modifiers
-ArchivedExpr { archivedKw value }
-ForkExpr { forkKw value }
-VisibilityExpr { visibilityKw value }
+ArchivedExpr { archivedKw archivedValue }
+ForkExpr { forkKw forkValue }
+VisibilityExpr { visibilityKw visibilityValue }
 
+archivedValue { "yes" | "no" | "only" }
+forkValue { "yes" | "no" | "only" }
+visibilityValue { "public" | "private" | "any" }
 
 Term { quotedString | word }
 

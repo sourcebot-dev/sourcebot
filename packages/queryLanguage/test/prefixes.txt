@@ -62,7 +62,7 @@ lang:typescript
 
 Program(PrefixExpr(LangExpr))
 
-# Archived prefix
+# Archived prefix - no
 
 archived:no
 
@@ -70,9 +70,25 @@ archived:no
 
 Program(PrefixExpr(ArchivedExpr))
 
-# Fork prefix
+# Archived prefix - only
+
+archived:only
+
+==>
+
+Program(PrefixExpr(ArchivedExpr))
+
+# Fork prefix - yes
 
 fork:yes
+
+==>
+
+Program(PrefixExpr(ForkExpr))
+
+# Fork prefix - only
+
+fork:only
 
 ==>
 
@@ -206,7 +222,7 @@ lang:python
 
 Program(PrefixExpr(LangExpr))
 
-# Archived values
+# Archived prefix - yes
 
 archived:yes
 
@@ -214,13 +230,29 @@ archived:yes
 
 Program(PrefixExpr(ArchivedExpr))
 
-# Fork values
+# Archived prefix - invalid value (error case)
+
+archived:invalid
+
+==>
+
+Program(AndExpr(PrefixExpr(ArchivedExpr(⚠)),Term))
+
+# Fork prefix - no
 
 fork:no
 
 ==>
 
 Program(PrefixExpr(ForkExpr))
+
+# Fork prefix - invalid value (error case)
+
+fork:invalid
+
+==>
+
+Program(AndExpr(PrefixExpr(ForkExpr(⚠)),Term))
 
 # Visibility prefix - private
 
@@ -229,6 +261,22 @@ visibility:private
 ==>
 
 Program(PrefixExpr(VisibilityExpr))
+
+# Visibility prefix - any
+
+visibility:any
+
+==>
+
+Program(PrefixExpr(VisibilityExpr))
+
+# Visibility prefix - invalid value (error case)
+
+visibility:invalid
+
+==>
+
+Program(AndExpr(PrefixExpr(VisibilityExpr(⚠)),Term))
 
 # File with dashes
 
