@@ -12,6 +12,7 @@ import {
     RepoExpr,
     RevisionExpr,
     ContentExpr,
+    ContextExpr,
     LangExpr,
     SymExpr,
     ArchivedExpr,
@@ -44,14 +45,16 @@ export const transformToZoektQuery = ({
     input,
     isCaseSensitivityEnabled,
     isRegexEnabled,
+    onExpandSearchContext,
 }: {
     tree: Tree;
     input: string;
     isCaseSensitivityEnabled: boolean;
     isRegexEnabled: boolean;
-}): Q => {
+    onExpandSearchContext: (contextName: string) => Promise<string[]>;
+}): Promise<Q> => {
 
-    const transformNode = (node: SyntaxNode): Q => {
+    const transformNode = async (node: SyntaxNode): Promise<Q> => {
         switch (node.type.id) {
             case Program: {
                 // Program wraps the actual query - transform its child
@@ -65,7 +68,7 @@ export const transformToZoektQuery = ({
             case AndExpr:
                 return {
                     and: {
-                        children: getChildren(node).map(c => transformNode(c))
+                        children: await Promise.all(getChildren(node).map(c => transformNode(c)))
                     },
                     query: "and"
                 }
@@ -73,7 +76,7 @@ export const transformToZoektQuery = ({
             case OrExpr:
                 return {
                     or: {
-                        children: getChildren(node).map(c => transformNode(c))
+                        children: await Promise.all(getChildren(node).map(c => transformNode(c)))
                     },
                     query: "or"
                 };
@@ -86,7 +89,7 @@ export const transformToZoektQuery = ({
                 }
                 return {
                     not: {
-                        child: transformNode(negateChild)
+                        child: await transformNode(negateChild)
                     },
                     query: "not"
                 };
@@ -130,7 +133,7 @@ export const transformToZoektQuery = ({
         }
     }
 
-    const transformPrefixExpr = (node: SyntaxNode): Q => {
+    const transformPrefixExpr = async (node: SyntaxNode): Promise<Q> => {
         // Find which specific prefix type this is
         const prefixNode = node.firstChild;
         if (!prefixNode) {
@@ -189,6 +192,7 @@ export const transformToZoektQuery = ({
                     query: "substring"
                 };
 
+ 
             case LangExpr:
                 return {
                     language: {
@@ -284,6 +288,19 @@ export const transformToZoektQuery = ({
                         flags
                     },
                     query: "raw_config"
+                };
+            }
+
+            case ContextExpr: {
+                const repoNames = await onExpandSearchContext(value);
+                return {
+                    repo_set: {
+                        set: repoNames.reduce((acc, s) => {
+                            acc[s.trim()] = true;
+                            return acc;
+                        }, {} as Record<string, boolean>)
+                    },
+                    query: "repo_set"
                 };
             }
 

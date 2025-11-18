@@ -35,6 +35,7 @@ PrefixExpr {
   ArchivedExpr |
   RevisionExpr |
   ContentExpr |
+  ContextExpr |
   FileExpr |
   ForkExpr |
   VisibilityExpr |
@@ -46,6 +47,7 @@ PrefixExpr {
 
 RevisionExpr { revisionKw value }
 ContentExpr { contentKw value }
+ContextExpr { contextKw value }
 FileExpr { fileKw value }
 RepoExpr { repoKw value }
 LangExpr { langKw value }
@@ -71,6 +73,7 @@ value { quotedString | word }
   archivedKw { "archived:" }
   revisionKw { "rev:" }
   contentKw { "content:" | "c:" }
+  contextKw { "context:" }
   fileKw { "file:" | "f:" }
   forkKw { "fork:" }
   visibilityKw { "visibility:" }
@@ -91,7 +94,7 @@ value { quotedString | word }
   
   @precedence { 
     quotedString,
-    archivedKw, revisionKw, contentKw, fileKw, 
+    archivedKw, revisionKw, contentKw, contextKw, fileKw, 
     forkKw, visibilityKw, repoKw, langKw, 
     symKw, reposetKw, or,
     word 

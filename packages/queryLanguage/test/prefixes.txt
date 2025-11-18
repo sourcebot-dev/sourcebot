@@ -102,6 +102,14 @@ visibility:public
 
 Program(PrefixExpr(VisibilityExpr))
 
+# Context prefix
+
+context:web
+
+==>
+
+Program(PrefixExpr(ContextExpr))
+
 # Symbol prefix
 
 sym:MyClass
@@ -301,6 +309,14 @@ content:@Component
 ==>
 
 Program(PrefixExpr(ContentExpr))
+
+# Context with underscores
+
+context:data_engineering
+
+==>
+
+Program(PrefixExpr(ContextExpr))
 
 # Prefix in parentheses
 

@@ -94,6 +94,14 @@ Program(NegateExpr(PrefixExpr(ForkExpr)))
 
 Program(NegateExpr(PrefixExpr(VisibilityExpr)))
 
+# Negate context prefix
+
+-context:backend
+
+==>
+
+Program(NegateExpr(PrefixExpr(ContextExpr)))
+
 # Negate symbol prefix
 
 -sym:OldClass

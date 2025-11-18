@@ -18,6 +18,7 @@ import { NextRequest } from 'next/server';
 import * as path from 'path';
 import { parser as _parser } from '@sourcebot/query-language';
 import { transformToZoektQuery } from './transformer';
+import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
 
 const logger = createLogger('streamSearchApi');
 
@@ -78,14 +79,33 @@ export const POST = async (request: NextRequest) => {
 
         const parser = _parser.configure({
             strict: true,
-        })
+        });
 
         const tree = parser.parse(query);
-        const zoektQuery = transformToZoektQuery({
+        const zoektQuery = await transformToZoektQuery({
             tree,
             input: query,
             isCaseSensitivityEnabled,
             isRegexEnabled,
+            onExpandSearchContext: async (contextName: string) => { 
+                const context = await prisma.searchContext.findUnique({ 
+                    where: {
+                        name_orgId: {
+                            name: contextName,
+                            orgId: SINGLE_TENANT_ORG_ID,
+                        }
+                    },
+                    include: {
+                        repos: true,
+                    }
+                });
+
+                if (!context) {
+                    throw new Error(`Search context "${contextName}" not found`);
+                }
+
+                return context.repos.map((repo) => repo.name);
+            },
         });
 
         console.log(JSON.stringify(zoektQuery, null, 2));
