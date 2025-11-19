@@ -1,4 +1,4 @@
-import { Q } from '@/proto/zoekt/webserver/v1/Q';
+import { Q as ZoektGrpcQuery } from '@/proto/zoekt/webserver/v1/Q';
 import {
     AndExpr,
     ArchivedExpr,
@@ -21,6 +21,12 @@ import {
     Tree,
     VisibilityExpr,
 } from '@sourcebot/query-language';
+import { parser as _lezerQueryParser } from '@sourcebot/query-language';
+
+const lezerQueryParser = _lezerQueryParser.configure({
+    strict: true,
+});
+
 
 type ArchivedValue = 'yes' | 'no' | 'only';
 type VisibilityValue = 'public' | 'private' | 'any';
@@ -38,10 +44,11 @@ const isForkValue = (value: string): value is ForkValue => {
     return value === 'yes' || value === 'no' || value === 'only';
 }
 
-/**
- * Transform a Lezer parse tree into a Zoekt gRPC query
- */
-export const transformToZoektQuery = ({
+export const parseQueryIntoLezerTree = (query: string): Tree => {
+    return lezerQueryParser.parse(query);
+}
+
+export const transformLezerTreeToZoektGrpcQuery = async ({
     tree,
     input,
     isCaseSensitivityEnabled,
@@ -53,9 +60,9 @@ export const transformToZoektQuery = ({
     isCaseSensitivityEnabled: boolean;
     isRegexEnabled: boolean;
     onExpandSearchContext: (contextName: string) => Promise<string[]>;
-}): Promise<Q> => {
+}): Promise<ZoektGrpcQuery> => {
 
-    const transformNode = async (node: SyntaxNode): Promise<Q> => {
+    const transformNode = async (node: SyntaxNode): Promise<ZoektGrpcQuery> => {
         switch (node.type.id) {
             case Program: {
                 // Program wraps the actual query - transform its child
@@ -134,7 +141,7 @@ export const transformToZoektQuery = ({
         }
     }
 
-    const transformPrefixExpr = async (node: SyntaxNode): Promise<Q> => {
+    const transformPrefixExpr = async (node: SyntaxNode): Promise<ZoektGrpcQuery> => {
         // Find which specific prefix type this is
         const prefixNode = node.firstChild;
         if (!prefixNode) {
@@ -207,13 +214,13 @@ export const transformToZoektQuery = ({
                 return {
                     symbol: {
                         expr: {
-                            substring: {
-                                pattern: value,
+                            regexp: {
+                                regexp: value,
                                 case_sensitive: isCaseSensitivityEnabled,
                                 file_name: false,
                                 content: true
                             },
-                            query: "substring"
+                            query: "regexp"
                         }
                     },
                     query: "symbol"

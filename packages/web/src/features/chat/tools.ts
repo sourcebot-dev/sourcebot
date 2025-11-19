@@ -180,10 +180,10 @@ Multiple expressions can be or'd together with or, negated with -, or grouped wi
         const response = await search({
             query,
             matches: limit ?? 100,
-            // @todo: we can make this configurable.
             contextLines: 3,
             whole: false,
-            // @todo(mt): handle multi-tenancy.
+            isCaseSensitivityEnabled: true,
+            isRegexEnabled: true,
         });
 
         if (isServiceError(response)) {

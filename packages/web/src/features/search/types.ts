@@ -51,7 +51,7 @@ export const searchStatsSchema = z.object({
     matchTreeConstruction: z.number(),     // Aggregate wall clock time spent constructing and pruning the match tree. This accounts for time such as lookups in the trigram index.
     matchTreeSearch: z.number(),           // Aggregate wall clock time spent searching the match tree. This accounts for the bulk of search work done looking for matches.
     regexpsConsidered: z.number(),         // Number of times regexp was called on files that we evaluated.
-    flushReason: z.number(),               // FlushReason explains why results were flushed.
+    flushReason: z.string(),               // FlushReason explains why results were flushed.
 });
 export type SearchStats = z.infer<typeof searchStatsSchema>;
 
@@ -96,9 +96,7 @@ export const searchResponseSchema = z.object({
     stats: searchStatsSchema,
     files: z.array(searchFileSchema),
     repositoryInfo: z.array(repositoryInfoSchema),
-    isBranchFilteringEnabled: z.boolean(),
     isSearchExhaustive: z.boolean(),
-    __debug_timings: z.record(z.string(), z.number()).optional(),
 });
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
 

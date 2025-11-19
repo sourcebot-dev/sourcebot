@@ -25,7 +25,7 @@ export type PosthogEventMap = {
         matchTreeConstruction: number,
         matchTreeSearch: number,
         regexpsConsidered: number,
-        flushReason: number,
+        flushReason: string,
         fileLanguages: string[],
         isSearchExhaustive: boolean
     },

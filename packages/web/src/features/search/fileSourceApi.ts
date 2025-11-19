@@ -1,5 +1,4 @@
 import 'server-only';
-import escapeStringRegexp from "escape-string-regexp";
 import { fileNotFound, ServiceError, unexpectedError } from "../../lib/serviceError";
 import { FileSourceRequest, FileSourceResponse } from "./types";
 import { isServiceError } from "../../lib/utils";
@@ -12,18 +11,17 @@ import { withOptionalAuthV2 } from "@/withAuthV2";
 
 export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => sew(() =>
     withOptionalAuthV2(async () => {
-        const escapedFileName = escapeStringRegexp(fileName);
-        const escapedRepository = escapeStringRegexp(repository);
-
-        let query = `file:${escapedFileName} repo:^${escapedRepository}$`;
+        let query = `file:${fileName} repo:^${repository}$`;
         if (branch) {
-            query = query.concat(` branch:${branch}`);
+            query = query.concat(` rev:${branch}`);
         }
 
         const searchResponse = await search({
             query,
             matches: 1,
             whole: true,
+            isCaseSensitivityEnabled: true,
+            isRegexEnabled: true,
         });
 
         if (isServiceError(searchResponse)) {

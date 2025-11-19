@@ -19,12 +19,14 @@ export const findSearchBasedSymbolReferences = async (props: FindRelatedSymbolsR
             revisionName = "HEAD",
         } = props;
 
-        const query = `\\b${symbolName}\\b rev:${revisionName} ${getExpandedLanguageFilter(language)} case:yes`;
+        const query = `\\b${symbolName}\\b rev:${revisionName} ${getExpandedLanguageFilter(language)}`;
 
         const searchResult = await search({
             query,
             matches: MAX_REFERENCE_COUNT,
             contextLines: 0,
+            isCaseSensitivityEnabled: true,
+            isRegexEnabled: true,
         });
 
         if (isServiceError(searchResult)) {
@@ -49,6 +51,8 @@ export const findSearchBasedSymbolDefinitions = async (props: FindRelatedSymbols
                 query,
                 matches: MAX_REFERENCE_COUNT,
                 contextLines: 0,
+                isCaseSensitivityEnabled: true,
+                isRegexEnabled: true,
             });
 
             if (isServiceError(searchResult)) {
