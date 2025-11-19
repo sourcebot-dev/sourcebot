@@ -32,6 +32,7 @@ import { CodePreviewPanel } from "./codePreviewPanel";
 import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface SearchResultsPageProps {
     searchQuery: string;
@@ -50,6 +51,7 @@ export const SearchResultsPage = ({
     const { setSearchHistory } = useSearchHistory();
     const domain = useDomain();
     const { toast } = useToast();
+    const captureEvent = useCaptureEvent();
 
     // Encodes the number of matches to return in the search response.
     const _maxMatchCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.matches) ?? `${defaultMaxMatchCount}`);
@@ -59,7 +61,8 @@ export const SearchResultsPage = ({
         error,
         files,
         repoInfo,
-        durationMs,
+        timeToSearchCompletionMs,
+        timeToFirstSearchResultMs,
         isStreaming,
         numMatches,
         isExhaustive,
@@ -98,40 +101,52 @@ export const SearchResultsPage = ({
         ])
     }, [searchQuery, setSearchHistory]);
 
-    // @todo: capture search stats on completion.
-    // useEffect(() => {
-    //     if (!searchResponse) {
-    //         return;
-    //     }
+    useEffect(() => {
+        if (isStreaming || !stats) {
+            return;
+        }
 
-    //     const fileLanguages = searchResponse.files?.map(file => file.language) || [];
+        const fileLanguages = files.map(file => file.language) || [];
 
-    //     captureEvent("search_finished", {
-    //         durationMs: searchResponse.totalClientSearchDurationMs,
-    //         fileCount: searchResponse.stats.fileCount,
-    //         matchCount: searchResponse.stats.totalMatchCount,
-    //         actualMatchCount: searchResponse.stats.actualMatchCount,
-    //         filesSkipped: searchResponse.stats.filesSkipped,
-    //         contentBytesLoaded: searchResponse.stats.contentBytesLoaded,
-    //         indexBytesLoaded: searchResponse.stats.indexBytesLoaded,
-    //         crashes: searchResponse.stats.crashes,
-    //         shardFilesConsidered: searchResponse.stats.shardFilesConsidered,
-    //         filesConsidered: searchResponse.stats.filesConsidered,
-    //         filesLoaded: searchResponse.stats.filesLoaded,
-    //         shardsScanned: searchResponse.stats.shardsScanned,
-    //         shardsSkipped: searchResponse.stats.shardsSkipped,
-    //         shardsSkippedFilter: searchResponse.stats.shardsSkippedFilter,
-    //         ngramMatches: searchResponse.stats.ngramMatches,
-    //         ngramLookups: searchResponse.stats.ngramLookups,
-    //         wait: searchResponse.stats.wait,
-    //         matchTreeConstruction: searchResponse.stats.matchTreeConstruction,
-    //         matchTreeSearch: searchResponse.stats.matchTreeSearch,
-    //         regexpsConsidered: searchResponse.stats.regexpsConsidered,
-    //         flushReason: searchResponse.stats.flushReason,
-    //         fileLanguages,
-    //     });
-    // }, [captureEvent, searchQuery, searchResponse]);
+        console.debug('timeToFirstSearchResultMs:', timeToFirstSearchResultMs);
+        console.debug('timeToSearchCompletionMs:', timeToSearchCompletionMs);
 
+        captureEvent("search_finished", {
+            durationMs: timeToSearchCompletionMs,
+            timeToSearchCompletionMs,
+            timeToFirstSearchResultMs,
+            fileCount: stats.fileCount,
+            matchCount: stats.totalMatchCount,
+            actualMatchCount: stats.actualMatchCount,
+            filesSkipped: stats.filesSkipped,
+            contentBytesLoaded: stats.contentBytesLoaded,
+            indexBytesLoaded: stats.indexBytesLoaded,
+            crashes: stats.crashes,
+            shardFilesConsidered: stats.shardFilesConsidered,
+            filesConsidered: stats.filesConsidered,
+            filesLoaded: stats.filesLoaded,
+            shardsScanned: stats.shardsScanned,
+            shardsSkipped: stats.shardsSkipped,
+            shardsSkippedFilter: stats.shardsSkippedFilter,
+            ngramMatches: stats.ngramMatches,
+            ngramLookups: stats.ngramLookups,
+            wait: stats.wait,
+            matchTreeConstruction: stats.matchTreeConstruction,
+            matchTreeSearch: stats.matchTreeSearch,
+            regexpsConsidered: stats.regexpsConsidered,
+            flushReason: stats.flushReason,
+            fileLanguages,
+            isSearchExhaustive: isExhaustive,
+        });
+    }, [
+        captureEvent,
+        files,
+        isStreaming,
+        isExhaustive,
+        stats,
+        timeToSearchCompletionMs,
+        timeToFirstSearchResultMs,
+    ]);
 
     const onLoadMoreResults = useCallback(() => {
         const url = createPathWithQueryParams(`/${domain}/search`,
@@ -170,7 +185,7 @@ export const SearchResultsPage = ({
                     onLoadMoreResults={onLoadMoreResults}
                     numMatches={numMatches}
                     repoInfo={repoInfo}
-                    searchDurationMs={durationMs}
+                    searchDurationMs={timeToSearchCompletionMs}
                     isStreaming={isStreaming}
                     searchStats={stats}
                     isMoreResultsButtonVisible={!isExhaustive}

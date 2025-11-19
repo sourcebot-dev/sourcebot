@@ -8,7 +8,8 @@ interface CacheEntry {
     files: SearchResultFile[];
     repoInfo: Record<number, RepositoryInfo>;
     numMatches: number;
-    durationMs: number;
+    timeToSearchCompletionMs: number;
+    timeToFirstSearchResultMs: number;
     timestamp: number;
     isExhaustive: boolean;
 }
@@ -39,7 +40,8 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
         error: Error | null,
         files: SearchResultFile[],
         repoInfo: Record<number, RepositoryInfo>,
-        durationMs: number,
+        timeToSearchCompletionMs: number,
+        timeToFirstSearchResultMs: number,
         numMatches: number,
         stats?: SearchStats,
     }>({
@@ -48,7 +50,8 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
         error: null,
         files: [],
         repoInfo: {},
-        durationMs: 0,
+        timeToSearchCompletionMs: 0,
+        timeToFirstSearchResultMs: 0,
         numMatches: 0,
         stats: undefined,
     });
@@ -94,7 +97,8 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                     error: null,
                     files: cachedEntry.files,
                     repoInfo: cachedEntry.repoInfo,
-                    durationMs: cachedEntry.durationMs,
+                    timeToSearchCompletionMs: cachedEntry.timeToSearchCompletionMs,
+                    timeToFirstSearchResultMs: cachedEntry.timeToFirstSearchResultMs,
                     numMatches: cachedEntry.numMatches,
                 });
                 return;
@@ -106,7 +110,8 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                 error: null,
                 files: [],
                 repoInfo: {},
-                durationMs: 0,
+                timeToSearchCompletionMs: 0,
+                timeToFirstSearchResultMs: 0,
                 numMatches: 0,
             });
 
@@ -138,6 +143,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
+                let numMessagesProcessed = 0;
 
                 while (true as boolean) {
                     const { done, value } = await reader.read();
@@ -175,6 +181,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                         }
 
                         const response: StreamedSearchResponse = JSON.parse(data);
+                        const isFirstMessage = numMessagesProcessed === 0;
                         switch (response.type) {
                             case 'chunk':
                                 setState(prev => ({
@@ -191,6 +198,9 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                                         }, {} as Record<number, RepositoryInfo>),
                                     },
                                     numMatches: prev.numMatches + response.stats.actualMatchCount,
+                                    ...(isFirstMessage ? {
+                                        timeToFirstSearchResultMs: performance.now() - startTime,
+                                    } : {}),
                                 }));
                                 break;
                             case 'final':
@@ -198,13 +208,18 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                                     ...prev,
                                     isExhaustive: response.isSearchExhaustive,
                                     stats: response.accumulatedStats,
+                                    ...(isFirstMessage ? {
+                                        timeToFirstSearchResultMs: performance.now() - startTime,
+                                    } : {}),
                                 }));
                                 break;
                         }
+
+                        numMessagesProcessed++;
                     }
                 }
 
-                const durationMs = performance.now() - startTime;
+                const timeToSearchCompletionMs = performance.now() - startTime;
                 setState(prev => {
                     // Cache the final results after the stream has completed.
                     searchCache.set(cacheKey, {
@@ -212,12 +227,13 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                         repoInfo: prev.repoInfo,
                         isExhaustive: prev.isExhaustive,
                         numMatches: prev.numMatches,
-                        durationMs,
+                        timeToFirstSearchResultMs: prev.timeToFirstSearchResultMs,
+                        timeToSearchCompletionMs,
                         timestamp: Date.now(),
                     });
                     return {
                         ...prev,
-                        durationMs,
+                        timeToSearchCompletionMs,
                         isStreaming: false,
                     }
                 });
@@ -229,11 +245,11 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
 
                 console.error(error);
                 Sentry.captureException(error);
-                const durationMs = performance.now() - startTime;
+                const timeToSearchCompletionMs = performance.now() - startTime;
                 setState(prev => ({
                     ...prev,
                     isStreaming: false,
-                    durationMs,
+                    timeToSearchCompletionMs,
                     error: error as Error,
                 }));
             }
