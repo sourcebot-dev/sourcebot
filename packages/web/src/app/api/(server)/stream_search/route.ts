@@ -2,6 +2,7 @@
 
 import { searchRequestSchema } from '@/features/search/schemas';
 import { SearchResponse, SourceRange } from '@/features/search/types';
+import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
 import { schemaValidationError, serviceErrorResponse } from '@/lib/serviceError';
 import { prisma } from '@/prisma';
 import type { ProtoGrpcType } from '@/proto/webserver';
@@ -12,13 +13,13 @@ import type { StreamSearchResponse__Output } from '@/proto/zoekt/webserver/v1/St
 import type { WebserverServiceClient } from '@/proto/zoekt/webserver/v1/WebserverService';
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
+import * as Sentry from '@sentry/nextjs';
 import { PrismaClient, Repo } from '@sourcebot/db';
+import { parser as _parser } from '@sourcebot/query-language';
 import { createLogger, env } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
 import * as path from 'path';
-import { parser as _parser } from '@sourcebot/query-language';
 import { transformToZoektQuery } from './transformer';
-import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
 
 const logger = createLogger('streamSearchApi');
 
@@ -87,8 +88,8 @@ export const POST = async (request: NextRequest) => {
             input: query,
             isCaseSensitivityEnabled,
             isRegexEnabled,
-            onExpandSearchContext: async (contextName: string) => { 
-                const context = await prisma.searchContext.findUnique({ 
+            onExpandSearchContext: async (contextName: string) => {
+                const context = await prisma.searchContext.findUnique({
                     where: {
                         name_orgId: {
                             name: contextName,
@@ -107,8 +108,6 @@ export const POST = async (request: NextRequest) => {
                 return context.repos.map((repo) => repo.name);
             },
         });
-
-        console.log(JSON.stringify(zoektQuery, null, 2));
 
         const searchRequest: SearchRequest = {
             query: zoektQuery,
@@ -158,9 +157,19 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
     const client = createGrpcClient();
     let grpcStream: ReturnType<WebserverServiceClient['StreamSearch']> | null = null;
     let isStreamActive = true;
+    let pendingChunks = 0;
 
     return new ReadableStream({
         async start(controller) {
+            const tryCloseController = () => {
+                if (!isStreamActive && pendingChunks === 0) {
+                    controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+                    controller.close();
+                    client.close();
+                    logger.debug('SSE stream closed');
+                }
+            };
+
             try {
                 // @todo: we should just disable tenant enforcement for now.
                 const metadata = new grpc.Metadata();
@@ -190,11 +199,13 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
 
                 // Handle incoming data chunks
                 grpcStream.on('data', async (chunk: StreamSearchResponse__Output) => {
-                    console.log('chunk');
-
                     if (!isStreamActive) {
+                        logger.debug('SSE stream closed, skipping chunk');
                         return;
                     }
+
+                    // Track that we're processing a chunk
+                    pendingChunks++;
 
                     // grpcStream.on doesn't actually await on our handler, so we need to
                     // explicitly pause the stream here to prevent the stream from completing
@@ -352,7 +363,18 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
                     } catch (error) {
                         console.error('Error encoding chunk:', error);
                     } finally {
+                        pendingChunks--;
                         grpcStream?.resume();
+
+                        // @note: we were hitting "Controller is already closed" errors when calling
+                        // `controller.enqueue` above for the last chunk. The reasoning was the event
+                        // handler for 'end' was being invoked prior to the completion of the last chunk,
+                        // resulting in the controller being closed prematurely. The workaround was to
+                        // keep track of the number of pending chunks and only close the controller
+                        // when there are no more chunks to process. We need to explicitly call
+                        // `tryCloseController` since there _seems_ to be no ordering guarantees between
+                        // the 'end' event handler and this callback.
+                        tryCloseController();
                     }
                 });
 
@@ -362,17 +384,13 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
                         return;
                     }
                     isStreamActive = false;
-
-                    // Send completion signal
-                    controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
-                    controller.close();
-                    console.log('SSE stream completed');
-                    client.close();
+                    tryCloseController();
                 });
 
                 // Handle errors
                 grpcStream.on('error', (error: grpc.ServiceError) => {
-                    console.error('gRPC stream error:', error);
+                    logger.error('gRPC stream error:', error);
+                    Sentry.captureException(error);
 
                     if (!isStreamActive) {
                         return;
@@ -392,7 +410,7 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
                     client.close();
                 });
             } catch (error) {
-                console.error('Stream initialization error:', error);
+                logger.error('Stream initialization error:', error);
 
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 const errorData = `data: ${JSON.stringify({
@@ -405,7 +423,7 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
             }
         },
         cancel() {
-            console.log('SSE stream cancelled by client');
+            logger.warn('SSE stream cancelled by client');
             isStreamActive = false;
 
             // Cancel the gRPC stream to stop receiving data

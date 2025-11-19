@@ -2,6 +2,7 @@
 
 import { RepositoryInfo, SearchRequest, SearchResponse, SearchResultFile } from '@/features/search/types';
 import { useState, useCallback, useRef, useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 interface CacheEntry {
     files: SearchResultFile[];
@@ -155,54 +156,39 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
 
                         // SSE messages start with "data: "
                         const dataMatch = message.match(/^data: (.+)$/);
-                        if (!dataMatch) continue;
+                        if (!dataMatch) {
+                            continue;
+                        }
 
                         const data = dataMatch[1];
 
                         // Check for completion signal
                         if (data === '[DONE]') {
-                            setState(prev => ({ ...prev, isStreaming: false }));
-                            return;
+                            break;
                         }
 
-                        try {
-                            const chunk: SearchResponse = JSON.parse(data);
-                            setState(prev => ({
-                                ...prev,
-                                files: [
-                                    ...prev.files,
-                                    ...chunk.files
-                                ],
-                                repoInfo: {
-                                    ...prev.repoInfo,
-                                    ...chunk.repositoryInfo.reduce((acc, repo) => {
-                                        acc[repo.id] = repo;
-                                        return acc;
-                                    }, {} as Record<number, RepositoryInfo>),
-                                },
-                                numMatches: prev.numMatches + chunk.stats.actualMatchCount,
-                            }));
-                        } catch (parseError) {
-                            console.error('Error parsing chunk:', parseError);
-                        }
+                        const chunk: SearchResponse = JSON.parse(data);
+                        setState(prev => ({
+                            ...prev,
+                            files: [
+                                ...prev.files,
+                                ...chunk.files
+                            ],
+                            repoInfo: {
+                                ...prev.repoInfo,
+                                ...chunk.repositoryInfo.reduce((acc, repo) => {
+                                    acc[repo.id] = repo;
+                                    return acc;
+                                }, {} as Record<number, RepositoryInfo>),
+                            },
+                            numMatches: prev.numMatches + chunk.stats.actualMatchCount,
+                        }));
                     }
                 }
 
-                setState(prev => ({ ...prev, isStreaming: false }));
-            } catch (error) {
-                if ((error as Error).name === 'AbortError') {
-                    console.log('Stream aborted');
-                } else {
-                    setState(prev => ({
-                        ...prev,
-                        isStreaming: false,
-                        error: error as Error,
-                    }));
-                }
-            } finally {
-                const endTime = performance.now();
-                const durationMs = endTime - startTime;
+                const durationMs = performance.now() - startTime;
                 setState(prev => {
+                    // Cache the final results after the stream has completed.
                     searchCache.set(cacheKey, {
                         files: prev.files,
                         repoInfo: prev.repoInfo,
@@ -213,14 +199,31 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                     return {
                         ...prev,
                         durationMs,
+                        isStreaming: false,
                     }
                 });
+
+            } catch (error) {
+                if ((error as Error).name === 'AbortError') {
+                    return;
+                }
+
+                console.error(error);
+                Sentry.captureException(error);
+                const durationMs = performance.now() - startTime;
+                setState(prev => ({
+                    ...prev,
+                    isStreaming: false,
+                    durationMs,
+                    error: error as Error,
+                }));
             }
         }
 
         search();
 
         return () => {
+            cancel();
         }
     }, [
         query,
@@ -229,6 +232,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
         whole,
         isRegexEnabled,
         isCaseSensitivityEnabled,
+        cancel,
     ]);
 
     return {

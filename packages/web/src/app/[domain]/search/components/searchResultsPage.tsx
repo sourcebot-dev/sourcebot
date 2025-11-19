@@ -19,7 +19,7 @@ import { SearchQueryParams } from "@/lib/types";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { useLocalStorage } from "@uidotdev/usehooks";
-import { AlertTriangleIcon, BugIcon, FilterIcon, RefreshCcwIcon } from "lucide-react";
+import { AlertTriangleIcon, BugIcon, FilterIcon, RefreshCwIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -291,7 +291,7 @@ const PanelGroup = ({
                 <div className="py-1 px-2 flex flex-row items-center">
                     {isStreaming ? (
                         <>
-                            <RefreshCcwIcon className="h-4 w-4 animate-spin mr-2" />
+                            <RefreshCwIcon className="h-4 w-4 animate-spin mr-2" />
                             <p className="text-sm font-medium mr-1">Searching...</p>
                             {numMatches > 0 && (
                                 <p className="text-sm font-medium">{`Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
@@ -353,7 +353,7 @@ const PanelGroup = ({
                     />
                 ) : isStreaming ? (
                     <div className="flex flex-col items-center justify-center h-full gap-2">
-                        <RefreshCcwIcon className="h-6 w-6 animate-spin" />
+                        <RefreshCwIcon className="h-6 w-6 animate-spin" />
                         <p className="font-semibold text-center">Searching...</p>
                     </div>
                 ) : (
